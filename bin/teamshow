@@ -1,0 +1,112 @@
+#!/usr/bin/python
+
+"""
+    Script to show LAG and LAG member status in a summary view
+    Example of the output:
+    acsadmin@CO4SCH03010AALF:~$ teamshow
+    Flags: A - active, I - inactive, N/a - Not Available, S - selected, D - deselected
+      No.  Team Dev       Protocol    Ports
+    -----  -------------  ----------  ---------------------------------
+       24  PortChannel24  LACP(A)     fortyGigE0/28(S) fortyGigE0/24(S)
+       48  PortChannel48  LACP(A)     fortyGigE0/52(S) fortyGigE0/48(S)
+       16  PortChannel16  LACP(A)     fortyGigE0/20(S) fortyGigE0/16(S)
+       32  PortChannel32  LACP(A)     fortyGigE0/32(S) fortyGigE0/36(S)
+       56  PortChannel56  LACP(A)     fortyGigE0/60(S) fortyGigE0/56(S)
+       40  PortChannel40  LACP(A)     fortyGigE0/44(S) fortyGigE0/40(S)
+        0  PortChannel0   LACP(A)     fortyGigE0/0(S) fortyGigE0/4(S)
+        8  PortChannel8   LACP(A)     fortyGigE0/8(S) fortyGigE0/12(S)
+"""
+
+import json
+import re
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+from tabulate import tabulate
+
+class Teamshow(object):
+    def __init__(self):
+        self.hwsku = None
+        self.alias_map = {}
+        self.teams = []
+        self.teamsraw = {}
+        self.summary = {}
+        self.err = None
+
+    def get_minigraph(self):
+        """
+        """
+        minigraph_path = "/etc/ssw/minigraph.xml"
+        ns = "{Microsoft.Search.Autopilot.Evolution}"
+        tree = ET.parse(minigraph_path).getroot()
+
+	# Store HWSKU
+        self.hwsku = tree.find("{0}HwSku".format(ns)).text
+
+	# Store port channel IDs
+        for child in tree.findall("{0}DpgDec/{0}DeviceDataPlaneInfo/{0}PortChannelInterfaces/{0}PortChannel".format(ns)):
+            for x in child:
+                if x.tag == "{0}Name".format(ns):
+                    # Skip the 'PortChannel' prefix and store the port channel ID
+                    self.teams.append(x.text[11:])
+
+    def get_alias_map(self):
+        """
+        """
+        json_file = open("/etc/ssw/" + self.hwsku + "/alias_map.json").read()
+        self.alias_map = json.loads(json_file)
+
+    def get_teamdctl(self):
+        """
+            Command: 'teamdctl <teamdevname> state dump'
+        """
+        for team in self.teams:
+            teamdctl_cmd = 'teamdctl PortChannel' + team + ' state dump'
+            p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p.communicate()
+            rc = p.wait()
+            if rc == 0:
+                self.teamsraw[team] = output
+            else:
+                self.err = err
+
+    def parse_teamdctl(self):
+        for team in self.teams:
+            info = {}
+            if team not in self.teamsraw:
+                info['protocol'] = 'N/A'
+                self.summary[team] = info
+                self.summary[team]['ports'] = ''
+                continue
+            json_info = json.loads(self.teamsraw[team])
+            info['protocol'] = json_info['setup']['runner_name'].upper()
+            info['protocol'] += '(A)' if json_info['runner']['active'] else '(I)'
+            info['ports'] = ""
+            for port in json_info['ports']:
+                info['ports'] += self.alias_map[port]
+                info['ports'] += '(S)' if json_info['ports'][port]['runner']['selected'] else '(D)'
+                info['ports'] += ' '
+            self.summary[team] = info
+
+    def display_summary(self):
+        print "Flags: A - active, I - inactive, N/a - Not Available, S - selected, D - deselected"
+        header = ['No.', 'Team Dev', 'Protocol', 'Ports']
+        output = []
+        for team in self.summary:
+            output.append([team, 'PortChannel'+team, self.summary[team]['protocol'], self.summary[team]['ports']])
+        print tabulate(output, header)
+
+def main():
+    try:
+        team = Teamshow()
+        team.get_minigraph()
+        team.get_alias_map()
+        team.get_teamdctl()
+        team.parse_teamdctl()
+        team.display_summary()
+    except Exception as e:
+        print e.message
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
