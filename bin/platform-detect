@@ -1,0 +1,29 @@
+#! /usr/bin/python
+
+#------------------------------------------------------------------------------
+# # Copyright 2017 Microsoft Corporate all rights reserved
+#------------------------------------------------------------------------------
+#
+# Determines the embedded platform and returns a string with the model name.
+#
+
+import sys
+import xml.etree.ElementTree as ET
+
+MINIMAP_GRAPH = "/etc/ssw/minigraph.xml"
+
+def main():
+    try:
+        tree = ET.parse(MINIMAP_GRAPH)
+        root = tree.getroot()
+
+        print root.find('{Microsoft.Search.Autopilot.Evolution}HwSku').text
+
+    except:
+        print "UNKNOWN"
+        return 1
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
