@@ -66,7 +66,6 @@ filter_bucket_dict = {
     'RFCR': 1,
     'RJBR': 1,
     'RDBGC0': 2,
-    'RDBGC2': 2,
     'DROP_PKT_ING': 2,
     'ROVR': 3,
     'TPKT': 4,
@@ -310,7 +309,7 @@ Examples:
             sys.exit(0)
 
     try:
-        bcmcmd_output = subprocess.Popen((['/usr/sbin/bcmcmd',
+        bcmcmd_output = subprocess.Popen((['/usr/bin/bcmcmd',
                                            'show counters changed same nz']),
                                          stdout=subprocess.PIPE,
                                          shell=False).communicate()[0]
@@ -365,9 +364,10 @@ Examples:
     for i in range(2, len(netstat_lines) - 1):
         netstats = netstat_lines[i].split()
         if ":" in netstats[0]:
-            continue    # skip aliased interfaces
-        if "eth" in netstats[0] or "lo" in netstats[0] or "docker" in netstats[0]:
-            continue
+            continue    # Skip aliased interfaces
+        if ("eth" in netstats[0] or "lo" in netstats[0] or "docker" in netstats[0] or
+                "Vlan" in netstats[0] or "PortChannel" in netstats[0]):
+            continue    # Skip these types of interfaces
         else:
             cnstat_dict.update(cnstat_create_bcm_element(i, netstats, bcm_dict[netstats[0]]))
 
