@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 
 #############################################################################
 #
@@ -121,15 +121,15 @@ def run(target, opts, args):
 
     elif opts.mgmtmac:
         mm = target.mgmtaddrstr(e)
-        if mm <> None:
+        if mm != None:
             print mm
     elif opts.serial:
         try:
             serial = target.serial_number_str(e)
         except NotImplemented, e:
-          print e
+            print e
         else:
-          print serial or "Undefined."
+            print serial or "Undefined."
     else:
         target.decode_eeprom(e)
         (is_valid, valid_crc) = target.is_checksum_valid(e)
