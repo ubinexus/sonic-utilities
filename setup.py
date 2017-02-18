@@ -10,9 +10,9 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['show'],
+    packages=['sonic_cli', 'sonic_eeprom', 'sonic_sfp'],
     package_data={
-        'show': ['aliases.ini']
+        'sonic_cli': ['aliases.ini']
     },
     scripts=[
         'scripts/boot_part',
@@ -22,22 +22,9 @@ setup(
         'scripts/portstat',
         'scripts/sfputil',
     ],
-    data_files=[
-        ('/usr/lib/python2.7/dist-packages', [
-            'dist-packages/bcmshell.py',
-            'dist-packages/eeprom_base.py',
-            'dist-packages/eeprom_dts.py',
-            'dist-packages/eeprom_tlvinfo.py',
-            'dist-packages/sff8436.py',
-            'dist-packages/sff8472.py',
-            'dist-packages/sffbase.py',
-            'dist-packages/sfputilbase.py'
-            ]
-        ),
-    ],
     entry_points={
         'console_scripts': [
-            'show = show.main:cli',
+            'show = sonic_cli.main:cli',
         ]
     },
     classifiers=[

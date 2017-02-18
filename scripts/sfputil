@@ -18,9 +18,9 @@ except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 
 
-version = '1.0'
+VERSION = '1.0'
 
-usage_help="""
+USAGE_HELP="""
 Usage: sfputil [--help] [-p|--port <port_name>] [-d|--dom] [-o|--oneline]
           [-v|--version]
 
@@ -34,12 +34,20 @@ OPTIONS
 """
 
 
+SONIC_CFGGEN = '/usr/bin/sonic-cfggen'
+MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
+HWSKU_KEY = 'minigraph_hwsku'
+PLATFORM_KEY = 'platform'
+
+PLATFORM_ROOT = '/usr/share/sonic/device'
+
 csfputil = None
 sfp_dom_data_cache_dir = '/var/cache/ssw/sfputil'
 sfp_dom_data_cache_file = sfp_dom_data_cache_dir + '/' + 'sfputil.dat'
 porttabfile = None
 phytabfile = '/var/lib/cumulus/phytab'
 indent = '\t'
+
 
 def log_init():
     syslog.openlog('sfputil')
@@ -118,8 +126,7 @@ def get_port_sfp_data_all(sfp_obj_all):
     port_end = csfputil.port_end
 
     for p in range(port_start, port_end + 1):
-        port_sfp_data_all.update(get_port_sfp_data(sfp_obj_all.get(p),
-                        p))
+        port_sfp_data_all.update(get_port_sfp_data(sfp_obj_all.get(p), p))
 
     return port_sfp_data_all
 
@@ -168,8 +175,8 @@ def print_port_sfp_data_pretty_all(port_sfp_data, dump_dom):
         print_port_sfp_data_pretty(port_sfp_data, p, dump_dom)
 
 
-# Recursively print dict elems into coma separated list
-def print_dict_comaseparated(indict, elem_blacklist, elemprefix, first):
+# Recursively print dict elems into comma separated list
+def print_dict_commaseparated(indict, elem_blacklist, elemprefix, first):
     iter = 0
     for elem, elem_val in sorted(indict.iteritems()):
         if elem in elem_blacklist:
@@ -177,8 +184,7 @@ def print_dict_comaseparated(indict, elem_blacklist, elemprefix, first):
         if type(elem_val) == types.DictType:
             if iter != 0:
                 print ',',
-            print_dict_comaseparated(elem_val, elem_blacklist,
-                         elem, first)
+            print_dict_commaseparated(elem_val, elem_blacklist, elem, first)
         else:
             elemname = elemprefix + elem
             if first == 1:
@@ -209,14 +215,13 @@ def print_port_sfp_data_pretty_oneline(port_sfp_data,
             sfp_idata = sfp_data.get('interface')
             idata = sfp_idata.get('data')
             print 'port:' + port_name + ',',
-            print_dict_comaseparated(idata, ifdata_blacklist, '', 1)
+            print_dict_commaseparated(idata, ifdata_blacklist, '', 1)
             if dump_dom == 1:
                 sfp_ddata = sfp_data.get('dom')
                 if sfp_ddata != None:
                     ddata = sfp_ddata.get('data')
                     if ddata != None:
-                        print_dict_comaseparated(ddata,
-                            domdata_blacklist, '',1)
+                        print_dict_commaseparated(ddata, domdata_blacklist, '', 1)
             print
         #Only print detected sfp ports for oneline
         #else:
@@ -517,8 +522,7 @@ def sfp_dom_data_check(ports_sfp_data):
 
     # Dump new dom data into cached file
     try:
-        pickle.dump(ports_sfp_data, open(sfp_dom_data_cache_file,
-                "wb"))
+        pickle.dump(ports_sfp_data, open(sfp_dom_data_cache_file, "wb"))
     except pickle.PickleError, e:
         print 'Error pickling dom data ' + str(e)
         return
@@ -528,45 +532,52 @@ def sfp_dom_data_check(ports_sfp_data):
 
 #=========== Functions to load platform specific classes ====================
 
-# Returns platform vendor and model
+# Returns platform model (platform string) and submodel (HW SKU)
 def get_platform():
     try:
-        platform_detect = '/usr/bin/platform-detect'
+        proc = subprocess.Popen([SONIC_CFGGEN, '-v', PLATFORM_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        model = stdout.rstrip('\n')
 
-        ph = subprocess.Popen((platform_detect), stdout=subprocess.PIPE,
-                shell=False, stderr=subprocess.STDOUT)
-        cmdout = ph.communicate()[0]
-        ph.wait()
+        proc = subprocess.Popen([SONIC_CFGGEN, '-m', MINIGRAPH_FILE, '-v', HWSKU_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        submodel = stdout.rstrip('\n')
     except OSError, e:
-        raise OSError("cannot detect platform")
+        raise OSError("Cannot detect platform")
 
-    return cmdout.rstrip('\n')
+    return (model, submodel)
 
 
 # Loads platform specific sfputil module from source
 def load_platform_sfputil():
     global csfputil
     global porttabfile
-    platform_root = '/etc/ssw/'
     module_name = 'sfputil'
 
-
     # Get platform details
-    model = get_platform()
+    (model, submodel) = get_platform()
 
-    #Load platform module from source
-    platform_sfputil_module_path = '/'.join([platform_root, model, 'bin'])
+    # Load platform module from source
+    platform_path = '/'.join([PLATFORM_ROOT, model, submodel])
 
     # First check for the presence of the new 'port_config.ini' file
-    porttabfile = '/'.join([platform_root, model, 'port_config.ini'])
+    porttabfile = '/'.join([platform_path, 'port_config.ini'])
     if not os.path.isfile(porttabfile):
         # port_config.ini doesn't exist. Try loading the older 'portmap.ini' file
-        porttabfile = '/'.join([platform_root, model, 'portmap.ini'])
+        porttabfile = '/'.join([platform_path, 'portmap.ini'])
 
     try:
-        module = imp.load_source(module_name,
-                '/'.join([platform_sfputil_module_path,
-                module_name + '.py']))
+        module_full_name = module_name
+        module_file = '/'.join([platform_path, 'bin', module_full_name + '.py'])
+        module = imp.load_source(module_name, module_file)
     except IOError, e:
         print 'Error loading platform module ' + module_name + str(e)
         return None
@@ -583,7 +594,7 @@ def load_platform_sfputil():
 #========== Main ===========================================================
 
 # main
-if __name__ == '__main__':
+def main():
     port_sfp_data = {}
     port = ''
     all_ports = 1
@@ -612,7 +623,7 @@ if __name__ == '__main__':
                         'version'])
         except getopt.GetoptError, e:
             print e
-            print usage_help
+            print USAGE_HELP
             exit(1)
 
         for opt, arg in options:
@@ -620,12 +631,12 @@ if __name__ == '__main__':
                 try:
                     port = arg
                 except:
-                    print usage_help
+                    print USAGE_HELP
                     exit(1)
 
                 all_ports = 0
             elif opt == '--help' or opt == '-h':
-                print usage_help
+                print USAGE_HELP
                 exit(1)
             elif opt == '--dom' or opt == '-d':
                 dump_dom = 1
@@ -633,29 +644,30 @@ if __name__ == '__main__':
                 dom_check = 1
             elif opt == '--porttab':
                 try:
+                    global porttabfile
                     porttabfile = arg
                 except:
-                    print usage_help
+                    print USAGE_HELP
                     exit(1)
             elif opt == '--canned-data':
                 try:
                     canned_data_file = arg
                 except:
-                    print usage_help
+                    print USAGE_HELP
                     exit(1)
             elif opt == '--oneline' or opt == '-o':
                 oneline = 1
             elif opt == '--raw':
                 raw = 1
             elif opt == '--version' or opt == '-v':
-                print 'version : ' + version
+                print 'version : ' + VERSION
                 exit(0)
 
 
     # dom_check is mutually exclusive with all other options
     if dom_check == 1 and port != '':
         print '--dom-check and --port are mutually exclusive'
-        print usage_help
+        print USAGE_HELP
         exit(1)
 
     if dom_check == 1:
@@ -743,3 +755,7 @@ if __name__ == '__main__':
             print_port_sfp_data_pretty_all(port_sfp_data, dump_dom)
         else:
             print_port_sfp_data_pretty(port_sfp_data, port, dump_dom)
+
+
+if __name__ == '__main__':
+    main()

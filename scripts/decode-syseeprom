@@ -15,34 +15,52 @@ try:
     import sys
     from array import array
     import imp
-    import eeprom_dts
+    from sonic_eeprom import eeprom_dts
     import glob
 except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 
 
-platform_detect = '/usr/bin/platform-detect'
-platform_root = '/etc/ssw'
+SONIC_CFGGEN = '/usr/bin/sonic-cfggen'
+MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
+HWSKU_KEY = 'minigraph_hwsku'
+PLATFORM_KEY = 'platform'
+
+PLATFORM_ROOT = '/usr/share/sonic/device'
 cache_root = '/var/cache/ssw/decode-syseeprom'
+
+# Returns platform model (platform string) and submodel (HW SKU)
+def get_platform():
+    try:
+        proc = subprocess.Popen([SONIC_CFGGEN, '-v', PLATFORM_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        model = stdout.rstrip('\n')
+
+        proc = subprocess.Popen([SONIC_CFGGEN, '-m', MINIGRAPH_FILE, '-v', HWSKU_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        submodel = stdout.rstrip('\n')
+    except OSError, e:
+        raise OSError("Cannot detect platform")
+
+    return (model, submodel)
 
 def main():
 
     if not os.geteuid() == 0:
         raise RuntimeError("must be root to run")
 
-    #
-    # determine the platform
-    #
-    try:
-        ph = subprocess.Popen((platform_detect), stdout=subprocess.PIPE,
-                              shell=False, stderr=subprocess.STDOUT)
-        cmdout = ph.communicate()[0]
-        ph.wait()
-    except OSError, e:
-        raise OSError("cannot detect platform")
+    # Get platform details
+    (model, submodel) = get_platform()
 
-    platform = cmdout.rstrip('\n')
-    platform_path = '/'.join([platform_root, platform])
+    platform_path = '/'.join([PLATFORM_ROOT, model, submodel])
 
     #
     # Currently we only support board eeprom decode.
