@@ -160,6 +160,12 @@ def counters():
     """Show interface counters"""
     run_command("portstat", pager=True)
 
+# 'portchannel' subcommand
+@interfaces.command()
+def portchannel():
+    """Show PortChannel information"""
+    run_command("teamshow", pager=True)
+
 
 #
 # 'lldp' group ####
