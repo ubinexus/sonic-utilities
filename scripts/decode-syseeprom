@@ -29,7 +29,7 @@ PLATFORM_KEY = 'platform'
 PLATFORM_ROOT = '/usr/share/sonic/device'
 cache_root = '/var/cache/ssw/decode-syseeprom'
 
-# Returns platform model (platform string) and submodel (HW SKU)
+# Returns platform and HW SKU
 def get_platform():
     try:
         proc = subprocess.Popen([SONIC_CFGGEN, '-v', PLATFORM_KEY],
@@ -38,7 +38,7 @@ def get_platform():
                                 stderr=subprocess.STDOUT)
         stdout = proc.communicate()[0]
         proc.wait()
-        model = stdout.rstrip('\n')
+        platform = stdout.rstrip('\n')
 
         proc = subprocess.Popen([SONIC_CFGGEN, '-m', MINIGRAPH_FILE, '-v', HWSKU_KEY],
                                 stdout=subprocess.PIPE,
@@ -46,11 +46,11 @@ def get_platform():
                                 stderr=subprocess.STDOUT)
         stdout = proc.communicate()[0]
         proc.wait()
-        submodel = stdout.rstrip('\n')
+        hwsku = stdout.rstrip('\n')
     except OSError, e:
         raise OSError("Cannot detect platform")
 
-    return (model, submodel)
+    return (platform, hwsku)
 
 def main():
 
@@ -58,9 +58,9 @@ def main():
         raise RuntimeError("must be root to run")
 
     # Get platform details
-    (model, submodel) = get_platform()
+    (platform, hwsku) = get_platform()
 
-    platform_path = '/'.join([PLATFORM_ROOT, model, submodel])
+    platform_path = '/'.join([PLATFORM_ROOT, platform, hwsku])
 
     #
     # Currently we only support board eeprom decode.
