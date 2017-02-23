@@ -22,11 +22,10 @@ except ImportError, e:
 
 
 SONIC_CFGGEN = '/usr/bin/sonic-cfggen'
-MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
-HWSKU_KEY = 'minigraph_hwsku'
 PLATFORM_KEY = 'platform'
 
 PLATFORM_ROOT = '/usr/share/sonic/device'
+
 cache_root = '/var/cache/ssw/decode-syseeprom'
 
 # Returns platform and HW SKU
@@ -39,28 +38,20 @@ def get_platform():
         stdout = proc.communicate()[0]
         proc.wait()
         platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN, '-m', MINIGRAPH_FILE, '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
     except OSError, e:
         raise OSError("Cannot detect platform")
 
-    return (platform, hwsku)
+    return platform
 
 def main():
 
     if not os.geteuid() == 0:
         raise RuntimeError("must be root to run")
 
-    # Get platform details
-    (platform, hwsku) = get_platform()
+    # Get platform name
+    platform = get_platform()
 
-    platform_path = '/'.join([PLATFORM_ROOT, platform, hwsku])
+    platform_path = '/'.join([PLATFORM_ROOT, platform])
 
     #
     # Currently we only support board eeprom decode.
@@ -71,9 +62,9 @@ def main():
     # load the target class file and instantiate the object
     #
     try:
-        m = imp.load_source('eeprom','/'.join([platform_path, 'bin/eeprom.py']))
+        m = imp.load_source('eeprom','/'.join([platform_path, 'plugins', 'eeprom.py']))
     except IOError:
-        raise IOError("cannot load module: " + '/'.join([platform_path, 'bin/eeprom.py']))
+        raise IOError("cannot load module: " + '/'.join([platform_path, 'plugins', 'eeprom.py']))
 
     class_ = getattr(m, 'board')
     t = class_('board', '','','')

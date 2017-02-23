@@ -533,7 +533,7 @@ def sfp_dom_data_check(ports_sfp_data):
 #=========== Functions to load platform specific classes ====================
 
 # Returns platform and HW SKU
-def get_platform():
+def get_platform_and_hwsku():
     try:
         proc = subprocess.Popen([SONIC_CFGGEN, '-v', PLATFORM_KEY],
                                 stdout=subprocess.PIPE,
@@ -562,21 +562,22 @@ def load_platform_sfputil():
     global porttabfile
     module_name = 'sfputil'
 
-    # Get platform details
-    (platform, hwsku) = get_platform()
+    # Get platform and hwsku
+    (platform, hwsku) = get_platform_and_hwsku()
 
     # Load platform module from source
-    platform_path = '/'.join([PLATFORM_ROOT, platform, hwsku])
+    platform_path = '/'.join([PLATFORM_ROOT, platform])
+    hwsku_path = '/'.join([platform_path, hwsku])
 
     # First check for the presence of the new 'port_config.ini' file
-    porttabfile = '/'.join([platform_path, 'port_config.ini'])
+    porttabfile = '/'.join([hwsku_path, 'port_config.ini'])
     if not os.path.isfile(porttabfile):
         # port_config.ini doesn't exist. Try loading the older 'portmap.ini' file
-        porttabfile = '/'.join([platform_path, 'portmap.ini'])
+        porttabfile = '/'.join([hwsku_path, 'portmap.ini'])
 
     try:
         module_full_name = module_name
-        module_file = '/'.join([platform_path, 'bin', module_full_name + '.py'])
+        module_file = '/'.join([platform_path, 'plugins', module_full_name + '.py'])
         module = imp.load_source(module_name, module_file)
     except IOError, e:
         print 'Error loading platform module ' + module_name + str(e)
