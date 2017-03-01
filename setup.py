@@ -23,7 +23,6 @@ setup(
         'scripts/sfputil',
     ],
     data_files=[
-        ('/etc', ['data/etc/bash.bashrc']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show'])
     ],
     entry_points={
