@@ -1,0 +1,98 @@
+#!/usr/bin/python
+
+"""
+    Script to show LAG and LAG member status in a summary view
+    Example of the output:
+    acsadmin@CO4SCH03010AALF:~$ teamshow
+    Flags: A - active, I - inactive, N/A - Not Available, S - selected, D - deselected
+     No.  Team Dev       Protocol    Ports
+    -----  -------------  ----------  ---------------------------
+       24  PortChannel24  LACP(A)     Ethernet28(S) Ethernet24(S)
+       48  PortChannel48  LACP(A)     Ethernet52(S) Ethernet48(S)
+       16  PortChannel16  LACP(A)     Ethernet20(S) Ethernet16(S)
+       32  PortChannel32  LACP(A)     Ethernet32(S) Ethernet36(S)
+       56  PortChannel56  LACP(A)     Ethernet60(S) Ethernet56(S)
+       40  PortChannel40  LACP(A)     Ethernet44(S) Ethernet40(S)
+        0  PortChannel0   LACP(A)     Ethernet0(S) Ethernet4(S)
+        8  PortChannel8   LACP(A)     Ethernet8(S) Ethernet12(S)
+"""
+
+import json
+import re
+import subprocess
+import sys
+from tabulate import tabulate
+from minigraph import parse_xml
+
+class Teamshow(object):
+    def __init__(self):
+        self.teams = []
+        self.teamsraw = {}
+        self.summary = {}
+        self.err = None
+
+    def get_minigraph(self):
+        """
+        """
+        minigraph_path = "/etc/ssw/minigraph.xml"
+
+        # Store port channel IDs	
+        for port in parse_xml(minigraph_path)['minigraph_portchannel_interfaces'].keys():
+            # Skip the 'PortChannel' prefix and store the port channel ID
+            self.teams.append(port[11:])
+
+
+		
+    def get_teamdctl(self):
+        """
+            Command: 'teamdctl <teamdevname> state dump'
+        """
+        for team in self.teams:
+            teamdctl_cmd = 'teamdctl PortChannel' + team + ' state dump'
+            p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p.communicate()
+            rc = p.wait()
+            if rc == 0:
+                self.teamsraw[team] = output
+            else:
+                self.err = err
+
+    def parse_teamdctl(self):
+        for team in self.teams:
+            info = {}
+            if team not in self.teamsraw:
+                info['protocol'] = 'N/A'
+                self.summary[team] = info
+                self.summary[team]['ports'] = ''
+                continue
+            json_info = json.loads(self.teamsraw[team])
+            info['protocol'] = json_info['setup']['runner_name'].upper()
+            info['protocol'] += '(A)' if json_info['runner']['active'] else '(I)'
+            info['ports'] = ""
+            for port in json_info['ports']:
+                info['ports'] += port
+                info['ports'] += '(S)' if json_info['ports'][port]['runner']['selected'] else '(D)'
+                info['ports'] += ' '
+            self.summary[team] = info
+
+    def display_summary(self):
+        print "Flags: A - active, I - inactive, N/A - Not Available, S - selected, D - deselected"
+        header = ['No.', 'Team Dev', 'Protocol', 'Ports']
+        output = []
+        for team in self.summary:
+            output.append([team, 'PortChannel'+team, self.summary[team]['protocol'], self.summary[team]['ports']])
+        print tabulate(output, header)
+
+def main():
+    try:
+        team = Teamshow()
+        team.get_minigraph()
+        team.get_teamdctl()
+        team.parse_teamdctl()
+        team.display_summary()
+    except Exception as e:
+        print e.message
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
