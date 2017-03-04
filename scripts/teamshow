@@ -41,8 +41,6 @@ class Teamshow(object):
             # Skip the 'PortChannel' prefix and store the port channel ID
             self.teams.append(port[11:])
 
-
-		
     def get_teamdctl(self):
         """
             Command: 'teamdctl <teamdevname> state dump'
