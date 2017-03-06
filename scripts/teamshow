@@ -31,11 +31,9 @@ class Teamshow(object):
         self.summary = {}
         self.err = None
 
-    def get_minigraph(self):
+    def get_minigraph(self, minigraph_path = '/etc/sonic/minigraph.xml'):
         """
         """
-        minigraph_path = "/etc/ssw/minigraph.xml"
-
         # Store port channel IDs	
         for port in parse_xml(minigraph_path)['minigraph_portchannel_interfaces'].keys():
             # Skip the 'PortChannel' prefix and store the port channel ID
