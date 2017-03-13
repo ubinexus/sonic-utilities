@@ -34,7 +34,7 @@ class Teamshow(object):
     def get_portchannel_names(self):
         """
         """
-        minigraph_path = '/etc/ssw/minigraph.xml'
+        minigraph_path = '/etc/sonic/minigraph.xml'
         self.teams = parse_xml(minigraph_path)['minigraph_portchannel_interfaces'].keys();        
 
     def get_team_id(self, team):
