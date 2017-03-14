@@ -33,6 +33,7 @@ class Teamshow(object):
 
     def get_portchannel_names(self):
         """
+            Get the portchannel names from minigraph.
         """
         minigraph_path = '/etc/sonic/minigraph.xml'
         self.teams = parse_xml(minigraph_path)['minigraph_portchannel_interfaces'].keys();        
@@ -45,7 +46,8 @@ class Teamshow(object):
 
     def get_teamdctl(self):
         """
-            Command: 'teamdctl <teamdevname> state dump'
+            Get teams raw data from teamdctl.
+            Command: 'teamdctl <teamdevname> state dump'.
         """
         for team in self.teams:
             teamdctl_cmd = 'teamdctl ' + team + ' state dump'
@@ -58,6 +60,9 @@ class Teamshow(object):
                 self.err = err
 
     def parse_teamdctl(self):
+        """
+             Parse the output of teamdctl.
+        """
         for team in self.teams:
             info = {}
             team_id = self.get_team_id(team)
@@ -77,6 +82,9 @@ class Teamshow(object):
             self.summary[team_id] = info
 
     def display_summary(self):
+        """
+            Display the portchannel (team) summary.
+        """
         print "Flags: A - active, I - inactive, N/A - Not Available, S - selected, D - deselected"
         header = ['No.', 'Team Dev', 'Protocol', 'Ports']
         output = []
