@@ -80,8 +80,8 @@ class Teamshow(object):
         print "Flags: A - active, I - inactive, N/A - Not Available, S - selected, D - deselected"
         header = ['No.', 'Team Dev', 'Protocol', 'Ports']
         output = []
-        for team in self.summary:
-            output.append([team, 'PortChannel'+team, self.summary[team]['protocol'], self.summary[team]['ports']])
+        for team_id in self.summary:
+            output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
         print tabulate(output, header)
 
 def main():
