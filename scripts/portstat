@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 
 #####################################################################
 #
@@ -15,6 +15,7 @@ import os.path
 import re
 import subprocess
 import sys
+import time
 
 from collections import namedtuple, OrderedDict
 from tabulate import tabulate
@@ -204,114 +205,10 @@ def parse_bcmcmd_ps(bcmcmd_output):
     bcmcmd_lines = bcmcmd_output.split("\n")
 
 
-def cnstat_diff_print(cnstat_new_dict, cnstat_old_dict, use_json):
-    table = []
-
-    for key, cntr in cnstat_new_dict.iteritems():
-        if key == 'time':
-            time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
-            time_gap = time_gap.total_seconds()
-            continue
-        old_cntr = None
-        if key in cnstat_old_dict:
-            old_cntr = cnstat_old_dict.get(key)
-
-        if old_cntr is not None:
-            table.append((key,
-                          ns_diff(cntr.rx_ok, old_cntr.rx_ok),
-                          ns_rate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
-                          ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
-                          ns_diff(cntr.rx_err, old_cntr.rx_err),
-                          ns_diff(cntr.rx_drop, old_cntr.rx_drop),
-                          ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
-                          ns_diff(cntr.tx_ok, old_cntr.tx_ok),
-                          ns_rate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
-                          ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
-                          ns_diff(cntr.tx_err, old_cntr.tx_err),
-                          ns_diff(cntr.tx_drop, old_cntr.tx_drop),
-                          ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
-        else:
-            table.append((key,
-                          cntr.rx_ok,
-                          "N/A",
-                          "N/A",
-                          cntr.rx_err,
-                          cntr.rx_drop,
-                          cntr.rx_ovr,
-                          cntr.tx_ok,
-                          "N/A",
-                          "N/A",
-                          cntr.tx_err,
-                          cntr.tx_drop,
-                          cntr.tx_err))
-
-    if use_json:
-        print table_as_json(table)
-    else:
-        print tabulate(table, header, tablefmt='simple', stralign='right')
-
-if __name__ == "__main__":
-    parser  = argparse.ArgumentParser(description='Wrapper for netstat',
-                                      version='1.0.0',
-                                      formatter_class=argparse.RawTextHelpFormatter,
-                                      epilog="""
-Examples:
-  portstat -c -t test
-  portstat -t test
-  portstat -d -t test
-  portstat
-  portstat -r
-""")
-    parser.add_argument('-c', '--clear', action='store_true', help='Copy & clear stats')
-    parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats, either the uid or the specified tag')
-    parser.add_argument('-D', '--delete-all', action='store_true', help='Delete all saved stats')
-    parser.add_argument('-j', '--json', action='store_true', help='Display in JSON format')
-    parser.add_argument('-r', '--raw', action='store_true', help='Raw stats (unmodified output of netstat)')
-    parser.add_argument('-t', '--tag', type=str, help='Save stats with name TAG', default=None)
-    args = parser.parse_args()
-
-    save_fresh_stats = args.clear
-    delete_saved_stats = args.delete
-    delete_all_stats = args.delete_all
-    use_json = args.json
-    raw_stats = args.raw
-    tag_name = args.tag
-    uid = str(os.getuid())
-
-    if not os.geteuid() == 0:
-        raise RuntimeError("must be root to run")
-
-    if tag_name is not None:
-        cnstat_file = uid + "-" + tag_name
-    else:
-        cnstat_file = uid
-
-    cnstat_dir = "/tmp/portstat-" + uid
-    cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
-
-    if delete_all_stats:
-        for file in os.listdir(cnstat_dir):
-            os.remove(cnstat_dir + "/" + file)
-
-        try:
-            os.rmdir(cnstat_dir)
-            sys.exit(0)
-        except IOError as e:
-            print e.errno, e
-            sys.exit(e)
-
-    if delete_saved_stats:
-        try:
-            os.remove(cnstat_fqn_file)
-        except IOError as e:
-            if e.errno != ENOENT:
-                print e.errno, e
-                sys.exit(1)
-        finally:
-            if os.listdir(cnstat_dir) == []:
-                os.rmdir(cnstat_dir)
-            sys.exit(0)
-
+def get_cnstat(cnstat_dir):
+    """
+          Get the cnstat from netstat.
+    """
     try:
         bcmcmd_output = subprocess.Popen(([BCMCMD_PATH,
                                            'show counters changed same nz']),
@@ -375,11 +272,127 @@ Examples:
         else:
             cnstat_dict.update(cnstat_create_bcm_element(i, netstats, bcm_dict[netstats[0]]))
 
+
+    return cnstat_dict
+
+def cnstat_diff_print(cnstat_new_dict, cnstat_old_dict, use_json):
+    table = []
+
+    for key, cntr in cnstat_new_dict.iteritems():
+        if key == 'time':
+            time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
+            time_gap = time_gap.total_seconds()
+            continue
+        old_cntr = None
+        if key in cnstat_old_dict:
+            old_cntr = cnstat_old_dict.get(key)
+
+        if old_cntr is not None:
+            table.append((key,
+                          ns_diff(cntr.rx_ok, old_cntr.rx_ok),
+                          ns_rate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                          ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                          ns_diff(cntr.rx_err, old_cntr.rx_err),
+                          ns_diff(cntr.rx_drop, old_cntr.rx_drop),
+                          ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
+                          ns_diff(cntr.tx_ok, old_cntr.tx_ok),
+                          ns_rate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                          ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                          ns_diff(cntr.tx_err, old_cntr.tx_err),
+                          ns_diff(cntr.tx_drop, old_cntr.tx_drop),
+                          ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
+        else:
+            table.append((key,
+                          cntr.rx_ok,
+                          "N/A",
+                          "N/A",
+                          cntr.rx_err,
+                          cntr.rx_drop,
+                          cntr.rx_ovr,
+                          cntr.tx_ok,
+                          "N/A",
+                          "N/A",
+                          cntr.tx_err,
+                          cntr.tx_drop,
+                          cntr.tx_err))
+
+    if use_json:
+        print table_as_json(table)
+    else:
+        print tabulate(table, header, tablefmt='simple', stralign='right')
+
+if __name__ == "__main__":
+    parser  = argparse.ArgumentParser(description='Wrapper for netstat',
+                                      version='1.0.0',
+                                      formatter_class=argparse.RawTextHelpFormatter,
+                                      epilog="""
+Examples:
+  portstat -c -t test
+  portstat -t test
+  portstat -d -t test
+  portstat
+  portstat -r
+  portstat -p 20
+""")
+    parser.add_argument('-c', '--clear', action='store_true', help='Copy & clear stats')
+    parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats, either the uid or the specified tag')
+    parser.add_argument('-D', '--delete-all', action='store_true', help='Delete all saved stats')
+    parser.add_argument('-j', '--json', action='store_true', help='Display in JSON format')
+    parser.add_argument('-r', '--raw', action='store_true', help='Raw stats (unmodified output of netstat)')
+    parser.add_argument('-t', '--tag', type=str, help='Save stats with name TAG', default=None)
+    parser.add_argument('-p', '--period', type=int, help='Get the portstat within Period seconds', default=0)
+    args = parser.parse_args()
+
+    save_fresh_stats = args.clear
+    delete_saved_stats = args.delete
+    delete_all_stats = args.delete_all
+    use_json = args.json
+    raw_stats = args.raw
+    tag_name = args.tag
+    uid = str(os.getuid())
+    wait_time_in_seconds = args.period
+
+    if not os.geteuid() == 0:
+        raise RuntimeError("must be root to run")
+
+    if tag_name is not None:
+        cnstat_file = uid + "-" + tag_name
+    else:
+        cnstat_file = uid
+
+    cnstat_dir = "/tmp/portstat-" + uid
+    cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
+
+    if delete_all_stats:
+        for file in os.listdir(cnstat_dir):
+            os.remove(cnstat_dir + "/" + file)
+
+        try:
+            os.rmdir(cnstat_dir)
+            sys.exit(0)
+        except IOError as e:
+            print e.errno, e
+            sys.exit(e)
+
+    if delete_saved_stats:
+        try:
+            os.remove(cnstat_fqn_file)
+        except IOError as e:
+            if e.errno != ENOENT:
+                print e.errno, e
+                sys.exit(1)
+        finally:
+            if os.listdir(cnstat_dir) == []:
+                os.rmdir(cnstat_dir)
+            sys.exit(0)
+    
+    cnstat_dict = get_cnstat(cnstat_dir)
+
     # Now decide what information to display
     if raw_stats:
         cnstat_print(cnstat_dict, use_json)
         sys.exit(0)
-
+    
     if save_fresh_stats:
         try:
             pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'w'))
@@ -388,20 +401,25 @@ Examples:
         else:
             print "Cleared counters"
             sys.exit(0)
-
-    cnstat_cached_dict = OrderedDict()
-
-    if os.path.isfile(cnstat_fqn_file):
-        try:
-            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))
-            print "Last cached time was " + str(cnstat_cached_dict.get('time'))
-            cnstat_diff_print(cnstat_dict, cnstat_cached_dict, use_json)
-        except IOError as e:
-            print e.errno, e
-    else:
-        if tag_name:
-            print "\nFile '%s' does not exist" % cnstat_fqn_file
-            print "Did you run 'portstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name)
+	
+    if wait_time_in_seconds == 0:
+        cnstat_cached_dict = OrderedDict()
+        if os.path.isfile(cnstat_fqn_file):
+            try:
+                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))
+                print "Last cached time was " + str(cnstat_cached_dict.get('time'))
+                cnstat_diff_print(cnstat_dict, cnstat_cached_dict, use_json)
+            except IOError as e:
+                print e.errno, e
         else:
-            cnstat_print(cnstat_dict, use_json)
+            if tag_name:
+                print "\nFile '%s' does not exist" % cnstat_fqn_file
+                print "Did you run 'portstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name)
+            else:
+                cnstat_print(cnstat_dict, use_json)
+    else:
+        #wait for sometime and output the result
+        time.sleep(wait_time_in_seconds)
+        cnstat_new_dict = get_cnstat(cnstat_dir)
+        cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json)
 
