@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 
 #####################################################################
 #
@@ -392,7 +392,7 @@ Examples:
     if raw_stats:
         cnstat_print(cnstat_dict, use_json)
         sys.exit(0)
-    
+
     if save_fresh_stats:
         try:
             pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'w'))
