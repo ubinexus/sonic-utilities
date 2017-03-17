@@ -205,7 +205,7 @@ def parse_bcmcmd_ps(bcmcmd_output):
     bcmcmd_lines = bcmcmd_output.split("\n")
 
 
-def get_cnstat(cnstat_dir):
+def get_cnstat():
     """
           Get the cnstat from netstat.
     """
@@ -247,14 +247,6 @@ def get_cnstat(cnstat_dir):
             continue
         iface, stats = parsed[0]
         proc[iface] = stats.split()
-
-    # At this point, either we'll create a file or open an existing one.
-    if not os.path.exists(cnstat_dir):
-        try:
-            os.makedirs(cnstat_dir)
-        except IOError as e:
-            print e.errno, e
-            sys.exit(1)
 
     # Build a dictionary of the stats
     cnstat_dict = OrderedDict()
@@ -340,7 +332,7 @@ Examples:
     parser.add_argument('-j', '--json', action='store_true', help='Display in JSON format')
     parser.add_argument('-r', '--raw', action='store_true', help='Raw stats (unmodified output of netstat)')
     parser.add_argument('-t', '--tag', type=str, help='Save stats with name TAG', default=None)
-    parser.add_argument('-p', '--period', type=int, help='Get the portstat within Period seconds', default=0)
+    parser.add_argument('-p', '--period', type=int, help='Display stats over a specified period (in seconds).', default=0)
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -386,12 +378,21 @@ Examples:
                 os.rmdir(cnstat_dir)
             sys.exit(0)
     
-    cnstat_dict = get_cnstat(cnstat_dir)
+    cnstat_dict = get_cnstat()
 
     # Now decide what information to display
     if raw_stats:
         cnstat_print(cnstat_dict, use_json)
         sys.exit(0)
+
+    # At this point, either we'll create a file or open an existing one.
+    if not os.path.exists(cnstat_dir):
+        try:
+            os.makedirs(cnstat_dir)
+        except IOError as e:
+            print e.errno, e
+            sys.exit(1)
+
 
     if save_fresh_stats:
         try:
@@ -418,8 +419,8 @@ Examples:
             else:
                 cnstat_print(cnstat_dict, use_json)
     else:
-        #wait for sometime and output the result
+        #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
-        cnstat_new_dict = get_cnstat(cnstat_dir)
+        cnstat_new_dict = get_cnstat()
         cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json)
 
