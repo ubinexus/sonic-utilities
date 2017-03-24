@@ -71,7 +71,9 @@ class AclStat(object):
         self.validate_ports()
 
     def setup_db_connections(self):
-
+        """
+        Create connections to the Redis DB
+        """
         pool0 = redis.ConnectionPool(connection_class=redis.UnixDomainSocketConnection, path=REDIS_UNIX_SOCKET, db=0)
         pool2 = redis.ConnectionPool(connection_class=redis.UnixDomainSocketConnection, path=REDIS_UNIX_SOCKET, db=2)
         self.db[APP_DB] = redis.Redis(connection_pool=pool0)
@@ -139,6 +141,9 @@ class AclStat(object):
             return dict((k.lower(), v) for k,v in dictionary.iteritems())
 
         def fetch_acl_tables():
+            """
+            Get ACL tables from the DB
+            """
             tables = self.db[APP_DB].keys("ACL_TABLE:*")
 
             if verboseflag:
@@ -161,7 +166,9 @@ class AclStat(object):
                 print("ACL Tables to show:", len(self.acl_tables))
 
         def fetch_acl_rules():
-
+            """
+            Get ACL rules from the DB
+            """
             for table_name in self.acl_tables.keys():
                 rules = self.db[APP_DB].keys("ACL_RULE_TABLE:%s:*" % table_name)
                 if not rules and verboseflag:
@@ -183,6 +190,9 @@ class AclStat(object):
                 print("ACL Rules to show:", len(self.acl_rules))
 
         def fetch_acl_counters():
+            """
+            Get ACL counters from the DB
+            """
             acl_counters_cmd = "docker exec -it database redis-cli --csv -n 2 hgetall COUNTERS:"
             counters_cnt = len(self.acl_rules) # num of counters should be the same as rules
             if verboseflag:
