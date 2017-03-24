@@ -25,17 +25,12 @@ import os
 from tabulate import tabulate
 import argparse
 import json
-import redis
+import sswsdk
 
 ### temp file to save counter positions when doing clear counter action.
 ### if we could have a SAI command to clear counters will be better, so no need to maintain
 ### counters in temp loaction for clear conter action
 COUNTER_POSITION = '/tmp/.counters_acl.p'
-
-### redis DB constants
-REDIS_UNIX_SOCKET = "/var/run/redis/redis.sock"
-APP_DB = 0
-CNT_DB = 2
 
 ### acl display header
 ACL_HEADER = ["RULE NAME", "TABLE NAME", "TYPE", "PRIO", "ACTION", "PACKETS COUNT", "BYTES COUNT"]
@@ -49,7 +44,6 @@ class AclStat(object):
     Process aclstat
     """
     def __init__(self, ports, rules, tables):
-        self.db = {}
         self.port_map = {}
         self.acl_tables = {}
         self.acl_rules = {}
@@ -66,33 +60,19 @@ class AclStat(object):
         if tables:
             self.table_list = tables.split(",")
 
-        self.setup_db_connections()
+        # Set up db connections
+        self.db = sswsdk.SonicV2Connector()
+        self.db.connect(self.db.APPL_DB)
+        self.db.connect(self.db.COUNTERS_DB)
+
         self.read_port_map()
         self.validate_ports()
-
-    def setup_db_connections(self):
-        """
-        Create connections to the Redis DB
-        """
-        pool0 = redis.ConnectionPool(connection_class=redis.UnixDomainSocketConnection, path=REDIS_UNIX_SOCKET, db=0)
-        pool2 = redis.ConnectionPool(connection_class=redis.UnixDomainSocketConnection, path=REDIS_UNIX_SOCKET, db=2)
-        self.db[APP_DB] = redis.Redis(connection_pool=pool0)
-        self.db[CNT_DB] = redis.Redis(connection_pool=pool2)
-
-    def query_redis_db(self, query_cmd):
-        p = subprocess.Popen(query_cmd, stdout=subprocess.PIPE, shell=True)
-        (output, err) = p.communicate()
-        returncode = p.wait()
-        if returncode == 0:
-            return output
-        else:
-            return ""
 
     def read_port_map(self):
         """
         Redis database interface mapping for SAI interface index and interface name
         """
-        self.port_map = self.db[CNT_DB].hgetall("COUNTERS_PORT_NAME_MAP")
+        self.port_map = self.db.get_all(self.db.COUNTERS_DB, "COUNTERS_PORT_NAME_MAP")
 
     def validate_ports(self):
         """
@@ -144,7 +124,7 @@ class AclStat(object):
             """
             Get ACL tables from the DB
             """
-            tables = self.db[APP_DB].keys("ACL_TABLE:*")
+            tables = self.db.keys(self.db.APPL_DB, "ACL_TABLE:*")
 
             if verboseflag:
                 print("ACL Tables found:", len(tables))
@@ -154,7 +134,7 @@ class AclStat(object):
                 if self.table_list and not table_name in self.table_list:
                         continue
 
-                table_props = self.db[APP_DB].hgetall(table)
+                table_props = self.db.get_all(self.db.APPL_DB, table)
 
                 if self.port_list:
                     table_port_list = table_props['ports'].split(",")
@@ -170,7 +150,7 @@ class AclStat(object):
             Get ACL rules from the DB
             """
             for table_name in self.acl_tables.keys():
-                rules = self.db[APP_DB].keys("ACL_RULE_TABLE:%s:*" % table_name)
+                rules = self.db.keys(self.db.APPL_DB, "ACL_RULE_TABLE:%s:*" % table_name)
                 if not rules and verboseflag:
                     print("No ACL rules found")
                     continue
@@ -182,7 +162,7 @@ class AclStat(object):
                     rule_name = rule.split(":")[2]
                     if self.rule_list and not rule_name in self.rule_list:
                             continue
-                    rule_props = lowercase_keys(self.db[APP_DB].hgetall(rule))
+                    rule_props = lowercase_keys(self.db.get_all(self.db.APPL_DB, rule))
                     rule_props["table"] = table_name
                     self.acl_rules[table_name, rule_name] = rule_props
 
@@ -199,7 +179,7 @@ class AclStat(object):
                 print("ACL Counters found:", counters_cnt)
 
             for table, rule in self.acl_rules.keys():
-                cnt_props = lowercase_keys(self.db[CNT_DB].hgetall("COUNTERS:%s:%s" % (table, rule)))
+                cnt_props = lowercase_keys(self.db.get_all(self.db.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
                 self.acl_counters[table, rule] = cnt_props
 
             if verboseflag:
