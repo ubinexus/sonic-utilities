@@ -13,14 +13,15 @@ import getopt
 import json
 import os.path
 import re
+import sswsdk
 import subprocess
 import sys
 import time
-import redis
 
 from collections import namedtuple, OrderedDict
-from sonic_py import sonic_py
+from natsort import natsorted
 from tabulate import tabulate
+
 
 PORT_RATE = 40
 
@@ -45,15 +46,12 @@ counter_bucket_dict = {
 }
 
 COUNTER_TABLE_PREFIX = "COUNTERS:"
-
-def natural_sort(l):
-    convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
-    return sorted(l, key = alphanum_key)
+COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
 
 class Portstat(object):
     def __init__(self):
-        self.sonic_py = sonic_py()
+        self.db = sswsdk.SonicV2Connector()
+        self.db.connect(self.db.COUNTERS_DB)
 
     def get_cnstat(self):
         """
@@ -66,16 +64,16 @@ class Portstat(object):
             fields = [0,0,0,0,0,0,0,0,0,0]
             for counter_name, pos in counter_bucket_dict.iteritems():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
-                fields[pos] += int(self.sonic_py.get_counter_from_table(full_table_id, counter_name))
+                fields[pos] += int(self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name))
             cntr = NStats._make(fields)
             return cntr
 
         # Get the info from database
-        counter_port_name_map = self.sonic_py.get_counter_port_name_map();
+        counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP);
         # Build a dictionary of the stats
         cnstat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
-        for port in natural_sort(counter_port_name_map):
+        for port in natsorted(counter_port_name_map):
             cnstat_dict[port] = get_counters(counter_port_name_map[port])
 
         return cnstat_dict
@@ -106,7 +104,6 @@ class Portstat(object):
                 header[12] : line[12]
                 }
         return json.dumps(output, indent=4, sort_keys=True)
-
 
     def cnstat_print(self, cnstat_dict, use_json):
         """
@@ -140,7 +137,6 @@ class Portstat(object):
             new, old = int(newstr), int(oldstr)
             return '{:,}'.format(new - old)
 
-
         def ns_rate(newstr, oldstr, delta):
             """
                 Calculate the rate.
@@ -154,7 +150,6 @@ class Portstat(object):
                 rate = "{:.2f}".format(rate)+' B'
             return rate+'/s'
 
-
         def ns_util(newstr, oldstr, delta):
             """
                 Calculate the util.
@@ -162,7 +157,6 @@ class Portstat(object):
             rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
             util = rate/(PORT_RATE*1024*1024*1024/8.0)*100
             return "{:.2f}%".format(util)
-
 
         table = []
 
@@ -321,7 +315,6 @@ Examples:
         time.sleep(wait_time_in_seconds)
         cnstat_new_dict = portstat.get_cnstat()
         portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json)
-
 
 if __name__ == "__main__":
     main()
