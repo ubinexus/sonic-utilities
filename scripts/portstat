@@ -13,8 +13,8 @@ import getopt
 import json
 import os.path
 import re
-import sswsdk
 import subprocess
+import swsssdk
 import sys
 import time
 
@@ -50,7 +50,7 @@ COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
 
 class Portstat(object):
     def __init__(self):
-        self.db = sswsdk.SonicV2Connector()
+        self.db = swsssdk.SonicV2Connector()
         self.db.connect(self.db.COUNTERS_DB)
 
     def get_cnstat(self):
