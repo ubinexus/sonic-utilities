@@ -25,7 +25,7 @@ import os
 from tabulate import tabulate
 import argparse
 import json
-import sswsdk
+import swsssdk
 
 ### temp file to save counter positions when doing clear counter action.
 ### if we could have a SAI command to clear counters will be better, so no need to maintain
@@ -61,7 +61,7 @@ class AclStat(object):
             self.table_list = tables.split(",")
 
         # Set up db connections
-        self.db = sswsdk.SonicV2Connector()
+        self.db = swsssdk.SonicV2Connector()
         self.db.connect(self.db.APPL_DB)
         self.db.connect(self.db.COUNTERS_DB)
 
