@@ -22,6 +22,7 @@ setup(
         'scripts/portstat',
         'scripts/sfputil',
         'scripts/teamshow', 
+        'scripts/aclshow',
     ],
     data_files=[
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show'])
