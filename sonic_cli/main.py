@@ -313,10 +313,6 @@ def version():
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
-    command = 'uptime -p'
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    click.echo("Kernel uptime: " + p.stdout.read())
-
 
 #
 # 'environment' command ###
