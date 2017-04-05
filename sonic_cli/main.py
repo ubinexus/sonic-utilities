@@ -176,7 +176,7 @@ def lldp():
     pass
 
 # Default 'lldp' command (called if no subcommands or their aliases were passed)
-@lldp.command(default=True)
+@lldp.command()
 @click.argument('interfacename', required=False)
 def neighbors(interfacename):
     """Show LLDP neighbors"""
