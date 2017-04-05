@@ -358,7 +358,7 @@ def users():
 @cli.command()
 def techsupport():
     """Gather information for troubleshooting"""
-    run_command('acs_support -v')
+    run_command('generate_dump -v')
 
 
 #
