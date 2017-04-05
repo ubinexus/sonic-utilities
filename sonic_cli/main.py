@@ -44,10 +44,10 @@ class AliasedGroup(DefaultGroup):
     """
 
     def get_command(self, ctx, cmd_name):
+        global _config
 
         # If we haven't instantiated our global config, do it now and load current config
         if _config is None:
-            global _config
             _config = Config()
 
             # Load our config file
@@ -171,7 +171,7 @@ def portchannel():
 # 'lldp' group ####
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=True)
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
 def lldp():
     pass
 
@@ -229,10 +229,28 @@ def summary():
 # 'platform' group ####
 #
 
-@cli.group(invoke_without_command=True)
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
 def platform():
+    pass
+
+@platform.command()
+def summary():
     """Show hardware platform information"""
-    run_command("platform-detect")
+    click.echo("")
+
+    PLATFORM_TEMPLATE_FILE = "/tmp/cli_platform.j2"
+    PLATFORM_TEMPLATE_CONTENTS = "Platform: {{ platform }}\n" \
+                                 "HwSKU: {{ minigraph_hwsku }}\n" \
+                                 "ASIC: {{ asic_type }}"
+
+    # Create a temporary Jinja2 template file to use with sonic-cfggen
+    f = open(PLATFORM_TEMPLATE_FILE, 'w')
+    f.write(PLATFORM_TEMPLATE_CONTENTS)
+    f.close()
+
+    command = "sonic-cfggen -m /etc/sonic/minigraph.xml -y /etc/sonic/sonic_version.yml -t {0}".format(PLATFORM_TEMPLATE_FILE)
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    click.echo(p.stdout.read())
 
 # 'syseeprom' subcommand ####
 @platform.command()
@@ -275,10 +293,21 @@ def default(process, tail, follow):
 def version():
     """Show version information"""
     click.echo("")
-    command = 'cat /etc/ssw/sysDescription'
+
+    VERSION_TEMPLATE_FILE = "/tmp/cli_version.j2"
+    VERSION_TEMPLATE_CONTENTS = "SONiC Software Version: SONiC.{{ build_version }}\n" \
+                                "Distribution: Debian {{ debian_version }}\n" \
+                                "Kernel: {{ kernel_version }}"
+
+    # Create a temporary Jinja2 template file to use with sonic-cfggen
+    f = open(VERSION_TEMPLATE_FILE, 'w')
+    f.write(VERSION_TEMPLATE_CONTENTS)
+    f.close()
+
+    command = "sonic-cfggen -y /etc/sonic/sonic_version.yml -t {0}".format(VERSION_TEMPLATE_FILE)
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
-    click.echo("")
+
     click.echo("Docker images:")
     command = 'docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
@@ -286,7 +315,7 @@ def version():
 
     command = 'uptime -p'
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    click.echo("Kernel uptime " + p.stdout.read())
+    click.echo("Kernel uptime: " + p.stdout.read())
 
 
 #
