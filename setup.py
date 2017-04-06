@@ -21,10 +21,10 @@ setup(
         'scripts/decode-syseeprom',
         'scripts/fast-reboot',
         'scripts/generate_dump',
+        'scripts/lldpshow',
         'scripts/portstat',
         'scripts/sfputil',
         'scripts/teamshow', 
-        'scripts/lldpshow',
     ],
     data_files=[
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show'])
