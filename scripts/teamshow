@@ -23,6 +23,7 @@ import subprocess
 import sys
 from tabulate import tabulate
 from minigraph import get_machine_info
+from minigraph import get_platform_info
 from minigraph import parse_xml
 
 class Teamshow(object):
@@ -38,12 +39,7 @@ class Teamshow(object):
         """
         minigraph_path = '/etc/sonic/minigraph.xml'
         machine_info = get_machine_info()
-        platform_info = None
-        if machine_info != None:
-            if machine_info.has_key('onie_platform'):
-                platform_info = machine_info['onie_platform']
-            elif machine_info.has_key('aboot_platform'):
-                platform_info = machine_info['aboot_platform']
+        platform_info = get_platform_info(machine_info)
 
         self.teams = parse_xml(minigraph_path, platform = platform_info)['minigraph_portchannels'].keys();
 
