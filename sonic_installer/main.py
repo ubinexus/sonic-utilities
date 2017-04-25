@@ -1,14 +1,17 @@
 #! /usr/bin/python -u
 
+import os
+import re
 import sys
+import stat
 import click
 import urllib
 import subprocess
 
-MACHINE_PATH = '/host'
-IMAGE_PREFIX = 'SONiC-OS'
-IMAGE_DIR_PREFIX = 'image'
-DEFAULT_IMAGE_PATH = '/tmp/sonic_installer'
+HOST_PATH = '/host'
+IMAGE_PREFIX = 'SONiC-OS-'
+IMAGE_DIR_PREFIX = 'image-'
+DEFAULT_IMAGE_PATH = '/tmp/sonic_image'
 
 
 # Run bash command and print output to stdout
@@ -27,11 +30,11 @@ def run_command(command, pager=False):
 # Returns list of installed images
 def get_installed_images():
     images = []
-    config = open(MACHINE_PATH + '/grub/grub.cfg', 'r')
+    config = open(HOST_PATH + '/grub/grub.cfg', 'r')
     for line in config:
         if line.startswith('menuentry'):
             image = line.split()[1].strip("'")
-            if image != 'ONIE':
+            if IMAGE_PREFIX in image:
                 images.append(image)
     config.close()
     return images
@@ -40,16 +43,10 @@ def get_installed_images():
 # Returns name of current image
 def get_current_image():
     images = get_installed_images()
-    current = ''
     cmdline = open('/proc/cmdline', 'r')
-    for line in cmdline:
-        for image in images:
-            image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-            if line.find(image_dir):
-                current = image
-                break
+    current = re.search("loop=(\S+)/fs.squashfs", cmdline.read()).group(1)
     cmdline.close()
-    return current
+    return current.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
 
 
 # Callback for confirmation prompt. Aborts if user enters "n"
@@ -62,7 +59,8 @@ def abort_if_false(ctx, param, value):
 @click.group()
 def cli():
     """ SONiC image installation manager """
-    pass
+    if os.geteuid() != 0:
+        exit("Root privileges required for this operation")
 
 
 # Install image
@@ -76,13 +74,14 @@ def install(url):
     if url.startswith('http://') or url.startswith('https://'):
         click.echo('Downloading image...')
         urllib.urlretrieve(url, DEFAULT_IMAGE_PATH)
+        os.chmod(DEFAULT_IMAGE_PATH, stat.S_IXUSR)
         image_path = DEFAULT_IMAGE_PATH
     else:
-        image_path = url
+        image_path = "./" + url
 
-    run_command("sh " + image_path)
+    run_command(image_path)
     run_command("cp /etc/sonic/minigraph.xml /host/")
-    run_command('grub-set-default --boot-directory=' + MACHINE_PATH + ' 0')
+    run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
     click.echo('Done')
 
 
@@ -103,7 +102,7 @@ def set_default(image):
     if image not in images:
         click.echo('Image does not exist')
         sys.exit(1)
-    command = 'grub-set-default --boot-directory=' + MACHINE_PATH + ' ' + str(images.index(image))
+    command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
     run_command(command)
 
 
@@ -116,7 +115,7 @@ def set_next_boot(image):
     if image not in images:
         click.echo('Image does not exist')
         sys.exit(1)
-    command = 'grub-reboot --boot-directory=' + MACHINE_PATH + ' ' + str(images.index(image))
+    command = 'grub-reboot --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
     run_command(command)
 
 
@@ -137,29 +136,21 @@ def remove(image):
         sys.exit(1)
 
     click.echo('Updating GRUB...')
-    config = open(MACHINE_PATH + '/grub/grub.cfg', 'r')
-    new_config = ''
-    entry_found = False
-    for line in config:
-        if not entry_found and image in line:
-            entry_found = True
-        elif entry_found and line.startswith('}'):
-            click.echo('FOUND!!!')
-            entry_found = False
-        elif not entry_found:
-            new_config += line
+    config = open(HOST_PATH + '/grub/grub.cfg', 'r')
+    old_config = config.read()
+    menuentry = re.search("menuentry '" + image + "[^}]*}", old_config).group()
     config.close()
-    config = open(MACHINE_PATH + '/grub/grub.cfg', 'w')
-    config.write(new_config)
+    config = open(HOST_PATH + '/grub/grub.cfg', 'w')
+    # remove menuentry of the image in grub.cfg
+    config.write(old_config.replace(menuentry, ""))
     config.close()
+    click.echo('Done')
 
     image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-    run_command('rm -rf ' + MACHINE_PATH + '/' + image_dir)
-    run_command('grub-set-default --boot-directory=' + MACHINE_PATH + ' 0')
-    click.echo('Done')
+    run_command('rm -rf ' + HOST_PATH + '/' + image_dir)
+    run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+    click.echo('Image removed')
 
 
 if __name__ == '__main__':
-    if os.geteuid() != 0:
-        exit("Root privileges required for this operation")
     cli()
