@@ -6,6 +6,7 @@ import sys
 import stat
 import click
 import urllib
+import shutil
 import subprocess
 
 HOST_PATH = '/host'
@@ -147,7 +148,10 @@ def remove(image):
     click.echo('Done')
 
     image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-    run_command('rm -rf ' + HOST_PATH + '/' + image_dir)
+    click.echo('Removing image root filesystem...')
+    shutil.rmtree(HOST_PATH + '/' + image_dir)
+    click.echo('Done')
+
     run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
     click.echo('Image removed')
 
