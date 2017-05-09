@@ -259,7 +259,7 @@ def summary():
 @platform.command()
 def syseeprom():
     """Show system EEPROM information"""
-    run_command("decode-syseeprom")
+    run_command("sudo decode-syseeprom")
 
 
 #
