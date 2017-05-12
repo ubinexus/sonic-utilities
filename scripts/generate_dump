@@ -252,6 +252,12 @@ main() {
         /proc/zoneinfo \
         || abort 6 "Proc saving operation failed. Aborting for safety."
 
+    save_cmd "show version" "version"
+    save_cmd "show platform summary" "platform.summary"
+    save_cmd "show platform syseeprom" "platform.syseeprom"
+
+    save_cmd "sensors" "sensors"
+
     save_cmd "sysctl -a" "sysctl"
     save_ip "link" "link"
     save_ip "addr" "addr"
