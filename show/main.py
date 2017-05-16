@@ -160,7 +160,9 @@ def counters(period, clear):
     if clear:
         cmd += " -c"
     elif period is not None:
-        cmd += " -p {}".format(period)
+        cmd += " -a -p {}".format(period)
+    else:
+        cmd += " -a"
 
     run_command(cmd, pager=True)
 
