@@ -232,16 +232,16 @@ ip.add_command(bgp)
 def neighbor(ipaddress):
     """Show BGP neighbors"""
     if ipaddress is not None:
-        command = 'vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
+        command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
         run_command(command)
     else:
-        run_command('vtysh -c "show ip bgp neighbor"', pager=True)
+        run_command('sudo vtysh -c "show ip bgp neighbor"', pager=True)
 
 # 'summary' subcommand ####
 @bgp.command()
 def summary():
     """Show summarized information of BGP state"""
-    run_command('vtysh -c "show ip bgp summary"')
+    run_command('sudo vtysh -c "show ip bgp summary"')
 
 
 #
@@ -401,7 +401,7 @@ def runningconfiguration():
 @runningconfiguration.command()
 def bgp():
     """Show BGP running configuration"""
-    run_command('vtysh -c "show running-config"', pager=True)
+    run_command('sudo vtysh -c "show running-config"', pager=True)
 
 
 # 'interfaces' subcommand
@@ -476,10 +476,10 @@ ip.add_command(arp)
 def route(ipaddress):
     """Show ip routing table"""
     if ipaddress is not None:
-        command = 'vtysh -c "show ip route {}"'.format(ipaddress)
+        command = 'sudo vtysh -c "show ip route {}"'.format(ipaddress)
         run_command(command)
     else:
-        run_command('vtysh -c "show ip route"', pager=True)
+        run_command('sudo vtysh -c "show ip route"', pager=True)
 
 # Add 'route' command to both the root 'cli' group and the 'ip' subgroup
 cli.add_command(route)
