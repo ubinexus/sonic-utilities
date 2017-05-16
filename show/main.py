@@ -126,6 +126,7 @@ def ip():
 # to more than one group, which we do using the "add_command() methods below.
 @click.group(cls=AliasedGroup, default_if_no_args=False)
 def interfaces():
+    """Show details of the network interfaces"""
     pass
 
 # Add 'interfaces' group to both the root 'cli' group and the 'ip' subgroup
@@ -135,19 +136,12 @@ ip.add_command(interfaces)
 # 'summary' subcommand
 @interfaces.command()
 @click.argument('interfacename', required=False)
-@click.argument('sfp', required=False)
-def summary(interfacename, sfp):
+def summary(interfacename):
     """Show interface status and information"""
 
     cmd_ifconfig = "/sbin/ifconfig"
 
-    if interfacename is not None and sfp is not None:
-        command = "sfputil -p {}".format(interfacename)
-        run_command(command, pager=True)
-    # FIXME: show sfp without an interface is bugged and doesn't work right.
-    elif sfp is not None:
-        run_command("sfputil")
-    elif interfacename is not None:
+    if interfacename is not None:
         command = "{} {}".format(cmd_ifconfig, interfacename)
         run_command(command)
     else:
@@ -156,9 +150,19 @@ def summary(interfacename, sfp):
 
 # 'counters' subcommand
 @interfaces.command()
-def counters():
+@click.option('-p', '--period')
+@click.option('-c', '--clear', is_flag=True)
+def counters(period, clear):
     """Show interface counters"""
-    run_command("portstat -a -p 30", pager=True)
+
+    cmd = "portstat"
+
+    if clear:
+        cmd += " -c"
+    elif period is not None:
+        cmd += " -p {}".format(period)
+
+    run_command(cmd, pager=True)
 
 # 'portchannel' subcommand
 @interfaces.command()
@@ -166,6 +170,18 @@ def portchannel():
     """Show PortChannel information"""
     run_command("teamshow", pager=True)
 
+# 'sfp' subcommand
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def sfp(interfacename):
+    """Show SFP Transceiver information"""
+
+    cmd = "sudo sfputil"
+
+    if interfacename is not None:
+        cmd += " -p {}".format(interfacename)
+
+    run_command(cmd, pager=True)
 
 #
 # 'lldp' group ####
@@ -173,6 +189,7 @@ def portchannel():
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def lldp():
+    """LLDP (Link Layer Discovery Protocol) information"""
     pass
 
 # Default 'lldp' command (called if no subcommands or their aliases were passed)
@@ -231,6 +248,7 @@ def summary():
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def platform():
+    """Show platform-specific hardware info"""
     pass
 
 @platform.command()
@@ -434,7 +452,7 @@ def bgp():
 @click.command()
 @click.argument('ipaddress', required=False)
 def arp(ipaddress):
-    """Show ip arp table"""
+    """Show IP ARP table"""
     cmd = "/usr/sbin/arp"
     if ipaddress is not None:
         command = '{} {}'.format(cmd, ipaddress)
