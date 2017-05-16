@@ -151,18 +151,20 @@ def summary(interfacename):
 # 'counters' subcommand
 @interfaces.command()
 @click.option('-p', '--period')
+@click.option('-a', '--printall', is_flag=True)
 @click.option('-c', '--clear', is_flag=True)
-def counters(period, clear):
+def counters(period, printall, clear):
     """Show interface counters"""
 
     cmd = "portstat"
 
     if clear:
         cmd += " -c"
-    elif period is not None:
-        cmd += " -a -p {}".format(period)
     else:
-        cmd += " -a"
+        if printall:
+            cmd += " -a"
+        if period is not None:
+            cmd += " -p {}".format(period)
 
     run_command(cmd, pager=True)
 
@@ -508,3 +510,4 @@ def uptime():
 
 if __name__ == '__main__':
     cli()
+
