@@ -200,16 +200,16 @@ def lldp():
 def neighbors(interfacename):
     """Show LLDP neighbors"""
     if interfacename is not None:
-        command = "lldpctl {}".format(interfacename)
+        command = "sudo lldpctl {}".format(interfacename)
         run_command(command)
     else:
-        run_command("lldpctl", pager=True)
+        run_command("sudo lldpctl", pager=True)
 
 # 'tables' subcommand ####
 @lldp.command()
 def table():
     """Show LLDP neighbors in tabular format"""
-    run_command("lldpshow", pager=True)
+    run_command("sudo lldpshow", pager=True)
 
 #
 # 'bgp' group ####
@@ -347,7 +347,7 @@ def version():
 @cli.command()
 def environment():
     """Show environmentals (voltages, fans, temps)"""
-    run_command('sensors', pager=True)
+    run_command('sudo sensors', pager=True)
 
 
 #
@@ -420,7 +420,7 @@ def interfaces(interfacename):
 @runningconfiguration.command()
 def snmp():
     """Show SNMP running configuration"""
-    command = 'docker exec -it snmp cat /etc/snmp/snmpd.conf'
+    command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf'
     run_command(command, pager=True)
 
 
@@ -444,7 +444,7 @@ def startupconfiguration():
 @startupconfiguration.command()
 def bgp():
     """Show BGP startup configuration"""
-    run_command('docker exec -it bgp cat /etc/quagga/bgpd.conf')
+    run_command('sudo docker exec -it bgp cat /etc/quagga/bgpd.conf')
 
 
 #
