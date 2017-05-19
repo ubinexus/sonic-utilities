@@ -90,23 +90,12 @@ class Portstat(object):
             cnstat_dict[port] = get_counters(counter_port_name_map[port]) 
         return cnstat_dict
 
-    def get_port_oper_status(self, port_name):
+    def get_port_status(self, port_name, status_type):
         """
-            Get the port operation status
-        """
-        full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        status = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
-        if status is None:
-             return "N/A"
-        else:
-            return status
-
-    def get_port_admin_status(self, port_name):
-        """
-            Get the port admin status
+            Get the port status
         """
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        status = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
+        status = self.db.get(self.db.APPL_DB, full_table_id, status_type)
         if status is None:
              return "N/A"
         else:
@@ -176,13 +165,13 @@ class Portstat(object):
                 continue
 
             if print_all:
-                table.append((key, self.get_port_admin_status(key), self.get_port_oper_status(key),
+                table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                               data.rx_ok, "N/A", "N/A", "N/A", data.rx_err,
                               data.rx_drop, data.rx_ovr,
                               data.tx_ok, "N/A", "N/A", "N/A", data.tx_err,
                               data.tx_drop, data.tx_ovr))
             else:
-                table.append((key, self.get_port_admin_status(key), self.get_port_oper_status(key),
+                table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                               data.rx_ok, "N/A", "N/A", data.rx_err,
                               data.rx_drop, data.rx_ovr,
                               data.tx_ok, "N/A", "N/A", data.tx_err,
@@ -262,7 +251,7 @@ class Portstat(object):
 
             if print_all:
                 if old_cntr is not None:
-                    table.append((key, self.get_port_admin_status(key), self.get_port_oper_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                                   ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                                   ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
                                   ns_prate(cntr.rx_ok, old_cntr.rx_ok, time_gap),
@@ -278,7 +267,7 @@ class Portstat(object):
                                   ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                   ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
-                    table.append((key, self.get_port_admin_status(key), self.get_port_oper_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_oper_status(key, PORT_OPER_STATUS_FIELD),
                                   cntr.rx_ok,
                                   "N/A",
                                   "N/A",
@@ -295,7 +284,7 @@ class Portstat(object):
                                   cntr.tx_err))
             else:
                 if old_cntr is not None:
-                    table.append((key, self.get_port_admin_status(key), self.get_port_oper_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                                       ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                                       ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
                                       ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
@@ -309,7 +298,7 @@ class Portstat(object):
                                       ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                       ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
-                    table.append((key, self.get_port_admin_status(key), self.get_port_oper_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_oper_status(key, PORT_OPER_STATUS_FIELD),
                                   cntr.rx_ok,
                                   "N/A",
                                   "N/A",
