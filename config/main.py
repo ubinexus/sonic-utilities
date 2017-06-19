@@ -1,5 +1,6 @@
 #!/usr/sbin/env python
 
+import sys
 import os
 import click
 import json
@@ -118,7 +119,10 @@ def neighbor(ipaddr_or_hostname):
 
     command = "vtysh -c 'configure terminal' -c 'router bgp {}' -c 'neighbor {} shutdown'".format(bgp_asn, ipaddress)
     run_command(command)
-
+    command = 'sed -i "/^\s*{}:/d" /etc/sonic/bgp_admin.yml'.format(ipaddress)
+    run_command(command)
+    command = 'echo "  {}: off" >> /etc/sonic/bgp_admin.yml'.format(ipaddress)
+    run_command(command)
 
 @bgp.group()
 def startup():
@@ -144,6 +148,10 @@ def neighbor(ipaddr_or_hostname):
         raise click.Abort
 
     command = "vtysh -c 'configure terminal' -c 'router bgp {}' -c 'no neighbor {} shutdown'".format(bgp_asn, ipaddress)
+    run_command(command)
+    command = 'sed -i "/^\s*{}:/d" /etc/sonic/bgp_admin.yml'.format(ipaddress)
+    run_command(command)
+    command = 'echo "  {}: on" >> /etc/sonic/bgp_admin.yml'.format(ipaddress)
     run_command(command)
 
 
