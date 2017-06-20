@@ -119,8 +119,10 @@ def neighbor(ipaddr_or_hostname):
 
     command = "vtysh -c 'configure terminal' -c 'router bgp {}' -c 'neighbor {} shutdown'".format(bgp_asn, ipaddress)
     run_command(command)
+    # Remove existing item in bgp_admin.yml about the admin state of this neighbor
     command = 'sed -i "/^\s*{}:/d" /etc/sonic/bgp_admin.yml'.format(ipaddress)
     run_command(command)
+    # and add a new line mark it as off
     command = 'echo "  {}: off" >> /etc/sonic/bgp_admin.yml'.format(ipaddress)
     run_command(command)
 
@@ -149,8 +151,10 @@ def neighbor(ipaddr_or_hostname):
 
     command = "vtysh -c 'configure terminal' -c 'router bgp {}' -c 'no neighbor {} shutdown'".format(bgp_asn, ipaddress)
     run_command(command)
+    # Remove existing item in bgp_admin.yml about the admin state of this neighbor
     command = 'sed -i "/^\s*{}:/d" /etc/sonic/bgp_admin.yml'.format(ipaddress)
     run_command(command)
+    # and add a new line mark it as on
     command = 'echo "  {}: on" >> /etc/sonic/bgp_admin.yml'.format(ipaddress)
     run_command(command)
 
