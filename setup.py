@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='sonic-utilities',
@@ -10,8 +10,9 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['config', 'show', 'sonic_eeprom', 'sonic_sfp', "sonic_installer"],
+    packages=find_packages(),
     package_data={
+        'switch': ['aliases.ini'],
         'show': ['aliases.ini']
     },
     scripts=[
@@ -29,12 +30,14 @@ setup(
         'scripts/teamshow', 
     ],
     data_files=[
+        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sw']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/config']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sonic_installer']),
     ],
     entry_points={
         'console_scripts': [
+            'sw = switch.main:switch',
             'config = config.main:cli',
             'show = show.main:cli',
             'sonic_installer = sonic_installer.main:cli'
