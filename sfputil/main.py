@@ -1,14 +1,10 @@
-#! /usr/bin/python
-#--------------------------------------------------------------------------
-#
-# Copyright 2012 Cumulus Networks, inc  all rights reserved
-#
-#--------------------------------------------------------------------------
+#!/usr/sbin/env python
+
 try:
     import sys
     import os
-    import getopt
     import subprocess
+    import click
     import imp
     import cPickle as pickle
     import syslog
@@ -17,25 +13,11 @@ try:
 except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 
-
 VERSION = '1.0'
 
-USAGE_HELP="""
-Usage: sfputil [--help] [-p|--port <port_name>] [-d|--dom] [-o|--oneline]
-          [-v|--version]
 
-OPTIONS 
-  -h,--help               Prints this usage
-  -p,--port <port_name>   Prints sfp details for port_name
-  -d,--dom                Includes diagnostic monitor data in output if supported
-  -o,--oneline            Prints oneline output for each port
-  -v,--version            Prints version string
-
-"""
-
-
-SONIC_CFGGEN = '/usr/local/bin/sonic-cfggen'
-MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
+SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
+MINIGRAPH_PATH = '/etc/sonic/minigraph.xml'
 HWSKU_KEY = 'minigraph_hwsku'
 PLATFORM_KEY = 'platform'
 
@@ -49,10 +31,14 @@ phytabfile = '/var/lib/cumulus/phytab'
 indent = '\t'
 
 
+#
+# Helper functions
+#
+
 def log_init():
     syslog.openlog('sfputil')
 
-def log_syslog(logmsg):
+def log_info(logmsg):
     syslog.syslog(syslog.LOG_INFO, logmsg)
 
 def inc_indent():
@@ -69,6 +55,7 @@ def print_sfp_status(port, port_sfp_status):
     else:
         print '%s: ' %port + 'SFP not detected'
 
+
 # Returns,
 #   port_num if physical
 #   logical_port:port_num if logical port and is a ganged port
@@ -80,7 +67,7 @@ def get_port_name(logical_port, physical_port, ganged):
     if logical_port == physical_port:
         return logical_port
     elif ganged == 1:
-        return logical_port + ':%d (ganged)' %physical_port
+        return logical_port + ":%d (ganged)" % physical_port
     else:
         return logical_port
 
@@ -89,13 +76,13 @@ def conv_port_to_physical_port_list(port):
         if csfputil.is_logical_port(port):
             return csfputil.get_logical_to_physical(port)
         else:
-            print 'Error: Invalid port ' + port
+            print "Error: Invalid port '%s'" % port
             return None
     else:
         return [int(port)]
 
 def print_valid_values_for_port_cmdoption():
-    print 'Valid values for --port : ' + str(csfputil.logical)
+    print "Valid values for port: " + str(csfputil.logical)
     print
 
 #============ Functions to get and print sfp data ======================
@@ -106,7 +93,7 @@ def get_port_sfp_data(sfp_obj, port_num):
     sfp_port_data = {}
 
     if sfp_obj == None:
-        print 'Error getting sfp data for port %d' %port_num
+        print "Error getting sfp data for port %d" % port_num
         sfp_port_data[port_num] = None
     else:
         sfp_port_data[port_num] = sfp_obj.get_sfp_data(port_num)
@@ -169,7 +156,7 @@ def print_port_sfp_data_pretty(port_sfp_data, port, dump_dom):
         print
         i += 1
 
-# Print pretty all sfp port data 
+# Print pretty all sfp port data
 def print_port_sfp_data_pretty_all(port_sfp_data, dump_dom):
     for p in csfputil.logical:
         print_port_sfp_data_pretty(port_sfp_data, p, dump_dom)
@@ -196,7 +183,7 @@ def print_dict_commaseparated(indict, elem_blacklist, elemprefix, first):
         iter = iter + 1
 
 
-# Pretty print oneline all sfp data 
+# Pretty print oneline all sfp data
 def print_port_sfp_data_pretty_oneline(port_sfp_data,
                        ifdata_blacklist,
                        domdata_blacklist,
@@ -535,7 +522,7 @@ def sfp_dom_data_check(ports_sfp_data):
 # Returns platform and HW SKU
 def get_platform_and_hwsku():
     try:
-        proc = subprocess.Popen([SONIC_CFGGEN, '-v', PLATFORM_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-v', PLATFORM_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)
@@ -543,7 +530,7 @@ def get_platform_and_hwsku():
         proc.wait()
         platform = stdout.rstrip('\n')
 
-        proc = subprocess.Popen([SONIC_CFGGEN, '-m', MINIGRAPH_FILE, '-v', HWSKU_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '-v', HWSKU_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)
@@ -592,90 +579,43 @@ def load_platform_sfputil():
     return 0
 
 
-#========== Main ===========================================================
-
-# main
-def main():
-    port_sfp_data = {}
-    port = ''
-    all_ports = 1
-    pretty = 1
-    oneline = 0
-    dump_dom = 0
-    dom_check = 0
-    raw = 0
-    canned_data_file = ''
-    sfp_objects = {}
-    port_list = []
-    descr = "query sfp information for swp ports"
-
-    if not os.geteuid() == 0:
-        print 'Error: Must be root to run this command'
-        exit(1)
-
-    if (len(sys.argv) > 1):
-        # Parse options
-        try:
-            options, remainder = getopt.getopt(sys.argv[1:],
-                        'p:hdov',
-                        ['port=', 'dom', 'help',
-                        'dom-check', 'porttab=', 'raw',
-                        'canned-data=', 'oneline',
-                        'version'])
-        except getopt.GetoptError, e:
-            print e
-            print USAGE_HELP
-            exit(1)
-
-        for opt, arg in options:
-            if opt == '--port' or opt == '-p' :
-                try:
-                    port = arg
-                except:
-                    print USAGE_HELP
-                    exit(1)
-
-                all_ports = 0
-            elif opt == '--help' or opt == '-h':
-                print USAGE_HELP
-                exit(1)
-            elif opt == '--dom' or opt == '-d':
-                dump_dom = 1
-            elif opt == '--dom-check':
-                dom_check = 1
-            elif opt == '--porttab':
-                try:
-                    global porttabfile
-                    porttabfile = arg
-                except:
-                    print USAGE_HELP
-                    exit(1)
-            elif opt == '--canned-data':
-                try:
-                    canned_data_file = arg
-                except:
-                    print USAGE_HELP
-                    exit(1)
-            elif opt == '--oneline' or opt == '-o':
-                oneline = 1
-            elif opt == '--raw':
-                raw = 1
-            elif opt == '--version' or opt == '-v':
-                print 'version : ' + VERSION
-                exit(0)
-
-
-    # dom_check is mutually exclusive with all other options
-    if dom_check == 1 and port != '':
-        print '--dom-check and --port are mutually exclusive'
-        print USAGE_HELP
-        exit(1)
-
-    if dom_check == 1:
-        dump_dom = 1
+# This is our main entrypoint - the main 'sfputil' command
+@click.group()
+def cli():
+    """sfputil - Command line utility for managing SFP transceivers"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
 
     # Init log
     log_init()
+
+
+
+# 'show' subcommand
+@cli.command()
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP details for port <port_name> only")
+@click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
+@click.option('-o', '--oneline', is_flag=True, help="Condense output for each port to a single line")
+@click.option('--raw', is_flag=True, help="Output raw, unformatted data")
+@click.option('--dom-check', is_flag=True, help="Compare DOM data against previously cached data")
+@click.option('--canned-data', 'canned_data_file', help="Provide name of file containing canned data")
+def show(port, dump_dom, oneline, raw, dom_check, canned_data_file):
+    """Display status of SFP transceivers"""
+    port_sfp_data = {}
+    pretty = True
+    sfp_objects = {}
+    port_list = []
+
+    all_ports = True if port is None else False
+
+    if dom_check == True:
+        dump_dom = True
+
+    #TODO: Fix this check
+    # dom_check is mutually exclusive with all other options
+    if dom_check == True and port is not None:
+        print '--dom-check and port are mutually exclusive'
+        exit(1)
 
     # Load platform sfputil class
     err = load_platform_sfputil()
@@ -683,48 +623,45 @@ def main():
         exit(1)
 
     try:
-        # csfputil.read_phytab_mappings(phytabfile)
         csfputil.read_porttab_mappings(porttabfile)
-        # csfputil.read_port_mappings()
     except Exception, e:
-        print 'error reading port info (%s)' %str(e)
+        print 'Error reading port info (%s)' % str(e)
         exit(1)
 
-    if all_ports == 0:
+    if all_ports == False:
         if csfputil.is_valid_sfputil_port(port) == 0:
             print 'Error: invalid port'
             print
             print_valid_values_for_port_cmdoption()
             exit(1)
 
-    if all_ports == 0:
         port_list = conv_port_to_physical_port_list(port)
         if port_list == None:
             exit(0)
 
     # Get all sfp objects
-    if all_ports == 1:
+    if all_ports == True:
         sfp_objects = get_port_sfp_object_all()
     else:
         for p in port_list:
             sfp_objects.update(get_port_sfp_object(p))
 
-    if raw == 1:
+    if raw == True:
         # Print raw and return
-        if all_ports == 1:
+        if all_ports == True:
             print_port_sfp_data_raw_all(sfp_objects)
         else:
             print_port_sfp_data_raw(sfp_objects, port)
         exit(0)
 
-    if all_ports == 1:
+    if all_ports == True:
         port_sfp_data = get_port_sfp_data_all(sfp_objects)
     else:
         for p in port_list:
             port_sfp_data.update(get_port_sfp_data(sfp_objects.get(p), p))
 
     # If dom check, Just check dom and return.
-    if dom_check == 1:
+    if dom_check == True:
         # For testing purposes, if canned data available use it
         if canned_data_file != '':
             if not os.path.exists(canned_data_file):
@@ -735,13 +672,13 @@ def main():
         exit(0)
 
     # Print all sfp data
-    if oneline == 1:
+    if oneline == True:
         ifdata_out_blacklist = ['EncodingCodes',
                     'ExtIdentOfTypeOfTransceiver',
                     'NominalSignallingRate(UnitsOf100Mbd)']
         domdata_out_blacklist = ['AwThresholds', 'StatusControl']
 
-        if all_ports == 1:
+        if all_ports == True:
             print_port_sfp_data_pretty_oneline_all(port_sfp_data,
                             ifdata_out_blacklist,
                             domdata_out_blacklist,
@@ -751,12 +688,19 @@ def main():
                             ifdata_out_blacklist,
                             domdata_out_blacklist,
                             port, dump_dom)
-    elif pretty == 1:
-        if all_ports == 1:
+    elif pretty == True:
+        if all_ports == True:
             print_port_sfp_data_pretty_all(port_sfp_data, dump_dom)
         else:
             print_port_sfp_data_pretty(port_sfp_data, port, dump_dom)
 
+# 'version' subcommand
+@cli.command()
+def version():
+    """Display version info"""
+    click.echo("sfputil version {0}".format(VERSION))
+
 
 if __name__ == '__main__':
-    main()
+    cli()
+
