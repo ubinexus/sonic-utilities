@@ -6,7 +6,6 @@ try:
     import subprocess
     import click
     import imp
-    import cPickle as pickle
     import syslog
     import types
     import traceback
@@ -24,8 +23,6 @@ PLATFORM_KEY = 'platform'
 PLATFORM_ROOT = '/usr/share/sonic/device'
 
 csfputil = None
-sfp_dom_data_cache_dir = '/var/cache/ssw/sfputil'
-sfp_dom_data_cache_file = sfp_dom_data_cache_dir + '/' + 'sfputil.dat'
 porttabfile = None
 phytabfile = '/var/lib/cumulus/phytab'
 indent = '\t'
@@ -286,237 +283,6 @@ def print_port_sfp_data_raw_all(sfp_obj_all):
     for p in csfputil.logical:
         print_port_sfp_data_raw(sfp_obj_all, p)
 
-#=========== Functions to check and report dom alarms ====================
-
-#Returns list of keys that are different in the two dictionaries
-def diff_dict(dict_a, dict_b):
-    keys_diff = []
-    for a_name, a_val in sorted(dict_a.iteritems()):
-        b_val = dict_b.get(a_name)
-        if b_val == None or a_val != b_val:
-            keys_diff.append(a_name)
-
-    for b_name, b_val in sorted(dict_b.iteritems()):
-        a_val = dict_a.get(b_name)
-        if a_val == None:
-            keys_diff.append(b_name)
-
-
-    return keys_diff
-
-
-# Logs alarms in syslog
-def sfp_dom_report_monitor_data_changes(port_num, old_if_data, old_monitor_data,
-                    new_if_data, new_monitor_data):
-    # XXX: Only check power for now
-    power_tolerance = 5
-
-    for mkey, mval in sorted(new_monitor_data.iteritems()):
-        if mkey == 'RXPower' or mkey == 'TXPower':
-            if mval == 'Unknown':
-                # The module isn't reporting power data, skip it.
-                return
-
-            try:
-                old_power = old_monitor_data.get(mkey)
-                new_powerf = float(mval[:-len('dBm')])
-                old_powerf = float(old_power[:-len('dBm')])
-
-                diff = abs(new_powerf - old_powerf)
-            except TypeError, e:
-                print ('Error during reporting monitor ' +
-                       'data changes ' + str(e))
-                return
-            except ValueError, e:
-                print ('Error during reporting monitor ' +
-                       'data changes ' + str(e))
-                return
-            except:
-                # This is a non critical error. Just return
-                return
-
-            if diff > power_tolerance:
-                logmsg = ('link %d' %port_num +
-                      ' sfp (SerialNum: %s):'
-                      %old_if_data.get('VendorSN',
-                      'Unknown') + ' %s' %mkey +
-                      ' changed from %s '
-                      %old_power + ' to %s' %mval)
-                log_syslog(logmsg)
-
-
-
-# Logs alarms in syslog
-def sfp_dom_report_alarms(port_num, if_data, dom_alarm_data, keys_filter):
-
-    for alarm, alarm_status in sorted(dom_alarm_data.iteritems()):
-        if (keys_filter == None or
-            (keys_filter != None and (alarm in keys_filter))):
-            logmsg = ('link %d' %port_num +
-                  ' sfp (SerialNum: %s): '
-                  %if_data.get('VendorSN', 'Unknown') +
-                  '%s' %alarm)
-            if alarm_status == 1:
-                logmsg = logmsg + ' set'
-                log_syslog(logmsg)
-
-            if keys_filter != None:
-                if alarm_status == 0:
-                    logmsg = logmsg + ' cleared'
-                    log_syslog(logmsg)
-
-
-# Check and report alarms
-def sfp_dom_check_and_report_alarms(port_num, port_sfp_data_old,
-                    port_sfp_data_new):
-
-    # For now only look for only alarm and warning flag status
-    keys_to_check = [ 'AlarmFlagStatus', 'WarningFlagStatus' ]
-    report_new = 0
-    port_sfp_dom_old = None
-    port_sfp_if_old = None
-    port_sfp_dom_new = None
-    port_sfp_if_new = None
-    sub_keys_that_differ = []
-
-    if port_sfp_data_new != None:
-        port_sfp_if_new = port_sfp_data_new.get('interface')
-        port_sfp_dom_new = port_sfp_data_new.get('dom')
-    else:
-        return
-
-    if port_sfp_dom_new == None:
-        return
-
-    if port_sfp_data_old != None:
-        port_sfp_if_old = port_sfp_data_old.get('interface')
-        port_sfp_dom_old = port_sfp_data_old.get('dom')
-
-    new_ddata = port_sfp_dom_new.get('data')
-    new_idata = port_sfp_if_new.get('data')
-
-    # Check if new data or difference between new and old needs
-    # reporting
-    if (port_sfp_dom_old == None and port_sfp_dom_new != None):
-        report_new = 1
-    elif port_sfp_dom_old != None and port_sfp_dom_new != None:
-        new_dom_ver = port_sfp_dom_new.get('version')
-        old_dom_ver = port_sfp_dom_old.get('version')
-
-        old_ddata = port_sfp_dom_old.get('data')
-        old_idata = port_sfp_if_old.get('data')
-
-        if old_idata.get('VendorSN') != new_idata.get('VendorSN'):
-            # If serial numbers between old and new diff, report new
-            report_new = 1
-        elif new_dom_ver != old_dom_ver:
-            # If versions between old and new differ, report
-            report_new = 1
-    else:
-        return
-
-    if report_new == 1:
-        # Report only new object
-        for k in keys_to_check:
-            if k in new_ddata.keys():
-                sfp_dom_report_alarms(port_num, new_idata,
-                    new_ddata[k], None)
-
-    else:
-        # Report what changed between old and new
-        for k in keys_to_check:
-            if k in new_ddata.keys() and k in old_ddata.keys():
-                # Get keys that differ between the two
-                sub_keys_that_differ = diff_dict(new_ddata[k],
-                                old_ddata[k])
-
-            if len(sub_keys_that_differ) > 0:
-                if k in new_ddata.keys():
-                    sfp_dom_report_alarms(port_num,
-                        new_idata, new_ddata[k],
-                        sub_keys_that_differ)
-
-        # Check if monitor data changed beyond tolerance
-        # XXX: This might be redundant as we already report alarm
-        # and warning reports
-        key = 'MonitorData'
-        if key in new_ddata.keys() and key in old_ddata.keys():
-            sfp_dom_report_monitor_data_changes(port_num,
-                    new_idata, new_ddata[key], old_idata,
-                    old_ddata[key])
-
-
-# Reads and Returns dom data from /var/cache/sfputil/
-def get_saved_sfp_data():
-    sfp_ports_dom_data = None
-
-    # Create sfputil dir if does not already exist
-    if not os.path.exists(sfp_dom_data_cache_dir):
-        try:
-            os.mkdir(sfp_dom_data_cache_dir)
-        except OSError, e:
-            print ('Error creating dir ' +
-                sfp_dom_data_cache_dir + ' ('  + str(e) + ')')
-            return -1
-
-    # if cache file exists
-    if os.path.exists(sfp_dom_data_cache_file):
-        # load dom data from cached file
-        try:
-            sfp_ports_dom_data = pickle.load(open(
-                        sfp_dom_data_cache_file, "rb"))
-        except pickle.PickleError, e:
-            print 'Error unpicking dom data.'
-            traceback.print_exc(file=sys.stdout)
-
-    return sfp_ports_dom_data
-
-
-# Checks dom data. Compares with cached dom file for any new alarms
-def sfp_dom_data_check(ports_sfp_data):
-
-    # get Old dom data from /var/cache/
-    ports_sfp_data_old = get_saved_sfp_data()
-
-    # iterate through new dom data for all ports
-    for port, port_sfp_data_new in sorted(
-        ports_sfp_data.iteritems()):
-        if port_sfp_data_new == None:
-            continue
-
-        port_sfp_data_old = None
-        if ports_sfp_data_old != None:
-            port_sfp_data_old = ports_sfp_data_old.get(port)
-
-        if port_sfp_data_old != None:
-            # XXX: We should probably not proceed if dom versions
-            # differ
-
-            # Check alarms in old and new data and report
-            sfp_dom_check_and_report_alarms(port,
-                            port_sfp_data_old,
-                            port_sfp_data_new)
-        else:
-            sfp_dom_check_and_report_alarms(port, None,
-                            port_sfp_data_new)
-
-
-
-    # XXX: The above loop does not account for sfp's that were
-    # present in old data but dissappeared in new data. Only thing we
-    # could possibly do here is report faults were cleared on the old port.
-
-
-    # Dump new dom data into cached file
-    try:
-        pickle.dump(ports_sfp_data, open(sfp_dom_data_cache_file, "wb"))
-    except pickle.PickleError, e:
-        print 'Error pickling dom data ' + str(e)
-        return
-
-    print 'Saved new dom data to file ' + sfp_dom_data_cache_file
-
-
 #=========== Functions to load platform specific classes ====================
 
 # Returns platform and HW SKU
@@ -591,31 +357,26 @@ def cli():
 
 
 
-# 'show' subcommand
-@cli.command()
+# 'show' subgroup
+@cli.group()
+def show():
+    """Display status of SFP transceivers"""
+    pass
+
+# 'details' subcommand
+@show.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP details for port <port_name> only")
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
 @click.option('-o', '--oneline', is_flag=True, help="Condense output for each port to a single line")
 @click.option('--raw', is_flag=True, help="Output raw, unformatted data")
-@click.option('--dom-check', is_flag=True, help="Compare DOM data against previously cached data")
-@click.option('--canned-data', 'canned_data_file', help="Provide name of file containing canned data")
-def show(port, dump_dom, oneline, raw, dom_check, canned_data_file):
-    """Display status of SFP transceivers"""
+def details(port, dump_dom, oneline, raw):
+    """Display detailed status of SFP transceivers"""
     port_sfp_data = {}
     pretty = True
     sfp_objects = {}
     port_list = []
 
     all_ports = True if port is None else False
-
-    if dom_check == True:
-        dump_dom = True
-
-    #TODO: Fix this check
-    # dom_check is mutually exclusive with all other options
-    if dom_check == True and port is not None:
-        print '--dom-check and port are mutually exclusive'
-        exit(1)
 
     # Load platform sfputil class
     err = load_platform_sfputil()
@@ -660,17 +421,6 @@ def show(port, dump_dom, oneline, raw, dom_check, canned_data_file):
         for p in port_list:
             port_sfp_data.update(get_port_sfp_data(sfp_objects.get(p), p))
 
-    # If dom check, Just check dom and return.
-    if dom_check == True:
-        # For testing purposes, if canned data available use it
-        if canned_data_file != '':
-            if not os.path.exists(canned_data_file):
-                print ('Error: Cant find file ' + canned_data_file)
-                exit(1)
-            port_sfp_data = pickle.load(open(canned_data_file, "rb"))
-        sfp_dom_data_check(port_sfp_data)
-        exit(0)
-
     # Print all sfp data
     if oneline == True:
         ifdata_out_blacklist = ['EncodingCodes',
@@ -694,6 +444,26 @@ def show(port, dump_dom, oneline, raw, dom_check, canned_data_file):
         else:
             print_port_sfp_data_pretty(port_sfp_data, port, dump_dom)
 
+# 'presence' subcommand
+@show.command()
+@click.argument('port_name', metavar='<port_name>', required=False)
+def presence(port_name):
+    """Display presence of SFP transceiver(s)"""
+    if port_name is not None:
+        # TODO
+        pass
+    else:
+        # TODO
+        pass
+
+# 'reset' subcommand
+@cli.command()
+@click.argument('port_name', metavar='<port_name>')
+def reset(port_name):
+    """Reset SFP transceiver"""
+    # TODO
+    pass
+
 # 'version' subcommand
 @cli.command()
 def version():
@@ -703,4 +473,3 @@ def version():
 
 if __name__ == '__main__':
     cli()
-
