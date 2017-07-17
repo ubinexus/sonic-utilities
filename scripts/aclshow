@@ -1,8 +1,8 @@
 #!/usr/bin/python
 """
-using aclshow to display SONiC switch acl rules and counters
+using aclshow to display SONiC switch ACL rules and counters
 
-usage: aclshow [-h] [-v] [-c] [-d] [-vv] [-p PORTS] [-t TABLES] [-r RULES]
+usage: aclshow [-h] [-v] [-c] [-d] [-vv] [-p PORTS] [-t TABLES] [-r RULES] [-m]
 
 Display SONiC switch ACL Counters/status
 
@@ -16,6 +16,7 @@ optional arguments:
   -r RULES,  --rules RULES    action by specific rules list: Rule_1,Rule_2
   -t TABLES, --tables TABLES  action by specific tables list: Table_1,Table_2
   -d,  --details              display detailed ACL info
+  -m,  --mirrors              display all mirror sessions
 """
 
 from __future__ import print_function
@@ -29,6 +30,8 @@ import swsssdk
 import sys
 
 from tabulate import tabulate
+
+VERSION='1.1.0'
 
 ### temp file to save counter positions when doing clear counter action.
 ### if we could have a SAI command to clear counters will be better, so no need to maintain
@@ -301,9 +304,34 @@ class AclStat(object):
         with open(COUNTER_POSITION, 'wb') as fp:
             json.dump(remap_keys(self.acl_counters), fp)
 
+class MirrorStat(object):
+    def __init__(self):
+        self.mirror_sessions = {}
+
+        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.db.connect(self.db.APPL_DB)
+
+        self.read_mirror_sessions()
+
+    def read_mirror_sessions(self):
+        for session in self.db.keys(self.db.APPL_DB, "MIRROR_SESSION_TABLE:*"):
+            self.mirror_sessions[session] = self.db.get_all(self.db.APPL_DB, session)
+
+    def display_mirrors(self):
+        for session in self.mirror_sessions:
+            header = "Mirror Session: " + session
+            print(header)
+            print('=' * len(header))
+            table_props = []
+            table = self.mirror_sessions[session]
+            for tk in table.keys():
+                line = [tk, table[tk]]
+                table_props.append(line)
+            print(tabulate(table_props, headers=['Property', 'Value']), '\n')
+
 def main():
     parser = argparse.ArgumentParser(description='Display SONiC switch Acl Rules and Counters',
-                                     version='1.0.0',
+                                     version=VERSION,
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--all', action='store_true', help='Show all ACL counters')
     parser.add_argument('-c', '--clear', action='store_true', help='Clear ACL counters statistics')
@@ -311,20 +339,25 @@ def main():
     parser.add_argument('-r', '--rules', type=str, help='action by specific rules list: Rule1_Name,Rule2_Name', default=None)
     parser.add_argument('-t', '--tables', type=str, help='action by specific tables list: Table1_Name,Table2_Name', default=None)
     parser.add_argument('-d', '--details', action='store_true', help='Display detailed ACL info', default=False)
+    parser.add_argument('-m', '--mirrors', action='store_true', help='Display all mirror sessions', default=False)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     args = parser.parse_args()
 
     try:
-        acls = AclStat(args.ports, args.rules, args.tables)
-        acls.redis_acl_read(args.verbose)
-        if args.clear:
-            acls.clear_counters()
-            return
-        acls.previous_counters()
-        if args.details:
-            acls.display_acl_details()
+        if args.mirrors:
+            mirrors = MirrorStat()
+            mirrors.display_mirrors()
         else:
-            acls.display_acl_stat(args.all)
+            acls = AclStat(args.ports, args.rules, args.tables)
+            acls.redis_acl_read(args.verbose)
+            if args.clear:
+                acls.clear_counters()
+                return
+            acls.previous_counters()
+            if args.details:
+                acls.display_acl_details()
+            else:
+                acls.display_acl_stat(args.all)
     except Exception as e:
         print(e.message, file=sys.stderr)
         sys.exit(1)
