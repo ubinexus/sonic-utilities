@@ -1,10 +1,11 @@
 #!/usr/sbin/env python
 
-import sys
-import os
 import click
 import json
+import os
+import re
 import subprocess
+import sys
 
 SONIC_CFGGEN_PATH = "/usr/local/bin/sonic-cfggen"
 MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
@@ -13,14 +14,23 @@ MINIGRAPH_BGP_SESSIONS = "minigraph_bgp"
 
 BGP_ADMIN_STATE_YML_PATH = "/etc/sonic/bgp_admin.yml"
 
+ANYDROP_FILE_NAME = "anydrop.json"
+
 #
 # Helper functions
 #
 
+# Print output information
+def echo_info(prefix, content):
+    click.echo(click.style('{}: '.format(prefix), fg='cyan') + click.style(content, fg='green'))
+
 # Run bash command and print output to stdout
-def run_command(command, pager=False, display_cmd=False):
+def run_command(command, pager=False, display_cmd=False, display_info=''):
+    if display_info:
+        echo_info('Doing task', display_info)
+
     if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+        echo_info('Running command', command)
 
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     stdout = p.communicate()[0]
@@ -34,6 +44,68 @@ def run_command(command, pager=False, display_cmd=False):
 
     if p.returncode != 0:
         sys.exit(p.returncode)
+
+# Run background bash command and return output
+def run_bg_command(command):
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    stdout = p.communicate()[0]
+    p.wait()
+    return stdout
+
+# Generate configurations and apply the configurations using swssconfig
+def apply_swss_config(config, file_name):
+    echo_info('Doing task', 'generate temporary configurations at {}'.format(file_name))
+    file_path = '/tmp/{}'.format(file_name)
+    with open(file_path, 'w') as output_file:
+        json.dump(config, output_file, indent=4)
+    # Copy the config file into swss docker
+    command = 'docker cp {} swss:/tmp'.format(file_path)
+    run_command(command, display_info='copy configurations into SwSS docker')
+    # Apply the config file using swssconfig
+    command = 'docker exec -it swss swssconfig {}'.format(file_path)
+    run_command(command, display_info='apply configurations using swssconfig')
+
+# Generate ANYDROP mirror session with a taget destination IP
+def _generate_mirror_session(dst_ip_addr):
+    RE_IFCONFIG_ETH0_IP = r'inet addr:([\d.]+)'
+
+    ifconfig = run_bg_command('ifconfig eth0')
+    src_ip_addr = re.findall(RE_IFCONFIG_ETH0_IP, ifconfig)[0]
+    mirror_dict = {}
+    mirror_dict['SRC_IP'] = src_ip_addr
+    mirror_dict['DST_IP'] = dst_ip_addr
+    mirror_dict['GRE_TYPE'] = '0x6558'
+    mirror_dict['DSCP'] = '50'
+    mirror_dict['TTL'] = '255'
+    return {"MIRROR_SESSION_TABLE:ANYDROP": mirror_dict, "OP":"SET"}
+
+# Generate ANYDROP rule that override the current DEFAULT_RULE
+def _generate_acl_mirror_rule():
+    try:
+        aclshow = run_bg_command(['aclshow -a -r DEFAULT_RULE']).splitlines()[2].split()
+    except IndexError:
+        print "Error: could not locate DEFAULT_RULE"
+        raise click.Abort
+    table_name = aclshow[1]
+    acl_dict = {}
+    acl_dict['ETHER_TYPE'] = '0x0800'
+    acl_dict['MIRROR_ACTION'] = 'ANYDROP'
+    acl_dict['PRIORITY'] = int(aclshow[3]) + 1
+    return {"ACL_RULE_TABLE:" + table_name + ":ANYDROP_RULE": acl_dict, "OP":"SET"}
+
+# Remove ANYDROP mirror session
+def _generate_mirror_session_del_rule():
+    return {"MIRROR_SESSION_TABLE:ANYDROP": {}, "OP":"DEL"}
+
+# Remove ANYDROP rule
+def _generate_acl_del_rule():
+    try:
+        aclshow = run_bg_command(['aclshow -a -r ANYDROP_RULE']).splitlines()[2].split()
+    except IndexError:
+        print "Error: could not locate ANYDROP_RULE"
+        raise click.Abort
+    table_name = aclshow[1]
+    return {"ACL_RULE_TABLE:" + table_name + ":ANYDROP_RULE": {}, "OP":"DEL"}
 
 # Returns BGP ASN as a string
 def _get_bgp_asn_from_minigraph():
@@ -141,6 +213,46 @@ def cli():
     """SONiC command line - 'config' command"""
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
+
+#
+# 'everflow' group
+#
+
+@cli.group()
+def everflow():
+    """Everflow-related tasks"""
+    pass
+
+# 'acldrop' subcommand
+@everflow.command()
+@click.argument('dst_ip_addr', required=True)
+def acldrop(dst_ip_addr):
+    """Mirror ACL drop"""
+    # Step 1: Create the mirror session
+    mirror_session = _generate_mirror_session(dst_ip_addr)
+    # Step 2: Create the ACL rule
+    acl_rule = _generate_acl_mirror_rule()
+    # Step 3: Apply configurations
+    apply_swss_config([mirror_session, acl_rule], ANYDROP_FILE_NAME)
+
+#
+# 'no' group
+#
+
+@everflow.group()
+def no():
+    pass
+
+# 'acldrop' subcommand
+@no.command()
+def acldrop():
+    """Remove mirror ACL drop"""
+    # Step 1: Create the ACL rule removal configuration
+    acl_rule = _generate_acl_del_rule()
+    # Step 2: Create the mirror session removal configuration
+    mirror_session = _generate_mirror_session_del_rule()
+    # Step 3: Apply configurations
+    apply_swss_config([acl_rule, mirror_session], ANYDROP_FILE_NAME)
 
 #
 # 'bgp' group
