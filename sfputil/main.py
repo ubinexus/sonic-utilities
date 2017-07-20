@@ -1,4 +1,9 @@
-#!/usr/sbin/env python
+#!/usr/bin/env python
+#
+# main.py
+#
+# Command-line utility for interacting with SFP transceivers within SONiC
+#
 
 try:
     import sys
@@ -9,48 +14,129 @@ try:
     import syslog
     import types
     import traceback
-except ImportError, e:
-    raise ImportError (str(e) + "- required module not found")
+    from tabulate import tabulate
+except ImportError as e:
+    raise ImportError("%s - required module not found" % str(e))
 
-VERSION = '1.0'
+VERSION = '2.0'
 
+SYSLOG_IDENTIFIER = "sfputil"
 
+PLATFORM_SPECIFIC_MODULE_NAME = "sfputil"
+PLATFORM_SPECIFIC_CLASS_NAME = "SfpUtil"
+
+PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 MINIGRAPH_PATH = '/etc/sonic/minigraph.xml'
 HWSKU_KEY = 'minigraph_hwsku'
 PLATFORM_KEY = 'platform'
 
-PLATFORM_ROOT = '/usr/share/sonic/device'
-
-csfputil = None
-porttabfile = None
-phytabfile = '/var/lib/cumulus/phytab'
-indent = '\t'
+# Global platform-specific sfputil class instance
+platform_sfputil = None
 
 
-#
-# Helper functions
-#
+# ========================== Syslog wrappers ==========================
 
-def log_init():
-    syslog.openlog('sfputil')
 
-def log_info(logmsg):
-    syslog.syslog(syslog.LOG_INFO, logmsg)
+def log_info(msg, also_print_to_console=False):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_INFO, msg)
+    syslog.closelog()
 
-def inc_indent():
-    global indent
-    indent += '\t'
+    if also_print_to_console:
+        print msg
 
-def dec_indent():
-    global indent
-    indent = indent[:-1]
 
-def print_sfp_status(port, port_sfp_status):
-    if port_sfp_status == 1:
-        print '%s: ' %port + 'SFP detected'
+def log_warning(msg, also_print_to_console=False):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_WARNING, msg)
+    syslog.closelog()
+
+    if also_print_to_console:
+        print msg
+
+
+def log_error(msg, also_print_to_console=False):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    syslog.closelog()
+
+    if also_print_to_console:
+        print msg
+
+
+# ========================== Methods for printing ==========================
+
+
+# Convert arraw of raw bytes into pretty-printed string
+def raw_bytes_to_string_pretty(raw_bytes):
+    hexstr = ""
+
+    for i in range(0, len(raw_bytes)):
+        if i > 0 and (i % 8) == 0:
+            hexstr += " "
+
+        if i > 0 and (i % 16) == 0:
+            hexstr += "\n"
+
+        hexstr += raw_bytes[i]
+        hexstr += " "
+
+    return hexstr
+
+
+# Recursively convert dictionary into pretty-printed string
+def dict_to_string_pretty(in_dict, indent=0):
+    if len(in_dict) == 0:
+        return ""
+
+    key = sorted(in_dict)[0]
+    val = in_dict[key]
+
+    if isinstance(val, dict):
+        output = "%s%s:\n" % ('\t' * indent, key) + dict_to_string_pretty(val, indent + 1)
     else:
-        print '%s: ' %port + 'SFP not detected'
+        output = "%s%s: %s\n" % ('\t' * indent, key, val)
+
+    return output + dict_to_string_pretty({i:in_dict[i] for i in in_dict if i != key}, indent)
+
+
+# Recursively convert dictionary into comma-separated string of 'key:value'
+def dict_to_string_comma_separated(in_dict, key_blacklist, elemprefix, first=True):
+    if len(in_dict) == 0:
+        return ""
+
+    output = ""
+    key = sorted(in_dict)[0]
+    val = in_dict[key]
+
+    if key in key_blacklist:
+        return ""
+
+    if not first:
+        output += ","
+    else:
+        first = False
+
+    if isinstance(val, dict):
+        output += dict_to_string_comma_separated(val, key_blacklist, key + '.', True)
+    else:
+        elemname = elemprefix + key
+        output += elemname + ':' + str(val)
+
+    return output + dict_to_string_comma_separated(
+        {i:in_dict[i] for i in in_dict if i != key},
+        key_blacklist, elemprefix, first)
+
+
+# =============== Getting and printing SFP data ===============
+
+
+def get_sfp_eeprom_status_string(port, port_sfp_eeprom_status):
+    if port_sfp_eeprom_status:
+        return "%s: SFP EEPROM detected" % port
+    else:
+        return "%s: SFP EEPROM not detected" % port
 
 
 # Returns,
@@ -58,232 +144,146 @@ def print_sfp_status(port, port_sfp_status):
 #   logical_port:port_num if logical port and is a ganged port
 #   logical_port if logical and not ganged
 #
-def get_port_name(logical_port, physical_port, ganged):
+def get_physical_port_name(logical_port, physical_port, ganged):
     port_name = None
 
     if logical_port == physical_port:
         return logical_port
-    elif ganged == 1:
+    elif ganged:
         return logical_port + ":%d (ganged)" % physical_port
     else:
         return logical_port
 
-def conv_port_to_physical_port_list(port):
-    if port.startswith('Ethernet'):
-        if csfputil.is_logical_port(port):
-            return csfputil.get_logical_to_physical(port)
+
+def logical_port_name_to_physical_port_list(port_name):
+    if port_name.startswith("Ethernet"):
+        if platform_sfputil.is_logical_port(port_name):
+            return platform_sfputil.get_logical_to_physical(port_name)
         else:
-            print "Error: Invalid port '%s'" % port
+            print "Error: Invalid port '%s'" % port_name
             return None
     else:
-        return [int(port)]
-
-def print_valid_values_for_port_cmdoption():
-    print "Valid values for port: " + str(csfputil.logical)
-    print
-
-#============ Functions to get and print sfp data ======================
+        return [int(port_name)]
 
 
-# Get sfp port object
-def get_port_sfp_data(sfp_obj, port_num):
-    sfp_port_data = {}
-
-    if sfp_obj == None:
-        print "Error getting sfp data for port %d" % port_num
-        sfp_port_data[port_num] = None
-    else:
-        sfp_port_data[port_num] = sfp_obj.get_sfp_data(port_num)
-
-    return sfp_port_data
+def print_all_valid_port_values():
+    print "Valid values for port: %s\n" % str(platform_sfputil.logical)
 
 
-# Returns sfp data for all ports
-def get_port_sfp_data_all(sfp_obj_all):
-    """{1: {'interface': {'version': '1.0', 'data': {}},
-        'dom': {'version' : '1.0', 'data' : {}}},
-       {2: {'interface': {'version': '1.0', 'data': {}},
-        'dom': {'version' : '1.0', 'data' : {}}}}}"""
-
-    port_sfp_data_all = {}
-    port_start = csfputil.port_start
-    port_end = csfputil.port_end
-
-    for p in range(port_start, port_end + 1):
-        port_sfp_data_all.update(get_port_sfp_data(sfp_obj_all.get(p), p))
-
-    return port_sfp_data_all
-
-
-# recursively pretty print dictionary 
-def print_dict_pretty(indict):
-    for elem, elem_val in sorted(indict.iteritems()):
-        if type(elem_val) == types.DictType:
-            print indent, elem, ':'
-            inc_indent()
-            print_dict_pretty(elem_val)
-            dec_indent()
-        else:
-            print indent, elem, ':', elem_val
-
-# Print pretty sfp port data
-def print_port_sfp_data_pretty(port_sfp_data, port, dump_dom):
-    ganged = 0
+# Returns multi-line string of pretty SFP port EEPROM data
+def port_eeprom_data_string_pretty(logical_port_name, dump_dom):
+    result = ""
+    ganged = False
     i = 1
 
-    port_list = conv_port_to_physical_port_list(port)
-    if len(port_list) > 1:
-        ganged = 1
+    physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
+    if physical_port_list is None:
+        print "Error: No physical ports found for logical port '%s'" % logical_port_name
+        return ""
 
-    for p in port_list:
-        port_name = get_port_name(port, i, ganged)
-        sfp_data = port_sfp_data.get(p)
-        if sfp_data != None:
-            sfp_idata = sfp_data.get('interface')
-            idata = sfp_idata.get('data')
-            print_sfp_status(port_name, 1)
-            print_dict_pretty(idata)
-            if dump_dom == 1:
-                sfp_ddata = sfp_data.get('dom')
-                if sfp_ddata != None:
-                    ddata = sfp_ddata.get('data')
-                    print_dict_pretty(ddata)
-        else:
-            print_sfp_status(port_name, 0)
-        print
-        i += 1
-
-# Print pretty all sfp port data
-def print_port_sfp_data_pretty_all(port_sfp_data, dump_dom):
-    for p in csfputil.logical:
-        print_port_sfp_data_pretty(port_sfp_data, p, dump_dom)
-
-
-# Recursively print dict elems into comma separated list
-def print_dict_commaseparated(indict, elem_blacklist, elemprefix, first):
-    iter = 0
-    for elem, elem_val in sorted(indict.iteritems()):
-        if elem in elem_blacklist:
-            continue
-        if type(elem_val) == types.DictType:
-            if iter != 0:
-                print ',',
-            print_dict_commaseparated(elem_val, elem_blacklist, elem, first)
-        else:
-            elemname = elemprefix + elem
-            if first == 1:
-                prbuf = elemname + ':' + str(elem_val)
-                first = 0
-            else:
-                prbuf = ',' + elemname + ':' + str(elem_val)
-            sys.stdout.write(prbuf)
-        iter = iter + 1
-
-
-# Pretty print oneline all sfp data
-def print_port_sfp_data_pretty_oneline(port_sfp_data,
-                       ifdata_blacklist,
-                       domdata_blacklist,
-                       port, dump_dom):
-    ganged = 0
-    i = 1
-
-    port_list = conv_port_to_physical_port_list(port)
-    if len(port_list) > 1:
-        ganged = 1
-
-    for p in port_list:
-        port_name = get_port_name(port, i, ganged)
-        sfp_data = port_sfp_data.get(p)
-        if sfp_data != None:
-            sfp_idata = sfp_data.get('interface')
-            idata = sfp_idata.get('data')
-            print 'port:' + port_name + ',',
-            print_dict_commaseparated(idata, ifdata_blacklist, '', 1)
-            if dump_dom == 1:
-                sfp_ddata = sfp_data.get('dom')
-                if sfp_ddata != None:
-                    ddata = sfp_ddata.get('data')
-                    if ddata != None:
-                        print_dict_commaseparated(ddata, domdata_blacklist, '', 1)
-            print
-        #Only print detected sfp ports for oneline
-        #else:
-            #print_sfp_status(port_name, 0)
-        i += 1
-
-
-def print_port_sfp_data_pretty_oneline_all(port_sfp_data,
-                       ifdata_blacklist,
-                       domdata_blacklist,
-                       dump_dom):
-    for p in csfputil.logical:
-        print_port_sfp_data_pretty_oneline(port_sfp_data,
-                           ifdata_blacklist,
-                           domdata_blacklist,
-                           p, dump_dom)
-
-def get_port_sfp_object(port_num):
-    sfp_obj = {}
-    sfp_obj[port_num] = csfputil(int(port_num))
-
-    return sfp_obj
-
-# Return sfp objects for all ports
-def get_port_sfp_object_all():
-    port_sfp_object_all = {}
-    port_start = csfputil.port_start
-    port_end = csfputil.port_end
-
-    for p in range(port_start, port_end + 1):
-        port_sfp_object_all.update(get_port_sfp_object(p))
-
-    return port_sfp_object_all
-
-def print_raw_bytes(bytes):
-    hexstr = ''
-
-    for e in range(1, len(bytes)+1):
-        print bytes[e-1],
-        hexstr += bytes[e-1]
-        if e > 0 and (e % 8) == 0:
-            print ' ',
-        if e > 0 and (e % 16) == 0:
-            # XXX: Does not print some characters
-            # right, comment it to fix it later
-            #print binascii.unhexlify(hexstr),
-            hexstr = ''
-            print
-
-def print_port_sfp_data_raw(sfp_obj_all, port):
-    ganged = 0
-    i = 1
-
-    physical_port_list = conv_port_to_physical_port_list(port)
     if len(physical_port_list) > 1:
-        ganged = 1
+        ganged = True
 
-    for p in physical_port_list:
-        port_name = get_port_name(port, i, ganged)
-        sfp_obj = sfp_obj_all.get(p)
-        if sfp_obj == None:
-            print ('Error: Unexpected error: sfp object for '
-                'port %d' %p + 'not found')
-            return
-        eeprom_if_raw = sfp_obj.get_interface_eeprom_bytes()
-        if eeprom_if_raw == None:
-            print_sfp_status(port_name, 0)
+    for physical_port in physical_port_list:
+        port_name = get_physical_port_name(logical_port_name, i, ganged)
+        eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+        if eeprom_dict is not None:
+            eeprom_iface_dict = eeprom_dict.get('interface')
+            iface_data_dict = eeprom_iface_dict.get('data')
+            result += get_sfp_eeprom_status_string(port_name, True)
+            result += "\n"
+            result += dict_to_string_pretty(iface_data_dict, 1)
+
+            if dump_dom:
+                eeprom_dom_dict = eeprom_dict.get('dom')
+                if eeprom_dom_dict is not None:
+                    dom_data_dict = eeprom_dom_dict.get('data')
+                    if dom_data_dict is not None:
+                        result += dict_to_string_pretty(dom_data_dict, 1)
         else:
-            print_sfp_status(port_name, 1)
-            print_raw_bytes(eeprom_if_raw)
-        print
+            result += get_sfp_eeprom_status_string(port_name, False)
+            result += "\n"
+
+        result += "\n"
         i += 1
 
-def print_port_sfp_data_raw_all(sfp_obj_all):
-    for p in csfputil.logical:
-        print_port_sfp_data_raw(sfp_obj_all, p)
+        return result
 
-#=========== Functions to load platform specific classes ====================
+
+# Returns single-line string of pretty SFP port EEPROM data
+# Nested dictionary items are prefixed using dot-notation
+def port_eeprom_data_string_pretty_oneline(logical_port_name,
+                                           ifdata_blacklist,
+                                           domdata_blacklist,
+                                           dump_dom):
+    result = ""
+    ganged = False
+    i = 1
+
+    physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
+    if physical_port_list is None:
+        print "Error: No physical ports found for logical port '%s'" % logical_port_name
+        return ""
+
+    if len(physical_port_list) > 1:
+        ganged = True
+
+    for physical_port in physical_port_list:
+        eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+
+        # Only print detected sfp ports for oneline
+        if eeprom_dict is not None:
+            eeprom_iface_dict = eeprom_dict.get('interface')
+            iface_data_dict = eeprom_iface_dict.get('data')
+            result += "port:%s," % get_physical_port_name(logical_port_name, i, ganged)
+            result += dict_to_string_comma_separated(iface_data_dict, ifdata_blacklist, "")
+
+            if dump_dom:
+                eeprom_dom_dict = eeprom_dict.get('dom')
+                if eeprom_dom_dict is not None:
+                    dom_data_dict = eeprom_dom_dict.get('data')
+                    if dom_data_dict is not None:
+                        result += dict_to_string_comma_separated(
+                            dom_data_dict, domdata_blacklist, "")
+
+        result += "\n"
+        i += 1
+
+    return result
+
+
+def port_eeprom_data_raw_string_pretty(logical_port_name):
+    result = ""
+    ganged = False
+    i = 1
+
+    physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
+    if physical_port_list is None:
+        print "Error: No physical ports found for logical port '%s'" % logical_port_name
+        return ""
+
+    if len(physical_port_list) > 1:
+        ganged = True
+
+    for physical_port in physical_port_list:
+        port_name = get_physical_port_name(logical_port_name, i, ganged)
+        eeprom_raw = platform_sfputil.get_eeprom_raw(physical_port)
+        if eeprom_raw is None:
+            result += get_sfp_eeprom_status_string(port_name, False)
+            result += "\n"
+        else:
+            result += get_sfp_eeprom_status_string(port_name, True)
+            result += "\n"
+            result += raw_bytes_to_string_pretty(eeprom_raw)
+
+        result += "\n"
+        i += 1
+
+    return result
+
+
+# ==================== Methods for initialization ====================
+
 
 # Returns platform and HW SKU
 def get_platform_and_hwsku():
@@ -309,52 +309,76 @@ def get_platform_and_hwsku():
     return (platform, hwsku)
 
 
+# Returns path to port config file
+def get_path_to_port_config_file():
+    # Get platform and hwsku
+    (platform, hwsku) = get_platform_and_hwsku()
+
+    # Load platform module from source
+    platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
+    hwsku_path = "/".join([platform_path, hwsku])
+
+    # First check for the presence of the new 'port_config.ini' file
+    port_config_file_path = "/".join([hwsku_path, "port_config.ini"])
+    if not os.path.isfile(port_config_file_path):
+        # port_config.ini doesn't exist. Try loading the legacy 'portmap.ini' file
+        port_config_file_path = "/".join([hwsku_path, "portmap.ini"])
+
+    return port_config_file_path
+
+
 # Loads platform specific sfputil module from source
 def load_platform_sfputil():
-    global csfputil
-    global porttabfile
-    module_name = 'sfputil'
+    global platform_sfputil
 
     # Get platform and hwsku
     (platform, hwsku) = get_platform_and_hwsku()
 
     # Load platform module from source
-    platform_path = '/'.join([PLATFORM_ROOT, platform])
-    hwsku_path = '/'.join([platform_path, hwsku])
-
-    # First check for the presence of the new 'port_config.ini' file
-    porttabfile = '/'.join([hwsku_path, 'port_config.ini'])
-    if not os.path.isfile(porttabfile):
-        # port_config.ini doesn't exist. Try loading the older 'portmap.ini' file
-        porttabfile = '/'.join([hwsku_path, 'portmap.ini'])
+    platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
+    hwsku_path = "/".join([platform_path, hwsku])
 
     try:
-        module_full_name = module_name
-        module_file = '/'.join([platform_path, 'plugins', module_full_name + '.py'])
-        module = imp.load_source(module_name, module_file)
+        module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
+        module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
     except IOError, e:
-        print 'Error loading platform module ' + module_name + str(e)
-        return None
-
-    try:
-        csfputil = getattr(module, 'sfputil')
-    except AttributeError, e:
-        print 'Error finding sfputil class: ' + str(e)
+        log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
+    try:
+        platform_sfputil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
+        platform_sfputil = platform_sfputil_class()
+    except AttributeError, e:
+        log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
+        return -2
+
     return 0
+
+
+# ==================== CLI commands and groups ====================
 
 
 # This is our main entrypoint - the main 'sfputil' command
 @click.group()
 def cli():
     """sfputil - Command line utility for managing SFP transceivers"""
+
     if os.geteuid() != 0:
-        exit("Root privileges are required for this operation")
+        print "Root privileges are required for this operation"
+        sys.exit(1)
 
-    # Init log
-    log_init()
+    # Load platform-specific sfputil class
+    err = load_platform_sfputil()
+    if err != 0:
+        sys.exit(2)
 
+    # Load port info
+    try:
+        port_config_file_path = get_path_to_port_config_file()
+        platform_sfputil.read_porttab_mappings(port_config_file_path)
+    except Exception, e:
+        log_error("Error reading port info (%s)" % str(e), True)
+        sys.exit(3)
 
 
 # 'show' subgroup
@@ -363,106 +387,226 @@ def show():
     """Display status of SFP transceivers"""
     pass
 
-# 'details' subcommand
+
+# 'eeprom' subcommand
 @show.command()
-@click.option('-p', '--port', metavar='<port_name>', help="Display SFP details for port <port_name> only")
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM data for port <port_name> only")
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
 @click.option('-o', '--oneline', is_flag=True, help="Condense output for each port to a single line")
 @click.option('--raw', is_flag=True, help="Output raw, unformatted data")
-def details(port, dump_dom, oneline, raw):
-    """Display detailed status of SFP transceivers"""
-    port_sfp_data = {}
-    pretty = True
-    sfp_objects = {}
-    port_list = []
+def eeprom(port, dump_dom, oneline, raw):
+    """Display EEPROM data of SFP transceiver(s)"""
+    logical_port_list = []
+    output = ""
 
-    all_ports = True if port is None else False
-
-    # Load platform sfputil class
-    err = load_platform_sfputil()
-    if err != 0:
-        exit(1)
-
-    try:
-        csfputil.read_porttab_mappings(porttabfile)
-    except Exception, e:
-        print 'Error reading port info (%s)' % str(e)
-        exit(1)
-
-    if all_ports == False:
-        if csfputil.is_valid_sfputil_port(port) == 0:
-            print 'Error: invalid port'
-            print
-            print_valid_values_for_port_cmdoption()
-            exit(1)
-
-        port_list = conv_port_to_physical_port_list(port)
-        if port_list == None:
-            exit(0)
-
-    # Get all sfp objects
-    if all_ports == True:
-        sfp_objects = get_port_sfp_object_all()
+    # Create a list containing the logical port names of all ports we're interested in
+    if port is None:
+        logical_port_list = platform_sfputil.logical
     else:
-        for p in port_list:
-            sfp_objects.update(get_port_sfp_object(p))
+        if platform_sfputil.is_valid_sfputil_port(port) == 0:
+            print "Error: invalid port '%s'\n" % port
+            print_all_valid_port_values()
+            sys.exit(4)
 
-    if raw == True:
-        # Print raw and return
-        if all_ports == True:
-            print_port_sfp_data_raw_all(sfp_objects)
-        else:
-            print_port_sfp_data_raw(sfp_objects, port)
-        exit(0)
+        logical_port_list = [port]
 
-    if all_ports == True:
-        port_sfp_data = get_port_sfp_data_all(sfp_objects)
+    if raw:
+        for logical_port_name in logical_port_list:
+            output += port_eeprom_data_raw_string_pretty(logical_port_name)
+            output += "\n"
+    elif oneline:
+        ifdata_out_blacklist = ["EncodingCodes",
+                                "ExtIdentOfTypeOfTransceiver",
+                                "NominalSignallingRate(UnitsOf100Mbd)"]
+        domdata_out_blacklist = ["AwThresholds", "StatusControl"]
+
+        for logical_port_name in logical_port_list:
+            output += port_eeprom_data_string_pretty_oneline(logical_port_name,
+                                                             ifdata_out_blacklist,
+                                                             domdata_out_blacklist,
+                                                             dump_dom)
     else:
-        for p in port_list:
-            port_sfp_data.update(get_port_sfp_data(sfp_objects.get(p), p))
+        for logical_port_name in logical_port_list:
+            output += port_eeprom_data_string_pretty(logical_port_name, dump_dom)
 
-    # Print all sfp data
-    if oneline == True:
-        ifdata_out_blacklist = ['EncodingCodes',
-                    'ExtIdentOfTypeOfTransceiver',
-                    'NominalSignallingRate(UnitsOf100Mbd)']
-        domdata_out_blacklist = ['AwThresholds', 'StatusControl']
+    print output
 
-        if all_ports == True:
-            print_port_sfp_data_pretty_oneline_all(port_sfp_data,
-                            ifdata_out_blacklist,
-                            domdata_out_blacklist,
-                            dump_dom)
-        else:
-            print_port_sfp_data_pretty_oneline(port_sfp_data,
-                            ifdata_out_blacklist,
-                            domdata_out_blacklist,
-                            port, dump_dom)
-    elif pretty == True:
-        if all_ports == True:
-            print_port_sfp_data_pretty_all(port_sfp_data, dump_dom)
-        else:
-            print_port_sfp_data_pretty(port_sfp_data, port, dump_dom)
 
 # 'presence' subcommand
 @show.command()
-@click.argument('port_name', metavar='<port_name>', required=False)
-def presence(port_name):
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP presence for port <port_name> only")
+def presence(port):
     """Display presence of SFP transceiver(s)"""
-    if port_name is not None:
-        # TODO
-        pass
+    logical_port_list = []
+    output_table = []
+    table_header = ["Port", "Presence"]
+
+    # Create a list containing the logical port names of all ports we're interested in
+    if port is None:
+        logical_port_list = platform_sfputil.logical
     else:
-        # TODO
-        pass
+        if platform_sfputil.is_valid_sfputil_port(port) == 0:
+            print "Error: invalid port '%s'\n" % port
+            print_all_valid_port_values()
+            sys.exit(5)
+
+        logical_port_list = [port]
+
+    for logical_port_name in logical_port_list:
+        ganged = False
+        i = 1
+
+        physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
+        if physical_port_list is None:
+            print "Error: No physical ports found for logical port '%s'" % logical_port_name
+            return
+
+        if len(physical_port_list) > 1:
+            ganged = True
+
+        for physical_port in physical_port_list:
+            port_name = get_physical_port_name(logical_port_name, i, ganged)
+            presence = platform_sfputil.get_presence(physical_port)
+            if presence:
+                output_table.append([port_name, "Present"])
+            else:
+                output_table.append([port_name, "Not present"])
+
+            i += 1
+
+    print tabulate(output_table, table_header, tablefmt="simple")
+
+
+# 'lpmode' subcommand
+@show.command()
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP low-power mode status for port <port_name> only")
+def lpmode(port):
+    """Display low-power mode status of SFP transceiver(s)"""
+    logical_port_list = []
+    output_table = []
+    table_header = ["Port", "Low-power Mode"]
+
+    # Create a list containing the logical port names of all ports we're interested in
+    if port is None:
+        logical_port_list = platform_sfputil.logical
+    else:
+        if platform_sfputil.is_valid_sfputil_port(port) == 0:
+            print "Error: invalid port '%s'\n" % port
+            print_all_valid_port_values()
+            sys.exit(6)
+
+        logical_port_list = [port]
+
+    for logical_port_name in logical_port_list:
+        ganged = False
+        i = 1
+
+        physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
+        if physical_port_list is None:
+            print "Error: No physical ports found for logical port '%s'" % logical_port_name
+            return
+
+        if len(physical_port_list) > 1:
+            ganged = True
+
+        for physical_port in physical_port_list:
+            port_name = get_physical_port_name(logical_port_name, i, ganged)
+            lpmode = platform_sfputil.get_low_power_mode(physical_port)
+            if lpmode:
+                output_table.append([port_name, "On"])
+            else:
+                output_table.append([port_name, "Off"])
+
+            i += 1
+
+    print tabulate(output_table, table_header, tablefmt='simple')
+
+
+# 'lpmode' subgroup
+@cli.group()
+def lpmode():
+    """Enable or disable low-power mode for SFP transceiver"""
+    pass
+
+
+# Helper method for setting low-power mode
+def set_lpmode(logical_port, enable):
+    ganged = False
+    i = 1
+
+    if platform_sfputil.is_valid_sfputil_port(logical_port) == 0:
+        print "Error: invalid port '%s'\n" % logical_port
+        print_all_valid_port_values()
+        sys.exit(7)
+
+    physical_port_list = logical_port_name_to_physical_port_list(logical_port)
+    if physical_port_list is None:
+        print "Error: No physical ports found for logical port '%s'" % logical_port
+        return
+
+    if len(physical_port_list) > 1:
+        ganged = True
+
+    for physical_port in physical_port_list:
+        print "%s low-power mode for port %s... " % (
+            "Enabling" if enable else "Disabling",
+            get_physical_port_name(logical_port, i, ganged)),
+        result = platform_sfputil.set_low_power_mode(physical_port, enable)
+        if result:
+            print "OK"
+        else:
+            print "Failed"
+
+        i += 1
+
+
+# 'off' subcommand
+@lpmode.command()
+@click.argument('port_name', metavar='<port_name>')
+def off(port_name):
+    """Disable low-power mode for SFP transceiver"""
+    set_lpmode(port_name, False)
+
+
+# 'on' subcommand
+@lpmode.command()
+@click.argument('port_name', metavar='<port_name>')
+def on(port_name):
+    """Enable low-power mode for SFP transceiver"""
+    set_lpmode(port_name, True)
+
 
 # 'reset' subcommand
 @cli.command()
 @click.argument('port_name', metavar='<port_name>')
 def reset(port_name):
     """Reset SFP transceiver"""
-    # TODO
-    pass
+    ganged = False
+    i = 1
+
+    if platform_sfputil.is_valid_sfputil_port(port_name) == 0:
+        print "Error: invalid port '%s'\n" % port_name
+        print_all_valid_port_values()
+        sys.exit(8)
+
+    physical_port_list = logical_port_name_to_physical_port_list(port_name)
+    if physical_port_list is None:
+        print "Error: No physical ports found for logical port '%s'" % port_name
+        return
+
+    if len(physical_port_list) > 1:
+        ganged = True
+
+    for physical_port in physical_port_list:
+        print "Resetting port %s... " % get_physical_port_name(port_name, i, ganged),
+        result = platform_sfputil.reset(physical_port)
+        if result:
+            print "OK"
+        else:
+            print "Failed"
+
+        i += 1
+
 
 # 'version' subcommand
 @cli.command()
