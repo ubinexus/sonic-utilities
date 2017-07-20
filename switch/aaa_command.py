@@ -65,7 +65,7 @@ authentication.add_command(failthrough)
 def enable(ctx):
     """Enable Command"""
     if ctx.obj == 'failthrough':
-        aaa_config.set_fail_through(True)
+        aaa_config.set_auth_failthrough(True)
 failthrough.add_command(enable)
 
 
@@ -74,15 +74,15 @@ failthrough.add_command(enable)
 def disable(ctx):
     """Disable Command"""
     if ctx.obj == 'failthrough':
-        aaa_config.set_fail_through(False)
+        aaa_config.set_auth_failthrough(False)
 failthrough.add_command(disable)
 
 
 @click.command()
-@click.argument('pam_priority', nargs=-1, type=click.Choice(["tacacs", "local"]))
-def login(pam_priority):
+@click.argument('auth_protocol', nargs=-1, type=click.Choice(["tacacs+", "local"]))
+def login(auth_protocol):
     """Switch login"""
-    aaa_config.set_auth_login(pam_priority)
+    aaa_config.set_auth_protocol(auth_protocol)
 authentication.add_command(login)
 
 
@@ -97,31 +97,31 @@ def tacacs():
 @click.argument('ip')
 def src_ip(ip):
     """Specify TACACS+ source ip address"""
-    aaa_config.set_src_ip(ip)
+    aaa_config.set_tacplus_src_ip(ip)
 tacacs.add_command(src_ip)
 
 
-# cmd: tacacs add HOST --timeout SECOND --key SECRET --type TYPE --port PORT --pri PRIORITY
+# cmd: tacacs add ADDRESS --timeout SECOND --key SECRET --type TYPE --port PORT --pri PRIORITY
 @click.command()
-@click.argument('host')
+@click.argument('address')
 @click.option('--timeout', help='Transmission timeout interval', type=int, default=5)
 @click.option('--key', help='Shared secret', default='test123')
-@click.option('--type', help='Authentication type', type=click.Choice(["chap", "pap"]), default='pap')
+@click.option('--type', help='Authentication type', type=click.Choice(["chap", "pap", "mschap"]), default='pap')
 @click.option('--port', help='TCP port range is 1 to 65535', type=click.IntRange(1, 65535), default=49)
-@click.option('--pri', help="Priority", type=click.IntRange(1, 512), default=1)
-def add(host, timeout, key, type, port, pri):
+@click.option('--pri', help="Priority", type=click.IntRange(1, 64), default=1)
+def add(address, timeout, key, type, port, pri):
     """Specify a TACACS+ server"""
-    aaa_config.add_server(host, str(port), key, str(timeout), type, pri)
+    aaa_config.add_tacplus_server(address, str(port), key, str(timeout), type, pri)
 tacacs.add_command(add)
 
 
-# cmd: tacacs delete HOST
+# cmd: tacacs delete ADDRESS
 # 'del' is keyword, replace with 'delete'
 @click.command()
-@click.argument('host')
-def delete(host):
+@click.argument('address')
+def delete(address):
     """Delete a TACACS+ server"""
-    aaa_config.del_server(host)
+    aaa_config.del_tacplus_server(address)
 tacacs.add_command(delete)
 
 
