@@ -7,7 +7,7 @@ import json
 import subprocess
 from swsssdk import ConfigDBConnector
 
-SONIC_CFGGEN_PATH = "/usr/local/bin/sonic-cfggen"
+SONIC_CFGGEN_PATH = "sonic-cfggen"
 MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
 MINIGRAPH_BGP_SESSIONS = "minigraph_bgp"
 
@@ -15,8 +15,9 @@ MINIGRAPH_BGP_SESSIONS = "minigraph_bgp"
 # Helper functions
 #
 
-# Run bash command and print output to stdout
 def run_command(command, pager=False, display_cmd=False):
+    """Run bash command and print output to stdout
+    """
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -33,8 +34,9 @@ def run_command(command, pager=False, display_cmd=False):
     if p.returncode != 0:
         sys.exit(p.returncode)
 
-# Returns BGP neighbor dict from minigraph
 def _get_bgp_neighbors():
+    """Returns BGP neighbor dict from minigraph
+    """
     proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '--var-json', MINIGRAPH_BGP_SESSIONS],
                             stdout=subprocess.PIPE,
                             shell=False,
@@ -43,37 +45,42 @@ def _get_bgp_neighbors():
     proc.wait()
     return json.loads(stdout.rstrip('\n'))
 
-# Returns True if a neighbor has the IP address <ipaddress>, False if not
 def _is_neighbor_ipaddress(ipaddress):
+    """Returns True if a neighbor has the IP address <ipaddress>, False if not
+    """
     bgp_session_list = _get_bgp_neighbors()
     for session in bgp_session_list:
         if session['addr'] == ipaddress:
             return True
     return False
 
-# Returns list of strings containing IP addresses of all BGP neighbors
 def _get_all_neighbor_ipaddresses():
+    """Returns list of strings containing IP addresses of all BGP neighbors
+    """
     bgp_session_list = _get_bgp_neighbors()
     return [item['addr'] for item in bgp_session_list]
 
-# Returns string containing IP address of neighbor with hostname <hostname> or None if <hostname> not a neighbor
 def _get_neighbor_ipaddress_by_hostname(hostname):
+    """Returns string containing IP address of neighbor with hostname <hostname> or None if <hostname> not a neighbor
+    """
     bgp_session_list = _get_bgp_neighbors()
     for session in bgp_session_list:
         if session['name'] == hostname:
             return session['addr']
     return None
 
-# Start up or shut down BGP session by IP address 
 def _switch_bgp_session_status_by_addr(ipaddress, status, verbose):
+    """Start up or shut down BGP session by IP address 
+    """
     verb = 'Starting' if status == 'up' else 'Shutting'
     click.echo("{} {} BGP session with neighbor {}...".format(verb, status, ipaddress))
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.set_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
-# Start up or shut down BGP session by IP address or hostname
 def _switch_bgp_session_status(ipaddr_or_hostname, status, verbose):
+    """Start up or shut down BGP session by IP address or hostname
+    """
     if _is_neighbor_ipaddress(ipaddr_or_hostname):
         ipaddress = ipaddr_or_hostname
     else:
