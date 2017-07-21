@@ -96,8 +96,6 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
 
-
-
 # This is our main entrypoint - the main 'config' command
 @click.group()
 def cli():
