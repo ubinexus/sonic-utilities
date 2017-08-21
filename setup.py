@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='sonic-utilities',
@@ -12,7 +12,6 @@ setup(
     maintainer_email='jolevequ@microsoft.com',
     packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_sfp', "sonic_installer"],
     package_data={
-        'switch': ['aliases.ini'],
         'show': ['aliases.ini']
     },
     scripts=[
@@ -29,7 +28,6 @@ setup(
         'scripts/teamshow', 
     ],
     data_files=[
-        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sw']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/config']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sfputil']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show']),
@@ -37,7 +35,6 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'sw = switch.main:switch',
             'config = config.main:cli',
             'sfputil = sfputil.main:cli',
             'show = show.main:cli',

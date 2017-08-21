@@ -1,0 +1,314 @@
+#!/usr/bin/python -u
+# -*- coding: utf-8 -*-
+
+import os
+import commands
+import sys
+import redis
+import subprocess
+import syslog
+from swsssdk import ConfigDBConnector
+
+# FILE
+PAM_CONFIG_DIR = "/etc/pam.d/"
+PAM_AUTH_FILE = PAM_CONFIG_DIR + "common-auth-sonic"
+NSS_TACPLUS_CONF = "/etc/tacplus_nss.conf"
+NSS_CONF = "/etc/nsswitch.conf"
+
+# AAA
+AAA_TACPLUS = "tacacs+"
+AAA_LOCAL = "local"
+
+# TACACS+
+TACPLUS_SERVER_TCP_PORT_DEFAULT = "49"
+TACPLUS_SERVER_PASSKEY_DEFAULT = ""
+TACPLUS_SERVER_TIMEOUT_DEFAULT = "5"
+TACPLUS_SERVER_PRI_DEFAULT = "1"
+TACPLUS_SERVER_SRC_IP_DEFAULT = ""
+TACPLUS_SERVER_AUTH_TYPE_DEFAULT = "pap"
+
+# PAM
+PAM_TACACS_MODULE = "pam_tacplus.so"
+PAM_LOCAL_MODULE = "pam_unix.so"
+
+AUTH_FILE_HEADER = "# THIS IS AN AUTO-GENERATED FILE\n" \
+                   "#\n" \
+                   "# /etc/pam.d/common-auth- authentication settings common to all services\n" \
+                   "# This file is included from other service-specific PAM config files,\n" \
+                   "# and should contain a list of the authentication modules that define\n" \
+                   "# the central authentication scheme for use on the system\n" \
+                   "# (e.g., /etc/shadow, LDAP, Kerberos, etc.). The default is to use the\n" \
+                   "# traditional Unix authentication mechanisms.\n" \
+                   "#\n" \
+                   "# here are the per-package modules (the \"Primary\" block)\n"
+
+AUTH_FILE_FOOTER = "#\n" \
+                   "# here's the fallback if no module succeeds\n" \
+                   "auth    requisite                       pam_deny.so\n" \
+                   "# prime the stack with a positive return value if there isn't one already;\n" \
+                   "# this avoids us returning an error just because nothing sets a success code\n" \
+                   "# since the modules above will each just jump around\n" \
+                   "auth    required                        pam_permit.so\n" \
+                   "# and here are more per-package modules (the \"Additional\" block)\n"
+
+
+class TacplusServer(object):
+    def __init__(self,
+                 address,
+                 tcp_port,
+                 passkey,
+                 timeout,
+                 auth_type,
+                 priority):
+        self.address = address
+        self.tcp_port = tcp_port
+        self.passkey = passkey
+        self.timeout = timeout
+        self.auth_type = auth_type
+        self.priority = priority
+        self.pam_module = PAM_TACACS_MODULE
+
+    def update(self, tcp_port, passkey, timeout, auth_type, priority):
+        self.tcp_port = tcp_port
+        self.passkey = passkey
+        self.timeout = timeout
+        self.auth_type = auth_type
+        self.priority = priority
+
+    def get_pam_auth(self, debug, src_ip=''):
+        pam_auth = self.pam_module
+        if debug:
+            pam_auth += " debug"
+        pam_auth += " server=" + self.address + ":" + self.tcp_port \
+                    + " secret=" + self.passkey + " login=" + self.auth_type \
+                    + " timeout=" + self.timeout
+
+        if src_ip is not '':
+            pam_auth += " source_ip=" + src_ip
+        pam_auth += " try_first_pass\n"
+
+        return pam_auth
+
+    def get_nss_conf(self):
+        conf = "server=" + self.address + ":" + self.tcp_port + ",secret=" + self.passkey \
+               + ",timeout=" + self.timeout + "\n"
+        return conf
+
+
+class Local(object):
+    def __init__(self):
+        self.pam_module = PAM_LOCAL_MODULE
+
+    def get_pam_auth(self, debug, src_ip=None):
+        pam_auth = self.pam_module
+        if debug:
+            pam_auth += " debug"
+
+        pam_auth += " nullok try_first_pass\n"
+        return pam_auth
+
+
+def is_true(val):
+    if val == 'True' or val == 'true':
+        return True
+    else:
+        return False
+
+
+class AaaCfg(object):
+    def __init__(self):
+        self.enable = True
+        self.auth_login = [AAA_LOCAL]
+        self.auth_fallback = True
+        self.auth_failthrough = True
+        self.auz_fallback = True
+        self.auz_failthrough = True
+        self.tacplus_global = {
+            'auth_type': TACPLUS_SERVER_AUTH_TYPE_DEFAULT,
+            'timeout': TACPLUS_SERVER_TIMEOUT_DEFAULT,
+            'passkey': TACPLUS_SERVER_PASSKEY_DEFAULT,
+            'src_ip': TACPLUS_SERVER_SRC_IP_DEFAULT
+        }
+        self.tacplus_servers = []
+        self.debug = False
+
+    # Load conf from ConfigDb
+    def load(self, aaa_conf, tacplus_conf):
+        for row in aaa_conf:
+            self.aaa_update(row, aaa_conf[row], modify_conf=False)
+        for row in tacplus_conf:
+            self.tacacs_update(row, tacplus_conf[row], modify_conf=False)
+        self.modify_pam_auth_file()
+        self.modify_nss_conf()
+
+    def aaa_update(self, key, data, modify_conf=True):
+        if key == 'debug':
+            if 'debug' in data:
+                self.debug = is_true(data['debug'])
+        if key == 'authentication':
+            if 'fallback' in data:
+                self.auth_fallback = is_true(data['fallback'])
+            if 'failthrough' in data:
+                self.auth_failthrough = is_true(data['failthrough'])
+            if 'login' in data:
+                val = data['login']
+                self.auth_login = val.split(',', 1)
+        elif key == 'authorization':
+            if 'fallback' in data:
+                self.auz_fallback = is_true(data['fallback'])
+            if 'failthrough' in data:
+                self.auz_failthrough = is_true(data['failthrough'])
+        
+        if modify_conf:
+            self.modify_pam_auth_file()
+            self.modify_nss_conf()
+
+    def tacacs_update(self, key, data, modify_conf=True):
+        if key == 'tacplus_global':
+            for key in data:
+                self.tacplus_global[key] = data[key]
+        else:
+            tcp_port = TACPLUS_SERVER_TCP_PORT_DEFAULT
+            pri = TACPLUS_SERVER_PRI_DEFAULT
+            auth_type = self.tacplus_global['auth_type']
+            timeout = self.tacplus_global['timeout']
+            passkey = self.tacplus_global['passkey']
+
+            if 'tcp_port' in data:
+                tcp_port = data['tcp_port']
+            if 'priority' in data:
+                pri = data['priority']
+            if 'auth_type' in data:
+                auth_type = data['auth_type']
+            if 'passkey' in data:
+                passkey = data['passkey']
+
+            addresses = [server.address for server in self.tacplus_servers]
+            address = key
+            if address in addresses:
+                idx = addresses.index(key)
+                server = self.tacplus_servers[idx]
+                server.update(tcp_port, passkey, timeout, auth_type, pri)
+            else:
+                server = TacplusServer(address, tcp_port, passkey, timeout, auth_type, pri)
+                self.tacplus_servers.append(server)
+
+        self.tacplus_servers = sorted(self.tacplus_servers,
+                                      key=lambda server: server.priority,
+                                      reverse=True)
+        if modify_conf:
+            self.modify_pam_auth_file()
+            self.modify_nss_conf()
+
+    def enable_tacplus(self):
+        if AAA_TACPLUS in self.auth_login:
+            # Add tacplus in nsswitch.conf if TACACS+ enable
+            if os.path.isfile(NSS_CONF):
+                os.system("sed -i -e '/tacplus/b' -e '/^passwd/s/compat/& tacplus/' /etc/nsswitch.conf")
+        else:
+            if os.path.isfile(NSS_CONF):
+                os.system("sed -i -e '/^passwd/s/ tacplus//' /etc/nsswitch.conf")
+
+    def modify_pam_auth_file(self):
+        if self.auth_failthrough:
+            pam_control = "[success=done new_authtok_reqd=done default=ignore]"
+        else:
+            pam_control = "[success=done new_authtok_reqd=done default=ignore auth_err=die]"
+
+        pam_modules = []
+        auth_file_body = ""
+
+        # Set local and tacacs+ pam priority
+        # ['local'] or ['local','tacacs+'] or ['tacacs+', 'local'] or ['tacacs+']
+        if self.auth_login == [AAA_LOCAL]:
+            pam_modules = [Local()]
+        elif self.auth_login == [AAA_LOCAL, AAA_TACPLUS]:
+            pam_modules = [Local()] + self.tacplus_servers
+        elif self.auth_login == [AAA_TACPLUS] or self.auth_login == [AAA_TACPLUS, AAA_LOCAL]:
+            # Don't accept only TACACS+ authentication
+            # Make sure root will always authentication on local, not TACACS+
+            pam_modules = self.tacplus_servers + [Local()]
+            auth_file_body += "auth\t[success=%d new_authtok_reqd=done default=ignore]\t" % (len(pam_modules)-1)
+            auth_file_body += "pam_succeed_if.so user = root debug\n"
+
+        if len(pam_modules):
+            for pam_module in pam_modules[:-1]:
+                line = pam_module.get_pam_auth(self.debug, self.tacplus_global['src_ip'])
+                if line is not "":
+                    auth_file_body += "auth\t" + pam_control + "\t" + line
+
+            pam_module = pam_modules[-1]
+            line = pam_module.get_pam_auth(self.debug, self.tacplus_global['src_ip'])
+            auth_file_body += "auth\t[success=1 default=ignore]\t" + line
+
+        with open(PAM_AUTH_FILE, "w") as f:
+            f.write(AUTH_FILE_HEADER + auth_file_body + AUTH_FILE_FOOTER)
+
+        self.enable_tacplus()
+
+        # Modify common-auth include file in /etc/pam.d/type and sshd
+        if os.path.isfile(PAM_AUTH_FILE):
+            os.system("sed -i -e '/^@include/s/common-auth$/common-auth-sonic/' /etc/pam.d/sshd")
+            os.system("sed -i -e '/^@include/s/common-auth$/common-auth-sonic/' /etc/pam.d/login")
+        else:
+            os.system("sed -i -e '/^@include/s/common-auth-sonic$/common-auth/' /etc/pam.d/sshd")
+            os.system("sed -i -e '/^@include/s/common-auth-sonic$/common-auth/' /etc/pam.d/login")
+
+    # Set tacacs+ server in nss-tacplus conf
+    def modify_nss_conf(self):
+        dbg = ""
+        src_ip = ""
+        servers = ""
+        if self.debug:
+            dbg = "debug=on\n"
+        if self.tacplus_global['src_ip'] is not '':
+            src_ip = 'src_ip=' + self.tacplus_global['src_ip'] + '\n'
+        for server in self.tacplus_servers:
+            servers += server.get_nss_conf()
+
+        contents = ""
+        with open(NSS_TACPLUS_CONF, 'r') as f:
+            line = f.readline()
+            while line:
+                if '#' is line[0]:
+                    contents += line
+                elif 'debug=' != line[0:6] and 'src_ip=' != line[0:7] and 'server=' != line[0:7]:
+                    contents += line
+                line = f.readline()
+        contents += dbg + src_ip + servers
+        with open(NSS_TACPLUS_CONF, 'w') as f:
+            f.write(contents)
+
+
+class HostConfigDaemon:
+
+    def __init__(self):
+        self.config_db = ConfigDBConnector()
+        self.config_db.connect(wait_for_init=True, retry_on=True)
+        syslog.syslog(syslog.LOG_INFO, 'ConfigDB connect success')
+        aaa = self.config_db.get_table('AAA')
+        tacacs_server = self.config_db.get_table('TACPLUS_SERVER')
+        self.aaacfg = AaaCfg()
+        self.aaacfg.load(aaa, tacacs_server)
+
+    def aaa_handler(self, key, data):
+        syslog.syslog(syslog.LOG_INFO, 'value for {} changed to {}'.format(key, data))
+        self.aaacfg.aaa_update(key, data)
+
+    def tacacs_handler(self, key, data):
+        syslog.syslog(syslog.LOG_INFO, 'value for {} changed to {}'.format(key, data))
+        self.aaacfg.tacacs_update(key, data)
+
+    def start(self):
+        self.config_db.subscribe('AAA', lambda table, key, data: self.aaa_handler(key, data))
+        self.config_db.subscribe('TACPLUS_SERVER', lambda table, key, data: self.tacacs_handler(key, data))
+        self.config_db.listen()
+
+
+def main():
+    daemon = HostConfigDaemon()
+    daemon.start()
+
+if __name__ == "__main__":
+    main()
+

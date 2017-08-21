@@ -7,6 +7,7 @@ import json
 import subprocess
 from swsssdk import ConfigDBConnector
 from minigraph import parse_device_desc_xml
+import aaa
 
 SONIC_CFGGEN_PATH = "sonic-cfggen"
 MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
@@ -98,6 +99,8 @@ def cli():
     """SONiC command line - 'config' command"""
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
+cli.add_command(aaa.aaa)
+cli.add_command(aaa.tacacs)
 
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,

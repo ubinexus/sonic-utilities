@@ -521,5 +521,39 @@ def uptime():
     run_command('uptime -p')
 
 
+@click.command()
+def aaa():
+    """Show AAA configuration in ConfigDb"""
+    config_db = swsssdk.ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('AAA')
+    if data is None:
+        print 'No AAA configuration'
+        return
+
+    for row in data:
+        entry = data[row]
+        for key in entry:
+            print 'AAA ' + row + ' ' + key + ' ' + str(entry[key])
+
+    data = config_db.get_table('TACPLUS_SERVER')
+    if data is None:
+        return
+
+    for row in data:
+        entry = data[row]
+        if row == 'tacplus_global':
+            s = [str(key) + ' ' + str(entry[key]) for key in entry]
+            print '\nTACPLUS_SERVER Global ' + s[0]
+            for i in s[1:]:
+                print '                      ' + i
+        else:
+            print '\nTACPLUS_SERVER address ' + row
+            for key in entry:
+                if key != 'address':
+                    print '               ' + key + ' ' + str(entry[key])
+cli.add_command(aaa)
+
+
 if __name__ == '__main__':
     cli()
