@@ -28,36 +28,6 @@ def aaa():
     pass
 
 
-@click.group()
-@click.pass_context
-def debug(ctx):
-    """AAA debug"""
-    ctx.obj = "debug"
-aaa.add_command(debug)
-
-
-@click.command()
-@click.pass_context
-def on(ctx):
-    """Open command"""
-    if ctx.obj == 'debug':
-        set_entry('AAA', 'debug', {
-            'debug': True
-        })
-debug.add_command(on)
-
-
-@click.command()
-@click.pass_context
-def off(ctx):
-    """Close command"""
-    if ctx.obj == 'debug':
-        set_entry('AAA', 'debug', {
-            'debug': False
-        })
-debug.add_command(off)
-
-
 # cmd: aaa authentication
 @click.group()
 def authentication():
@@ -75,6 +45,15 @@ def failthrough(ctx):
 authentication.add_command(failthrough)
 
 
+# cmd: aaa authentication fallback
+@click.group()
+@click.pass_context
+def fallback(ctx):
+    """Allow AAA fallback"""
+    ctx.obj = "fallback"
+authentication.add_command(fallback)
+
+
 @click.command()
 @click.pass_context
 def enable(ctx):
@@ -82,6 +61,10 @@ def enable(ctx):
     if ctx.obj == 'failthrough':
         set_entry('AAA', 'authentication', {
             'failthrough': True
+        })
+    elif ctx.obj == 'fallback':
+        set_entry('AAA', 'authentication', {
+            'fallback': True
         })
 failthrough.add_command(enable)
 
@@ -93,6 +76,10 @@ def disable(ctx):
     if ctx.obj == 'failthrough':
         set_entry('AAA', 'authentication', {
             'failthrough': False
+        })
+    elif ctx.obj == 'fallback':
+        set_entry('AAA', 'authentication', {
+            'fallback': False
         })
 failthrough.add_command(disable)
 
@@ -130,7 +117,7 @@ def src_ip(ip):
         print 'Invalid ip address'
         return
 
-    set_entry('TACPLUS_SERVER', 'tacplus_global', {
+    set_entry('TACPLUS', 'global', {
         'src_ip': ip
     })
 tacacs.add_command(src_ip)
@@ -142,7 +129,7 @@ tacacs.add_command(src_ip)
 def timeout(second):
     """Specify TACACS+ server global timeout"""
     # TODO: Need no command
-    set_entry('TACPLUS_SERVER', 'tacplus_global', {
+    set_entry('TACPLUS', 'global', {
         'timeout': second
     })
 tacacs.add_command(timeout)
@@ -154,7 +141,7 @@ tacacs.add_command(timeout)
 def authtype(type):
     """Specify TACACS+ server global auth_type"""
     # TODO: Need no command
-    set_entry('TACPLUS_SERVER', 'tacplus_global', {
+    set_entry('TACPLUS', 'global', {
         'auth_type': type
     })
 tacacs.add_command(authtype)
@@ -166,7 +153,7 @@ tacacs.add_command(authtype)
 def passkey(secret):
     """Specify TACACS+ server global passkey"""
     # TODO: Need no command
-    set_entry('TACPLUS_SERVER', 'tacplus_global', {
+    set_entry('TACPLUS', 'global', {
         'passkey': secret
     })
 tacacs.add_command(passkey)
@@ -186,19 +173,23 @@ def add(address, timeout, key, auth_type, port, pri):
         print 'Invalid ip address'
         return
 
-    data = {
-        'address': address,
-        'tcp_port': str(port),
-        'priority': pri
-    }
-    if auth_type is not None:
-        data['auth_type'] = auth_type
-    if timeout is not None:
-        data['timeout'] = str(timeout)
-    if key is not None:
-        data['passkey'] = key
-
-    set_entry('TACPLUS_SERVER', address, data)
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    old_data = config_db.get_entry('TACPLUS_SERVER', address)
+    if old_data != {}:
+        print 'server %s already exists' % address
+    else:
+        data = {
+            'tcp_port': str(port),
+            'priority': pri
+        }
+        if auth_type is not None:
+            data['auth_type'] = auth_type
+        if timeout is not None:
+            data['timeout'] = str(timeout)
+        if key is not None:
+            data['passkey'] = key
+        config_db.set_entry('TACPLUS_SERVER', address, data)
 tacacs.add_command(add)
 
 
@@ -215,6 +206,7 @@ def delete(address):
     # config_db = ConfigDBConnector()
     # config_db.connect()
     # TODO: Need del_entry()
+    print 'No del interface to support delete'
 tacacs.add_command(delete)
 
 

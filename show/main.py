@@ -527,31 +527,25 @@ def aaa():
     config_db = swsssdk.ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('AAA')
-    if data is None:
-        print 'No AAA configuration'
-        return
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            for key in entry:
+                print 'AAA ' + row + ' ' + key + ' ' + str(entry[key])
 
-    for row in data:
-        entry = data[row]
+    data = config_db.get_table('TACPLUS')
+    if 'global' in data:
+        entry = data['global']
         for key in entry:
-            print 'AAA ' + row + ' ' + key + ' ' + str(entry[key])
+            print 'TACPLUS global ' + str(key) + ' ' + str(entry[key])
 
     data = config_db.get_table('TACPLUS_SERVER')
-    if data is None:
-        return
-
-    for row in data:
-        entry = data[row]
-        if row == 'tacplus_global':
-            s = [str(key) + ' ' + str(entry[key]) for key in entry]
-            print '\nTACPLUS_SERVER Global ' + s[0]
-            for i in s[1:]:
-                print '                      ' + i
-        else:
+    if data != {}:
+        for row in data:
+            entry = data[row]
             print '\nTACPLUS_SERVER address ' + row
             for key in entry:
-                if key != 'address':
-                    print '               ' + key + ' ' + str(entry[key])
+                print '               ' + key + ' ' + str(entry[key])
 cli.add_command(aaa)
 
 
