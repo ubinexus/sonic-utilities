@@ -22,6 +22,7 @@ setup(
         'scripts/dropcheck',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
+        'scripts/fdbshow',
         'scripts/generate_dump',
         'scripts/lldpshow',
         'scripts/portstat',
