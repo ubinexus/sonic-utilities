@@ -11,16 +11,16 @@
     admin@str~$ fdbshow
       No.    Vlan  MacAddress         Port
     -----  ------  -----------------  ----------
-        0    1000  7C:FE:90:80:9F:05  Ethernet20
-        1    1000  7C:FE:90:80:9F:10  Ethernet40
-        2    1000  7C:FE:90:80:9F:01  Ethernet4
-        3    1000  7C:FE:90:80:9F:02  Ethernet8
-
+        1    1000  7C:FE:90:80:9F:05  Ethernet20
+        2    1000  7C:FE:90:80:9F:10  Ethernet40
+        3    1000  7C:FE:90:80:9F:01  Ethernet4
+        4    1000  7C:FE:90:80:9F:02  Ethernet8
+    Total number of entries 4
     admin@str:~$ fdbshow -p Ethernet4
       No.    Vlan  MacAddress         Port
     -----  ------  -----------------  ---------
-        0    1000  7C:FE:90:80:9F:01  Ethernet4
-
+        1    1000  7C:FE:90:80:9F:01  Ethernet4
+    Total number of entries 1
     admin@str:~$ fdbshow -v 1001
     1001 is not in list
 
@@ -147,8 +147,8 @@ class FdbShow(object):
                         if fdb[0] == vlan and fdb[2] == port]
 
         for fdb in fdb_list:
-            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
             self.FDB_COUNT += 1
+            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
 
         print tabulate(output, self.HEADER)
         print "Total number of entries {0} ".format(self.FDB_COUNT)
@@ -162,8 +162,8 @@ class FdbShow(object):
         output = []
         self.bridge_mac_list.sort(key = lambda x: x[0])
         for fdb in self.bridge_mac_list:
-            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
             self.FDB_COUNT += 1
+            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
             
         print tabulate(output, self.HEADER)
         print "Total number of entries {0} ".format(self.FDB_COUNT)
