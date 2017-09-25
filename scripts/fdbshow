@@ -123,10 +123,7 @@ class FdbShow(object):
             return 0
 
         keys = [r[pos] for r in self.bridge_mac_list]
-        try:
-            return keys.index(key_value)
-        except ValueError as e:
-            print e.message
+        return keys.index(key_value)
 
 
     def display(self, vlan, port):
