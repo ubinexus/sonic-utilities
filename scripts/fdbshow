@@ -107,7 +107,6 @@ class FdbShow(object):
             
             self.bridge_mac_list.append((int(fdb["vlan"]),) + (fdb["mac"],) + (if_name,))
 
-        self.bridge_mac_list.sort(key = lambda x: x[0])
         return
     
     
@@ -117,34 +116,49 @@ class FdbShow(object):
         """
         if pos == 0:
             self.bridge_mac_list.sort(key = lambda x: x[pos])
+        else:
+            self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[pos])
+
+        if key_value == 0:
+            return 0
+
         keys = [r[pos] for r in self.bridge_mac_list]
         try:
             return keys.index(key_value)
-        except IndexError as e:
+        except ValueError as e:
             print e.message
 
 
-    def display_specific(self, port, vlan):
+    def display(self, vlan, port):
         """
             Display the FDB entries for specified vlan/port.
+            @todo: - PortChannel support
         """
         output = []
+        args = {vlan, port}
 
-        if vlan is not None and port is None:
-            vlan = int(vlan)
-            s_index = self.get_iter_index(vlan)
-            fdb_list = [fdb for fdb in self.bridge_mac_list[s_index:] if fdb[0] == vlan]
-
-        elif vlan is None and port is not None:
-            self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[2])
-            s_index = self.get_iter_index(port, 2)
-            fdb_list = [fdb for fdb in self.bridge_mac_list[s_index:] if fdb[2] == port]
-
-        else:
+        if len(args) == 1:
+            """
+            Display the FDB summary.
+            """
+            s_index = self.get_iter_index()
+            fdb_list = self.bridge_mac_list[s_index:]
+        elif None not in args:
             vlan = int(vlan)
             s_index = self.get_iter_index(vlan)
             fdb_list = [fdb for fdb in self.bridge_mac_list[s_index:]
                         if fdb[0] == vlan and fdb[2] == port]
+        else:
+            #Placeholder added for MAC as None
+            arg_list = [vlan, None, port]
+            m_index = [idx for idx, val in enumerate(arg_list) if val != None][0]
+            if m_index == 0:
+                arg_list[m_index] = int(arg_list[m_index])
+
+            s_index = self.get_iter_index(arg_list[m_index], m_index)
+            fdb_list = self.bridge_mac_list[s_index:]
+            fdb_list = [fdb for fdb in self.bridge_mac_list[s_index:]
+                        if fdb[m_index] == arg_list[m_index]]
 
         for fdb in fdb_list:
             self.FDB_COUNT += 1
@@ -154,21 +168,6 @@ class FdbShow(object):
         print "Total number of entries {0} ".format(self.FDB_COUNT)
 
 
-    def display_summary(self):
-        """
-            Display the FDB summary. 
-            @todo: - PortChannel support
-        """
-        output = []
-        self.bridge_mac_list.sort(key = lambda x: x[0])
-        for fdb in self.bridge_mac_list:
-            self.FDB_COUNT += 1
-            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
-            
-        print tabulate(output, self.HEADER)
-        print "Total number of entries {0} ".format(self.FDB_COUNT)
-        
-        
 def main():
     
     parser = argparse.ArgumentParser(description='Display ASIC FDB entries',
@@ -179,11 +178,7 @@ def main():
 
     try:
         fdb = FdbShow()
-        if args.port is None and args.vlan is None:
-            fdb.display_summary()
-        else:
-            fdb.display_specific(args.port, args.vlan)
-        
+        fdb.display(args.vlan, args.port)
     except Exception as e:
         print e.message
         sys.exit(1)
