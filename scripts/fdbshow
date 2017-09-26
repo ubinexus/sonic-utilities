@@ -31,6 +31,7 @@ import argparse
 import json
 import sys
 
+from swsssdk import port_util
 from tabulate import tabulate
 from natsort import natsorted
 
@@ -42,39 +43,11 @@ class FdbShow(object):
     def __init__(self):
         super(FdbShow,self).__init__()
         self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
-        self.get_interface_oid_map()
-        self.get_bridge_port_oid_map()
+        self.if_name_map, \
+        self.if_oid_map = port_util.get_interface_oid_map(self.db)
+        self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
         return
-
-    
-    def get_interface_oid_map(self):
-        """
-            Get the Interface names from Counters DB
-        """
-        self.db.connect('COUNTERS_DB')
-        self.if_name_map = self.db.get_all('COUNTERS_DB', 'COUNTERS_PORT_NAME_MAP', blocking=True)
-        self.if_oid_map = {sai_oid: if_name for if_name, sai_oid in self.if_name_map.items()}
-
-
-    def get_bridge_port_oid_map(self):
-        """
-            Get the Bridge port names from ASIC DB
-        """
-        self.db.connect(self.db.ASIC_DB)
-        self.if_br_oid_map = {} 
-        br_port_str = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT:*")
-        if not br_port_str:
-            return
-        
-        offset = len("ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT:")
-        oid_pfx = len("oid:0x")
-        for s in br_port_str:
-            br_port_id = s[(offset + oid_pfx):]
-            ent = self.db.get_all('ASIC_DB', s, blocking=True)
-            port_id = ent[b"SAI_BRIDGE_PORT_ATTR_PORT_ID"][oid_pfx:]
-            self.if_br_oid_map[br_port_id] = port_id 
-
 
     def fetch_fdb_data(self):
         """
