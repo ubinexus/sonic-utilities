@@ -25,15 +25,13 @@
     1001 is not in list
 
 """
-
-import swsssdk
 import argparse
 import json
+import swsssdk
 import sys
 
-from swsssdk import port_util
-from tabulate import tabulate
 from natsort import natsorted
+from tabulate import tabulate
 
 class FdbShow(object):
 
@@ -44,8 +42,8 @@ class FdbShow(object):
         super(FdbShow,self).__init__()
         self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
         self.if_name_map, \
-        self.if_oid_map = port_util.get_interface_oid_map(self.db)
-        self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
+        self.if_oid_map = swsssdk.port_util.get_interface_oid_map(self.db)
+        self.if_br_oid_map = swsssdk.port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
         return
 
