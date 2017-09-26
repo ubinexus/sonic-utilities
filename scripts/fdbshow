@@ -134,7 +134,7 @@ class FdbShow(object):
         output = []
         args = {vlan, port}
 
-        if len(args) == 1:
+        if len(args) == 1 and None in args:
             """
             Display the FDB summary.
             """
