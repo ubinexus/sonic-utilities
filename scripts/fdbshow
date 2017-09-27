@@ -27,10 +27,10 @@
 """
 import argparse
 import json
-import swsssdk
 import sys
 
 from natsort import natsorted
+from swsssdk import SonicV2Connector, port_util
 from tabulate import tabulate
 
 class FdbShow(object):
@@ -40,10 +40,10 @@ class FdbShow(object):
 
     def __init__(self):
         super(FdbShow,self).__init__()
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, \
-        self.if_oid_map = swsssdk.port_util.get_interface_oid_map(self.db)
-        self.if_br_oid_map = swsssdk.port_util.get_bridge_port_map(self.db)
+        self.if_oid_map = port_util.get_interface_oid_map(self.db)
+        self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
         return
 
@@ -62,10 +62,8 @@ class FdbShow(object):
         oid_pfx = len("oid:0x")
         for s in fdb_str:
             fdb_entry = s.decode()
-            try:
-                fdb = json.loads(fdb_entry .split(":", 2)[-1])
-            except ValueError as e: 
-                print e.message
+            fdb = json.loads(fdb_entry .split(":", 2)[-1])
+            if not fdb:
                 continue
            
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
@@ -74,10 +72,12 @@ class FdbShow(object):
                 port_id = self.if_br_oid_map[br_port_id]
                 if_name = self.if_oid_map[port_id]
             except KeyError as e:
+                print e.message
                 continue
             
             self.bridge_mac_list.append((int(fdb["vlan"]),) + (fdb["mac"],) + (if_name,))
 
+        self.bridge_mac_list.sort(key = lambda x: x[0])
         return
     
     
@@ -85,9 +85,7 @@ class FdbShow(object):
         """
             Get the starting index of matched entry
         """
-        if pos == 0:
-            self.bridge_mac_list.sort(key = lambda x: x[pos])
-        else:
+        if pos != 0:
             self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[pos])
 
         if key_value == 0:
@@ -103,32 +101,18 @@ class FdbShow(object):
             @todo: - PortChannel support
         """
         output = []
-        args = {vlan, port}
 
-        if len(args) == 1 and None in args:
-            """
-            Display the FDB summary.
-            """
-            s_index = self.get_iter_index()
-            fdb_list = self.bridge_mac_list[s_index:]
-        elif None not in args:
+        if vlan is not None:
             vlan = int(vlan)
             s_index = self.get_iter_index(vlan)
-            fdb_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                        if fdb[0] == vlan and fdb[2] == port]
-        else:
-            #Placeholder added for MAC as None
-            arg_list = [vlan, None, port]
-            m_index = [idx for idx, val in enumerate(arg_list) if val != None][0]
-            if m_index == 0:
-                arg_list[m_index] = int(arg_list[m_index])
+            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
+                                    if fdb[0] == vlan]
+        if port is not None:
+            s_index = self.get_iter_index(port, 2)
+            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
+                                    if fdb[2] == port]
 
-            s_index = self.get_iter_index(arg_list[m_index], m_index)
-            fdb_list = self.bridge_mac_list[s_index:]
-            fdb_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                        if fdb[m_index] == arg_list[m_index]]
-
-        for fdb in fdb_list:
+        for fdb in self.bridge_mac_list:
             self.FDB_COUNT += 1
             output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
 
