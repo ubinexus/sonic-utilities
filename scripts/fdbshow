@@ -59,22 +59,21 @@ class FdbShow(object):
         if not fdb_str:
             return
 
+        if self.if_br_oid_map is None:
+            return
+
         oid_pfx = len("oid:0x")
         for s in fdb_str:
             fdb_entry = s.decode()
             fdb = json.loads(fdb_entry .split(":", 2)[-1])
             if not fdb:
                 continue
-           
+
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
             br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
-            try:
-                port_id = self.if_br_oid_map[br_port_id]
-                if_name = self.if_oid_map[port_id]
-            except KeyError as e:
-                print e.message
-                continue
-            
+            port_id = self.if_br_oid_map[br_port_id]
+            if_name = self.if_oid_map[port_id]
+
             self.bridge_mac_list.append((int(fdb["vlan"]),) + (fdb["mac"],) + (if_name,))
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
