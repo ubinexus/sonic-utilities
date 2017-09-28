@@ -15,9 +15,10 @@ then
 fi
 
 # Kernel and initrd image
-KERNEL_IMAGE="/vmlinuz"
-INITRD="/initrd.img"
-BOOT_OPTIONS=$(cat /proc/cmdline)
+NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+BOOT_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
+KERNEL_IMAGE="/host$(echo $BOOT_OPTIONS | cut -d ' ' -f 2)"
+INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 
 case "$BOOT_OPTIONS" in
   *fast-reboot*)
@@ -67,4 +68,5 @@ sleep 1
 sync
 
 # Reboot
+echo "Rebooting to $NEXT_SONIC_IMAGE..."
 reboot
