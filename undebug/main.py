@@ -128,4 +128,4 @@ def updates():
     run_command(command)
 
 if __name__ == '__main__':
-	cli()
+    cli()
