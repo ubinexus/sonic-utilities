@@ -30,19 +30,18 @@ class Intstat(object):
     def __init__(self):
         self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
         self.db.connect(self.db.APPL_DB)
-	a = self.db.keys(self.db.APPL_DB)
-	#print(a)
-	tables = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
-	i={}
-	table = []
-	key = []
-	#print tabulate(header, tablefmt='simple', stralign='right')
-	for i in tables:
-		key = re.split(':', i, maxsplit=1)[-1].strip()
-		if key :
-			table.append((key, self.get_port_status(key, PORT_LANES_STATUS_FIELD), self.get_port_status(key, PORT_ALIAS_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD), self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_MTU_STATUS_FIELD)))
-	print tabulate(table, header, tablefmt="simple", stralign='right')
-
+        a = self.db.keys(self.db.APPL_DB)
+        #print(a)
+        tables = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
+        i = {}
+        table = []
+        key = []
+        #print tabulate(header, tablefmt='simple', stralign='right')
+        for i in tables:
+            key = re.split(':', i, maxsplit=1)[-1].strip()
+            if key:
+                table.append((key, self.get_port_status(key, PORT_LANES_STATUS_FIELD), self.get_port_status(key, PORT_ALIAS_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD), self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_MTU_STATUS_FIELD)))
+        print tabulate(table, header, tablefmt="simple", stralign='right')
 
 
 def main():

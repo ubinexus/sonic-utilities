@@ -96,8 +96,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
-	"""SONiC command line - 'undebug' command"""
-	pass
+    """SONiC command line - 'undebug' command"""
+    pass
 
 
 #
@@ -107,31 +107,25 @@ def cli():
 # This allows us to add commands to both cli and ip groups, allowing for
 @cli.group(cls=AliasedGroup, default_if_no_args=True)
 def bgp():
-	"""undebug bgp on """
-	pass
+    """undebug bgp on """
+    pass
 
 @bgp.command(default=True)
 def default():
-	command = 'sudo vtysh -c "undebug bgp"'
-	run_command(command)
-
-
-
-# Add 'bgp' group to both the root 'cli' group and the 'ip' subgroup
-cli.add_command(bgp)
-
+    command = 'sudo vtysh -c "undebug bgp"'
+    run_command(command)
 
 @bgp.command()
 def events():
-	"""undebug bgp events on """
-	command = 'sudo vtysh -c "undebug bgp events"'
-	run_command(command)
+    """undebug bgp events on """
+    command = 'sudo vtysh -c "undebug bgp events"'
+    run_command(command)
 
 @bgp.command()
 def updates():
-	"""undebug bgp events on """
-	command = 'sudo vtysh -c "undebug bgp updates"'
-	run_command(command)
+    """undebug bgp events on """
+    command = 'sudo vtysh -c "undebug bgp updates"'
+    run_command(command)
 
 if __name__ == '__main__':
 	cli()

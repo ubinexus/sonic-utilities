@@ -99,9 +99,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
-	"""SONiC command line - 'debug' command"""
-	pass
-
+    """SONiC command line - 'debug' command"""
+    pass
 
 #
 # 'bgp' group ###
@@ -109,31 +108,25 @@ def cli():
 
 @cli.group(cls=AliasedGroup, default_if_no_args=True)
 def bgp():
-	"""debug bgp on """
-	pass
+    """debug bgp on """
+    pass
 
 @bgp.command(default=True)
 def default():
-	command = 'sudo vtysh -c "debug bgp"'
-	run_command(command)
-
-
-
-# Add 'bgp' group to both the root 'cli' group and the 'ip' subgroup
-cli.add_command(bgp)
-
+    command = 'sudo vtysh -c "debug bgp"'
+    run_command(command)
 
 @bgp.command()
 def events():
-	"""debug bgp events on """
-	command = 'sudo vtysh -c "debug bgp events"'
-	run_command(command)
+    """debug bgp events on """
+    command = 'sudo vtysh -c "debug bgp events"'
+    run_command(command)
 
 @bgp.command()
 def updates():
-	"""debug bgp events on """
-	command = 'sudo vtysh -c "debug bgp updates"'
-	run_command(command)
+    """debug bgp events on """
+    command = 'sudo vtysh -c "debug bgp updates"'
+    run_command(command)
 
 if __name__ == '__main__':
     cli()

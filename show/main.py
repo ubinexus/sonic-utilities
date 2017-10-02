@@ -171,8 +171,8 @@ def alias(interfacename):
 
     click.echo(tabulate(body, header))
 
-# 'summary' subcommand ("show interfaces summary") -- called if no subcommands are passed
-@interfaces.command(default=True)
+# 'summary' subcommand ("show interfaces summary")
+@interfaces.command()
 @click.argument('interfacename', required=False)
 def summary(interfacename):
     """Show interface status and information"""
@@ -191,21 +191,28 @@ def summary(interfacename):
 def transceiver():
     pass
 
-interfaces.add_command(transceiver)
 
 @transceiver.command(default=True)
 @click.argument('interfacename', required=False)
 def default(interfacename):
+    """Show interface transceiver information"""
+
+    command = "sudo sfputil show eeprom"
+
     if interfacename is not None:
-        command = "sudo sfputil -p {}".format(interfacename)
-    else:
-        command = "sudo sfputil"
+        command += " -p {}".format(interfacename)
+
     run_command(command)
 
 @transceiver.command()
 @click.argument('interfacename', required=True)
 def details(interfacename):
-    command="sudo sfputil --port {} --dom".format(interfacename)
+    """Show interface transceiver details (Digital Optical Monitoring)"""
+    command = "sudo sfputil show eeprom --dom"
+
+    if interfacename is not None:
+        command += " -p {}".format(interfacename)
+
     run_command(command)
 
 @interfaces.command()
@@ -215,7 +222,8 @@ def description(interfacename):
         command = "sudo vtysh -c 'show interface {}'".format(interfacename)
      else:
         command = "sudo vtysh -c 'show interface description'"
-     run_command(command)
+
+    run_command(command)
 
 
 # 'counters' subcommand ("show interfaces counters")
@@ -243,19 +251,6 @@ def counters(period, printall, clear):
 def portchannel():
     """Show PortChannel information"""
     run_command("teamshow")
-
-# 'sfp' subcommand ("show interfaces sfp")
-@interfaces.command()
-@click.argument('interfacename', required=False)
-def sfp(interfacename):
-    """Show SFP Transceiver information"""
-
-    cmd = "sudo sfputil show eeprom"
-
-    if interfacename is not None:
-        cmd += " -p {}".format(interfacename)
-
-    run_command(cmd)
 
 @interfaces.command()
 def status():
@@ -670,12 +665,10 @@ def system_memory():
     command="free -m"
     run_command(command)
 
-@click.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
 def vlan():
     """Show VLAN information"""
     pass
-
-cli.add_command(vlan)
 
 @vlan.command()
 def brief():
