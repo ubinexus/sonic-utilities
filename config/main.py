@@ -149,7 +149,7 @@ def load_mgmt_config(filename):
     run_command(command, display_cmd=True)
     command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
     run_command(command, display_cmd=True)
-    print "Please note loaded configuration will be lost after system reboot. To preserve setting, run `config save`."
+    print "Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`."
 
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -179,7 +179,7 @@ def load_minigraph():
     run_command("service lldp restart", display_cmd=True)
     run_command("service snmp restart", display_cmd=True)
     run_command("service dhcp_relay restart", display_cmd=True)
-    print "Please note configuration loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
+    print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
 #
 # 'bgp' group
 #
