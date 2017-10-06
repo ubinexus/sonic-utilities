@@ -10,6 +10,7 @@ import sys
 from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
+import swsssdk
 
 try:
     # noinspection PyPep8Naming
@@ -703,6 +704,43 @@ def services():
                 print proc1.stdout.read()
         else:
                 break
+
+@cli.command()
+def aaa():
+    """Show AAA configuration in ConfigDb"""
+    config_db = swsssdk.ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('AAA')
+    output = ''
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            for key in entry:
+                output += ('AAA %s %s %s\n' % (row, key, str(entry[key])))
+
+    click.echo(output)
+
+@cli.command()
+def tacacs():
+    """Show TACACS+ configuration"""
+    config_db = swsssdk.ConfigDBConnector()
+    config_db.connect()
+    output = ''
+    data = config_db.get_table('TACPLUS')
+    if 'global' in data:
+        entry = data['global']
+        for key in entry:
+            output += ('TACPLUS global %s %s\n' % (str(key), str(entry[key])))
+
+    data = config_db.get_table('TACPLUS_SERVER')
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            output += ('\nTACPLUS_SERVER address %s\n' % row)
+            for key in entry:
+                output += ('               %s %s\n' % (key, str(entry[key])))
+    click.echo(output)
+
 
 if __name__ == '__main__':
     cli()

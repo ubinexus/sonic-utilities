@@ -28,6 +28,7 @@ setup(
         'scripts/lldpshow',
         'scripts/portstat',
         'scripts/teamshow', 
+        'scripts/hostcfgd'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
