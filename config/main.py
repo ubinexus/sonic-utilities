@@ -153,7 +153,7 @@ def load_mgmt_config(filename):
     command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
     run_command(command, display_cmd=True, ignore_error=True)
     command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
-    run_command(command, display_cmd=True. ignore_error=True)
+    run_command(command, display_cmd=True, ignore_error=True)
     print "Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`."
 
 @cli.command()
