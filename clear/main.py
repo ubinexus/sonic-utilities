@@ -94,7 +94,7 @@ def get_routing_stack():
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
-        print result
+
     except OSError, e:
         raise OSError("Cannot detect routing-stack")
 
@@ -139,7 +139,6 @@ def cli():
 @cli.group()
 def ip():
     """Clear IP """
-    click.echo("Command incomplete")
     pass
 
 
@@ -156,7 +155,6 @@ def ipv6():
 # and the specific BGP commands to import, will be determined by the routing-stack
 # being elected.
 #
-print routing_stack
 if routing_stack == "quagga":
     from .bgp_quagga_v4 import bgp
     ip.add_command(bgp)

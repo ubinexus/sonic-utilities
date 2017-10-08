@@ -1,5 +1,5 @@
 import click
-from show.main import *
+from clear.main import *
 
 
 ################################################################################
@@ -11,7 +11,7 @@ from show.main import *
 
 @bgp.group(cls=AliasedGroup,default_if_no_args=True)
 def ipv6():
-    """Clear IPv6 BGP (Border Gateway Protocol) information"""
+    """Clear BGP IPv6 peers / state"""
     pass
 
 

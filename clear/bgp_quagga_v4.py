@@ -9,7 +9,7 @@ from clear.main import *
 ################################################################################
 
 
-@ip.group(cls=AliasedGroup,default_if_no_args=False)
+@ip.group(cls=AliasedGroup, default_if_no_args=True, context_settings=CONTEXT_SETTINGS)
 def bgp():
     """Clear BGP (Border Gateway Protocol) peers"""
     pass

@@ -100,7 +100,7 @@ def get_routing_stack():
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
-        print result
+
     except OSError, e:
         raise OSError("Cannot detect routing-stack")
 
@@ -294,6 +294,7 @@ def portchannel():
 def status():
     """Show Interface status information"""
     run_command("interface_stat")
+
 
 #
 # 'mac' command ("show mac ...")

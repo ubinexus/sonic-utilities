@@ -9,7 +9,7 @@ from clear.main import *
 ################################################################################
 
 
-@ipv6.group(cls=AliasedGroup,default_if_no_args=True)
+@ipv6.group(cls=AliasedGroup, default_if_no_args=True, context_settings=CONTEXT_SETTINGS)
 def bgp():
     """Clear IPv6 BGP (Border Gateway Protocol) information"""
     pass
