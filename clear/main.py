@@ -123,7 +123,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 # 'cli' group (root group) ###
 #
 
-# THis is our entrypoint - the main "Clear" command
+# This is our entrypoint - the main "Clear" command
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'Clear' command"""
