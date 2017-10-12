@@ -465,14 +465,6 @@ def syseeprom():
     run_command("sudo decode-syseeprom")
 
 
-# 'hardware' command ("show hardware")
-@cli.command()
-def hardware():
-    """Show local hardware information"""
-    command = "sudo dmidecode -t 1,2,10"
-    run_command(command)
-
-
 #
 # 'logging' command ("show logging")
 #

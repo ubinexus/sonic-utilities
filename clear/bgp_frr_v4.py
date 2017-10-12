@@ -2,14 +2,14 @@ import click
 from clear.main import *
 
 
-################################################################################
+###############################################################################
 #
 # 'clear bgp' cli stanza
 #
-################################################################################
+###############################################################################
 
 
-@cli.group(cls=AliasedGroup,default_if_no_args=True)
+@cli.group(cls=AliasedGroup, default_if_no_args=True)
 def bgp():
     """Clear BGP peers / state"""
     pass
@@ -33,9 +33,9 @@ def neighbor():
 def default(ipaddress):
     """Clear BGP neighbors"""
     if ipaddress is not None:
-	command = 'sudo vtysh -c "clear bgp {} "'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp {} "'.format(ipaddress)
     else:
-	command = 'sudo vtysh -c "clear bgp *"'
+        command = 'sudo vtysh -c "clear bgp *"'
     run_command(command)
 
 
@@ -44,9 +44,9 @@ def default(ipaddress):
 @click.argument('ipaddress', required=False)
 def neigh_in(ipaddress):
     if ipaddress is not None:
-	command = 'sudo vtysh -c "clear bgp {} in"'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp {} in"'.format(ipaddress)
     else:
-	command = 'sudo vtysh -c "clear bgp * in"'
+        command = 'sudo vtysh -c "clear bgp * in"'
     run_command(command)
 
 
@@ -55,13 +55,14 @@ def neigh_in(ipaddress):
 @click.argument('ipaddress', required=False)
 def neigh_out(ipaddress):
     if ipaddress is not None:
-	command = 'sudo vtysh -c "clear bgp {} out"'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp {} out"'.format(ipaddress)
     else:
-	command = 'sudo vtysh -c "clear bgp * out"'
+        command = 'sudo vtysh -c "clear bgp * out"'
     run_command(command)
 
 
-@neighbor.group(cls=AliasedGroup, default_if_no_args=True, context_settings=CONTEXT_SETTINGS)
+@neighbor.group(cls=AliasedGroup, default_if_no_args=True,
+                context_settings=CONTEXT_SETTINGS)
 def soft():
     pass
 
@@ -99,14 +100,15 @@ def soft_in(ipaddress):
     run_command(command)
 
 
-################################################################################
+###############################################################################
 #
 # 'clear bgp ipv4' cli stanza
 #
-################################################################################
+###############################################################################
 
 
-@bgp.group(cls=AliasedGroup, default_if_no_args=True, context_settings=CONTEXT_SETTINGS)
+@bgp.group(cls=AliasedGroup, default_if_no_args=True,
+           context_settings=CONTEXT_SETTINGS)
 def ipv4():
     """Clear BGP IPv4 peers / state"""
     pass
@@ -120,7 +122,8 @@ def default():
     run_command(command)
 
 
-@ipv4.group(cls=AliasedGroup, default_if_no_args=True, context_settings=CONTEXT_SETTINGS)
+@ipv4.group(cls=AliasedGroup, default_if_no_args=True,
+            context_settings=CONTEXT_SETTINGS)
 def neighbor():
     pass
 
@@ -130,9 +133,9 @@ def neighbor():
 def default(ipaddress):
     """Clear BGP neighbors"""
     if ipaddress is not None:
-	command = 'sudo vtysh -c "clear bgp ipv4 {} "'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp ipv4 {} "'.format(ipaddress)
     else:
-	command = 'sudo vtysh -c "clear bgp ipv4 *"'
+        command = 'sudo vtysh -c "clear bgp ipv4 *"'
     run_command(command)
 
 
@@ -141,9 +144,9 @@ def default(ipaddress):
 @click.argument('ipaddress', required=False)
 def neigh_in(ipaddress):
     if ipaddress is not None:
-	command = 'sudo vtysh -c "clear bgp ipv4 {} in"'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp ipv4 {} in"'.format(ipaddress)
     else:
-	command = 'sudo vtysh -c "clear bgp ipv4 * in"'
+        command = 'sudo vtysh -c "clear bgp ipv4 * in"'
     run_command(command)
 
 
@@ -152,13 +155,14 @@ def neigh_in(ipaddress):
 @click.argument('ipaddress', required=False)
 def neigh_out(ipaddress):
     if ipaddress is not None:
-	command = 'sudo vtysh -c "clear bgp ipv4 {} out"'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp ipv4 {} out"'.format(ipaddress)
     else:
-	command = 'sudo vtysh -c "clear bgp ipv4 * out"'
+        command = 'sudo vtysh -c "clear bgp ipv4 * out"'
     run_command(command)
 
 
-@neighbor.group(cls=AliasedGroup, default_if_no_args=True, context_settings=CONTEXT_SETTINGS)
+@neighbor.group(cls=AliasedGroup, default_if_no_args=True,
+                context_settings=CONTEXT_SETTINGS)
 def soft():
     pass
 
@@ -194,4 +198,3 @@ def soft_in(ipaddress):
     else:
         command = 'sudo vtysh -c "clear bgp ipv4 * soft out"'
     run_command(command)
-

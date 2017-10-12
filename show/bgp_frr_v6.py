@@ -2,11 +2,11 @@ import click
 from show.main import *
 
 
-################################################################################
+###############################################################################
 #
 # 'show bgp ipv6' cli stanza
 #
-################################################################################
+###############################################################################
 
 
 @bgp.group(cls=AliasedGroup, default_if_no_args=False)
@@ -36,7 +36,8 @@ def default(ipaddress):
     """Show BGP ipv6 neighbors"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "show bgp ipv6 neighbor {} "'.format(ipaddress)
+        command = 'sudo vtysh -c "show bgp ipv6 neighbor {} "'. \
+            format(ipaddress)
         run_command(command)
     else:
         run_command('sudo vtysh -c "show bgp ipv6 neighbor"')
@@ -46,15 +47,8 @@ def default(ipaddress):
 @neighbors.command('advertised-routes')
 @click.argument('ipaddress')
 def advertised_routes(ipaddress):
-    command = 'sudo vtysh -c "show bgp ipv6 neighbor {} advertised-routes"'.format(ipaddress)
-    run_command(command)
-
-
-# 'received-routes' subcommand ("show bgp ipv6 neighbors received-routes <nbr>")
-@neighbors.command('received-routes')
-@click.argument('ipaddress')
-def received_routes(ipaddress):
-    command = 'sudo vtysh -c "show bgp ipv6 neighbor {} received-routes"'.format(ipaddress)
+    command = 'sudo vtysh -c "show bgp ipv6 neighbor {} advertised-routes"'. \
+        format(ipaddress)
     run_command(command)
 
 
@@ -62,5 +56,6 @@ def received_routes(ipaddress):
 @neighbors.command('routes')
 @click.argument('ipaddress')
 def routes(ipaddress):
-    command = 'sudo vtysh -c "show bgp ipv6 neighbor {} routes"'.format(ipaddress)
+    command = 'sudo vtysh -c "show bgp ipv6 neighbor {} routes"'. \
+        format(ipaddress)
     run_command(command)
