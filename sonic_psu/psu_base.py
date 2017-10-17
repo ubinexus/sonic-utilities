@@ -26,10 +26,22 @@ class PsuBase(object):
     @abc.abstractmethod
     def get_psu_status(self, index):
         """
-        Retrieves the oprational status of power supply unit (PSU) defined
+        Retrieves the operational status of power supply unit (PSU) defined
                 by index <index>
 
         :param index: An integer, index of the PSU of which to query status
         :return: Boolean, True if PSU is operating properly, False if PSU is faulty
         """
         return False
+
+    @abc.abstractmethod
+    def get_psu_presence(self, index):
+        """
+        Retrieves the presence status of power supply unit (PSU) defined
+                by index <index>
+
+        :param index: An integer, index of the PSU of which to query status
+        :return: Boolean, True if PSU is plugged, False if not
+        """
+        return False
+
