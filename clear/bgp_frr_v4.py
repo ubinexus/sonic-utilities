@@ -23,15 +23,18 @@ def default():
     run_command(command)
 
 
-@bgp.group(cls=AliasedGroup, default_if_no_args=True, context_settings=CONTEXT_SETTINGS)
+@bgp.group(cls=AliasedGroup, default_if_no_args=True,
+           context_settings=CONTEXT_SETTINGS)
 def neighbor():
+    """Clear specific BGP peers"""
     pass
 
 
 @neighbor.command(default=True)
 @click.argument('ipaddress', required=False)
 def default(ipaddress):
-    """Clear BGP neighbors"""
+    """Clear all BGP peers"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp {} "'.format(ipaddress)
     else:
@@ -43,6 +46,8 @@ def default(ipaddress):
 @neighbor.command('in')
 @click.argument('ipaddress', required=False)
 def neigh_in(ipaddress):
+    """Send route-refresh"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp {} in"'.format(ipaddress)
     else:
@@ -54,6 +59,8 @@ def neigh_in(ipaddress):
 @neighbor.command('out')
 @click.argument('ipaddress', required=False)
 def neigh_out(ipaddress):
+    """Resend all outbound updates"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp {} out"'.format(ipaddress)
     else:
@@ -64,13 +71,15 @@ def neigh_out(ipaddress):
 @neighbor.group(cls=AliasedGroup, default_if_no_args=True,
                 context_settings=CONTEXT_SETTINGS)
 def soft():
+    """Soft reconfig BGP's inbound/outbound updates"""
     pass
 
 
 @soft.command(default=True)
 @click.argument('ipaddress', required=False)
 def default(ipaddress):
-    """Clear BGP neighbors soft configuration"""
+    """Clear BGP peers soft configuration"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp {} soft "'.format(ipaddress)
     else:
@@ -82,6 +91,8 @@ def default(ipaddress):
 @soft.command('in')
 @click.argument('ipaddress', required=False)
 def soft_in(ipaddress):
+    """Send route-refresh"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp {} soft in"'.format(ipaddress)
     else:
@@ -92,7 +103,9 @@ def soft_in(ipaddress):
 # 'soft out' subcommand
 @soft.command('out')
 @click.argument('ipaddress', required=False)
-def soft_in(ipaddress):
+def soft_out(ipaddress):
+    """Resend all outbound updates"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp {} soft out"'.format(ipaddress)
     else:
@@ -117,7 +130,7 @@ def ipv4():
 # Default 'bgp' command (called if no subcommands or their aliases were passed)
 @ipv4.command(default=True)
 def default():
-    """Clear all BGP peers"""
+    """Clear all IPv4 BGP peers"""
     command = 'sudo vtysh -c "clear bgp ipv4 *"'
     run_command(command)
 
@@ -125,13 +138,15 @@ def default():
 @ipv4.group(cls=AliasedGroup, default_if_no_args=True,
             context_settings=CONTEXT_SETTINGS)
 def neighbor():
+    """Clear specific IPv4 BGP peers"""
     pass
 
 
 @neighbor.command(default=True)
 @click.argument('ipaddress', required=False)
 def default(ipaddress):
-    """Clear BGP neighbors"""
+    """Clear all IPv4 BGP peers"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp ipv4 {} "'.format(ipaddress)
     else:
@@ -143,6 +158,8 @@ def default(ipaddress):
 @neighbor.command('in')
 @click.argument('ipaddress', required=False)
 def neigh_in(ipaddress):
+    """Send route-refresh"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp ipv4 {} in"'.format(ipaddress)
     else:
@@ -154,6 +171,8 @@ def neigh_in(ipaddress):
 @neighbor.command('out')
 @click.argument('ipaddress', required=False)
 def neigh_out(ipaddress):
+    """Resend all outbound updates"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp ipv4 {} out"'.format(ipaddress)
     else:
@@ -164,6 +183,7 @@ def neigh_out(ipaddress):
 @neighbor.group(cls=AliasedGroup, default_if_no_args=True,
                 context_settings=CONTEXT_SETTINGS)
 def soft():
+    """Soft reconfig BGP's inbound/outbound updates"""
     pass
 
 
@@ -171,6 +191,7 @@ def soft():
 @click.argument('ipaddress', required=False)
 def default(ipaddress):
     """Clear BGP neighbors soft configuration"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp ipv4 {} soft "'.format(ipaddress)
     else:
@@ -182,6 +203,8 @@ def default(ipaddress):
 @soft.command('in')
 @click.argument('ipaddress', required=False)
 def soft_in(ipaddress):
+    """Send route-refresh"""
+
     if ipaddress is not None:
         command = 'sudo vtysh -c "clear bgp ipv4 {} soft in"'.format(ipaddress)
     else:
@@ -192,9 +215,12 @@ def soft_in(ipaddress):
 # 'soft out' subcommand
 @soft.command('out')
 @click.argument('ipaddress', required=False)
-def soft_in(ipaddress):
+def soft_out(ipaddress):
+    """Resend all outbound updates"""
+
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv4 {} soft out"'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp ipv4 {} soft out"'.\
+                  format(ipaddress)
     else:
         command = 'sudo vtysh -c "clear bgp ipv4 * soft out"'
     run_command(command)
