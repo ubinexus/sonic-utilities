@@ -448,7 +448,7 @@ def presence(port):
         if platform_sfputil.is_valid_sfputil_port(port) == 0:
             print "Error: invalid port '%s'\n" % port
             print_all_valid_port_values()
-            sys.exit(5)
+            sys.exit(4)
 
         logical_port_list = [port]
 
@@ -471,7 +471,7 @@ def presence(port):
                 presence = platform_sfputil.get_presence(physical_port)
             except NotImplementedError:
                 click.echo("This functionality is currently not implemented for this platform")
-                sys.exit(6)
+                sys.exit(5)
 
             if presence:
                 output_table.append([port_name, "Present"])
@@ -499,7 +499,7 @@ def lpmode(port):
         if platform_sfputil.is_valid_sfputil_port(port) == 0:
             print "Error: invalid port '%s'\n" % port
             print_all_valid_port_values()
-            sys.exit(7)
+            sys.exit(4)
 
         logical_port_list = [port]
 
@@ -522,7 +522,7 @@ def lpmode(port):
                 lpmode = platform_sfputil.get_low_power_mode(physical_port)
             except NotImplementedError:
                 click.echo("This functionality is currently not implemented for this platform")
-                sys.exit(8)
+                sys.exit(5)
 
             if lpmode:
                 output_table.append([port_name, "On"])
@@ -549,7 +549,7 @@ def set_lpmode(logical_port, enable):
     if platform_sfputil.is_valid_sfputil_port(logical_port) == 0:
         print "Error: invalid port '%s'\n" % logical_port
         print_all_valid_port_values()
-        sys.exit(9)
+        sys.exit(4)
 
     physical_port_list = logical_port_name_to_physical_port_list(logical_port)
     if physical_port_list is None:
@@ -568,7 +568,7 @@ def set_lpmode(logical_port, enable):
             result = platform_sfputil.set_low_power_mode(physical_port, enable)
         except NotImplementedError:
             click.echo("This functionality is currently not implemented for this platform")
-            sys.exit(10)
+            sys.exit(5)
 
         if result:
             print "OK"
@@ -605,7 +605,7 @@ def reset(port_name):
     if platform_sfputil.is_valid_sfputil_port(port_name) == 0:
         print "Error: invalid port '%s'\n" % port_name
         print_all_valid_port_values()
-        sys.exit(11)
+        sys.exit(4)
 
     physical_port_list = logical_port_name_to_physical_port_list(port_name)
     if physical_port_list is None:
@@ -622,7 +622,7 @@ def reset(port_name):
             result = platform_sfputil.reset(physical_port)
         except NotImplementedError:
             click.echo("This functionality is currently not implemented for this platform")
-            sys.exit(12)
+            sys.exit(5)
 
         if result:
             print "OK"
