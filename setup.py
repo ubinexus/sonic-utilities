@@ -26,6 +26,7 @@ setup(
         'scripts/fdbshow',
         'scripts/generate_dump',
         'scripts/lldpshow',
+        'scripts/port2alias',
         'scripts/portstat',
         'scripts/teamshow', 
     ],
