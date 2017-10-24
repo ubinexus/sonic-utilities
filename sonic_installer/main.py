@@ -295,24 +295,24 @@ def binary_version(binary_image_path):
 
     click.echo(IMAGE_PREFIX + version_num)
 
-# Cleanup installed images which are not current and next
+# Remove installed images which are not current and next
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
-        expose_value=False, prompt='Cleanup images which are not current and next, continue?')
+        expose_value=False, prompt='Remove images which are not current and next, continue?')
 def cleanup():
-    """ Cleanup installed images which are not current and next """
+    """ Remove installed images which are not current and next """
     images = get_installed_images()
     curimage = get_current_image()
     nextimage = get_next_image()
     image_removed = 0
     for image in get_installed_images():
         if image != curimage and image != nextimage:
-            click.echo("Cleanup image %s" % image)
+            click.echo("Removing image %s" % image)
             remove_image(image)
             image_removed += 1
 
     if image_removed == 0:
-        click.echo("No image to cleanup")
+        click.echo("No image(s) to remove")
 
 if __name__ == '__main__':
     cli()
