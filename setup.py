@@ -1,5 +1,11 @@
 import glob
 from setuptools import setup
+import unittest
+
+def get_test_suite():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('tests', pattern='*.py')
+    return test_suite
 
 setup(
     name='sonic-utilities',
@@ -60,4 +66,5 @@ setup(
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC utilities command line cli CLI',
+    test_suite='setup.get_test_suite'
 )

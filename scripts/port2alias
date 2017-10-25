@@ -2,6 +2,7 @@
 
 import sys
 import subprocess
+from cStringIO import StringIO
 from portconfig import get_port_config
 
 
@@ -21,25 +22,37 @@ def get_platform_hwsku():
             platform = tokens[1]
     return (platform, hwsku)
 
+def translate_line(line, ports):
+    allowed_symbols = ['-', '_']
+    sb = StringIO()
+    start = 0
+    end = 0
+    while end < len(line):
+        if line[end].isalnum() or line[end] in allowed_symbols:
+            pass
+        else: 
+            # End of a word
+            word = line[start:end]
+            if word in ports:
+                sb.write(ports[word]['alias'])
+            else:
+                sb.write(word)
+            sb.write(line[end])
+            start = end + 1
+        end += 1
+    if start != len(line):
+        word = line[start:]
+        if word in ports:
+            sb.write(ports[word]['alias'])
+        else:
+            sb.write(word)
+    return sb.getvalue()
+
 def main():
     (platform, hwsku) = get_platform_hwsku()
-    (port, _) = get_port_config(hwsku, platform)
+    (ports, _) = get_port_config(hwsku, platform)
     for line in sys.stdin:
-        start = 0
-        end = 0
-        while end < len(line):
-            if line[end].isalnum():
-                pass
-            else: 
-                # End of a word
-                word = line[start:end]
-                if port.has_key(word):
-                    sys.stdout.write(port[word]['alias'])
-                else:
-                    sys.stdout.write(word)
-                sys.stdout.write(line[end])
-                start = end + 1
-            end += 1
+        sys.stdout.write(translate_line(line, ports))
 
 if __name__ == "__main__":
     main()
