@@ -11,7 +11,7 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_installer', 'sonic_psu', 'sonic_sfp'],
+    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_installer', 'sonic_psu', 'sonic_sfp', 'sonic-utilities-tests'],
     package_data={
         'show': ['aliases.ini']
     },
@@ -60,5 +60,5 @@ setup(
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC utilities command line cli CLI',
-    test_suite='tests'
+    test_suite='sonic-utilities-tests'
 )
