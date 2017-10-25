@@ -11,7 +11,7 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_installer', 'sonic_psu', 'sonic_sfp', 'sonic-utilities-tests'],
+    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_installer', 'sonic_psu', 'sonic_sfp', 'acl_loader', 'sonic-utilities-tests'],
     package_data={
         'show': ['aliases.ini']
     },
@@ -28,7 +28,7 @@ setup(
         'scripts/lldpshow',
         'scripts/port2alias',
         'scripts/portstat',
-        'scripts/teamshow', 
+        'scripts/teamshow',
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
@@ -38,7 +38,8 @@ setup(
             'config = config.main:cli',
             'sfputil = sfputil.main:cli',
             'show = show.main:cli',
-            'sonic_installer = sonic_installer.main:cli'
+            'sonic_installer = sonic_installer.main:cli',
+            'acl-loader = acl_loader.main:cli'
         ]
     },
     install_requires=[
