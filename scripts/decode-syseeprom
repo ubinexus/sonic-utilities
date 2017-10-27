@@ -112,7 +112,6 @@ def run(target, opts, args):
     # only the eeprom classes that inherit from eeprom_base
     # support caching. Others will work normally
     #
-    print repr(opts)
     try:
         target.set_cache_name(os.path.join(CACHE_ROOT, CACHE_FILE))
     except:
