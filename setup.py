@@ -46,10 +46,10 @@ setup(
             'sfputil = sfputil.main:cli',
             'show = show.main:cli',
             'sonic_installer = sonic_installer.main:cli',
-            'acl-loader = acl_loader.main:cli'
+            'acl-loader = acl_loader.main:cli',
             'sonic-clear = clear.main:cli',
             'debug = debug.main:cli',
-            'undebug = undebug.main:cli',
+            'undebug = undebug.main:cli'
         ]
     },
     install_requires=[
