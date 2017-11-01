@@ -165,7 +165,10 @@ def load_minigraph():
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
     client.flushdb()
-    command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
+    if os.path.isfile('/etc/sonic/init_cfg.json'):
+        command = "{} -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
+    else:
+        command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, True)
     command = "{} -m -v \"DEVICE_METADATA['localhost']['hostname']\"".format(SONIC_CFGGEN_PATH)
@@ -274,6 +277,50 @@ def startup(interface_name, verbose):
     """Start up interface"""
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
+
+
+#
+# 'acl' group
+#
+
+@cli.group()
+def acl():
+    """ACL-related configuration tasks"""
+    pass
+
+
+#
+# 'acl update' group
+#
+
+@acl.group()
+def update():
+    """ACL-related configuration tasks"""
+    pass
+
+
+#
+# 'full' subcommand
+#
+
+@update.command()
+@click.argument('file_name', required=True)
+def full(file_name):
+    """Full update of ACL rules configuration."""
+    command = "acl-loader update full {}".format(file_name)
+    run_command(command)
+
+
+#
+# 'incremental' subcommand
+#
+
+@update.command()
+@click.argument('file_name', required=True)
+def incremental(file_name):
+    """Incremental update of ACL rule configuration."""
+    command = "acl-loader update incremental {}".format(file_name)
+    run_command(command)
 
 
 if __name__ == '__main__':
