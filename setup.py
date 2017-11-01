@@ -11,7 +11,7 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_installer', 'sonic_psu', 'sonic_sfp'],
+    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_installer', 'sonic_psu', 'sonic_sfp', 'pfcwd' ],
     package_data={
         'show': ['aliases.ini']
     },
@@ -37,7 +37,8 @@ setup(
             'config = config.main:cli',
             'sfputil = sfputil.main:cli',
             'show = show.main:cli',
-            'sonic_installer = sonic_installer.main:cli'
+            'sonic_installer = sonic_installer.main:cli',
+            'pfcwd = pfcwd.main:cli'
         ]
     },
     install_requires=[
