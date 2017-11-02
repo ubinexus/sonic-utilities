@@ -31,7 +31,7 @@ setup(
         'sonic_sfp',
         'sonic-utilities-tests',
         'undebug',
-        ],
+    ],
     package_data={
         'show': ['aliases.ini']
     },
