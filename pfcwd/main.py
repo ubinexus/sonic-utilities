@@ -5,16 +5,16 @@ import swsssdk
 from tabulate import tabulate
 
 STATS_DESCRIPTION = [
-    ('Storm Detected Cnt',   'PFC_WD_QUEUE_STATS_DEADLOCK_DETECTED'),
-    ('Storm Restored Cnt',   'PFC_WD_QUEUE_STATS_DEADLOCK_RESTORED'),
-    ('Tx Packets',           'PFC_WD_QUEUE_STATS_TX_PACKETS'),
-    ('Rx Packets',           'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS'),
-    ('Tx Packets Drop',      'PFC_WD_QUEUE_STATS_RX_PACKETS'),
-    ('Rx Packets Drop',      'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS_LAST'),
-    ('Tx Packets Last',      'PFC_WD_QUEUE_STATS_TX_PACKETS_LAST'),
-    ('Rx Packets Last',      'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS_LAST'),
-    ('Tx Packets Last Drop', 'PFC_WD_QUEUE_STATS_RX_PACKETS_LAST'),
-    ('Rx Packets Last Drop', 'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS_LAST')
+    ('STORM DETECTED CNT',   'PFC_WD_QUEUE_STATS_DEADLOCK_DETECTED'),
+    ('STORM RESTORED CNT',   'PFC_WD_QUEUE_STATS_DEADLOCK_RESTORED'),
+    ('TX PACKETS',           'PFC_WD_QUEUE_STATS_TX_PACKETS'),
+    ('RX PACKETS',           'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS'),
+    ('TX PACKETS DROP',      'PFC_WD_QUEUE_STATS_RX_PACKETS'),
+    ('RX PACKETS DROP',      'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS_LAST'),
+    ('TX PACKETS LAST',      'PFC_WD_QUEUE_STATS_TX_PACKETS_LAST'),
+    ('RX PACKETS LAST',      'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS_LAST'),
+    ('TX PACKETS LAST DROP', 'PFC_WD_QUEUE_STATS_RX_PACKETS_LAST'),
+    ('RX PACKETS LAST DROP', 'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS_LAST')
 ]
 
 STATS_HEADER = ('Queue',) + zip(*STATS_DESCRIPTION)[0]
@@ -26,7 +26,7 @@ def cli():
 
 def get_all_queues(db):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')
-    return queue_names.keys()
+    return sorted(queue_names.keys())
 
 # Show stats
 @cli.command()
@@ -52,7 +52,7 @@ def stats(queues):
         #click.echo("Queue ID " + queue)
         table.append([queue] + stats_list)
 
-    print(tabulate(table, STATS_HEADER, stralign='center', numalign='center', tablefmt='simple'))
+    print(tabulate(table, STATS_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
 if __name__ == '__main__':
     cli()
