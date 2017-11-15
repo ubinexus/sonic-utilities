@@ -151,7 +151,7 @@ def ipv6():
 
 
 #
-# Inserting BGP functionality into cli's show parse-chain.
+# Inserting BGP functionality into cli's clear parse-chain.
 # BGP commands are determined by the routing-stack being elected.
 #
 if routing_stack == "quagga":
