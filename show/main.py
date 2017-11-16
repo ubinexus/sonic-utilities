@@ -395,6 +395,7 @@ elif routing_stack == "frr":
     @cli.command()
     @click.argument('bgp_args', nargs = -1, required = False)
     def bgp(bgp_args):
+        """BGP information"""
         bgp_cmd = "show bgp"
         for arg in bgp_args:
             bgp_cmd += " " + str(arg)
