@@ -331,6 +331,30 @@ def incremental(file_name):
     command = "acl-loader update incremental {}".format(file_name)
     run_command(command)
 
+#
+# 'ecn' command
+#
+@cli.command()
+@click.option('-profile', metavar='<profile_name>', type=str, required=True, help="Profile name")
+@click.option('-rmax', metavar='<red threshold max>', type=int, help="Set red max threshold")
+@click.option('-rmin', metavar='<red threshold min>', type=int, help="Set red min threshold")
+@click.option('-ymax', metavar='<yellow threshold max>', type=int, help="Set yellow max threshold")
+@click.option('-ymin', metavar='<yellow threshold min>', type=int, help="Set yellow min threshold")
+@click.option('-gmax', metavar='<green threshold max>', type=int, help="Set green max threshold")
+@click.option('-gmin', metavar='<green threshold min>', type=int, help="Set green min threshold")
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
+    """ECN-related configuration tasks"""
+    command = "ecnconfig -p %s" % profile
+    if rmax: command += " -rmax %d" % rmax
+    if rmin: command += " -rmin %d" % rmin
+    if ymax: command += " -ymax %d" % ymax
+    if ymin: command += " -ymin %d" % ymin
+    if gmax: command += " -gmax %d" % gmax
+    if gmin: command += " -gmin %d" % gmin
+    if verbose:
+        click.echo(command)
+    run_command(command)
 
 if __name__ == '__main__':
     cli()
