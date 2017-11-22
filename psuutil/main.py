@@ -22,7 +22,7 @@ VERSION = '1.0'
 
 SYSLOG_IDENTIFIER = "psuutil"
 PLATFORM_SPECIFIC_MODULE_NAME = "psuutil"
-PLATFORM_SPECIFIC_CLASS_NAME = "PSUutil"
+PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
 
 PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 PLATFORM_ROOT_PATH_DOCKER = '/usr/share/sonic/platform'
@@ -149,7 +149,7 @@ def version():
 # 'numpsus' subcommand
 @cli.command()
 def numpsus():
-    "number of supported PSU in the device"
+    "Display the number of supported PSU in the device"
     print(str(platform_psuutil.get_num_psus()))
 
 # 'status' subcommand

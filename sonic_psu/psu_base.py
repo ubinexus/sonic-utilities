@@ -30,7 +30,9 @@ class PsuBase(object):
                 by index <index>
 
         :param index: An integer, index of the PSU of which to query status
-        :return: Boolean, True if PSU is operating properly, False if PSU is faulty
+        :return: Boolean,
+            - True if PSU is operating properly: PSU is inserted and powered in the device
+            - False if PSU is faulty: PSU is inserted in the device but not powered
         """
         return False
 
