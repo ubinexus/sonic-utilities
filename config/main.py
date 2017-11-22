@@ -144,7 +144,7 @@ def reload(filename):
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, True)
-   _restart_services()
+    _restart_services()
 
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
