@@ -352,9 +352,8 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     if ymin: command += " -ymin %d" % ymin
     if gmax: command += " -gmax %d" % gmax
     if gmin: command += " -gmin %d" % gmin
-    if verbose:
-        click.echo(command)
-    run_command(command)
+    if verbose: command += " -vv"
+    run_command(command, display_cmd=verbose)
 
 if __name__ == '__main__':
     cli()
