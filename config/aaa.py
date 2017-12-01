@@ -37,64 +37,53 @@ aaa.add_command(authentication)
 
 
 # cmd: aaa authentication failthrough
-@click.group()
-@click.pass_context
-def failthrough(ctx):
-    """Allow AAA fail-through"""
-    ctx.obj = "failthrough"
+@click.command()
+@click.argument('option', type=click.Choice(["enable", "disable", "default"]))
+def failthrough(option):
+    """Allow AAA fail-through [enable | disable | default]"""
+    val = None
+    if option == 'enable':
+        val = True
+    elif option == 'disable':
+        val = False
+
+    set_entry('AAA', 'authentication', {
+        'failthrough': val
+    })
 authentication.add_command(failthrough)
 
 
 # cmd: aaa authentication fallback
-@click.group()
-@click.pass_context
-def fallback(ctx):
-    """Allow AAA fallback"""
-    ctx.obj = "fallback"
+@click.command()
+@click.argument('option', type=click.Choice(["enable", "disable", "default"]))
+def fallback(option):
+    """Allow AAA fallback [enable | disable | default]"""
+    val = None
+    if option == 'enable':
+        val = True
+    elif option == 'disable':
+        val = False
+
+    set_entry('AAA', 'authentication', {
+        'fallback': val
+    })
 authentication.add_command(fallback)
 
 
 @click.command()
-@click.pass_context
-def enable(ctx):
-    """Enable Command"""
-    if ctx.obj == 'failthrough':
-        set_entry('AAA', 'authentication', {
-            'failthrough': True
-        })
-    elif ctx.obj == 'fallback':
-        set_entry('AAA', 'authentication', {
-            'fallback': True
-        })
-failthrough.add_command(enable)
-
-
-@click.command()
-@click.pass_context
-def disable(ctx):
-    """Disable Command"""
-    if ctx.obj == 'failthrough':
-        set_entry('AAA', 'authentication', {
-            'failthrough': False
-        })
-    elif ctx.obj == 'fallback':
-        set_entry('AAA', 'authentication', {
-            'fallback': False
-        })
-failthrough.add_command(disable)
-
-
-@click.command()
-@click.argument('auth_protocol', nargs=-1, type=click.Choice(["tacacs+", "local"]))
+@click.argument('auth_protocol', nargs=-1, type=click.Choice(["tacacs+", "local", "default"]))
 def login(auth_protocol):
-    """Switch login"""
+    """Switch login authentication [ {tacacs+, local} | default ]"""
     if len(auth_protocol) is 0:
         print 'Not support empty argument'
         return
 
-    val = auth_protocol[0]
-    if len(auth_protocol) == 2:
-        val += ',' + auth_protocol[1]
+    if 'default' in auth_protocol:
+        val = None
+    else:
+        val = auth_protocol[0]
+        if len(auth_protocol) == 2:
+            val += ',' + auth_protocol[1]
 
     set_entry('AAA', 'authentication', {
         'login': val
@@ -110,18 +99,19 @@ def tacacs():
 
 @click.group()
 @click.pass_context
-def no(ctx):
-    """Negate a command or set its defaults"""
-    ctx.obj = 'no'
-tacacs.add_command(no)
+def default(ctx):
+    """set its default configuration"""
+    ctx.obj = 'default'
+tacacs.add_command(default)
+authentication.add_command(default)
 
 
 @click.command()
-@click.argument('second', metavar='<time_second>', type=int, required=False)
+@click.argument('second', metavar='<time_second>', type=click.IntRange(0, 60), required=False)
 @click.pass_context
 def timeout(ctx, second):
-    """Specify TACACS+ server global timeout"""
-    if ctx.obj == 'no':
+    """Specify TACACS+ server global timeout <0 - 60>"""
+    if ctx.obj == 'default':
         set_entry('TACPLUS', 'global', {
             'timeout': None
         })
@@ -132,15 +122,15 @@ def timeout(ctx, second):
     else:
         click.echo('Not support empty argument')
 tacacs.add_command(timeout)
-no.add_command(timeout)
+default.add_command(timeout)
 
 
 @click.command()
 @click.argument('type', metavar='<type>', type=click.Choice(["chap", "pap", "mschap"]), required=False)
 @click.pass_context
 def authtype(ctx, type):
-    """Specify TACACS+ server global auth_type"""
-    if ctx.obj == 'no':
+    """Specify TACACS+ server global auth_type [chap | pap | mschap]"""
+    if ctx.obj == 'default':
         set_entry('TACPLUS', 'global', {
             'auth_type': None
         })
@@ -151,15 +141,15 @@ def authtype(ctx, type):
     else:
         click.echo('Not support empty argument')
 tacacs.add_command(authtype)
-no.add_command(authtype)
+default.add_command(authtype)
 
 
 @click.command()
 @click.argument('secret', metavar='<secret_string>', required=False)
 @click.pass_context
 def passkey(ctx, secret):
-    """Specify TACACS+ server global passkey"""
-    if ctx.obj == 'no':
+    """Specify TACACS+ server global passkey <STRING>"""
+    if ctx.obj == 'default':
         set_entry('TACPLUS', 'global', {
             'passkey': None
         })
@@ -170,7 +160,7 @@ def passkey(ctx, secret):
     else:
         click.echo('Not support empty argument')
 tacacs.add_command(passkey)
-no.add_command(passkey)
+default.add_command(passkey)
 
 
 # cmd: tacacs add <ip_address> --timeout SECOND --key SECRET --type TYPE --port PORT --pri PRIORITY
