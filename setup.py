@@ -1,5 +1,11 @@
 import glob
 from setuptools import setup
+import unittest
+
+def get_test_suite():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('sonic-utilities-tests', pattern='*.py')
+    return test_suite
 
 setup(
     name='sonic-utilities',
@@ -11,7 +17,22 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_sfp', "sonic_installer"],
+    packages=[
+        'acl_loader',
+        'clear',
+        'config',
+        'debug',
+        'pfcwd',
+        'sfputil',
+        'psuutil',
+        'show',
+        'sonic_eeprom',
+        'sonic_installer',
+        'sonic_psu',
+        'sonic_sfp',
+        'sonic-utilities-tests',
+        'undebug',
+    ],
     package_data={
         'show': ['aliases.ini']
     },
@@ -25,7 +46,9 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbshow',
         'scripts/generate_dump',
+        'scripts/interface_stat',
         'scripts/lldpshow',
+        'scripts/port2alias',
         'scripts/portstat',
         'scripts/teamshow', 
         'scripts/hostcfgd'
@@ -35,10 +58,16 @@ setup(
     ],
     entry_points={
         'console_scripts': [
+            'acl-loader = acl_loader.main:cli',
             'config = config.main:cli',
+            'debug = debug.main:cli',
+            'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
+            'psuutil = psuutil.main:cli',
             'show = show.main:cli',
-            'sonic_installer = sonic_installer.main:cli'
+            'sonic-clear = clear.main:cli',
+            'sonic_installer = sonic_installer.main:cli',
+            'undebug = undebug.main:cli',
         ]
     },
     install_requires=[
@@ -60,4 +89,5 @@ setup(
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC utilities command line cli CLI',
+    test_suite='setup.get_test_suite'
 )

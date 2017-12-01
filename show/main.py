@@ -87,6 +87,31 @@ class AliasedGroup(DefaultGroup):
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 
+# To be enhanced. Routing-stack information should be collected from a global
+# location (configdb?), so that we prevent the continous execution of this
+# bash oneliner. To be revisited once routing-stack info is tracked somewhere.
+def get_routing_stack():
+    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+
+    try:
+        proc = subprocess.Popen(command,
+                                stdout=subprocess.PIPE,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        result = stdout.rstrip('\n')
+
+    except OSError, e:
+        raise OSError("Cannot detect routing-stack")
+
+    return (result)
+
+
+# Global Routing-Stack variable
+routing_stack = get_routing_stack()
+
+
 def run_command(command):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -162,14 +187,22 @@ def alias(interfacename):
     body = []
 
     if interfacename is not None:
+        # If we're given an interface name, output name and alias for that interface only
         if interfacename in port_dict:
-            body.append([interfacename, port_dict[interfacename]['alias']])
+            if 'alias' in port_dict[interfacename]:
+                body.append([interfacename, port_dict[interfacename]['alias']])
+            else:
+                body.append([interfacename, interfacename])
         else:
             click.echo("Invalid interface name, '{0}'".format(interfacename))
             return
     else:
+        # Output name and alias for all interfaces
         for port_name in natsorted(port_dict.keys()):
-            body.append([port_name, port_dict[port_name]['alias']])
+            if 'alias' in port_dict[port_name]:
+                body.append([port_name, port_dict[port_name]['alias']])
+            else:
+                body.append([port_name, port_name])
 
     click.echo(tabulate(body, header))
 
@@ -263,6 +296,7 @@ def status():
     """Show Interface status information"""
     run_command("interface_stat")
 
+
 #
 # 'mac' command ("show mac ...")
 #
@@ -293,31 +327,6 @@ def ip():
     """Show IP (IPv4) commands"""
     pass
 
-#
-# 'bgp' group ("show ip bgp ...")
-#
-
-@ip.group(cls=AliasedGroup, default_if_no_args=False)
-def bgp():
-    """Show IPv4 BGP (Border Gateway Protocol) information"""
-    pass
-
-# 'neighbors' subcommand ("show ip bgp neighbors")
-@bgp.command()
-@click.argument('ipaddress', required=False)
-def neighbors(ipaddress):
-    """Show IP (IPv4) BGP neighbors"""
-    if ipaddress is not None:
-        command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
-        run_command(command)
-    else:
-        run_command('sudo vtysh -c "show ip bgp neighbor"')
-
-# 'summary' subcommand ("show ip bgp summary")
-@bgp.command()
-def summary():
-    """Show summarized information of IPv4 BGP state"""
-    run_command('sudo vtysh -c "show ip bgp summary"')
 
 #
 # 'route' subcommand ("show ip route")
@@ -334,6 +343,13 @@ def route(ipaddress):
         run_command('sudo vtysh -c "show ip route"')
 
 
+# 'protocol' command
+@ip.command()
+def protocol():
+    """Show IPv4 protocol information"""
+    run_command('sudo vtysh -c "show ip protocol"')
+
+
 #
 # 'ipv6' group ("show ipv6 ...")
 #
@@ -344,34 +360,12 @@ def ipv6():
     """Show IPv6 commands"""
     pass
 
-#
-# 'bgp' group ("show ipv6 bgp ...")
-#
-
-@ipv6.group(cls=AliasedGroup, default_if_no_args=False)
-def bgp():
-    """Show IPv6 BGP (Border Gateway Protocol) information"""
-    pass
-
-# 'neighbors' subcommand ("show ip bgp neighbors")
-@bgp.command()
-@click.argument('ipaddress', required=True)
-def neighbors(ipaddress):
-    """Show IPv6 BGP neighbors"""
-    command = 'sudo vtysh -c "show ipv6 bgp neighbor {} "'.format(ipaddress)
-    run_command(command)
-
-# 'summary' subcommand ("show ip bgp summary")
-@bgp.command()
-def summary():
-    """Show summarized information of IPv6 BGP state"""
-    run_command('sudo vtysh -c "show ipv6 bgp summary"')
 
 #
 # 'route' subcommand ("show ipv6 route")
 #
 
-@ip.command()
+@ipv6.command()
 @click.argument('ipaddress', required=False)
 def route(ipaddress):
     """Show IPv6 routing table"""
@@ -380,6 +374,34 @@ def route(ipaddress):
         run_command(command)
     else:
         run_command('sudo vtysh -c "show ipv6 route"')
+
+
+# 'protocol' command
+@ipv6.command()
+def protocol():
+    """Show IPv6 protocol information"""
+    run_command('sudo vtysh -c "show ipv6 protocol"')
+
+
+#
+# Inserting BGP functionality into cli's show parse-chain.
+# BGP commands are determined by the routing-stack being elected.
+#
+if routing_stack == "quagga":
+    from .bgp_quagga_v4 import bgp
+    ip.add_command(bgp)
+    from .bgp_quagga_v6 import bgp
+    ipv6.add_command(bgp)
+elif routing_stack == "frr":
+    @cli.command()
+    @click.argument('bgp_args', nargs = -1, required = False)
+    def bgp(bgp_args):
+        """BGP information"""
+        bgp_cmd = "show bgp"
+        for arg in bgp_args:
+            bgp_cmd += " " + str(arg)
+        command = 'sudo vtysh -c "{}"'.format(bgp_cmd)
+        run_command(command)
 
 
 #
@@ -447,6 +469,17 @@ def syseeprom():
     """Show system EEPROM information"""
     run_command("sudo decode-syseeprom")
 
+# 'psustatus' subcommand ("show platform psustatus")
+@platform.command()
+@click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
+def psustatus(index):
+    """Show PSU status information"""
+    command = "sudo psuutil status"
+
+    if index >= 0:
+        command += " -i {}".format(index)
+
+    run_command(command)
 
 #
 # 'logging' command ("show logging")
@@ -741,6 +774,60 @@ def tacacs():
                 output += ('               %s %s\n' % (key, str(entry[key])))
     click.echo(output)
 
+#
+# 'session' command ###
+#
+
+@cli.command()
+@click.argument('session_name', required=False)
+def session(session_name):
+    """Show existing everflow sessions"""
+    if session_name is None:
+        session_name = ""
+
+    run_command("acl-loader show session {}".format(session_name))
+
+
+#
+# 'acl' group ###
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def acl():
+    """Show ACL related information"""
+    pass
+
+
+#
+# 'acl table' command ###
+#
+
+@acl.command()
+@click.argument('table_name', required=False)
+def table(table_name):
+    """Show existing ACL tables"""
+    if table_name is None:
+        table_name = ""
+
+    run_command("acl-loader show table {}".format(table_name))
+
+
+#
+# 'acl rule' command ###
+#
+
+@acl.command()
+@click.argument('table_name', required=False)
+@click.argument('rule_id', required=False)
+def rule(table_name, rule_id):
+    """Show existing ACL rules"""
+    if table_name is None:
+        table_name = ""
+
+    if rule_id is None:
+        rule_id = ""
+
+    run_command("acl-loader show rule {} {}".format(table_name, rule_id))
 
 if __name__ == '__main__':
     cli()
