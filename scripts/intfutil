@@ -156,7 +156,6 @@ class IntfDescription(object):
 
 
 def main(args):
-    #command, intf_name):
     if len(args) == 0:
         print "No valid arguments provided"
         return
