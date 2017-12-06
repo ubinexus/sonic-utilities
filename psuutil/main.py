@@ -172,7 +172,8 @@ def status(index, textonly):
         msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
-            status_table.append([psu_name, "NOT SUPPORTED"])
+            print ("Error! The {} is not available on the platform.\n" \
+            "Number of supported PSU - {}.".format(psu_name, platform_psuutil.get_num_psus()))
             continue
         presence = platform_psuutil.get_psu_presence(psu)
         if presence:
@@ -182,11 +183,14 @@ def status(index, textonly):
             msg = 'NOT PRESENT'
         status_table.append([psu_name, msg])
 
+    if not status_table:
+        return
+
     if textonly:
         for status in status_table:
             print status[0] + ':' + status[1]
     else:
-        print tabulate(status_table, header, tablefmt="grid")
+        print tabulate(status_table, header, tablefmt="simple")
 
 if __name__ == '__main__':
     cli()
