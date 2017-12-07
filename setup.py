@@ -1,11 +1,17 @@
 import glob
+import sys
 from setuptools import setup
 import unittest
 
+# For python3 wheel, we currently don't need test
+# TODO: build python3 wheel of all the dependencies, and remove conditional test
 def get_test_suite():
-    test_loader = unittest.TestLoader()
-    test_suite = test_loader.discover('sonic-utilities-tests', pattern='*.py')
-    return test_suite
+    if sys.version_info >= (3, 0):
+        return unittest.TestSuite()
+    else:
+        test_loader = unittest.TestLoader()
+        test_suite = test_loader.discover('sonic-utilities-tests', pattern='*.py')
+        return test_suite
 
 setup(
     name='sonic-utilities',
@@ -46,7 +52,7 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbshow',
         'scripts/generate_dump',
-        'scripts/interface_stat',
+        'scripts/intfutil',
         'scripts/lldpshow',
         'scripts/port2alias',
         'scripts/portstat',
@@ -85,6 +91,7 @@ setup(
         'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC utilities command line cli CLI',

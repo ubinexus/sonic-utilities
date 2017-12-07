@@ -10,7 +10,7 @@ import sys
 from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
-import swsssdk
+from swsssdk import ConfigDBConnector
 
 try:
     # noinspection PyPep8Naming
@@ -206,6 +206,7 @@ def alias(interfacename):
 
     click.echo(tabulate(body, header))
 
+
 # 'summary' subcommand ("show interfaces summary")
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -240,6 +241,7 @@ def basic(interfacename):
 
     run_command(command)
 
+
 @transceiver.command()
 @click.argument('interfacename', required=False)
 def details(interfacename):
@@ -252,15 +254,29 @@ def details(interfacename):
 
     run_command(command)
 
+
 @interfaces.command()
 @click.argument('interfacename', required=False)
 def description(interfacename):
     """Show interface status, protocol and description"""
 
     if interfacename is not None:
-        command = "sudo vtysh -c 'show interface {}'".format(interfacename)
+        command = "intfutil description {}".format(interfacename)
     else:
-        command = "sudo vtysh -c 'show interface description'"
+        command = "intfutil description"
+
+    run_command(command)
+
+
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def status(interfacename):
+    """Show Interface status information"""
+
+    if interfacename is not None:
+        command = "intfutil status {}".format(interfacename)
+    else:
+        command = "intfutil status"
 
     run_command(command)
 
@@ -290,11 +306,6 @@ def counters(period, printall, clear):
 def portchannel():
     """Show PortChannel information"""
     run_command("teamshow")
-
-@interfaces.command()
-def status():
-    """Show Interface status information"""
-    run_command("interface_stat")
 
 
 #
@@ -494,7 +505,10 @@ def logging(process, lines, follow):
     if follow:
         run_command("sudo tail -f /var/log/syslog")
     else:
-        command = "sudo cat /var/log/syslog"
+        if os.path.isfile("/var/log/syslog.1"):
+            command = "sudo cat /var/log/syslog.1 /var/log/syslog"
+        else:
+            command = "sudo cat /var/log/syslog"
 
         if process is not None:
             command += " | grep '{}'".format(process)
@@ -722,6 +736,32 @@ def id(bridge_name):
     command="sudo brctl showmacs {}".format(bridge_name)
     run_command(command)
 
+@vlan.command()
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def config(redis_unix_socket_path):
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    data = config_db.get_table('VLAN')
+    keys = data.keys()
+
+    def mode(key, data):
+        info = []
+        for m in data.get('members', []):
+            entry = config_db.get_entry('VLAN_MEMBER', (key, m))
+            mode = entry.get('tagging_mode')
+            if mode == None:
+                info.append('?')
+            else:
+                info.append(mode)
+        return '\n'.join(info)
+
+    header = ['Name', 'VID', 'Member', 'Mode']
+    click.echo(tabulate([ [k, data[k]['vlanid'], '\n'.join(data[k].get('members', [])), mode(k, data[k])] for k in keys ], header))
+
+
 @cli.command('services')
 def services():
     """Show all daemon services"""
@@ -741,7 +781,7 @@ def services():
 @cli.command()
 def aaa():
     """Show AAA configuration in ConfigDb"""
-    config_db = swsssdk.ConfigDBConnector()
+    config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('AAA')
     output = ''
@@ -756,7 +796,7 @@ def aaa():
 @cli.command()
 def tacacs():
     """Show TACACS+ configuration"""
-    config_db = swsssdk.ConfigDBConnector()
+    config_db = ConfigDBConnector()
     config_db.connect()
     output = ''
     data = config_db.get_table('TACPLUS')
