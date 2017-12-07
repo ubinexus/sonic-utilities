@@ -22,6 +22,24 @@ def set_entry(table, entry, data):
     config_db.set_entry(table, entry, data)
 
 
+def add_table_kv(table, entry, key, val):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_entry(table, entry)
+    data[key] = val
+    config_db.set_entry(table, entry, data)
+
+
+def del_table_key(table, entry, key):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_entry(table, entry)
+    if data:
+        if key in data:
+            del data[key]
+        config_db.set_entry(table, entry, data)
+
+
 @click.group()
 def aaa():
     """AAA command line"""
@@ -41,15 +59,13 @@ aaa.add_command(authentication)
 @click.argument('option', type=click.Choice(["enable", "disable", "default"]))
 def failthrough(option):
     """Allow AAA fail-through [enable | disable | default]"""
-    val = None
-    if option == 'enable':
-        val = True
-    elif option == 'disable':
-        val = False
-
-    set_entry('AAA', 'authentication', {
-        'failthrough': val
-    })
+    if option == 'default':
+        del_table_key('AAA', 'authentication', 'failthrough')
+    else:
+        if option == 'enable':
+            add_table_kv('AAA', 'authentication', 'failthrough', True)
+        elif option == 'disable':
+            add_table_kv('AAA', 'authentication', 'failthrough', False)
 authentication.add_command(failthrough)
 
 
@@ -58,15 +74,13 @@ authentication.add_command(failthrough)
 @click.argument('option', type=click.Choice(["enable", "disable", "default"]))
 def fallback(option):
     """Allow AAA fallback [enable | disable | default]"""
-    val = None
-    if option == 'enable':
-        val = True
-    elif option == 'disable':
-        val = False
-
-    set_entry('AAA', 'authentication', {
-        'fallback': val
-    })
+    if option == 'default':
+        del_table_key('AAA', 'authentication', 'fallback')
+    else:
+        if option == 'enable':
+            add_table_kv('AAA', 'authentication', 'fallback', True)
+        elif option == 'disable':
+            add_table_kv('AAA', 'authentication', 'fallback', False)
 authentication.add_command(fallback)
 
 
@@ -79,15 +93,12 @@ def login(auth_protocol):
         return
 
     if 'default' in auth_protocol:
-        val = None
+        del_table_key('AAA', 'authentication', 'login')
     else:
         val = auth_protocol[0]
         if len(auth_protocol) == 2:
             val += ',' + auth_protocol[1]
-
-    set_entry('AAA', 'authentication', {
-        'login': val
-    })
+        add_table_kv('AAA', 'authentication', 'login', val)
 authentication.add_command(login)
 
 
@@ -103,7 +114,6 @@ def default(ctx):
     """set its default configuration"""
     ctx.obj = 'default'
 tacacs.add_command(default)
-authentication.add_command(default)
 
 
 @click.command()
@@ -112,13 +122,9 @@ authentication.add_command(default)
 def timeout(ctx, second):
     """Specify TACACS+ server global timeout <0 - 60>"""
     if ctx.obj == 'default':
-        set_entry('TACPLUS', 'global', {
-            'timeout': None
-        })
+        del_table_key('TACPLUS', 'global', 'timeout')
     elif second:
-        set_entry('TACPLUS', 'global', {
-            'timeout': second
-        })
+        add_table_kv('TACPLUS', 'global', 'timeout', second)
     else:
         click.echo('Not support empty argument')
 tacacs.add_command(timeout)
@@ -131,13 +137,9 @@ default.add_command(timeout)
 def authtype(ctx, type):
     """Specify TACACS+ server global auth_type [chap | pap | mschap]"""
     if ctx.obj == 'default':
-        set_entry('TACPLUS', 'global', {
-            'auth_type': None
-        })
+        del_table_key('TACPLUS', 'global', 'auth_type')
     elif type:
-        set_entry('TACPLUS', 'global', {
-            'auth_type': type
-        })
+        add_table_kv('TACPLUS', 'global', 'auth_type', type)
     else:
         click.echo('Not support empty argument')
 tacacs.add_command(authtype)
@@ -150,13 +152,9 @@ default.add_command(authtype)
 def passkey(ctx, secret):
     """Specify TACACS+ server global passkey <STRING>"""
     if ctx.obj == 'default':
-        set_entry('TACPLUS', 'global', {
-            'passkey': None
-        })
+        del_table_key('TACPLUS', 'global', 'passkey')
     elif secret:
-        set_entry('TACPLUS', 'global', {
-            'passkey': secret
-        })
+        add_table_kv('TACPLUS', 'global', 'passkey', secret)
     else:
         click.echo('Not support empty argument')
 tacacs.add_command(passkey)
