@@ -346,12 +346,12 @@ def incremental(file_name):
 def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     """ECN-related configuration tasks"""
     command = "ecnconfig -p %s" % profile
-    if rmax: command += " -rmax %d" % rmax
-    if rmin: command += " -rmin %d" % rmin
-    if ymax: command += " -ymax %d" % ymax
-    if ymin: command += " -ymin %d" % ymin
-    if gmax: command += " -gmax %d" % gmax
-    if gmin: command += " -gmin %d" % gmin
+    if rmax is not None: command += " -rmax %d" % rmax
+    if rmin is not None: command += " -rmin %d" % rmin
+    if ymax is not None: command += " -ymax %d" % ymax
+    if ymin is not None: command += " -ymin %d" % ymin
+    if gmax is not None: command += " -gmax %d" % gmax
+    if gmin is not None: command += " -gmin %d" % gmin
     if verbose: command += " -vv"
     run_command(command, display_cmd=verbose)
 
