@@ -56,6 +56,7 @@ setup(
         'scripts/intfutil',
         'scripts/lldpshow',
         'scripts/port2alias',
+        'scripts/portconfig',
         'scripts/portstat',
         'scripts/teamshow'
     ],
