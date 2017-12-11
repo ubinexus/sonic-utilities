@@ -16,18 +16,10 @@ def is_ipaddress(val):
     return True
 
 
-def set_entry(table, entry, data):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    config_db.set_entry(table, entry, data)
-
-
 def add_table_kv(table, entry, key, val):
     config_db = ConfigDBConnector()
     config_db.connect()
-    data = config_db.get_entry(table, entry)
-    data[key] = val
-    config_db.set_entry(table, entry, data)
+    config_db.mod_entry(table, entry, {key:val})
 
 
 def del_table_key(table, entry, key):
@@ -205,7 +197,9 @@ def delete(address):
         click.echo('Invalid ip address')
         return
 
-    set_entry('TACPLUS_SERVER', address, None)
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.set_entry('TACPLUS_SERVER', address, None)
 tacacs.add_command(delete)
 
 
