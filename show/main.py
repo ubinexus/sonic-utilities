@@ -785,13 +785,21 @@ def aaa():
     config_db.connect()
     data = config_db.get_table('AAA')
     output = ''
-    if data != {}:
-        for row in data:
-            entry = data[row]
-            for key in entry:
-                output += ('AAA %s %s %s\n' % (row, key, str(entry[key])))
 
+    aaa = {
+        'authentication': {
+            'login': 'local (default)',
+            'failthrough': 'True (default)',
+            'fallback': 'True (default)'
+        }
+    }
+    aaa['authentication'].update(data['authentication'])
+    for row in aaa:
+        entry = aaa[row]
+        for key in entry:
+            output += ('AAA %s %s %s\n' % (row, key, str(entry[key])))
     click.echo(output)
+
 
 @cli.command()
 def tacacs():
@@ -800,10 +808,17 @@ def tacacs():
     config_db.connect()
     output = ''
     data = config_db.get_table('TACPLUS')
-    if 'global' in data:
-        entry = data['global']
-        for key in entry:
-            output += ('TACPLUS global %s %s\n' % (str(key), str(entry[key])))
+
+    tacplus = {
+        'global': {
+            'auth_type': 'pap (default)',
+            'timeout': '5 (default)',
+            'passkey': '<EMPTY_STRING> (default)'
+        }
+    }
+    tacplus['global'].update(data['global'])
+    for key in tacplus['global']:
+        output += ('TACPLUS global %s %s\n' % (str(key), str(tacplus['global'][key])))
 
     data = config_db.get_table('TACPLUS_SERVER')
     if data != {}:
@@ -813,6 +828,7 @@ def tacacs():
             for key in entry:
                 output += ('               %s %s\n' % (key, str(entry[key])))
     click.echo(output)
+
 
 #
 # 'session' command ###
