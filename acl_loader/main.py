@@ -41,6 +41,7 @@ class AclLoader(object):
     ACL_TABLE = "ACL_TABLE"
     ACL_RULE = "ACL_RULE"
     ACL_TABLE_TYPE_MIRROR = "MIRROR"
+    ACL_TABLE_TYPE_CTRLPLANE = "CTRLPLANE"
     MIRROR_SESSION = "MIRROR_SESSION"
     SESSION_PREFIX = "everflow"
 
@@ -160,6 +161,14 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_MIRROR
 
+    def is_table_control_plane(self, tname):
+        """
+        Check if ACL table type is ACL_TABLE_TYPE_CTRLPLANE
+        :param tname: ACL table name
+        :return: True if table type is ACL_TABLE_TYPE_CTRLPLANE else False
+        """
+        return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE
+
     def load_rules_from_file(self, filename):
         """
         Load file with ACL rules configuration in openconfig ACL format. Convert rules
@@ -174,7 +183,9 @@ class AclLoader(object):
         rule_props = {}
 
         if rule.actions.config.forwarding_action == "ACCEPT":
-            if self.is_table_mirror(table_name):
+            if self.is_table_control_plane(table_name):
+                rule_props["PACKET_ACTION"] = "ACCEPT"
+            elif self.is_table_mirror(table_name):
                 session_name = self.get_session_name()
                 if not session_name:
                     raise AclLoaderException("Mirroring session does not exist")
