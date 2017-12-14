@@ -1,11 +1,7 @@
-
 #!/usr/bin/env python
 
 import click
-import sys
-import os.path
 import json
-import argparse
 import tabulate
 from natsort import natsorted
 
