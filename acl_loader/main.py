@@ -40,6 +40,7 @@ class AclLoader(object):
 
     ACL_TABLE = "ACL_TABLE"
     ACL_RULE = "ACL_RULE"
+    ACL_TABLE_TYPE_MIRROR = "MIRROR"
     MIRROR_SESSION = "MIRROR_SESSION"
     SESSION_PREFIX = "everflow"
 
@@ -153,11 +154,11 @@ class AclLoader(object):
 
     def is_table_mirror(self, tname):
         """
-        Check if ACL table type is MIRROR
+        Check if ACL table type is ACL_TABLE_TYPE_MIRROR
         :param tname: ACL table name
-        :return: True if table type is MIRROR else False
+        :return: True if table type is ACL_TABLE_TYPE_MIRROR else False
         """
-        return self.tables_db_info[tname]['type'].upper() == "MIRROR"
+        return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_MIRROR
 
     def load_rules_from_file(self, filename):
         """
@@ -235,6 +236,15 @@ class AclLoader(object):
         return rule_props
 
     def convert_port(self, port):
+        """
+        Convert port field format from openconfig ACL to Config DB schema
+        :param port: String, ACL port number or range in openconfig format
+        :return: Tuple, first value is converted port string,
+            second value is boolean, True if value is a port range, False
+            if it is a single port value
+        """
+        # OpenConfig port range is of the format "####..####", whereas
+        # Config DB format is "####-####"
         if ".." in port:
             return  port.replace("..", "-"), True
         else:
@@ -254,21 +264,21 @@ class AclLoader(object):
 
         for flag in rule.transport.config.tcp_flags:
             if flag == "TCP_FIN":
-                tcp_flags = tcp_flags | 0x01
+                tcp_flags |= 0x01
             if flag == "TCP_SYN":
-                tcp_flags = tcp_flags | 0x02
+                tcp_flags |= 0x02
             if flag == "TCP_RST":
-                tcp_flags = tcp_flags | 0x04
+                tcp_flags |= 0x04
             if flag == "TCP_PSH":
-                tcp_flags = tcp_flags | 0x08
+                tcp_flags |= 0x08
             if flag == "TCP_ACK":
-                tcp_flags = tcp_flags | 0x10
+                tcp_flags |= 0x10
             if flag == "TCP_URG":
-                tcp_flags = tcp_flags | 0x20
+                tcp_flags |= 0x20
             if flag == "TCP_ECE":
-                tcp_flags = tcp_flags | 0x40
+                tcp_flags |= 0x40
             if flag == "TCP_CWR":
-                tcp_flags = tcp_flags | 0x80
+                tcp_flags |= 0x80
 
         if tcp_flags:
             rule_props["TCP_FLAGS"] = '0x{:02x}/0x{:02x}'.format(tcp_flags, tcp_flags)
@@ -304,7 +314,7 @@ class AclLoader(object):
         rule_props = {}
         rule_data = {(table_name, "DEFAULT_RULE"): rule_props}
         rule_props["PRIORITY"] = self.min_priority
-        rule_props["ETHER_TYPE"] = "0x0800"
+        rule_props["ETHER_TYPE"] = self.ethertype_map["ETHERTYPE_IPV4"]
         rule_props["PACKET_ACTION"] = "DROP"
         return rule_data
 
