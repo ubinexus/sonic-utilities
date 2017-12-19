@@ -15,9 +15,10 @@ def generate_arp_entries(filename, all_available_macs):
     keys = db.keys(db.APPL_DB, 'NEIGH_TABLE:*')
     keys = [] if keys is None else keys
     for key in keys:
+        vlan_name = key.split(':')[1]
         entry = db.get_all(db.APPL_DB, key)
-        if entry['neigh'].lower() not in all_available_macs:
-            # print me to log
+        if (vlan_name, entry['neigh'].lower()) not in all_available_macs:
+            # FIXME: print me to log
             continue
         obj = {
           key: entry,
@@ -85,7 +86,7 @@ def get_map_bridge_port_id_2_iface_name(db):
 
     return bridge_port_id_2_iface_name
 
-def get_fdb(db, vlan_id, bridge_id_2_iface):
+def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
     fdb_types = {
       'SAI_FDB_ENTRY_TYPE_DYNAMIC': 'dynamic',
       'SAI_FDB_ENTRY_TYPE_STATIC' : 'static'
@@ -102,9 +103,8 @@ def get_fdb(db, vlan_id, bridge_id_2_iface):
         mac = str(key_obj['mac'])
         if not is_mac_unicast(mac):
             continue
-        available_macs.add(mac.lower())
+        available_macs.add((vlan_name, mac.lower()))
         mac = mac.replace(':', '-')
-        # FIXME: mac is unicast
         # get attributes
         value = db.get_all(db.ASIC_DB, key)
         type = fdb_types[value['SAI_FDB_ENTRY_ATTR_TYPE']]
@@ -137,7 +137,7 @@ def generate_fdb_entries(filename):
     all_available_macs = set()
     for vlan in vlan_ifaces:
         vlan_id = int(vlan.replace('Vlan', ''))
-        fdb_entry, available_macs = get_fdb(db, vlan_id, bridge_id_2_iface)
+        fdb_entry, available_macs = get_fdb(db, vlan, vlan_id, bridge_id_2_iface)
         all_available_macs |= available_macs
         fdb_entries.extend(fdb_entry)
 
