@@ -34,22 +34,12 @@ def generate_arp_entries(filename, all_available_macs):
 
 def is_mac_unicast(mac):
     first_octet = mac.split(':')[0]
-
-    if int(first_octet, 16) & 0x01 == 0:
-        return True
-    else:
-        return False
+    return int(first_octet, 16) & 0x01 == 0
 
 def get_vlan_ifaces():
     vlans = []
     with open('/proc/net/dev') as fp:
-        raw = fp.read()
-
-    for line in raw.split('\n'):
-        if 'Vlan' not in line:
-            continue
-        vlan_name = line.split(':')[0].strip()
-        vlans.append(vlan_name)
+        vlans = [line.split(':')[0].strip() for line in fp if 'Vlan' in line]
 
     return vlans
 
@@ -133,7 +123,6 @@ def get_fdb(db, vlan_id, bridge_id_2_iface):
         entries.append(obj)
 
     return entries, available_macs
-
 
 def generate_fdb_entries(filename):
     fdb_entries = []
