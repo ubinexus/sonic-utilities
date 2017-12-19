@@ -120,6 +120,20 @@ def load(filename):
 
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
+                expose_value=False, prompt='Clear current and reload all config?')
+@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+def reload(filename):
+    """Clear current configuration and import a previous saved config DB dump file."""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client.flushdb()
+    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+    run_command(command, display_cmd=True)
+    client.set(config_db.INIT_INDICATOR, True)
+
+@cli.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload mgmt config?')
 @click.argument('filename', default='/etc/sonic/device_desc.xml', type=click.Path(exists=True))
 def load_mgmt_config(filename):
@@ -131,18 +145,29 @@ def load_mgmt_config(filename):
     hostname = config_data['DEVICE_METADATA']['localhost']['hostname']
     _change_hostname(hostname)
     mgmt_conf = netaddr.IPNetwork(config_data['MGMT_INTERFACE'].keys()[0][1])
+    gw_addr = config_data['MGMT_INTERFACE'].values()[0]['gwaddr']
     command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
+    run_command(command, display_cmd=True)
+    command = "ip route add default via {} dev eth0 table default".format(gw_addr)
+    run_command(command, display_cmd=True)
+    command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
     run_command(command, display_cmd=True)
     command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
     run_command(command, display_cmd=True)
+    print "Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`."
 
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 def load_minigraph():
     """Reconfigure based on minigraph."""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client.flushdb()
     command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
+    client.set(config_db.INIT_INDICATOR, True)
     command = "{} -m -v \"DEVICE_METADATA['localhost']['hostname']\"".format(SONIC_CFGGEN_PATH)
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     p.wait()
@@ -159,7 +184,7 @@ def load_minigraph():
     run_command("service lldp restart", display_cmd=True)
     run_command("service snmp restart", display_cmd=True)
     run_command("service dhcp_relay restart", display_cmd=True)
-
+    print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
 #
 # 'bgp' group
 #
