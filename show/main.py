@@ -370,7 +370,7 @@ def summary():
 # 'route' subcommand ("show ipv6 route")
 #
 
-@ip.command()
+@ipv6.command()
 @click.argument('ipaddress', required=False)
 def route(ipaddress):
     """Show IPv6 routing table"""
