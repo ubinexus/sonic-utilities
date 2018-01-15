@@ -72,7 +72,7 @@ setup(
             'psuutil = psuutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
-            'sonic_installer = sonic_installer.main:cli',
+            'sonic-installer = sonic_installer.main:cli',
             'undebug = undebug.main:cli',
         ]
     },
