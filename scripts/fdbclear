@@ -21,10 +21,6 @@ from tabulate import tabulate
 
 class FdbClear(object):
 
-    """
-    HEADER = ['No.', 'Vlan', 'MacAddress', 'Port']
-    FDB_COUNT = 0
-    """
 
     def __init__(self):
         super(FdbClear,self).__init__()
