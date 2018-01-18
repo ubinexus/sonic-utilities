@@ -194,6 +194,7 @@ def install(url):
 
     # sync filesystem, keep at last step.
     run_command("sync")
+    run_command("sleep 3") # wait 3 seconds after sync
     click.echo('Done')
 
 
