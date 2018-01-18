@@ -18,6 +18,7 @@ REBOOT="platform_reboot"
 if [ -x ${DEVPATH}/${PLATFORM}/${REBOOT} ]; then
     stop_sonic_services
     sync
+    sleep 3
     echo "Rebooting with platform ${PLATFORM} specific tool ..."
     ${DEVPATH}/${PLATFORM}/${REBOOT}
     exit 0
