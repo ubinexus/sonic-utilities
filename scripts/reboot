@@ -7,6 +7,7 @@ function stop_sonic_services()
     systemctl stop teamd
     systemctl stop bgp
     systemctl stop lldp
+    systemctl stop snmp
 }
 
 # Obtain our platform as we will mount directories with these names in each docker
