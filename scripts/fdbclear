@@ -25,13 +25,13 @@ class FdbClear(object):
     def __init__(self):
         super(FdbClear,self).__init__()
         self.db = SonicV2Connector(host="127.0.0.1")
-        self.db.connect(self.db.ASIC_DB)
+        self.db.connect(self.db.APPL_DB)
         return
 
     def send_notification(self, op, data):
         opdata = [op,data]
         msg = json.dumps(opdata,separators=(',',':'))
-        self.db.publish('ASIC_DB','FLUSHFDBREQUEST', msg)
+        self.db.publish('APPL_DB','FLUSHFDBREQUEST', msg)
         return
 
 def main():
