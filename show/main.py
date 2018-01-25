@@ -10,6 +10,7 @@ import sys
 from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
+from swsssdk import ConfigDBConnector
 
 try:
     # noinspection PyPep8Naming
@@ -205,6 +206,7 @@ def alias(interfacename):
 
     click.echo(tabulate(body, header))
 
+
 # 'summary' subcommand ("show interfaces summary")
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -229,10 +231,27 @@ def transceiver():
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
-def basic(interfacename):
-    """Show basic interface transceiver information"""
+@click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
+def eeprom(interfacename, dump_dom):
+    """Show interface transceiver EEPROM information"""
 
     command = "sudo sfputil show eeprom"
+
+    if dump_dom:
+        command += " --dom"
+
+    if interfacename is not None:
+        command += " -p {}".format(interfacename)
+
+    run_command(command)
+
+
+@transceiver.command()
+@click.argument('interfacename', required=False)
+def lpmode(interfacename):
+    """Show interface transceiver low-power mode status"""
+
+    command = "sudo sfputil show lpmode"
 
     if interfacename is not None:
         command += " -p {}".format(interfacename)
@@ -241,15 +260,16 @@ def basic(interfacename):
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
-def details(interfacename):
-    """Show interface transceiver details (Digital Optical Monitoring)"""
+def presence(interfacename):
+    """Show interface transceiver presence"""
 
-    command = "sudo sfputil show eeprom --dom"
+    command = "sudo sfputil show presence"
 
     if interfacename is not None:
         command += " -p {}".format(interfacename)
 
     run_command(command)
+
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -257,9 +277,22 @@ def description(interfacename):
     """Show interface status, protocol and description"""
 
     if interfacename is not None:
-        command = "sudo vtysh -c 'show interface {}'".format(interfacename)
+        command = "intfutil description {}".format(interfacename)
     else:
-        command = "sudo vtysh -c 'show interface description'"
+        command = "intfutil description"
+
+    run_command(command)
+
+
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def status(interfacename):
+    """Show Interface status information"""
+
+    if interfacename is not None:
+        command = "intfutil status {}".format(interfacename)
+    else:
+        command = "intfutil status"
 
     run_command(command)
 
@@ -289,11 +322,6 @@ def counters(period, printall, clear):
 def portchannel():
     """Show PortChannel information"""
     run_command("teamshow")
-
-@interfaces.command()
-def status():
-    """Show Interface status information"""
-    run_command("interface_stat")
 
 
 #
@@ -383,9 +411,8 @@ def protocol():
 
 
 #
-# Inserting BGP functionality into cli's show parse-chain. The insertion point
-# and the specific BGP commands to import, will be determined by the routing-stack
-# being elected.
+# Inserting BGP functionality into cli's show parse-chain.
+# BGP commands are determined by the routing-stack being elected.
 #
 if routing_stack == "quagga":
     from .bgp_quagga_v4 import bgp
@@ -393,10 +420,15 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    from .bgp_frr_v4 import bgp
-    cli.add_command(bgp)
-    from .bgp_frr_v6 import bgp
-    cli.add_command(bgp)
+    @cli.command()
+    @click.argument('bgp_args', nargs = -1, required = False)
+    def bgp(bgp_args):
+        """BGP information"""
+        bgp_cmd = "show bgp"
+        for arg in bgp_args:
+            bgp_cmd += " " + str(arg)
+        command = 'sudo vtysh -c "{}"'.format(bgp_cmd)
+        run_command(command)
 
 
 #
@@ -464,6 +496,17 @@ def syseeprom():
     """Show system EEPROM information"""
     run_command("sudo decode-syseeprom")
 
+# 'psustatus' subcommand ("show platform psustatus")
+@platform.command()
+@click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
+def psustatus(index):
+    """Show PSU status information"""
+    command = "sudo psuutil status"
+
+    if index >= 0:
+        command += " -i {}".format(index)
+
+    run_command(command)
 
 #
 # 'logging' command ("show logging")
@@ -478,7 +521,10 @@ def logging(process, lines, follow):
     if follow:
         run_command("sudo tail -f /var/log/syslog")
     else:
-        command = "sudo cat /var/log/syslog"
+        if os.path.isfile("/var/log/syslog.1"):
+            command = "sudo cat /var/log/syslog.1 /var/log/syslog"
+        else:
+            command = "sudo cat /var/log/syslog"
 
         if process is not None:
             command += " | grep '{}'".format(process)
@@ -706,6 +752,32 @@ def id(bridge_name):
     command="sudo brctl showmacs {}".format(bridge_name)
     run_command(command)
 
+@vlan.command()
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def config(redis_unix_socket_path):
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    data = config_db.get_table('VLAN')
+    keys = data.keys()
+
+    def mode(key, data):
+        info = []
+        for m in data.get('members', []):
+            entry = config_db.get_entry('VLAN_MEMBER', (key, m))
+            mode = entry.get('tagging_mode')
+            if mode == None:
+                info.append('?')
+            else:
+                info.append(mode)
+        return '\n'.join(info)
+
+    header = ['Name', 'VID', 'Member', 'Mode']
+    click.echo(tabulate([ [k, data[k]['vlanid'], '\n'.join(data[k].get('members', [])), mode(k, data[k])] for k in keys ], header))
+
+
 @cli.command('services')
 def services():
     """Show all daemon services"""
@@ -721,6 +793,58 @@ def services():
                 print proc1.stdout.read()
         else:
                 break
+
+@cli.command()
+def aaa():
+    """Show AAA configuration in ConfigDb"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('AAA')
+    output = ''
+
+    aaa = {
+        'authentication': {
+            'login': 'local (default)',
+            'failthrough': 'True (default)',
+            'fallback': 'True (default)'
+        }
+    }
+    aaa['authentication'].update(data['authentication'])
+    for row in aaa:
+        entry = aaa[row]
+        for key in entry:
+            output += ('AAA %s %s %s\n' % (row, key, str(entry[key])))
+    click.echo(output)
+
+
+@cli.command()
+def tacacs():
+    """Show TACACS+ configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    output = ''
+    data = config_db.get_table('TACPLUS')
+
+    tacplus = {
+        'global': {
+            'auth_type': 'pap (default)',
+            'timeout': '5 (default)',
+            'passkey': '<EMPTY_STRING> (default)'
+        }
+    }
+    tacplus['global'].update(data['global'])
+    for key in tacplus['global']:
+        output += ('TACPLUS global %s %s\n' % (str(key), str(tacplus['global'][key])))
+
+    data = config_db.get_table('TACPLUS_SERVER')
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            output += ('\nTACPLUS_SERVER address %s\n' % row)
+            for key in entry:
+                output += ('               %s %s\n' % (key, str(entry[key])))
+    click.echo(output)
+
 
 #
 # 'session' command ###
@@ -776,6 +900,16 @@ def rule(table_name, rule_id):
         rule_id = ""
 
     run_command("acl-loader show rule {} {}".format(table_name, rule_id))
+
+#
+# 'session' command (show ecn)
+#
+@cli.command('ecn')
+def ecn():
+    """Show ECN configuration"""
+    command = "ecnconfig -l"
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    click.echo(proc.stdout.read())
 
 if __name__ == '__main__':
     cli()
