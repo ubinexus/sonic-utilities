@@ -496,7 +496,11 @@ def interfaces():
 
             ifaddresses = []
             for ipaddr in ipaddresses[netifaces.AF_INET6]:
-                netmask = ipaddr['netmask'].split('/', 1)[-1]
+                mask = ipaddr['netmask']
+                if isinstance(mask, str):
+                    netmask = IPAddress(mask).netmask_bits()
+                elif isinstance(mask, unicode):
+                    netmask = mask.split('/', 1)[-1]
                 ifaddresses.append(["", str(ipaddr['addr']) + "/" + str(netmask)])
 
             if len(ifaddresses) > 0:
