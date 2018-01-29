@@ -74,7 +74,7 @@ setup(
         'click',
         'natsort',
         'tabulate',
-        'netifaces-0.10.6',
+        'netifaces==0.10.6',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
