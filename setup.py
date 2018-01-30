@@ -73,8 +73,7 @@ setup(
         'click-default-group',
         'click',
         'natsort',
-        'tabulate',
-        'netifaces==0.10.6',
+        'tabulate'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
