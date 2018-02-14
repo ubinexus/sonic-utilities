@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import click
 import swsssdk
 from tabulate import tabulate
@@ -28,7 +29,7 @@ class Crm:
 
         crm_info = configdb.get_entry('CRM', 'Config')
 
-        print '\nPolling Interval: ' + crm_info['polling_interval'] + ' minute(s)\n'
+        print '\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n'
 
     def show_thresholds(self, resource):
         """
@@ -44,7 +45,7 @@ class Crm:
 
         if resource == 'all':
             for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
-                        "nexthop_group_member", "nexthop_group_object", "acl_table", "acl_group", "acl_entry",
+                        "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
                         "acl_counter", "fdb_entry"]:
                 data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
         else:
@@ -68,7 +69,7 @@ class Crm:
 
         if resource == 'all':
             for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
-                        "nexthop_group_member", "nexthop_group_object", "fdb_entry"]:
+                        "nexthop_group_member", "nexthop_group", "fdb_entry"]:
                 data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
         else:
             data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
@@ -103,25 +104,33 @@ class Crm:
         print tabulate(data, headers=header, tablefmt="simple", missingval="")
         print '\n'
 
-    def show_acl_table_resources(self, table_id):
+    def show_acl_table_resources(self):
         """
         CRM Handler to display ACL table information.
         """
         countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
         countersdb.connect(countersdb.COUNTERS_DB)
 
-        header = ("Resource Name", "Used Count", "Available Count")
+        header = ("Table ID", "Resource Name", "Used Count", "Available Count")
         data = []
 
-        crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, 'CRM:ACL_TABLE_STATS:{0}'.format(table_id))
+        # Retrieve all ACL table keys from CRM:ACL_TABLE_STATS
+        output = os.popen("docker exec -i database redis-cli --raw -n 2 KEYS *CRM:ACL_TABLE_STATS*").readlines()
+        keys = [item.strip() for item in output]
 
-        for res in ['crm_stats_' + 'acl_entry' + '_used', 'crm_stats_' + 'acl_counter' + '_available']:
-            if res in crm_stats:
-                data.append([res, crm_stats[res], crm_stats[res]])
+        for key in keys:
+            id = key.replace('CRM:ACL_TABLE_STATS:', '')
 
-        print '\n'
-        print tabulate(data, headers=header, tablefmt="simple", missingval="")
-        print '\n'
+            crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, key)
+
+            for res in ['acl_entry', 'acl_counter']:
+                if ('crm_stats_' + res + '_used' in crm_stats) and ('crm_stats_' + res + '_available' in crm_stats):
+                    data.append([id, res, crm_stats['crm_stats_' + res + '_used'], crm_stats['crm_stats_' + res + '_available']])
+
+            print '\n'
+            print tabulate(data, headers=header, tablefmt="simple", missingval="")
+            print '\n'
+
 
 @click.group()
 @click.pass_context
@@ -260,8 +269,8 @@ def member(ctx):
 @group.group()
 @click.pass_context
 def object(ctx):
-    """CRM configuration for nexthop group object resource"""
-    ctx.obj["crm"].res_type = 'nexthop_group_object'
+    """CRM configuration for nexthop group resource"""
+    ctx.obj["crm"].res_type = 'nexthop_group'
 
 member.add_command(type)
 member.add_command(low)
@@ -359,6 +368,7 @@ def all(ctx):
     elif ctx.obj["crm"].cli_mode == 'resources':
         ctx.obj["crm"].show_resources('all')
         ctx.obj["crm"].show_acl_resources()
+        ctx.obj["crm"].show_acl_table_resources()
 
 @resources.group()
 @click.pass_context
@@ -427,11 +437,11 @@ def member(ctx):
 @group.command()
 @click.pass_context
 def object(ctx):
-    """Show CRM information for nexthop group object resource"""
+    """Show CRM information for nexthop group resource"""
     if ctx.obj["crm"].cli_mode == 'thresholds':
-        ctx.obj["crm"].show_thresholds('nexthop_group_object')
+        ctx.obj["crm"].show_thresholds('nexthop_group')
     elif ctx.obj["crm"].cli_mode == 'resources':
-        ctx.obj["crm"].show_resources('nexthop_group_object')
+        ctx.obj["crm"].show_resources('nexthop_group')
 
 @resources.group()
 @click.pass_context
@@ -441,13 +451,12 @@ def acl(ctx):
 
 @acl.command()
 @click.pass_context
-@click.argument('table_id', type=click.STRING)
-def table(ctx, table_id):
+def table(ctx):
     """Show CRM information for acl table resource"""
     if ctx.obj["crm"].cli_mode == 'thresholds':
         ctx.obj["crm"].show_thresholds('acl_table')
     elif ctx.obj["crm"].cli_mode == 'resources':
-        ctx.obj["crm"].show_acl_table_resources(table_id)
+        ctx.obj["crm"].show_acl_table_resources()
 
 @acl.group()
 @click.pass_context
