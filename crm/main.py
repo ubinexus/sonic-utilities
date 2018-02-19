@@ -4,6 +4,7 @@ import os
 import click
 import swsssdk
 from tabulate import tabulate
+from subprocess import Popen, PIPE
 
 class Crm:
     def __init__(self):
@@ -112,13 +113,13 @@ class Crm:
         countersdb.connect(countersdb.COUNTERS_DB)
 
         header = ("Table ID", "Resource Name", "Used Count", "Available Count")
-        data = []
 
         # Retrieve all ACL table keys from CRM:ACL_TABLE_STATS
-        output = os.popen("docker exec -i database redis-cli --raw -n 2 KEYS *CRM:ACL_TABLE_STATS*").readlines()
-        keys = [item.strip() for item in output]
+        proc = Popen("docker exec -i database redis-cli --raw -n 2 KEYS *CRM:ACL_TABLE_STATS*", stdout=PIPE, stderr=PIPE, shell=True)
+        out, err = proc.communicate()
 
-        for key in keys:
+        for key in out.splitlines():
+            data = []
             id = key.replace('CRM:ACL_TABLE_STATS:', '')
 
             crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, key)
