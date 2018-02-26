@@ -8,6 +8,7 @@ import sys
 import os
 from fcntl import ioctl
 import binascii
+import argparse
 
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
@@ -260,9 +261,13 @@ def generate_default_route_entries(filename):
 
 
 def main():
-    root_dir = '/tmp'
-    if len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
-        root_dir = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--target', type=str, default='/tmp', help='target directory for files')
+    args = parser.parse_args()
+    root_dir = args.target
+    if not os.path.isdir(root_dir):
+        print "Target directory '%s' not found" % root_dir
+        sys.exit(1)
     all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
     arp_entries = generate_arp_entries(root_dir + '/arp.json', all_available_macs)
     generate_default_route_entries(root_dir + '/default_routes.json')
