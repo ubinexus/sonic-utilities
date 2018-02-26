@@ -95,20 +95,30 @@ def get_map_bridge_port_id_2_iface_name(db):
 
     return bridge_port_id_2_iface_name
 
+def get_vlan_oid_by_vlan_id(db, vlan_id):
+    keys = db.keys(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_VLAN:oid:*')
+    keys = [] if keys is None else keys
+    for key in keys:
+        value = db.get_all(db.ASIC_DB, key)
+        if 'SAI_VLAN_ATTR_VLAN_ID' in value and int(value['SAI_VLAN_ATTR_VLAN_ID']) == vlan_id:
+            return key.replace('ASIC_STATE:SAI_OBJECT_TYPE_VLAN:', '')
+
+    raise Exception('Not found bvi oid for vlan_id: %d' % vlan_id)
+
 def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
     fdb_types = {
       'SAI_FDB_ENTRY_TYPE_DYNAMIC': 'dynamic',
       'SAI_FDB_ENTRY_TYPE_STATIC' : 'static'
     }
 
+    bvid = get_vlan_oid_by_vlan_id(db, vlan_id)
     available_macs = set()
     map_mac_ip = {}
     fdb_entries = []
-    keys = db.keys(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:{*\"vlan\":\"%d\"}' % vlan_id)
+    keys = db.keys(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:{*\"bvid\":\"%s\"*}' % bvid)
     keys = [] if keys is None else keys
     for key in keys:
         key_obj = json.loads(key.replace('ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:', ''))
-        vlan = str(key_obj['vlan'])
         mac = str(key_obj['mac'])
         if not is_mac_unicast(mac):
             continue
