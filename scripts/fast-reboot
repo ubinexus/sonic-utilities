@@ -41,6 +41,18 @@ docker kill lldp > /dev/null
 # Kill teamd, otherwise it gets down all LAGs
 docker kill teamd > /dev/null
 
+# Kill swss before stopping syncd
+docker kill swss > /dev/null
+
+# Gracefully stop syncd
+docker exec -ti syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+
+# Check it was stopped
+until [[ $(docker top syncd | grep -q /usr/bin/syncd) -eq 0 ]]
+do
+  sleep 0.1
+done
+
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
 
