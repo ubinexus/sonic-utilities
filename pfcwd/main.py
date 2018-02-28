@@ -5,6 +5,13 @@ import swsssdk
 from tabulate import tabulate
 from natsort import natsorted
 
+# Default configuration
+DEFAULT_DETECTION_TIME = 200
+DEFAULT_RESTORATION_TIME = 200
+DEFAULT_POLL_INTERVAL = 200
+DEFAULT_PORT_NUM = 32
+DEFAULT_ACTION = 'drop'
+
 STATS_DESCRIPTION = [
     ('STORM DETECTED/RESTORED', 'PFC_WD_QUEUE_STATS_DEADLOCK_DETECTED', 'PFC_WD_QUEUE_STATS_DEADLOCK_RESTORED'),
     ('TX OK/DROP',              'PFC_WD_QUEUE_STATS_TX_PACKETS',        'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS'),
@@ -161,6 +168,35 @@ def stop(ports):
         if port not in all_ports:
             continue
         configdb.mod_entry("PFC_WD_TABLE", port, None)
+
+# Set WD default configuration on server facing ports when enable flag is on
+@cli.command()
+def start_default():
+    """ Start PFC WD by default configurations  """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    enable = configdb.get_entry('DEVICE_METADATA', 'localhost').get('default_pfc_wd_status')
+    if enable != "enable":
+       return
+    device_type = configdb.get_entry('DEVICE_METADATA', 'localhost').get('type')
+    if device_type != "ToRRouter":
+        return
+    port_num = len(configdb.get_table('PORT').keys())
+    vlan_members = [p[1] for p in configdb.get_table('VLAN_MEMBER').keys()]
+
+    pfcwd_info = {
+        'detection_time': DEFAULT_DETECTION_TIME * max(port_num/DEFAULT_PORT_NUM, 1),
+        'restoration_time': DEFAULT_RESTORATION_TIME * max(port_num/DEFAULT_PORT_NUM, 1),
+        'action': DEFAULT_ACTION
+    }
+
+    for port in vlan_members:
+        configdb.mod_entry("PFC_WD_TABLE", port, None)
+        configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
+
+    pfcwd_info = {}
+    pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * max(port_num/DEFAULT_PORT_NUM, 1)
+    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
 
 if __name__ == '__main__':
     cli()
