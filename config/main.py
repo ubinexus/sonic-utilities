@@ -77,8 +77,8 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     """
     ip_addrs = []
 
-    # Convert the IP address to lowercase because IPv6 addresses will be stored
-    # in ConfigDB with all lowercase alphabet characters during minigraph parsing
+    # If we were passed an IP address, convert it to lowercase because IPv6 addresses were
+    # stored in ConfigDB with all lowercase alphabet characters during minigraph parsing
     if _is_neighbor_ipaddress(ipaddr_or_hostname.lower()):
         ip_addrs.append(ipaddr_or_hostname.lower())
     else:
