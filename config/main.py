@@ -224,23 +224,9 @@ def load_mgmt_config(filename):
                 expose_value=False, prompt='Reload config from minigraph?')
 def load_minigraph():
     """Reconfigure based on minigraph."""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    client = config_db.redis_clients[config_db.CONFIG_DB]
-    client.flushdb()
-    if os.path.isfile('/etc/sonic/init_cfg.json'):
-        command = "{} -H -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
-    else:
-        command = "{} -H -m --write-to-db".format(SONIC_CFGGEN_PATH)
-    run_command(command, display_cmd=True)
-    client.set(config_db.INIT_INDICATOR, 1)
-    run_command('pfcwd start_default', display_cmd=True)
-    if os.path.isfile('/etc/sonic/acl.json'):
-        run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-    run_command("config qos reload", display_cmd=True)
-    #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
-    _restart_services()
-    print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
+    run_command('sed -i "/enabled=/d" /etc/sonic/updategraph.conf', display_cmd=True)
+    run_command('echo enabled=reload_only /etc/sonic/updategraph.conf', display_cmd=True)
+    run_command('service updategraph restart', display_cmd=True)
 
 #
 # 'qos' group
