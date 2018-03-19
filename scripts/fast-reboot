@@ -64,7 +64,7 @@ then
 fi
 
 # Stop kernel modules for Nephos platform
-if [ "$sonic_asic_type" = 'nephos' ];
+if [[ "$sonic_asic_type" = 'nephos' ]];
 then
   systemctl stop nps-modules-`uname -r`.service
 fi
