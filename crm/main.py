@@ -30,7 +30,8 @@ class Crm:
 
         crm_info = configdb.get_entry('CRM', 'Config')
 
-        print '\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n'
+        if crm_info:
+            print '\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n'
 
     def show_thresholds(self, resource):
         """
@@ -44,13 +45,14 @@ class Crm:
         header = ("Resource Name", "Threshold Type", "Low Threshold", "High Threshold")
         data = []
 
-        if resource == 'all':
-            for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
-                        "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
-                        "acl_counter", "fdb_entry"]:
-                data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
-        else:
-            data.append([resource, crm_info[resource + "_threshold_type"], crm_info[resource + "_low_threshold"], crm_info[resource + "_high_threshold"]])
+        if crm_info:
+            if resource == 'all':
+                for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
+                            "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
+                            "acl_counter", "fdb_entry"]:
+                    data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
+            else:
+                data.append([resource, crm_info[resource + "_threshold_type"], crm_info[resource + "_low_threshold"], crm_info[resource + "_high_threshold"]])
 
         print '\n'
         print tabulate(data, headers=header, tablefmt="simple", missingval="")
@@ -68,12 +70,13 @@ class Crm:
         header = ("Resource Name", "Used Count", "Available Count")
         data = []
 
-        if resource == 'all':
-            for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
-                        "nexthop_group_member", "nexthop_group", "fdb_entry"]:
-                data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
-        else:
-            data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
+        if crm_stats:
+            if resource == 'all':
+                for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
+                            "nexthop_group_member", "nexthop_group", "fdb_entry"]:
+                    data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
+            else:
+                data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
 
         print '\n'
         print tabulate(data, headers=header, tablefmt="simple", missingval="")
@@ -118,15 +121,17 @@ class Crm:
         proc = Popen("docker exec -i database redis-cli --raw -n 2 KEYS *CRM:ACL_TABLE_STATS*", stdout=PIPE, stderr=PIPE, shell=True)
         out, err = proc.communicate()
 
-        for key in out.splitlines():
+        for key in out.splitlines() or [None]:
             data = []
-            id = key.replace('CRM:ACL_TABLE_STATS:', '')
 
-            crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, key)
+            if key:
+                id = key.replace('CRM:ACL_TABLE_STATS:', '')
 
-            for res in ['acl_entry', 'acl_counter']:
-                if ('crm_stats_' + res + '_used' in crm_stats) and ('crm_stats_' + res + '_available' in crm_stats):
-                    data.append([id, res, crm_stats['crm_stats_' + res + '_used'], crm_stats['crm_stats_' + res + '_available']])
+                crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, key)
+
+                for res in ['acl_entry', 'acl_counter']:
+                    if ('crm_stats_' + res + '_used' in crm_stats) and ('crm_stats_' + res + '_available' in crm_stats):
+                        data.append([id, res, crm_stats['crm_stats_' + res + '_used'], crm_stats['crm_stats_' + res + '_available']])
 
             print '\n'
             print tabulate(data, headers=header, tablefmt="simple", missingval="")
@@ -459,14 +464,14 @@ def table(ctx):
     elif ctx.obj["crm"].cli_mode == 'resources':
         ctx.obj["crm"].show_acl_table_resources()
 
-@acl.group()
+@acl.command()
 @click.pass_context
 def group(ctx):
     """Show CRM information for acl group resource"""
     if ctx.obj["crm"].cli_mode == 'thresholds':
         ctx.obj["crm"].show_thresholds('acl_group')
     elif ctx.obj["crm"].cli_mode == 'resources':
-        ctx.obj["crm"].show_resources('acl_group')
+        ctx.obj["crm"].show_acl_resources()
 
 @resources.command()
 @click.pass_context
