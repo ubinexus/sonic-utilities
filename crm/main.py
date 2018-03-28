@@ -32,6 +32,8 @@ class Crm:
 
         if crm_info:
             print '\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n'
+        else:
+            print '\nError! Could not get CRM configuration.\n'
 
     def show_thresholds(self, resource):
         """
@@ -53,6 +55,8 @@ class Crm:
                     data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
             else:
                 data.append([resource, crm_info[resource + "_threshold_type"], crm_info[resource + "_low_threshold"], crm_info[resource + "_high_threshold"]])
+        else:
+            print '\nError! Could not get CRM configuration.'
 
         print '\n'
         print tabulate(data, headers=header, tablefmt="simple", missingval="")
@@ -77,6 +81,8 @@ class Crm:
                     data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
             else:
                 data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
+        else:
+            print '\nCRM counters are not ready. They would be populated after the polling interval.'
 
         print '\n'
         print tabulate(data, headers=header, tablefmt="simple", missingval="")
