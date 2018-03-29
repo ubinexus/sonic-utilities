@@ -325,6 +325,30 @@ def portchannel():
 
 
 #
+# 'pfc' group ###
+#
+
+@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+def pfc():
+    """Show PFC information"""
+    pass
+
+
+#
+# 'pfc status' command ###
+#
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def status(interface):
+    """Show PFC information"""
+    if interface is None:
+        interface = ""
+
+    run_command("pfc show asymmetric {0}".format(interface))
+
+
+#
 # 'mac' command ("show mac ...")
 #
 
@@ -921,6 +945,7 @@ def ecn():
     command = "ecnconfig -l"
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
+
 
 if __name__ == '__main__':
     cli()
