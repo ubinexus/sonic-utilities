@@ -263,7 +263,7 @@ def generate_default_route_entries(filename):
 def main():
     if os.geteuid() != 0:
         print >> sys.stderr, 'Please run as root'
-        sys.exit(0)
+        sys.exit(1)
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--target', type=str, default='/tmp', help='target directory for files')
     args = parser.parse_args()
