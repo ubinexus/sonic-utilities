@@ -422,7 +422,7 @@ class AclLoader(object):
         :param table_name: Optional. ACL table name. Filter tables by specified name.
         :return:
         """
-        header = ("Name", "Type", "Bound To", "Description")
+        header = ("Name", "Type", "Binding", "Description")
 
         data = []
         for key, val in self.get_tables_db_info().iteritems():
