@@ -41,10 +41,11 @@ SDK_SNIFFER_TARGET_PATH = '/var/log/mellanox/sniffer/'
 SDK_SNIFFER_FILENAME_PREFIX = 'sx_sdk_sniffer_'
 SDK_SNIFFER_FILENAME_EXT = '.pcap'
 
-# commands to manipulate syncd container and swss service
-COMMAND_STOP_SYNCD = 'docker stop syncd'
-COMMAND_RM_SYNCD = 'docker rm syncd'
-COMMAND_CREATE_SYNCD = '/usr/bin/syncd.sh start'
+# Supervisor config file path
+TMP_SNIFFER_CONF_FILE = '/tmp/tmp.conf'
+SNIFFER_CONF_FILE = '/etc/supervisor/conf.d/mlnx_sniffer.conf'
+
+# Command to restart swss service
 COMMAND_RESTART_SWSS = 'service swss restart'
 
 # global variable SDK_SNIFFER_TARGET_FILE_NAME
@@ -81,17 +82,13 @@ def log_error(msg, syslog_identifier, also_print_to_console=False):
 
 # run command
 def run_command(command, pager=False):
-
-    env = {}
-    env.update(os.environ)
-
     if pager is True:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, env=env)
+        # click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         click.echo_via_pager(p.stdout.read())
     else:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, env=env)
+        # click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
         click.echo(p.stdout.read())
 
 
@@ -133,68 +130,52 @@ def generate_file_name(prm=False, sdk=False):
     return file_name
 
 
-# Set necessary environment variables for sniffers
-def set_environment_variable(sdk=False, prm=False, all=False, set=False):
-    if set is True:
-        if sdk is True:
-            os.environ[ENV_VARIABLE_SX_SNIFFER] = "1"
+# generate supervisor conf file for sniffer
+def generate_conf_file(sdk=False, prm=False, all=False):
+    if sdk is True:
+        target_filename = generate_file_name(sdk=True)
+        tart_fullpath = SDK_SNIFFER_TARGET_PATH + target_filename
+        conf_file = open(TMP_SNIFFER_CONF_FILE, 'w')
+        conf_file.write('[program:syncd]\n')
+        env_str = 'environment=' + ENV_VARIABLE_SX_SNIFFER + '="1",' + ENV_VARIABLE_SX_SNIFFER_TARGET + '="' + tart_fullpath + '"\n'
+        conf_file.write(env_str)
+        conf_file.close()
+    elif prm is True:
+        # place holder for prm sniffer
+        pass
 
-            target_filename = generate_file_name(sdk=True)
-            os.environ[ENV_VARIABLE_SX_SNIFFER_TARGET] = SDK_SNIFFER_TARGET_PATH + target_filename
-        elif prm is True:
-            # place holder for prm sniffer
-            pass
+    elif all is True:
+        # place holder for all sniffer
+        pass
 
-        elif all is True:
-            # place holder for all sniffer
-            pass
-
-        else:
-            pass
     else:
-        if sdk is True:
-            os.environ[ENV_VARIABLE_SX_SNIFFER] = "0"
-            os.environ[ENV_VARIABLE_SX_SNIFFER_TARGET] = ''
-        elif prm is True:
-            # place holder for prm sniffer
-            pass
+        pass
 
-        elif all is True:
-            # place holder for all sniffer
-            pass
+# set supervisor conf file for sniffer enable
+def set_conf_for_sniffer_enable(prm=False, sdk=False, all=False):
+    if sdk is True:
+        generate_conf_file(sdk=True)
+        command = 'docker cp ' + TMP_SNIFFER_CONF_FILE + ' ' + 'syncd:' + SNIFFER_CONF_FILE
+        run_command(command)
 
-        else:
-            pass
+        command = 'rm -rf ' + TMP_SNIFFER_CONF_FILE
+        run_command(command)
 
+    elif prm is True:
+        # place holder for prm sniffer
+        pass
 
-# run command 'docker stop syncd' to stop the syncd docker container
-def stop_syncd_container():
-    try:
-        run_command(COMMAND_STOP_SYNCD)
-    except OSError, e:
-        log_error("Can not stop syncd container, %s" % str(e), SNIFFER_SYSLOG_IDENTIFIER, True)
-        return 1
-    return 0
+    elif all is True:
+        # place holder for all sniffer
+        pass
 
+    else:
+        pass
 
-# run command 'docker rm syncd' to remove the syncd docker container
-def remove_syncd_container():
-    try:
-        run_command(COMMAND_RM_SYNCD)
-    except OSError, e:
-        log_error("Can not remove syncd container, %s" % str(e), SNIFFER_SYSLOG_IDENTIFIER, True)
-        return 1
-    return 0
-
-
-# run command '/usr/bin/syncd.sh start' to create the syncd container
-def re_create_syncd_container():
-    try:
-        run_command(COMMAND_CREATE_SYNCD)
-    except OSError, e:
-        log_error("Not able to recreate syncd container, %s" % str(e), SNIFFER_SYSLOG_IDENTIFIER, True)
-        return 1
-    return 0
+# remove the sniffer supervisor conf file from syncd container
+def rm_conf_for_sniffer_disable():
+    command = 'docker exec syncd rm -rf ' + SNIFFER_CONF_FILE
+    run_command(command)
 
 
 # restart the swss service with command 'service swss restart'
@@ -246,21 +227,9 @@ def sdk():
               prompt='To enable SDK sniffer swss service will be restarted, continue?')
 def enable_sdk_sniffer():
     """Enable SDK Sniffer"""
-    print "Enable SDK sniffer"
+    print "Enabling SDK sniffer"
 
-    err = stop_syncd_container()
-    if err is not 0:
-        return
-
-    err = remove_syncd_container()
-    if err is not 0:
-        return
-
-    set_environment_variable(sdk=True, set=True)
-
-    err = re_create_syncd_container()
-    if err is not 0:
-        return
+    set_conf_for_sniffer_enable(sdk=True)
 
     err = restart_swss()
     if err is not 0:
@@ -277,21 +246,9 @@ def enable_sdk_sniffer():
               prompt='To disable SDK sniffer swss service will be restarted, continue?')
 def disable_sdk_sniffer():
     """Disable SDK Sniffer"""
-    print "Disable SDK sniffer"
+    print "Disabling SDK sniffer"
 
-    err = stop_syncd_container()
-    if err is not 0:
-        return
-
-    err = remove_syncd_container()
-    if err is not 0:
-        return
-
-    set_environment_variable(sdk=True)
-
-    err = re_create_syncd_container()
-    if err is not 0:
-        return
+    rm_conf_for_sniffer_disable()
 
     err = restart_swss()
     if err is not 0:
@@ -336,6 +293,12 @@ def enable_all_sniffer():
 def disable_all_sniffer():
     """Disable PRM and SDK sniffers"""
     pass
+
+@cli.group()
+def status():
+    """Sniffer running status - Command Line to show sniffer running status"""
+    pass
+    
 '''
 
 if __name__ == '__main__':
