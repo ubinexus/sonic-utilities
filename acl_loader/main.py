@@ -414,12 +414,10 @@ class AclLoader(object):
 
         # Remove all existing dataplane rules
         for key in current_dataplane_rules:
-            print("Deleting rule {}".format(key))
             self.configdb.mod_entry(self.ACL_RULE, key, None)
 
         # Add all new dataplane rules
         for key in new_dataplane_rules:
-            print("Adding rule {}".format(key))
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         added_controlplane_rules = new_controlplane_rules.difference(current_controlplane_rules)
@@ -434,9 +432,6 @@ class AclLoader(object):
 
         for key in existing_controlplane_rules:
             if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
-                print("Updating {}".format(key))
-                print("Old: {}".format(repr(self.rules_db_info[key])))
-                print("New: {}".format(repr(self.rules_info[key])))
                 self.configdb.mod_entry(self.ACL_RULE, key, None)
                 self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
