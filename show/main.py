@@ -131,7 +131,6 @@ def run_command(command, display_cmd=False):
                 # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
                 # ignore SIGPIPE here.
                 if e.errno == errno.EPIPE:
-                    print("Got here")
                     sys.exit(0)
                 else:
                     raise
