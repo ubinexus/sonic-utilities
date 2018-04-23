@@ -424,16 +424,15 @@ class AclLoader(object):
         removed_controlplane_rules = current_controlplane_rules.difference(new_controlplane_rules)
         existing_controlplane_rules = new_rules.intersection(current_controlplane_rules)
 
-        for key in removed_controlplane_rules:
-            self.configdb.mod_entry(self.ACL_RULE, key, None)
-
         for key in added_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
+        for key in removed_controlplane_rules:
+            self.configdb.mod_entry(self.ACL_RULE, key, None)
+
         for key in existing_controlplane_rules:
             if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
-                self.configdb.mod_entry(self.ACL_RULE, key, None)
-                self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+                self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
 
     def delete(self, table=None, rule=None):
