@@ -196,6 +196,8 @@ def load(filename):
 @click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
 def reload(filename):
     """Clear current configuration and import a previous saved config DB dump file."""
+    #Stop services before config push
+    _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
