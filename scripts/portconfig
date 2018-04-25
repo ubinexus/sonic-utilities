@@ -72,13 +72,11 @@ def main():
         port = portconfig(args.verbose, args.port)
         if args.list:
             port.list_params(args.port)
-        elif args.speed and args.fec:
-            port.set_speed(args.port, args.speed)
-            port.set_fec(args.port, args.fec)
-        elif args.speed:
-            port.set_speed(args.port, args.speed)
-        elif args.fec:
-            port.set_fec(args.port, args.fec)
+        elif args.speed or args.fec:
+            if args.speed:
+                port.set_speed(args.port, args.speed)
+            if args.fec:
+                port.set_fec(args.port, args.fec)
         else:
             parser.print_help()
             sys.exit(1)
