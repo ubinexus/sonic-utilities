@@ -10,6 +10,7 @@ from swsssdk import ConfigDBConnector
 from minigraph import parse_device_desc_xml
 
 import aaa
+import mlnx
 
 SONIC_CFGGEN_PATH = "sonic-cfggen"
 MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
@@ -39,10 +40,7 @@ def _is_neighbor_ipaddress(ipaddress):
     """
     config_db = ConfigDBConnector()
     config_db.connect()
-
-    # Convert the IP address to uppercase because IPv6 addresses are stored
-    # in ConfigDB with all uppercase alphabet characters
-    entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress.upper())
+    entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress)
     return True if entry else False
 
 def _get_all_neighbor_ipaddresses():
@@ -73,16 +71,17 @@ def _change_bgp_session_status_by_addr(ipaddress, status, verbose):
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    # Convert the IP address to uppercase because IPv6 addresses are stored
-    # in ConfigDB with all uppercase alphabet characters
-    config_db.mod_entry('bgp_neighbor', ipaddress.upper(), {'admin_status': status})
+    config_db.mod_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
 def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     """Start up or shut down BGP session by IP address or hostname
     """
     ip_addrs = []
-    if _is_neighbor_ipaddress(ipaddr_or_hostname):
-        ip_addrs.append(ipaddr_or_hostname)
+
+    # If we were passed an IP address, convert it to lowercase because IPv6 addresses were
+    # stored in ConfigDB with all lowercase alphabet characters during minigraph parsing
+    if _is_neighbor_ipaddress(ipaddr_or_hostname.lower()):
+        ip_addrs.append(ipaddr_or_hostname.lower())
     else:
         # If <ipaddr_or_hostname> is not the IP address of a neighbor, check to see if it's a hostname
         ip_addrs = _get_neighbor_ipaddress_list_by_hostname(ipaddr_or_hostname)
@@ -142,6 +141,15 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
 
+def _stop_services():
+    run_command("service dhcp_relay stop", display_cmd=True)
+    run_command("service swss stop", display_cmd=True)
+    run_command("service snmp stop", display_cmd=True)
+    run_command("service lldp stop", display_cmd=True)
+    run_command("service pmon stop", display_cmd=True)
+    run_command("service bgp stop", display_cmd=True)
+    run_command("service teamd stop", display_cmd=True)
+
 def _restart_services():
     run_command("service hostname-config restart", display_cmd=True)
     run_command("service interfaces-config restart", display_cmd=True)
@@ -188,6 +196,8 @@ def load(filename):
 @click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
 def reload(filename):
     """Clear current configuration and import a previous saved config DB dump file."""
+    #Stop services before config push
+    _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
@@ -226,6 +236,9 @@ def load_mgmt_config(filename):
                 expose_value=False, prompt='Reload config from minigraph?')
 def load_minigraph():
     """Reconfigure based on minigraph."""
+    #Stop services before config push
+    _stop_services()
+
     config_db = ConfigDBConnector()
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
@@ -236,6 +249,7 @@ def load_minigraph():
         command = "{} -H -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
+    run_command('pfcwd start_default', display_cmd=True)
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
     run_command("config qos reload", display_cmd=True)
@@ -533,6 +547,16 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     if gmin is not None: command += " -gmin %d" % gmin
     if verbose: command += " -vv"
     run_command(command, display_cmd=verbose)
+
+
+#
+# 'platform' group
+#
+@cli.group()
+def platform():
+    """Platform-related configuration tasks"""
+platform.add_command(mlnx.mlnx)
+
 
 if __name__ == '__main__':
     cli()

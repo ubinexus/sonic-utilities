@@ -112,26 +112,32 @@ def get_routing_stack():
 routing_stack = get_routing_stack()
 
 
-def run_command(command):
-    click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+def run_command(command, display_cmd=False):
+    if display_cmd:
+        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
 
-    try:
-        click.echo(out)
-    except IOError as e:
-        # In our version of Click (v6.6), click.echo() and click.echo_via_pager() do not properly handle
-        # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
-        # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
-        # ignore SIGPIPE here.
-        if e.errno == errno.EPIPE:
-            sys.exit(0)
-        else:
-            raise
+    while True:
+        output = proc.stdout.readline()
+        if output == "" and proc.poll() is not None:
+            break
+        if output:
+            try:
+                click.echo(output.rstrip('\n'))
+            except IOError as e:
+                # In our version of Click (v6.6), click.echo() and click.echo_via_pager() do not properly handle
+                # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
+                # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
+                # ignore SIGPIPE here.
+                if e.errno == errno.EPIPE:
+                    sys.exit(0)
+                else:
+                    raise
 
-    if proc.returncode != 0:
-        sys.exit(proc.returncode)
+    rc = proc.poll()
+    if rc != 0:
+        sys.exit(rc)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -153,14 +159,15 @@ def cli():
 
 @cli.command()
 @click.argument('ipaddress', required=False)
-def arp(ipaddress):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def arp(ipaddress, verbose):
     """Show IP ARP table"""
     cmd = "/usr/sbin/arp -n"
+
     if ipaddress is not None:
-        command = '{} {}'.format(cmd, ipaddress)
-        run_command(command)
-    else:
-        run_command(cmd)
+        cmd += " {}".format(ipaddress)
+
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -178,8 +185,8 @@ def interfaces():
 def alias(interfacename):
     """Show Interface Name/Alias Mapping"""
 
-    command = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    cmd = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
 
     port_dict = json.loads(p.stdout.read())
 
@@ -210,17 +217,16 @@ def alias(interfacename):
 # 'summary' subcommand ("show interfaces summary")
 @interfaces.command()
 @click.argument('interfacename', required=False)
-def summary(interfacename):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def summary(interfacename, verbose):
     """Show interface status and information"""
 
-    cmd_ifconfig = "/sbin/ifconfig"
+    cmd = "/sbin/ifconfig"
 
     if interfacename is not None:
-        command = "{} {}".format(cmd_ifconfig, interfacename)
-        run_command(command)
-    else:
-        command = cmd_ifconfig
-        run_command(command)
+        cmd += " {}".format(interfacename)
+
+    run_command(cmd, display_cmd=verbose)
 
 
 @interfaces.group(cls=AliasedGroup, default_if_no_args=False)
@@ -232,77 +238,83 @@ def transceiver():
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
-def eeprom(interfacename, dump_dom):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def eeprom(interfacename, dump_dom, verbose):
     """Show interface transceiver EEPROM information"""
 
-    command = "sudo sfputil show eeprom"
+    cmd = "sudo sfputil show eeprom"
 
     if dump_dom:
-        command += " --dom"
+        cmd += " --dom"
 
     if interfacename is not None:
-        command += " -p {}".format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
-    run_command(command)
+    run_command(cmd, display_cmd=verbose)
 
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
-def lpmode(interfacename):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def lpmode(interfacename, verbose):
     """Show interface transceiver low-power mode status"""
 
-    command = "sudo sfputil show lpmode"
+    cmd = "sudo sfputil show lpmode"
 
     if interfacename is not None:
-        command += " -p {}".format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
-    run_command(command)
+    run_command(cmd, display_cmd=verbose)
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
-def presence(interfacename):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def presence(interfacename, verbose):
     """Show interface transceiver presence"""
 
-    command = "sudo sfputil show presence"
+    cmd = "sudo sfputil show presence"
 
     if interfacename is not None:
-        command += " -p {}".format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
-    run_command(command)
+    run_command(cmd, display_cmd=verbose)
 
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
-def description(interfacename):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def description(interfacename, verbose):
     """Show interface status, protocol and description"""
 
-    if interfacename is not None:
-        command = "intfutil description {}".format(interfacename)
-    else:
-        command = "intfutil description"
+    cmd = "intfutil description"
 
-    run_command(command)
+    if interfacename is not None:
+        cmd += " {}".format(interfacename)
+
+    run_command(cmd, display_cmd=verbose)
 
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
-def status(interfacename):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def status(interfacename, verbose):
     """Show Interface status information"""
 
-    if interfacename is not None:
-        command = "intfutil status {}".format(interfacename)
-    else:
-        command = "intfutil status"
+    cmd = "intfutil status"
 
-    run_command(command)
+    if interfacename is not None:
+        cmd += " {}".format(interfacename)
+
+    run_command(cmd, display_cmd=verbose)
 
 
 # 'counters' subcommand ("show interfaces counters")
 @interfaces.command()
-@click.option('-p', '--period')
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-c', '--clear', is_flag=True)
-def counters(period, printall, clear):
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def counters(period, printall, clear, verbose):
     """Show interface counters"""
 
     cmd = "portstat"
@@ -315,14 +327,65 @@ def counters(period, printall, clear):
         if period is not None:
             cmd += " -p {}".format(period)
 
-    run_command(cmd)
+    run_command(cmd, display_cmd=verbose)
 
 # 'portchannel' subcommand ("show interfaces portchannel")
 @interfaces.command()
-def portchannel():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def portchannel(verbose):
     """Show PortChannel information"""
-    run_command("teamshow")
+    cmd = "teamshow"
+    run_command(cmd, display_cmd=verbose)
 
+#
+# 'pfc' group ("show pfc ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def pfc():
+    """Show details of the priority-flow-control (pfc) """
+    pass
+
+# 'counters' subcommand ("show interfaces pfccounters")
+@pfc.command()
+@click.option('-c', '--clear', is_flag=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def counters(clear, verbose):
+    """Show pfc counters"""
+
+    cmd = "pfcstat"
+
+    if clear:
+        cmd += " -c"
+
+    run_command(cmd, display_cmd=verbose)
+
+#
+# 'queue' group ("show queue ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def queue():
+    """Show details of the queues """
+    pass
+
+# 'queuecounters' subcommand ("show queue counters")
+@queue.command()
+@click.argument('interfacename', required=False)
+@click.option('-c', '--clear', is_flag=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def counters(interfacename, clear, verbose):
+    """Show queue counters"""
+
+    cmd = "queuestat"
+
+    if clear:
+        cmd += " -c"
+    else:
+        if interfacename is not None:
+            cmd += " -p {}".format(interfacename)
+
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'mac' command ("show mac ...")
@@ -331,18 +394,19 @@ def portchannel():
 @cli.command()
 @click.option('-v', '--vlan')
 @click.option('-p', '--port')
-def mac(vlan, port):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def mac(vlan, port, verbose):
     """Show MAC (FDB) entries"""
 
-    command = "fdbshow"
+    cmd = "fdbshow"
 
     if vlan is not None:
-        command += " -v {}".format(vlan)
+        cmd += " -v {}".format(vlan)
 
     if port is not None:
-        command += " -p {}".format(port)
+        cmd += " -p {}".format(port)
 
-    run_command(command)
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'ip' group ("show ip ...")
@@ -361,20 +425,25 @@ def ip():
 
 @ip.command()
 @click.argument('ipaddress', required=False)
-def route(ipaddress):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def route(ipaddress, verbose):
     """Show IP (IPv4) routing table"""
-    if ipaddress is not None:
-        command = 'sudo vtysh -c "show ip route {}"'.format(ipaddress)
-        run_command(command)
-    else:
-        run_command('sudo vtysh -c "show ip route"')
+    cmd = 'sudo vtysh -c "show ip route'
 
+    if ipaddress is not None:
+        cmd += ' {}'.format(ipaddress)
+
+    cmd += '"'
+
+    run_command(cmd, display_cmd=verbose)
 
 # 'protocol' command
 @ip.command()
-def protocol():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def protocol(verbose):
     """Show IPv4 protocol information"""
-    run_command('sudo vtysh -c "show ip protocol"')
+    cmd = 'sudo vtysh -c "show ip protocol"'
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -394,20 +463,26 @@ def ipv6():
 
 @ipv6.command()
 @click.argument('ipaddress', required=False)
-def route(ipaddress):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def route(ipaddress, verbose):
     """Show IPv6 routing table"""
+    cmd = 'sudo vtysh -c "show ipv6 route'
+
     if ipaddress is not None:
-        command = 'sudo vtysh -c "show ipv6 route {}"'.format(ipaddress)
-        run_command(command)
-    else:
-        run_command('sudo vtysh -c "show ipv6 route"')
+        cmd += ' {}'.format(ipaddress)
+
+    cmd += '"'
+
+    run_command(cmd, display_cmd=verbose)
 
 
 # 'protocol' command
 @ipv6.command()
-def protocol():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def protocol(verbose):
     """Show IPv6 protocol information"""
-    run_command('sudo vtysh -c "show ipv6 protocol"')
+    cmd = 'sudo vtysh -c "show ipv6 protocol"'
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -422,13 +497,14 @@ if routing_stack == "quagga":
 elif routing_stack == "frr":
     @cli.command()
     @click.argument('bgp_args', nargs = -1, required = False)
-    def bgp(bgp_args):
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def bgp(bgp_args, verbose):
         """BGP information"""
         bgp_cmd = "show bgp"
         for arg in bgp_args:
             bgp_cmd += " " + str(arg)
-        command = 'sudo vtysh -c "{}"'.format(bgp_cmd)
-        run_command(command)
+        cmd = 'sudo vtysh -c "{}"'.format(bgp_cmd)
+        run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -443,19 +519,23 @@ def lldp():
 # Default 'lldp' command (called if no subcommands or their aliases were passed)
 @lldp.command()
 @click.argument('interfacename', required=False)
-def neighbors(interfacename):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def neighbors(interfacename, verbose):
     """Show LLDP neighbors"""
+    cmd = "sudo lldpctl"
+
     if interfacename is not None:
-        command = "sudo lldpctl {}".format(interfacename)
-        run_command(command)
-    else:
-        run_command("sudo lldpctl")
+        cmd += " {}".format(interfacename)
+
+    run_command(cmd, display_cmd=verbose)
 
 # 'table' subcommand ("show lldp table")
 @lldp.command()
-def table():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def table(verbose):
     """Show LLDP neighbors in tabular format"""
-    run_command("sudo lldpshow")
+    cmd = "sudo lldpshow"
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'platform' group ("show platform ...")
@@ -482,8 +562,8 @@ def summary():
     f.write(PLATFORM_TEMPLATE_CONTENTS)
     f.close()
 
-    command = "sonic-cfggen -d -y /etc/sonic/sonic_version.yml -t {0}".format(PLATFORM_TEMPLATE_FILE)
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    cmd = "sonic-cfggen -d -y /etc/sonic/sonic_version.yml -t {0}".format(PLATFORM_TEMPLATE_FILE)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
     # Clean up
@@ -492,21 +572,24 @@ def summary():
 
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
-def syseeprom():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def syseeprom(verbose):
     """Show system EEPROM information"""
-    run_command("sudo decode-syseeprom")
+    cmd = "sudo decode-syseeprom"
+    run_command(cmd, display_cmd=verbose)
 
 # 'psustatus' subcommand ("show platform psustatus")
 @platform.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
-def psustatus(index):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def psustatus(index, verbose):
     """Show PSU status information"""
-    command = "sudo psuutil status"
+    cmd = "sudo psuutil status"
 
     if index >= 0:
-        command += " -i {}".format(index)
+        cmd += " -i {}".format(index)
 
-    run_command(command)
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'logging' command ("show logging")
@@ -516,23 +599,25 @@ def psustatus(index):
 @click.argument('process', required=False)
 @click.option('-l', '--lines')
 @click.option('-f', '--follow', is_flag=True)
-def logging(process, lines, follow):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def logging(process, lines, follow, verbose):
     """Show system log"""
     if follow:
-        run_command("sudo tail -f /var/log/syslog")
+        cmd = "sudo tail -F /var/log/syslog"
+        run_command(cmd, display_cmd=verbose)
     else:
         if os.path.isfile("/var/log/syslog.1"):
-            command = "sudo cat /var/log/syslog.1 /var/log/syslog"
+            cmd = "sudo cat /var/log/syslog.1 /var/log/syslog"
         else:
-            command = "sudo cat /var/log/syslog"
+            cmd = "sudo cat /var/log/syslog"
 
         if process is not None:
-            command += " | grep '{}'".format(process)
+            cmd += " | grep '{}'".format(process)
 
         if lines is not None:
-            command += " | tail -{}".format(lines)
+            cmd += " | tail -{}".format(lines)
 
-        run_command(command)
+        run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -557,13 +642,13 @@ def version():
     f.write(VERSION_TEMPLATE_CONTENTS)
     f.close()
 
-    command = "sonic-cfggen -y /etc/sonic/sonic_version.yml -t {0}".format(VERSION_TEMPLATE_FILE)
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    cmd = "sonic-cfggen -y /etc/sonic/sonic_version.yml -t {0}".format(VERSION_TEMPLATE_FILE)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
     click.echo("Docker images:")
-    command = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
     # Clean up
@@ -574,9 +659,11 @@ def version():
 #
 
 @cli.command()
-def environment():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def environment(verbose):
     """Show environmentals (voltages, fans, temps)"""
-    run_command('sudo sensors')
+    cmd = "sudo sensors"
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -589,34 +676,42 @@ def processes():
     pass
 
 @processes.command()
-def summary():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def summary(verbose):
     """Show processes info"""
     # Run top batch mode to prevent unexpected newline after each newline
-    run_command('ps -eo pid,ppid,cmd,%mem,%cpu ')
+    cmd = "ps -eo pid,ppid,cmd,%mem,%cpu "
+    run_command(cmd, display_cmd=verbose)
 
 
 # 'cpu' subcommand ("show processes cpu")
 @processes.command()
-def cpu():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def cpu(verbose):
     """Show processes CPU info"""
     # Run top in batch mode to prevent unexpected newline after each newline
-    run_command('top -bn 1 -o %CPU')
+    cmd = "top -bn 1 -o %CPU"
+    run_command(cmd, display_cmd=verbose)
  
 # 'memory' subcommand
 @processes.command()
-def memory():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def memory(verbose):
     """Show processes memory info"""
     # Run top batch mode to prevent unexpected newline after each newline
-    run_command('top -bn 1 -o %MEM')
+    cmd = "top -bn 1 -o %MEM"
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'users' command ("show users")
 #
 
 @cli.command()
-def users():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def users(verbose):
     """Show users"""
-    run_command('who')
+    cmd = "who"
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -624,9 +719,11 @@ def users():
 #
 
 @cli.command()
-def techsupport():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def techsupport(verbose):
     """Gather information for troubleshooting"""
-    run_command('sudo generate_dump -v')
+    cmd = "sudo generate_dump -v"
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -639,42 +736,59 @@ def runningconfiguration():
     pass
 
 
+# 'all' subcommand ("show runningconfiguration all")
+@runningconfiguration.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def all(verbose):
+    """Show full running configuration"""
+    cmd = "sonic-cfggen -d --print-data"
+    run_command(cmd, display_cmd=verbose)
+
+
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
-def bgp():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def bgp(verbose):
     """Show BGP running configuration"""
-    run_command('sudo vtysh -c "show running-config"')
+    cmd = 'sudo vtysh -c "show running-config"'
+    run_command(cmd, display_cmd=verbose)
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
 @runningconfiguration.command()
 @click.argument('interfacename', required=False)
-def interfaces(interfacename):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def interfaces(interfacename, verbose):
     """Show interfaces running configuration"""
+    cmd = "cat /etc/network/interfaces"
+
     if interfacename is not None:
-        command = "cat /etc/network/interfaces | grep {} -A 4".format(interfacename)
-        run_command(command)
-    else:
-        run_command('cat /etc/network/interfaces')
+        cmd += " | grep {} -A 4".format(interfacename)
+
+    run_command(cmd, display_cmd=verbose)
 
 
 # 'snmp' subcommand ("show runningconfiguration snmp")
 @runningconfiguration.command()
 @click.argument('server', required=False)
-def snmp(server):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def snmp(server, verbose):
     """Show SNMP information"""
+    cmd = "sudo docker exec snmp cat /etc/snmp/snmpd.conf"
+
     if server is not None:
-        command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf | grep -i agentAddress'
-        run_command(command)
-    else:
-        command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf'
-        run_command(command)
+        cmd += " | grep -i agentAddress"
+
+    run_command(cmd, display_cmd=verbose)
+
 
 # 'ntp' subcommand ("show runningconfiguration ntp")
 @runningconfiguration.command()
-def ntp():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ntp(verbose):
     """Show NTP running configuration"""
-    run_command('cat /etc/ntp.conf')
+    cmd = "cat /etc/ntp.conf"
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -689,29 +803,32 @@ def startupconfiguration():
 
 # 'bgp' subcommand  ("show startupconfiguration bgp")
 @startupconfiguration.command()
-def bgp():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def bgp(verbose):
     """Show BGP startup configuration"""
-    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    cmd = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     result = proc.stdout.read().rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
-        run_command('sudo docker exec -it bgp cat /etc/quagga/bgpd.conf')
+        run_command('sudo docker exec bgp cat /etc/quagga/bgpd.conf', display_cmd=verbose)
     elif result == "frr":
-        run_command('sudo docker exec -it bgp cat /etc/frr/bgpd.conf')
+        run_command('sudo docker exec bgp cat /etc/frr/bgpd.conf', display_cmd=verbose)
     elif result == "gobgp":
-        run_command('sudo docker exec -it bgp cat /etc/gpbgp/bgpd.conf')
+        run_command('sudo docker exec bgp cat /etc/gpbgp/bgpd.conf', display_cmd=verbose)
     else:
-        click.echo("unidentified routing-stack")
+        click.echo("Unidentified routing-stack")
 
 #
 # 'ntp' command ("show ntp")
 #
 
 @cli.command()
-def ntp():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ntp(verbose):
     """Show NTP information"""
-    run_command('ntpq -p')
+    cmd = "ntpq -p"
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -719,20 +836,25 @@ def ntp():
 #
 
 @cli.command()
-def uptime():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def uptime(verbose):
     """Show system uptime"""
-    run_command('uptime -p')
+    cmd = "uptime -p"
+    run_command(cmd, display_cmd=verbose)
 
 @cli.command()
-def clock():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def clock(verbose):
     """Show date and time"""
-    run_command('date')
+    cmd ="date"
+    run_command(cmd, display_cmd=verbose)
 
 @cli.command('system-memory')
-def system_memory():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def system_memory(verbose):
     """Show memory information"""
-    command="free -m"
-    run_command(command)
+    cmd = "free -m"
+    run_command(cmd, display_cmd=verbose)
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def vlan():
@@ -740,17 +862,19 @@ def vlan():
     pass
 
 @vlan.command()
-def brief():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def brief(verbose):
     """Show all bridge information"""
-    command="sudo brctl show"
-    run_command(command)
+    cmd = "sudo brctl show"
+    run_command(cmd, display_cmd=verbose)
 
 @vlan.command()
 @click.argument('bridge_name', required=True)
-def id(bridge_name):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def id(bridge_name, verbose):
     """Show list of learned MAC addresses for particular bridge"""
-    command="sudo brctl showmacs {}".format(bridge_name)
-    run_command(command)
+    cmd = "sudo brctl showmacs {}".format(bridge_name)
+    run_command(cmd, display_cmd=verbose)
 
 @vlan.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
@@ -790,22 +914,22 @@ def config(redis_unix_socket_path):
 @cli.command('services')
 def services():
     """Show all daemon services"""
-    command = "sudo docker ps --format '{{.Names}}'"
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    cmd = "sudo docker ps --format '{{.Names}}'"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     while True:
         line = proc.stdout.readline()
         if line != '':
                 print(line.rstrip()+'\t'+"docker")
                 print("---------------------------")
-                command = "sudo docker exec -it {} ps -ef | sed '$d'".format(line.rstrip())
-                proc1 = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+                cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
+                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
                 print proc1.stdout.read()
         else:
                 break
 
 @cli.command()
 def aaa():
-    """Show AAA configuration in ConfigDb"""
+    """Show AAA configuration"""
     config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('AAA')
@@ -858,17 +982,27 @@ def tacacs():
 
 
 #
-# 'session' command ###
+# 'mirror' group ###
 #
 
-@cli.command()
-@click.argument('session_name', required=False)
-def session(session_name):
-    """Show existing everflow sessions"""
-    if session_name is None:
-        session_name = ""
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def mirror():
+    """Show mirroring (Everflow) information"""
+    pass
 
-    run_command("acl-loader show session {}".format(session_name))
+
+# 'session' subcommand  ("show mirror session")
+@mirror.command()
+@click.argument('session_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def session(session_name, verbose):
+    """Show existing everflow sessions"""
+    cmd = "acl-loader show session"
+
+    if session_name is not None:
+        cmd += " {}".format(session_name)
+
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -881,45 +1015,46 @@ def acl():
     pass
 
 
-#
-# 'acl table' command ###
-#
-
-@acl.command()
-@click.argument('table_name', required=False)
-def table(table_name):
-    """Show existing ACL tables"""
-    if table_name is None:
-        table_name = ""
-
-    run_command("acl-loader show table {}".format(table_name))
-
-
-#
-# 'acl rule' command ###
-#
-
+# 'rule' subcommand  ("show acl rule")
 @acl.command()
 @click.argument('table_name', required=False)
 @click.argument('rule_id', required=False)
-def rule(table_name, rule_id):
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def rule(table_name, rule_id, verbose):
     """Show existing ACL rules"""
-    if table_name is None:
-        table_name = ""
+    cmd = "acl-loader show rule"
 
-    if rule_id is None:
-        rule_id = ""
+    if table_name is not None:
+        cmd += " {}".format(table_name)
 
-    run_command("acl-loader show rule {} {}".format(table_name, rule_id))
+    if rule_id is not None:
+        cmd += " {}".format(rule_id)
+
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'table' subcommand  ("show acl table")
+@acl.command()
+@click.argument('table_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def table(table_name, verbose):
+    """Show existing ACL tables"""
+    cmd = "acl-loader show table"
+
+    if table_name is not None:
+        cmd += " {}".format(table_name)
+
+    run_command(cmd, display_cmd=verbose)
+
 
 #
-# 'session' command (show ecn)
+# 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
 def ecn():
     """Show ECN configuration"""
-    command = "ecnconfig -l"
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    cmd = "ecnconfig -l"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 
 if __name__ == '__main__':
