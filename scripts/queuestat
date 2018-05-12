@@ -182,13 +182,13 @@ class Queuestat(object):
                 old_cntr = cnstat_old_dict.get(key)
 
             if old_cntr is not None:
-                table.append((port, cntr.queuetype + str(data.queueindex),
+                table.append((port, cntr.queuetype + str(cntr.queueindex),
                             ns_diff(cntr.totalpacket, old_cntr.totalpacket),
                             ns_diff(cntr.totalbytes, old_cntr.totalbytes),
                             ns_diff(cntr.droppacket, old_cntr.droppacket),
                             ns_diff(cntr.dropbytes, old_cntr.dropbytes)))
             else:
-                table.append((port, cntr.queuetype + str(data.queueindex),
+                table.append((port, cntr.queuetype + str(cntr.queueindex),
                         cntr.totalpacket, cntr.totalbytes,
                         cntr.droppacket, cntr.dropbytes))
 
