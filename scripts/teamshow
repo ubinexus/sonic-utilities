@@ -24,7 +24,6 @@ import swsssdk
 import subprocess
 import sys
 from tabulate import tabulate
-from minigraph import parse_xml
 from natsort import natsorted
 from sonic_platform import get_machine_info
 from sonic_platform import get_platform_info
@@ -44,7 +43,7 @@ class Teamshow(object):
 
     def get_portchannel_names(self):
         """
-            Get the portchannel names from minigraph.
+            Get the portchannel names from database.
         """
         team_keys = self.db.keys(self.db.APPL_DB, PORT_CHANNEL_TABLE_PREFIX+"*")
         self.teams = [key[len(PORT_CHANNEL_TABLE_PREFIX):] for key in team_keys]
