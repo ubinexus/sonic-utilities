@@ -6,7 +6,9 @@ import click
 import json
 import subprocess
 import netaddr
+import re
 from swsssdk import ConfigDBConnector
+from natsort import natsorted
 from minigraph import parse_device_desc_xml
 
 import aaa
@@ -32,6 +34,64 @@ def run_command(command, display_cmd=False, ignore_error=False):
 
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
+
+def convert_interface_name(interface_name):
+    """Return alias interface name if default interface is given as argument.
+       Return default interface name if alias name is given as argument.
+    """
+    cmd = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+
+    port_dict = json.loads(p.stdout.read())
+
+    if interface_name is not None:
+        for port_name in natsorted(port_dict.keys()):
+            if interface_name == port_name:
+                return port_dict[port_name]['alias']
+            elif interface_name == port_dict[port_name]['alias']:
+                return port_name
+        print "Invalid interface {}".format(interface_name)
+
+def set_interface_mode(mode):
+    tmp = "/tmp/"
+    output = subprocess.check_output(['tty']).strip('\n')
+    tty = output.split("/")
+    if tty[2].startswith('ttyS'):
+        contents = (re.findall('\d+',tty[2]))
+        pts = ''.join(contents)
+    else:
+        pts = tty[3]
+
+    filename = tmp + "pts" + pts + ".cfg"
+
+    raw = open(filename, "r+")
+    contents = raw.read().split("\n")
+    raw.seek(0)       
+    raw.truncate()
+    if mode == "DEFAULT":
+        raw.write('interface_mode=DEFAULT\n')
+    elif mode == "ALIAS":
+        raw.write('interface_mode=ALIAS\n')
+    raw.close()
+    
+def get_interface_mode():
+    tmp = "/tmp/"
+    output = subprocess.check_output(['tty']).strip('\n')
+    tty = output.split("/")
+    if tty[2].startswith('ttyS'):
+        contents = (re.findall('\d+',tty[2]))
+        pts = ''.join(contents)
+    else:
+        pts = tty[3]
+
+    filename = tmp + "pts" + pts + ".cfg"
+
+    raw = open(filename, "r+")
+    contents = raw.read().split("\n")
+    raw.close()
+    alias = contents[0].split('=')
+    mode = alias[1].strip()
+    return mode
 
 def _is_neighbor_ipaddress(ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
@@ -450,6 +510,9 @@ def interface():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def shutdown(interface_name, verbose):
     """Shut down interface"""
+    if get_interface_mode() == "ALIAS": 
+        interface_name = convert_interface_name(interface_name)
+    """Shut down interface"""
     command = "ip link set {} down".format(interface_name)
     run_command(command, display_cmd=verbose)
 
@@ -462,6 +525,9 @@ def shutdown(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def startup(interface_name, verbose):
     """Start up interface"""
+    if get_interface_mode() == "ALIAS": 
+        interface_name = convert_interface_name(interface_name)
+
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
 
@@ -555,6 +621,27 @@ def platform():
     """Platform-related configuration tasks"""
 platform.add_command(mlnx.mlnx)
 
+
+#
+# 'interface_mode' group
+#
+
+@cli.group()
+def interface_mode():
+    """Interface mode change tasks"""
+    pass
+
+@interface_mode.command('default')
+def interface_mode_default():
+    """Set interface mode to DEFAULT"""
+    alias_mode = "DEFAULT"
+    set_interface_mode(alias_mode)
+
+@interface_mode.command('alias')
+def interface_mode_alias():
+    """Set interface mode to ALIAS"""
+    alias_mode = "ALIAS"
+    set_interface_mode(alias_mode)
 
 if __name__ == '__main__':
     cli()
