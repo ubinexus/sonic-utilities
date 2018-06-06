@@ -28,7 +28,7 @@ from natsort import natsorted
 from sonic_platform import get_machine_info
 from sonic_platform import get_platform_info
 
-PORT_CHANNEL_TABLE_PREFIX = "LAG_TABLE:"
+PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
 PORT_CHANNEL_STATUS_FIELD = "oper_status"
 
@@ -54,7 +54,7 @@ class Teamshow(object):
         """
             Get port channel status from database.
         """
-        full_table_id = PORT_CHANNEL_TABLE_PREFIX + port_channel_name
+        full_table_id = PORT_CHANNEL_APPL_TABLE_PREFIX + port_channel_name
         return self.db.get(self.db.APPL_DB, full_table_id, PORT_CHANNEL_STATUS_FIELD)
 
     def get_team_id(self, team):
