@@ -35,9 +35,8 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-def convert_interface_name(interface_name):
-    """Return alias interface name if default interface is given as argument.
-       Return default interface name if alias name is given as argument.
+def interface_alias_to_name(interface_name):
+    """Return default interface name if alias name is given as argument
     """
     cmd = 'sonic-cfggen -d --var-json "PORT"'
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -46,13 +45,13 @@ def convert_interface_name(interface_name):
 
     if interface_name is not None:
         for port_name in natsorted(port_dict.keys()):
-            if interface_name == port_name:
-                return port_dict[port_name]['alias']
-            elif interface_name == port_dict[port_name]['alias']:
+            if interface_name == port_dict[port_name]['alias']:
                 return port_name
         print "Invalid interface {}".format(interface_name)
 
+
 def set_interface_mode(mode):
+    """ Set interface mode as DEFAULT/ALIAS """
     tmp = "/tmp/"
     output = subprocess.check_output(['tty']).strip('\n')
     tty = output.split("/")
@@ -75,6 +74,7 @@ def set_interface_mode(mode):
     raw.close()
     
 def get_interface_mode():
+    """ Return configured interface mode """
     tmp = "/tmp/"
     output = subprocess.check_output(['tty']).strip('\n')
     tty = output.split("/")
@@ -511,7 +511,7 @@ def interface():
 def shutdown(interface_name, verbose):
     """Shut down interface"""
     if get_interface_mode() == "ALIAS": 
-        interface_name = convert_interface_name(interface_name)
+        interface_name = interface_alias_to_name(interface_name)
     """Shut down interface"""
     command = "ip link set {} down".format(interface_name)
     run_command(command, display_cmd=verbose)
@@ -526,7 +526,7 @@ def shutdown(interface_name, verbose):
 def startup(interface_name, verbose):
     """Start up interface"""
     if get_interface_mode() == "ALIAS": 
-        interface_name = convert_interface_name(interface_name)
+        interface_name = interface_alias_to_name(interface_name)
 
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
