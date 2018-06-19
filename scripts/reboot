@@ -1,12 +1,5 @@
 #! /bin/bash
 
-# Check root privileges
-if [[ "$EUID" -ne 0 ]]
-then
-  echo "Please run as root" >&2
-  exit 1
-fi
-
 function stop_sonic_services()
 {
     echo "Stopping syncd..."
@@ -14,21 +7,27 @@ function stop_sonic_services()
     sleep 3
 }
 
-# Obtain our platform as we will mount directories with these names in each docker
-PLATFORM=`sonic-cfggen -H -v DEVICE_METADATA.localhost.platform`
 
+# Exit if not superuser
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Please run as root" >&2
+    exit 1
+fi
+
+PLATFORM=`sonic-cfggen -H -v DEVICE_METADATA.localhost.platform`
 DEVPATH="/usr/share/sonic/device"
-REBOOT="platform_reboot"
+PLAT_REBOOT="platform_reboot"
 
 # Stop syncd gracefully.
 stop_sonic_services
 
-if [ -x ${DEVPATH}/${PLATFORM}/${REBOOT} ]; then
+if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     sync
     sleep 3
     echo "Rebooting with platform ${PLATFORM} specific tool ..."
-    ${DEVPATH}/${PLATFORM}/${REBOOT}
+    ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
     exit 0
 fi
 
+# If no platform-specific reboot tool, just call /sbin/reboot
 /sbin/reboot $@
