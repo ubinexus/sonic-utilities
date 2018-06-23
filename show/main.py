@@ -1064,6 +1064,8 @@ def ecn():
 def reboot_cause():
     """Show cause of most recent reboot"""
     PREVIOUS_REBOOT_CAUSE_FILE = "/var/cache/sonic/previous-reboot-cause.txt"
+
+    # File should always be created at boot, but check just in case it's not
     if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
         click.echo("Unable to determine cause of previous reboot\n")
     else:
