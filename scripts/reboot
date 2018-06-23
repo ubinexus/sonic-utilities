@@ -14,20 +14,24 @@ if [[ "$EUID" -ne 0 ]]; then
     exit 1
 fi
 
-PLATFORM=`sonic-cfggen -H -v DEVICE_METADATA.localhost.platform`
+REBOOT_USER=$(logname)
+REBOOT_TIME=$(date)
+PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
+REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
 
-# Stop syncd gracefully.
+# Stop SONiC services gracefully.
 stop_sonic_services
 
+echo "User issued reboot command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+sync
+sleep 3
+
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
-    sync
-    sleep 3
     echo "Rebooting with platform ${PLATFORM} specific tool ..."
-    ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
-    exit 0
+    exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
 fi
 
-# If no platform-specific reboot tool, just call /sbin/reboot
-/sbin/reboot $@
+# If no platform-specific reboot tool, just run /sbin/reboot
+exec /sbin/reboot $@
