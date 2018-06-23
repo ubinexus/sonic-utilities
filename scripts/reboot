@@ -31,7 +31,11 @@ sleep 3
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     echo "Rebooting with platform ${PLATFORM} specific tool ..."
     exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
+else
+    # If no platform-specific reboot tool, just run /sbin/reboot
+    exec /sbin/reboot $@
 fi
 
-# If no platform-specific reboot tool, just run /sbin/reboot
-exec /sbin/reboot $@
+# Should never reach here
+echo "Reboot failed!" >&2
+exit 1
