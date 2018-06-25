@@ -1065,7 +1065,10 @@ def reboot_cause():
     """Show cause of most recent reboot"""
     PREVIOUS_REBOOT_CAUSE_FILE = "/var/cache/sonic/previous-reboot-cause.txt"
 
-    # File should always be created at boot, but check just in case it's not
+    # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
+    # the contents of the 'reboot cause' file as it was left when the device
+    # went down for reboot. This file should always be created at boot,
+    # but check first just in case it's not present.
     if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
         click.echo("Unable to determine cause of previous reboot\n")
     else:
