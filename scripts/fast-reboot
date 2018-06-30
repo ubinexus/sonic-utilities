@@ -54,7 +54,7 @@ docker kill lldp > /dev/null
 # Kill teamd, otherwise it gets down all LAGs
 docker kill teamd > /dev/null
 
-# syncd graceful stop is supported only for Broadcoms platforms only for now
+# syncd graceful stop is supported only for Broadcom platforms only for now
 if [[ "$sonic_asic_type" = 'broadcom' ]];
 then
     # Gracefully stop syncd
@@ -99,3 +99,7 @@ sync
 # Reboot: explicity call Linux native reboot under sbin
 echo "Rebooting to $NEXT_SONIC_IMAGE..."
 exec /sbin/reboot
+
+# Should never reach here
+echo "fast-reboot failed!" >&2
+exit 1
