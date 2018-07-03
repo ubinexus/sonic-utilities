@@ -38,6 +38,7 @@ def run_command(command, display_cmd=False, ignore_error=False):
 def interface_alias_to_name(interface_name):
     """Return default interface name if alias name is given as argument
     """
+
     cmd = 'sonic-cfggen -d --var-json "PORT"'
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
 
@@ -48,49 +49,55 @@ def interface_alias_to_name(interface_name):
             if interface_name == port_dict[port_name]['alias']:
                 return port_name
         print "Invalid interface {}".format(interface_name)
+        sys.exit(0)
+
+def interface_name_to_alias(interface_name):
+    """Return alias interface name if default name is given as argument
+    """
+
+    cmd = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+
+    port_dict = json.loads(p.stdout.read())
+
+    if interface_name is not None:
+        for port_name in natsorted(port_dict.keys()):
+            if interface_name == port_name:
+                return port_dict[port_name]['alias']
+        print "Invalid interface {}".format(interface_name)
+        sys.exit(0)
+
 
 
 def set_interface_mode(mode):
-    """ Set interface mode as DEFAULT/ALIAS """
-    tmp = "/tmp/"
-    output = subprocess.check_output(['tty']).strip('\n')
-    tty = output.split("/")
-    if tty[2].startswith('ttyS'):
-        contents = (re.findall('\d+',tty[2]))
-        pts = ''.join(contents)
+    """Modify IFMODE env variable in user .bashrc
+    """
+    sudo_user = os.getenv('SUDO_USER')
+    user = os.getenv('USER')
+    get_mode = "IFMODE={}".format(os.getenv('IFMODE'))
+    set_mode = "IFMODE={}".format(mode)
+
+    if not sudo_user:
+        bashrc = "/{}/.bashrc".format(user)
     else:
-        pts = tty[3]
+        bashrc = "/home/{}/.bashrc".format(sudo_user)
 
-    filename = tmp + "pts" + pts + ".cfg"
+    f = open(bashrc,'r')
+    filedata = f.read()
+    f.close()
 
-    raw = open(filename, "r+")
-    contents = raw.read().split("\n")
-    raw.seek(0)       
-    raw.truncate()
-    if mode == "DEFAULT":
-        raw.write('interface_mode=DEFAULT\n')
-    elif mode == "ALIAS":
-        raw.write('interface_mode=ALIAS\n')
-    raw.close()
+    if get_mode in filedata:
+        newdata = filedata.replace(get_mode, set_mode)
+    else:
+        newdata = filedata + set_mode
+
+    f = open(bashrc,'w')
+    f.write(newdata)
+    f.close()
+    print "Please logout and login again!"
     
 def get_interface_mode():
-    """ Return configured interface mode """
-    tmp = "/tmp/"
-    output = subprocess.check_output(['tty']).strip('\n')
-    tty = output.split("/")
-    if tty[2].startswith('ttyS'):
-        contents = (re.findall('\d+',tty[2]))
-        pts = ''.join(contents)
-    else:
-        pts = tty[3]
-
-    filename = tmp + "pts" + pts + ".cfg"
-
-    raw = open(filename, "r+")
-    contents = raw.read().split("\n")
-    raw.close()
-    alias = contents[0].split('=')
-    mode = alias[1].strip()
+    mode = os.getenv('IFMODE')
     return mode
 
 def _is_neighbor_ipaddress(ipaddress):
@@ -398,12 +405,21 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
+    
+    if get_interface_mode() == "ALIAS": 
+        interface_name = interface_alias_to_name(interface_name)
+
+
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
         raise click.Abort
     members = vlan.get('members', [])
     if interface_name in members:
-        print "{} is already a member of {}".format(interface_name, vlan_name)
+        if get_interface_mode() == "ALIAS": 
+            alias_name = interface_name_to_alias(interface_name)
+            print "{} is already a member of {}".format(alias_name, vlan_name)
+        else:
+            print "{} is already a member of {}".format(interface_name, vlan_name)
         raise click.Abort
     members.append(interface_name)
     vlan['members'] = members
@@ -419,12 +435,20 @@ def del_vlan_member(ctx, vid, interface_name):
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
+
+    if get_interface_mode() == "ALIAS": 
+        interface_name = interface_alias_to_name(interface_name)
+
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
         raise click.Abort
     members = vlan.get('members', [])
     if interface_name not in members:
-        print "{} is not a member of {}".format(interface_name, vlan_name)
+        alias_name = interface_name_to_alias(interface_name)
+        if get_interface_mode() == "ALIAS": 
+            print "{} is already a member of {}".format(alias_name, vlan_name)
+        else:
+            print "{} is not a member of {}".format(interface_name, vlan_name)
         raise click.Abort
     members.remove(interface_name)
     if len(members) == 0:
@@ -541,6 +565,9 @@ def startup(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def speed(interface_name, interface_speed, verbose):
     """Set interface speed"""
+    if get_interface_mode() == "ALIAS": 
+        interface_name = interface_alias_to_name(interface_name)
+
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose: command += " -vv"
     run_command(command, display_cmd=verbose)
