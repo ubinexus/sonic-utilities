@@ -1091,5 +1091,15 @@ def reboot_cause():
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         click.echo(proc.stdout.read())
 
+
+#
+# 'line' command ("show line")
+#
+@cli.command('line')
+def line():
+    """Show all /dev/ttyUSB lines and their info"""
+    return
+
+
 if __name__ == '__main__':
     cli()
