@@ -49,7 +49,7 @@ class Teamshow(object):
         """
         team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
         if team_keys == None:
-                return
+            return
         self.teams = [key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):] for key in team_keys]
 
     def get_portchannel_status(self, port_channel_name):
