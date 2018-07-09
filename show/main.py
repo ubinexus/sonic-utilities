@@ -1098,6 +1098,7 @@ def reboot_cause():
 @cli.command('line')
 def line():
     """Show all /dev/ttyUSB lines and their info"""
+    # TODO: Stub
     return
 
 

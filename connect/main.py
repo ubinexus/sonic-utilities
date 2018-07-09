@@ -126,6 +126,8 @@ def connect():
 @connect.command('line')
 @click.argument('linenum')
 def line(linenum):
+    """Connect to line via serial connection"""
+    # TODO: Stub
     return
 
 if __name__ == '__main__':
