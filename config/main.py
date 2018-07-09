@@ -35,7 +35,7 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-def interface_alias_to_name(interface_name):
+def interface_alias(interface_name):
     """Return default interface name if alias name is given as argument
     """
 
@@ -74,7 +74,6 @@ def set_interface_mode(mode):
     """
     sudo_user = os.getenv('SUDO_USER')
     user = os.getenv('USER')
-    get_mode = "IFMODE={}".format(os.getenv('IFMODE'))
     set_mode = "IFMODE={}".format(mode)
 
     if not sudo_user:
@@ -86,10 +85,10 @@ def set_interface_mode(mode):
     filedata = f.read()
     f.close()
 
-    if get_mode in filedata:
-        newdata = filedata.replace(get_mode, set_mode)
-    else:
+    if "IFMODE" not in filedata:
         newdata = filedata + set_mode
+    else:
+        newdata = re.sub(r"IFMODE=\w+",set_mode,filedata)
 
     f = open(bashrc,'w')
     f.write(newdata)
@@ -406,16 +405,15 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
     
-    if get_interface_mode() == "ALIAS": 
-        interface_name = interface_alias_to_name(interface_name)
-
+    if get_interface_mode() == "alias": 
+        interface_name = interface_alias(interface_name)
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
         raise click.Abort
     members = vlan.get('members', [])
     if interface_name in members:
-        if get_interface_mode() == "ALIAS": 
+        if get_interface_mode() == "alias": 
             alias_name = interface_name_to_alias(interface_name)
             print "{} is already a member of {}".format(alias_name, vlan_name)
         else:
@@ -436,8 +434,8 @@ def del_vlan_member(ctx, vid, interface_name):
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
 
-    if get_interface_mode() == "ALIAS": 
-        interface_name = interface_alias_to_name(interface_name)
+    if get_interface_mode() == "alias": 
+        interface_name = interface_alias(interface_name)
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
@@ -445,7 +443,7 @@ def del_vlan_member(ctx, vid, interface_name):
     members = vlan.get('members', [])
     if interface_name not in members:
         alias_name = interface_name_to_alias(interface_name)
-        if get_interface_mode() == "ALIAS": 
+        if get_interface_mode() == "alias": 
             print "{} is already a member of {}".format(alias_name, vlan_name)
         else:
             print "{} is not a member of {}".format(interface_name, vlan_name)
@@ -534,9 +532,9 @@ def interface():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def shutdown(interface_name, verbose):
     """Shut down interface"""
-    if get_interface_mode() == "ALIAS": 
-        interface_name = interface_alias_to_name(interface_name)
-    """Shut down interface"""
+    if get_interface_mode() == "alias": 
+        interface_name = interface_alias(interface_name)
+
     command = "ip link set {} down".format(interface_name)
     run_command(command, display_cmd=verbose)
 
@@ -549,8 +547,8 @@ def shutdown(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def startup(interface_name, verbose):
     """Start up interface"""
-    if get_interface_mode() == "ALIAS": 
-        interface_name = interface_alias_to_name(interface_name)
+    if get_interface_mode() == "alias": 
+        interface_name = interface_alias(interface_name)
 
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
@@ -565,8 +563,8 @@ def startup(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def speed(interface_name, interface_speed, verbose):
     """Set interface speed"""
-    if get_interface_mode() == "ALIAS": 
-        interface_name = interface_alias_to_name(interface_name)
+    if get_interface_mode() == "alias": 
+        interface_name = interface_alias(interface_name)
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose: command += " -vv"
@@ -661,13 +659,13 @@ def interface_mode():
 @interface_mode.command('default')
 def interface_mode_default():
     """Set interface mode to DEFAULT"""
-    alias_mode = "DEFAULT"
+    alias_mode = "default"
     set_interface_mode(alias_mode)
 
 @interface_mode.command('alias')
 def interface_mode_alias():
     """Set interface mode to ALIAS"""
-    alias_mode = "ALIAS"
+    alias_mode = "alias"
     set_interface_mode(alias_mode)
 
 if __name__ == '__main__':
