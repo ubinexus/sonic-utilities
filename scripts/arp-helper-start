@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+
+import argparse
+from pprint import pprint
+
+def request_arp_helper(ip):
+    # FIXME: make request to an ARP Helper
+    return "OK"
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('arp_helper_ip', help="ip address of an ARP Helper")
+    argv = parser.parse_args()
+    arp_helper_ip = argv.arp_helper_ip
+    result = request_arp_helper(arp_helper_ip)
+    print result
+
+    return
+
+if __name__ == '__main__':
+    main()
