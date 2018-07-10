@@ -37,7 +37,7 @@ setup(
     },
     scripts=[
         'scripts/aclshow',
-        'scripts/arp-helper-start',
+        'scripts/arp-helper',
         'scripts/boot_part',
         'scripts/coredump-compress',
         'scripts/decode-syseeprom',
