@@ -23,8 +23,24 @@ def consutil():
 # 'show' subcommand
 @consutil.command()
 def line():
-    """Show all /dev/ttyUSB lines"""
-    click.echo("show line")
+    """Show all /dev/ttyUSB lines and their info"""
+    devices = getAllDevices()
+    busyDevices = getBusyDevices()
+
+    click.echo("{:<4}   {:^6}   {:^5}   {:^25}".format("Line", "Baud", "PID", "Start Time"))
+    for device in devices:
+        lineNum = device[11:]
+        busy = " "
+        pid = ""
+        date = ""
+        if lineNum in busyDevices:
+            pid, date = busyDevices[lineNum]
+            busy = "*"
+        baud = getBaud(lineNum)
+        
+        click.echo("{}{:>3}   {:^6}   {:^5}   {:<25}".format(busy, lineNum, baud, pid, date))
+
+    return
 
 # 'clear' subcommand
 @consutil.command()
