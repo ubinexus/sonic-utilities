@@ -31,7 +31,17 @@ def line():
 @click.argument('linenum')
 def clear(linenum):
     """Clear preexisting connection to line"""
-    click.echo("clear line linenum")
+    checkDevice(linenum)
+    linenum = str(linenum)
+
+    busyDevices = getBusyDevices()
+    if linenum in busyDevices:
+        pid, _ = busyDevices[linenum]
+        cmd = "sudo kill -15 " + pid
+        click.echo("Sending SIGTERM to process " + pid)
+        popenWrapper(cmd)
+    else:
+        click.echo("No process is connecting to line " + linenum)
 
 # 'connect' subcommand
 @consutil.command()
