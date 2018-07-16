@@ -250,7 +250,7 @@ def clear_vlan_fdb(vlanid):
 @click.argument('linenum')
 def line(linenum):
     """Clear preexisting connection to line"""
-    cmd = "consutil clear line " + str(linenum)
+    cmd = "consutil clear " + str(linenum)
     run_command(cmd)
 
 if __name__ == '__main__':
