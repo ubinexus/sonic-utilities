@@ -22,7 +22,7 @@ def consutil():
 
 # 'show' subcommand
 @consutil.command()
-def line():
+def show():
     """Show all /dev/ttyUSB lines and their info"""
     devices = getAllDevices()
     busyDevices = getBusyDevices()
