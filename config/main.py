@@ -35,7 +35,7 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-def interface_alias(interface_name):
+def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
 
@@ -44,12 +44,11 @@ def interface_alias(interface_name):
 
     port_dict = json.loads(p.stdout.read())
 
-    if interface_name is not None:
+    if interface_alias is not None:
         for port_name in natsorted(port_dict.keys()):
-            if interface_name == port_dict[port_name]['alias']:
+            if interface_alias == port_dict[port_name]['alias']:
                 return port_name
-        print "Invalid interface {}".format(interface_name)
-        sys.exit(0)
+        return None
 
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
@@ -64,39 +63,42 @@ def interface_name_to_alias(interface_name):
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
-        print "Invalid interface {}".format(interface_name)
-        sys.exit(0)
-
+        return None
 
 
 def set_interface_mode(mode):
-    """Modify IFMODE env variable in user .bashrc
+    """Modify SONIC_CLI_IFACE_MODE env variable in user .bashrc
     """
-    sudo_user = os.getenv('SUDO_USER')
-    user = os.getenv('USER')
-    set_mode = "IFMODE={}".format(mode)
+    user = os.getenv('SUDO_USER')
+    bashrc_ifacemode_line = "SONIC_CLI_IFACE_MODE={}".format(mode)
 
-    if not sudo_user:
-        bashrc = "/{}/.bashrc".format(user)
+    if not user:
+        user = os.getenv('USER')
+  
+    if user != "root":
+        bashrc = "/home/{}/.bashrc".format(user)
     else:
-        bashrc = "/home/{}/.bashrc".format(sudo_user)
+        sys.exit(0)
 
     f = open(bashrc,'r')
     filedata = f.read()
     f.close()
 
-    if "IFMODE" not in filedata:
-        newdata = filedata + set_mode
+    if "SONIC_CLI_IFACE_MODE" not in filedata:
+        newdata = filedata + bashrc_ifacemode_line
+        newdata += "\n"
     else:
-        newdata = re.sub(r"IFMODE=\w+",set_mode,filedata)
-
+        newdata = re.sub(r"SONIC_CLI_IFACE_MODE=\w+", bashrc_ifacemode_line, filedata)
+    
     f = open(bashrc,'w')
     f.write(newdata)
     f.close()
-    print "Please logout and login again!"
+    print "Please logout and log back in for changes take effect."
     
 def get_interface_mode():
-    mode = os.getenv('IFMODE')
+    mode = os.getenv('SONIC_CLI_IFACE_MODE')
+    if mode is None:
+        mode = "default"
     return mode
 
 def _is_neighbor_ipaddress(ipaddress):
@@ -406,7 +408,12 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     vlan = db.get_entry('VLAN', vlan_name)
     
     if get_interface_mode() == "alias": 
-        interface_name = interface_alias(interface_name)
+        default_name = interface_alias_to_name(interface_name)
+        if default_name is None:
+            print "Invalid interface {}".format(interface_name)
+            sys.exit(0)
+        else:
+            interface_name = default_name
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
@@ -415,6 +422,11 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     if interface_name in members:
         if get_interface_mode() == "alias": 
             alias_name = interface_name_to_alias(interface_name)
+            if alias_name is None:
+                print "Invalid interface {}".format(interface_name)
+                sys.exit(0)
+            else:
+                interface_name = alias_name
             print "{} is already a member of {}".format(alias_name, vlan_name)
         else:
             print "{} is already a member of {}".format(interface_name, vlan_name)
@@ -435,15 +447,25 @@ def del_vlan_member(ctx, vid, interface_name):
     vlan = db.get_entry('VLAN', vlan_name)
 
     if get_interface_mode() == "alias": 
-        interface_name = interface_alias(interface_name)
+        default_name = interface_alias_to_name(interface_name)
+        if default_name is None:
+            print "Invalid interface {}".format(interface_name)
+            sys.exit(0)
+        else:
+            interface_name = default_name
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
         raise click.Abort
     members = vlan.get('members', [])
     if interface_name not in members:
-        alias_name = interface_name_to_alias(interface_name)
         if get_interface_mode() == "alias": 
+            alias_name = interface_name_to_alias(interface_name)
+            if alias_name is None:
+                print "Invalid interface {}".format(interface_name)
+                sys.exit(0)
+            else:
+                interface_name = default_name
             print "{} is already a member of {}".format(alias_name, vlan_name)
         else:
             print "{} is not a member of {}".format(interface_name, vlan_name)
@@ -533,7 +555,12 @@ def interface():
 def shutdown(interface_name, verbose):
     """Shut down interface"""
     if get_interface_mode() == "alias": 
-        interface_name = interface_alias(interface_name)
+        default_name = interface_alias_to_name(interface_name)
+        if default_name is None:
+            print "Invalid interface {}".format(interface_name)
+            sys.exit(0)
+        else:
+            interface_name = default_name
 
     command = "ip link set {} down".format(interface_name)
     run_command(command, display_cmd=verbose)
@@ -548,7 +575,12 @@ def shutdown(interface_name, verbose):
 def startup(interface_name, verbose):
     """Start up interface"""
     if get_interface_mode() == "alias": 
-        interface_name = interface_alias(interface_name)
+        default_name = interface_alias_to_name(interface_name)
+        if default_name is None:
+            print "Invalid interface {}".format(interface_name)
+            sys.exit(0)
+        else:
+            interface_name = default_name
 
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
@@ -564,7 +596,12 @@ def startup(interface_name, verbose):
 def speed(interface_name, interface_speed, verbose):
     """Set interface speed"""
     if get_interface_mode() == "alias": 
-        interface_name = interface_alias(interface_name)
+        default_name = interface_alias_to_name(interface_name)
+        if default_name is None:
+            print "Invalid interface {}".format(interface_name)
+            sys.exit(0)
+        else:
+            interface_name = default_name
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose: command += " -vv"
@@ -652,19 +689,19 @@ platform.add_command(mlnx.mlnx)
 #
 
 @cli.group()
-def interface_mode():
-    """Interface mode change tasks"""
+def interface_naming_mode():
+    """Modify interface naming mode for interacting with SONiC CLI"""
     pass
 
-@interface_mode.command('default')
+@interface_naming_mode.command('default')
 def interface_mode_default():
-    """Set interface mode to DEFAULT"""
+    """Set CLI interface naming mode to DEFAULT (SONiC port name)"""
     alias_mode = "default"
     set_interface_mode(alias_mode)
 
-@interface_mode.command('alias')
+@interface_naming_mode.command('alias')
 def interface_mode_alias():
-    """Set interface mode to ALIAS"""
+    """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     alias_mode = "alias"
     set_interface_mode(alias_mode)
 
