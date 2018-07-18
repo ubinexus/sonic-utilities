@@ -228,43 +228,51 @@ def alias(interfacename):
 
     click.echo(tabulate(body, header))
 
-# 'neighbor' subcommand ("show interfaces neighbor")
-@interfaces.command()
+#
+# 'neighbor' group ###
+#
+@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+def neighbor():
+    """Show neighbor related information"""
+    pass
+
+# 'expected' subcommand ("show interface neighbor expected ")
+@neighbor.command()
 @click.argument('interfacename', required=False)
-def neighbor(interfacename):
-    """Show neighbor information by interfaces"""
-    neighborCmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR"'
-    p1 = subprocess.Popen(neighborCmd, shell=True, stdout=subprocess.PIPE)
+def expected(interfacename):
+    """Show expected neighbor information by interfaces"""
+    neighbor_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR"'
+    p1 = subprocess.Popen(neighbor_cmd, shell=True, stdout=subprocess.PIPE)
     neighbor_dict = json.loads(p1.stdout.read())
 
-    neighborMetaDataCmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR_METADATA"'
-    p2 = subprocess.Popen(neighborMetaDataCmd, shell=True, stdout=subprocess.PIPE)
-    neighborMetaData_dict = json.loads(p2.stdout.read())
+    neighbor_metadata_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR_METADATA"'
+    p2 = subprocess.Popen(neighbor_metadata_cmd, shell=True, stdout=subprocess.PIPE)
+    neighbor_metadata_dict = json.loads(p2.stdout.read())
 
-    #Swap Key and Value
-    tempDict = {}
+    #Swap Key and Value from interface: name to name: interface
+    device2interface_dict = {}
     for port in natsorted(neighbor_dict.keys()):
-        tempDict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
+        device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
-    if interfacename is not None:
-        for device in natsorted(neighborMetaData_dict.keys()):
-            if tempDict[device]['localPort'] == interfacename:
-                body.append([tempDict[device]['localPort'],
+    if interfacename:
+        for device in natsorted(neighbor_metadata_dict.keys()):
+            if device2interface_dict[device]['localPort'] == interfacename:
+                body.append([device2interface_dict[device]['localPort'],
                              device,
-                             tempDict[device]['neighborPort'],
-                             neighborMetaData_dict[device]['lo_addr'],
-                             neighborMetaData_dict[device]['mgmt_addr'],
-                             neighborMetaData_dict[device]['type']])
+                             device2interface_dict[device]['neighborPort'],
+                             neighbor_metadata_dict[device]['lo_addr'],
+                             neighbor_metadata_dict[device]['mgmt_addr'],
+                             neighbor_metadata_dict[device]['type']])
     else:
-        for device in natsorted(neighborMetaData_dict.keys()):
-            body.append([tempDict[device]['localPort'],
+        for device in natsorted(neighbor_metadata_dict.keys()):
+            body.append([device2interface_dict[device]['localPort'],
                          device,
-                         tempDict[device]['neighborPort'],
-                         neighborMetaData_dict[device]['lo_addr'],
-                         neighborMetaData_dict[device]['mgmt_addr'],
-                         neighborMetaData_dict[device]['type']])
+                         device2interface_dict[device]['neighborPort'],
+                         neighbor_metadata_dict[device]['lo_addr'],
+                         neighbor_metadata_dict[device]['mgmt_addr'],
+                         neighbor_metadata_dict[device]['type']])
 
     click.echo(tabulate(body, header))
 
