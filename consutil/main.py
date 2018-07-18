@@ -41,7 +41,7 @@ def clear(linenum):
         click.echo("Sending SIGTERM to process " + pid)
         popenWrapper(cmd)
     else:
-        click.echo("No process is connecting to line " + linenum)
+        click.echo("No process is connected to line " + linenum)
 
 # 'connect' subcommand
 @consutil.command()
