@@ -236,7 +236,7 @@ def neighbor():
     """Show neighbor related information"""
     pass
 
-# 'expected' subcommand ("show interface neighbor expected ")
+# 'expected' subcommand ("show interface neighbor expected")
 @neighbor.command()
 @click.argument('interfacename', required=False)
 def expected(interfacename):
