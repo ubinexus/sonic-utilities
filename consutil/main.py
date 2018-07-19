@@ -39,7 +39,7 @@ def clear(linenum):
         pid, _ = busyDevices[linenum]
         cmd = "sudo kill -15 " + pid
         click.echo("Sending SIGTERM to process " + pid)
-        popenWrapper(cmd)
+        run_command(cmd)
     else:
         click.echo("No process is connected to line " + linenum)
 
