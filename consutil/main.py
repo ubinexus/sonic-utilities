@@ -9,6 +9,7 @@ try:
     import click
     import re
     import subprocess
+    from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -27,7 +28,8 @@ def show():
     devices = getAllDevices()
     busyDevices = getBusyDevices()
 
-    click.echo("{:<4}   {:^6}   {:^5}   {:^25}".format("Line", "Baud", "PID", "Start Time"))
+    header = ["Line", "Baud", "PID", "Start Time"]
+    body = []
     for device in devices:
         lineNum = device[11:]
         busy = " "
@@ -37,10 +39,9 @@ def show():
             pid, date = busyDevices[lineNum]
             busy = "*"
         baud = getBaud(lineNum)
+        body.append([busy+lineNum, baud, pid, date])
         
-        click.echo("{}{:>3}   {:^6}   {:^5}   {:<25}".format(busy, lineNum, baud, pid, date))
-
-    return
+    click.echo(tabulate(body, header, stralign="right"))
 
 # 'clear' subcommand
 @consutil.command()
