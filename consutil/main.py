@@ -37,7 +37,7 @@ def clear(linenum):
     busyDevices = getBusyDevices()
     if linenum in busyDevices:
         pid, _ = busyDevices[linenum]
-        cmd = "sudo kill -15 " + pid
+        cmd = "sudo kill -SIGTERM " + pid
         click.echo("Sending SIGTERM to process " + pid)
         run_command(cmd)
     else:
