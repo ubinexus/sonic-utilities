@@ -1,0 +1,166 @@
+#!/usr/bin/env python
+
+"""
+    Portchannel member ping: get portchannel member packet loss state.
+
+"""
+
+from scapy.all import *
+import argparse
+import random
+import socket
+import select
+import time
+import ipaddr as ipaddress
+import sys
+import swsssdk
+
+RCV_SIZE_DEFAULT = 4096
+RCV_TIMEOUT = 10000
+DEFAULT_PACKET_LEN = 100
+SELECT_TIMEOUT = 2
+
+def receive(my_socket, timeout, exp_pkt, exp_socket, time_sent):
+    timeLeft = timeout
+    delay = 0
+    while True:
+        startedSelect = time.time()
+        whatReady = select.select(my_socket, [], [], timeLeft)
+        if whatReady[0] == []: # Timeout
+            return False, delay
+        timeReceived = time.time()
+        
+        for sel in whatReady[0]:
+            recPacket = sel.recv(4096)
+            e = str(exp_pkt)
+            # exclude ethernet header
+            p = str(recPacket[14:])
+            if e == p:
+                if sel == exp_socket:
+                  delay = (timeReceived - time_sent) * 1000
+                  return True, delay
+        timeLeft = timeLeft - (timeReceived - startedSelect)
+        if timeLeft <= 0:
+            return False, delay
+        
+def create_decap_packet(interface, dst_out, dst_in, sockets, exp_socket, max_iter):
+    dscp = 16
+    tos = dscp << 2
+    tcp_hdr    = TCP(sport=1234, dport=80, flags="S", chksum=0)
+    for x in range(1, max_iter):
+        print "---------- Attempting to create decap packet that goes through %s, iteration: %d ---------" % (interface, x)
+        ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
+        ip_src =ipaddress.IPv4Address(unicode(ip_src,'utf-8'))
+        while ip_src == ipaddress.IPv4Address(unicode(dst_in,'utf-8')) or \
+              ip_src.is_multicast or ip_src.is_private or ip_src.is_reserved:
+            ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
+            ip_src =ipaddress.IPv4Address(unicode(ip_src,'utf-8'))
+        inner_pkt  = IP(src=ip_src, dst=dst_in, tos=tos, ttl=64, id=1, ihl=None,proto=4)/tcp_hdr
+        inner_pkt = inner_pkt/("".join([chr(x) for x in xrange(DEFAULT_PACKET_LEN - len(inner_pkt))]))
+        pkt = IP(src='4.4.4.4', dst=dst_out, tos=tos)/inner_pkt
+        exp_pkt = inner_pkt
+        exp_pkt['IP'].ttl = 63
+
+        time_sent = time.time()
+        res = send(pkt, iface=interface, verbose=False)
+        have_received, delay = receive(sockets, SELECT_TIMEOUT, exp_pkt, exp_socket, time_sent) 
+        if have_received:
+            return pkt, exp_pkt
+    return None, None
+
+def get_portchannel(interface):
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    portchannels = configdb.get_table("PORTCHANNEL")
+    for key, value in portchannels.iteritems():
+        if interface in value['members']:
+            return key, value
+    print ("Interface %s is not a portchannel member. Please Check!" % interface)
+    sys.exit(1)
+
+def get_portchannel_ipv4(portchannel_name):
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    config = configdb.get_config()
+    portchannel_interfaces = config["PORTCHANNEL_INTERFACE"]
+    for key in portchannel_interfaces.keys():
+        pc, ip = key
+        ip = ip.split("/")[0]
+        if pc == portchannel_name and ipaddress.IPAddress(ip).version == 4:
+            return ip
+    print ("Portchannel %s doesn't have IPV4 address. Please Check!" % portchannel)
+    sys.exit(1)
+   
+def create_socket(interface, portchannel):
+    # create sockets
+    try:
+        sockets = []
+        for iface in portchannel['members']:
+            s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_IP))
+            s.bind((iface, 0))
+            s.settimeout(RCV_TIMEOUT)
+            if iface == interface:
+                exp_socket = s
+            sockets.append(s)
+    except:
+        print "Unable to create socket. Check your permissions"
+        sys.exit(1)
+    return sockets, exp_socket
+
+def main():
+    parser  = argparse.ArgumentParser(description='Check portchannel member link state',
+                                      version='1.0.0',
+                                      formatter_class=argparse.RawTextHelpFormatter,
+                                      epilog=""" 
+    Example:
+    pcmping -p Ethernet8 -ip 10.10.10.10
+    pcmping -p Ethernet8 -ip 10.10.10.10 -c 5
+    pcmping -p Ethernet8 -ip 10.10.10.10 -c 5 -t 20
+"""
+    )
+
+    parser.add_argument('-p', '--port', type=str, required=True, help='Portchannel member interface')
+    parser.add_argument('-ip','--decapip', type=str, required=True, help='Neighbor decap ip (usually same as neighbor loopback ip)') 
+    parser.add_argument('-c', '--count', type=int, help='Number of decap packets to be sent.', default=0)
+    parser.add_argument('-t', '--trial', type=int, help='Maximum trial times to create decap packet.\nPlease increase the value as the number of portchannel members increases', default=20)
+    args = parser.parse_args()
+    
+    interface =  args.port
+    decap_ip = args.decapip
+    exp_count = args.count
+    max_trial =  args.trial
+
+    portchannel_name, portchannel = get_portchannel(interface)
+    portchannel_ip = get_portchannel_ipv4(portchannel_name)
+    sockets, exp_socket = create_socket(interface, portchannel)
+    pkt, exp_pkt = create_decap_packet(interface, decap_ip, portchannel_ip, sockets, exp_socket, max_trial)
+    if not pkt or not exp_pkt:
+        print ("Cannot create packet that goes through interface %s to %s, Please check!" % (interface, decap_ip))
+        sys.exit(1)
+    print "Preparation done! Start pcmping ............"
+    print "PORTCHANNEL Member PING %d btyes of data. PORTCHANNEL: %s, INTERFACE: %s" % (DEFAULT_PACKET_LEN, portchannel_name, interface)
+    recv_count = 0
+    total_count = 0
+    try:
+        while True:
+            time_sent = time.time()
+            res = send(pkt, iface=interface, verbose=False)
+            have_received, delay = receive(sockets, SELECT_TIMEOUT, exp_pkt, exp_socket, time_sent)
+            total_count = total_count + 1
+            if have_received:
+                print "%d bytes from %s: time=%0.4fms" % (DEFAULT_PACKET_LEN, interface, delay)
+                recv_count = recv_count + 1
+            else:
+                print "packet not received!"
+            if total_count == exp_count:
+                break;
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print "\n--- %s ping statistics ---" % interface
+        print ("%d packets transmitted, %d received, %0.2f%% packet loss" % (total_count, recv_count, (total_count-recv_count)*1.0/total_count*100))
+        return 
+    print "\n--- %s ping statistics ---" % interface
+    print ("%d packets transmitted, %d received, %0.2f%% packet loss" % (total_count, recv_count, (total_count-recv_count)*1.0/total_count*100))
+
+if __name__ == '__main__':
+    main()
