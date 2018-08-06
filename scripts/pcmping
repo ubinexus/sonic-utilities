@@ -46,7 +46,7 @@ def receive(my_socket, timeout, exp_pkt, exp_socket, time_sent):
 def create_decap_packet(interface, dst_out, dst_in, sockets, exp_socket, max_iter):
     dscp = 16
     tos = dscp << 2
-    tcp_hdr    = TCP(sport=1234, dport=80, flags="S", chksum=0)
+    tcp_hdr = TCP(sport=1234, dport=80, flags="S", chksum=0)
     for x in range(1, max_iter):
         print "---------- Attempting to create decap packet that goes through %s, iteration: %d ---------" % (interface, x)
         ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
@@ -107,6 +107,10 @@ def create_socket(interface, portchannel):
         sys.exit(1)
     return sockets, exp_socket
 
+def print_statistics(interface, total_count, recv_count):
+    print "\n--- %s ping statistics ---" % interface
+    print ("%d packets transmitted, %d received, %0.2f%% packet loss" % (total_count, recv_count, (total_count-recv_count)*1.0/total_count*100))
+
 def main():
     parser  = argparse.ArgumentParser(description='Check portchannel member link state',
                                       version='1.0.0',
@@ -156,11 +160,8 @@ def main():
                 break;
             time.sleep(1)
     except KeyboardInterrupt:
-        print "\n--- %s ping statistics ---" % interface
-        print ("%d packets transmitted, %d received, %0.2f%% packet loss" % (total_count, recv_count, (total_count-recv_count)*1.0/total_count*100))
-        return 
-    print "\n--- %s ping statistics ---" % interface
-    print ("%d packets transmitted, %d received, %0.2f%% packet loss" % (total_count, recv_count, (total_count-recv_count)*1.0/total_count*100))
-
+        print_statistics(interface, total_count, recv_count)
+        return
+    print_statistics(interface, total_count, recv_count)
 if __name__ == '__main__':
     main()
