@@ -18,6 +18,11 @@ DEVICE_PREFIX = "/dev/ttyUSB"
 ERR_CMD = 1
 ERR_DEV = 2
 
+TABLE_NAME = "CONSOLE_PORT"
+BAUD_KEY = "baud_rate"
+DEVICE_KEY = "remote_device"
+FLOW_KEY = "flow_control"
+
 # runs command, exit if stderr is written to, returns stdout otherwise
 # input: cmd (str), output: output of cmd (str)
 def popenWrapper(cmd):
@@ -77,14 +82,30 @@ def getBusyDevices():
 
 # returns baud rate of device corresponding to line number
 # input: linenum (str)
-def getBaud(linenum):
-    checkDevice(linenum)
-    cmd = "sudo stty -F " + DEVICE_PREFIX + str(linenum)
-    output = popenWrapper(cmd)
+def getConnectionInfo(linenum):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    entry = config_db.get_entry(TABLE_NAME, linenum) 
     
-    match = re.match(r"^speed (\d+) baud;", output)
-    if match != None:
-        return match.group(1)
-    else:
-        click.echo("Unable to determine baud rate")
-        return ""
+    baud_rate = "" if BAUD_KEY not in entry else entry[BAUD_KEY]
+    flow_control = False
+    if FLOW_KEY in entry and entry[FLOW_KEY] == "1":
+        flow_control = True
+
+    return (baud_rate, flow_control)
+
+# returns the line number of a given device name (based on config_deb)
+# input: devicename (str)
+def getLineNumber(devicename):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    
+    devices = getAllDevices()
+    linenums = list(map(lambda dev: dev[len(DEVICE_PREFIX):], devices))
+
+    for linenum in linenums:
+        entry = config_db.get_entry(TABLE_NAME, linenum)
+        if DEVICE_KEY in entry and entry[DEVICE_KEY] == devicename:
+            return linenum
+
+    return ""
