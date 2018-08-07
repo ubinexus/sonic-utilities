@@ -20,6 +20,7 @@ SONIC_CFGGEN_PATH = "sonic-cfggen"
 # Helper functions
 #
 
+
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
     """
@@ -35,6 +36,7 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
+
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
@@ -48,7 +50,9 @@ def interface_alias_to_name(interface_alias):
         for port_name in natsorted(port_dict.keys()):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
+        print "Invalid interface {}".format(interface_alias)
         return None
+
 
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
@@ -63,6 +67,7 @@ def interface_name_to_alias(interface_name):
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
+        print "Invalid interface {}".format(interface_alias)
         return None
 
 
@@ -74,13 +79,13 @@ def set_interface_mode(mode):
 
     if not user:
         user = os.getenv('USER')
-  
+
     if user != "root":
         bashrc = "/home/{}/.bashrc".format(user)
     else:
         sys.exit(0)
 
-    f = open(bashrc,'r')
+    f = open(bashrc, 'r')
     filedata = f.read()
     f.close()
 
@@ -88,13 +93,14 @@ def set_interface_mode(mode):
         newdata = filedata + bashrc_ifacemode_line
         newdata += "\n"
     else:
-        newdata = re.sub(r"SONIC_CLI_IFACE_MODE=\w+", bashrc_ifacemode_line, filedata)
-    
-    f = open(bashrc,'w')
+        newdata = re.sub(r"SONIC_CLI_IFACE_MODE=\w+",
+                         bashrc_ifacemode_line, filedata)
+    f = open(bashrc, 'w')
     f.write(newdata)
     f.close()
     print "Please logout and log back in for changes take effect."
-    
+
+
 def get_interface_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
     if mode is None:
@@ -392,10 +398,12 @@ def del_vlan(ctx, vid):
         db.set_entry('VLAN_MEMBER', k, None)
     db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
+
 @vlan.group('member')
 @click.pass_context
 def vlan_member(ctx):
     pass
+
 
 @vlan_member.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -406,30 +414,26 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
-    
-    if get_interface_mode() == "alias": 
-        default_name = interface_alias_to_name(interface_name)
-        if default_name is None:
-            print "Invalid interface {}".format(interface_name)
+
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
             sys.exit(0)
-        else:
-            interface_name = default_name
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
         raise click.Abort
     members = vlan.get('members', [])
     if interface_name in members:
-        if get_interface_mode() == "alias": 
-            alias_name = interface_name_to_alias(interface_name)
-            if alias_name is None:
-                print "Invalid interface {}".format(interface_name)
+        if get_interface_mode() == "alias":
+            interface_name = interface_name_to_alias(interface_name)
+            if interface_name is None:
                 sys.exit(0)
-            else:
-                interface_name = alias_name
-            print "{} is already a member of {}".format(alias_name, vlan_name)
+            print "{} is already a member of {}".format(interface_name,
+                                                        vlan_name)
         else:
-            print "{} is already a member of {}".format(interface_name, vlan_name)
+            print "{} is already a member of {}".format(interface_name,
+                                                        vlan_name)
         raise click.Abort
     members.append(interface_name)
     vlan['members'] = members
@@ -446,27 +450,21 @@ def del_vlan_member(ctx, vid, interface_name):
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
 
-    if get_interface_mode() == "alias": 
-        default_name = interface_alias_to_name(interface_name)
-        if default_name is None:
-            print "Invalid interface {}".format(interface_name)
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
             sys.exit(0)
-        else:
-            interface_name = default_name
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
         raise click.Abort
     members = vlan.get('members', [])
     if interface_name not in members:
-        if get_interface_mode() == "alias": 
-            alias_name = interface_name_to_alias(interface_name)
-            if alias_name is None:
-                print "Invalid interface {}".format(interface_name)
+        if get_interface_mode() == "alias":
+            interface_name = interface_name_to_alias(interface_name)
+            if interface_name is None:
                 sys.exit(0)
-            else:
-                interface_name = default_name
-            print "{} is already a member of {}".format(alias_name, vlan_name)
+            print "{} is not a member of {}".format(interface_name, vlan_name)
         else:
             print "{} is not a member of {}".format(interface_name, vlan_name)
         raise click.Abort
@@ -554,13 +552,10 @@ def interface():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def shutdown(interface_name, verbose):
     """Shut down interface"""
-    if get_interface_mode() == "alias": 
-        default_name = interface_alias_to_name(interface_name)
-        if default_name is None:
-            print "Invalid interface {}".format(interface_name)
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
             sys.exit(0)
-        else:
-            interface_name = default_name
 
     command = "ip link set {} down".format(interface_name)
     run_command(command, display_cmd=verbose)
@@ -574,13 +569,11 @@ def shutdown(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def startup(interface_name, verbose):
     """Start up interface"""
-    if get_interface_mode() == "alias": 
-        default_name = interface_alias_to_name(interface_name)
-        if default_name is None:
-            print "Invalid interface {}".format(interface_name)
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
             sys.exit(0)
-        else:
-            interface_name = default_name
+
 
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
@@ -595,13 +588,10 @@ def startup(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def speed(interface_name, interface_speed, verbose):
     """Set interface speed"""
-    if get_interface_mode() == "alias": 
-        default_name = interface_alias_to_name(interface_name)
-        if default_name is None:
-            print "Invalid interface {}".format(interface_name)
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
             sys.exit(0)
-        else:
-            interface_name = default_name
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose: command += " -vv"
@@ -693,11 +683,13 @@ def interface_naming_mode():
     """Modify interface naming mode for interacting with SONiC CLI"""
     pass
 
+
 @interface_naming_mode.command('default')
 def interface_mode_default():
     """Set CLI interface naming mode to DEFAULT (SONiC port name)"""
     alias_mode = "default"
     set_interface_mode(alias_mode)
+
 
 @interface_naming_mode.command('alias')
 def interface_mode_alias():
