@@ -83,7 +83,7 @@ def set_interface_mode(mode):
     if user != "root":
         bashrc = "/home/{}/.bashrc".format(user)
     else:
-        sys.exit(0)
+        raise click.Abort
 
     f = open(bashrc, 'r')
     filedata = f.read()
@@ -418,7 +418,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     if get_interface_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            sys.exit(0)
+            raise click.Abort
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
@@ -428,7 +428,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
         if get_interface_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
-                sys.exit(0)
+                raise click.Abort()
             print "{} is already a member of {}".format(interface_name,
                                                         vlan_name)
         else:
@@ -453,7 +453,7 @@ def del_vlan_member(ctx, vid, interface_name):
     if get_interface_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            sys.exit(0)
+            raise click.Abort
 
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
@@ -463,7 +463,7 @@ def del_vlan_member(ctx, vid, interface_name):
         if get_interface_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
-                sys.exit(0)
+                raise click.Abort()
             print "{} is not a member of {}".format(interface_name, vlan_name)
         else:
             print "{} is not a member of {}".format(interface_name, vlan_name)
@@ -555,7 +555,7 @@ def shutdown(interface_name, verbose):
     if get_interface_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            sys.exit(0)
+            raise click.Abort
 
     command = "ip link set {} down".format(interface_name)
     run_command(command, display_cmd=verbose)
@@ -572,7 +572,7 @@ def startup(interface_name, verbose):
     if get_interface_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            sys.exit(0)
+            raise click.Abort
 
 
     command = "ip link set {} up".format(interface_name)
@@ -591,7 +591,7 @@ def speed(interface_name, interface_speed, verbose):
     if get_interface_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            sys.exit(0)
+            raise click.Abort
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose: command += " -vv"
