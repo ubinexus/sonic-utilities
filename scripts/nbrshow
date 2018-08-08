@@ -17,12 +17,12 @@
     10.64.246.1   00:00:5e:00:01:f6  eth0             -
     192.168.0.2   24:8a:07:4c:f5:0a  Ethernet20       1000
     ..
-    Total number of entries 10 
+    Total number of entries 10
     admin@str:~$ nbrshow -6 -ip fc00::72
     Address    MacAddress         Iface            Vlan    Status
     ---------  -----------------  ---------------  ------  ---------
     fc00::72   52:54:00:87:8f:2c  PortChannel0001  -       REACHABLE
-    Total number of entries 1 
+    Total number of entries 1
 
 """
 import argparse
@@ -36,18 +36,19 @@ from swsssdk import SonicV2Connector, port_util
 from tabulate import tabulate
 
 """
-   Base class for v4 and v6 neighbor. 
+   Base class for v4 and v6 neighbor.
 """
+
+
 class NbrBase(object):
 
     HEADER = []
     NBR_COUNT = 0
 
     def __init__(self, cmd):
-        super(NbrBase,self).__init__()
+        super(NbrBase, self).__init__()
         self.db = SonicV2Connector(host="127.0.0.1")
-        self.if_name_map, \
-        self.if_oid_map = port_util.get_interface_oid_map(self.db)
+        self.if_name_map, self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
         self.cmd = cmd
@@ -55,10 +56,9 @@ class NbrBase(object):
         self.nbrdata = []
         return
 
-
     def fetch_fdb_data(self):
         """
-            Fetch FDB entries from ASIC DB. 
+            Fetch FDB entries from ASIC DB.
             @Todo, this code can be reused
         """
         self.db.connect(self.db.ASIC_DB)
@@ -93,13 +93,12 @@ class NbrBase(object):
 
         return
 
-
     def fetch_nbr_data(self):
         """
-            Fetch Neighbor data (ARP/IPv6 Neigh) from kernel. 
+            Fetch Neighbor data (ARP/IPv6 Neigh) from kernel.
         """
         p = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        (output, err) = p.communicate() 
+        (output, err) = p.communicate()
         rc = p.wait()
 
         if rc == 0:
@@ -110,10 +109,9 @@ class NbrBase(object):
 
         return rawdata
 
-
     def display(self, vpos=3):
         """
-            Display formatted Neighbor entries (ARP/IPv6 Neigh). 
+            Display formatted Neighbor entries (ARP/IPv6 Neigh).
         """
 
         output = []
@@ -134,11 +132,10 @@ class NbrBase(object):
             ent.insert(vpos, vlan)
             output.append(ent)
 
-        self.nbrdata = natsorted(output, key = lambda x: x[0])
+        self.nbrdata = natsorted(output, key=lambda x: x[0])
 
         print tabulate(self.nbrdata, self.HEADER)
         print "Total number of entries {0} ".format(self.NBR_COUNT)
-
 
     def display_err(self):
         print "Error fetching Neighbors: {} ".format(self.err)
@@ -160,17 +157,16 @@ class ArpShow(NbrBase):
         NbrBase.__init__(self, self.CMD)
         return
 
-
     def display(self):
         """
-            Format "arp -n" output from kernel 
+            Format "arp -n" output from kernel
             Address        HWtype  HWaddress           Flags Mask    Iface
             10.64.246.2    ether   f4:b5:2f:79:b3:f0   C             eth0
             10.0.0.63      ether   52:54:00:ae:11:49   C             PortChannel0004
         """
         self.arpraw = self.fetch_nbr_data()
 
-        if self.arpraw == None:
+        if self.arpraw is None:
             self.display_err()
             return
 
@@ -198,7 +194,6 @@ class NeighShow(NbrBase):
         NbrBase.__init__(self, self.CMD)
         return
 
-
     def display(self):
         """
             Format "ip -6 neigh show " output from kernel
@@ -208,7 +203,7 @@ class NeighShow(NbrBase):
         """
         self.arpraw = self.fetch_nbr_data()
 
-        if self.arpraw == None:
+        if self.arpraw is None:
             self.display_err()
             return
 
@@ -229,9 +224,9 @@ def main():
 
     parser = argparse.ArgumentParser(description='Show Neigbhor entries',
                                      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-ip', '--ipaddr', type=str, 
+    parser.add_argument('-ip', '--ipaddr', type=str,
                         help='Neigbhor for a specific address', default=None)
-    parser.add_argument('-if', '--iface', type=str, 
+    parser.add_argument('-if', '--iface', type=str,
                         help='Neigbhors learned on specific L3 interface', default=None)
     parser.add_argument('v', help='IP Version -4 or -6')
 
