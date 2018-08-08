@@ -29,7 +29,7 @@ def show():
     devices = getAllDevices()
     busyDevices = getBusyDevices()
 
-    header = ["Line", "Baud", "PID", "Start Time"]
+    header = ["Line", "Actual/Configured Baud", "PID", "Start Time"]
     body = []
     for device in devices:
         lineNum = device[11:]
@@ -40,6 +40,10 @@ def show():
             pid, date = busyDevices[lineNum]
             busy = "*"
         baud = getBaud(lineNum)
+        if baud == "":
+            baud = "9600/-"
+        else:
+            baud = "{}/{}".format(baud, baud)
         body.append([busy+lineNum, baud, pid, date])
         
     click.echo(tabulate(body, header, stralign="right"))
@@ -87,6 +91,7 @@ def connect(target, devicename):
     QUIET = False
 
     baud, flowBool = getConnectionInfo(lineNumber)
+    baud = "9600" if baud == "" else baud
     flowCmd = "h" if flowBool else "n"
     quietCmd = "-q" if QUIET else ""
     cmd = "sudo picocom -b {} -f {} {} {}{}".format(baud, flowCmd, quietCmd, DEVICE_PREFIX, lineNumber)
