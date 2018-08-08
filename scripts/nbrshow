@@ -111,7 +111,7 @@ class NbrBase(object):
         return rawdata
 
 
-    def display(self, ipaddr, iface, vpos=3):
+    def display(self, vpos=3):
         """
             Display formatted Neighbor entries (ARP/IPv6 Neigh). 
         """
@@ -119,12 +119,6 @@ class NbrBase(object):
         output = []
 
         for ent in self.nbrdata:
-
-            if iface is not None and iface != ent[2]:
-                continue                
-
-            if ipaddr is not None and ipaddr != ent[0]:
-                continue
 
             self.NBR_COUNT += 1
             vlan = '-'
@@ -153,14 +147,21 @@ class NbrBase(object):
 class ArpShow(NbrBase):
 
     HEADER = ['Address', 'MacAddress', 'Iface', 'Vlan']
-    CMD = "/usr/sbin/arp -n"
+    CMD = "/usr/sbin/arp -n "
 
-    def __init__(self):
+    def __init__(self, ipaddr, iface):
+
+        if ipaddr is not None:
+            self.CMD += ipaddr
+
+        if iface is not None:
+            self.CMD += ' -i ' + iface
+
         NbrBase.__init__(self, self.CMD)
         return
 
 
-    def display(self, ipaddr, iface):
+    def display(self):
         """
             Format "arp -n" output from kernel 
             Address        HWtype  HWaddress           Flags Mask    Iface
@@ -177,23 +178,33 @@ class ArpShow(NbrBase):
             ent = line.split()[::2]
             self.nbrdata.append(ent)
 
-        super(ArpShow, self).display(ipaddr, iface)
+        super(ArpShow, self).display()
 
 
 class NeighShow(NbrBase):
 
     HEADER = ['Address', 'MacAddress', 'Iface', 'Vlan', 'Status']
-    CMD = "/bin/ip -6 neigh show"
+    CMD = "/bin/ip -6 neigh show "
 
-    def __init__(self):
+    def __init__(self, ipaddr, iface):
+
+        if ipaddr is not None:
+            self.CMD += ipaddr
+
+        if iface is not None:
+            self.CMD += ' dev ' + iface
+
+        self.iface = iface
         NbrBase.__init__(self, self.CMD)
         return
 
 
-    def display(self, ipaddr, iface):
+    def display(self):
         """
-            Format "ip -6 neigh" output from kernel 
+            Format "ip -6 neigh show " output from kernel
             "fc00::76 dev PortChannel0002 lladdr 52:54:00:33:90:d0 router REACHABLE"
+            Format "ip -6 neigh show dev PortChannel0003"
+            "fc00::7a lladdr 52:54:00:6b:1d:0a router STALE"
         """
         self.arpraw = self.fetch_nbr_data()
 
@@ -203,10 +214,15 @@ class NeighShow(NbrBase):
 
         for line in self.arpraw.splitlines()[:]:
             ent = line.split()[::2]
-            ent[1], ent[2] = ent[2], ent[1]
+
+            if self.iface is not None:
+                ent.insert(2, self.iface)
+            else:
+                ent[1], ent[2] = ent[2], ent[1]
+
             self.nbrdata.append(ent)
 
-        super(NeighShow, self).display(ipaddr, iface)
+        super(NeighShow, self).display()
 
 
 def main():
@@ -223,11 +239,11 @@ def main():
 
     try:
         if (args.v == '-6'):
-            neigh = NeighShow()
-            neigh.display(args.ipaddr, args.iface)
+            neigh = NeighShow(args.ipaddr, args.iface)
+            neigh.display()
         else:
-            arp = ArpShow()
-            arp.display(args.ipaddr, args.iface)
+            arp = ArpShow(args.ipaddr, args.iface)
+            arp.display()
 
     except Exception as e:
         print e.message
