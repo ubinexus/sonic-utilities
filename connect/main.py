@@ -91,18 +91,8 @@ def run_command(command, display_cmd=False):
         output = proc.stdout.readline()
         if output == "" and proc.poll() is not None:
             break
-        if output:
-            try:
-                click.echo(output.rstrip('\n'))
-            except IOError as e:
-                # In our version of Click (v6.6), click.echo() and click.echo_via_pager() do not properly handle
-                # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
-                # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
-                # ignore SIGPIPE here.
-                if e.errno == errno.EPIPE:
-                    sys.exit(0)
-                else:
-                    raise
+        elif output:
+            click.echo(output.rstrip('\n'))
 
     rc = proc.poll()
     if rc != 0:
@@ -124,11 +114,13 @@ def connect():
 # 'line' command ("connect line")
 #
 @connect.command('line')
-@click.argument('linenum')
-def line(linenum):
-    """Connect to line via serial connection"""
-    # TODO: Stub
-    return
+@click.argument('target')
+@click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret target as device name")
+def line(target, devicename):
+    """Connect to TARGET line number or device name via serial connection"""
+    deviceFlag = "-d " if devicename else ""
+    cmd = "consutil connect " + deviceFlag + target
+    run_command(cmd, display_cmd=verbose)
 
 if __name__ == '__main__':
     connect()

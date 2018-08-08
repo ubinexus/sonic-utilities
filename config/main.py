@@ -140,26 +140,35 @@ def _abort_if_false(ctx, param, value):
         ctx.abort()
 
 def _stop_services():
-    run_command("service dhcp_relay stop", display_cmd=True)
-    run_command("service swss stop", display_cmd=True)
-    run_command("service snmp stop", display_cmd=True)
-    run_command("service lldp stop", display_cmd=True)
-    run_command("service pmon stop", display_cmd=True)
-    run_command("service bgp stop", display_cmd=True)
-    run_command("service teamd stop", display_cmd=True)
+    services = [
+        'dhcp_relay',
+        'swss',
+        'snmp',
+        'lldp',
+        'pmon',
+        'bgp',
+        'teamd',
+    ]
+    for service in services:
+        run_command("systemctl stop %s" % service, display_cmd=True)
 
 def _restart_services():
-    run_command("service hostname-config restart", display_cmd=True)
-    run_command("service interfaces-config restart", display_cmd=True)
-    run_command("service ntp-config restart", display_cmd=True)
-    run_command("service rsyslog-config restart", display_cmd=True)
-    run_command("service swss restart", display_cmd=True)
-    run_command("service bgp restart", display_cmd=True)
-    run_command("service teamd restart", display_cmd=True)
-    run_command("service pmon restart", display_cmd=True)
-    run_command("service lldp restart", display_cmd=True)
-    run_command("service snmp restart", display_cmd=True)
-    run_command("service dhcp_relay restart", display_cmd=True)
+    services = [
+        'hostname-config',
+        'interfaces-config',
+        'ntp-config',
+        'rsyslog-config',
+        'swss',
+        'bgp',
+        'teamd',
+        'pmon',
+        'lldp',
+        'snmp',
+        'dhcp_relay',
+    ]
+    for service in services:
+        run_command("systemctl restart %s" % service, display_cmd=True)
+
 
 # This is our main entrypoint - the main 'config' command
 @click.group()
@@ -194,10 +203,10 @@ def load(filename, yes):
 @click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
 def reload(filename, yes):
     """Clear current configuration and import a previous saved config DB dump file."""
-    #Stop services before config push
-    _stop_services()
     if not yes:
         click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+    #Stop services before config push
+    _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]

@@ -25,7 +25,7 @@ FLOW_KEY = "flow_control"
 
 # runs command, exit if stderr is written to, returns stdout otherwise
 # input: cmd (str), output: output of cmd (str)
-def popenWrapper(cmd):
+def run_command(cmd):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output = proc.stdout.read()
     error = proc.stderr.read()
@@ -33,6 +33,17 @@ def popenWrapper(cmd):
         click.echo("Command resulted in error: {}".format(error))
         sys.exit(ERR_CMD)
     return output
+
+# returns a sorted list of all devices (whose name matches DEVICE_PREFIX)
+def getAllDevices():
+    cmd = "ls " + DEVICE_PREFIX + "*"
+    output = run_command(cmd)
+    
+    devices = output.split('\n')
+    devices = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, devices))
+    devices.sort(key=lambda dev: int(dev[len(DEVICE_PREFIX):]))
+    
+    return devices
 
 # exits if inputted line number does not correspond to a device
 # input: linenum
@@ -42,22 +53,11 @@ def checkDevice(linenum):
         click.echo("Line number {} does not exist".format(linenum))
         sys.exit(ERR_DEV)
 
-# returns a sorted list of all devices (whose name matches DEVICE_PREFIX)
-def getAllDevices():
-    cmd = "ls " + DEVICE_PREFIX + "*"
-    output = popenWrapper(cmd)
-    
-    devices = output.split('\n')
-    devices = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, devices))
-    devices.sort(key=lambda dev: int(dev[len(DEVICE_PREFIX):]))
-    
-    return devices
-
 # returns a dictionary of busy devices and their info
 #     maps line number to (pid, process start time)
 def getBusyDevices():
     cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
-    output = popenWrapper(cmd)
+    output = run_command(cmd)
     processes = output.split('\n')
     
     # matches any number of spaces then any number of digits
