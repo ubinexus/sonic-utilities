@@ -13,11 +13,6 @@ try:
 except ImportError as e: 
     raise ImportError("%s - required module not found" % str(e))
 
-READY_MSG = "Terminal ready"
-BUSY_MSG = "Resource temporarily unavailable"
-TIMEOUT_SEC = 5
-
-
 @click.group()
 def consutil():
     """consutil - Command-line utility for interacting with switchs via console device"""
