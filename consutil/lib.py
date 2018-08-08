@@ -62,8 +62,8 @@ def getBusyDevices():
     
     # matches any number of spaces then any number of digits
     regexPid = r" *(\d+)"
-    # matches anything of form: Xxx Xxx 00 00:00:00 0000
-    regexDate = r"([A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} \d{4})"
+    # matches anything of form: Xxx Xxx ( 0)or(00) 00:00:00 0000
+    regexDate = r"([A-Z][a-z]{2} [A-Z][a-z]{2} [\d ]\d \d{2}:\d{2}:\d{2} \d{4})"
     # matches any non-whitespace characters ending in minicom or picocom, 
     # then a space and any chars followed by /dev/ttyUSB<any digits>, 
     # then a space and any chars
@@ -80,12 +80,12 @@ def getBusyDevices():
             busyDevices[linenum_key] = (pid, date)
     return busyDevices
 
-# returns baud rate of device corresponding to line number
+# returns baud rate and flow control settings of device corresponding to line number
 # input: linenum (str)
 def getConnectionInfo(linenum):
     config_db = ConfigDBConnector()
     config_db.connect()
-    entry = config_db.get_entry(TABLE_NAME, linenum) 
+    entry = config_db.get_entry(TABLE_NAME, str(linenum)) 
     
     baud_rate = "" if BAUD_KEY not in entry else entry[BAUD_KEY]
     flow_control = False
@@ -94,7 +94,7 @@ def getConnectionInfo(linenum):
 
     return (baud_rate, flow_control)
 
-# returns the line number of a given device name (based on config_deb)
+# returns the line number of a given device name
 # input: devicename (str)
 def getLineNumber(devicename):
     config_db = ConfigDBConnector()

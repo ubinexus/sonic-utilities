@@ -62,7 +62,7 @@ def connect(target, devicename):
     # QUIET == False => picocom will output messages - welcome message is caught by pexpect, so successful
     #                   connection will always lead to user interacting with shell
     #         Downside: at end of session, picocom will print exit message, exposing picocom to user
-    QUIET = True
+    QUIET = False
 
     baud, flowBool = getConnectionInfo(lineNumber)
     flowCmd = "h" if flowBool else "n"
@@ -74,7 +74,7 @@ def connect(target, devicename):
     if QUIET:
         READY_MSG = r"([Ll]ogin:|[$>#])" # login prompt or command line prompt
     else:
-        READY_MSG = "Terminal Ready" # picocom ready message
+        READY_MSG = "Terminal ready" # picocom ready message
     BUSY_MSG = "Resource temporarily unavailable" # picocom busy message
     TIMEOUT_SEC = 0.2
 
@@ -84,7 +84,8 @@ def connect(target, devicename):
         if QUIET:
             click.echo(proc.before + proc.match.group(0), nl=False) # prints picocom output up to and including READY_MSG
         proc.interact()
-        click.echo("Terminating...")
+        if QUIET:
+            click.echo("Terminating...")
     elif index == 1: # resource is busy
         click.echo("Cannot connect: line {} is busy".format(lineNumber))
     else: # process reached EOF or timed out
