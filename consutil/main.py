@@ -7,6 +7,7 @@
 
 try:
     import click
+    import os
     import pexpect
     import re
     import subprocess
@@ -16,7 +17,7 @@ except ImportError as e:
 
 @click.group()
 def consutil():
-    """consutil - Command-line utility for interacting with switchs via console device"""
+    """consutil - Command-line utility for interacting with switches via console device"""
 
     if os.geteuid() != 0:
         print "Root privileges are required for this operation"
@@ -39,14 +40,13 @@ def show():
         if lineNum in busyDevices:
             pid, date = busyDevices[lineNum]
             busy = "*"
-        baud = getBaud(lineNum)
-        if baud == "":
-            baud = "9600/-"
-        else:
-            baud = "{}/{}".format(baud, baud)
+        actBaud, confBaud, _ = getConnectionInfo(lineNum)
+        # repeated "~" will be replaced by spaces - hacky way to align the "/"s
+        baud = "{}/{}{}".format(actBaud, confBaud, "~"*(15-len(confBaud)))
         body.append([busy+lineNum, baud, pid, date])
         
-    click.echo(tabulate(body, header, stralign="right"))
+    # replace repeated "~" with spaces - hacky way to align the "/"s
+    click.echo(tabulate(body, header, stralign="right").replace('~', ' ')) 
 
 # 'clear' subcommand
 @consutil.command()
@@ -71,48 +71,34 @@ def clear(linenum):
 @click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret linenum as device name instead")
 def connect(target, devicename):
     """Connect to switch via console device - TARGET is line number or device name of switch"""
-    lineNumber = ""
-    if devicename:
-        lineNumber = getLineNumber(target)
-        if lineNumber == "":
-            click.echo("Device {} does not exist".format(target))
-            return
-    else:
-        lineNumber = target
+    lineNumber = getLineNumber(target, devicename)
     checkDevice(lineNumber)
     lineNumber = str(lineNumber)
 
-    # QUIET == True => picocom will not output any messages, and pexpect will wait for console
-    #                  switch login or command line to let user interact with shell
-    #        Downside: if console switch output ever does not match READY_MSG, program will think connection failed
-    # QUIET == False => picocom will output messages - welcome message is caught by pexpect, so successful
-    #                   connection will always lead to user interacting with shell
-    #         Downside: at end of session, picocom will print exit message, exposing picocom to user
-    QUIET = False
-
-    baud, flowBool = getConnectionInfo(lineNumber)
-    baud = "9600" if baud == "" else baud
+    # build and start picocom command
+    actBaud, _, flowBool = getConnectionInfo(lineNumber)
     flowCmd = "h" if flowBool else "n"
     quietCmd = "-q" if QUIET else ""
-    cmd = "sudo picocom -b {} -f {} {} {}{}".format(baud, flowCmd, quietCmd, DEVICE_PREFIX, lineNumber)
+    cmd = "sudo picocom -b {} -f {} {} {}{}".format(actBaud, flowCmd, quietCmd, DEVICE_PREFIX, lineNumber)
     proc = pexpect.spawn(cmd)
     proc.send("\n")
 
     if QUIET:
-        READY_MSG = r"([Ll]ogin:|[$>#])" # login prompt or command line prompt
+        readyMsg = DEV_READY_MSG
     else:
-        READY_MSG = "Terminal ready" # picocom ready message
-    BUSY_MSG = "Resource temporarily unavailable" # picocom busy message
-    TIMEOUT_SEC = 0.2
+        readyMsg = "Terminal ready" # picocom ready message
+    busyMsg = "Resource temporarily unavailable" # picocom busy message
 
-    index = proc.expect([READY_MSG, BUSY_MSG, pexpect.EOF, pexpect.TIMEOUT], timeout=TIMEOUT_SEC)
+    # interact with picocom or print error message, depending on pexpect output
+    index = proc.expect([readyMsg, busyMsg, pexpect.EOF, pexpect.TIMEOUT], timeout=TIMEOUT_SEC)
     if index == 0: # terminal ready
         click.echo("Successful connection to line {}\nPress ^A ^X to disconnect".format(lineNumber))
         if QUIET:
-            click.echo(proc.before + proc.match.group(0), nl=False) # prints picocom output up to and including READY_MSG
+            # prints picocom output up to and including readyMsg
+            click.echo(proc.before + proc.match.group(0), nl=False) 
         proc.interact()
         if QUIET:
-            click.echo("Terminating...")
+            click.echo("\nTerminating...")
     elif index == 1: # resource is busy
         click.echo("Cannot connect: line {} is busy".format(lineNumber))
     else: # process reached EOF or timed out
