@@ -51,7 +51,8 @@ def interface_alias_to_name(interface_alias):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
         print "Invalid interface {}".format(interface_alias)
-        return None
+
+    return None
 
 
 def interface_name_to_alias(interface_name):
@@ -68,7 +69,8 @@ def interface_name_to_alias(interface_name):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
         print "Invalid interface {}".format(interface_alias)
-        return None
+
+    return None
 
 
 def set_interface_mode(mode):
