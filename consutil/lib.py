@@ -8,6 +8,7 @@
 try:
     import click
     import re
+    import swsssdk
     import subprocess
     import sys
 except ImportError as e: 
@@ -18,10 +19,21 @@ DEVICE_PREFIX = "/dev/ttyUSB"
 ERR_CMD = 1
 ERR_DEV = 2
 
-TABLE_NAME = "CONSOLE_PORT"
+CONSOLE_PORT_TABLE = "CONSOLE_PORT"
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
+DEFAULT_BAUD = "9600"
+
+# QUIET == True => picocom will not output any messages, and pexpect will wait for console
+#                  switch login or command line to let user interact with shell
+#        Downside: if console switch output ever does not match DEV_READY_MSG, program will think connection failed
+# QUIET == False => picocom will output messages - welcome message is caught by pexpect, so successful
+#                   connection will always lead to user interacting with shell
+#         Downside: at end of session, picocom will print exit message, exposing picocom to user
+QUIET = False
+DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
+TIMEOUT_SEC = 0.2
 
 # runs command, exit if stderr is written to, returns stdout otherwise
 # input: cmd (str), output: output of cmd (str)
@@ -80,23 +92,30 @@ def getBusyDevices():
             busyDevices[linenum_key] = (pid, date)
     return busyDevices
 
-# returns baud rate and flow control settings of device corresponding to line number
-# input: linenum (str)
+# returns actual baud rate, configured baud rate,
+# and flow control settings of device corresponding to line number
+# input: linenum (str), output: (actual baud (str), configured baud (str), flow control (bool))
 def getConnectionInfo(linenum):
     config_db = ConfigDBConnector()
     config_db.connect()
-    entry = config_db.get_entry(TABLE_NAME, str(linenum)) 
+    entry = config_db.get_entry(CONSOLE_PORT_TABLE, str(linenum)) 
     
-    baud_rate = "" if BAUD_KEY not in entry else entry[BAUD_KEY]
+    conf_baud = "-" if BAUD_KEY not in entry else entry[BAUD_KEY]
+    act_baud = DEFAULT_BAUD if conf_baud == "-" else conf_baud
     flow_control = False
     if FLOW_KEY in entry and entry[FLOW_KEY] == "1":
         flow_control = True
 
-    return (baud_rate, flow_control)
+    return (act_baud, conf_baud, flow_control)
 
-# returns the line number of a given device name
-# input: devicename (str)
-def getLineNumber(devicename):
+# returns the line number corresponding to target, or exits if line number cannot be found
+# if deviceBool, interprets target as device name
+# otherwise interprets target as line number
+# input: target (str), deviceBool (bool), output: linenum (str)
+def getLineNumber(target, deviceBool):
+    if not deviceBool:
+        return target
+
     config_db = ConfigDBConnector()
     config_db.connect()
     
@@ -104,8 +123,10 @@ def getLineNumber(devicename):
     linenums = list(map(lambda dev: dev[len(DEVICE_PREFIX):], devices))
 
     for linenum in linenums:
-        entry = config_db.get_entry(TABLE_NAME, linenum)
-        if DEVICE_KEY in entry and entry[DEVICE_KEY] == devicename:
+        entry = config_db.get_entry(CONSOLE_PORT_TABLE, linenum)
+        if DEVICE_KEY in entry and entry[DEVICE_KEY] == target:
             return linenum
 
+    click.echo("Device {} does not exist".format(target))
+    sys.exit(ERR_DEV)
     return ""
