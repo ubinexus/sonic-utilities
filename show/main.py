@@ -5,6 +5,7 @@ import errno
 import getpass
 import json
 import os
+import re
 import subprocess
 import sys
 from click_default_group import DefaultGroup
@@ -28,6 +29,12 @@ class Config(object):
     def __init__(self):
         self.path = os.getcwd()
         self.aliases = {}
+        global port_dict
+
+        cmd = 'sonic-cfggen -d --var-json "PORT"'
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        port_dict = json.loads(p.stdout.read())
+
 
     def read_config(self, filename):
         parser = configparser.RawConfigParser()
@@ -129,6 +136,58 @@ def run_command(command, display_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
+
+def get_interface_mode():
+    mode = os.getenv('SONIC_CLI_IFACE_MODE')
+    if mode is None:
+        mode = "default"
+    return mode
+
+
+def interface_name_to_alias(interface_name):
+    """Return alias interface name if default
+       name is given as argument
+
+    """
+
+    if interface_name is not None:
+        for port_name in port_dict.keys():
+            if interface_name == port_name:
+                return port_dict[port_name]['alias']
+        print "Invalid interface {}".format(interface_name)
+
+    raise click.Abort()
+
+
+def run_command_in_alias_mode(command, linux_command=False):
+    """Replace command output results from default
+       interface name to vendor specific name
+    """
+
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+             break
+        if output:
+            if linux_command:
+                result = re.findall('Ethernet\w+', output)
+                interface_name = ''.join(result)
+                if interface_name != "":
+                    output = output.replace(interface_name,
+                                    interface_name_to_alias(interface_name))
+                print output.rstrip('\n')
+            else:
+                """Framework need to be designed for other tabulated
+                   commands
+                """
+
+    rc = process.poll()
+    if rc != 0:
+        sys.exit(rc)
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 #
@@ -161,7 +220,10 @@ def arp(ipaddress, iface, verbose):
     if iface is not None:
         cmd += " -if {}".format(iface)
 
-    run_command(cmd, display_cmd=verbose)
+    if get_interface_mode() == "alias":
+        run_command_in_alias_mode(cmd, linux_command=True)
+    else:
+        run_command(cmd, display_cmd=verbose)
 
 #
 # 'ndp' command ("show ndp")
@@ -310,7 +372,10 @@ def eeprom(interfacename, dump_dom, verbose):
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
 
-    run_command(cmd, display_cmd=verbose)
+    if get_interface_mode() == "alias":
+        run_command_in_alias_mode(cmd, linux_command=True)
+    else:
+        run_command(cmd, display_cmd=verbose)
 
 
 @transceiver.command()
@@ -495,7 +560,11 @@ def route(ipaddress, verbose):
 
     cmd += '"'
 
-    run_command(cmd, display_cmd=verbose)
+    if get_interface_mode() == "alias":
+        run_command_in_alias_mode(cmd, linux_command=True)
+    else:
+        run_command(cmd, display_cmd=verbose)
+
 
 # 'protocol' command
 @ip.command()
@@ -533,7 +602,10 @@ def route(ipaddress, verbose):
 
     cmd += '"'
 
-    run_command(cmd, display_cmd=verbose)
+    if get_interface_mode() == "alias":
+        run_command_in_alias_mode(cmd, linux_command=True)
+    else:
+        run_command(cmd, display_cmd=verbose)
 
 
 # 'protocol' command
@@ -587,7 +659,10 @@ def neighbors(interfacename, verbose):
     if interfacename is not None:
         cmd += " {}".format(interfacename)
 
-    run_command(cmd, display_cmd=verbose)
+    if get_interface_mode() == "alias":
+        run_command_in_alias_mode(cmd, linux_command=True)
+    else:
+        run_command(cmd, display_cmd=verbose)
 
 # 'table' subcommand ("show lldp table")
 @lldp.command()
@@ -926,7 +1001,11 @@ def vlan():
 def brief(verbose):
     """Show all bridge information"""
     cmd = "sudo brctl show"
-    run_command(cmd, display_cmd=verbose)
+    if get_interface_mode() == "alias":
+        run_command_in_alias_mode(cmd, linux_command=True)
+    else:
+        run_command(cmd, display_cmd=verbose)
+
 
 @vlan.command()
 @click.argument('bridge_name', required=True)
@@ -955,7 +1034,11 @@ def config(redis_unix_socket_path):
                 r = []
                 r.append(k)
                 r.append(data[k]['vlanid'])
-                r.append(m)
+                if get_interface_mode() == "alias":
+                    alias =  interface_name_to_alias(m)
+                    r.append(alias)
+                else:
+                    r.append(m)
 
                 entry = config_db.get_entry('VLAN_MEMBER', (k, m))
                 mode = entry.get('tagging_mode')
