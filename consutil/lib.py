@@ -25,14 +25,6 @@ DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
 DEFAULT_BAUD = "9600"
 
-# QUIET == True => picocom will not output any messages, and pexpect will wait for console
-#                  switch login or command line to let user interact with shell
-#        Downside: if console switch output ever does not match DEV_READY_MSG, program will think connection failed
-# QUIET == False => picocom will output messages - welcome message is caught by pexpect, so successful
-#                   connection will always lead to user interacting with shell
-#         Downside: at end of session, picocom will print exit message, exposing picocom to user
-QUIET = False
-DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
 TIMEOUT_SEC = 0.2
 
 # runs command, exit if stderr is written to, returns stdout otherwise
