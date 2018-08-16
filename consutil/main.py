@@ -62,6 +62,8 @@ def clear(linenum):
         cmd = "sudo kill -SIGTERM " + pid
         click.echo("Sending SIGTERM to process " + pid)
         run_command(cmd)
+        cmd = "sudo rm -f /var/lock/LCK..ttyUSB" + linenum
+        run_command(cmd)
     else:
         click.echo("No process is connected to line " + linenum)
 
@@ -78,27 +80,18 @@ def connect(target, devicename):
     # build and start picocom command
     actBaud, _, flowBool = getConnectionInfo(lineNumber)
     flowCmd = "h" if flowBool else "n"
-    quietCmd = "-q" if QUIET else ""
-    cmd = "sudo picocom -b {} -f {} {} {}{}".format(actBaud, flowCmd, quietCmd, DEVICE_PREFIX, lineNumber)
+    cmd = "sudo picocom -b {} -f {} {}{}".format(actBaud, flowCmd, DEVICE_PREFIX, lineNumber)
     proc = pexpect.spawn(cmd)
-    proc.send("\n")
 
-    if QUIET:
-        readyMsg = DEV_READY_MSG
-    else:
-        readyMsg = "Terminal ready" # picocom ready message
-    busyMsg = "Resource temporarily unavailable" # picocom busy message
+    readyMsg = "Terminal ready" # picocom ready message
+    busyMsg = "FATAL" # picocom busy message
 
     # interact with picocom or print error message, depending on pexpect output
     index = proc.expect([readyMsg, busyMsg, pexpect.EOF, pexpect.TIMEOUT], timeout=TIMEOUT_SEC)
     if index == 0: # terminal ready
         click.echo("Successful connection to line {}\nPress ^A ^X to disconnect".format(lineNumber))
-        if QUIET:
-            # prints picocom output up to and including readyMsg
-            click.echo(proc.before + proc.match.group(0), nl=False) 
         proc.interact()
-        if QUIET:
-            click.echo("\nTerminating...")
+        click.echo("\nTerminating")
     elif index == 1: # resource is busy
         click.echo("Cannot connect: line {} is busy".format(lineNumber))
     else: # process reached EOF or timed out
