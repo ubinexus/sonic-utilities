@@ -62,6 +62,8 @@ def clear(linenum):
         cmd = "sudo kill -SIGTERM " + pid
         click.echo("Sending SIGTERM to process " + pid)
         run_command(cmd)
+        cmd = "sudo rm /var/lock/LCK..ttyUSB" + linenum
+        run_command(cmd)
     else:
         click.echo("No process is connected to line " + linenum)
 
@@ -82,13 +84,14 @@ def connect(target, devicename):
     proc = pexpect.spawn(cmd)
 
     readyMsg = "Terminal ready" # picocom ready message
-    busyMsg = "Resource temporarily unavailable" # picocom busy message
+    busyMsg = "FATAL" # picocom busy message
 
     # interact with picocom or print error message, depending on pexpect output
     index = proc.expect([readyMsg, busyMsg, pexpect.EOF, pexpect.TIMEOUT], timeout=TIMEOUT_SEC)
     if index == 0: # terminal ready
         click.echo("Successful connection to line {}\nPress ^A ^X to disconnect".format(lineNumber))
         proc.interact()
+        click.echo("\nTerminating")
     elif index == 1: # resource is busy
         click.echo("Cannot connect: line {} is busy".format(lineNumber))
     else: # process reached EOF or timed out
