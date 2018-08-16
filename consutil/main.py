@@ -62,7 +62,7 @@ def clear(linenum):
         cmd = "sudo kill -SIGTERM " + pid
         click.echo("Sending SIGTERM to process " + pid)
         run_command(cmd)
-        cmd = "sudo rm /var/lock/LCK..ttyUSB" + linenum
+        cmd = "sudo rm -f /var/lock/LCK..ttyUSB" + linenum
         run_command(cmd)
     else:
         click.echo("No process is connected to line " + linenum)
