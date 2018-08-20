@@ -15,6 +15,7 @@ import aaa
 import mlnx
 
 SONIC_CFGGEN_PATH = "sonic-cfggen"
+SONIC_MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
 
 #
 # Helper functions
@@ -321,7 +322,11 @@ def load_mgmt_config(filename):
                 expose_value=False, prompt='Reload config from minigraph?')
 def load_minigraph():
     """Reconfigure based on minigraph."""
-    #Stop services before config push
+    # Check /etc/sonic/minigraph.xml file exists
+    if not os.path.isfile(SONIC_MINIGRAPH_PATH):
+        exit("No minigraph.xml file found under folder /etc/sonic")
+
+    # Stop services before config push
     _stop_services()
 
     config_db = ConfigDBConnector()
