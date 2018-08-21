@@ -182,6 +182,18 @@ def counters():
     command = "portstat -c"
     run_command(command)
 
+@cli.command()
+def queuecounters():
+    """Clear queue counters"""
+    command = "queuestat -c"
+    run_command(command)
+
+@cli.command()
+def pfccounters():
+    """Clear pfc counters"""
+    command = "pfcstat -c"
+    run_command(command)
+
 #
 # 'arp' command ####
 #
@@ -230,5 +242,16 @@ def clear_vlan_fdb(vlanid):
     command = 'fdbclear' + ' -v ' + vlanid
     run_command(command)
 '''
+
+#
+# 'line' command
+#
+@cli.command('line')
+@click.argument('linenum')
+def line(linenum):
+    """Clear preexisting connection to line"""
+    cmd = "consutil clear " + str(linenum)
+    run_command(cmd)
+
 if __name__ == '__main__':
     cli()

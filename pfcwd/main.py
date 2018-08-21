@@ -113,6 +113,11 @@ def config(ports):
     poll_interval = configdb.get_entry( 'PFC_WD_TABLE', 'GLOBAL').get('POLL_INTERVAL')
     if poll_interval is not None:
         click.echo("Changed polling interval to " + poll_interval + "ms")
+
+    big_red_switch = configdb.get_entry( 'PFC_WD_TABLE', 'GLOBAL').get('BIG_RED_SWITCH')
+    if big_red_switch is not None:
+        click.echo("BIG_RED_SWITCH status is " + big_red_switch)
+
     click.echo(tabulate(table, CONFIG_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
 # Start WD
@@ -122,7 +127,7 @@ def config(ports):
 @click.argument('ports', nargs = -1)
 @click.argument('detection-time', type=click.IntRange(100, 5000))
 def start(action, restoration_time, ports, detection_time):
-    """ Start PFC watchdog on port(s) """
+    """ Start PFC watchdog on port(s). To config all ports, use all as input. """
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
@@ -142,10 +147,15 @@ def start(action, restoration_time, ports, detection_time):
         pfcwd_info['restoration_time'] = restoration_time
 
     for port in ports:
-        if port not in all_ports:
-            continue
-        configdb.mod_entry("PFC_WD_TABLE", port, None)
-        configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
+        if port == "all":
+            for p in all_ports:
+                configdb.mod_entry("PFC_WD_TABLE", p, None)
+                configdb.mod_entry("PFC_WD_TABLE", p, pfcwd_info)
+        else:
+            if port not in all_ports:
+                continue
+            configdb.mod_entry("PFC_WD_TABLE", port, None)
+            configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
 
 # Set WD poll interval
 @cli.command()
@@ -212,6 +222,30 @@ def start_default():
 
     pfcwd_info = {}
     pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * multiply
+    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
+
+# Enable/disable PFC WD counter polling
+@cli.command()
+@click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
+def counter_poll(counter_poll):
+    """ Enable/disable counter polling """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    pfcwd_info = {}
+    pfcwd_info['FLEX_COUNTER_STATUS'] = counter_poll
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "PFCWD", pfcwd_info)
+
+# Enable/disable PFC WD BIG_RED_SWITCH mode
+@cli.command()
+@click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
+def big_red_switch(big_red_switch):
+    """ Enable/disable BIG_RED_SWITCH mode """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    pfcwd_info = {}
+    if big_red_switch is not None:
+        pfcwd_info['BIG_RED_SWITCH'] = big_red_switch
+
     configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
 
 if __name__ == '__main__':

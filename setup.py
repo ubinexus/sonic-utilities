@@ -21,6 +21,9 @@ setup(
         'acl_loader',
         'clear',
         'config',
+        'connect',
+        'consutil',
+        'counterpoll',
         'crm',
         'debug',
         'pfcwd',
@@ -52,8 +55,11 @@ setup(
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
+        'scripts/pfcstat',
+        'scripts/queuestat',
         'scripts/reboot',
-        'scripts/teamshow'
+        'scripts/teamshow',
+        'scripts/nbrshow'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
@@ -62,6 +68,9 @@ setup(
         'console_scripts': [
             'acl-loader = acl_loader.main:cli',
             'config = config.main:cli',
+            'connect = connect.main:connect',
+            'consutil = consutil.main:consutil',
+            'counterpoll = counterpoll.main:cli',
             'crm = crm.main:cli',
             'debug = debug.main:cli',
             'pfcwd = pfcwd.main:cli',
