@@ -1156,7 +1156,7 @@ def config(redis_unix_socket_path):
                 r.append(k)
                 r.append(data[k]['vlanid'])
                 if get_interface_mode() == "alias":
-                    alias = interface_name_to_alias(m)
+                    alias = _alias.interface_name_to_alias(m)
                     r.append(alias)
                 else:
                     r.append(m)
