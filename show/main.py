@@ -40,19 +40,19 @@ class Config(object):
             pass
 
 
-class Alias(object):
-    """Object to Alias conversion"""
+class InterfaceAliasConverter(object):
+    """Class which handles conversion between interface name and alias"""
 
     def __init__(self):
-        self.vendor_name_length = 0
+        self.vendor_name_max_length = 0
         cmd = 'sonic-cfggen -d --var-json "PORT"'
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         self.port_dict = json.loads(p.stdout.read())
 
         for port_name in self.port_dict.keys():
-            if self.vendor_name_length < len(
+            if self.vendor_name_max_length < len(
                     self.port_dict[port_name]['alias']):
-               self.vendor_name_length = len(
+               self.vendor_name_max_length = len(
                     self.port_dict[port_name]['alias'])
 
     def interface_name_to_alias(self, interface_name):
@@ -63,8 +63,8 @@ class Alias(object):
             for port_name in self.port_dict.keys():
                 if interface_name == port_name:
                     return self.port_dict[port_name]['alias']
-        click.echo("Invalid interface {}".format(interface_name))
 
+        click.echo("Invalid interface {}".format(interface_name))
         raise click.Abort()
 
     def interface_alias_to_name(self, interface_alias):
@@ -74,8 +74,8 @@ class Alias(object):
             for port_name in self.port_dict.keys():
                 if interface_alias == self.port_dict[port_name]['alias']:
                     return port_name
-        click.echo("Invalid interface {}".format(interface_alias))
 
+        click.echo("Invalid interface {}".format(interface_alias))
         raise click.Abort()
 
 
@@ -179,10 +179,10 @@ def get_interface_mode():
 
 
 # Global Alias object
-_alias = Alias()
+_alias = InterfaceAliasConverter()
 
 
-def run_command_in_alias_mode(command, command_type=0, linux_command=False):
+def run_command_in_alias_mode(command, linux_command=False):
     """Run command and replace all instances of SONiC interface names
        in output with vendor-sepecific interface aliases.
     """
@@ -209,33 +209,34 @@ def run_command_in_alias_mode(command, command_type=0, linux_command=False):
                 output = output.lstrip()
                 index = 0
 
-                if command_type == 1:
+                if command == "portstat":
                     """Show interface counters"""
                     if output.startswith("IFACE"):
                         output = output.replace("IFACE", "IFACE".rjust(
-                                                _alias.vendor_name_length))
-                elif command_type == 2:
+                                                _alias.vendor_name_max_length))
+                elif command == "pfcstat":
                     """Show pfc counters"""
                     if output.startswith("Port Tx"):
                         output = output.replace("Port Tx", "Port Tx".rjust(
-                                                _alias.vendor_name_length))
+                                                _alias.vendor_name_max_length))
                     elif output.startswith("Port Rx"):
                         output = output.replace("Port Rx", "Port Rx".rjust(
-                                                _alias.vendor_name_length))
-                elif command_type == 3:
-                    """show interface transceiver lpmode
-                       show interface transceiver presence
-                       show interface transceiver eeprom"""
+                                                _alias.vendor_name_max_length))
+                elif (command == "sudo sfputil show eeprom") or(
+                        command == "sudo sfputil show presence") or(
+                            command == "sudo sfputil show lpmode"):
+                    """show interface transceiver lpmode,
+                       presence, eeprom
+                    """
                     if output.startswith("Port"):
                         output = output.replace("Port", "Port".rjust(
-                                                _alias.vendor_name_length))
-                elif command_type == 4:
-                    """show lldp table
-                       This need to be updated"""
+                                                _alias.vendor_name_max_length))
+                elif command == "sudo lldpshow":
+                    """show lldp table"""
                     if output.startswith("LocalPort"):
                         output = output.replace("LocalPort", "LocalPort".rjust(
-                                                _alias.vendor_name_length))
-                elif command_type == 5:
+                                                _alias.vendor_name_max_length))
+                elif command == "fdbshow":
                     """show mac"""
                     index = 3
                     if output.startswith("No."):
@@ -245,14 +246,11 @@ def run_command_in_alias_mode(command, command_type=0, linux_command=False):
                     elif output[0].isdigit():
                         output = "    " + output
 
-                else:
-                    click.echo("Invalid command type")
-
                 # Adjust tabulation width to length of alias name
                 if output.startswith("---"):
                     word = output.split()
                     dword = word[index]
-                    underline = dword.rjust(_alias.vendor_name_length, '-')
+                    underline = dword.rjust(_alias.vendor_name_max_length, '-')
                     word[index] = underline
                     output = '  ' .join(word)
 
@@ -264,9 +262,9 @@ def run_command_in_alias_mode(command, command_type=0, linux_command=False):
                             interface_name = ''.join(result)
                             alias_name = _alias.interface_name_to_alias(
                                                     interface_name)
-                            if len(alias_name) < _alias.vendor_name_length:
+                            if len(alias_name) < _alias.vendor_name_max_length:
                                 alias_name = alias_name.rjust(
-                                                    _alias.vendor_name_length)
+                                                    _alias.vendor_name_max_length)
                             output = output.replace(interface_name, alias_name)
 
                 click.echo(output.rstrip('\n'))
@@ -309,7 +307,7 @@ def arp(ipaddress, iface, verbose):
         cmd += " -if {}".format(iface)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -437,7 +435,7 @@ def summary(interfacename, verbose):
         cmd += " {}".format(interfacename)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -464,7 +462,7 @@ def eeprom(interfacename, dump_dom, verbose):
         cmd += " -p {}".format(interfacename)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -550,7 +548,7 @@ def counters(period, printall, clear, verbose):
             cmd += " -p {}".format(period)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=1, linux_command=False)
+        run_command_in_alias_mode(cmd, linux_command=False)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -563,7 +561,7 @@ def portchannel(verbose):
     cmd = "teamshow"
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=1, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -589,7 +587,7 @@ def counters(clear, verbose):
         cmd += " -c"
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=2, linux_command=False)
+        run_command_in_alias_mode(cmd, linux_command=False)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -620,7 +618,7 @@ def counters(interfacename, clear, verbose):
             cmd += " -p {}".format(interfacename)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=3, linux_command=False)
+        run_command_in_alias_mode(cmd, linux_command=False)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -644,7 +642,7 @@ def mac(vlan, port, verbose):
         cmd += " -p {}".format(port)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=5, linux_command=False)
+        run_command_in_alias_mode(cmd, linux_command=False)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -677,7 +675,7 @@ def route(ipaddress, verbose):
     cmd += '"'
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -719,7 +717,7 @@ def route(ipaddress, verbose):
     cmd += '"'
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -776,7 +774,7 @@ def neighbors(interfacename, verbose):
         cmd += " {}".format(interfacename)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -787,7 +785,7 @@ def table(verbose):
     """Show LLDP neighbors in tabular format"""
     cmd = "sudo lldpshow"
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=4, linux_command=False)
+        run_command_in_alias_mode(cmd, linux_command=False)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -1123,7 +1121,7 @@ def brief(verbose):
     """Show all bridge information"""
     cmd = "sudo brctl show"
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
@@ -1296,7 +1294,7 @@ def rule(table_name, rule_id, verbose):
         cmd += " {}".format(rule_id)
 
     if get_interface_mode() == "alias":
-        run_command_in_alias_mode(cmd, command_type=0, linux_command=True)
+        run_command_in_alias_mode(cmd, linux_command=True)
     else:
         run_command(cmd, display_cmd=verbose)
 
