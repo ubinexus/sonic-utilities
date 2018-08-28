@@ -18,6 +18,7 @@ RCV_SIZE = 20480
 RCV_TIMEOUT = 10000
 SELECT_TIMEOUT = 2
 PROBE_PACKET_LEN = 9000
+DHCP_DEFAULT = 0
 
 def receive(my_socket, timeout, exp_pkt, time_sent):
     timeLeft = timeout
@@ -42,7 +43,7 @@ def receive(my_socket, timeout, exp_pkt, time_sent):
             return False, delay, None
         
 def find_probe_packet(interface, dst_out, dst_in, sockets, exp_socket, max_iter):
-    dscp = random.randint(0, 32)
+    dscp = DHCP_DEFAULT
     tos = dscp << 2
     src_out = dst_in
     decap_valid = False
