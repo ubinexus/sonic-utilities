@@ -238,9 +238,6 @@ def run_command_in_alias_mode(command, linux_command=False):
                                                 _interface.vendor_name_max_length))
                 elif command == "queuestat":
                     """show queue counters"""
-                    if output.startswith("LocalPort"):
-                        output = output.replace("LocalPort", "LocalPort".rjust(
-                                                _interface.vendor_name_max_length))
                     if output.startswith("Port"):
                         output = output.replace("Port", "Port".rjust(
                                                 _interface.vendor_name_max_length))
