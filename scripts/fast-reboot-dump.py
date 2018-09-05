@@ -10,7 +10,6 @@ from fcntl import ioctl
 import binascii
 import argparse
 
-
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
 ARP_PAD = binascii.unhexlify('00' * 18)
 
@@ -148,7 +147,7 @@ def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
 def generate_fdb_entries(filename):
     fdb_entries = []
 
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    db = swsssdk.SonicV2Connector(host='127.0.0.1', port=6380)
     db.connect(db.ASIC_DB, False)   # Make one attempt only
 
     bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(db)

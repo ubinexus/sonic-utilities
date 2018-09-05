@@ -41,9 +41,10 @@ class FdbShow(object):
     def __init__(self):
         super(FdbShow,self).__init__()
         self.db = SonicV2Connector(host="127.0.0.1")
+        self.db_sec = SonicV2Connector(host="127.0.0.1", port=6380)
         self.if_name_map, \
         self.if_oid_map = port_util.get_interface_oid_map(self.db)
-        self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
+        self.if_br_oid_map = port_util.get_bridge_port_map(self.db_sec)
         self.fetch_fdb_data()
         return
 
@@ -52,10 +53,10 @@ class FdbShow(object):
             Fetch FDB entries from ASIC DB. 
             FDB entries are sorted on "VlanID" and stored as a list of tuples
         """
-        self.db.connect(self.db.ASIC_DB)
+        self.db_sec.connect(self.db_sec.ASIC_DB)
         self.bridge_mac_list = []
         
-        fdb_str = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
+        fdb_str = self.db_sec.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
         if not fdb_str:
             return
 
@@ -69,7 +70,7 @@ class FdbShow(object):
             if not fdb:
                 continue
 
-            ent = self.db.get_all('ASIC_DB', s, blocking=True)
+            ent = self.db_sec.get_all('ASIC_DB', s, blocking=True)
             br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
             ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
@@ -80,7 +81,7 @@ class FdbShow(object):
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
             elif 'bvid' in fdb:
-                vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                vlan_id = port_util.get_vlan_id_from_bvid(self.db_sec, fdb["bvid"])
             self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
