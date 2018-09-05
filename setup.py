@@ -28,6 +28,7 @@ setup(
         'debug',
         'pfcwd',
         'sfputil',
+        'pfc',
         'psuutil',
         'show',
         'sonic_installer',
@@ -51,13 +52,15 @@ setup(
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/lldpshow',
+        'scripts/pcmping',
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
         'scripts/pfcstat',
         'scripts/queuestat',
         'scripts/reboot',
-        'scripts/teamshow'
+        'scripts/teamshow',
+        'scripts/nbrshow'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
@@ -73,6 +76,7 @@ setup(
             'debug = debug.main:cli',
             'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
+            'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',

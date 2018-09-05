@@ -150,13 +150,17 @@ def cli():
 
 @cli.command()
 @click.argument('ipaddress', required=False)
+@click.option('-if', '--iface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def arp(ipaddress, verbose):
+def arp(ipaddress, iface, verbose):
     """Show IP ARP table"""
-    cmd = "/usr/sbin/arp -n"
+    cmd = "nbrshow -4"
 
     if ipaddress is not None:
-        cmd += " {}".format(ipaddress)
+        cmd += " -ip {}".format(ipaddress)
+
+    if iface is not None:
+        cmd += " -if {}".format(iface)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -166,13 +170,17 @@ def arp(ipaddress, verbose):
 
 @cli.command()
 @click.argument('ip6address', required=False)
+@click.option('-if', '--iface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def ndp(ip6address):
+def ndp(ip6address, iface, verbose):
     """Show IPv6 Neighbour table"""
-    cmd = "/bin/ip -6 neigh show"
+    cmd = "nbrshow -6"
 
     if ip6address is not None:
-        cmd += ' {}'.format(ip6address)
+        cmd += " -ip {}".format(ip6address)
+
+    if iface is not None:
+        cmd += " -if {}".format(iface)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -439,6 +447,30 @@ def counters(interfacename, clear, verbose):
             cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
+
+#
+# 'pfc' group ###
+#
+
+@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+def pfc():
+    """Show PFC information"""
+    pass
+
+
+#
+# 'pfc status' command ###
+#
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def status(interface):
+    """Show PFC information"""
+    if interface is None:
+        interface = ""
+
+    run_command("pfc show asymmetric {0}".format(interface))
+
 
 #
 # 'mac' command ("show mac ...")
@@ -1110,6 +1142,7 @@ def ecn():
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 
+
 #
 # 'reboot-cause' command ("show reboot-cause")
 #
@@ -1138,6 +1171,8 @@ def line():
     """Show all /dev/ttyUSB lines and their info"""
     cmd = "consutil show"
     run_command(cmd, display_cmd=verbose)
+    # TODO: Stub
+    return
 
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
@@ -1221,6 +1256,7 @@ def config(redis_unix_socket_path):
 
     header = ['name', 'enable', 'timer_name', 'timer_duration']
     click.echo(tabulate(tablelize(keys, data), header))
+
 
 if __name__ == '__main__':
     cli()
