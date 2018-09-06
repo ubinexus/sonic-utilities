@@ -11,6 +11,7 @@ from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
+from sonic_platform import get_system_routing_stack
 
 try:
     # noinspection PyPep8Naming
@@ -85,31 +86,6 @@ class AliasedGroup(DefaultGroup):
         elif len(matches) == 1:
             return DefaultGroup.get_command(self, ctx, matches[0])
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
-
-
-# To be enhanced. Routing-stack information should be collected from a global
-# location (configdb?), so that we prevent the continous execution of this
-# bash oneliner. To be revisited once routing-stack info is tracked somewhere.
-def get_routing_stack():
-    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
-
-    try:
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        result = stdout.rstrip('\n')
-
-    except OSError, e:
-        raise OSError("Cannot detect routing-stack")
-
-    return (result)
-
-
-# Global Routing-Stack variable
-routing_stack = get_routing_stack()
 
 
 def run_command(command, display_cmd=False):
@@ -573,12 +549,17 @@ def protocol(verbose):
 # Inserting BGP functionality into cli's show parse-chain.
 # BGP commands are determined by the routing-stack being elected.
 #
+routing_stack = get_system_routing_stack()
+
 if routing_stack == "quagga":
+
     from .bgp_quagga_v4 import bgp
     ip.add_command(bgp)
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
+
 elif routing_stack == "frr":
+
     @cli.command()
     @click.argument('bgp_args', nargs = -1, required = False)
     @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -590,6 +571,15 @@ elif routing_stack == "frr":
         cmd = 'sudo vtysh -c "{}"'.format(bgp_cmd)
         run_command(cmd, display_cmd=verbose)
 
+    @cli.command()
+    @click.argument('debug_args', nargs = -1, required = False)
+    def debug(debug_args):
+        """Show debuggging configuration state"""
+        debug_cmd = "show debugging"
+        for arg in debug_args:
+            debug_cmd += " " + str(arg)
+        command = 'sudo vtysh -c "{}"'.format(debug_cmd)
+        run_command(command)
 
 #
 # 'lldp' group ("show lldp ...")
@@ -776,7 +766,7 @@ def cpu(verbose):
     # Run top in batch mode to prevent unexpected newline after each newline
     cmd = "top -bn 1 -o %CPU"
     run_command(cmd, display_cmd=verbose)
- 
+
 # 'memory' subcommand
 @processes.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
