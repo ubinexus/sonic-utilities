@@ -156,6 +156,8 @@ def run_command(command, display_cmd=False):
     if display_cmd:
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
+    # No conversion needed for intfutil commands as it already displays
+    # both SONiC interface name and alias name for all interfaces.
     if get_interface_mode() == "alias" and not command.startswith("intfutil"):
         run_command_in_alias_mode(command)
         raise sys.exit(0)
@@ -181,8 +183,8 @@ def get_interface_mode():
     return mode
 
 
-# Global Alias object
-_interface = InterfaceAliasConverter()
+# Global class instance for SONiC interface name to alias conversion
+convert_interface = InterfaceAliasConverter()
 
 
 def print_output_in_alias_mode(output, index):
@@ -197,21 +199,21 @@ def print_output_in_alias_mode(output, index):
     if output.startswith("---"):
         word = output.split()
         dword = word[index]
-        underline = dword.rjust(_interface.vendor_name_max_length, '-')
+        underline = dword.rjust(convert_interface.vendor_name_max_length, '-')
         word[index] = underline
         output = '  ' .join(word)
 
-    # Replace default interface name to vendor-name
+    # Replace SONiC interface name with vendor alias
     word = output.split()
     if word:
         interface_name = word[index]
-    for port_name in natsorted(_interface.port_dict.keys()):
+    for port_name in natsorted(convert_interface.port_dict.keys()):
             if interface_name == port_name:
-                    alias_name = _interface.port_dict[port_name]['alias']
+                alias_name = convert_interface.port_dict[port_name]['alias']
     if alias_name:
-        if len(alias_name) < _interface.vendor_name_max_length:
+        if len(alias_name) < convert_interface.vendor_name_max_length:
             alias_name = alias_name.rjust(
-                                _interface.vendor_name_max_length)
+                                convert_interface.vendor_name_max_length)
         output = output.replace(interface_name, alias_name, 1)
 
     click.echo(output.rstrip('\n'))
@@ -239,7 +241,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("IFACE"):
                     output = output.replace("IFACE", "IFACE".rjust(
-                                           _interface.vendor_name_max_length))
+                                   convert_interface.vendor_name_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "pfcstat":
@@ -247,11 +249,11 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port Tx"):
                     output = output.replace("Port Tx", "Port Tx".rjust(
-                                            _interface.vendor_name_max_length))
+                                    convert_interface.vendor_name_max_length))
 
                 elif output.startswith("Port Rx"):
                     output = output.replace("Port Rx", "Port Rx".rjust(
-                                            _interface.vendor_name_max_length))
+                                    convert_interface.vendor_name_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif (command.startswith("sudo sfputil show")):
@@ -261,7 +263,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
-                                           _interface.vendor_name_max_length))
+                                   convert_interface.vendor_name_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "sudo lldpshow":
@@ -269,7 +271,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("LocalPort"):
                     output = output.replace("LocalPort", "LocalPort".rjust(
-                                           _interface.vendor_name_max_length))
+                                   convert_interface.vendor_name_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command.startswith("queuestat"):
@@ -277,7 +279,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
-                                           _interface.vendor_name_max_length))
+                                   convert_interface.vendor_name_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "fdbshow":
@@ -299,15 +301,16 @@ def run_command_in_alias_mode(command):
 
             else:
                 if index:
-                    for port_name in _interface.port_dict.keys():
+                    for port_name in convert_interface.port_dict.keys():
                         regex = re.compile(r"\b{}\b".format(port_name))
                         result = re.findall(regex, raw_output)
                         if result:
                             interface_name = ''.join(result)
                             if not raw_output.startswith("    PortID:"):
                                 raw_output = raw_output.replace(
-                                    interface_name, _interface.name_to_alias(
-                                        interface_name))
+                                    interface_name,
+                                    convert_interface.name_to_alias(
+                                            interface_name))
                     click.echo(raw_output.rstrip('\n'))
 
     rc = process.poll()
@@ -348,7 +351,7 @@ def arp(ipaddress, iface, verbose):
         if get_interface_mode() == "alias":
             if not ((iface.startswith("PortChannel")) or
                     (iface.startswith("eth"))):
-                iface = _interface.alias_to_name(iface)
+                iface = convert_interface.alias_to_name(iface)
 
         cmd += " -if {}".format(iface)
 
@@ -400,7 +403,7 @@ def alias(interfacename):
     if interfacename is not None:
 
         if get_interface_mode() == "alias":
-            interfacename = _interface.alias_to_name(interfacename)
+            interfacename = convert_interface.alias_to_name(interfacename)
 
         # If we're given an interface name, output name and alias for that interface only
         if interfacename in port_dict:
@@ -480,7 +483,7 @@ def summary(interfacename, verbose):
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
-            interfacename = _interface.alias_to_name(interfacename)
+            interfacename = convert_interface.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
 
@@ -548,7 +551,7 @@ def description(interfacename, verbose):
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
-            interfacename = _interface.alias_to_name(interfacename)
+            interfacename = convert_interface.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
 
@@ -565,7 +568,7 @@ def status(interfacename, verbose):
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
-            interfacename = _interface.alias_to_name(interfacename)
+            interfacename = convert_interface.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
 
@@ -645,7 +648,7 @@ def counters(interfacename, clear, verbose):
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
-            interfacename = _interface.alias_to_name(interfacename)
+            interfacename = convert_interface.alias_to_name(interfacename)
 
     if clear:
         cmd += " -c"
@@ -794,7 +797,7 @@ def neighbors(interfacename, verbose):
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
-            interfacename = _interface.alias_to_name(interfacename)
+            interfacename = convert_interface.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
 
@@ -1168,7 +1171,7 @@ def config(redis_unix_socket_path):
                 r.append(k)
                 r.append(data[k]['vlanid'])
                 if get_interface_mode() == "alias":
-                    alias = _interface.name_to_alias(m)
+                    alias = convert_interface.name_to_alias(m)
                     r.append(alias)
                 else:
                     r.append(m)
