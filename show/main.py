@@ -43,15 +43,15 @@ class InterfaceAliasConverter(object):
     """Class which handles conversion between interface name and alias"""
 
     def __init__(self):
-        self.vendor_name_max_length = 0
+        self.alias_max_length = 0
         cmd = 'sonic-cfggen -d --var-json "PORT"'
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         self.port_dict = json.loads(p.stdout.read())
 
         for port_name in self.port_dict.keys():
-            if self.vendor_name_max_length < len(
+            if self.alias_max_length < len(
                     self.port_dict[port_name]['alias']):
-               self.vendor_name_max_length = len(
+               self.alias_max_length = len(
                     self.port_dict[port_name]['alias'])
 
     def name_to_alias(self, interface_name):
@@ -199,7 +199,7 @@ def print_output_in_alias_mode(output, index):
     if output.startswith("---"):
         word = output.split()
         dword = word[index]
-        underline = dword.rjust(iface_alias_converter.vendor_name_max_length,
+        underline = dword.rjust(iface_alias_converter.alias_max_length,
                                 '-')
         word[index] = underline
         output = '  ' .join(word)
@@ -212,9 +212,9 @@ def print_output_in_alias_mode(output, index):
             if interface_name == port_name:
                 alias_name = iface_alias_converter.port_dict[port_name]['alias']
     if alias_name:
-        if len(alias_name) < iface_alias_converter.vendor_name_max_length:
+        if len(alias_name) < iface_alias_converter.alias_max_length:
             alias_name = alias_name.rjust(
-                                iface_alias_converter.vendor_name_max_length)
+                                iface_alias_converter.alias_max_length)
         output = output.replace(interface_name, alias_name, 1)
 
     click.echo(output.rstrip('\n'))
@@ -242,7 +242,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("IFACE"):
                     output = output.replace("IFACE", "IFACE".rjust(
-                               iface_alias_converter.vendor_name_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "pfcstat":
@@ -250,11 +250,11 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port Tx"):
                     output = output.replace("Port Tx", "Port Tx".rjust(
-                                iface_alias_converter.vendor_name_max_length))
+                                iface_alias_converter.alias_max_length))
 
                 elif output.startswith("Port Rx"):
                     output = output.replace("Port Rx", "Port Rx".rjust(
-                                iface_alias_converter.vendor_name_max_length))
+                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif (command.startswith("sudo sfputil show")):
@@ -264,7 +264,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
-                               iface_alias_converter.vendor_name_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "sudo lldpshow":
@@ -272,7 +272,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("LocalPort"):
                     output = output.replace("LocalPort", "LocalPort".rjust(
-                               iface_alias_converter.vendor_name_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command.startswith("queuestat"):
@@ -280,7 +280,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
-                               iface_alias_converter.vendor_name_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "fdbshow":
