@@ -13,6 +13,8 @@ from tabulate import tabulate
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 
+import mlnx
+
 try:
     # noinspection PyPep8Naming
     import ConfigParser as configparser
@@ -630,6 +632,8 @@ def table(verbose):
 def platform():
     """Show platform-specific hardware info"""
     pass
+
+platform.add_command(mlnx.mlnx)
 
 # 'summary' subcommand ("show platform summary")
 @platform.command()
