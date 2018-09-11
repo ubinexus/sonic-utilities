@@ -55,8 +55,8 @@ class InterfaceAliasConverter(object):
                     self.port_dict[port_name]['alias'])
 
     def name_to_alias(self, interface_name):
-        """Return alias interface name if default
-           name is given as argument
+        """Return vendor interface alias if SONiC
+           interface name is given as argument
         """
         if interface_name is not None:
             for port_name in self.port_dict.keys():
@@ -67,7 +67,8 @@ class InterfaceAliasConverter(object):
         raise click.Abort()
 
     def alias_to_name(self, interface_alias):
-        """Return default interface name if alias name is given as argument
+        """Return SONiC interface name if vendor
+           port alias is given as argument
         """
         if interface_alias is not None:
             for port_name in self.port_dict.keys():
@@ -402,7 +403,6 @@ def alias(interfacename):
     body = []
 
     if interfacename is not None:
-
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
