@@ -11,6 +11,9 @@ from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
+from swsssdk import SonicV2Connector
+
+import mlnx
 
 try:
     # noinspection PyPep8Naming
@@ -149,13 +152,17 @@ def cli():
 
 @cli.command()
 @click.argument('ipaddress', required=False)
+@click.option('-if', '--iface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def arp(ipaddress, verbose):
+def arp(ipaddress, iface, verbose):
     """Show IP ARP table"""
-    cmd = "/usr/sbin/arp -n"
+    cmd = "nbrshow -4"
 
     if ipaddress is not None:
-        cmd += " {}".format(ipaddress)
+        cmd += " -ip {}".format(ipaddress)
+
+    if iface is not None:
+        cmd += " -if {}".format(iface)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -165,13 +172,17 @@ def arp(ipaddress, verbose):
 
 @cli.command()
 @click.argument('ip6address', required=False)
+@click.option('-if', '--iface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def ndp(ip6address):
+def ndp(ip6address, iface, verbose):
     """Show IPv6 Neighbour table"""
-    cmd = "/bin/ip -6 neigh show"
+    cmd = "nbrshow -6"
 
     if ip6address is not None:
-        cmd += ' {}'.format(ip6address)
+        cmd += " -ip {}".format(ip6address)
+
+    if iface is not None:
+        cmd += " -if {}".format(iface)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -440,6 +451,30 @@ def counters(interfacename, clear, verbose):
     run_command(cmd, display_cmd=verbose)
 
 #
+# 'pfc' group ###
+#
+
+@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+def pfc():
+    """Show PFC information"""
+    pass
+
+
+#
+# 'pfc status' command ###
+#
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def status(interface):
+    """Show PFC information"""
+    if interface is None:
+        interface = ""
+
+    run_command("pfc show asymmetric {0}".format(interface))
+
+
+#
 # 'mac' command ("show mac ...")
 #
 
@@ -598,6 +633,8 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
+platform.add_command(mlnx.mlnx)
+
 # 'summary' subcommand ("show platform summary")
 @platform.command()
 def summary():
@@ -744,7 +781,7 @@ def cpu(verbose):
     # Run top in batch mode to prevent unexpected newline after each newline
     cmd = "top -bn 1 -o %CPU"
     run_command(cmd, display_cmd=verbose)
- 
+
 # 'memory' subcommand
 @processes.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1109,6 +1146,7 @@ def ecn():
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 
+
 #
 # 'reboot-cause' command ("show reboot-cause")
 #
@@ -1137,6 +1175,91 @@ def line():
     """Show all /dev/ttyUSB lines and their info"""
     cmd = "consutil show"
     run_command(cmd, display_cmd=verbose)
+    return
+
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def warm_restart():
+    """Show warm restart configuration and state"""
+    pass
+
+@warm_restart.command()
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def state(redis_unix_socket_path):
+    """Show warm restart state"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+
+    data = {}
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.STATE_DB, False)   # Make one attempt only
+
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'WARM_RESTART_TABLE' + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    table_keys = db.keys(db.STATE_DB, _hash)
+
+    def remove_prefix(text, prefix):
+        if text.startswith(prefix):
+            return text[len(prefix):]
+        return text
+
+    table = []
+    for tk in table_keys:
+        entry = db.get_all(db.STATE_DB, tk)
+        r = []
+        r.append(remove_prefix(tk, prefix))
+        r.append(entry['restart_count'])
+
+        if 'state' not in  entry:
+            r.append("")
+        else:
+            r.append(entry['state'])
+
+        table.append(r)
+
+    header = ['name', 'restart_count', 'state']
+    click.echo(tabulate(table, header))
+
+@warm_restart.command()
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def config(redis_unix_socket_path):
+    """Show warm restart config"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    data = config_db.get_table('WARM_RESTART')
+    keys = data.keys()
+
+    def tablelize(keys, data):
+        table = []
+
+        for k in keys:
+            r = []
+            r.append(k)
+
+            if 'enable' not in  data[k]:
+                r.append("false")
+            else:
+                r.append(data[k]['enable'])
+
+            if 'neighsyncd_timer' in  data[k]:
+                r.append("neighsyncd_timer")
+                r.append(data[k]['neighsyncd_timer'])
+            else:
+                r.append("NULL")
+                r.append("NULL")
+
+            table.append(r)
+
+        return table
+
+    header = ['name', 'enable', 'timer_name', 'timer_duration']
+    click.echo(tabulate(tablelize(keys, data), header))
+
 
 if __name__ == '__main__':
     cli()

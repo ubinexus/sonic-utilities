@@ -6,7 +6,9 @@ import click
 import json
 import subprocess
 import netaddr
+import re
 from swsssdk import ConfigDBConnector
+from natsort import natsorted
 from minigraph import parse_device_desc_xml
 
 import aaa
@@ -17,6 +19,7 @@ SONIC_CFGGEN_PATH = "sonic-cfggen"
 #
 # Helper functions
 #
+
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
@@ -32,6 +35,79 @@ def run_command(command, display_cmd=False, ignore_error=False):
 
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
+
+
+def interface_alias_to_name(interface_alias):
+    """Return default interface name if alias name is given as argument
+    """
+
+    cmd = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+
+    port_dict = json.loads(p.stdout.read())
+
+    if interface_alias is not None:
+        for port_name in natsorted(port_dict.keys()):
+            if interface_alias == port_dict[port_name]['alias']:
+                return port_name
+        print "Invalid interface {}".format(interface_alias)
+
+    return None
+
+
+def interface_name_to_alias(interface_name):
+    """Return alias interface name if default name is given as argument
+    """
+
+    cmd = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+
+    port_dict = json.loads(p.stdout.read())
+
+    if interface_name is not None:
+        for port_name in natsorted(port_dict.keys()):
+            if interface_name == port_name:
+                return port_dict[port_name]['alias']
+        print "Invalid interface {}".format(interface_alias)
+
+    return None
+
+
+def set_interface_mode(mode):
+    """Modify SONIC_CLI_IFACE_MODE env variable in user .bashrc
+    """
+    user = os.getenv('SUDO_USER')
+    bashrc_ifacemode_line = "SONIC_CLI_IFACE_MODE={}".format(mode)
+
+    if not user:
+        user = os.getenv('USER')
+
+    if user != "root":
+        bashrc = "/home/{}/.bashrc".format(user)
+    else:
+        raise click.Abort()
+
+    f = open(bashrc, 'r')
+    filedata = f.read()
+    f.close()
+
+    if "SONIC_CLI_IFACE_MODE" not in filedata:
+        newdata = filedata + bashrc_ifacemode_line
+        newdata += "\n"
+    else:
+        newdata = re.sub(r"SONIC_CLI_IFACE_MODE=\w+",
+                         bashrc_ifacemode_line, filedata)
+    f = open(bashrc, 'w')
+    f.write(newdata)
+    f.close()
+    print "Please logout and log back in for changes take effect."
+
+
+def get_interface_mode():
+    mode = os.getenv('SONIC_CLI_IFACE_MODE')
+    if mode is None:
+        mode = "default"
+    return mode
 
 def _is_neighbor_ipaddress(ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
@@ -62,7 +138,7 @@ def _get_neighbor_ipaddress_list_by_hostname(hostname):
     return addrs
 
 def _change_bgp_session_status_by_addr(ipaddress, status, verbose):
-    """Start up or shut down BGP session by IP address 
+    """Start up or shut down BGP session by IP address
     """
     verb = 'Starting' if status == 'up' else 'Shutting'
     click.echo("{} {} BGP session with neighbor {}...".format(verb, status, ipaddress))
@@ -267,6 +343,54 @@ def load_minigraph():
     print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
 
 #
+# 'mirror' group
+#
+@cli.group()
+def mirror_session():
+    pass
+
+@mirror_session.command()
+@click.argument('session_name', metavar='<session_name>', required=True)
+@click.argument('src_ip', metavar='<src_ip>', required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', required=True)
+@click.argument('dscp', metavar='<dscp>', required=True)
+@click.argument('ttl', metavar='<ttl>', required=True)
+@click.argument('gre_type', metavar='[gre_type]', required=False)
+@click.argument('queue', metavar='[queue]', required=False)
+def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue):
+    """
+    Add mirror session
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    session_info = {
+            "src_ip": src_ip,
+            "dst_ip": dst_ip,
+            "dscp": dscp,
+            "ttl": ttl
+            }
+
+    if gre_type is not None:
+        session_info['gre_type'] = gre_type
+
+    if queue is not None:
+        session_info['queue'] = queue
+
+    config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+
+@mirror_session.command()
+@click.argument('session_name', metavar='<session_name>', required=True)
+def remove(session_name):
+    """
+    Delete mirror session
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.set_entry("MIRROR_SESSION", session_name, None)
+
+
+#
 # 'qos' group
 #
 @cli.group()
@@ -302,6 +426,46 @@ def reload():
             click.secho('QoS definition template not found at {}'.format(qos_template_file), fg='yellow')
     else:
         click.secho('Buffer definition template not found at {}'.format(buffer_template_file), fg='yellow')
+
+#
+# 'warm_restart' group
+#
+@cli.group()
+@click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def warm_restart(ctx, redis_unix_socket_path):
+    """warm_restart-related configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db}
+    pass
+
+@warm_restart.command('enable')
+@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss"]))
+@click.pass_context
+def warm_restart_enable(ctx, module):
+    db = ctx.obj['db']
+    db.mod_entry('WARM_RESTART', module, {'enable': 'true'})
+
+@warm_restart.command('disable')
+@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss"]))
+@click.pass_context
+def warm_restart_enable(ctx, module):
+    db = ctx.obj['db']
+    db.mod_entry('WARM_RESTART', module, {'enable': 'false'})
+
+@warm_restart.command('neighsyncd_timer')
+@click.argument('seconds', metavar='<seconds>', required=True, type=int)
+@click.pass_context
+def warm_restart_neighsyncd_timer(ctx, seconds):
+    db = ctx.obj['db']
+    if seconds not in range(1,9999):
+        print "neighsyncd warm restart timer must be in range 1-9999"
+        raise click.Abort
+    db.mod_entry('WARM_RESTART', 'swss', {'neighsyncd_timer': seconds})
 
 #
 # 'vlan' group
@@ -340,10 +504,12 @@ def del_vlan(ctx, vid):
         db.set_entry('VLAN_MEMBER', k, None)
     db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
+
 @vlan.group('member')
 @click.pass_context
 def vlan_member(ctx):
     pass
+
 
 @vlan_member.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -354,13 +520,27 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
+
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            raise click.Abort()
+
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
-        raise click.Abort
+        raise click.Abort()
     members = vlan.get('members', [])
     if interface_name in members:
-        print "{} is already a member of {}".format(interface_name, vlan_name)
-        raise click.Abort
+        if get_interface_mode() == "alias":
+            interface_name = interface_name_to_alias(interface_name)
+            if interface_name is None:
+                raise click.Abort()
+            print "{} is already a member of {}".format(interface_name,
+                                                        vlan_name)
+        else:
+            print "{} is already a member of {}".format(interface_name,
+                                                        vlan_name)
+        raise click.Abort()
     members.append(interface_name)
     vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
@@ -375,13 +555,25 @@ def del_vlan_member(ctx, vid, interface_name):
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
+
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            raise click.Abort()
+
     if len(vlan) == 0:
         print "{} doesn't exist".format(vlan_name)
-        raise click.Abort
+        raise click.Abort()
     members = vlan.get('members', [])
     if interface_name not in members:
-        print "{} is not a member of {}".format(interface_name, vlan_name)
-        raise click.Abort
+        if get_interface_mode() == "alias":
+            interface_name = interface_name_to_alias(interface_name)
+            if interface_name is None:
+                raise click.Abort()
+            print "{} is not a member of {}".format(interface_name, vlan_name)
+        else:
+            print "{} is not a member of {}".format(interface_name, vlan_name)
+        raise click.Abort()
     members.remove(interface_name)
     if len(members) == 0:
         del vlan['members']
@@ -466,6 +658,11 @@ def interface():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def shutdown(interface_name, verbose):
     """Shut down interface"""
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            raise click.Abort()
+
     command = "ip link set {} down".format(interface_name)
     run_command(command, display_cmd=verbose)
 
@@ -478,6 +675,12 @@ def shutdown(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def startup(interface_name, verbose):
     """Start up interface"""
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            raise click.Abort()
+
+
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
 
@@ -491,6 +694,11 @@ def startup(interface_name, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def speed(interface_name, interface_speed, verbose):
     """Set interface speed"""
+    if get_interface_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            raise click.Abort()
+
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose: command += " -vv"
     run_command(command, display_cmd=verbose)
@@ -564,12 +772,58 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
 
 
 #
+# 'pfc' group
+#
+
+@interface.group()
+def pfc():
+    """Set PFC configuration."""
+    pass
+
+
+#
+# 'pfc asymmetric' command
+#
+
+@pfc.command()
+@click.argument('status', type=click.Choice(['on', 'off']))
+@click.argument('interface', type=click.STRING)
+def asymmetric(status, interface):
+    """Set asymmetric PFC configuration."""
+    run_command("pfc config asymmetric {0} {1}".format(status, interface))
+
+
+#
 # 'platform' group
 #
 @cli.group()
 def platform():
     """Platform-related configuration tasks"""
 platform.add_command(mlnx.mlnx)
+
+
+#
+# 'interface_mode' group
+#
+
+@cli.group()
+def interface_naming_mode():
+    """Modify interface naming mode for interacting with SONiC CLI"""
+    pass
+
+
+@interface_naming_mode.command('default')
+def interface_mode_default():
+    """Set CLI interface naming mode to DEFAULT (SONiC port name)"""
+    alias_mode = "default"
+    set_interface_mode(alias_mode)
+
+
+@interface_naming_mode.command('alias')
+def interface_mode_alias():
+    """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
+    alias_mode = "alias"
+    set_interface_mode(alias_mode)
 
 
 if __name__ == '__main__':
