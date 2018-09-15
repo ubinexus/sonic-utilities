@@ -209,6 +209,7 @@ def print_output_in_alias_mode(output, index):
     word = output.split()
     if word:
         interface_name = word[index]
+        interface_name = interface_name.replace(':', '')
     for port_name in natsorted(iface_alias_converter.port_dict.keys()):
             if interface_name == port_name:
                 alias_name = iface_alias_converter.port_dict[port_name]['alias']
@@ -258,9 +259,14 @@ def run_command_in_alias_mode(command):
                                 iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
+            elif command == "sudo sfputil show eeprom":
+                """show interface transceiver eeprom"""
+                index = 0
+                print_output_in_alias_mode(raw_output, index)
+
             elif (command.startswith("sudo sfputil show")):
                 """show interface transceiver lpmode,
-                  presence, eeprom
+                   presence
                 """
                 index = 0
                 if output.startswith("Port"):
@@ -628,6 +634,15 @@ def counters(clear, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+# 'naming_mode' subcommand ("show interfaces naming_mode")
+@interfaces.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def naming_mode(verbose):
+    """Show interface naming_mode status"""
+
+    click.echo(get_interface_mode())
+
+
 #
 # 'queue' group ("show queue ...")
 #
@@ -967,7 +982,6 @@ def cpu(verbose):
     # Run top in batch mode to prevent unexpected newline after each newline
     cmd = "top -bn 1 -o %CPU"
     run_command(cmd, display_cmd=verbose)
-
 
 # 'memory' subcommand
 @processes.command()
