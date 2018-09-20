@@ -259,7 +259,7 @@ def run_command_in_alias_mode(command):
                                 iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
-            elif command == "sudo sfputil show eeprom":
+            elif (command.startswith("sudo sfputil show eeprom")):
                 """show interface transceiver eeprom"""
                 index = 0
                 print_output_in_alias_mode(raw_output, index)
@@ -516,6 +516,9 @@ def eeprom(interfacename, dump_dom, verbose):
         cmd += " --dom"
 
     if interfacename is not None:
+        if get_interface_mode() == "alias":
+            interfacename = iface_alias_converter.alias_to_name(interfacename)
+
         cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
@@ -530,6 +533,9 @@ def lpmode(interfacename, verbose):
     cmd = "sudo sfputil show lpmode"
 
     if interfacename is not None:
+        if get_interface_mode() == "alias":
+            interfacename = iface_alias_converter.alias_to_name(interfacename)
+
         cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
@@ -543,6 +549,9 @@ def presence(interfacename, verbose):
     cmd = "sudo sfputil show presence"
 
     if interfacename is not None:
+        if get_interface_mode() == "alias":
+            interfacename = iface_alias_converter.alias_to_name(interfacename)
+
         cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
