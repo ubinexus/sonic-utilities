@@ -850,6 +850,27 @@ def platform():
     """Platform-related configuration tasks"""
 platform.add_command(mlnx.mlnx)
 
+#
+# 'watermark' group ("show watermark telemetry interval")
+#
+
+@cli.group()
+def watermark():
+    """Configure watermark """
+    pass
+
+@watermark.group()
+def telemetry():
+    """Configure watermark telemetry"""
+    pass
+
+@telemetry.command()
+@click.argument('interval', required=True)
+def interval(interval):
+    """Configure watermark telemetry interval"""
+    command = 'watermarkcfg --config-interval ' + interval
+    run_command(command)
+   
 
 #
 # 'interface_mode' group
