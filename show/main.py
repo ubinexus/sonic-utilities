@@ -878,25 +878,30 @@ platform.add_command(mlnx.mlnx)
 @platform.command()
 def summary():
     """Show hardware platform information"""
-    username = getpass.getuser()
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('DEVICE_METADATA')
 
-    PLATFORM_TEMPLATE_FILE = "/tmp/cli_platform_{0}.j2".format(username)
-    PLATFORM_TEMPLATE_CONTENTS = "Platform: {{ DEVICE_METADATA.localhost.platform }}\n" \
-                                 "HwSKU: {{ DEVICE_METADATA.localhost.hwsku }}\n" \
-                                 "ASIC: {{ asic_type }}"
+    try:
+        platform = data['localhost']['platform']
+    except KeyError:
+        platform = "Unknown"
 
-    # Create a temporary Jinja2 template file to use with sonic-cfggen
-    f = open(PLATFORM_TEMPLATE_FILE, 'w')
-    f.write(PLATFORM_TEMPLATE_CONTENTS)
-    f.close()
+    try:
+        hwsku = data['localhost']['hwsku']
+    except KeyError:
+        hwsku = "Unknown"
 
-    cmd = "sonic-cfggen -d -y /etc/sonic/sonic_version.yml -t {0}".format(PLATFORM_TEMPLATE_FILE)
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    click.echo(p.stdout.read())
+    cmd = "sonic-cfggen -d -y /etc/sonic/sonic_version.yml -v asic_type"
+    try:
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        asic_type = p.stdout.read()
+    except OSError:
+        asic_type = "Unknown"
 
-    # Clean up
-    os.remove(PLATFORM_TEMPLATE_FILE)
-
+    click.echo("Platform: {}".format(platform))
+    click.echo("HwSKU: {}".format(hwsku))
+    click.echo("ASIC: {}".format(asic_type))
 
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
