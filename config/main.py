@@ -265,12 +265,28 @@ def save(filename):
     run_command(command, display_cmd=True)
 
 @cli.command()
+@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+def check(filename):
+    """Verifies that the configuration in the json file is correct."""
+
+    command = "{} -j {} --check-json".format(SONIC_CFGGEN_PATH, filename)
+    run_command(command, display_cmd=True)
+    print "Valid configuration found in " + filename + " file"
+
+@cli.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
 def load(filename, yes):
     """Import a previous saved config DB dump file."""
+
     if not yes:
         click.confirm('Load config from the file %s?' % filename, abort=True)
+
+    # Validating passed json configuration file
+    command = "{} -j {} --check-json".format(SONIC_CFGGEN_PATH, filename)
+    run_command(command, display_cmd=True)
+
+    # Proceeding to load changes into DB
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
 
@@ -281,6 +297,11 @@ def reload(filename, yes):
     """Clear current configuration and import a previous saved config DB dump file."""
     if not yes:
         click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+
+    # Validating passed json configuration file
+    command = "{} -j {} --check-json".format(SONIC_CFGGEN_PATH, filename)
+    run_command(command, display_cmd=True)
+
     #Stop services before config push
     _stop_services()
     config_db = ConfigDBConnector()
