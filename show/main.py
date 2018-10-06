@@ -1,18 +1,20 @@
 #! /usr/bin/python -u
 
-import click
 import errno
 import json
 import os
 import re
-import sonic_platform
 import subprocess
 import sys
+
+import click
 from click_default_group import DefaultGroup
 from natsort import natsorted
+from tabulate import tabulate
+
+import sonic_platform
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
-from tabulate import tabulate
 
 import mlnx
 
