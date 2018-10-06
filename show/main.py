@@ -2,17 +2,17 @@
 
 import click
 import errno
-import getpass
 import json
 import os
 import re
+import sonic_platform
 import subprocess
 import sys
 from click_default_group import DefaultGroup
 from natsort import natsorted
-from tabulate import tabulate
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from tabulate import tabulate
 
 import mlnx
 
@@ -878,26 +878,20 @@ platform.add_command(mlnx.mlnx)
 @platform.command()
 def summary():
     """Show hardware platform information"""
+    machine_info = sonic_platform.get_machine_info()
+    platform = sonic_platform.get_platform_info(machine_info)
+
     config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('DEVICE_METADATA')
-
-    try:
-        platform = data['localhost']['platform']
-    except KeyError:
-        platform = "Unknown"
 
     try:
         hwsku = data['localhost']['hwsku']
     except KeyError:
         hwsku = "Unknown"
 
-    cmd = "sonic-cfggen -d -y /etc/sonic/sonic_version.yml -v asic_type"
-    try:
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        asic_type = p.stdout.read()
-    except OSError:
-        asic_type = "Unknown"
+    version_info = sonic_platform.get_sonic_version_info()
+    asic_type = version_info['asic_type']
 
     click.echo("Platform: {}".format(platform))
     click.echo("HwSKU: {}".format(hwsku))
@@ -960,32 +954,19 @@ def logging(process, lines, follow, verbose):
 @cli.command()
 def version():
     """Show version information"""
-    username = getpass.getuser()
+    version_info = sonic_platform.get_sonic_version_info()
 
-    VERSION_TEMPLATE_FILE = "/tmp/cli_version_{0}.j2".format(username)
-    VERSION_TEMPLATE_CONTENTS = "SONiC Software Version: SONiC.{{ build_version }}\n" \
-                                "Distribution: Debian {{ debian_version }}\n" \
-                                "Kernel: {{ kernel_version }}\n" \
-                                "Build commit: {{ commit_id }}\n" \
-                                "Build date: {{ build_date }}\n" \
-                                "Built by: {{ built_by }}"
+    click.echo("SONiC Software Version: SONiC.{}".format(version_info['build_version']))
+    click.echo("Distribution: Debian {}".format(version_info['debian_version']))
+    click.echo("Kernel: {}".format(version_info['kernel_version']))
+    click.echo("Build commit: {}".format(version_info['commit_id']))
+    click.echo("Build date: {}".format(version_info['build_date']))
+    click.echo("Built by: {}".format(version_info['built_by']))
 
-    # Create a temporary Jinja2 template file to use with sonic-cfggen
-    f = open(VERSION_TEMPLATE_FILE, 'w')
-    f.write(VERSION_TEMPLATE_CONTENTS)
-    f.close()
-
-    cmd = "sonic-cfggen -y /etc/sonic/sonic_version.yml -t {0}".format(VERSION_TEMPLATE_FILE)
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    click.echo(p.stdout.read())
-
-    click.echo("Docker images:")
+    click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
-
-    # Clean up
-    os.remove(VERSION_TEMPLATE_FILE)
 
 #
 # 'environment' command ("show environment")
