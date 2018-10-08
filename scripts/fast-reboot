@@ -3,19 +3,32 @@
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
 REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
+REBOOT_TYPE=$(basename $0)
+
+# Check reboot type supported
+case "$REBOOT_TYPE" in
+    "fast-reboot")
+        ;;
+    "warm-reboot")
+        ;;
+    *)
+        echo "Not supported reboot type: $REBOOT_TYPE" >&2
+        exit 1
+        ;;
+esac
 
 # Check root privileges
 if [[ "$EUID" -ne 0 ]]
 then
-  echo "This command must be run as root" >&2
-  exit
+    echo "This command must be run as root" >&2
+    exit 1
 fi
 
 
 # Unload the previously loaded kernel if any loaded
 if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]
 then
-  /sbin/kexec -u
+    /sbin/kexec -u
 fi
 
 # Kernel and initrd image
@@ -23,13 +36,13 @@ NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
 if grep -q aboot_platform= /host/machine.conf; then
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-    BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') fast-reboot"
+    BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') ${REBOOT_TYPE}"
 elif grep -q onie_platform= /host/machine.conf; then
     KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
     KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
-    BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') fast-reboot"
+    BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') ${REBOOT_TYPE}"
 else
-    echo "Unknown bootloader. fast-reboot is not supported."
+    echo "Unknown bootloader. ${REBOOT_TYPE} is not supported."
     exit 1
 fi
 INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
@@ -39,7 +52,7 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 # Install new FW for mellanox platforms before control plane goes down
 # So on boot switch will not spend time to upgrade FW increasing the CP downtime
 if [[ "$sonic_asic_type" == "mellanox" ]]; then
-    echo "Prepare MLNX ASIC to fast reboot: install new FW if required"
+    echo "Prepare MLNX ASIC to ${REBOOT_TYPE}: install new FW if required"
 
     MLNX_EXIT_SUCCESS="0"
     MLNX_EXIT_ERROR="1"
@@ -57,10 +70,12 @@ fi
 # Load kernel into the memory
 /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 
-# Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
-# into /host/fast-reboot
-mkdir -p /host/fast-reboot
-/usr/bin/fast-reboot-dump.py -t /host/fast-reboot
+if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+    # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
+    # into /host/fast-reboot
+    mkdir -p /host/fast-reboot
+    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
+fi
 
 # Kill bgpd to start the bgp graceful restart procedure
 docker exec -i bgp killall -9 zebra
@@ -72,16 +87,29 @@ docker kill lldp > /dev/null
 # Kill teamd, otherwise it gets down all LAGs
 docker kill teamd > /dev/null
 
+# Freeze orchagent for warm restart
+if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+    /usr/bin/orchagent_restart_check || {
+        echo "RESTARTCHECK failed\n" >&2
+        # TODO: remove this sleep if we have better timing control
+        sleep 1
+        exit 10
+    }
+fi
+
 # syncd graceful stop is supported only for Broadcom platforms only for now
-if [[ "$sonic_asic_type" = 'broadcom' ]];
-then
+if [[ "$sonic_asic_type" = 'broadcom' ]]; then
     # Gracefully stop syncd
-    docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+    if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+        docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+    elif [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+        docker exec -i syncd /usr/bin/syncd_request_shutdown --warm > /dev/null
+    fi
 
     # Check that syncd was stopped
     while docker top syncd | grep -q /usr/bin/syncd
     do
-          sleep 0.1
+        sleep 0.1
     done
 fi
 
@@ -91,23 +119,19 @@ docker ps -q | xargs docker kill > /dev/null
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
 
-# Stop opennsl modules for Broadcom platform
-if [[ "$sonic_asic_type" = 'broadcom' ]];
-then
-  service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
-  systemctl stop "$service_name"
+if [[ "$sonic_asic_type" = 'broadcom' ]]; then
+    # Stop opennsl modules for Broadcom platform
+    service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
+    systemctl stop "$service_name"
+elif [[ "$sonic_asic_type" = 'nephos' ]]; then
+    # Stop kernel modules for Nephos platform
+    systemctl stop nps-modules-`uname -r`.service
 fi
 
-# Stop kernel modules for Nephos platform
-if [[ "$sonic_asic_type" = 'nephos' ]];
-then
-  systemctl stop nps-modules-`uname -r`.service
-fi
-
-# Update the reboot cause file to reflect that user issued 'fast-reboot' command
+# Update the reboot cause file to reflect that user issued this script
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
-echo "User issued 'fast-reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+echo "User issued '${REBOOT_TYPE}' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
 
 # Wait until all buffers synced with disk
 sync
@@ -119,5 +143,5 @@ echo "Rebooting to $NEXT_SONIC_IMAGE..."
 exec /sbin/reboot
 
 # Should never reach here
-echo "fast-reboot failed!" >&2
+echo "${REBOOT_TYPE} failed!" >&2
 exit 1
