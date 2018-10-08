@@ -472,6 +472,7 @@ class AclLoader(object):
                     data.append([key, val["type"], "", val["policy_desc"]])
                 else:
                     ports = val["ports"].split(",")
+                    ports.sort(key=lambda name:int(name.strip('Ethernet')))
                     data.append([key, val["type"], ports[0], val["policy_desc"]])
 
                     if len(ports) > 1:
