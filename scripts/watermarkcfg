@@ -6,7 +6,6 @@
 #
 #####################################################################
 
-
 import argparse
 import sys
 import swsssdk
@@ -31,7 +30,7 @@ class Watermarkcfg(object):
         if wm_info:
             print '\nTelemetry interval: ' + wm_info['interval'] + ' second(s)\n'
         else:
-            print '\nError! Could not get the configuration.\n'
+            print '\nTelemetry interval 120 second(s)\n'
 
 
 def main():
@@ -63,4 +62,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-

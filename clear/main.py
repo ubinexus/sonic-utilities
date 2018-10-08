@@ -205,8 +205,9 @@ def priority_group():
 
 @priority_group.group()
 def watermark():
-    """Clear priority_group user WM"""
-    pass
+    """Clear priority_group user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
 
 @watermark.command('headroom')
 def clear_wm_pg_headroom():
@@ -222,8 +223,9 @@ def clear_wm_pg_shared():
 
 @priority_group.group(name='persistent-watermark')
 def persistent_watermark():
-    """Clear queue persistent WM"""
-    pass
+    """Clear queue persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
 
 @persistent_watermark.command('headroom')
 def clear_pwm_pg_headroom():
@@ -245,8 +247,9 @@ def queue():
 
 @queue.group()
 def watermark():
-    """Clear queue user WM"""
-    pass
+    """Clear queue user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
 
 @watermark.command('unicast')
 def clear_wm_q_uni():
@@ -260,10 +263,11 @@ def clear_wm_q_multi():
     command = 'watermarkstat -c -t q_shared_multi'
     run_command(command)
 
-@queue.group()
-def persistent_watermark(name='persistent-watermark'):
-    """Clear queue persistent WM"""
-    pass
+@queue.group(name='persistent-watermark')
+def persistent_watermark():
+    """Clear queue persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
 
 @persistent_watermark.command('unicast')
 def clear_pwm_q_uni():
