@@ -121,7 +121,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Dump redis content to directory
     # Note: don't use pretty mode redis-dump (1.1) since there is a known bug with key pattern
     DUMP_CMD="redis-dump -s /var/run/redis/redis.sock"
-    WARM_DIR=/host/warm-reboot
+    WARM_DIR=/host/warmboot
     mkdir -p $WARM_DIR
     # Note: requiring redis-dump-load
     # Save applDB in /host/warm-reboot/appl_db.json
