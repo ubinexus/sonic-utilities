@@ -89,7 +89,7 @@ docker kill teamd > /dev/null
 
 # Freeze orchagent for warm restart
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    /usr/bin/orchagent_restart_check || {
+    docker exec -i swss /usr/bin/orchagent_restart_check || {
         echo "RESTARTCHECK failed\n" >&2
         # TODO: remove this sleep if we have better timing control
         sleep 1
