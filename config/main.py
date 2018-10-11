@@ -75,7 +75,7 @@ def interface_name_to_alias(interface_name):
     return None
 
 
-def set_interface_naming_mode(mode):
+def set_interface_naming_mode(click_context, mode):
     """Modify SONIC_CLI_IFACE_MODE env variable in user .bashrc
     """
     user = os.getenv('SUDO_USER')
@@ -87,8 +87,7 @@ def set_interface_naming_mode(mode):
     if user != "root":
         bashrc = "/home/{}/.bashrc".format(user)
     else:
-        click.echo("Error: Cannot set interface naming mode for root user!")
-        raise click.Abort()
+        click_context.fail("Error: Cannot set interface naming mode for root user!")
 
     f = open(bashrc, 'r')
     filedata = f.read()
@@ -150,7 +149,7 @@ def _change_bgp_session_status_by_addr(ipaddress, status, verbose):
 
     config_db.mod_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
-def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
+def _change_bgp_session_status(click_context, ipaddr_or_hostname, status, verbose):
     """Start up or shut down BGP session by IP address or hostname
     """
     ip_addrs = []
@@ -164,8 +163,7 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
         ip_addrs = _get_neighbor_ipaddress_list_by_hostname(ipaddr_or_hostname)
 
     if not ip_addrs:
-        click.echo("Error: could not locate neighbor '{}'".format(ipaddr_or_hostname))
-        raise click.Abort
+        click_context.fail("Error: could not locate neighbor '{}'".format(ipaddr_or_hostname))
 
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(ip_addr, status, verbose)
@@ -545,8 +543,7 @@ def warm_restart_enable(ctx, module):
 def warm_restart_neighsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
     if seconds not in range(1,9999):
-        click.echo("neighsyncd warm restart timer must be in range 1-9999")
-        raise click.Abort
+        ctx.fail("neighsyncd warm restart timer must be in range 1-9999")
     db.mod_entry('WARM_RESTART', 'swss', {'neighsyncd_timer': seconds})
 
 #
@@ -572,8 +569,7 @@ def add_vlan(ctx, vid):
     db = ctx.obj['db']
     vlan = 'Vlan{}'.format(vid)
     if len(db.get_entry('VLAN', vlan)) != 0:
-        click.echo("{} already exists".format(vlan))
-        raise click.Abort
+        ctx.fail("{} already exists".format(vlan))
     db.set_entry('VLAN', vlan, {'vlanid': vid})
 
 @vlan.command('del')
@@ -609,25 +605,21 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            click.echo("Error: 'interface_name' is None!")
-            raise click.Abort()
+            ctx.fail("Error: 'interface_name' is None!")
 
     if len(vlan) == 0:
-        click.echo("{} doesn't exist".format(vlan_name))
-        raise click.Abort()
+        ctx.fail("{} doesn't exist".format(vlan_name))
     members = vlan.get('members', [])
     if interface_name in members:
         if get_interface_naming_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
-                click.echo("Error: 'interface_name' is None!")
-                raise click.Abort()
-            click.echo("{} is already a member of {}".format(interface_name,
+                ctx.fail("Error: 'interface_name' is None!")
+            ctx.fail("{} is already a member of {}".format(interface_name,
                                                         vlan_name))
         else:
-            click.echo("{} is already a member of {}".format(interface_name,
+            ctx.fail("{} is already a member of {}".format(interface_name,
                                                         vlan_name))
-        raise click.Abort()
     members.append(interface_name)
     vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
@@ -646,23 +638,19 @@ def del_vlan_member(ctx, vid, interface_name):
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            click.echo("Error: 'interface_name' is None!")
-            raise click.Abort()
+            ctx.fail("Error: 'interface_name' is None!")
 
     if len(vlan) == 0:
-        click.echo("{} doesn't exist".format(vlan_name))
-        raise click.Abort()
+        ctx.fail("{} doesn't exist".format(vlan_name))
     members = vlan.get('members', [])
     if interface_name not in members:
         if get_interface_naming_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
-                click.echo("Error: 'interface_name' is None!")
-                raise click.Abort()
-            click.echo("{} is not a member of {}".format(interface_name, vlan_name))
+                ctx.fail("Error: 'interface_name' is None!")
+            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
         else:
-            click.echo("{} is not a member of {}".format(interface_name, vlan_name))
-        raise click.Abort()
+            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
     members.remove(interface_name)
     if len(members) == 0:
         del vlan['members']
@@ -703,9 +691,10 @@ def all(verbose):
 @shutdown.command()
 @click.argument('ipaddr_or_hostname', metavar='<ipaddr_or_hostname>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def neighbor(ipaddr_or_hostname, verbose):
+@click.pass_context
+def neighbor(ctx, ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname"""
-    _change_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
+    _change_bgp_session_status(ctx, ipaddr_or_hostname, 'down', verbose)
 
 @bgp.group()
 def startup():
@@ -715,19 +704,21 @@ def startup():
 # 'all' subcommand
 @startup.command()
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def all(verbose):
+@click.pass_context
+def all(ctx, verbose):
     """Start up all BGP sessions"""
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
     for ipaddress in bgp_neighbor_ip_list:
-        _change_bgp_session_status(ipaddress, 'up', verbose)
+        _change_bgp_session_status(ctx, ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
 @startup.command()
 @click.argument('ipaddr_or_hostname', metavar='<ipaddr_or_hostname>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def neighbor(ipaddr_or_hostname, verbose):
+@click.pass_context
+def neighbor(ctx, ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
-    _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
+    _change_bgp_session_status(ctx, ipaddr_or_hostname, 'up', verbose)
 
 #
 # 'interface' group ('config interface ...')
@@ -745,8 +736,7 @@ def interface(ctx, interface_name):
     if get_interface_naming_mode() == "alias":
         ctx.obj['interface_name'] = interface_alias_to_name(interface_name)
         if ctx.obj['interface_name'] is None:
-            click.echo("Error: 'interface_name' is None!")
-            raise click.Abort()
+            ctx.fail("Error: 'interface_name' is None!")
     else:
         ctx.obj['interface_name'] = interface_name
 
@@ -952,14 +942,16 @@ def interface_naming_mode():
     pass
 
 @interface_naming_mode.command('default')
-def naming_mode_default():
+@click.pass_context
+def naming_mode_default(ctx):
     """Set CLI interface naming mode to DEFAULT (SONiC port name)"""
-    set_interface_naming_mode('default')
+    set_interface_naming_mode(ctx, 'default')
 
 @interface_naming_mode.command('alias')
-def naming_mode_alias():
+@click.pass_context
+def naming_mode_alias(ctx):
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
-    set_interface_naming_mode('alias')
+    set_interface_naming_mode(ctx, 'alias')
 
 
 
