@@ -1184,7 +1184,7 @@ def brief(verbose):
     config_db = ConfigDBConnector()
     config_db.connect()
     header = ['VLAN ID','IP Address','Ports','DHCP Helper Address']
-    body =[]
+    body = []
     vlan_keys = []
 
     # Fetching data from config_db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
@@ -1201,7 +1201,7 @@ def brief(verbose):
 
     # Parsing DHCP Helpers info
     for key in natsorted(vlan_dhcp_helper_data.keys()):
-        try :
+        try:
             if vlan_dhcp_helper_data[key]['dhcp_servers']:
                 vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
         except KeyError:
@@ -1232,7 +1232,7 @@ def brief(verbose):
         ip_address = ','.replace(',','\n').join(vlan_ip_dict[key])
         vlan_ports = ','.replace(',','\n').join((vlan_ports_dict[key]))
         body.append([key,ip_address,vlan_ports,dhcp_helpers])
-    click.echo(tabulate(body, header, tablefmt ="grid"))
+    click.echo(tabulate(body, header, tablefmt = "grid"))
 
 @vlan.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
