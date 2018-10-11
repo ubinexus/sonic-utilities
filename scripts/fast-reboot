@@ -97,6 +97,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
         exit 10
     }
 fi
+# Set whole system warm reboot flag
+config warm_restart enable system
 
 # syncd graceful stop is supported only for Broadcom platforms only for now
 if [[ "$sonic_asic_type" = 'broadcom' ]]; then
