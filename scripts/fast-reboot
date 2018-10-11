@@ -85,6 +85,7 @@ docker exec -i bgp killall -9 bgpd
 docker kill lldp > /dev/null
 
 # Kill teamd, otherwise it gets down all LAGs
+# Note: teamd must be killed before syncd, because it will send the last packet through CPU port
 docker kill teamd > /dev/null
 
 # Freeze orchagent for warm restart
@@ -113,10 +114,8 @@ if [[ "$sonic_asic_type" = 'broadcom' ]]; then
     done
 fi
 
-# Kill swss and syncd dockers
-docker kill swss syncd
-
 # Warm reboot: dump state to host disk
+# Note: even if syncd changed ASIC_DB before killed, we don't care
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Dump redis content to directory
     # Note: don't use pretty mode redis-dump (1.1) since there is a known bug with key pattern
@@ -135,6 +134,9 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Save asicDB in /host/warm-reboot/asic_db.json
     $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json
 fi
+
+# Kill swss and syncd dockers
+docker kill swss syncd
 
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
