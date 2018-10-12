@@ -75,7 +75,7 @@ def interface_name_to_alias(interface_name):
     return None
 
 
-def set_interface_naming_mode(click_context, mode):
+def set_interface_naming_mode(mode):
     """Modify SONIC_CLI_IFACE_MODE env variable in user .bashrc
     """
     user = os.getenv('SUDO_USER')
@@ -87,7 +87,7 @@ def set_interface_naming_mode(click_context, mode):
     if user != "root":
         bashrc = "/home/{}/.bashrc".format(user)
     else:
-        click_context.fail("Error: Cannot set interface naming mode for root user!")
+        click.get_current_context().fail("Error: Cannot set interface naming mode for root user!")
 
     f = open(bashrc, 'r')
     filedata = f.read()
@@ -149,7 +149,7 @@ def _change_bgp_session_status_by_addr(ipaddress, status, verbose):
 
     config_db.mod_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
-def _change_bgp_session_status(click_context, ipaddr_or_hostname, status, verbose):
+def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     """Start up or shut down BGP session by IP address or hostname
     """
     ip_addrs = []
@@ -163,7 +163,7 @@ def _change_bgp_session_status(click_context, ipaddr_or_hostname, status, verbos
         ip_addrs = _get_neighbor_ipaddress_list_by_hostname(ipaddr_or_hostname)
 
     if not ip_addrs:
-        click_context.fail("Error: could not locate neighbor '{}'".format(ipaddr_or_hostname))
+        click.get_current_context().fail("Error: could not locate neighbor '{}'".format(ipaddr_or_hostname))
 
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(ip_addr, status, verbose)
@@ -691,10 +691,9 @@ def all(verbose):
 @shutdown.command()
 @click.argument('ipaddr_or_hostname', metavar='<ipaddr_or_hostname>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-@click.pass_context
-def neighbor(ctx, ipaddr_or_hostname, verbose):
+def neighbor(ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname"""
-    _change_bgp_session_status(ctx, ipaddr_or_hostname, 'down', verbose)
+    _change_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
 
 @bgp.group()
 def startup():
@@ -704,21 +703,19 @@ def startup():
 # 'all' subcommand
 @startup.command()
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-@click.pass_context
-def all(ctx, verbose):
+def all(verbose):
     """Start up all BGP sessions"""
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
     for ipaddress in bgp_neighbor_ip_list:
-        _change_bgp_session_status(ctx, ipaddress, 'up', verbose)
+        _change_bgp_session_status(ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
 @startup.command()
 @click.argument('ipaddr_or_hostname', metavar='<ipaddr_or_hostname>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-@click.pass_context
-def neighbor(ctx, ipaddr_or_hostname, verbose):
+def neighbor(ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
-    _change_bgp_session_status(ctx, ipaddr_or_hostname, 'up', verbose)
+    _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
 
 #
 # 'interface' group ('config interface ...')
@@ -942,16 +939,14 @@ def interface_naming_mode():
     pass
 
 @interface_naming_mode.command('default')
-@click.pass_context
-def naming_mode_default(ctx):
+def naming_mode_default():
     """Set CLI interface naming mode to DEFAULT (SONiC port name)"""
-    set_interface_naming_mode(ctx, 'default')
+    set_interface_naming_mode('default')
 
 @interface_naming_mode.command('alias')
-@click.pass_context
-def naming_mode_alias(ctx):
+def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
-    set_interface_naming_mode(ctx, 'alias')
+    set_interface_naming_mode('alias')
 
 
 
