@@ -6,10 +6,13 @@ REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
 REBOOT_TYPE=$(basename $0)
 
 # Check reboot type supported
+BOOT_TYPE_ARG="cold"
 case "$REBOOT_TYPE" in
     "fast-reboot")
+        BOOT_TYPE_ARG=$REBOOT_TYPE
         ;;
     "warm-reboot")
+        BOOT_TYPE_ARG="warm"
         ;;
     *)
         echo "Not supported reboot type: $REBOOT_TYPE" >&2
@@ -40,7 +43,7 @@ if grep -q aboot_platform= /host/machine.conf; then
 elif grep -q onie_platform= /host/machine.conf; then
     KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
     KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
-    BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') ${REBOOT_TYPE}"
+    BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
 else
     echo "Unknown bootloader. ${REBOOT_TYPE} is not supported."
     exit 1
@@ -99,6 +102,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
 fi
 # Set whole system warm reboot flag
 config warm_restart enable system
+# Kill swss dockers
+docker kill swss
 
 # syncd graceful stop is supported only for Broadcom platforms only for now
 if [[ "$sonic_asic_type" = 'broadcom' ]]; then
@@ -137,8 +142,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json
 fi
 
-# Kill swss and syncd dockers
-docker kill swss syncd
+# Kill syncd dockers
+docker kill syncd
 
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
