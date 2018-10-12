@@ -1183,7 +1183,7 @@ def brief(verbose):
     """Show all bridge information"""
     config_db = ConfigDBConnector()
     config_db.connect()
-    header = ['VLAN ID','IP Address','Ports','DHCP Helper Address']
+    header = ['VLAN ID', 'IP Address', 'Ports', 'DHCP Helper Address']
     body = []
     vlan_keys = []
 
@@ -1226,13 +1226,14 @@ def brief(verbose):
         else:
             vlan_ports_dict[ports_key] = [ports_value]
 
-    # Printing the following dictionaries in tablular forms: vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
+    # Printing the following dictionaries in tablular forms:
+    # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
     for key in natsorted(vlan_dhcp_helper_dict.keys()):
-        dhcp_helpers = ','.replace(',','\n').join(vlan_dhcp_helper_dict[key])
-        ip_address = ','.replace(',','\n').join(vlan_ip_dict[key])
-        vlan_ports = ','.replace(',','\n').join((vlan_ports_dict[key]))
-        body.append([key,ip_address,vlan_ports,dhcp_helpers])
-    click.echo(tabulate(body, header, tablefmt = "grid"))
+        dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
+        ip_address = ','.replace(',', '\n').join(vlan_ip_dict[key])
+        vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
+        body.append([key, ip_address, vlan_ports, dhcp_helpers])
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 @vlan.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
