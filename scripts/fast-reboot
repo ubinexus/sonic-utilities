@@ -89,6 +89,7 @@ docker kill lldp > /dev/null
 
 # Kill teamd, otherwise it gets down all LAGs
 # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
+# TODO: stop teamd gracefully to allow teamd to send last valid update to be sure we'll have 90 seconds reboot time
 docker kill teamd > /dev/null
 
 # Freeze orchagent for warm restart
