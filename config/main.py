@@ -922,12 +922,13 @@ def asymmetric(status, interface):
 # 'platform' group ('config platform ...')
 #
 
-@cli.group()
+@config.group()
 def platform():
     """Platform-related configuration tasks"""
 
 if (sonic_platform.get_sonic_version_info()['asic_type'] == 'mellanox'):
     platform.add_command(mlnx.mlnx)
+
 
 #
 # 'interface_naming_mode' subgroup ('config interface_naming_mode ...')
@@ -947,7 +948,6 @@ def naming_mode_default():
 def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
-
 
 
 if __name__ == '__main__':
