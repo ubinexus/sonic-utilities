@@ -87,7 +87,7 @@ def set_interface_naming_mode(mode):
     if user != "root":
         bashrc = "/home/{}/.bashrc".format(user)
     else:
-        click.get_current_context().fail("Error: Cannot set interface naming mode for root user!")
+        click.get_current_context().fail("Cannot set interface naming mode for root user!")
 
     f = open(bashrc, 'r')
     filedata = f.read()
@@ -163,7 +163,7 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
         ip_addrs = _get_neighbor_ipaddress_list_by_hostname(ipaddr_or_hostname)
 
     if not ip_addrs:
-        click.get_current_context().fail("Error: could not locate neighbor '{}'".format(ipaddr_or_hostname))
+        click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
 
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(ip_addr, status, verbose)
@@ -605,7 +605,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            ctx.fail("Error: 'interface_name' is None!")
+            ctx.fail("'interface_name' is None!")
 
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
@@ -614,7 +614,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
         if get_interface_naming_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
-                ctx.fail("Error: 'interface_name' is None!")
+                ctx.fail("'interface_name' is None!")
             ctx.fail("{} is already a member of {}".format(interface_name,
                                                         vlan_name))
         else:
@@ -638,7 +638,7 @@ def del_vlan_member(ctx, vid, interface_name):
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
-            ctx.fail("Error: 'interface_name' is None!")
+            ctx.fail("'interface_name' is None!")
 
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
@@ -647,7 +647,7 @@ def del_vlan_member(ctx, vid, interface_name):
         if get_interface_naming_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
-                ctx.fail("Error: 'interface_name' is None!")
+                ctx.fail("'interface_name' is None!")
             ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
         else:
             ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
@@ -733,7 +733,7 @@ def interface(ctx, interface_name):
     if get_interface_naming_mode() == "alias":
         ctx.obj['interface_name'] = interface_alias_to_name(interface_name)
         if ctx.obj['interface_name'] is None:
-            ctx.fail("Error: 'interface_name' is None!")
+            ctx.fail("'interface_name' is None!")
     else:
         ctx.obj['interface_name'] = interface_name
 
