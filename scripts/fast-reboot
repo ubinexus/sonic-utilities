@@ -96,10 +96,12 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Freeze orchagent for warm restart
     docker exec -i swss /usr/bin/orchagent_restart_check || {
         echo "RESTARTCHECK failed\n" >&2
-        # TODO: remove this sleep if we have better timing control
-        sleep 1
         exit 10
     }
+    # Wait for orchagent processing the freezing request
+    # TODO: remove waiting if we have better timing control in the above freezing command, ie. the tool
+    #   send request, if orchagent not ready, it will wait till orchagent is ready and then the tool is unblocked.
+    sleep 1
     # Set whole system warm reboot flag
     config warm_restart enable system
 fi
