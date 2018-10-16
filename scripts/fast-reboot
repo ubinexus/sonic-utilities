@@ -105,22 +105,6 @@ fi
 # Kill swss dockers
 docker kill swss
 
-# syncd graceful stop is supported only for Broadcom platforms only for now
-if [[ "$sonic_asic_type" = 'broadcom' ]]; then
-    # Gracefully stop syncd
-    if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-        docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
-    elif [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-        docker exec -i syncd /usr/bin/syncd_request_shutdown --warm > /dev/null
-    fi
-
-    # Check that syncd was stopped
-    while docker top syncd | grep -q /usr/bin/syncd
-    do
-        sleep 0.1
-    done
-fi
-
 # Warm reboot: dump state to host disk
 # Note: even if syncd changed ASIC_DB before killed, we don't care
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
@@ -142,8 +126,22 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json
 fi
 
-# Kill syncd dockers
-docker kill syncd
+if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+    # Gracefully stop syncd for warm-reboot
+    systemctrl stop syncd
+elif [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+    # syncd graceful stop for fast-reboot is supported only for Broadcom platforms only for now
+    if [[ "$sonic_asic_type" = 'broadcom' ]]; then
+        # Gracefully stop syncd
+        docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+
+        # Check that syncd was stopped
+        while docker top syncd | grep -q /usr/bin/syncd
+        do
+            sleep 0.1
+        done
+    fi
+fi
 
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
@@ -151,13 +149,17 @@ docker ps -q | xargs docker kill > /dev/null
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
 
-if [[ "$sonic_asic_type" = 'broadcom' ]]; then
-    # Stop opennsl modules for Broadcom platform
-    service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
-    systemctl stop "$service_name"
-elif [[ "$sonic_asic_type" = 'nephos' ]]; then
-    # Stop kernel modules for Nephos platform
-    systemctl stop nps-modules-`uname -r`.service
+# Stop opennsl modules for Broadcom platform
+if [[ "$sonic_asic_type" = 'broadcom' ]];
+then
+  service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
+  systemctl stop "$service_name"
+fi
+
+# Stop kernel modules for Nephos platform
+if [[ "$sonic_asic_type" = 'nephos' ]];
+then
+  systemctl stop nps-modules-`uname -r`.service
 fi
 
 # Update the reboot cause file to reflect that user issued this script
