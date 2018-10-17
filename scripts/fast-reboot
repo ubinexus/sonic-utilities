@@ -128,7 +128,7 @@ fi
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Gracefully stop syncd for warm-reboot
-    systemctrl stop syncd
+    systemctl stop syncd
 elif [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # syncd graceful stop for fast-reboot is supported only for Broadcom platforms only for now
     if [[ "$sonic_asic_type" = 'broadcom' ]]; then
