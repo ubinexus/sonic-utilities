@@ -80,6 +80,15 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
 fi
 
+if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+    # Freeze orchagent for warm restart
+    # Note: assume that 5 seconds is enough for orchagent to process the request and freeze, otherwise we treat the system as non-warm-reboot-able
+    docker exec -i swss /usr/bin/orchagent_restart_check -w 5000 || {
+        echo "RESTARTCHECK failed\n" >&2
+        exit 10
+    }
+fi
+
 # Kill bgpd to start the bgp graceful restart procedure
 docker exec -i bgp killall -9 zebra
 docker exec -i bgp killall -9 bgpd
@@ -92,22 +101,14 @@ docker kill lldp > /dev/null
 # TODO: stop teamd gracefully to allow teamd to send last valid update to be sure we'll have 90 seconds reboot time
 docker kill teamd > /dev/null
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    # Freeze orchagent for warm restart
-    # Note: assume that 5 seconds is enough for orchagent to process the request and freeze, otherwise we treat the system as non-warm-reboot-able
-    docker exec -i swss /usr/bin/orchagent_restart_check -w 5000 || {
-        echo "RESTARTCHECK failed\n" >&2
-        exit 10
-    }
-    # Set whole system warm reboot flag
-    config warm_restart enable system
-fi
 # Kill swss dockers
 docker kill swss
 
 # Warm reboot: dump state to host disk
 # Note: even if syncd changed ASIC_DB before killed, we don't care
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+    # Set whole system warm reboot flag
+    config warm_restart enable system
     # Dump redis content to directory
     # Note: don't use pretty mode redis-dump (1.1) since there is a known bug with key pattern
     DUMP_CMD="redis-dump -s /var/run/redis/redis.sock"
