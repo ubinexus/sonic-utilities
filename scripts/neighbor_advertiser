@@ -1,0 +1,307 @@
+#!/usr/bin/env python
+
+import swsssdk
+import os
+import subprocess
+import json
+import requests
+import argparse
+
+
+DEFAULT_DURATION = 300
+NET_PATH = '/sys/class/net/'
+VLAN_PATH_PREFIX = 'Vlan'
+VLAN_ADDRESS_PATH = '/address'
+DEFAULT_DECODING = 'utf-8'
+TEMPLATE_PATH = '/usr/share/sonic/templates/neighbor_advertiser_addr.j2'
+VXLAN_CONFIG_PATH = '/tmp/neighbor_advertiser/neighbor_advertiser_vxlan_config.json'
+MIRRORING_CONFIG_NAME = 'neighbor_advertiser_mirroring_config.json'
+MIRRORING_CONFIG_PATH = '/tmp/neighbor_advertiser/' + MIRRORING_CONFIG_NAME
+FERRET_NEIGHBOR_ADVERTISER_API_PREFIX = '/Ferret/NeighborAdvertiser/Slices/'
+VXLAN_TUNNEL_NAME = 'neighbor_advertiser_tunnel'
+MIRROR_SESSION_NAME = 'neighbor_advertiser_session'
+MIRROR_TABLE_NAME = 'acl_table_mirror_na'
+MIRROR_RULE_NAME = 'acl_rule_mirror_na'
+
+
+def get_switch_name():
+    hostname = subprocess.check_output(['hostname'])
+    switch_name = str(hostname.decode(DEFAULT_DECODING)).strip()
+
+    return switch_name
+
+
+def get_switch_hwsku():
+    show_platform_summary = subprocess.check_output(['show', 'platform', 'summary'])
+    platform_summary = str(show_platform_summary.decode(DEFAULT_DECODING))
+
+    for line in platform_summary.split('\n'):
+        if line.strip().startswith('HwSKU:'):
+            hwsku = line.split(' ')[1]
+            break
+
+    return hwsku
+
+
+def get_vlan_interfaces():
+    vlan_interfaces = []
+
+    ls_all_interfaces = subprocess.check_output(['ls', NET_PATH])
+    all_interfaces = str(ls_all_interfaces.decode(DEFAULT_DECODING))
+
+    for interface in all_interfaces.split('\n'):
+        if interface.strip().startswith(VLAN_PATH_PREFIX):
+            vlan_interfaces.append(interface.strip())
+
+    return vlan_interfaces
+
+
+def get_vlan_interface_mac_address(vlan_if):
+    cat_mac_address = subprocess.check_output(['cat', NET_PATH + vlan_if + VLAN_ADDRESS_PATH])
+    mac_address = str(cat_mac_address.decode(DEFAULT_DECODING)).strip()
+
+    return mac_address
+
+
+def get_vlan_interface_vlan_id(vlan_if):
+    return vlan_if[4:]
+
+
+def get_vlan_interface_vxlan_id(vlan_if):
+    return vlan_if[4:]
+
+
+def get_neighbor_advertiser_addresses():
+    cfggen_na_addr = subprocess.check_output(['sonic-cfggen', '-d', '-t', TEMPLATE_PATH])
+    na_addr = str(cfggen_na_addr.decode(DEFAULT_DECODING))
+
+    return na_addr
+
+
+def get_lo_inet_addr(na_addr):
+    for line in na_addr.split('\n'):
+        if 'Loopback0 inet addr' in line:
+            lo_inet_addr = line.split(' ')[3]
+            break
+
+    return lo_inet_addr
+
+
+def get_lo_inet6_addr(na_addr):
+    for line in na_addr.split('\n'):
+        if 'Loopback0 inet6 addr' in line:
+            lo_inet6_addr = line.split(' ')[3]
+            break
+
+    return lo_inet6_addr
+
+
+def get_vlan_inet_addr(vlan_if, na_addr):
+    vlan_inet_addr = []
+
+    prefix = vlan_if + ' inet addr'
+    for line in na_addr.split('\n'):
+        if prefix in line:
+            vlan_inet_addr.append(line.split(' ')[3])
+            break
+
+    return vlan_inet_addr
+
+
+def get_vlan_inet6_addr(vlan_if, na_addr):
+    vlan_inet6_addr = []
+
+    prefix = vlan_if + ' inet6 addr'
+    for line in na_addr.split('\n'):
+        if prefix in line:
+            vlan_inet6_addr.append(line.split(' ')[3])
+            break
+
+    return vlan_inet6_addr
+
+
+def save_as_json(obj, file_path):
+    dir_path = os.path.dirname(file_path)
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+
+    with open(file_path, 'w') as outfile:
+        json.dump(obj, outfile, sort_keys = True)
+
+
+def construct_vxlan_tunnel(ferret_ip):
+    na_addr = get_neighbor_advertiser_addresses()
+    lo_inet_addr = get_lo_inet_addr(na_addr)
+    vxlan_tunnel_full = {}
+
+    vxlan_tunnel_base = {
+        VXLAN_TUNNEL_NAME: {
+            'src_ip': lo_inet_addr,
+            'dst_ip': ferret_ip
+        }
+    }
+
+    vxlan_tunnel_maps = {}
+    vlan_interfaces = get_vlan_interfaces()
+    index = 0
+
+    for vlan_interface in vlan_interfaces:
+        index += 1
+        vxlan_tunnel_map = {
+            'vni': get_vlan_interface_vxlan_id(vlan_interface),
+            'vlan': vlan_interface
+        }
+        vxlan_tunnel_maps[VXLAN_TUNNEL_NAME + '|map' + str(index)] = vxlan_tunnel_map
+
+    vxlan_tunnel_full['VXLAN_TUNNEL'] = vxlan_tunnel_base
+    vxlan_tunnel_full['VXLAN_TUNNEL_MAP'] = vxlan_tunnel_maps
+
+    return vxlan_tunnel_full
+
+
+def create_vxlan_tunnel(ferret_ip):
+    vxlan_tunnel = construct_vxlan_tunnel(ferret_ip)
+    save_as_json(vxlan_tunnel, VXLAN_CONFIG_PATH)
+
+    #subprocess.run(['sonic-cfggen', '-j', VXLAN_CONFIG_PATH, '--write-to-db'])
+
+
+def construct_mirroring_session(ferret_ip):
+    na_addr = get_neighbor_advertiser_addresses()
+    lo_inet_addr = get_lo_inet_addr(na_addr)
+    mirroring_session_full = []
+
+    mirror_session_table_obj = {}
+    mirror_session_table_obj['MIRROR_SESSION_TABLE:' + MIRROR_SESSION_NAME] = {
+        'src_ip': lo_inet_addr,
+        'dst_ip': ferret_ip
+    }
+    mirror_session_table_obj['OP'] = 'SET'
+
+    mirroring_session_full.append(mirror_session_table_obj)
+
+    acl_table_obj = {}
+    acl_table_obj['ACL_TABLE:' + MIRROR_TABLE_NAME] = {
+        'policy_desc': 'EVERFLOW_MIRRORING_ACL',
+        'type': 'mirror',
+        'ports': ','.join(get_vlan_interfaces())
+    }
+    acl_table_obj['OP'] = 'SET'
+
+    mirroring_session_full.append(acl_table_obj)
+
+
+    acl_rule_table_obj = {}
+    acl_rule_table_obj['ACL_TABLE:' + MIRROR_TABLE_NAME + ':' + MIRROR_RULE_NAME] = {
+        'ether_type': '0x0806',
+        'mirror_action': MIRROR_SESSION_NAME
+    }
+    acl_rule_table_obj['OP'] = 'SET'
+
+    mirroring_session_full.append(acl_rule_table_obj)
+
+    return mirroring_session_full
+
+
+def create_mirroring_session(ferret_ip):
+    mirroring_session = construct_mirroring_session(ferret_ip)
+    save_as_json(mirroring_session, MIRRORING_CONFIG_PATH)
+
+    #subprocess.run(['docker', 'cp', MIRRORING_CONFIG_PATH, 'swss:/' + MIRRORING_CONFIG_NAME])
+    #subprocess.run(['docker', 'exec', '-ti', 'swss', 'swssconfig', '/' + MIRRORING_CONFIG_NAME])
+
+
+def construct_neighbor_advertiser_slice():
+    na_addr = get_neighbor_advertiser_addresses()
+
+    switch_info_obj = {
+        'name': get_switch_name(),
+        'ipv4Addr': get_lo_inet_addr(na_addr),
+        'ipv6Addr': get_lo_inet6_addr(na_addr),
+        'hwSku': get_switch_hwsku()
+    }
+
+    responding_scheme_obj = {
+        'durationInSec': DEFAULT_DURATION
+    }
+
+    vlan_interfaces_obj = []
+
+    all_vlan_interfaces = get_vlan_interfaces()
+
+    for vlan_interface in all_vlan_interfaces:
+        vlan_id = get_vlan_interface_vlan_id(vlan_interface)
+        vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
+        mac_addr = get_vlan_interface_mac_address(vlan_interface)
+        ipv4_addr = get_vlan_inet_addr(vlan_interface, na_addr)
+        ipv6_addr = get_vlan_inet6_addr(vlan_interface, na_addr)
+
+        ipv4_mappings = []
+        for addr in ipv4_addr:
+            mapping = {
+                'ipAddr': addr,
+                'macAddr': mac_addr
+            }
+
+            ipv4_mappings.append(mapping)
+
+        ipv6_mappings = []
+        for addr in ipv6_addr:
+            mapping = {
+                'ipAddr': addr,
+                'macAddr': mac_addr
+            }
+
+            ipv6_mappings.append(mapping)
+
+        vlan_interface_obj = {
+            'vlanId': vlan_id,
+            'vxlanId': vxlan_id,
+            'ipv4AddrMappings': ipv4_mappings,
+            "ipv6AddrMappings": ipv6_mappings
+        }
+
+        vlan_interfaces_obj.append(vlan_interface_obj)
+
+    slice_obj = {
+        'switchInfo': switch_info_obj,
+        'vlanInterfaces': vlan_interfaces_obj,
+        'respondingScheme': responding_scheme_obj
+    }
+
+    return slice_obj
+
+
+def post_neighbor_advertiser_slice(ferret_service_ip):
+    url = 'http://' + ferret_service_ip + ':85' + FERRET_NEIGHBOR_ADVERTISER_API_PREFIX + get_switch_name()
+    slice_obj = construct_neighbor_advertiser_slice()
+
+    response = requests.post(url, json = slice_obj)
+
+    ferret_ipv4_addr = ''
+
+    if response.ok:
+        na_configuration = json.loads(response.content)
+        ferret_ipv4_addr = na_configuration['ipv4Addr']
+
+    return ferret_ipv4_addr
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--ip', type = str, required = True, help = 'ferret service ip')
+    args = parser.parse_args()
+    ferret_service_ip = args.ip
+
+    construct_neighbor_advertiser_slice()
+    ferret_ip = post_neighbor_advertiser_slice(ferret_service_ip)
+
+    create_vxlan_tunnel(ferret_ip)
+    create_mirroring_session(ferret_ip)
+
+    return
+
+
+if __name__ == '__main__':
+    main()
+
