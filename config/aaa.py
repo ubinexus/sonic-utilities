@@ -161,8 +161,8 @@ default.add_command(passkey)
 @click.option('-a', '--auth_type', help='Authentication type, default pap', type=click.Choice(["chap", "pap", "mschap", "login"]))
 @click.option('-o', '--port', help='TCP port range is 1 to 65535, default 49', type=click.IntRange(1, 65535), default=49)
 @click.option('-p', '--pri', help="Priority, default 1", type=click.IntRange(1, 64), default=1)
-@click.option('-v', '--vrf', help="Management vrf, default is no vrf")
-def add(address, timeout, key, auth_type, port, pri, vrf):
+@click.option('-m', '--use-mgmt-vrf', help="Management vrf, default is no vrf", is_flag=True)
+def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
     """Specify a TACACS+ server"""
     if not is_ipaddress(address):
         click.echo('Invalid ip address')
@@ -184,8 +184,8 @@ def add(address, timeout, key, auth_type, port, pri, vrf):
             data['timeout'] = str(timeout)
         if key is not None:
             data['passkey'] = key
-        if vrf is not None:
-            data['vrf'] = vrf
+        if use_mgmt_vrf :
+            data['vrf'] = "mgmt"
         config_db.set_entry('TACPLUS_SERVER', address, data)
 tacacs.add_command(add)
 
