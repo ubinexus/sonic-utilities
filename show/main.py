@@ -1224,7 +1224,7 @@ def brief(verbose):
     for key in natsorted(vlan_ports_data.keys()):
         ports_key = str(key[0].strip("Vlan"))
         ports_value = str(key[1])
-        ports_tagging = vlan_ports_data[i]['tagging_mode']
+        ports_tagging = vlan_ports_data[key]['tagging_mode']
         if ports_key in vlan_ports_dict:
             vlan_ports_dict[ports_key].append(ports_value)
         else:
