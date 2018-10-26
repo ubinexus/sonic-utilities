@@ -62,6 +62,7 @@ setup(
         'scripts/reboot',
         'scripts/teamshow',
         'scripts/nbrshow',
+        'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
     ],
