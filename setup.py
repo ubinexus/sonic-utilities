@@ -46,6 +46,7 @@ setup(
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/ecnconfig',
+        'scripts/mmuconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
@@ -53,6 +54,7 @@ setup(
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/lldpshow',
+        'scripts/nbrshow',
         'scripts/pcmping',
         'scripts/port2alias',
         'scripts/portconfig',
@@ -72,7 +74,7 @@ setup(
     entry_points={
         'console_scripts': [
             'acl-loader = acl_loader.main:cli',
-            'config = config.main:cli',
+            'config = config.main:config',
             'connect = connect.main:connect',
             'consutil = consutil.main:consutil',
             'counterpoll = counterpoll.main:cli',
@@ -88,11 +90,19 @@ setup(
             'undebug = undebug.main:cli',
         ]
     },
+    # NOTE: sonic-utilities also depends on other packages that are either only
+    # available as .whl files or the latest available Debian packages are
+    # out-of-date and we must install newer versions via pip. These
+    # dependencies cannot be listed here, as this package is built as a .deb,
+    # therefore all dependencies will be assumed to also be available as .debs.
+    # These unlistable dependencies are as follows:
+    # - sonic-config-engine
+    # - swsssdk
+    # - tabulate
     install_requires=[
         'click-default-group',
         'click',
-        'natsort',
-        'tabulate'
+        'natsort'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
