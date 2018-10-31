@@ -15,8 +15,14 @@ from tabulate import tabulate
 import sonic_platform
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from portconfig import get_port_config
 
 import mlnx
+
+PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
+SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
+HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
+PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 try:
     # noinspection PyPep8Naming
@@ -43,15 +49,43 @@ class Config(object):
         except configparser.NoSectionError:
             pass
 
+# Returns platform and HW SKU
+def get_platform_and_hwsku():
+    try:
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        platform = stdout.rstrip('\n')
+
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        hwsku = stdout.rstrip('\n')
+    except OSError, e:
+        raise OSError("Cannot detect platform")
+
+    return (platform, hwsku)
+
 
 class InterfaceAliasConverter(object):
     """Class which handles conversion between interface name and alias"""
 
     def __init__(self):
         self.alias_max_length = 0
-        cmd = 'sonic-cfggen -d --var-json "PORT"'
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        self.port_dict = json.loads(p.stdout.read())
+
+        # Get platform and hwsku
+        (platform, hwsku) = get_platform_and_hwsku()
+        port_config = os.path.join("/usr/share/sonic/device", platform, hwsku,
+                                    "port_config.ini")
+        (self.port_dict, _) = get_port_config(platform, hwsku, port_config)
+        if not self.port_dict:
+            click.echo("Invalid alias interface")
 
         for port_name in self.port_dict.keys():
             if self.alias_max_length < len(

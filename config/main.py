@@ -12,15 +12,49 @@ import sonic_platform
 from swsssdk import ConfigDBConnector
 from natsort import natsorted
 from minigraph import parse_device_desc_xml
+from portconfig import get_port_config
 
 import aaa
 import mlnx
 
-SONIC_CFGGEN_PATH = "sonic-cfggen"
+PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
+SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
+HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
+PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 #
 # Helper functions
 #
+
+# Returns platform and HW SKU
+def get_platform_and_hwsku():
+    try:
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        platform = stdout.rstrip('\n')
+
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        hwsku = stdout.rstrip('\n')
+    except OSError, e:
+        raise OSError("Cannot detect platform")
+
+    return (platform, hwsku)
+
+
+# Get platform, hwsku and populate port_dict
+(platform, hwsku) = get_platform_and_hwsku()
+port_config = os.path.join("/usr/share/sonic/device", platform, hwsku,
+                            "port_config.ini")
+(port_dict, _) = get_port_config(platform, hwsku, port_config)
 
 
 def run_command(command, display_cmd=False, ignore_error=False):
@@ -43,12 +77,9 @@ def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
 
-    cmd = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-
-    port_dict = json.loads(p.stdout.read())
-
     if interface_alias is not None:
+        if not port_dict:
+            click.echo("Invalid alias interface")
         for port_name in natsorted(port_dict.keys()):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
@@ -61,12 +92,9 @@ def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
     """
 
-    cmd = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-
-    port_dict = json.loads(p.stdout.read())
-
     if interface_name is not None:
+        if not port_dict:
+            click.echo("Invalid alias interface")
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
