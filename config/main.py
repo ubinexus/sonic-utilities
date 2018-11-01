@@ -26,37 +26,6 @@ PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 # Helper functions
 #
 
-# Returns platform and HW SKU
-def get_platform_and_hwsku():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError, e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
-
-# Get platform, hwsku and populate port_dict
-(platform, hwsku) = get_platform_and_hwsku()
-port_config = os.path.join("/usr/share/sonic/device", platform, hwsku,
-                            "port_config.ini")
-(port_dict, _) = get_port_config(platform, hwsku, port_config)
-
-
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
     """
@@ -76,10 +45,13 @@ def run_command(command, display_cmd=False, ignore_error=False):
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
 
     if interface_alias is not None:
         if not port_dict:
-            click.echo("Invalid alias interface")
+            click.echo("port_dict is None!")
         for port_name in natsorted(port_dict.keys()):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
@@ -91,10 +63,13 @@ def interface_alias_to_name(interface_alias):
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
     """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
 
     if interface_name is not None:
         if not port_dict:
-            click.echo("Invalid alias interface")
+            click.echo("port_dict is None!")
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']

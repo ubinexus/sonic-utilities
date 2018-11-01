@@ -49,43 +49,18 @@ class Config(object):
         except configparser.NoSectionError:
             pass
 
-# Returns platform and HW SKU
-def get_platform_and_hwsku():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError, e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
-
 class InterfaceAliasConverter(object):
     """Class which handles conversion between interface name and alias"""
 
     def __init__(self):
         self.alias_max_length = 0
 
-        # Get platform and hwsku
-        (platform, hwsku) = get_platform_and_hwsku()
-        port_config = os.path.join("/usr/share/sonic/device", platform, hwsku,
-                                    "port_config.ini")
-        (self.port_dict, _) = get_port_config(platform, hwsku, port_config)
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        self.port_dict = config_db.get_table('PORT')
+
         if not self.port_dict:
-            click.echo("Invalid alias interface")
+            click.echo("port_dict is None!")
 
         for port_name in self.port_dict.keys():
             if self.alias_max_length < len(
