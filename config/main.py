@@ -52,6 +52,7 @@ def interface_alias_to_name(interface_alias):
     if interface_alias is not None:
         if not port_dict:
             click.echo("port_dict is None!")
+            raise click.Abort()
         for port_name in natsorted(port_dict.keys()):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
@@ -70,6 +71,7 @@ def interface_name_to_alias(interface_name):
     if interface_name is not None:
         if not port_dict:
             click.echo("port_dict is None!")
+            raise click.Abort()
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']

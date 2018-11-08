@@ -61,6 +61,7 @@ class InterfaceAliasConverter(object):
 
         if not self.port_dict:
             click.echo("port_dict is None!")
+            raise click.Abort()
 
         for port_name in self.port_dict.keys():
             if self.alias_max_length < len(
