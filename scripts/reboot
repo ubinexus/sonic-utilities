@@ -18,9 +18,10 @@ function clear_warm_boot()
 {
     # If reboot is requested, make sure the outstanding warm-boot is cleared
     # So the system will come up from a cold boot.
-    WB_DIR="/host/warmboot"
-    if [[ -d ${WB_DIR} ]]; then
-        rm -f ${WB_DIR}/*.json
+    WARM_DIR="/host/warmboot"
+    TIMESTAMP=`date +%Y%m%d-%H%M%S`
+    if [[ -f ${WARM_DIR}/config_db.json ]]; then
+        mv -f ${WARM_DIR}/config_db.json ${WARM_DIR}/config_db-${TIMESTAMP}.json
     fi
 }
 
