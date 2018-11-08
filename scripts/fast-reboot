@@ -147,22 +147,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     $DUMP_CMD -d 3 -o $WARM_DIR/loglevel_db.json
 fi
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    # Gracefully stop syncd for warm-reboot
-    systemctl stop syncd
-elif [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # syncd graceful stop for fast-reboot is supported only for Broadcom platforms only for now
-    if [[ "$sonic_asic_type" = 'broadcom' ]]; then
-        # Gracefully stop syncd
-        docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
-
-        # Check that syncd was stopped
-        while docker top syncd | grep -q /usr/bin/syncd
-        do
-            sleep 0.1
-        done
-    fi
-fi
+# syncd service stop is capable of handling both warm/fast/cold shutdown
+systemctl stop syncd
 
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
