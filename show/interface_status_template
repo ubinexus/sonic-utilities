@@ -1,0 +1,10 @@
+Value Interface (\S+)
+Value Lanes (\S+)
+Value Speed (\S+)
+Value MTU (\d+)
+Value Alias (\S+)
+Value Oper (\S+)
+Value Admin (\S+)
+
+Start
+  ^(\s+)?${Interface}\s+${Lanes}\s+${Speed}\s+${MTU}\s+${Alias}\s+${Oper}\s+${Admin} -> Record

@@ -10,6 +10,7 @@ import sys
 import textfsm
 import types
 
+
 import click
 from click_default_group import DefaultGroup
 from collections import defaultdict
@@ -22,7 +23,7 @@ import sonic_platform
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 
-import mlnx
+#import mlnx
 
 try:
     # noinspection PyPep8Naming
@@ -62,7 +63,7 @@ class InterfaceAliasConverter(object):
         for port_name in self.port_dict.keys():
             if self.alias_max_length < len(
                     self.port_dict[port_name]['alias']):
-                self.alias_max_length = len(
+               self.alias_max_length = len(
                     self.port_dict[port_name]['alias'])
 
     def name_to_alias(self, interface_name):
@@ -214,7 +215,7 @@ def print_output_in_alias_mode(output, index):
         underline = dword.rjust(iface_alias_converter.alias_max_length,
                                 '-')
         word[index] = underline
-        output = '  '.join(word)
+        output = '  ' .join(word)
 
     # Replace SONiC interface name with vendor alias
     word = output.split()
@@ -222,12 +223,12 @@ def print_output_in_alias_mode(output, index):
         interface_name = word[index]
         interface_name = interface_name.replace(':', '')
     for port_name in natsorted(iface_alias_converter.port_dict.keys()):
-        if interface_name == port_name:
-            alias_name = iface_alias_converter.port_dict[port_name]['alias']
+            if interface_name == port_name:
+                alias_name = iface_alias_converter.port_dict[port_name]['alias']
     if alias_name:
         if len(alias_name) < iface_alias_converter.alias_max_length:
             alias_name = alias_name.rjust(
-                iface_alias_converter.alias_max_length)
+                                iface_alias_converter.alias_max_length)
         output = output.replace(interface_name, alias_name, 1)
 
     click.echo(output.rstrip('\n'))
@@ -255,7 +256,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("IFACE"):
                     output = output.replace("IFACE", "IFACE".rjust(
-                        iface_alias_converter.alias_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "pfcstat":
@@ -263,11 +264,11 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port Tx"):
                     output = output.replace("Port Tx", "Port Tx".rjust(
-                        iface_alias_converter.alias_max_length))
+                                iface_alias_converter.alias_max_length))
 
                 elif output.startswith("Port Rx"):
                     output = output.replace("Port Rx", "Port Rx".rjust(
-                        iface_alias_converter.alias_max_length))
+                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif (command.startswith("sudo sfputil show eeprom")):
@@ -282,7 +283,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
-                        iface_alias_converter.alias_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "sudo lldpshow":
@@ -290,7 +291,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("LocalPort"):
                     output = output.replace("LocalPort", "LocalPort".rjust(
-                        iface_alias_converter.alias_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command.startswith("queuestat"):
@@ -298,7 +299,7 @@ def run_command_in_alias_mode(command):
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
-                        iface_alias_converter.alias_max_length))
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             elif command == "fdbshow":
@@ -307,7 +308,7 @@ def run_command_in_alias_mode(command):
                 if output.startswith("No."):
                     output = "  " + output
                     output = re.sub(
-                        'Type', '      Type', output)
+                                'Type', '      Type', output)
                 elif output[0].isdigit():
                     output = "    " + output
                 print_output_in_alias_mode(output, index)
@@ -329,7 +330,7 @@ def run_command_in_alias_mode(command):
                                 raw_output = raw_output.replace(
                                     interface_name,
                                     iface_alias_converter.name_to_alias(
-                                        interface_name))
+                                            interface_name))
                     click.echo(raw_output.rstrip('\n'))
 
     rc = process.poll()
@@ -338,7 +339,6 @@ def run_command_in_alias_mode(command):
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
-
 
 #
 # 'cli' group (root group)
@@ -377,7 +377,6 @@ def arp(ipaddress, iface, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-
 #
 # 'ndp' command ("show ndp")
 #
@@ -398,7 +397,6 @@ def ndp(ip6address, iface, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-
 #
 # 'interfaces' group ("show interfaces ...")
 #
@@ -407,7 +405,6 @@ def ndp(ip6address, iface, verbose):
 def interfaces():
     """Show details of the network interfaces"""
     pass
-
 
 # 'alias' subcommand ("show interfaces alias")
 @interfaces.command()
@@ -446,7 +443,6 @@ def alias(interfacename):
 
     click.echo(tabulate(body, header))
 
-
 #
 # 'neighbor' group ###
 #
@@ -454,7 +450,6 @@ def alias(interfacename):
 def neighbor():
     """Show neighbor related information"""
     pass
-
 
 # 'expected' subcommand ("show interface neighbor expected")
 @neighbor.command()
@@ -469,11 +464,10 @@ def expected(interfacename):
     p2 = subprocess.Popen(neighbor_metadata_cmd, shell=True, stdout=subprocess.PIPE)
     neighbor_metadata_dict = json.loads(p2.stdout.read())
 
-    # Swap Key and Value from interface: name to name: interface
+    #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
     for port in natsorted(neighbor_dict.keys()):
-        device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port,
-                                                              'neighborPort': neighbor_dict[port]['port']}
+        device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
@@ -496,7 +490,6 @@ def expected(interfacename):
                          neighbor_metadata_dict[device]['type']])
 
     click.echo(tabulate(body, header))
-
 
 # 'summary' subcommand ("show interfaces summary")
 @interfaces.command()
@@ -558,7 +551,6 @@ def lpmode(interfacename, verbose):
         cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
-
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
@@ -632,7 +624,6 @@ def counters(period, printall, clear, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-
 # 'portchannel' subcommand ("show interfaces portchannel")
 @interfaces.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -640,7 +631,6 @@ def portchannel(verbose):
     """Show PortChannel information"""
     cmd = "teamshow"
     run_command(cmd, display_cmd=verbose)
-
 
 #
 # 'pfc' group ("show pfc ...")
@@ -650,7 +640,6 @@ def portchannel(verbose):
 def pfc():
     """Show details of the priority-flow-control (pfc) """
     pass
-
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
@@ -665,7 +654,6 @@ def counters(clear, verbose):
         cmd += " -c"
 
     run_command(cmd, display_cmd=verbose)
-
 
 # 'naming_mode' subcommand ("show interfaces naming_mode")
 @interfaces.command()
@@ -685,12 +673,10 @@ def watermark():
     """Show details of watermark """
     pass
 
-
 @watermark.group()
 def telemetry():
     """Show watermark telemetry info"""
     pass
-
 
 @telemetry.command('interval')
 def show_tm_interval():
@@ -707,7 +693,6 @@ def show_tm_interval():
 def queue():
     """Show details of the queues """
     pass
-
 
 # 'queuecounters' subcommand ("show queue counters")
 @queue.command()
@@ -731,7 +716,6 @@ def counters(interfacename, clear, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-
 # watermarks subcommands ("show queue watermarks|persistent-watermarks")
 
 @queue.group()
@@ -739,13 +723,11 @@ def watermark():
     """Show queue user WM"""
     pass
 
-
 @watermark.command('unicast')
 def wm_q_uni():
     """Show user WM for unicast queues"""
     command = 'watermarkstat -t q_shared_uni'
     run_command(command)
-
 
 @watermark.command('multicast')
 def wm_q_multi():
@@ -753,19 +735,16 @@ def wm_q_multi():
     command = 'watermarkstat -t q_shared_multi'
     run_command(command)
 
-
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
     """Show queue persistent WM"""
     pass
-
 
 @persistent_watermark.command('unicast')
 def pwm_q_uni():
     """Show persistent WM for persistent queues"""
     command = 'watermarkstat -p -t q_shared_uni'
     run_command(command)
-
 
 @persistent_watermark.command('multicast')
 def pwm_q_multi():
@@ -788,13 +767,11 @@ def watermark():
     """Show priority_group user WM"""
     pass
 
-
 @watermark.command('headroom')
 def wm_pg_headroom():
     """Show user headroom WM for pg"""
     command = 'watermarkstat -t pg_headroom'
     run_command(command)
-
 
 @watermark.command('shared')
 def wm_pg_shared():
@@ -802,12 +779,10 @@ def wm_pg_shared():
     command = 'watermarkstat -t pg_shared'
     run_command(command)
 
-
 @priority_group.group(name='persistent-watermark')
 def persistent_watermark():
     """Show queue persistent WM"""
     pass
-
 
 @persistent_watermark.command('headroom')
 def pwm_pg_headroom():
@@ -815,13 +790,11 @@ def pwm_pg_headroom():
     command = 'watermarkstat -p -t pg_headroom'
     run_command(command)
 
-
 @persistent_watermark.command('shared')
 def pwm_pg_shared():
     """Show persistent shared WM for pg"""
     command = 'watermarkstat -p -t pg_shared'
     run_command(command)
-
 
 #
 # 'pfc' group ###
@@ -868,7 +841,6 @@ def mac(vlan, port, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-
 #
 # 'ip' group ("show ip ...")
 #
@@ -897,7 +869,6 @@ def route(ipaddress, verbose):
     cmd += '"'
 
     run_command(cmd, display_cmd=verbose)
-
 
 # 'protocol' command
 @ip.command()
@@ -953,14 +924,12 @@ def protocol(verbose):
 #
 if routing_stack == "quagga":
     from .bgp_quagga_v4 import bgp
-
     ip.add_command(bgp)
     from .bgp_quagga_v6 import bgp
-
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
     @cli.command()
-    @click.argument('bgp_args', nargs=-1, required=False)
+    @click.argument('bgp_args', nargs = -1, required = False)
     @click.option('--verbose', is_flag=True, help="Enable verbose output")
     def bgp(bgp_args, verbose):
         """BGP information"""
@@ -980,7 +949,6 @@ def lldp():
     """LLDP (Link Layer Discovery Protocol) information"""
     pass
 
-
 # Default 'lldp' command (called if no subcommands or their aliases were passed)
 @lldp.command()
 @click.argument('interfacename', required=False)
@@ -997,7 +965,6 @@ def neighbors(interfacename, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-
 # 'table' subcommand ("show lldp table")
 @lldp.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1005,7 +972,6 @@ def table(verbose):
     """Show LLDP neighbors in tabular format"""
     cmd = "sudo lldpshow"
     run_command(cmd, display_cmd=verbose)
-
 
 #
 # 'platform' group ("show platform ...")
@@ -1016,11 +982,9 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
-
 version_info = sonic_platform.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
     platform.add_command(mlnx.mlnx)
-
 
 # 'summary' subcommand ("show platform summary")
 @platform.command()
@@ -1045,7 +1009,6 @@ def summary():
     click.echo("HwSKU: {}".format(hwsku))
     click.echo("ASIC: {}".format(asic_type))
 
-
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1053,7 +1016,6 @@ def syseeprom(verbose):
     """Show system EEPROM information"""
     cmd = "sudo decode-syseeprom"
     run_command(cmd, display_cmd=verbose)
-
 
 # 'psustatus' subcommand ("show platform psustatus")
 @platform.command()
@@ -1067,7 +1029,6 @@ def psustatus(index, verbose):
         cmd += " -i {}".format(index)
 
     run_command(cmd, display_cmd=verbose)
-
 
 #
 # 'logging' command ("show logging")
@@ -1119,7 +1080,6 @@ def version():
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
-
 #
 # 'environment' command ("show environment")
 #
@@ -1141,7 +1101,6 @@ def processes():
     """Display process information"""
     pass
 
-
 @processes.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def summary(verbose):
@@ -1160,7 +1119,6 @@ def cpu(verbose):
     cmd = "top -bn 1 -o %CPU"
     run_command(cmd, display_cmd=verbose)
 
-
 # 'memory' subcommand
 @processes.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1169,7 +1127,6 @@ def memory(verbose):
     # Run top batch mode to prevent unexpected newline after each newline
     cmd = "top -bn 1 -o %MEM"
     run_command(cmd, display_cmd=verbose)
-
 
 #
 # 'users' command ("show users")
@@ -1288,7 +1245,6 @@ def bgp(verbose):
     else:
         click.echo("Unidentified routing-stack")
 
-
 #
 # 'ntp' command ("show ntp")
 #
@@ -1312,14 +1268,12 @@ def uptime(verbose):
     cmd = "uptime -p"
     run_command(cmd, display_cmd=verbose)
 
-
 @cli.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def clock(verbose):
     """Show date and time"""
-    cmd = "date"
+    cmd ="date"
     run_command(cmd, display_cmd=verbose)
-
 
 @cli.command('system-memory')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1328,12 +1282,10 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
-
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def vlan():
     """Show VLAN information"""
     pass
-
 
 @vlan.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1414,7 +1366,6 @@ def brief(verbose):
         body.append([key, ip_address, vlan_ports, vlan_tagging, dhcp_helpers])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
-
 @vlan.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def config(redis_unix_socket_path):
@@ -1454,7 +1405,6 @@ def config(redis_unix_socket_path):
     header = ['Name', 'VID', 'Member', 'Mode']
     click.echo(tabulate(tablelize(keys, data), header))
 
-
 @cli.command('services')
 def services():
     """Show all daemon services"""
@@ -1463,15 +1413,13 @@ def services():
     while True:
         line = proc.stdout.readline()
         if line != '':
-            print(line.rstrip() + '\t' + "docker")
-            print("---------------------------")
-            cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
-            proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            print
-            proc1.stdout.read()
+                print(line.rstrip()+'\t'+"docker")
+                print("---------------------------")
+                cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
+                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                print proc1.stdout.read()
         else:
-            break
-
+                break
 
 @cli.command()
 def aaa():
@@ -1650,7 +1598,6 @@ def warm_restart():
     """Show warm restart configuration and state"""
     pass
 
-
 @warm_restart.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def state(redis_unix_socket_path):
@@ -1661,7 +1608,7 @@ def state(redis_unix_socket_path):
 
     data = {}
     db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.STATE_DB, False)  # Make one attempt only
+    db.connect(db.STATE_DB, False)   # Make one attempt only
 
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_TABLE' + TABLE_NAME_SEPARATOR
@@ -1680,7 +1627,7 @@ def state(redis_unix_socket_path):
         r.append(remove_prefix(tk, prefix))
         r.append(entry['restore_count'])
 
-        if 'state' not in entry:
+        if 'state' not in  entry:
             r.append("")
         else:
             r.append(entry['state'])
@@ -1689,7 +1636,6 @@ def state(redis_unix_socket_path):
 
     header = ['name', 'restore_count', 'state']
     click.echo(tabulate(table, header))
-
 
 @warm_restart.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
@@ -1710,12 +1656,12 @@ def config(redis_unix_socket_path):
             r = []
             r.append(k)
 
-            if 'enable' not in data[k]:
+            if 'enable' not in  data[k]:
                 r.append("false")
             else:
                 r.append(data[k]['enable'])
 
-            if 'neighsyncd_timer' in data[k]:
+            if 'neighsyncd_timer' in  data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
             else:
@@ -1728,6 +1674,7 @@ def config(redis_unix_socket_path):
 
     header = ['name', 'enable', 'timer_name', 'timer_duration']
     click.echo(tabulate(tablelize(keys, data), header))
+
 
 
 def run_command_save(command, display_cmd=False):
@@ -1819,7 +1766,6 @@ def convert_mask(get_if_int_keys, if_dict):
             if_dict[item]["IPv4Mask"] = "/" + str(if_dict[item]["IPv4Mask"])
     return if_dict
 
-
 def remove_unused_lldp_table_headers(lldp_table_dict):
     """
     Remove headers: "-----------" from lldp table dictionary
@@ -1901,11 +1847,12 @@ def return_show_ip_int_brief(final_dict):
                                   'VendorName',
                                   'VendorRev'], '')
 
-    header = ['Interface', 'IPv4Address', 'MTU', 'Speed', 'Oper', 'Admin', 'OpticPresent', 'OpticType', 'OpticModel',
+    header = ['Interface', 'Alias', 'IPv4Address', 'MTU', 'Speed', 'Oper', 'Admin', 'OpticPresent', 'OpticType', 'OpticModel',
               'Neighbor', 'NeighborPort']
     body = []
     for interface in natsorted(final_dict):
         body.append([interface,
+                     final_dict[interface]['Alias'],
                      final_dict[interface]['IPv4Address'] + final_dict[interface]['IPv4Mask'],
                      final_dict[interface]['MTU'],
                      final_dict[interface]['Speed'],
@@ -2090,4 +2037,4 @@ def interfaces(verbose):
 
 
 if __name__ == '__main__':
-    cli()
+    cli() 

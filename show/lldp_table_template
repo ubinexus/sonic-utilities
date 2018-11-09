@@ -1,0 +1,8 @@
+Value Interface (\S+)
+Value RemoteDevice (\S+)
+Value RemotePortID (\S+)
+Value Capability (\S+)
+#Value RemotePortDescr (\S+)
+
+Start
+  ^${Interface}\s+${RemoteDevice}\s+${RemotePortID}\s+${Capability}.* -> Record

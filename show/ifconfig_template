@@ -1,0 +1,34 @@
+Value Interface (\S+)
+Value MAC (\S+)
+Value IPv4Address (\S+)
+Value IPv4Mask (\S+)
+Value IPv6HostAddress (\S+)
+Value IPv6GlobalAddress (\S+)
+Value IPv6LinkLocalAddress (\S+)
+Value RXPackets (\d+)
+Value RXErrors (\d+)
+Value RXDropped (\d+)
+Value RXOverruns (\d+)
+Value RXFrame (\d+)
+Value TXPackets (\d+)
+Value TXErrors (\d+)
+Value TXDropped (\d+)
+Value TXOverruns (\d+)
+Value TXCarrier (\d+)
+Value Collisions (\d+)
+Value TXQueuelen (\d+)
+Value RXBytes (\S+)
+Value RXHRTraffic (\S+\s\w+)
+Value TXBytes (\S+)
+Value TXHRTraffic (\S+\s\w+)
+
+Start
+  ^${Interface}\s.*(HWaddr\s+${MAC}|Loopback)
+  ^\s+inet addr:${IPv4Address}.*Mask:${IPv4Mask}
+  ^\s+inet6 addr:\s${IPv6GlobalAddress} Scope:Global
+  ^\s+inet6 addr:\s${IPv6LinkLocalAddress} Scope:Link
+  ^\s+inet6 addr:\s${IPv6HostAddress} Scope:Host
+  ^\s+RX packets:${RXPackets} errors:${RXErrors} dropped:${RXDropped} overruns:${RXOverruns} frame:${RXFrame}
+  ^\s+TX packets:${TXPackets} errors:${TXErrors} dropped:${TXDropped} overruns:${TXOverruns} carrier:${TXCarrier}
+  ^\s+collisions:${Collisions} txqueuelen:${TXQueuelen}
+  ^\s+RX bytes:${RXBytes}\s+\(${RXHRTraffic}\)\s+TX bytes:${TXBytes}\s+\(${TXHRTraffic}\) -> Record
