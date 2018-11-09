@@ -19,10 +19,7 @@ from portconfig import get_port_config
 
 import mlnx
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 try:
     # noinspection PyPep8Naming

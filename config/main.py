@@ -12,19 +12,16 @@ import sonic_platform
 from swsssdk import ConfigDBConnector
 from natsort import natsorted
 from minigraph import parse_device_desc_xml
-from portconfig import get_port_config
 
 import aaa
 import mlnx
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 #
 # Helper functions
 #
+
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
