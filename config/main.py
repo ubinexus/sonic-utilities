@@ -258,6 +258,7 @@ def _stop_services():
             run_command("systemctl stop %s" % service, display_cmd=True)
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
+            raise
 
 def _restart_services():
     services = [
@@ -278,6 +279,7 @@ def _restart_services():
             run_command("systemctl restart %s" % service, display_cmd=True)
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
+            raise
 
 # This is our main entrypoint - the main 'config' command
 @click.group()
