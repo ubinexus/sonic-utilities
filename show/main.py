@@ -15,7 +15,6 @@ from tabulate import tabulate
 import sonic_platform
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
-from portconfig import get_port_config
 
 import mlnx
 
