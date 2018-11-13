@@ -132,6 +132,9 @@ fi
 # Kill swss dockers
 docker kill swss
 
+# syncd service stop is capable of handling both warm/fast/cold shutdown
+systemctl stop syncd
+
 # Warm reboot: dump state to host disk
 # Note: even if syncd changed ASIC_DB before killed, we don't care
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
@@ -153,9 +156,6 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Save loglevelDB in /host/warm-reboot/loglevel_db.json
     $DUMP_CMD -d 3 -o $WARM_DIR/loglevel_db.json
 fi
-
-# syncd service stop is capable of handling both warm/fast/cold shutdown
-systemctl stop syncd
 
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
