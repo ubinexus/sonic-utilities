@@ -115,6 +115,40 @@ def disable():
     configdb.mod_entry("FLEX_COUNTER_TABLE", "QUEUE_WATERMARK", fc_info)
     configdb.mod_entry("FLEX_COUNTER_TABLE", "PG_WATERMARK", fc_info)
 
+# Sensor commands
+@cli.group()
+def sensors():
+    """ Sensor commands """
+
+@sensors.command()
+@click.argument('poll_interval', type=click.IntRange(100, 30000))
+def interval(poll_interval):
+    """ Set queue counter query interval """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    sensors_info = {}
+    if poll_interval is not None:
+        sensors_info['POLL_INTERVAL'] = poll_interval
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "SENSORS", sensors_info)
+
+@sensors.command()
+def enable():
+    """ Enable sensors counter query """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    sensors_info = {}
+    sensors_info['FLEX_COUNTER_STATUS'] = 'enable'
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "SENSORS", sensors_info)
+
+@sensors.command()
+def disable():
+    """ Disable sensors counter query """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    sensors_info = {}
+    sensors_info['FLEX_COUNTER_STATUS'] = 'disable'
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "SENSORS", sensors_info)
+
 @cli.command()
 def show():
     """ Show the counter configuration """
@@ -124,6 +158,7 @@ def show():
     port_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PORT')
     queue_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'QUEUE_WATERMARK')
     pg_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PG_WATERMARK')
+    sensors_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'SENSORS')
     
     header = ("Type", "Interval (in ms)", "Status")
     data = []
@@ -135,6 +170,9 @@ def show():
         data.append(["QUEUE_WATERMARK_STAT", queue_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in queue_wm_info else 'default (1000)', queue_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in queue_wm_info else 'disable' ])
     if pg_wm_info:
         data.append(["PG_WATERMARK_STAT", pg_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in pg_wm_info else 'default (1000)', pg_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in pg_wm_info else 'disable'])
+    if sensors_info:
+        data.append(["SENSORS_STAT", sensors_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in sensors_info else 'default (15000)', sensors_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in sensors_info else 'disable'])
+
 
     print tabulate(data, headers=header, tablefmt="simple", missingval="")
 
