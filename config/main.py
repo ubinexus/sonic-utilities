@@ -17,7 +17,7 @@ from minigraph import parse_device_desc_xml
 import aaa
 import mlnx
 
-SONIC_CFGGEN_PATH = "sonic-cfggen"
+SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 
 # ========================== Syslog wrappers ==========================
@@ -69,13 +69,14 @@ def run_command(command, display_cmd=False, ignore_error=False):
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
-
-    cmd = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-
-    port_dict = json.loads(p.stdout.read())
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
 
     if interface_alias is not None:
+        if not port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
         for port_name in natsorted(port_dict.keys()):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
@@ -87,13 +88,14 @@ def interface_alias_to_name(interface_alias):
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
     """
-
-    cmd = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-
-    port_dict = json.loads(p.stdout.read())
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
 
     if interface_name is not None:
+        if not port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
@@ -562,14 +564,14 @@ def warm_restart(ctx, redis_unix_socket_path):
     pass
 
 @warm_restart.command('enable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss"]))
+@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp"]))
 @click.pass_context
 def warm_restart_enable(ctx, module):
     db = ctx.obj['db']
     db.mod_entry('WARM_RESTART', module, {'enable': 'true'})
 
 @warm_restart.command('disable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss"]))
+@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp"]))
 @click.pass_context
 def warm_restart_enable(ctx, module):
     db = ctx.obj['db']
@@ -583,6 +585,15 @@ def warm_restart_neighsyncd_timer(ctx, seconds):
     if seconds not in range(1,9999):
         ctx.fail("neighsyncd warm restart timer must be in range 1-9999")
     db.mod_entry('WARM_RESTART', 'swss', {'neighsyncd_timer': seconds})
+
+@warm_restart.command('bgp_timer')
+@click.argument('seconds', metavar='<seconds>', required=True, type=int)
+@click.pass_context
+def warm_restart_bgp_timer(ctx, seconds):
+    db = ctx.obj['db']
+    if seconds not in range(1,3600):
+        ctx.fail("bgp warm restart timer must be in range 1-3600")
+    db.mod_entry('WARM_RESTART', 'bgp', {'bgp_timer': seconds})
 
 #
 # 'vlan' group ('config vlan ...')

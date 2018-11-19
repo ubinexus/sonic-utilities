@@ -18,6 +18,8 @@ from swsssdk import SonicV2Connector
 
 import mlnx
 
+SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
+
 try:
     # noinspection PyPep8Naming
     import ConfigParser as configparser
@@ -43,15 +45,19 @@ class Config(object):
         except configparser.NoSectionError:
             pass
 
-
 class InterfaceAliasConverter(object):
     """Class which handles conversion between interface name and alias"""
 
     def __init__(self):
         self.alias_max_length = 0
-        cmd = 'sonic-cfggen -d --var-json "PORT"'
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        self.port_dict = json.loads(p.stdout.read())
+
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        self.port_dict = config_db.get_table('PORT')
+
+        if not self.port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
 
         for port_name in self.port_dict.keys():
             if self.alias_max_length < len(
@@ -1657,6 +1663,9 @@ def config(redis_unix_socket_path):
             if 'neighsyncd_timer' in  data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
+            elif 'bgp_timer' in data[k]:
+                r.append("bgp_timer")
+                r.append(data[k]['bgp_timer'])
             else:
                 r.append("NULL")
                 r.append("NULL")
