@@ -196,7 +196,7 @@ sync
 
 # Reboot: explicity call Linux native reboot under sbin
 echo "Rebooting to $NEXT_SONIC_IMAGE..."
-exec /sbin/reboot --no-wtmp --no-wall
+exec /sbin/reboot
 
 # Should never reach here
 echo "${REBOOT_TYPE} failed!" >&2
