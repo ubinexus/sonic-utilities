@@ -58,6 +58,23 @@ function wait_for_pre_shutdown_complete_or_fail()
     fi
 }
 
+function backup_datebase()
+{
+    # Dump redis content to a file 'dump.rdb' in warmboot directory
+    mkdir -p $WARM_DIR
+    # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
+    redis-cli -n 6 eval "
+        for _, k in ipairs(redis.call('keys', '*')) do
+            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') then
+                redis.call('del', k)
+            end
+        end
+    " 0
+    redis-cli save
+    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
+    docker exec -i database rm /var/lib/redis/$REDIS_FILE
+}
+
 # Check reboot type supported
 BOOT_TYPE_ARG="cold"
 case "$REBOOT_TYPE" in
@@ -166,6 +183,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
 
     wait_for_pre_shutdown_complete_or_fail
 
+    backup_datebase
+
     # Send USR1 signal to all teamd instances to stop them
     # It will prepare teamd for warm-reboot
     # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
@@ -174,24 +193,6 @@ fi
 
 # syncd service stop is capable of handling both warm/fast/cold shutdown
 systemctl stop syncd
-
-# Warm reboot: dump state to host disk
-# Note: even if syncd changed ASIC_DB before killed, we don't care
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    # Dump redis content to a file 'dump.rdb' in warmboot directory
-    mkdir -p $WARM_DIR
-    # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
-    redis-cli -n 6 eval "
-        for _, k in ipairs(redis.call('keys', '*')) do
-            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') then
-                redis.call('del', k)
-            end
-        end
-    " 0
-    redis-cli save
-    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/redis/$REDIS_FILE
-fi
 
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
