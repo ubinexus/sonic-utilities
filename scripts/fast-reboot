@@ -7,6 +7,13 @@ REBOOT_TYPE=$(basename $0)
 WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
 
+# Check root privileges
+if [[ "$EUID" -ne 0 ]]
+then
+    echo "This command must be run as root" >&2
+    exit 1
+fi
+
 function clear_warm_boot()
 {
     config warm_restart disable || /bin/true
@@ -34,14 +41,6 @@ case "$REBOOT_TYPE" in
         exit 1
         ;;
 esac
-
-# Check root privileges
-if [[ "$EUID" -ne 0 ]]
-then
-    echo "This command must be run as root" >&2
-    exit 1
-fi
-
 
 # Unload the previously loaded kernel if any loaded
 if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]
