@@ -44,12 +44,16 @@ function wait_for_pre_shutdown_complete_or_fail()
 {
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
     STATE="requesting"
-    while /bin/true; do
+    declare -i waitcount;
+    waitcount=0
+    # Wait up to 60 seconds for pre-shutdown to complete
+    while [[ ${waitcount} -lt 600 ]]; do
         STATE=`/usr/bin/redis-cli -n 6 hget "${TABLE}" state`
         if [[ x"${STATE}" != x"requesting" ]]; then
             break
         fi
         sleep 0.1
+        waitcount+=1
     done
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
