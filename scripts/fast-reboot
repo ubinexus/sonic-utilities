@@ -179,7 +179,7 @@ fi
 # Kill swss dockers
 docker kill swss
 
-# Pre-shtudown syncd and Stop teamd gracefully
+# Pre-shutdown syncd and stop teamd gracefully
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     initialize_pre_shutdown
 
