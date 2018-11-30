@@ -15,6 +15,8 @@ then
     exit 1
 fi
 
+sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
+
 function clear_warm_boot()
 {
     config warm_restart disable || /bin/true
@@ -39,7 +41,59 @@ function cleanup_except_table()
     " 0
 }
 
-sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
+function initialize_pre_shutdown()
+{
+    TABLE="WARM_RESTART_TABLE|warm-shutdown"
+    RESTORE_COUNT=`/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count`
+    if [[ -z "$RESTORE_COUNT" ]]; then
+        /usr/bin/redis-cli -n 6 hset "${TABLE}" restore_count 0
+    fi
+    /usr/bin/redis-cli -n 6 hset "${TABLE}" state requesting
+}
+
+function request_pre_shutdown()
+{
+    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre
+}
+
+function wait_for_pre_shutdown_complete_or_fail()
+{
+    TABLE="WARM_RESTART_TABLE|warm-shutdown"
+    STATE="requesting"
+    declare -i waitcount;
+    waitcount=0
+    # Wait up to 60 seconds for pre-shutdown to complete
+    while [[ ${waitcount} -lt 600 ]]; do
+        STATE=`/usr/bin/redis-cli -n 6 hget "${TABLE}" state`
+        if [[ x"${STATE}" != x"requesting" ]]; then
+            break
+        fi
+        sleep 0.1
+        waitcount+=1
+    done
+
+    if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
+        echo "Syncd pre-shutdown failed: ${STATE} ..."
+        exit 10
+    fi
+}
+
+function backup_datebase()
+{
+    # Dump redis content to a file 'dump.rdb' in warmboot directory
+    mkdir -p $WARM_DIR
+    # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
+    redis-cli -n 6 eval "
+        for _, k in ipairs(redis.call('keys', '*')) do
+            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') then
+                redis.call('del', k)
+            end
+        end
+    " 0
+    redis-cli save
+    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
+    docker exec -i database rm /var/lib/redis/$REDIS_FILE
+}
 
 # Check reboot type supported
 BOOT_TYPE_ARG="cold"
@@ -158,6 +212,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
             echo "RESTARTCHECK failed finally" >&2
             exit 10
         fi
+        sleep 1
     done
 fi
 
@@ -167,14 +222,6 @@ docker exec -i bgp pkill -9 bgpd
 
 # Kill lldp, otherwise it sends informotion about reboot
 docker kill lldp > /dev/null
-
-# Stop teamd gracefully
-if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-    # Send USR1 signal to all teamd instances to stop them
-    # It will prepare teamd for warm-reboot
-    # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -USR1 teamd > /dev/null
-fi
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Kill teamd, otherwise it gets down all LAGs
@@ -186,22 +233,9 @@ fi
 # Kill swss dockers
 docker kill swss
 
-if [[ "$sonic_asic_type" = "mellanox" ]]; then
-    docker kill syncd
-else
-    # syncd service stop is capable of handling both warm/fast/cold shutdown
-    systemctl stop syncd
-fi
 
 # Warm reboot: dump state to host disk
-# Note: even if syncd changed ASIC_DB before killed, we don't care
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    # Dump redis content to a file 'dump.rdb' in warmboot directory
-    mkdir -p $WARM_DIR
-    # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
-    cleanup_except_table 6 'FDB_TABLE'
-    cleanup_except_table 6 'WARM_RESTART_TABLE'
-elif [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     mkdir -p $WARM_DIR
 
     # Dump route table form APPL DB.
@@ -214,12 +248,37 @@ elif [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     redis-cli -n 1 FLUSHDB
     redis-cli -n 2 FLUSHDB
     redis-cli -n 5 FLUSHDB
-fi
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     redis-cli save
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
+fi
+
+# Pre-shutdown syncd
+if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+    initialize_pre_shutdown
+
+    request_pre_shutdown
+
+    wait_for_pre_shutdown_complete_or_fail
+
+    backup_datebase
+fi
+
+# Stop teamd gracefully
+if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    # Send USR1 signal to all teamd instances to stop them
+    # It will prepare teamd for warm-reboot
+    # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
+    docker exec -i teamd pkill -USR1 teamd > /dev/null
+fi
+
+# syncd service stop is capable of handling both warm/fast/cold shutdown
+if [[ "$sonic_asic_type" = "mellanox" ]]; then
+    docker kill syncd
+else
+    # syncd service stop is capable of handling both warm/fast/cold shutdown
+    systemctl stop syncd
 fi
 
 # Kill other containers to make the reboot faster
@@ -228,11 +287,13 @@ docker ps -q | xargs docker kill > /dev/null
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
 
-# Stop opennsl modules for Broadcom platform
-if [[ "$sonic_asic_type" = 'broadcom' ]];
-then
-  service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
-  systemctl stop "$service_name"
+if [[ "$REBOOT_TYPE" != "warm-reboot" ]]; then
+    # Stop opennsl modules for Broadcom platform
+    if [[ "$sonic_asic_type" = 'broadcom' ]];
+    then
+      service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
+      systemctl stop "$service_name"
+    fi
 fi
 
 # Stop kernel modules for Nephos platform
