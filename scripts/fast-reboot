@@ -246,11 +246,16 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Freeze orchagent for warm restart
     # Try freeze 5 times, it is possible that the orchagent is in transient state and no opportunity to be freezed
     # Note: assume that 1 second is enough for orchagent to process the request and respone freeze or not
+    debug "Pausing orchagent ..."
     for i in `seq 4 -1 0`; do
         docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 && break
         echo "RESTARTCHECK failed $i" >&2
         if [[ "$i" = "0" ]]; then
             echo "RESTARTCHECK failed finally" >&2
+            if [[ x"${FORCE}" == x"yes" ]]; then
+                debug "Ignoring orchagent pausing failure ..."
+                break;
+            fi
             exit 10
         fi
         sleep 1
