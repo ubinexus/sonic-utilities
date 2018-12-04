@@ -22,6 +22,7 @@ function debug()
     if [[ x"${VERBOSE}" == x"yes" ]]; then
         echo `date` $@
     fi
+    logger "$@"
 }
 
 function showHelpAndExit()
@@ -58,7 +59,7 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
 function clear_warm_boot()
 {
-    debug "Failure ($?) recovering ..."
+    debug "Failure ($?) cleanup ..."
     config warm_restart disable || /bin/true
     /sbin/kexec -u || /bin/true
 
