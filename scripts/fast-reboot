@@ -40,7 +40,7 @@ function showHelpAndExit()
 
 function parseOptions()
 {
-    while getopts "vfh?" opt; do
+    while getopts "vfh?rk" opt; do
         case ${opt} in
             h )
                 showHelpAndExit
