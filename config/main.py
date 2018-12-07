@@ -124,7 +124,7 @@ def set_interface_naming_mode(mode):
             if port_dict[port_name]['alias']:
                 pass
         except KeyError:
-            click.echo("Cannot set alias mode!")
+            click.echo("Platform does not support alias mapping")
             raise click.Abort()
 
     if not user:
