@@ -27,9 +27,8 @@ PLATFORM_SPECIFIC_CLASS_NAME = "SfpUtil"
 
 PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-MINIGRAPH_PATH = '/etc/sonic/minigraph.xml'
-HWSKU_KEY = "DEVICE_METADATA['localhost']['hwsku']"
-PLATFORM_KEY = 'platform'
+HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
+PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 # Global platform-specific sfputil class instance
 platform_sfputil = None
@@ -186,7 +185,11 @@ def port_eeprom_data_string_pretty(logical_port_name, dump_dom):
 
     for physical_port in physical_port_list:
         port_name = get_physical_port_name(logical_port_name, i, ganged)
-        eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+        if not platform_sfputil.get_presence(physical_port):
+            eeprom_dict = None
+        else:
+            eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+
         if eeprom_dict is not None:
             eeprom_iface_dict = eeprom_dict.get('interface')
             iface_data_dict = eeprom_iface_dict.get('data')
@@ -229,7 +232,10 @@ def port_eeprom_data_string_pretty_oneline(logical_port_name,
         ganged = True
 
     for physical_port in physical_port_list:
-        eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+        if not platform_sfputil.get_presence(physical_port):
+            eeprom_dict = None
+        else:
+            eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
 
         # Only print detected sfp ports for oneline
         if eeprom_dict is not None:
@@ -267,7 +273,11 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 
     for physical_port in physical_port_list:
         port_name = get_physical_port_name(logical_port_name, i, ganged)
-        eeprom_raw = platform_sfputil.get_eeprom_raw(physical_port)
+        if not platform_sfputil.get_presence(physical_port):
+            eeprom_raw = None
+        else:
+            eeprom_raw = platform_sfputil.get_eeprom_raw(physical_port)
+
         if eeprom_raw is None:
             result += get_sfp_eeprom_status_string(port_name, False)
             result += "\n"
@@ -288,7 +298,7 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 # Returns platform and HW SKU
 def get_platform_and_hwsku():
     try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-v', PLATFORM_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)
@@ -296,7 +306,7 @@ def get_platform_and_hwsku():
         proc.wait()
         platform = stdout.rstrip('\n')
 
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '-v', HWSKU_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)

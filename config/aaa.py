@@ -124,10 +124,10 @@ default.add_command(timeout)
 
 
 @click.command()
-@click.argument('type', metavar='<type>', type=click.Choice(["chap", "pap", "mschap"]), required=False)
+@click.argument('type', metavar='<type>', type=click.Choice(["chap", "pap", "mschap", "login"]), required=False)
 @click.pass_context
 def authtype(ctx, type):
-    """Specify TACACS+ server global auth_type [chap | pap | mschap]"""
+    """Specify TACACS+ server global auth_type [chap | pap | mschap | login]"""
     if ctx.obj == 'default':
         del_table_key('TACPLUS', 'global', 'auth_type')
     elif type:
@@ -158,10 +158,11 @@ default.add_command(passkey)
 @click.argument('address', metavar='<ip_address>')
 @click.option('-t', '--timeout', help='Transmission timeout interval, default 5', type=int)
 @click.option('-k', '--key', help='Shared secret')
-@click.option('-a', '--auth_type', help='Authentication type, default pap', type=click.Choice(["chap", "pap", "mschap"]))
+@click.option('-a', '--auth_type', help='Authentication type, default pap', type=click.Choice(["chap", "pap", "mschap", "login"]))
 @click.option('-o', '--port', help='TCP port range is 1 to 65535, default 49', type=click.IntRange(1, 65535), default=49)
 @click.option('-p', '--pri', help="Priority, default 1", type=click.IntRange(1, 64), default=1)
-def add(address, timeout, key, auth_type, port, pri):
+@click.option('-m', '--use-mgmt-vrf', help="Management vrf, default is no vrf", is_flag=True)
+def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
     """Specify a TACACS+ server"""
     if not is_ipaddress(address):
         click.echo('Invalid ip address')
@@ -183,6 +184,8 @@ def add(address, timeout, key, auth_type, port, pri):
             data['timeout'] = str(timeout)
         if key is not None:
             data['passkey'] = key
+        if use_mgmt_vrf :
+            data['vrf'] = "mgmt"
         config_db.set_entry('TACPLUS_SERVER', address, data)
 tacacs.add_command(add)
 

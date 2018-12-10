@@ -27,9 +27,8 @@ PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
 PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 PLATFORM_ROOT_PATH_DOCKER = '/usr/share/sonic/platform'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-MINIGRAPH_PATH = '/etc/sonic/minigraph.xml'
-HWSKU_KEY = "DEVICE_METADATA['localhost']['hwsku']"
-PLATFORM_KEY = 'platform'
+HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
+PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 # Global platform-specific psuutil class instance
 platform_psuutil = None
@@ -70,7 +69,7 @@ def log_error(msg, also_print_to_console=False):
 # Returns platform and HW SKU
 def get_platform_and_hwsku():
     try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-v', PLATFORM_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)
@@ -78,7 +77,7 @@ def get_platform_and_hwsku():
         proc.wait()
         platform = stdout.rstrip('\n')
 
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '-v', HWSKU_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)
