@@ -21,9 +21,14 @@ setup(
         'acl_loader',
         'clear',
         'config',
+        'connect',
+        'consutil',
+        'counterpoll',
+        'crm',
         'debug',
         'pfcwd',
         'sfputil',
+        'pfc',
         'psuutil',
         'show',
         'sonic_installer',
@@ -31,7 +36,8 @@ setup(
         'undebug',
     ],
     package_data={
-        'show': ['aliases.ini']
+        'show': ['aliases.ini'],
+        'sonic-utilities-tests': ['acl_input/*'],
     },
     scripts=[
         'scripts/aclshow',
@@ -40,17 +46,27 @@ setup(
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/ecnconfig',
+        'scripts/mmuconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
+        'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/lldpshow',
+        'scripts/nbrshow',
+        'scripts/pcmping',
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
+        'scripts/pfcstat',
+        'scripts/queuestat',
         'scripts/reboot',
-        'scripts/teamshow'
+        'scripts/teamshow',
+        'scripts/nbrshow',
+        'scripts/warm-reboot',
+        'scripts/watermarkstat',
+        'scripts/watermarkcfg'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
@@ -58,10 +74,15 @@ setup(
     entry_points={
         'console_scripts': [
             'acl-loader = acl_loader.main:cli',
-            'config = config.main:cli',
+            'config = config.main:config',
+            'connect = connect.main:connect',
+            'consutil = consutil.main:consutil',
+            'counterpoll = counterpoll.main:cli',
+            'crm = crm.main:cli',
             'debug = debug.main:cli',
             'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
+            'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
@@ -69,11 +90,19 @@ setup(
             'undebug = undebug.main:cli',
         ]
     },
+    # NOTE: sonic-utilities also depends on other packages that are either only
+    # available as .whl files or the latest available Debian packages are
+    # out-of-date and we must install newer versions via pip. These
+    # dependencies cannot be listed here, as this package is built as a .deb,
+    # therefore all dependencies will be assumed to also be available as .debs.
+    # These unlistable dependencies are as follows:
+    # - sonic-config-engine
+    # - swsssdk
+    # - tabulate
     install_requires=[
         'click-default-group',
         'click',
-        'natsort',
-        'tabulate'
+        'natsort'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
