@@ -110,7 +110,7 @@ def set_interface_naming_mode(mode):
     user = os.getenv('SUDO_USER')
     bashrc_ifacemode_line = "export SONIC_CLI_IFACE_MODE={}".format(mode)
 
-    # Check alias 'key' presence in PORT dict
+    # Ensure all interfaces have an 'alias' key in PORT dict
     config_db = ConfigDBConnector()
     config_db.connect()
     port_dict = config_db.get_table('PORT')
