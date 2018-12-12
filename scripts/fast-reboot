@@ -92,7 +92,7 @@ function initialize_pre_shutdown()
 function request_pre_shutdown()
 {
     debug "Requesting pre-shutdown ..."
-    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre
+    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null
 }
 
 function wait_for_pre_shutdown_complete_or_fail()
@@ -131,8 +131,8 @@ function backup_database()
                 redis.call('del', k)
             end
         end
-    " 0
-    redis-cli save
+    " 0 > /dev/null
+    redis-cli save > /dev/null
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
@@ -202,7 +202,7 @@ if [[ "$sonic_asic_type" == "mellanox" ]]; then
         }
     fi
 
-    echo "Prepare MLNX ASIC to ${REBOOT_TYPE}: install new FW if required"
+    debug "Prepare MLNX ASIC to ${REBOOT_TYPE}: install new FW if required"
 
     ${MLNX_FW_UPGRADE_SCRIPT} --upgrade
     MLNX_EXIT_CODE="$?"
@@ -228,7 +228,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # Note: assume that 1 second is enough for orchagent to process the request and respone freeze or not
     debug "Pausing orchagent ..."
     for i in `seq 4 -1 0`; do
-        docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 && break
+        docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 > /dev/null && break
         echo "RESTARTCHECK failed $i" >&2
         if [[ "$i" = "0" ]]; then
             echo "RESTARTCHECK failed finally" >&2
@@ -271,9 +271,9 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
 
     # Warm reboot: dump state to host disk
     if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-        redis-cli -n 1 FLUSHDB &> /dev/null
-        redis-cli -n 2 FLUSHDB &> /dev/null
-        redis-cli -n 5 FLUSHDB &> /dev/null
+        redis-cli -n 1 FLUSHDB > /dev/null
+        redis-cli -n 2 FLUSHDB > /dev/null
+        redis-cli -n 5 FLUSHDB > /dev/null
     fi
 
     # TODO: backup_database preserves FDB_TABLE
