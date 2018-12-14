@@ -11,12 +11,23 @@ VERBOSE=no
 FORCE=no
 REBOOT_METHOD="/sbin/reboot"
 
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+EXIT_NOT_SUPPORTED=2
+EXIT_ORCHAGENT_SHUTDOWN=10
+EXIT_SYNCD_SHUTDOWN=11
+
 # Check root privileges
 if [[ "$EUID" -ne 0 ]]
 then
     echo "This command must be run as root" >&2
-    exit 1
+    exit "${EXIT_FAILURE}"
 fi
+
+function error()
+{
+    echo $@ >&2
+}
 
 function debug()
 {
@@ -35,7 +46,7 @@ function showHelpAndExit()
     echo "    -r    : reboot with /sbin/reboot [default]"
     echo "    -k    : reboot with /sbin/kexec -e"
 
-    exit 0
+    exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
@@ -92,7 +103,10 @@ function initialize_pre_shutdown()
 function request_pre_shutdown()
 {
     debug "Requesting pre-shutdown ..."
-    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null
+    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null || {
+        error "Failed to request pre-shutdown"
+        exit "${EXIT_SYNCD_SHUTDOWN}"
+    }
 }
 
 function wait_for_pre_shutdown_complete_or_fail()
@@ -114,7 +128,7 @@ function wait_for_pre_shutdown_complete_or_fail()
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
         debug "Syncd pre-shutdown failed: ${STATE} ..."
-        exit 10
+        exit "${EXIT_SYNCD_SHUTDOWN}"
     fi
     debug "Pre-shutdown succeeded ..."
 }
@@ -150,7 +164,7 @@ case "$REBOOT_TYPE" in
             REBOOT_TYPE="fastfast-reboot"
             BOOT_TYPE_ARG="fastfast"
             # source mlnx-ffb.sh file with
-            # functions to check ISSU upgrade/do ISSU start
+            # functions to check ISSU upgrade possibility
             source mlnx-ffb.sh
         else
             BOOT_TYPE_ARG="warm"
@@ -159,8 +173,8 @@ case "$REBOOT_TYPE" in
         config warm_restart enable system
         ;;
     *)
-        echo "Not supported reboot type: $REBOOT_TYPE" >&2
-        exit 1
+        error "Not supported reboot type: $REBOOT_TYPE"
+        exit "${EXIT_NOT_SUPPORTED}"
         ;;
 esac
 
@@ -181,24 +195,25 @@ elif grep -q onie_platform= /host/machine.conf; then
     KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
     BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
 else
-    echo "Unknown bootloader. ${REBOOT_TYPE} is not supported."
-    exit 1
+    error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
+    exit "${EXIT_NOT_SUPPORTED}"
 fi
 INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 
 # Install new FW for mellanox platforms before control plane goes down
 # So on boot switch will not spend time to upgrade FW increasing the CP downtime
 if [[ "$sonic_asic_type" == "mellanox" ]]; then
-    MLNX_EXIT_SUCCESS="0"
-    MLNX_EXIT_ERROR="1"
+    MLNX_EXIT_SUCCESS=0
+    MLNX_EXIT_FW_ERROR=100
+    MLNX_EXIT_FFB_FAILURE=101
 
     MLNX_FW_UPGRADE_SCRIPT="/usr/bin/mlnx-fw-upgrade.sh"
 
 
     if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
         check_ffb || {
-            echo "Warm reboot is not supported"
-            exit "${MLNX_EXIT_ERROR}"
+            error "Warm reboot is not supported"
+            exit "${MLNX_EXIT_FFB_FAILURE}"
         }
     fi
 
@@ -207,8 +222,8 @@ if [[ "$sonic_asic_type" == "mellanox" ]]; then
     ${MLNX_FW_UPGRADE_SCRIPT} --upgrade
     MLNX_EXIT_CODE="$?"
     if [[ "${MLNX_EXIT_CODE}" != "${MLNX_EXIT_SUCCESS}" ]]; then
-        echo "Failed to burn MLNX FW: errno=${MLNX_EXIT_CODE}"
-        exit "${MLNX_EXIT_ERROR}"
+        error "Failed to burn MLNX FW: errno=${MLNX_EXIT_CODE}"
+        exit "${MLNX_EXIT_FW_ERROR}"
     fi
 fi
 
@@ -229,14 +244,14 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     debug "Pausing orchagent ..."
     for i in `seq 4 -1 0`; do
         docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 > /dev/null && break
-        echo "RESTARTCHECK failed $i" >&2
+        error "RESTARTCHECK failed $i"
         if [[ "$i" = "0" ]]; then
-            echo "RESTARTCHECK failed finally" >&2
+            error "RESTARTCHECK failed finally"
             if [[ x"${FORCE}" == x"yes" ]]; then
                 debug "Ignoring orchagent pausing failure ..."
                 break;
             fi
-            exit 10
+            exit "${EXIT_ORCHAGENT_SHUTDOWN}"
         fi
         sleep 1
     done
@@ -331,5 +346,5 @@ debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
 exec ${REBOOT_METHOD}
 
 # Should never reach here
-echo "${REBOOT_TYPE} failed!" >&2
-exit 1
+error "${REBOOT_TYPE} failed!"
+exit "${EXIT_FAILURE}"
