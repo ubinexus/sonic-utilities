@@ -637,6 +637,22 @@ def vlan(ctx, redis_unix_socket_path):
     ctx.obj = {'db': config_db}
     pass
 
+@vlan.command('admin-status')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('admin_status', metavar='<admin_status>', required=True, type=str)
+@click.pass_context
+def admin_status(ctx, vid, admin_status):
+    if admin_status != 'up' and admin_status != 'down':
+        print('error: please input up or down!')
+        raise click.Abort
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        print "{} doesn't exist".format(vlan_name)
+        raise click.Abort
+    db.mod_entry('VLAN', vlan_name, {'admin_status': admin_status})
+
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
