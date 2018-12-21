@@ -117,8 +117,10 @@ function wait_for_pre_shutdown_complete_or_fail()
     debug "Waiting for pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
     STATE="requesting"
-    declare -i waitcount;
+    declare -i waitcount
+    declare -i retrycount
     waitcount=0
+    retrycount=0
     # Wait up to 60 seconds for pre-shutdown to complete
     while [[ ${waitcount} -lt 600 ]]; do
         # timeout doesn't work with -i option of "docker exec". Therefore we have
@@ -127,7 +129,11 @@ function wait_for_pre_shutdown_complete_or_fail()
 
         if [[ x"${STATE}" == x"timed out" ]]; then
             waitcount+=50
-            debug "Timed out getting pre-shutdown state (${waitcount}) ..."
+            retrycount+=1
+            debug "Timed out getting pre-shutdown state (${waitcount}) retry count ${retrycount} ..."
+            if [[ retrycount -gt 2 ]]; then
+                break
+            fi
         elif [[ x"${STATE}" != x"requesting" ]]; then
             break
         else
