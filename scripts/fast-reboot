@@ -73,7 +73,7 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 function clear_warm_boot()
 {
     debug "Failure ($?) cleanup ..."
-    config warm_restart disable || /bin/true
+    timeout 10 config warm_restart disable || /bin/true
     /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
@@ -121,7 +121,7 @@ function wait_for_pre_shutdown_complete_or_fail()
     waitcount=0
     # Wait up to 60 seconds for pre-shutdown to complete
     while [[ ${waitcount} -lt 600 ]]; do
-        STATE=`/usr/bin/redis-cli -n 6 hget "${TABLE}" state`
+        STATE=`timeout 10 /usr/bin/redis-cli -n 6 hget "${TABLE}" state`
         if [[ x"${STATE}" != x"requesting" ]]; then
             break
         fi
