@@ -73,7 +73,7 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 function clear_warm_boot()
 {
     debug "Failure ($?) cleanup ..."
-    timeout 10 config warm_restart disable || /bin/true
+    timeout 10s config warm_restart disable || /bin/true
     /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
@@ -121,12 +121,19 @@ function wait_for_pre_shutdown_complete_or_fail()
     waitcount=0
     # Wait up to 60 seconds for pre-shutdown to complete
     while [[ ${waitcount} -lt 600 ]]; do
-        STATE=`timeout 10 /usr/bin/redis-cli -n 6 hget "${TABLE}" state`
-        if [[ x"${STATE}" != x"requesting" ]]; then
+        # timeout doesn't work with -i option of "docker exec". Therefore we have
+        # to invoke docker exec directly below.
+        STATE=`timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
+
+        if [[ x"${STATE}" == x"timed out" ]]; then
+            waitcount+=50
+            debug "Timed out getting pre-shutdown state (${waitcount}) ..."
+        elif [[ x"${STATE}" != x"requesting" ]]; then
             break
+        else
+            sleep 0.1
+            waitcount+=1
         fi
-        sleep 0.1
-        waitcount+=1
     done
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
