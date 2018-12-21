@@ -34,13 +34,14 @@ function showHelpAndExit()
     echo "    -f    : force execution"
     echo "    -r    : reboot with /sbin/reboot [default]"
     echo "    -k    : reboot with /sbin/kexec -e"
+    echo "    -x    : execute script with -x flag"
 
     exit 0
 }
 
 function parseOptions()
 {
-    while getopts "vfh?rk" opt; do
+    while getopts "vfh?rkx" opt; do
         case ${opt} in
             h )
                 showHelpAndExit
@@ -59,6 +60,9 @@ function parseOptions()
                 ;;
             k )
                 REBOOT_METHOD="/sbin/kexec -e"
+                ;;
+            x )
+                set -x
                 ;;
         esac
     done
