@@ -6,6 +6,9 @@ import click
 import json
 import subprocess
 import netaddr
+import syslog
+import logging
+import logging.handlers
 import re
 from swsssdk import ConfigDBConnector
 from natsort import natsorted
@@ -662,6 +665,96 @@ def del_vlan_member(ctx, vid, interface_name):
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
 
+def vrf_add_management_vrf():
+	"""Enable management vrf"""
+
+	cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	res = p.communicate()
+	if p.returncode == 0 :
+		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		mvrf_dict = json.loads(p.stdout.read())
+
+		# if the mgmtVrfEnabled attribute is configured, check the value
+		# and modify only if it is changed.
+		if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+			if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
+				click.echo("ManagementVRF is already Enabled.")
+				return None
+
+	config_db = ConfigDBConnector()
+	config_db.connect()
+	config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "true"})
+
+
+def vrf_delete_management_vrf():
+	"""Disable management vrf"""
+
+	cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	res = p.communicate()
+	if p.returncode == 0 :
+		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		mvrf_dict = json.loads(p.stdout.read())
+			
+    	# if the mgmtVrfEnabled attribute is configured, check the value
+		# and modify only if it is changed.
+		if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+			if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "false"):
+				click.echo("ManagementVRF is already Disabled.")
+				return None
+		else:
+			click.echo("ManagementVRF is already Disabled.")
+			return None
+
+	config_db = ConfigDBConnector()
+	config_db.connect()
+	config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
+
+
+#
+# 'vrf' group ('config vrf ...')
+#
+
+@config.group('vrf')
+def vrf():
+    """VRF-related configuration tasks"""
+    pass
+
+
+@vrf.command('add')
+@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=True)
+@click.pass_context
+def vrf_add (ctx, vrfname):
+    """VRF ADD"""
+    if vrfname == 'mgmt' or vrfname == 'management':
+        vrf_add_management_vrf()
+    else:
+        click.echo("Creation of data vrf={} is not yet supported".format(vrfname))
+
+
+@vrf.command('del')
+@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=False)
+@click.pass_context
+def vrf_del (ctx, vrfname):
+    """VRF Delete"""
+    if vrfname == 'mgmt' or vrfname == 'management':
+        vrf_delete_management_vrf()
+    else:
+        click.echo("Deletion of data vrf={} is not yet supported".format(vrfname))
+
+
+@config.command('clear_mgmt')
+@click.pass_context
+def clear_mgmt(ctx):
+    MGMT_TABLE_NAMES = [
+            'MGMT_INTERFACE',
+            'MGMT_VRF_CONFIG']
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    for mgmt_table in MGMT_TABLE_NAMES:
+        config_db.delete_table(mgmt_table)
+
 #
 # 'bgp' group
 #
@@ -787,6 +880,42 @@ def speed(ctx, verbose):
         command += " -vv"
     run_command(command, display_cmd=verbose)
 
+def _get_all_mgmtinterface_keys():
+    """Returns list of strings containing mgmt interface keys 
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    return config_db.get_table('MGMT_INTERFACE').keys()
+
+def is_address_in_network(network, address):
+    """
+    Determine whether the provided address is within a network range.
+
+    :param network (str): CIDR presentation format. For example,
+        '192.168.1.0/24'.
+    :param address: An individual IPv4 or IPv6 address without a net
+        mask or subnet prefix. For example, '192.168.1.1'.
+    :returns boolean: Flag indicating whether address is in network.
+    """
+    try:
+        network = netaddr.IPNetwork(network)
+        # There wont be any exception if the IPNetwork is valid
+    except (netaddr.core.AddrFormatError, ValueError):
+        raise ValueError("Network (%s) is not in CIDR presentation format" %
+                         network)
+
+    try:
+        address = netaddr.IPAddress(address)
+        # There wont be any exception if the IPAddress is valid
+    except (netaddr.core.AddrFormatError, ValueError):
+        raise ValueError("Address (%s) is not in correct presentation format" %
+                         address)
+
+    if address in network:
+        return True
+    else:
+        return False 
+
 #
 # 'ip' subgroup
 #
@@ -803,14 +932,42 @@ def ip(ctx):
 
 @ip.command()
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.argument('gw1', metavar='<default gateway IP address>', required=False)
 @click.pass_context
-def add(ctx, ip_addr):
+def add(ctx, ip_addr, gw1):
     """Add an IP address towards the interface"""
     config_db = ctx.obj["config_db"]
     interface_name = ctx.obj["interface_name"]
 
     if interface_name.startswith("Ethernet"):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+    elif interface_name.startswith("eth0"):
+        # Validate the ip/mask
+        ipaddress= ip_addr.split("/")
+        if is_address_in_network(ip_addr, ipaddress[0]) == False:
+            click.echo ("Its an invalid ip/mask value")
+            return
+
+        # Configuring more than 1 IPv4 or more than 1 IPv6 address fails.
+        # Allow only one IPv4 and only one IPv6 address to be configured for IPv6.
+        # If a row already exist, overwrite it (by doing delete and add).
+        mgmtintf_key_list = _get_all_mgmtinterface_keys()
+
+        for key in mgmtintf_key_list:
+            # For loop runs for max 2 rows, once for IPv4 and once for IPv6.
+            if ':' in ip_addr and ':' in key[1]:
+                # If user has configured IPv6 address and the already available row is also IPv6, delete it here.
+                config_db.set_entry("MGMT_INTERFACE", ("eth0", key[1]), None)
+            elif ':' not in ip_addr and ':' not in key[1]:
+                # If user has configured IPv4 address and the already available row is also IPv6, delete it here.
+                config_db.set_entry("MGMT_INTERFACE", ("eth0", key[1]), None)
+
+        # Set the new row with new value
+        if not gw1:
+            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        else:
+            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw1})
+
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
 
@@ -828,6 +985,8 @@ def remove(ctx, ip_addr):
 
     if interface_name.startswith("Ethernet"):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
+    elif interface_name.startswith("eth0"):
+        config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
 #
