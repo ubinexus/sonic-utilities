@@ -14,6 +14,10 @@ function stop_sonic_services()
         echo "Stopping syncd process..."
         docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
         sleep 3
+
+        # Stop docker service to avoid 5-10 minutes delay in shutdown
+        # while waiting for existing docker containers to quit.
+        systemctl stop docker
     fi
 }
 
