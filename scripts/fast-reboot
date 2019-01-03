@@ -73,7 +73,8 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 function clear_warm_boot()
 {
     debug "Failure ($?) cleanup ..."
-    timeout 10s config warm_restart disable || /bin/true
+    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    debug "Cancel warm-reboot: ${result}"
     /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
