@@ -99,7 +99,6 @@ def interface_name_to_alias(interface_name):
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
-        click.echo("Invalid interface {}".format(interface_alias))
 
     return None
 
@@ -823,6 +822,10 @@ def startup(ctx):
     config_db = ctx.obj['config_db']
     interface_name = ctx.obj['interface_name']
 
+    alias = interface_name_to_alias(interface_name)
+    if alias is None:
+        ctx.fail("Enter valid interface name!!") 
+
     if interface_name.startswith("Ethernet"):
         config_db.mod_entry("PORT", interface_name, {"admin_status": "up"})
     elif interface_name.startswith("PortChannel"):
@@ -837,6 +840,10 @@ def shutdown(ctx):
     """Shut down interface"""
     config_db = ctx.obj['config_db']
     interface_name = ctx.obj['interface_name']
+
+    alias = interface_name_to_alias(interface_name)
+    if alias is None:
+        ctx.fail("Enter valid interface name!!") 
 
     if interface_name.startswith("Ethernet"):
         config_db.mod_entry("PORT", interface_name, {"admin_status": "down"})
