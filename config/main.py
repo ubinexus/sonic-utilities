@@ -15,7 +15,7 @@ import sonic_platform
 from swsssdk import ConfigDBConnector
 from natsort import natsorted
 from minigraph import parse_device_desc_xml
-from sonic_snmp_trap_conf import snmptrap_modify_cfg
+from sonic_snmp_trap_conf import snmptrap_del_old_nat_rule 
 
 import aaa
 import mlnx
@@ -854,6 +854,7 @@ def modify_snmptrap_server(ctx, ver, serverip, trapport, use_mgmt_vrf):
         if entry['mgmtVrfEnabled'] == "false" :
             click.echo('Cannot set SNMPTrap server using --use-mgmt-vrf when management VRF is not yet enabled.')
             return
+    snmptrap_del_old_nat_rule  (ver, serverip, trapport, use_mgmt_vrf)
     if ver == "1":
         if use_mgmt_vrf: 
             config_db.mod_entry('SNMP_TRAP_CONFIG',"v1TrapDest",{"DestIp": serverip, "DestPort": trapport, "vrf": "mgmt"})
@@ -869,7 +870,8 @@ def modify_snmptrap_server(ctx, ver, serverip, trapport, use_mgmt_vrf):
             config_db.mod_entry('SNMP_TRAP_CONFIG',"v3TrapDest",{"DestIp": serverip, "DestPort": trapport, "vrf":"mgmt"})
         else:
             config_db.set_entry('SNMP_TRAP_CONFIG',"v3TrapDest",{"DestIp": serverip, "DestPort": trapport})
-    snmptrap_modify_cfg (ver, serverip, trapport, use_mgmt_vrf)
+    cmd="systemctl restart snmp"
+    os.system (cmd)
 
 
 

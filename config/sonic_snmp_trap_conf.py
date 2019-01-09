@@ -23,7 +23,7 @@ from swsssdk import ConfigDBConnector
 SNMP_SERVER_LOCAL_IP="127.100.100.1"
 
 
-def snmptrap_modify_cfg(ver, hostaddr, port, use_mgmt_vrf):
+def snmptrap_del_old_nat_rule (ver, hostaddr, port, use_mgmt_vrf):
     """
     Function to set snmp-server configuration for the destination to
     send the notifications to.
@@ -51,8 +51,6 @@ def snmptrap_modify_cfg(ver, hostaddr, port, use_mgmt_vrf):
                 syslog.syslog(syslog.LOG_DEBUG, "Deleting iptables rule for old SNMPv{0} Trap Destination Config. Rule={1}".format(ver,cmd))
                 os.system(cmd)
 
-        cmd="systemctl restart snmp"
-        os.system (cmd)
         
     except :
         syslog.syslog(syslog.LOG_ERR, "Exception in modifying the snmp trap destination")
