@@ -185,7 +185,16 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
         if key is not None:
             data['passkey'] = key
         if use_mgmt_vrf :
-            data['vrf'] = "mgmt"
+            entry = config_db.get_entry('MGMT_VRF_CONFIG',"vrf_global")
+            if not entry or entry['mgmtVrfEnabled'] == 'false' :
+                # Either VRF entry does not exist or it is disabled.
+                # Silenty ignore the --use-mgmt-vrf if VRF is not enabled
+                data['vrf'] = "None"
+            else:
+                data['vrf'] = "mgmt"
+
+        else:
+            data['vrf'] = "None"
         config_db.set_entry('TACPLUS_SERVER', address, data)
 tacacs.add_command(add)
 
