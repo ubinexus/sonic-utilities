@@ -1052,8 +1052,9 @@ def ip(ctx):
 
 @ip.command()
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.argument('gw1', metavar='<default gateway IP address>', required=False)
 @click.pass_context
-def add(ctx, ip_addr):
+def add(ctx, ip_addr, gw1):
     """Add an IP address towards the interface"""
     config_db = ctx.obj["config_db"]
     interface_name = ctx.obj["interface_name"]
