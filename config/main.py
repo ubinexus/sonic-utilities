@@ -741,47 +741,24 @@ def del_vlan_member(ctx, vid, interface_name):
 def vrf_add_management_vrf():
 	"""Enable management vrf"""
 
-	cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
-	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	res = p.communicate()
-	if p.returncode == 0 :
-		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		mvrf_dict = json.loads(p.stdout.read())
-
-		# if the mgmtVrfEnabled attribute is configured, check the value
-		# and modify only if it is changed.
-		if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
-			if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
-				click.echo("ManagementVRF is already Enabled.")
-				return None
-
-	config_db = ConfigDBConnector()
-	config_db.connect()
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    entry = config_db.get_entry('MGMT_VRF_CONFIG',"vrf_global")
+    if entry and entry['mgmtVrfEnabled'] == 'true' :
+        click.echo("ManagementVRF is already Enabled.")
+        return None
 	config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "true"})
 
 
 def vrf_delete_management_vrf():
 	"""Disable management vrf"""
 
-	cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
-	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	res = p.communicate()
-	if p.returncode == 0 :
-		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		mvrf_dict = json.loads(p.stdout.read())
-			
-    	# if the mgmtVrfEnabled attribute is configured, check the value
-		# and modify only if it is changed.
-		if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
-			if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "false"):
-				click.echo("ManagementVRF is already Disabled.")
-				return None
-		else:
-			click.echo("ManagementVRF is already Disabled.")
-			return None
-
-	config_db = ConfigDBConnector()
-	config_db.connect()
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    entry = config_db.get_entry('MGMT_VRF_CONFIG',"vrf_global")
+    if not entry or entry['mgmtVrfEnabled'] == 'false' :
+        click.echo("ManagementVRF is already Disabled.")
+        return None
 	config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
 
 
@@ -1052,16 +1029,16 @@ def ip(ctx):
 
 @ip.command()
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
-@click.argument('gw1', metavar='<default gateway IP address>', required=False)
+@click.argument('gw', metavar='<default gateway IP address>', required=False)
 @click.pass_context
-def add(ctx, ip_addr, gw1):
+def add(ctx, ip_addr, gw):
     """Add an IP address towards the interface"""
     config_db = ctx.obj["config_db"]
     interface_name = ctx.obj["interface_name"]
 
     if interface_name.startswith("Ethernet"):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-    elif interface_name.startswith("eth0"):
+    elif interface_name == 'eth0':
         # Validate the ip/mask
         ipaddress= ip_addr.split("/")
         if is_address_in_network(ip_addr, ipaddress[0]) == False:
@@ -1083,10 +1060,10 @@ def add(ctx, ip_addr, gw1):
                 config_db.set_entry("MGMT_INTERFACE", ("eth0", key[1]), None)
 
         # Set the new row with new value
-        if not gw1:
+        if not gw:
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
         else:
-            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw1})
+            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw})
 
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
@@ -1107,7 +1084,7 @@ def remove(ctx, ip_addr):
 
     if interface_name.startswith("Ethernet"):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
-    elif interface_name.startswith("eth0"):
+    elif interface_name == 'eth0':
         config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
