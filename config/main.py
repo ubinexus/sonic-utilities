@@ -11,7 +11,6 @@ import syslog
 
 import sonic_platform
 from swsssdk import ConfigDBConnector
-from natsort import natsorted
 from minigraph import parse_device_desc_xml
 
 import aaa
@@ -77,7 +76,7 @@ def interface_alias_to_name(interface_alias):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in natsorted(port_dict.keys()):
+        for port_name in port_dict.keys():
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
         click.echo("Invalid interface {}".format(interface_alias))
@@ -96,7 +95,7 @@ def interface_name_is_valid(interface_name):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in natsorted(port_dict.keys()):
+        for port_name in port_dict.keys():
             if interface_name == port_name:
                 return True
     return False
@@ -112,11 +111,9 @@ def interface_name_to_alias(interface_name):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in natsorted(port_dict.keys()):
+        for port_name in port_dict.keys():
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
-
-        click.echo("Invalid interface {}".format(interface_alias))
 
     return None
 
@@ -841,7 +838,7 @@ def startup(ctx):
     interface_name = ctx.obj['interface_name']
 
     if interface_name_is_valid(interface_name) is False:
-        ctx.fail("Enter valid interface name!!")
+        ctx.fail("Interface name is invalid. Please enter a  valid interface name!!")
 
     if interface_name.startswith("Ethernet"):
         config_db.mod_entry("PORT", interface_name, {"admin_status": "up"})
@@ -859,7 +856,7 @@ def shutdown(ctx):
     interface_name = ctx.obj['interface_name']
 
     if interface_name_is_valid(interface_name) is False:
-        ctx.fail("Enter valid interface name!!")
+        ctx.fail("Interface name is invalid. Please enter a  valid interface name!!")
 
     if interface_name.startswith("Ethernet"):
         config_db.mod_entry("PORT", interface_name, {"admin_status": "down"})
