@@ -170,6 +170,7 @@ routing_stack = get_routing_stack()
 
 
 def run_command(command, display_cmd=False):
+    # command = "redis-dump -d 2 | python -mjson.tool"
     if display_cmd:
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -190,6 +191,7 @@ def run_command(command, display_cmd=False):
 
     rc = proc.poll()
     if rc != 0:
+        print(rc)
         sys.exit(rc)
 
 
@@ -554,23 +556,41 @@ def status(interfacename, verbose):
 
 
 # 'counters' subcommand ("show interfaces counters")
-@interfaces.command()
+@interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-c', '--clear', is_flag=True)
 @click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(period, printall, clear, verbose):
+@click.pass_context
+def counters(ctx, verbose, period, clear, printall):
     """Show interface counters"""
 
-    cmd = "portstat"
+    if ctx.invoked_subcommand is None:
+        cmd = "portstat"
 
-    if clear:
-        cmd += " -c"
-    else:
-        if printall:
-            cmd += " -a"
-        if period is not None:
-            cmd += " -p {}".format(period)
+        if clear:
+            cmd += " -c"
+        else:
+            if printall:
+                cmd += " -a"
+            if period is not None:
+                cmd += " -p {}".format(period)
+
+        run_command(cmd, display_cmd=verbose)
+
+# 'counters' subcommand ("show interfaces counters rif")
+@counters.command()
+@click.argument('interface', metavar='<interface_name>', required=False, type=str)
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def rif(interface, period, verbose):
+    """Show interface counters"""
+
+    cmd = "intfstat"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    if interface is not None:
+        cmd += " -i {}".format(interface)
 
     run_command(cmd, display_cmd=verbose)
 

@@ -34,6 +34,7 @@ setup(
         'sonic_installer',
         'sonic-utilities-tests',
         'undebug',
+        'utilities_common',
     ],
     package_data={
         'show': ['aliases.ini'],
@@ -53,6 +54,7 @@ setup(
         'scripts/fdbshow',
         'scripts/generate_dump',
         'scripts/intfutil',
+        'scripts/intfstat',
         'scripts/lldpshow',
         'scripts/nbrshow',
         'scripts/pcmping',
