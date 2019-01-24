@@ -108,7 +108,7 @@ class AclStat(object):
             self.acl_tables = self.configdb.get_table(self.ACL_TABLE)
 
             if verboseflag:
-                print("Total number of ACL Tables %d:" % len(self.acl_tables))
+                print("Total number of ACL Tables: %d" % len(self.acl_tables))
             if self.table_list:
                 self.acl_tables = { table:content for (table, content) in self.acl_tables.items() if table in self.table_list }
             else:
