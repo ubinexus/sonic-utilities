@@ -170,7 +170,6 @@ routing_stack = get_routing_stack()
 
 
 def run_command(command, display_cmd=False):
-    # command = "redis-dump -d 2 | python -mjson.tool"
     if display_cmd:
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -191,7 +190,6 @@ def run_command(command, display_cmd=False):
 
     rc = proc.poll()
     if rc != 0:
-        print(rc)
         sys.exit(rc)
 
 

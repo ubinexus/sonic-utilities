@@ -38,7 +38,7 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*'],
+        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json']
     },
     scripts=[
         'scripts/aclshow',
@@ -105,6 +105,10 @@ setup(
         'click-default-group',
         'click',
         'natsort'
+    ],
+    tests_require = [
+        'mock>=2.0.0',
+        'mockredispy>=2.9.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
