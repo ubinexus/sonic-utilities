@@ -478,7 +478,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
-    if len(db.get_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_namee)) != 0:
+    if len(db.get_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name)) != 0:
         db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
         db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
     else:
