@@ -284,6 +284,9 @@ debug "Stopped  bgp ..."
 # Kill lldp, otherwise it sends informotion about reboot
 docker kill lldp > /dev/null
 
+# Kill iccpd
+docker kill iccpd > /dev/null
+
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Kill teamd, otherwise it gets down all LAGs
     # Note: teamd must be killed before syncd, because it will send the last packet through CPU port

@@ -284,6 +284,7 @@ def _stop_services():
         'lldp',
         'pmon',
         'bgp',
+        'iccpd',
         'teamd',
     ]
     for service in services:
@@ -301,6 +302,7 @@ def _restart_services():
         'rsyslog-config',
         'swss',
         'bgp',
+        'iccpd',
         'teamd',
         'pmon',
         'lldp',
