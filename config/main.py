@@ -450,7 +450,10 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     db = ctx.obj['db']
-    db.set_entry('PORTCHANNEL', portchannel_name, None)
+    if len(db.get_entry('PORTCHANNEL', portchannel_name)) != 0:
+        db.set_entry('PORTCHANNEL', portchannel_name, None)
+    else:
+        ctx.fail("{} is not configured".format(portchannel_name))
 
 @portchannel.group('member')
 @click.pass_context
@@ -464,8 +467,12 @@ def portchannel_member(ctx):
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
-    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
-            {'NULL': 'NULL'})
+    if len(db.get_entry('PORTCHANNEL', portchannel_name)) != 0:
+        db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
+                {'NULL': 'NULL'})
+    else:
+        ctx.fail("{} is not configured to add {}".format(portchannel_name, port_name))
+
 
 @portchannel_member.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -474,8 +481,12 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
-    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
-    db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+    if len(db.get_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name)) != 0:
+        db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
+        db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+    else:
+        ctx.fail("{} is not part of {}".format(port_name, portchannel_name))
+
 
 
 #
