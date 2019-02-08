@@ -159,7 +159,7 @@ def get_routing_stack():
         proc.wait()
         result = stdout.rstrip('\n')
 
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect routing-stack")
 
     return (result)
@@ -805,7 +805,7 @@ def get_if_admin_state(iface):
     try:
         state_file = open(admin_file.format(iface), "r")
     except IOError as e:
-        print "Error: unable to open file: %s" % str(e)
+        click.echo("Error: unable to open file: %s" % str(e))
         return "error"
 
     content = state_file.readline().rstrip()
@@ -828,7 +828,7 @@ def get_if_oper_state(iface):
     try:
         state_file = open(oper_file.format(iface), "r")
     except IOError as e:
-        print "Error: unable to open file: %s" % str(e)
+        click.echo("Error: unable to open file: %s" % str(e))
         return "error"
 
     oper_state = state_file.readline().rstrip()
@@ -872,7 +872,7 @@ def interfaces():
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
-    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
+    click.echo(tabulate(data, header, tablefmt="simple", stralign='left', missingval=""))
 
 
 #
@@ -963,7 +963,7 @@ def interfaces():
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
-    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
+    click.echo(tabulate(data, header, tablefmt="simple", stralign='left', missingval=""))
 
 
 #
@@ -1489,11 +1489,11 @@ def services():
     while True:
         line = proc.stdout.readline()
         if line != '':
-                print(line.rstrip()+'\t'+"docker")
-                print("---------------------------")
+                click.echo(line.rstrip()+'\t'+"docker")
+                click.echo("---------------------------")
                 cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
                 proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                print proc1.stdout.read()
+                click.echo(proc1.stdout.read())
         else:
                 break
 

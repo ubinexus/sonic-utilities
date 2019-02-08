@@ -81,7 +81,7 @@ authentication.add_command(fallback)
 def login(auth_protocol):
     """Switch login authentication [ {tacacs+, local} | default ]"""
     if len(auth_protocol) is 0:
-        print 'Not support empty argument'
+        click.echo('Not support empty argument')
         return
 
     if 'default' in auth_protocol:

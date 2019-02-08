@@ -47,7 +47,7 @@ def log_info(msg, syslog_identifier, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 def log_warning(msg, syslog_identifier, also_print_to_console=False):
@@ -56,7 +56,7 @@ def log_warning(msg, syslog_identifier, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 def log_error(msg, syslog_identifier, also_print_to_console=False):
@@ -65,7 +65,7 @@ def log_error(msg, syslog_identifier, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 # run command
@@ -145,7 +145,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
     env_variable_exist_string = env_variable_read(env_variable_name)
     if env_variable_exist_string:
         if enable is True:
-            print "sniffer is already enabled, do nothing"
+            click.echo("sniffer is already enabled, do nothing")
             ignore = True
         else:
             env_variable_delete(env_variable_exist_string)
@@ -153,7 +153,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
         if enable is True:
             env_variable_write(env_variable_string)
         else:
-            print "sniffer is already disabled, do nothing"
+            click.echo("sniffer is already disabled, do nothing")
             ignore = True
 
     if not ignore:
@@ -169,7 +169,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
 def restart_swss():
     try:
         run_command(COMMAND_RESTART_SWSS)
-    except OSError, e:
+    except OSError as e:
         log_error("Not able to restart swss service, %s" % str(e), SNIFFER_SYSLOG_IDENTIFIER, True)
         return 1
     return 0
@@ -212,7 +212,7 @@ def sdk(option):
 
 def sdk_sniffer_enable():
     """Enable SDK Sniffer"""
-    print "Enabling SDK sniffer"
+    click.echo("Enabling SDK sniffer")
     sdk_sniffer_filename = sniffer_filename_generate(SDK_SNIFFER_TARGET_PATH,
                                                      SDK_SNIFFER_FILENAME_PREFIX,
                                                      SDK_SNIFFER_FILENAME_EXT)
@@ -231,21 +231,21 @@ def sdk_sniffer_enable():
         err = restart_swss()
         if err is not 0:
             return
-        print 'Enabled SDK sniffer, recording file is %s' % sdk_sniffer_filename
+        click.echo('Enabled SDK sniffer, recording file is %s' % sdk_sniffer_filename)
     else:
         pass
 
 
 def sdk_sniffer_disable():
     """Disable SDK Sniffer"""
-    print "Disabling SDK sniffer"
+    click.echo("Disabling SDK sniffer")
 
     ignore = sniffer_env_variable_set(enable=False, env_variable_name=ENV_VARIABLE_SX_SNIFFER)
     if not ignore:
         err = restart_swss()
         if err is not 0:
             return
-        print "Disabled SDK sniffer"
+        click.echo("Disabled SDK sniffer")
     else:
         pass
 

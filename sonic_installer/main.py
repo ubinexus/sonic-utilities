@@ -390,7 +390,7 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
         click.echo('Downloading image...')
         try:
             urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
-        except Exception, e:
+        except Exception as e:
             click.echo("Download error", e)
             return
         image_path = DEFAULT_IMAGE_PATH

@@ -47,9 +47,9 @@ def showPfcAsym(interface):
 
     sorted_table = natsorted(table)
 
-    print '\n'
-    print tabulate(sorted_table, headers=header, tablefmt="simple", missingval="")
-    print '\n'
+    click.echo('\n')
+    click.echo(tabulate(sorted_table, headers=header, tablefmt="simple", missingval=""))
+    click.echo('\n')
 
 
 @click.group()
