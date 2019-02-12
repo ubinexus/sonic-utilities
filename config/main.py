@@ -467,7 +467,6 @@ def portchannel_member(ctx):
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
-<<<<<<< HEAD
     port_channel = db.get_entry('PORTCHANNEL', portchannel_name)
     if get_interface_naming_mode() == "alias":
         port_name = interface_alias_to_name(port_name)
