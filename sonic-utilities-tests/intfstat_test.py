@@ -109,6 +109,19 @@ class TestIntfstat(object):
         for line in expected:
             assert line in result.output
 
+    def test_alias_mode(self):
+        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["rif"], [])
+        # no aliases for Portchannels and Vlans for now
+        interfaces = ["etp6", "PortChannel0001", "PortChannel0002", "PortChannel0003", "PortChannel0004", "Vlan1000"]
+        print(result.output)
+        result_lines = result.output.split('\n')
+        #assert all interfaces are present in the output and in the correct order
+        for i, interface in enumerate(interfaces):
+            assert interface in result_lines[i+2]
+        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

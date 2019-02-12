@@ -263,6 +263,14 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
+            elif command.startswith("intfstat"):
+                """Show RIF counters"""
+                index = 0
+                if output.startswith("IFACE"):
+                    output = output.replace("IFACE", "IFACE".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
             elif command == "pfcstat":
                 """Show pfc counters"""
                 index = 0

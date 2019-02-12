@@ -5,6 +5,12 @@
         "mtu": "9100",
         "speed": "40000"
     },
+    "PORT|Ethernet20": {
+        "alias": "etp6",
+        "lanes": "20,21,22,23",
+        "mtu": "9100",
+        "speed": "40000"
+    },
     "PORT|Ethernet100": {
         "alias": "etp26",
         "lanes": "100,101,102,103",
