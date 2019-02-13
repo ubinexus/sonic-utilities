@@ -1731,10 +1731,11 @@ def config(redis_unix_socket_path):
     def tablelize(keys, data, enable_table_keys, prefix):
         table = []
 
-        for k in enable_table_keys:
-            k = k.replace(prefix, "")
-            if k not in keys:
-                keys.append(k)
+        if enable_table_keys is not None:
+            for k in enable_table_keys:
+                k = k.replace(prefix, "")
+                if k not in keys:
+                    keys.append(k)
 
         for k in keys:
             r = []
