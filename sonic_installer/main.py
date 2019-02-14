@@ -217,6 +217,24 @@ def install(url):
 
     if url.startswith('http://') or url.startswith('https://'):
         click.echo('Downloading image...')
+
+        # Get HTTP response code first before downloading file
+        try:
+            urlfile = urllib.urlopen(url)
+            response_code = urlfile.getcode()
+            urlfile.close()
+        except IOError, err:
+            response_code = None
+
+        if not response_code:
+            click.echo("Did not receive a response from remote machine. Aborting...")
+            raise click.Abort()
+        else:
+            # Check for a 4xx response code which indicates a nonexistent URL
+            if response_code / 100 == 4:
+                click.echo("Image file not found on remote machine. Aborting...")
+                raise click.Abort()
+
         urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
         image_path = DEFAULT_IMAGE_PATH
     else:
@@ -226,6 +244,10 @@ def install(url):
         run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
         run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
     else:
+        if not os.path.isfile(image_path):
+            click.echo("Image file does not exist or is not a regular file. Aborting...")
+            raise click.Abort()
+
         os.chmod(image_path, stat.S_IXUSR)
         run_command(image_path)
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
