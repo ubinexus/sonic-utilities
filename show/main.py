@@ -366,7 +366,7 @@ def cli():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def arp(ipaddress, iface, verbose):
     """Show IP ARP table"""
-    cmd = "arp -n"
+    cmd = "nbrshow -4"
 
     if ipaddress is not None:
         cmd += " -ip {}".format(ipaddress)
