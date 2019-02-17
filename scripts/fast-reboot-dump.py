@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/python
 
 import swsssdk
 import json
@@ -23,22 +23,22 @@ def generate_arp_entries(filename, all_available_macs):
     keys = db.keys(db.APPL_DB, 'NEIGH_TABLE:*')
     keys = [] if keys is None else keys
     for key in keys:
-        key1 = key.split(':')[1]
+        iface_name = key.split(':')[1]
         ip_addr = key.split(':')[2]
         entry = db.get_all(db.APPL_DB, key)
-        if key1.startswith('eth0') or key1.startswith('lo'):
+        if iface_name.startswith('eth0') or iface_name.startswith('lo'):
             continue
         if entry['family'] == 'IPv6':
             continue
-        if key1.startswith('Vlan'):
-            if (key1, entry['neigh'].lower()) not in all_available_macs:
+        if iface_name.startswith('Vlan'):
+            if (iface_name, entry['neigh'].lower()) not in all_available_macs:
                 # FIXME: print me to log
                 continue
         obj = {
           key: entry,
           'OP': 'SET'
         }
-        arp_entries.append((key1, entry['neigh'].lower(), ip_addr))
+        arp_entries.append((iface_name, entry['neigh'].lower(), ip_addr))
         arp_output.append(obj)
 
     db.close(db.APPL_DB)
@@ -190,10 +190,10 @@ def get_iface_ip_addr(iff):
     return get_if(iff, SIOCGIFADDR)[20:24]
 
 def send_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
-    # convert dst_mac in binary
+    # convert dst_ip in binary
     dst_ip = socket.inet_aton(dst_ip_s)
 
-    # convert dst_ip in binary
+    # convert dst_mac in binary
     dst_mac = binascii.unhexlify(dst_mac_s.replace(':', ''))
 
     # make ARP packet
