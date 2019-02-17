@@ -451,6 +451,9 @@ def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     db = ctx.obj['db']
     if len(db.get_entry('PORTCHANNEL', portchannel_name)) != 0:
+       keys = [(k,v) for k,v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]
+       for k in keys:
+           db.set_entry('PORTCHANNEL_MEMBER', k, None)
         db.set_entry('PORTCHANNEL', portchannel_name, None)
     else:
         ctx.fail("{} is not configured".format(portchannel_name))
@@ -519,7 +522,10 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
             ctx.fail("{} is not a member of {}".format(port_name, portchannel_name))
     
     members.remove(port_name)
-    port_channel['members'] = members
+    if len(members) == 0:
+        del port_channel['members']
+    else:
+        port_channel['members'] = members
     db.set_entry('PORTCHANNEL', portchannel_name, port_channel)
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
 
