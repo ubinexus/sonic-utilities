@@ -63,7 +63,7 @@ class Teamshow(object):
         """
             Skip the 'PortChannel' prefix and extract the team id.
         """
-        return team[:]
+        return team[11:]
 
     def get_teamdctl(self):
         """
@@ -123,7 +123,7 @@ class Teamshow(object):
         header = ['No.', 'Team Dev', 'Protocol', 'Ports']
         output = []
         for team_id in natsorted(self.summary):
-            output.append([team_id[11:], team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
+            output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
         print tabulate(output, header)
 
 def main():
