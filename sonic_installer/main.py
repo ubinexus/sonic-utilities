@@ -248,15 +248,16 @@ def install(url):
     else:
         image_path = os.path.join("./", url)
 
+    # Verify that the local file exists and is a regular file
+    # TODO: Verify the file is a *proper SONiC image file*
+    if not os.path.isfile(image_path):
+        click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+        raise click.Abort()
+
     if get_image_type() == IMAGE_TYPE_ABOOT:
         run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
         run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
     else:
-        if not os.path.isfile(image_path):
-            click.echo("Image file does not exist or is not a regular file. Aborting...")
-            raise click.Abort()
-
-        # TODO: Validate file is a proper SONiC image file
         os.chmod(image_path, stat.S_IXUSR)
         run_command(image_path)
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
@@ -429,7 +430,11 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
     else:
         image_path = os.path.join("./", url)
 
-    # TODO: Validate the new docker image before disrupting existsing images.
+    # Verify that the local file exists and is a regular file
+    # TODO: Verify the file is a *proper Docker image file*
+    if not os.path.isfile(image_path):
+        click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+        raise click.Abort()
 
     warm = False
     config_db = ConfigDBConnector()
