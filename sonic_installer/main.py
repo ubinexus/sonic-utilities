@@ -208,7 +208,6 @@ def validate_url_or_abort(url):
             click.echo("Image file not found on remote machine. Aborting...")
             raise click.Abort()
 
-
 # Callback for confirmation prompt. Aborts if user enters "n"
 def abort_if_false(ctx, param, value):
     if not value:
