@@ -120,6 +120,8 @@ class NbrBase(object):
 
             self.NBR_COUNT += 1
             vlan = '-'
+            mpos = 1
+            mac = '-'
             if len(ent) > 2 and 'Vlan' in ent[2]:
                 vlanid = int(re.search(r'\d+', ent[2]).group())
                 mac = unicode(ent[1].upper())
@@ -130,6 +132,8 @@ class NbrBase(object):
                     ent[2] = fdb_ent[2]
                 else:
                     ent[2] = '-'
+            if len(ent) == 2:
+                ent.insert(mpos, mac)
             ent.insert(vpos, vlan)
             output.append(ent)
 
