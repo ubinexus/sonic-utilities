@@ -357,7 +357,7 @@ def reset_mirror_tunnel():
 
 
 #
-# Set up vxlan tunnel
+# Set vxlan tunnel
 #
 
 def add_vxlan_tunnel(dst_ipv4_addr):
