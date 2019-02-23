@@ -35,7 +35,7 @@ SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 
 MIRROR_SESSION_NAME = 'neighbor_advertiser'
 MIRROR_ACL_NAME = 'neighbor_advertiser_acl'
-MIRROR_ACL_RULE_NAME = 'rule_1'
+MIRROR_ACL_RULE_NAME = 'rule_arp'
 VXLAN_TUNNEL_NAME = 'neighbor_advertiser'
 VXLAN_TUNNEL_MAP_PREFIX = 'map_'
 
