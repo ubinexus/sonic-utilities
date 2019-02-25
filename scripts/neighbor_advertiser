@@ -323,6 +323,7 @@ def set_mirror_tunnel(ferret_server_ip):
     add_mirror_session(ferret_server_ip)
     add_mirror_acl()
     add_mirror_acl_rule()
+    log_info('Finish setting mirror tunnel; Ferret: {}'.format(ferret_server_ip))
 
 
 #
@@ -354,6 +355,7 @@ def reset_mirror_tunnel():
     remove_mirror_acl_rule()
     remove_mirror_acl()
     remove_mirror_session()
+    log_info('Finish resetting mirror tunnel')
 
 
 #
@@ -388,6 +390,7 @@ def add_vxlan_tunnel_map():
 def set_vxlan_tunnel(ferret_server_ip):
     add_vxlan_tunnel(ferret_server_ip)
     add_vxlan_tunnel_map()
+    log_info('Finish setting vxlan tunnel; Ferret: {}'.format(ferret_server_ip))
 
 
 #
@@ -412,6 +415,7 @@ def remove_vxlan_tunnel_map():
 def reset_vxlan_tunnel():
     remove_vxlan_tunnel_map()
     remove_vxlan_tunnel()
+    log_info('Finish resetting vxlan tunnel')
 
 
 #
@@ -449,4 +453,3 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         log_error('! [Failure] {}'.format(e))
-
