@@ -26,14 +26,11 @@ def generate_arp_entries(filename, all_available_macs):
         iface_name = key.split(':')[1]
         ip_addr = key.split(':')[2]
         entry = db.get_all(db.APPL_DB, key)
-        if iface_name.startswith('eth0') or iface_name.startswith('lo'):
+        if iface_name.startswith('eth0') or iface_name.startswith('lo') or entry['family'] == 'IPv6':
             continue
-        if entry['family'] == 'IPv6':
+        if iface_name.startswith('Vlan') and (iface_name, entry['neigh'].lower()) not in all_available_macs:
+            # FIXME: print me to log
             continue
-        if iface_name.startswith('Vlan'):
-            if (iface_name, entry['neigh'].lower()) not in all_available_macs:
-                # FIXME: print me to log
-                continue
         obj = {
           key: entry,
           'OP': 'SET'
@@ -189,7 +186,7 @@ def get_iface_ip_addr(iff):
     SIOCGIFADDR = 0x8915            # Get ip address
     return get_if(iff, SIOCGIFADDR)[20:24]
 
-def send_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
+def send_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s, iface_name, dot1QFlag):
     # convert dst_ip in binary
     dst_ip = socket.inet_aton(dst_ip_s)
 
@@ -197,24 +194,12 @@ def send_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
     dst_mac = binascii.unhexlify(dst_mac_s.replace(':', ''))
 
     # make ARP packet
-    pkt = dst_mac + src_mac + ARP_CHUNK + src_mac + src_ip + dst_mac + dst_ip + ARP_PAD
-
-    # send it
-    s.send(pkt)
-
-    return
-
-def send_vlan_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s, vlan_iface):
-    # convert dst_mac in binary
-    dst_ip = socket.inet_aton(dst_ip_s)
-    vlan   = int(vlan_iface[len('Vlan'):])
-    vlan_hex = '%04x' % vlan
-
-    # convert dst_ip in binary
-    dst_mac = binascii.unhexlify(dst_mac_s.replace(':', ''))
-
-    # make ARP packet
-    pkt = dst_mac + src_mac + binascii.unhexlify('8100') + binascii.unhexlify(vlan_hex) + ARP_CHUNK + src_mac + src_ip + dst_mac + dst_ip + ARP_PAD
+    if dot1QFlag == True:
+        vlan   = int(iface_name[len('Vlan'):])
+        vlan_hex = '%04x' % vlan
+        pkt = dst_mac + src_mac + binascii.unhexlify('8100') + binascii.unhexlify(vlan_hex) + ARP_CHUNK + src_mac + src_ip + dst_mac + dst_ip + ARP_PAD
+    else:
+        pkt = dst_mac + src_mac + ARP_CHUNK + src_mac + src_ip + dst_mac + dst_ip + ARP_PAD
 
     # send it
     s.send(pkt)
@@ -247,10 +232,10 @@ def garp_send(arp_entries, map_mac_ip_per_vlan):
     for iface_name, dst_mac, dst_ip in arp_entries:
         if iface_name in map_mac_ip_per_vlan:
             src_if = map_mac_ip_per_vlan[iface_name][dst_mac]
-            send_vlan_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[iface_name], dst_mac, dst_ip, iface_name)
+            send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[iface_name], dst_mac, dst_ip, iface_name, True)
         else:
             src_if = iface_name
-            send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[iface_name], dst_mac, dst_ip)
+            send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[iface_name], dst_mac, dst_ip, iface_name, False)
 
     # close the raw sockets
     for s in sockets.values():
