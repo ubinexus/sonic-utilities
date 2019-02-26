@@ -6,7 +6,7 @@ PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
-REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
+REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 
 function stop_sonic_services()
 {
@@ -47,6 +47,11 @@ clear_warm_boot
 echo "User issued 'reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
 sync
 sleep 3
+
+# sync the current system time to CMOS
+if [ -x /sbin/hwclock ]; then
+    /sbin/hwclock -w || /bin/true
+fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     echo "Rebooting with platform ${PLATFORM} specific tool ..."

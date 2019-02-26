@@ -2,7 +2,7 @@
 
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
-REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
+REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
 REBOOT_SCRIPT_NAME=$(basename $0)
@@ -159,7 +159,8 @@ function backup_database()
     # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
     redis-cli -n 6 eval "
         for _, k in ipairs(redis.call('keys', '*')) do
-            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') then
+            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
+                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') then
                 redis.call('del', k)
             end
         end
@@ -358,6 +359,11 @@ echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: $
 sync
 sleep 1
 sync
+
+# sync the current system time to CMOS
+if [ -x /sbin/hwclock ]; then
+    /sbin/hwclock -w || /bin/true
+fi
 
 # Reboot: explicity call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
