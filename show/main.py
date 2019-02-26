@@ -480,7 +480,7 @@ def transceiver():
 def eeprom(interfacename, dump_dom, verbose):
     """Show interface transceiver EEPROM information"""
 
-    cmd = "sudo sfputil show eeprom"
+    cmd = "sfpshow show eeprom"
 
     if dump_dom:
         cmd += " --dom"
@@ -516,7 +516,7 @@ def lpmode(interfacename, verbose):
 def presence(interfacename, verbose):
     """Show interface transceiver presence"""
 
-    cmd = "sudo sfputil show presence"
+    cmd = "sfpshow show presence"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
