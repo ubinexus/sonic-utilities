@@ -200,14 +200,8 @@ def cli():
     """sfpshow - Command line utility for display SFP transceivers information"""
     pass
 
-# 'show' subgroup
-@cli.group()
-def show():
-    """Display status of SFP transceivers"""
-    pass
-
 # 'eeprom' subcommand
-@show.command()
+@cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM data for port <port_name> only")
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
 def eeprom(port, dump_dom):
@@ -215,7 +209,7 @@ def eeprom(port, dump_dom):
     sfp.display_eeprom(port, dump_dom)
 
 # 'presence' subcommand
-@show.command()
+@cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP presence for port <port_name> only")
 def presence(port):
     sfp = SFPShow()
