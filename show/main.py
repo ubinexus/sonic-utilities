@@ -263,6 +263,14 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
+            elif command.startswith("intfstat"):
+                """Show RIF counters"""
+                index = 0
+                if output.startswith("IFACE"):
+                    output = output.replace("IFACE", "IFACE".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
             elif command == "pfcstat":
                 """Show pfc counters"""
                 index = 0
@@ -425,11 +433,19 @@ def expected(interfacename):
     """Show expected neighbor information by interfaces"""
     neighbor_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR"'
     p1 = subprocess.Popen(neighbor_cmd, shell=True, stdout=subprocess.PIPE)
-    neighbor_dict = json.loads(p1.stdout.read())
+    try :
+        neighbor_dict = json.loads(p1.stdout.read())
+    except ValueError:
+        print("DEVICE_NEIGHBOR information is not present.")
+        return
 
     neighbor_metadata_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR_METADATA"'
     p2 = subprocess.Popen(neighbor_metadata_cmd, shell=True, stdout=subprocess.PIPE)
-    neighbor_metadata_dict = json.loads(p2.stdout.read())
+    try :
+        neighbor_metadata_dict = json.loads(p2.stdout.read())
+    except ValueError:
+        print("DEVICE_NEIGHBOR_METADATA information is not present.")
+        return
 
     #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
@@ -554,23 +570,41 @@ def status(interfacename, verbose):
 
 
 # 'counters' subcommand ("show interfaces counters")
-@interfaces.command()
+@interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-c', '--clear', is_flag=True)
 @click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(period, printall, clear, verbose):
+@click.pass_context
+def counters(ctx, verbose, period, clear, printall):
     """Show interface counters"""
 
-    cmd = "portstat"
+    if ctx.invoked_subcommand is None:
+        cmd = "portstat"
 
-    if clear:
-        cmd += " -c"
-    else:
-        if printall:
-            cmd += " -a"
-        if period is not None:
-            cmd += " -p {}".format(period)
+        if clear:
+            cmd += " -c"
+        else:
+            if printall:
+                cmd += " -a"
+            if period is not None:
+                cmd += " -p {}".format(period)
+
+        run_command(cmd, display_cmd=verbose)
+
+# 'counters' subcommand ("show interfaces counters rif")
+@counters.command()
+@click.argument('interface', metavar='<interface_name>', required=False, type=str)
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def rif(interface, period, verbose):
+    """Show interface counters"""
+
+    cmd = "intfstat"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    if interface is not None:
+        cmd += " -i {}".format(interface)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -746,29 +780,6 @@ def pwm_pg_shared():
     command = 'watermarkstat -p -t pg_shared'
     run_command(command)
 
-#
-# 'pfc' group ###
-#
-
-@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
-def pfc():
-    """Show PFC information"""
-    pass
-
-
-#
-# 'pfc status' command ###
-#
-
-@pfc.command()
-@click.argument('interface', type=click.STRING, required=False)
-def status(interface):
-    """Show PFC information"""
-    if interface is None:
-        interface = ""
-
-    run_command("pfc show asymmetric {0}".format(interface))
-
 
 #
 # 'mac' command ("show mac ...")
@@ -805,7 +816,7 @@ def route_map(route_map_name, verbose):
         cmd += ' {}'.format(route_map_name)
     cmd += '"'
     run_command(cmd, display_cmd=verbose)
-	
+
 #
 # 'ip' group ("show ip ...")
 #
@@ -1658,7 +1669,7 @@ def mmu():
 @cli.command('reboot-cause')
 def reboot_cause():
     """Show cause of most recent reboot"""
-    PREVIOUS_REBOOT_CAUSE_FILE = "/var/cache/sonic/previous-reboot-cause.txt"
+    PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
 
     # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
     # the contents of the 'reboot cause' file as it was left when the device
@@ -1740,21 +1751,40 @@ def config(redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     data = config_db.get_table('WARM_RESTART')
+    # Python dictionary keys() Method
     keys = data.keys()
 
-    def tablelize(keys, data):
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    # DBInterface keys() method
+    enable_table_keys = state_db.keys(state_db.STATE_DB, _hash)
+
+    def tablelize(keys, data, enable_table_keys, prefix):
         table = []
+
+        if enable_table_keys is not None:
+            for k in enable_table_keys:
+                k = k.replace(prefix, "")
+                if k not in keys:
+                    keys.append(k)
 
         for k in keys:
             r = []
             r.append(k)
 
-            if 'enable' not in  data[k]:
+            enable_k = prefix + k
+            if enable_table_keys is None or enable_k not in enable_table_keys:
                 r.append("false")
             else:
-                r.append(data[k]['enable'])
+                r.append(state_db.get(state_db.STATE_DB, enable_k, "enable"))
 
-            if 'neighsyncd_timer' in  data[k]:
+            if k not in data:
+                r.append("NULL")
+                r.append("NULL")
+            elif 'neighsyncd_timer' in  data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
             elif 'bgp_timer' in data[k]:
@@ -1772,8 +1802,8 @@ def config(redis_unix_socket_path):
         return table
 
     header = ['name', 'enable', 'timer_name', 'timer_duration']
-    click.echo(tabulate(tablelize(keys, data), header))
-
+    click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
+    state_db.close(state_db.STATE_DB)
 
 if __name__ == '__main__':
     cli()
