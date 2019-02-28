@@ -91,6 +91,7 @@ def interface_name_is_valid(interface_name):
     config_db = ConfigDBConnector()
     config_db.connect()
     port_dict = config_db.get_table('PORT')
+    port_channel_dict = config_db.get_table('PORTCHANNEL')
 
     if interface_name is not None:
         if not port_dict:
@@ -99,6 +100,10 @@ def interface_name_is_valid(interface_name):
         for port_name in port_dict.keys():
             if interface_name == port_name:
                 return True
+        if port_channel_dict:
+            for port_channel_name in port_channel_dict.keys():
+                if interface_name == port_channel_name:
+                    return True
     return False
 
 def interface_name_to_alias(interface_name):
