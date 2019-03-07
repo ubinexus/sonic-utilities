@@ -454,7 +454,7 @@ def remove_portchannel(ctx, portchannel_name):
        keys = [(k,v) for k,v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]
        for k in keys:
            db.set_entry('PORTCHANNEL_MEMBER', k, None)
-        db.set_entry('PORTCHANNEL', portchannel_name, None)
+       db.set_entry('PORTCHANNEL', portchannel_name, None)
     else:
         ctx.fail("{} is not configured".format(portchannel_name))
 
@@ -481,13 +481,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     
     members = port_channel.get('members', [])
     if port_name in members:
-        if get_interface_naming_mode() == "alias":
-            port_name = interface_name_to_alias(port_name)
-            if port_name is None:
-                ctx.fail("'port_name' is None!")
-            ctx.fail("{} is already a member of {}".format(port_name, portchannel_name))
-        else:
-            ctx.fail("{} is already a member of {}".format(port_name, portchannel_name))
+        ctx.fail("{} is already a member of {}".format(port_name, portchannel_name))
     
     members.append(port_name)
     port_channel['members'] = members
@@ -513,13 +507,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     
     members = port_channel.get('members', [])
     if port_name not in members:
-        if get_interface_naming_mode() == "alias":
-            port_name = interface_name_to_alias(port_name)
-            if port_name is None:
-                ctx.fail("'port_name' is None!")
-            ctx.fail("{} is not a member of {}".format(port_name, portchannel_name))
-        else:
-            ctx.fail("{} is not a member of {}".format(port_name, portchannel_name))
+        ctx.fail("{} is not a member of {}".format(port_name, portchannel_name))
     
     members.remove(port_name)
     if len(members) == 0:
