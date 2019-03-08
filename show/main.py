@@ -32,6 +32,7 @@ except ImportError:
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
+# add comments for test branch
 class Config(object):
     """Object to hold CLI config"""
 
