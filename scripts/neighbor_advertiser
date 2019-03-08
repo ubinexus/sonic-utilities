@@ -13,7 +13,6 @@ import requests
 import argparse
 import syslog
 import traceback
-import swsssdk
 import sonic_platform
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
@@ -420,17 +419,12 @@ def reset_vxlan_tunnel():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', dest='vip', metavar='vip', type = str, required = False, help = 'ferret service vip')
+    parser.add_argument('-s', dest='vip', metavar='vip', type = str, required = True, help = 'ferret service vip')
     parser.add_argument('-m', dest='mode', metavar='mode (set, reset)', type = str, required = True, choices=['set', 'reset'], help = 'operation mode')
     args = parser.parse_args()
 
     ferret_service_vip = args.vip
     operation_mode = args.mode
-
-    if operation_mode == 'set' and ferret_service_vip == None:
-        print('ferret service vip is required in set mode')
-        log_warning('ferret service vip is required in set mode')
-        return false
 
     if operation_mode == 'set':
         ferret_server_ip = post_neighbor_advertiser_slice(ferret_service_vip)
