@@ -433,11 +433,19 @@ def expected(interfacename):
     """Show expected neighbor information by interfaces"""
     neighbor_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR"'
     p1 = subprocess.Popen(neighbor_cmd, shell=True, stdout=subprocess.PIPE)
-    neighbor_dict = json.loads(p1.stdout.read())
+    try :
+        neighbor_dict = json.loads(p1.stdout.read())
+    except ValueError:
+        print("DEVICE_NEIGHBOR information is not present.")
+        return
 
     neighbor_metadata_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR_METADATA"'
     p2 = subprocess.Popen(neighbor_metadata_cmd, shell=True, stdout=subprocess.PIPE)
-    neighbor_metadata_dict = json.loads(p2.stdout.read())
+    try :
+        neighbor_metadata_dict = json.loads(p2.stdout.read())
+    except ValueError:
+        print("DEVICE_NEIGHBOR_METADATA information is not present.")
+        return
 
     #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
@@ -1116,7 +1124,7 @@ def summary():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def syseeprom(verbose):
     """Show system EEPROM information"""
-    cmd = "sudo decode-syseeprom"
+    cmd = "sudo decode-syseeprom -d"
     run_command(cmd, display_cmd=verbose)
 
 # 'psustatus' subcommand ("show platform psustatus")
@@ -1125,7 +1133,7 @@ def syseeprom(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def psustatus(index, verbose):
     """Show PSU status information"""
-    cmd = "sudo psuutil status"
+    cmd = "psushow -s"
 
     if index >= 0:
         cmd += " -i {}".format(index)
