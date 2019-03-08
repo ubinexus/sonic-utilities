@@ -9,11 +9,10 @@
 
 import os
 import json
-import socket
-import subprocess
 import requests
 import argparse
 import syslog
+import traceback
 import swsssdk
 import sonic_platform
 from swsssdk import ConfigDBConnector
@@ -25,7 +24,6 @@ from swsssdk import SonicV2Connector
 #
 
 DEFAULT_DURATION = 300
-DEFAULT_DECODING = 'utf-8'
 SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 
 
@@ -218,7 +216,6 @@ def construct_neighbor_advertiser_slice():
                 'ipAddr': addr,
                 'macAddr': mac_addr
             }
-
             ipv4_mappings.append(mapping)
 
         ipv6_mappings = []
@@ -227,7 +224,6 @@ def construct_neighbor_advertiser_slice():
                 'ipAddr': addr,
                 'macAddr': mac_addr
             }
-
             ipv6_mappings.append(mapping)
 
         vlan_interface_obj = {
@@ -263,8 +259,8 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
         ferret_server_ipv4_addr = neighbor_advertiser_configuration['ipv4Addr']
         log_info('Successfully set up neighbor advertiser slice')
     else:
-        log_error('Failed to set up neighbor advertiser slice')
-        raise Exception('Phase: post neighbor advertiser slice')
+        log_error('Failed to set up neighbor advertiser slice, error_code: {}'.format(response.status_code))
+        response.raise_for_status()
 
     return ferret_server_ipv4_addr
 
@@ -452,5 +448,5 @@ if __name__ == '__main__':
     try:
         main()
     except Exception as e:
-        log_error('! [Failure] {}'.format(e))
+        log_error('! [Failure] {} {}'.format(e, traceback.format_exc()))
 
