@@ -71,22 +71,29 @@ def log_error(msg):
 
 
 #
+# Global variable of config_db
+#
+
+config_db = None
+
+
+#
 # Get switch info and intf addr
 #
 
-def get_switch_name():
+def connect_config_db():
+    global config_db
     config_db = ConfigDBConnector()
     config_db.connect()
-    metadata = config_db.get_table('DEVICE_METADATA')
 
+
+def get_switch_name():
+    metadata = config_db.get_table('DEVICE_METADATA')
     return metadata['localhost']['hostname']
 
 
 def get_switch_hwsku():
-    config_db = ConfigDBConnector()
-    config_db.connect()
     metadata = config_db.get_table('DEVICE_METADATA')
-
     return metadata['localhost']['hwsku']
 
 
@@ -102,10 +109,7 @@ def extract_ip_ver_addr(ip_prefix):
 
 
 def get_loopback_addr(ip_ver):
-    config_db = ConfigDBConnector()
-    config_db.connect()
     loopback_intfs = config_db.get_table('LOOPBACK_INTERFACE')
-
     loopback_addr = ''
 
     for intf in loopback_intfs.keys():
@@ -120,10 +124,7 @@ def get_loopback_addr(ip_ver):
 
 
 def get_vlan_interfaces():
-    config_db = ConfigDBConnector()
-    config_db.connect()
     vlan_info = config_db.get_table('VLAN')
-
     vlan_interfaces = []
 
     for vlan_name in vlan_info.keys():
@@ -133,12 +134,8 @@ def get_vlan_interfaces():
 
 
 def get_vlan_interface_members(vlan_intf_name):
-    config_db = ConfigDBConnector()
-    config_db.connect()
     vlan_info = config_db.get_table('VLAN')
-
     vlan_interface_members = vlan_info[vlan_intf_name]['members']
-
     return vlan_interface_members
 
 
@@ -162,10 +159,7 @@ def get_vlan_interface_vxlan_id(vlan_intf_name):
 
 
 def get_vlan_addr(vlan_intf_name, ip_ver):
-    config_db = ConfigDBConnector()
-    config_db.connect()
     vlan_intfs = config_db.get_table('VLAN_INTERFACE')
-
     vlan_addr = []
 
     for intf in vlan_intfs.keys():
@@ -278,9 +272,6 @@ def save_as_json(obj, file_path):
 #
 
 def add_mirror_session(dst_ipv4_addr):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     session_info = {
         'src_ip': get_loopback_addr(4),
         'dst_ip': dst_ipv4_addr
@@ -290,9 +281,6 @@ def add_mirror_session(dst_ipv4_addr):
 
 
 def add_mirror_acl():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     acl_info = {
         'policy_desc': 'neighbor advertiser',
         'type': 'mirror',
@@ -303,9 +291,6 @@ def add_mirror_acl():
 
 
 def add_mirror_acl_rule():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     acl_rule_info = {
         'ether_type': '2054',
         'mirror_action': MIRROR_SESSION_NAME
@@ -326,23 +311,14 @@ def set_mirror_tunnel(ferret_server_ip):
 #
 
 def remove_mirror_session():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     config_db.set_entry('MIRROR_SESSION', MIRROR_SESSION_NAME, None)
 
 
 def remove_mirror_acl():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     config_db.set_entry('ACL_TABLE', MIRROR_ACL_NAME, None)
 
 
 def remove_mirror_acl_rule():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     config_db.set_entry('ACL_RULE', (MIRROR_ACL_NAME, MIRROR_ACL_RULE_NAME), None)
 
 
@@ -358,9 +334,6 @@ def reset_mirror_tunnel():
 #
 
 def add_vxlan_tunnel(dst_ipv4_addr):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     vxlan_tunnel_info = {
         'src_ip': get_loopback_addr(4),
         'dst_ip': dst_ipv4_addr
@@ -370,9 +343,6 @@ def add_vxlan_tunnel(dst_ipv4_addr):
 
 
 def add_vxlan_tunnel_map():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     for (index, vlan_intf_name) in enumerate(get_vlan_interfaces(), 1):
         vxlan_tunnel_map_info = {
             'vni': get_vlan_interface_vxlan_id(vlan_intf_name),
@@ -393,16 +363,10 @@ def set_vxlan_tunnel(ferret_server_ip):
 #
 
 def remove_vxlan_tunnel():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     config_db.set_entry('VXLAN_TUNNEL', VXLAN_TUNNEL_NAME, None)
 
 
 def remove_vxlan_tunnel_map():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     for (index, vlan_intf_name) in enumerate(get_vlan_interfaces(), 1):
         config_db.set_entry('VXLAN_TUNNEL_MAP', (VXLAN_TUNNEL_NAME, VXLAN_TUNNEL_MAP_PREFIX + index), None)
 
@@ -425,6 +389,8 @@ def main():
 
     ferret_service_vip = args.vip
     operation_mode = args.mode
+
+    connect_config_db()
 
     if operation_mode == 'set':
         ferret_server_ip = post_neighbor_advertiser_slice(ferret_service_vip)
