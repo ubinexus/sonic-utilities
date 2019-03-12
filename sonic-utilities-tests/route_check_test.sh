@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 # add a route, interface & route-entry to simulate error
 #
@@ -20,7 +21,3 @@ redis-cli -n 0 del "INTF_TABLE:PortChannel01:10.0.0.99/31"
 echo "expect success!\n------\nRunning Route Check...\n"
 ./route_check.py
 echo "return value: $?"
-
-
-
-

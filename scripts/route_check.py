@@ -1,11 +1,14 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import os
-import sys, getopt
+import sys
+import getopt
 import ipaddress
 import json
 from swsssdk import ConfigDBConnector
+
+os.environ['PYTHONUNBUFFERED']='True'
 
 PREFIX_SEPARATOR = '/'
 IPV6_SEPARATOR = ':'
@@ -139,7 +142,7 @@ def get_interfaces():
         intf.append(ip)
     return sorted(intf)
 
-def checkout():
+def check_routes():
     intf_miss = []
     rt_miss = []
     re_miss = []
@@ -185,11 +188,9 @@ def main(argv):
         if opt in ("-m", "--mode"):
             set_mode(arg)
 
-    ret = checkout()
+    ret = check_routes()
     sys.exit(ret)
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-
-
