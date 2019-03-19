@@ -265,11 +265,6 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
         return "N/A"
     return status 
 
-
-
-
-
-
 # ========================== interface-status logic ==========================
 
 header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
