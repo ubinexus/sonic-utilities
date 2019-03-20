@@ -37,23 +37,19 @@ function show_help_and_exit()
     echo "Usage ${SCRIPT} [options]"
     echo "    Available options:"
     echo "        -h -? : getting this help"
-    echo "        -x    : execute with -x flag"
 
     exit 0
 }
 
 function parse_options()
 {
-    while getopts "h?x" opt; do
+    while getopts "h?" opt; do
         case ${opt} in
             h )
                 show_help_and_exit
                 ;;
             \? )
                 show_help_and_exit
-                ;;
-            x )
-                set -x
                 ;;
         esac
     done
