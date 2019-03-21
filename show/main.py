@@ -192,6 +192,21 @@ def run_command(command, display_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
+def run_command_save(command, display_cmd=False):
+    """run a command and save the output"""
+    if display_cmd:
+        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+    try: 
+        proc = subprocess.Popen(command,
+                                stdout=subprocess.PIPE,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        result = stdout.rstrip('\n')
+    except OSError, e:
+        raise OSError("Error running command")
+    return (result)
 
 def get_interface_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
@@ -1177,13 +1192,18 @@ def logging(process, lines, follow, verbose):
 def version():
     """Show version information"""
     version_info = sonic_platform.get_sonic_version_info()
-
-    click.echo("SONiC Software Version: SONiC.{}".format(version_info['build_version']))
+    serial_number = run_command_save("sudo decode-syseeprom -s")
+    hw_info = run_command_save("show platform summary")
+    sys_uptime = run_command_save("uptime")
+    click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
+    click.echo("\n{}".format(hw_info))
+    click.echo("Serial Number: {}".format(serial_number))
+    click.echo("Uptime: {}".format(sys_uptime))
 
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
