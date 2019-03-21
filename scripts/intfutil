@@ -358,7 +358,7 @@ header_desc = ['Interface', 'Oper', 'Admin', 'Alias', 'Description']
 
 class IntfDescription(object):
 
-    def display_intf_description(self, appl_db_keys):
+    def display_intf_description(self, appl_db_keys, front_panel_ports_list):
         """
             Generate interface-description output
         """
@@ -386,15 +386,18 @@ class IntfDescription(object):
 
     def __init__(self, intf_name):
 
+        self.config_db = db_connect_configdb()
         self.appl_db = db_connect_appl()
         if self.appl_db is None:
             return
-
+        if self.config_db is None:
+            return
+        self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
         appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, intf_name)
         if appl_db_keys is None:
             return
 
-        self.display_intf_description(appl_db_keys)
+        self.display_intf_description(appl_db_keys, self.front_panel_ports_list)
 
 
 
