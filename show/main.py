@@ -192,22 +192,6 @@ def run_command(command, display_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
-def run_command_save(command, display_cmd=False):
-    """run a command and save the output"""
-    if display_cmd:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-    try: 
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        result = stdout.rstrip('\n')
-    except OSError, e:
-        raise OSError("Error running command")
-    return (result)
-
 def get_interface_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
     if mode is None:
