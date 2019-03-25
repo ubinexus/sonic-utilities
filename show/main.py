@@ -827,6 +827,21 @@ def ip():
     """Show IP (IPv4) commands"""
     pass
 
+#
+# 'interfaces' subcommand ("show ip interfaces")
+#
+
+@ip.command()
+@click.argument('interfaces', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def interfaces(interfaces, verbose):
+    """Show IP (IPv4) interfaces"""
+    cmd = 'intfutil ip'
+
+    if interfaces is not None:
+        cmd += ' {}'.format(interfaces)
+
+    utils.run_command(cmd, display_cmd=verbose)
 
 #
 # get_if_admin_state
