@@ -192,6 +192,7 @@ def run_command(command, display_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
+
 def get_interface_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
     if mode is None:
@@ -1107,10 +1108,6 @@ def get_hw_info_dict():
     hw_info_dict['asic_type'] = asic_type
     return hw_info_dict
 
-# This calls teh get_hw_info_dict function and creates a dictionary
-hw_info_dict = get_hw_info_dict()
-
-
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def platform():
     """Show platform-specific hardware info"""
@@ -1124,6 +1121,7 @@ if (version_info and version_info.get('asic_type') == 'mellanox'):
 @platform.command()
 def summary():
     """Show hardware platform information"""
+    hw_info_dict = get_hw_info_dict()
     click.echo("Platform: {}".format(hw_info_dict['platform']))
     click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
     click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
@@ -1187,6 +1185,7 @@ def logging(process, lines, follow, verbose):
 def version(verbose):
     """Show version information"""
     version_info = sonic_platform.get_sonic_version_info()
+    hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
     serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
     sys_uptime_cmd = "uptime"
