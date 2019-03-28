@@ -80,9 +80,9 @@ def interface_alias_to_name(interface_alias):
         for port_name in port_dict.keys():
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
-        click.echo("Invalid interface {}".format(interface_alias))
 
-    return None
+    # Interface alias not in port_dict, just return interface_alias
+    return interface_alias
 
 
 def interface_name_is_valid(interface_name):
@@ -92,6 +92,9 @@ def interface_name_is_valid(interface_name):
     config_db.connect()
     port_dict = config_db.get_table('PORT')
     port_channel_dict = config_db.get_table('PORTCHANNEL')
+
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
 
     if interface_name is not None:
         if not port_dict:
