@@ -106,6 +106,18 @@ function clear_warm_boot()
     fi
 }
 
+function init_warm_reboot_states()
+{
+    # If the current running instanace was booted up with warm reboot. Then
+    # the current DB contents will likely mark warm reboot is done.
+    # Clear these states so that the next boot up image won't ge confused.
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        for key in `/usr/bin/redis-cli -n 6 keys "WARM_RESTART_TABLE|*"`; do
+            /usr/bin/redis-cli -n 6 hdel $key "state" > /dev/null
+        done
+    fi
+}
+
 function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
@@ -284,6 +296,8 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     mkdir -p /host/fast-reboot
     /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
 fi
+
+init_warm_reboot_states
 
 setup_control_plane_assistant
 
