@@ -460,6 +460,7 @@ def expected(interfacename):
     body = []
     if interfacename:
         for device in natsorted(neighbor_metadata_dict.keys()):
+            if device2interface_dict[device]['localPort'] == interfacename:
                 body.append([device2interface_dict[device]['localPort'],
                              device,
                              device2interface_dict[device]['neighborPort'],
