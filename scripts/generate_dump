@@ -18,6 +18,8 @@ V=
 NOOP=false
 DO_COMPRESS=true
 CMD_PREFIX=
+SINCE_DATE=
+REFERENCE_FILE=/tmp/reference
 BASE=sonic_dump_`hostname`_`date +%Y%m%d_%H%M%S`
 DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
@@ -217,6 +219,35 @@ save_file() {
 }
 
 ###############################################################################
+# find_logs routine
+# Globals:
+#  SINCE_DATE: list files only newer than given date
+#  REFERENCE_FILE: the file to be created as a reference to compare modification time
+# Arguments:
+#  directory: directory to search files in
+# Returns:
+#  None
+###############################################################################
+find_logs() {
+    local -r directory=$1
+    local newer_than=""
+
+    if [[ ! -z "${SINCE_DATE}" ]]; then
+        ${CMD_PREFIX}touch --date="${SINCE_DATE}" "${REFERENCE_FILE}"
+        newer_than="${REFERENCE_FILE}"
+    fi
+
+    local find_command="find -L $directory -type f"
+
+    if [[ ! -z "${newer_than}" ]]; then
+        find_command+=" -newer ${REFERENCE_FILE}"
+    fi
+
+    echo $($find_command)
+}
+
+
+###############################################################################
 # Main generate_dump routine
 # Globals:
 #  All of them.
@@ -340,7 +371,7 @@ main() {
         && $RM $V -rf $TARDIR
 
     # gzip up all log files individually before placing them in the incremental tarball
-    for file in $(find -L /var/log -type f); do
+    for file in $(find_logs "/var/log/"); do
         # ignore the sparse file lastlog
         if [ "$file" = "/var/log/lastlog" ]; then
             continue
@@ -354,7 +385,7 @@ main() {
     done
 
     # archive core dump files
-    for file in $(find -L /var/core -type f); do
+    for file in $(find_logs "/var/core/"); do
         # don't gzip already-gzipped log files :)
         if [ -z "${file##*.gz}" ]; then
             save_file $file core false
@@ -422,10 +453,15 @@ OPTIONS
         Noop mode. Don't actually create anything, just echo what would happen
     -z
         Don't compress the tar at the end.
+    -s DATE
+        Collect logs since DATE;
+        The argument is a mostly free format human readable string such as
+        "24 March", "yesterday", etc.
+
 EOF
 }
 
-while getopts ":xnvhz" opt; do
+while getopts ":xnvhzs:" opt; do
     case $opt in
         x)
             # enable bash debugging
@@ -454,6 +490,11 @@ while getopts ":xnvhz" opt; do
             ;;
         z)
             DO_COMPRESS=false
+            ;;
+        s)
+            SINCE_DATE="${OPTARG}"
+            # validate date expression
+            date --date="${SINCE_DATE}" &> /dev/null || abort 10 "Invalid date expression passed: '${SINCE_DATE}'"
             ;;
         /?)
             echo "Invalid option: -$OPTARG" >&2
