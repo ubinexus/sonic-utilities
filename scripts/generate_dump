@@ -157,7 +157,7 @@ save_proc() {
     local procfiles="$@"
     $MKDIR $V -p $TARDIR/proc \
         && $CP $V -r $procfiles $TARDIR/proc \
-        && $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+r $BASE/proc \
+        && $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc \
         && $RM $V -rf $TARDIR/proc
 }
 
@@ -386,7 +386,7 @@ main() {
     $MKDIR $V -p $LOGDIR
     $LN $V -s /etc $TARDIR/etc
 
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+r \
+    ($TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw \
         --exclude="etc/alternatives" \
         --exclude="*/etc/passwd*" \
         --exclude="*/etc/shadow*" \
