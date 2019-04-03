@@ -250,6 +250,31 @@ find_logs() {
     echo $($find_command)
 }
 
+###############################################################################
+# disable_logrotate routine
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+disable_logrotate() {
+    sed -i '/logrotate/s/^/#/g' /etc/cron.d/logrotate
+}
+
+###############################################################################
+# enable_logrotate routine
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+enable_logrotate() {
+    sed -i '/logrotate/s/^#*//g' /etc/cron.d/logrotate
+}
 
 ###############################################################################
 # Main generate_dump routine
@@ -376,6 +401,9 @@ main() {
         || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
 
+    disable_logrotate
+    trap enable_logrotate HUP INT QUIT TERM KILL ABRT ALRM
+
     # gzip up all log files individually before placing them in the incremental tarball
     for file in $(find_logs "/var/log/"); do
         # ignore the sparse file lastlog
@@ -389,6 +417,8 @@ main() {
             save_file $file log true
         fi
     done
+
+    enable_logrotate
 
     # archive core dump files
     for file in $(find_logs "/var/core/"); do
