@@ -370,6 +370,8 @@ main() {
         --exclude="*/etc/ssh*" \
         --exclude="*get_creds*" \
         --exclude="*snmpd.conf*" \
+        --exclude="/etc/mlnx" \
+        --exclude="/etc/mft" \
         $BASE/etc \
         || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
