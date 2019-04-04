@@ -391,7 +391,7 @@ def main():
 
     if operation_mode == 'set' and ferret_service_vips == None:
         log_warning('ferret service vip is required in set mode')
-        return -1
+        sys.exit(1)
 
     connect_config_db()
 
@@ -409,13 +409,13 @@ def main():
 
         if not set_success:
             log_error('Failed to set up neighbor advertiser slice, tried all vips in {}'.format(ferret_service_vips))
-            return -1
+            sys.exit(1)
 
     if operation_mode == 'reset':
         reset_mirror_tunnel()
         reset_vxlan_tunnel()
 
-    return 0
+    sys.exit(0)
 
 
 if __name__ == '__main__':
@@ -423,5 +423,5 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         log_error('! [Failure] {} {}'.format(e, traceback.format_exc()))
-        return -1
+        sys.exit(1)
 
