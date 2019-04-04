@@ -244,7 +244,7 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
     url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = requests.post(url, json = request_slice)
     
-    ferret_server_ipv4_addr = ''
+    ferret_server_ipv4_addr = None
 
     if response.ok:
         neighbor_advertiser_configuration = json.loads(response.content)
@@ -397,9 +397,8 @@ def main():
 
     if operation_mode == 'set':
         set_success = False
-        ferret_service_vip_list = ferret_service_vips.split(',')
 
-        for ferret_service_vip in ferret_service_vip_list:
+        for ferret_service_vip in ferret_service_vips.split(','):
             ferret_server_ip = post_neighbor_advertiser_slice(ferret_service_vip)
 
             if ferret_server_ip == None:
