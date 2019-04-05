@@ -22,7 +22,7 @@ V=
 NOOP=false
 DO_COMPRESS=true
 CMD_PREFIX=
-SINCE_DATE=
+SINCE_DATE="@0" # epoch
 REFERENCE_FILE=/tmp/reference
 BASE=sonic_dump_`hostname`_`date +%Y%m%d_%H%M%S`
 DUMPDIR=/var/dump
@@ -234,18 +234,8 @@ save_file() {
 ###############################################################################
 find_logs() {
     local -r directory=$1
-    local newer_than=""
-
-    if [[ ! -z "${SINCE_DATE}" ]]; then
-        ${CMD_PREFIX}touch --date="${SINCE_DATE}" "${REFERENCE_FILE}"
-        newer_than="${REFERENCE_FILE}"
-    fi
-
-    local find_command="find -L $directory -type f"
-
-    if [[ ! -z "${newer_than}" ]]; then
-        find_command+=" -newer ${REFERENCE_FILE}"
-    fi
+    ${CMD_PREFIX}touch --date="${SINCE_DATE}" "${REFERENCE_FILE}"
+    local -r find_command="find -L $directory -type f -newer ${REFERENCE_FILE}"
 
     echo $($find_command)
 }
