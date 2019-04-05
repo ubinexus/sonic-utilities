@@ -357,6 +357,13 @@ main() {
         docker exec -it syncd saisdkdump -f $sai_dump_filename
         docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
         save_file $sai_dump_filename sai_sdk_dump true
+
+        local mst_dump_filename="/tmp/mstdump"
+        local max_dump_count="3"
+        for i in $(seq 1 $max_dump_count); do
+            /usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
+            save_file "${mst_dump_filename}${i}" mstdump true
+        done
     fi
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
