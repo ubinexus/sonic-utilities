@@ -18,6 +18,7 @@ GZIP=gzip
 CP=cp
 MV=mv
 GREP=grep
+TOUCH=touch
 V=
 NOOP=false
 DO_COMPRESS=true
@@ -223,7 +224,7 @@ save_file() {
 }
 
 ###############################################################################
-# find_logs routine
+# find_files routine
 # Globals:
 #  SINCE_DATE: list files only newer than given date
 #  REFERENCE_FILE: the file to be created as a reference to compare modification time
@@ -232,9 +233,9 @@ save_file() {
 # Returns:
 #  None
 ###############################################################################
-find_logs() {
+find_files() {
     local -r directory=$1
-    ${CMD_PREFIX}touch --date="${SINCE_DATE}" "${REFERENCE_FILE}"
+    $TOUCH --date="${SINCE_DATE}" "${REFERENCE_FILE}"
     local -r find_command="find -L $directory -type f -newer ${REFERENCE_FILE}"
 
     echo $($find_command)
@@ -395,7 +396,7 @@ main() {
     trap enable_logrotate HUP INT QUIT TERM KILL ABRT ALRM
 
     # gzip up all log files individually before placing them in the incremental tarball
-    for file in $(find_logs "/var/log/"); do
+    for file in $(find_files "/var/log/"); do
         # ignore the sparse file lastlog
         if [ "$file" = "/var/log/lastlog" ]; then
             continue
@@ -411,7 +412,7 @@ main() {
     enable_logrotate
 
     # archive core dump files
-    for file in $(find_logs "/var/core/"); do
+    for file in $(find_files "/var/core/"); do
         # don't gzip already-gzipped log files :)
         if [ -z "${file##*.gz}" ]; then
             save_file $file core false
@@ -512,6 +513,7 @@ while getopts ":xnvhzs:" opt; do
             CMD_PREFIX="echo "
             MV="echo mv"
             CP="echo cp"
+            TOUCH="echo touch"
             NOOP=true
             ;;
         z)
