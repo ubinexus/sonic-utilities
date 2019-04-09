@@ -93,6 +93,28 @@ def login(auth_protocol):
         add_table_kv('AAA', 'authentication', 'login', val)
 authentication.add_command(login)
 
+# cmd: aaa accounting
+@click.group()
+def accounting():
+    """User accounting"""
+    pass
+aaa.add_command(accounting)
+
+# cmd: aaa accounting session [tacacs+|default]
+@click.command()
+@click.argument('acct_protocol', nargs=-1, type=click.Choice(["tacacs+", "default"]))
+def session(acct_protocol):
+    """Switch session accounting [ tacacs+ | default ]"""
+    if len(acct_protocol) is 0:
+        print 'Not support empty argument'
+        return
+
+    if 'default' in acct_protocol:
+        del_table_key('AAA', 'accounting', 'session')
+    else:
+        val = acct_protocol[0]
+        add_table_kv('AAA', 'accounting', 'session', val)
+accounting.add_command(session)
 
 @click.group()
 def tacacs():
