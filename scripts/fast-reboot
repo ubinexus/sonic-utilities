@@ -19,13 +19,6 @@ EXIT_NOT_SUPPORTED=2
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 
-# Check root privileges
-if [[ "$EUID" -ne 0 ]]
-then
-    echo "This command must be run as root" >&2
-    exit "${EXIT_FAILURE}"
-fi
-
 function error()
 {
     echo $@ >&2
@@ -81,8 +74,6 @@ function parseOptions()
         esac
     done
 }
-
-sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
 function clear_fast_boot()
 {
@@ -231,7 +222,17 @@ function setup_reboot_variables()
     INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
+# main starts here
 parseOptions $@
+
+# Check root privileges
+if [[ "$EUID" -ne 0 ]]
+then
+    echo "This command must be run as root" >&2
+    exit "${EXIT_FAILURE}"
+fi
+
+sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
 # Check reboot type supported
 BOOT_TYPE_ARG="cold"
