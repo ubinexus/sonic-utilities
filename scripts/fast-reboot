@@ -240,7 +240,7 @@ function reboot_pre_check()
     # Make sure /host has enough space for warm reboot temp files
     avail=$(df -k /host | tail -1 | awk '{ print $4 }')
     if [[ ${avail} -lt ${MIN_HD_SPACE_NEEDED} ]]; then
-        debug "/host has ${avail} bytes availalbe, not enough for warm reboot."
+        debug "/host has ${avail}K bytes available, not enough for warm reboot."
         exit ${EXIT_FILE_SYSTEM_FULL}
     fi
 
