@@ -341,8 +341,8 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     mkdir -p /host/fast-reboot
-    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
-    FAST_REBOOT_DUMP_RC=$?
+    FAST_REBOOT_DUMP_RC=0
+    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot || FAST_REBOOT_DUMP_RC=$?
     if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
         error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
         unload_kernel
