@@ -42,7 +42,7 @@ if [[ "$sonic_asic_type" == "mellanox" ]]; then
     echo "Prepare MLNX ASIC to fast reboot: install new FW if required"
 
     MLNX_EXIT_SUCCESS="0"
-    MLNX_EXIT_ERROR="1"
+    MLNX_EXIT_FW_ERROR=100
 
     MLNX_FW_UPGRADE_SCRIPT="/usr/bin/mlnx-fw-upgrade.sh"
 
@@ -50,7 +50,7 @@ if [[ "$sonic_asic_type" == "mellanox" ]]; then
     MLNX_EXIT_CODE="$?"
     if [[ "${MLNX_EXIT_CODE}" != "${MLNX_EXIT_SUCCESS}" ]]; then
         echo "Failed to burn MLNX FW: errno=${MLNX_EXIT_CODE}"
-        exit "${MLNX_EXIT_ERROR}"
+        exit "${MLNX_EXIT_FW_ERROR}"
     fi
 fi
 
