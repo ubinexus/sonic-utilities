@@ -80,7 +80,6 @@ setup(
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/teamshow',
-        'scripts/nbrshow',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
