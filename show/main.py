@@ -674,7 +674,7 @@ def queue():
     """Show details of the queues """
     pass
 
-# 'queuecounters' subcommand ("show queue counters")
+# 'counters' subcommand ("show queue counters")
 @queue.command()
 @click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -692,36 +692,46 @@ def counters(interfacename, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-# watermarks subcommands ("show queue watermarks|persistent-watermarks")
+#
+# 'watermarks' subgroup ("show queue watermarks ...")
+#
 
 @queue.group()
 def watermark():
     """Show queue user WM"""
     pass
 
+# 'unicast' subcommand ("show queue watermarks unicast")
 @watermark.command('unicast')
 def wm_q_uni():
     """Show user WM for unicast queues"""
     command = 'watermarkstat -t q_shared_uni'
     run_command(command)
 
+# 'multicast' subcommand ("show queue watermarks multicast")
 @watermark.command('multicast')
 def wm_q_multi():
     """Show user WM for multicast queues"""
     command = 'watermarkstat -t q_shared_multi'
     run_command(command)
 
+#
+# 'persistent-watermarks' subgroup ("show queue persistent-watermarks ...")
+#
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
-    """Show queue persistent WM"""
+    """Show persistent WM for queues"""
     pass
 
+# 'unicast' subcommand ("show queue persistent-watermarks unicast")
 @persistent_watermark.command('unicast')
 def pwm_q_uni():
-    """Show persistent WM for persistent queues"""
+    """Show persistent WM for unicast queues"""
     command = 'watermarkstat -p -t q_shared_uni'
     run_command(command)
 
+# 'multicast' subcommand ("show queue persistent-watermarks multicast")
 @persistent_watermark.command('multicast')
 def pwm_q_multi():
     """Show persistent WM for multicast queues"""
