@@ -677,9 +677,8 @@ def queue():
 # 'queuecounters' subcommand ("show queue counters")
 @queue.command()
 @click.argument('interfacename', required=False)
-@click.option('-c', '--clear', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(interfacename, clear, verbose):
+def counters(interfacename, verbose):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -688,11 +687,8 @@ def counters(interfacename, clear, verbose):
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-    if clear:
-        cmd += " -c"
-    else:
-        if interfacename is not None:
-            cmd += " -p {}".format(interfacename)
+    if interfacename is not None:
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
