@@ -627,15 +627,11 @@ def pfc():
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
-@click.option('-c', '--clear', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(clear, verbose):
+def counters(verbose):
     """Show pfc counters"""
 
     cmd = "pfcstat"
-
-    if clear:
-        cmd += " -c"
 
     run_command(cmd, display_cmd=verbose)
 
