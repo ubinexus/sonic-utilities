@@ -576,23 +576,19 @@ def status(interfacename, verbose):
 # 'counters' subcommand ("show interfaces counters")
 @interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
-@click.option('-c', '--clear', is_flag=True)
 @click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, clear, printall):
+def counters(ctx, verbose, period, printall):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
         cmd = "portstat"
 
-        if clear:
-            cmd += " -c"
-        else:
-            if printall:
-                cmd += " -a"
-            if period is not None:
-                cmd += " -p {}".format(period)
+        if printall:
+            cmd += " -a"
+        if period is not None:
+            cmd += " -p {}".format(period)
 
         run_command(cmd, display_cmd=verbose)
 
