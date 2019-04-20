@@ -698,7 +698,7 @@ def counters(interfacename, verbose):
 
 @queue.group()
 def watermark():
-    """Show queue user WM"""
+    """Show user WM for queues"""
     pass
 
 # 'unicast' subcommand ("show queue watermarks unicast")
