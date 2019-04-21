@@ -45,7 +45,7 @@ class DBMigrator():
 
     def migrate_pfc_wd_table(self):
         # Migrate all data entries from table PFC_WD_TABLE to PFC_WD
-        data = self.configDB.get_talbe('PFC_WD_TABLE')
+        data = self.configDB.get_table('PFC_WD_TABLE')
         for key in data.keys():
             self.configDB.set_entry('PFC_WD', key, data[key])
         self.configDB.delete_table('PFC_WD_TABLE')
@@ -90,7 +90,9 @@ class DBMigrator():
         return 'version_unknown'
 
 
-    def set_version(self, version=CURRENT_VERSION):
+    def set_version(self, version=None):
+        if not version:
+            version = self.CURRENT_VERSION
         log_info('Setting version to ' + version)
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)

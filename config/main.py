@@ -387,6 +387,12 @@ def reload(filename, yes, load_sysinfo):
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
+
+    # Migrate DB contents to latest version
+    db_migrator='/usr/bin/db_migrator.py'
+    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+        run_command(db_migrator + ' -o migrate')
+
     _restart_services()
 
 @config.command()
