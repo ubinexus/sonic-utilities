@@ -1575,10 +1575,15 @@ def aaa():
             'login': 'local (default)',
             'failthrough': 'True (default)',
             'fallback': 'True (default)'
+        },
+        'accounting': {
+            'session': 'none (default)'
         }
     }
     if 'authentication' in data:
         aaa['authentication'].update(data['authentication'])
+    if 'accounting' in data:
+        aaa['accounting'].update(data['accounting'])
     for row in aaa:
         entry = aaa[row]
         for key in entry:
