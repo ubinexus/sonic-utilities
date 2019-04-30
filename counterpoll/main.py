@@ -173,5 +173,5 @@ def show():
     if pg_wm_info:
         data.append(["PG_WATERMARK_STAT", pg_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in pg_wm_info else 'default (10000)', pg_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in pg_wm_info else 'disable'])
 
-    print tabulate(data, headers=header, tablefmt="simple", missingval="")
+    click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 

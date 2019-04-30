@@ -164,7 +164,7 @@ def start(action, restoration_time, ports, detection_time):
         pfcwd_info['restoration_time'] = restoration_time
     else:
         pfcwd_info['restoration_time'] = 2 * detection_time
-        print "restoration time not defined; default to 2 times detection time: %d ms" % (2 * detection_time)
+        click.echo("restoration time not defined; default to 2 times detection time: %d ms" % (2 * detection_time))
 
     for port in ports:
         if port == "all":

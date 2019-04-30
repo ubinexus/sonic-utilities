@@ -423,7 +423,7 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
         validate_url_or_abort(url)
         try:
             urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
-        except Exception, e:
+        except Exception as e:
             click.echo("Download error", e)
             raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH

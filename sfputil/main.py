@@ -43,7 +43,7 @@ def log_info(msg, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 def log_warning(msg, also_print_to_console=False):
@@ -52,7 +52,7 @@ def log_warning(msg, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 def log_error(msg, also_print_to_console=False):
@@ -61,7 +61,7 @@ def log_error(msg, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 # ========================== Methods for printing ==========================
@@ -159,14 +159,14 @@ def logical_port_name_to_physical_port_list(port_name):
         if platform_sfputil.is_logical_port(port_name):
             return platform_sfputil.get_logical_to_physical(port_name)
         else:
-            print "Error: Invalid port '%s'" % port_name
+            click.echo("Error: Invalid port '%s'" % port_name)
             return None
     else:
         return [int(port_name)]
 
 
 def print_all_valid_port_values():
-    print "Valid values for port: %s\n" % str(platform_sfputil.logical)
+    click.echo("Valid values for port: %s\n" % str(platform_sfputil.logical))
 
 
 # Returns multi-line string of pretty SFP port EEPROM data
@@ -177,7 +177,7 @@ def port_eeprom_data_string_pretty(logical_port_name, dump_dom):
 
     physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
     if physical_port_list is None:
-        print "Error: No physical ports found for logical port '%s'" % logical_port_name
+        click.echo("Error: No physical ports found for logical port '%s'" % logical_port_name)
         return ""
 
     if len(physical_port_list) > 1:
@@ -225,7 +225,7 @@ def port_eeprom_data_string_pretty_oneline(logical_port_name,
 
     physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
     if physical_port_list is None:
-        print "Error: No physical ports found for logical port '%s'" % logical_port_name
+        click.echo("Error: No physical ports found for logical port '%s'" % logical_port_name)
         return ""
 
     if len(physical_port_list) > 1:
@@ -265,7 +265,7 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 
     physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
     if physical_port_list is None:
-        print "Error: No physical ports found for logical port '%s'" % logical_port_name
+        click.echo("Error: No physical ports found for logical port '%s'" % logical_port_name)
         return ""
 
     if len(physical_port_list) > 1:
@@ -313,7 +313,7 @@ def get_platform_and_hwsku():
         stdout = proc.communicate()[0]
         proc.wait()
         hwsku = stdout.rstrip('\n')
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect platform")
 
     return (platform, hwsku)
@@ -351,14 +351,14 @@ def load_platform_sfputil():
     try:
         module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
-    except IOError, e:
+    except IOError as e:
         log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
     try:
         platform_sfputil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
         platform_sfputil = platform_sfputil_class()
-    except AttributeError, e:
+    except AttributeError as e:
         log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
         return -2
 
@@ -374,7 +374,7 @@ def cli():
     """sfputil - Command line utility for managing SFP transceivers"""
 
     if os.geteuid() != 0:
-        print "Root privileges are required for this operation"
+        click.echo("Root privileges are required for this operation")
         sys.exit(1)
 
     # Load platform-specific sfputil class
@@ -386,7 +386,7 @@ def cli():
     try:
         port_config_file_path = get_path_to_port_config_file()
         platform_sfputil.read_porttab_mappings(port_config_file_path)
-    except Exception, e:
+    except Exception as e:
         log_error("Error reading port info (%s)" % str(e), True)
         sys.exit(3)
 
@@ -414,7 +414,7 @@ def eeprom(port, dump_dom, oneline, raw):
         logical_port_list = platform_sfputil.logical
     else:
         if platform_sfputil.is_valid_sfputil_port(port) == 0:
-            print "Error: invalid port '%s'\n" % port
+            click.echo("Error: invalid port '%s'\n" % port)
             print_all_valid_port_values()
             sys.exit(4)
 
@@ -439,7 +439,7 @@ def eeprom(port, dump_dom, oneline, raw):
         for logical_port_name in logical_port_list:
             output += port_eeprom_data_string_pretty(logical_port_name, dump_dom)
 
-    print output
+    click.echo(output)
 
 
 # 'presence' subcommand
@@ -456,7 +456,7 @@ def presence(port):
         logical_port_list = platform_sfputil.logical
     else:
         if platform_sfputil.is_valid_sfputil_port(port) == 0:
-            print "Error: invalid port '%s'\n" % port
+            click.echo("Error: invalid port '%s'\n" % port)
             print_all_valid_port_values()
             sys.exit(4)
 
@@ -468,7 +468,7 @@ def presence(port):
 
         physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
         if physical_port_list is None:
-            print "Error: No physical ports found for logical port '%s'" % logical_port_name
+            click.echo("Error: No physical ports found for logical port '%s'" % logical_port_name)
             return
 
         if len(physical_port_list) > 1:
@@ -490,7 +490,7 @@ def presence(port):
 
             i += 1
 
-    print tabulate(output_table, table_header, tablefmt="simple")
+    click.echo(tabulate(output_table, table_header, tablefmt="simple"))
 
 
 # 'lpmode' subcommand
@@ -507,7 +507,7 @@ def lpmode(port):
         logical_port_list = platform_sfputil.logical
     else:
         if platform_sfputil.is_valid_sfputil_port(port) == 0:
-            print "Error: invalid port '%s'\n" % port
+            click.echo("Error: invalid port '%s'\n" % port)
             print_all_valid_port_values()
             sys.exit(4)
 
@@ -519,7 +519,7 @@ def lpmode(port):
 
         physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
         if physical_port_list is None:
-            print "Error: No physical ports found for logical port '%s'" % logical_port_name
+            click.echo("Error: No physical ports found for logical port '%s'" % logical_port_name)
             return
 
         if len(physical_port_list) > 1:
@@ -541,7 +541,7 @@ def lpmode(port):
 
             i += 1
 
-    print tabulate(output_table, table_header, tablefmt='simple')
+    click.echo(tabulate(output_table, table_header, tablefmt='simple'))
 
 
 # 'lpmode' subgroup
@@ -557,22 +557,22 @@ def set_lpmode(logical_port, enable):
     i = 1
 
     if platform_sfputil.is_valid_sfputil_port(logical_port) == 0:
-        print "Error: invalid port '%s'\n" % logical_port
+        click.echo("Error: invalid port '%s'\n" % logical_port)
         print_all_valid_port_values()
         sys.exit(4)
 
     physical_port_list = logical_port_name_to_physical_port_list(logical_port)
     if physical_port_list is None:
-        print "Error: No physical ports found for logical port '%s'" % logical_port
+        click.echo("Error: No physical ports found for logical port '%s'" % logical_port)
         return
 
     if len(physical_port_list) > 1:
         ganged = True
 
     for physical_port in physical_port_list:
-        print "%s low-power mode for port %s... " % (
+        click.echo("%s low-power mode for port %s... " % (
             "Enabling" if enable else "Disabling",
-            get_physical_port_name(logical_port, i, ganged)),
+            get_physical_port_name(logical_port, i, ganged)), nl=False)
 
         try:
             result = platform_sfputil.set_low_power_mode(physical_port, enable)
@@ -581,9 +581,9 @@ def set_lpmode(logical_port, enable):
             sys.exit(5)
 
         if result:
-            print "OK"
+            click.echo("OK")
         else:
-            print "Failed"
+            click.echo("Failed")
 
         i += 1
 
@@ -613,20 +613,20 @@ def reset(port_name):
     i = 1
 
     if platform_sfputil.is_valid_sfputil_port(port_name) == 0:
-        print "Error: invalid port '%s'\n" % port_name
+        click.echo("Error: invalid port '%s'\n" % port_name)
         print_all_valid_port_values()
         sys.exit(4)
 
     physical_port_list = logical_port_name_to_physical_port_list(port_name)
     if physical_port_list is None:
-        print "Error: No physical ports found for logical port '%s'" % port_name
+        click.echo("Error: No physical ports found for logical port '%s'" % port_name)
         return
 
     if len(physical_port_list) > 1:
         ganged = True
 
     for physical_port in physical_port_list:
-        print "Resetting port %s... " % get_physical_port_name(port_name, i, ganged),
+        click.echo("Resetting port %s... " % get_physical_port_name(port_name, i, ganged), nl=False)
 
         try:
             result = platform_sfputil.reset(physical_port)
@@ -635,9 +635,9 @@ def reset(port_name):
             sys.exit(5)
 
         if result:
-            print "OK"
+            click.echo("OK")
         else:
-            print "Failed"
+            click.echo("Failed")
 
         i += 1
 
