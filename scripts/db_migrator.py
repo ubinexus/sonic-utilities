@@ -51,6 +51,34 @@ class DBMigrator():
         self.configDB.delete_table('PFC_WD_TABLE')
 
 
+    def migrate_interface_table(self):
+        # Migrate all data entries for Interface table
+        if_db = []
+        if_tables = {
+                     'INTERFACE',
+                     'PORTCHANNEL_INTERFACE',
+                     'VLAN_INTERFACE'
+                    }
+        for table in if_tables:
+            data = self.configDB.get_table(table)
+            for key in data.keys():
+                if not isinstance(key, tuple):
+                    if_db.append(key)
+                    continue
+
+        log_info('Existing interface objects ')
+        log_info(' '.join(if_db))
+
+        for table in if_tables:
+            data = self.configDB.get_table(table)
+            for key in data.keys():
+                if not isinstance(key, tuple) or key[0] in if_db:
+                    continue
+                log_info('Migrating interface table for ' + key[0])
+                self.configDB.set_entry(table, key[0], data[key])
+                if_db.append(key[0])
+
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -69,6 +97,7 @@ class DBMigrator():
         #       If new DB version is added in the future, the incremental
         #       upgrade will take care of the subsequent migrations.
         # self.migrate_pfc_wd_table()
+        self.migrate_interface_table()
         # self.set_version('version_1_0_1')
         # return 'version_1_0_1'
 
