@@ -64,13 +64,11 @@ function reboot_pre_check()
 {
     # Make sure that the file system is normal: read-write able
     filename="/host/test-`date +%Y%m%d-%H%M%S`"
-    if [[ ! -f ${filename} ]]; then
-        ERR=0
-        touch ${filename} || ERR=$?
-        if [[ ${ERR} -ne 0 ]]; then
-            # Continue rebooting in this case, but log the error
-            VERBOSE=yes debug "Filesystem might be read-only or full ..."
-        fi
+    ERR=0
+    touch ${filename} || ERR=$?
+    if [[ ${ERR} -ne 0 ]]; then
+        # Continue rebooting in this case, but log the error
+        VERBOSE=yes debug "Filesystem might be read-only or full ..."
     fi
     rm ${filename}
 
