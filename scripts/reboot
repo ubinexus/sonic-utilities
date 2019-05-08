@@ -1,15 +1,44 @@
 #! /bin/bash
 
-# Check root privileges
-if [[ "$EUID" -ne 0 ]]
-then
-  echo "Please run as root" >&2
-  exit 1
-fi
+VERBOSE=no
+EXIT_NEXT_IMAGE_NOT_EXISTS=4
+
+function debug()
+{
+    if [[ x"${VERBOSE}" == x"yes" ]]; then
+        echo `date` $@
+    fi
+    logger "$@"
+}
+
+function setup_reboot_variables()
+{
+    NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+    IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
+}
+
+function reboot_pre_check()
+{
+    # Make sure that the file system is normal: read-write able
+    filename="/host/test-`date +%Y%m%d-%H%M%S`"
+    ERR=0
+    touch ${filename} || ERR=$?
+    if [[ ${ERR} -ne 0 ]]; then
+        # Continue rebooting in this case, but log the error
+        VERBOSE=yes debug "Filesystem might be read-only or full ..."
+    fi
+    rm ${filename}
+
+    # Make sure that the next image exists
+    if [[ ! -d ${IMAGE_PATH} ]]; then
+        VERBOSE=yes debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
+        exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
+    fi
+}
 
 function stop_sonic_services()
 {
-    echo "Stopping syncd..."
+    debug "Stopping syncd..."
     docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
     sleep 3
 }
@@ -20,13 +49,25 @@ PLATFORM=`sonic-cfggen -H -v DEVICE_METADATA.localhost.platform`
 DEVPATH="/usr/share/sonic/device"
 REBOOT="platform_reboot"
 
+# Check root privileges
+if [[ "$EUID" -ne 0 ]]
+then
+  VERBOSE=yes debug "Please run as root" >&2
+  exit 1
+fi
+
+debug "User requested rebooting device ..."
+
+setup_reboot_variables
+reboot_pre_check
+
 # Stop syncd gracefully.
 stop_sonic_services
 
 if [ -x ${DEVPATH}/${PLATFORM}/${REBOOT} ]; then
     sync
     sleep 3
-    echo "Rebooting with platform ${PLATFORM} specific tool ..."
+    VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
     ${DEVPATH}/${PLATFORM}/${REBOOT}
     exit 0
 fi
