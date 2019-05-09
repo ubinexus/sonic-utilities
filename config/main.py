@@ -763,11 +763,9 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
                 ctx.fail("'interface_name' is None!")
-            ctx.fail("{} is already a member of {}".format(interface_name,
-                                                        vlan_name))
+            ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
         else:
-            ctx.fail("{} is already a member of {}".format(interface_name,
-                                                        vlan_name))
+            ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
     #Validate If the interface is already untagged member any other Vlan
     if untagged is True:
         keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if v == interface_name ]
