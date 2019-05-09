@@ -79,8 +79,8 @@ class InterfaceAliasConverter(object):
                 if interface_name == port_name:
                     return self.port_dict[port_name]['alias']
 
-        click.echo("Invalid interface {}".format(interface_name))
-        raise click.Abort()
+        # interface_name not in port_dict. Just return interface_name
+        return interface_name
 
     def alias_to_name(self, interface_alias):
         """Return SONiC interface name if vendor
@@ -91,8 +91,8 @@ class InterfaceAliasConverter(object):
                 if interface_alias == self.port_dict[port_name]['alias']:
                     return port_name
 
-        click.echo("Invalid interface {}".format(interface_alias))
-        raise click.Abort()
+        # interface_alias not in port_dict. Just return interface_alias
+        return interface_alias
 
 
 # Global Config object
@@ -450,6 +450,10 @@ def expected(interfacename):
     #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
     for port in natsorted(neighbor_dict.keys()):
+        temp_port = port
+        if get_interface_mode() == "alias":
+            port = iface_alias_converter.name_to_alias(port)
+            neighbor_dict[port] = neighbor_dict.pop(temp_port)
         device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
@@ -488,7 +492,7 @@ def transceiver():
 def eeprom(interfacename, dump_dom, verbose):
     """Show interface transceiver EEPROM information"""
 
-    cmd = "sudo sfputil show eeprom"
+    cmd = "sfpshow eeprom"
 
     if dump_dom:
         cmd += " --dom"
@@ -524,7 +528,7 @@ def lpmode(interfacename, verbose):
 def presence(interfacename, verbose):
     """Show interface transceiver presence"""
 
-    cmd = "sudo sfputil show presence"
+    cmd = "sfpshow presence"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
@@ -613,7 +617,7 @@ def rif(interface, period, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def portchannel(verbose):
     """Show PortChannel information"""
-    cmd = "teamshow"
+    cmd = "sudo teamshow"
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -902,7 +906,12 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
+
+                if get_interface_mode() == "alias":
+                    iface = iface_alias_converter.name_to_alias(iface)
+
                 data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
@@ -993,6 +1002,8 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
+                if get_interface_mode() == "alias":
+                    iface = iface_alias_converter.name_to_alias(iface)
                 data.append([iface, ifaddresses[0][1], admin + "/" + oper])
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
@@ -1087,6 +1098,27 @@ def table(verbose):
 # 'platform' group ("show platform ...")
 #
 
+def get_hw_info_dict():
+    """
+    This function is used to get the HW info helper function  
+    """
+    hw_info_dict = {}
+    machine_info = sonic_platform.get_machine_info()
+    platform = sonic_platform.get_platform_info(machine_info)
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('DEVICE_METADATA')
+    try: 
+        hwsku = data['localhost']['hwsku']
+    except KeyError:
+        hwsku = "Unknown"
+    version_info = sonic_platform.get_sonic_version_info()
+    asic_type = version_info['asic_type']
+    hw_info_dict['platform'] = platform
+    hw_info_dict['hwsku'] = hwsku
+    hw_info_dict['asic_type'] = asic_type
+    return hw_info_dict
+
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def platform():
     """Show platform-specific hardware info"""
@@ -1100,24 +1132,10 @@ if (version_info and version_info.get('asic_type') == 'mellanox'):
 @platform.command()
 def summary():
     """Show hardware platform information"""
-    machine_info = sonic_platform.get_machine_info()
-    platform = sonic_platform.get_platform_info(machine_info)
-
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('DEVICE_METADATA')
-
-    try:
-        hwsku = data['localhost']['hwsku']
-    except KeyError:
-        hwsku = "Unknown"
-
-    version_info = sonic_platform.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-
-    click.echo("Platform: {}".format(platform))
-    click.echo("HwSKU: {}".format(hwsku))
-    click.echo("ASIC: {}".format(asic_type))
+    hw_info_dict = get_hw_info_dict()
+    click.echo("Platform: {}".format(hw_info_dict['platform']))
+    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
+    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
 
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
@@ -1174,17 +1192,26 @@ def logging(process, lines, follow, verbose):
 #
 
 @cli.command()
-def version():
+@click.option("--verbose", is_flag=True, help="Enable verbose output")
+def version(verbose):
     """Show version information"""
     version_info = sonic_platform.get_sonic_version_info()
-
-    click.echo("SONiC Software Version: SONiC.{}".format(version_info['build_version']))
+    hw_info_dict = get_hw_info_dict()
+    serial_number_cmd = "sudo decode-syseeprom -s"
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
+    sys_uptime_cmd = "uptime"
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
+    click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
-
+    click.echo("\nPlatform: {}".format(hw_info_dict['platform']))
+    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
+    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
+    click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
+    click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -1255,10 +1282,13 @@ def users(verbose):
 #
 
 @cli.command()
+@click.option('--since', required=False, help="Collect logs and core files since given date")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(verbose):
+def techsupport(since, verbose):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
+    if since:
+        cmd += " -s {}".format(since)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1432,6 +1462,8 @@ def brief(verbose):
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
+        if len(key) == 1:
+            continue
         interface_key = str(key[0].strip("Vlan"))
         interface_value = str(key[1])
         if interface_key in vlan_ip_dict:
@@ -1445,8 +1477,12 @@ def brief(verbose):
         ports_value = str(key[1])
         ports_tagging = vlan_ports_data[key]['tagging_mode']
         if ports_key in vlan_ports_dict:
+            if get_interface_mode() == "alias":
+                ports_value = iface_alias_converter.name_to_alias(ports_value)
             vlan_ports_dict[ports_key].append(ports_value)
         else:
+            if get_interface_mode() == "alias":
+                ports_value = iface_alias_converter.name_to_alias(ports_value)
             vlan_ports_dict[ports_key] = [ports_value]
         if ports_key in vlan_tagging_dict:
             vlan_tagging_dict[ports_key].append(ports_tagging)
@@ -1542,8 +1578,7 @@ def aaa():
     aaa = {
         'authentication': {
             'login': 'local (default)',
-            'failthrough': 'True (default)',
-            'fallback': 'True (default)'
+            'failthrough': 'False (default)'
         }
     }
     if 'authentication' in data:

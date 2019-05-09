@@ -16,12 +16,6 @@ except ImportError:
 
 import glob
 from setuptools import setup
-import unittest
-
-def get_test_suite():
-    test_loader = unittest.TestLoader()
-    test_suite = test_loader.discover('sonic-utilities-tests', pattern='*.py')
-    return test_suite
 
 setup(
     name='sonic-utilities',
@@ -60,10 +54,10 @@ setup(
         'scripts/aclshow',
         'scripts/boot_part',
         'scripts/coredump-compress',
+        'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/ecnconfig',
-        'scripts/mmuconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
@@ -72,7 +66,9 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/mmuconfig',
         'scripts/nbrshow',
+        'scripts/neighbor_advertiser',
         'scripts/pcmping',
         'scripts/port2alias',
         'scripts/portconfig',
@@ -81,8 +77,10 @@ setup(
         'scripts/psushow',
         'scripts/queuestat',
         'scripts/reboot',
+        'scripts/route_check.py',
+        'scripts/route_check_test.sh',
+        'scripts/sfpshow',
         'scripts/teamshow',
-        'scripts/nbrshow',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
@@ -123,7 +121,11 @@ setup(
         'click',
         'natsort'
     ],
+    setup_requires= [
+        'pytest-runner'
+    ],
     tests_require = [
+        'pytest',
         'mock>=2.0.0',
         'mockredispy>=2.9.3'
     ],
