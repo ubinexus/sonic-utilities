@@ -109,6 +109,15 @@ def interface_name_is_valid(interface_name):
                     return True
     return False
 
+def vlan_id_is_valid(vid):
+    """Check if the vlan id is in acceptable range (between 1 and 4094)    
+    """
+
+    if vid<1 or vid>4094:
+        return False
+    
+    return True
+
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
     """
@@ -487,6 +496,19 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     db = ctx.obj['db']
+    # Dont let to remove port channel if IP adress, vlan membership, or have members configured
+    for k,v in db.get_table('PORTCHANNEL_INTERFACE'):
+        if k == portchannel_name:
+            print"Error %s configured with ip %s, remove adress to proceed" %(portchannel_name, str(v))
+            return
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if k == portchannel_name:
+            print"Error %s has members configured, remove members first  to proceed" %(portchannel_name)
+            return
+    for k,v in db.get_table('VLAN_MEMBER'):
+        if v == portchannel_name:
+            print"Error %s has vlan %s configured, remove vlan membership  to proceed" %(portchannel_name, str(k))
+            return
     db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group('member')
@@ -691,6 +713,8 @@ def vlan(ctx, redis_unix_socket_path):
 @click.pass_context
 def add_vlan(ctx, vid):
     db = ctx.obj['db']
+    if vlan_id_is_valid(vid) is False:
+        ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
     vlan = 'Vlan{}'.format(vid)
     if len(db.get_entry('VLAN', vlan)) != 0:
         ctx.fail("{} already exists".format(vlan))
@@ -741,7 +765,6 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
                 ctx.fail("'interface_name' is None!")
             ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
         else:
-<<<<<<< HEAD
             ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
     #Validate If the interface is already untagged member any other Vlan
     if untagged is True:
@@ -762,10 +785,6 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
             ctx.fail(" {} has ip address configured".format(interface_name))
             return
 
-=======
-            ctx.fail("{} is already a member of {}".format(interface_name,
-                                                        vlan_name))
->>>>>>> parent of eee827e... Update main.py
     members.append(interface_name)
     vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
@@ -967,6 +986,12 @@ def add(ctx, interface_name, ip_addr):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    #Validate if member of VLAN
+    for k,v in config_db.get_table('VLAN_MEMBER'):
+        if v == interface_name:
+            print"Error: %s Interface configured as VLAN_MEMBER under vlan : %s" %(interface_name,str(k))
+            return
 
     if interface_name.startswith("Ethernet"):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
