@@ -2,27 +2,29 @@
 
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
-REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
+REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
-REBOOT_METHOD="/sbin/reboot"
+REBOOT_METHOD="/sbin/kexec -e"
+ASSISTANT_IP_LIST=""
+ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
+
+# Require 100M available on the hard drive for warm reboot temp files,
+# Size is in 1K blocks:
+MIN_HD_SPACE_NEEDED=100000
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
 EXIT_NOT_SUPPORTED=2
+EXIT_FILE_SYSTEM_FULL=3
+EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
-
-# Check root privileges
-if [[ "$EUID" -ne 0 ]]
-then
-    echo "This command must be run as root" >&2
-    exit "${EXIT_FAILURE}"
-fi
+EXIT_FAST_REBOOT_DUMP_FAILURE=12
 
 function error()
 {
@@ -40,24 +42,22 @@ function debug()
 function showHelpAndExit()
 {
     echo "Usage: ${REBOOT_SCRIPT_NAME} [options]"
-    echo "    -h -? : get this help"
+    echo "    -h,-? : get this help"
     echo "    -v    : turn on verbose"
     echo "    -f    : force execution"
-    echo "    -r    : reboot with /sbin/reboot [default]"
-    echo "    -k    : reboot with /sbin/kexec -e"
+    echo "    -r    : reboot with /sbin/reboot"
+    echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
+    echo "    -c    : specify control plane assistant IP list"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfh?rkx" opt; do
+    while getopts "vfh?rkxc:" opt; do
         case ${opt} in
-            h )
-                showHelpAndExit
-                ;;
-            \? )
+            h|\? )
                 showHelpAndExit
                 ;;
             v )
@@ -75,22 +75,46 @@ function parseOptions()
             x )
                 set -x
                 ;;
+            c )
+                ASSISTANT_IP_LIST=${OPTARG}
+                ;;
         esac
     done
 }
 
-sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
+function clear_fast_boot()
+{
+    debug "${REBOOT_TYPE} failure ($?) cleanup ..."
+
+    /sbin/kexec -u || /bin/true
+
+    teardown_control_plane_assistant
+}
 
 function clear_warm_boot()
 {
-    debug "Failure ($?) cleanup ..."
+    clear_fast_boot
+
     result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
     debug "Cancel warm-reboot: ${result}"
-    /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
     if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
         mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
+    fi
+}
+
+function init_warm_reboot_states()
+{
+    # If the current running instanace was booted up with warm reboot. Then
+    # the current DB contents will likely mark warm reboot is done.
+    # Clear these states so that the next boot up image won't get confused.
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        redis-cli -n 6 eval "
+            for _, key in ipairs(redis.call('keys', 'WARM_RESTART_TABLE|*')) do
+                redis.call('hdel', key, 'state')
+            end
+        " 0 >/dev/null
     fi
 }
 
@@ -159,7 +183,8 @@ function backup_database()
     # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
     redis-cli -n 6 eval "
         for _, k in ipairs(redis.call('keys', '*')) do
-            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') then
+            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
+                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') then
                 redis.call('del', k)
             end
         end
@@ -169,13 +194,90 @@ function backup_database()
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
 
+function setup_control_plane_assistant()
+{
+    if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
+        debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
+        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+    fi
+}
+
+function teardown_control_plane_assistant()
+{
+    if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
+        debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
+        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+    fi
+}
+
+function setup_reboot_variables()
+{
+    # Kernel and initrd image
+    NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+    IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
+    if grep -q aboot_platform= /host/machine.conf; then
+        KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
+        BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+    elif grep -q onie_platform= /host/machine.conf; then
+        KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
+        KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
+        BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+    else
+        error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
+        exit "${EXIT_NOT_SUPPORTED}"
+    fi
+    INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
+}
+
+function reboot_pre_check()
+{
+    # Make sure that the file system is normal: read-write able
+    filename="/host/test-`date +%Y%m%d-%H%M%S`"
+    if [[ ! -f ${filename} ]]; then
+        touch ${filename}
+    fi
+    rm ${filename}
+
+    # Make sure /host has enough space for warm reboot temp files
+    avail=$(df -k /host | tail -1 | awk '{ print $4 }')
+    if [[ ${avail} -lt ${MIN_HD_SPACE_NEEDED} ]]; then
+        debug "/host has ${avail}K bytes available, not enough for warm reboot."
+        exit ${EXIT_FILE_SYSTEM_FULL}
+    fi
+
+    # Make sure that the next image exists
+    if [[ ! -d ${IMAGE_PATH} ]]; then
+        debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
+        exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
+    fi
+}
+
+function unload_kernel()
+{
+    # Unload the previously loaded kernel if any loaded
+    if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]; then
+        /sbin/kexec -u
+    fi
+}
+
+# main starts here
 parseOptions $@
+
+# Check root privileges
+if [[ "$EUID" -ne 0 ]]
+then
+    echo "This command must be run as root" >&2
+    exit "${EXIT_FAILURE}"
+fi
+
+sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
 # Check reboot type supported
 BOOT_TYPE_ARG="cold"
 case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
+        trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
         ;;
     "warm-reboot")
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
@@ -184,6 +286,9 @@ case "$REBOOT_TYPE" in
             # source mlnx-ffb.sh file with
             # functions to check ISSU upgrade possibility
             source mlnx-ffb.sh
+        elif [[ "$sonic_asic_type" == "barefoot" ]]; then
+            REBOOT_TYPE="fastfast-reboot"
+            BOOT_TYPE_ARG="fastfast"
         else
             BOOT_TYPE_ARG="warm"
         fi
@@ -196,27 +301,11 @@ case "$REBOOT_TYPE" in
         ;;
 esac
 
-# Unload the previously loaded kernel if any loaded
-if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]
-then
-    /sbin/kexec -u
-fi
+unload_kernel
 
-# Kernel and initrd image
-NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
-if grep -q aboot_platform= /host/machine.conf; then
-    IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
-    KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-    BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
-elif grep -q onie_platform= /host/machine.conf; then
-    KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
-    KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
-    BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
-else
-    error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
-    exit "${EXIT_NOT_SUPPORTED}"
-fi
-INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
+setup_reboot_variables
+
+reboot_pre_check
 
 # Install new FW for mellanox platforms before control plane goes down
 # So on boot switch will not spend time to upgrade FW increasing the CP downtime
@@ -252,8 +341,18 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     mkdir -p /host/fast-reboot
-    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
+    FAST_REBOOT_DUMP_RC=0
+    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot || FAST_REBOOT_DUMP_RC=$?
+    if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
+        error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
+        unload_kernel
+        exit "${EXIT_FAST_REBOOT_DUMP_FAILURE}"
+    fi
 fi
+
+init_warm_reboot_states
+
+setup_control_plane_assistant
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     # Freeze orchagent for warm restart
@@ -358,6 +457,11 @@ echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: $
 sync
 sleep 1
 sync
+
+# sync the current system time to CMOS
+if [ -x /sbin/hwclock ]; then
+    /sbin/hwclock -w || /bin/true
+fi
 
 # Reboot: explicity call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."

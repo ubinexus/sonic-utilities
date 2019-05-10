@@ -16,12 +16,6 @@ except ImportError:
 
 import glob
 from setuptools import setup
-import unittest
-
-def get_test_suite():
-    test_loader = unittest.TestLoader()
-    test_suite = test_loader.discover('sonic-utilities-tests', pattern='*.py')
-    return test_suite
 
 setup(
     name='sonic-utilities',
@@ -50,36 +44,43 @@ setup(
         'sonic_installer',
         'sonic-utilities-tests',
         'undebug',
+        'utilities_common',
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*'],
+        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json']
     },
     scripts=[
         'scripts/aclshow',
         'scripts/boot_part',
         'scripts/coredump-compress',
+        'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/ecnconfig',
-        'scripts/mmuconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/generate_dump',
         'scripts/intfutil',
+        'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/mmuconfig',
         'scripts/nbrshow',
+        'scripts/neighbor_advertiser',
         'scripts/pcmping',
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
         'scripts/pfcstat',
+        'scripts/psushow',
         'scripts/queuestat',
         'scripts/reboot',
+        'scripts/route_check.py',
+        'scripts/route_check_test.sh',
+        'scripts/sfpshow',
         'scripts/teamshow',
-        'scripts/nbrshow',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
@@ -119,6 +120,14 @@ setup(
         'click-default-group',
         'click',
         'natsort'
+    ],
+    setup_requires= [
+        'pytest-runner'
+    ],
+    tests_require = [
+        'pytest',
+        'mock>=2.0.0',
+        'mockredispy>=2.9.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
