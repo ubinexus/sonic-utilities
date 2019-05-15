@@ -79,8 +79,8 @@ def get_binary_image_version(binary_image_path):
         return None
     elif binary_type == IMAGE_TYPE_ABOOT:
         p1 = subprocess.Popen(["unzip", "-p", binary_image_path, "boot0"], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p2 = subprocess.Popen(["grep", "-m 1", "^image_path"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p3 = subprocess.Popen(["sed", "-n", r"s/^image_path=\"\$target_path\/image-\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["grep", "-m 1", "^image_name"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_name=\"\image-\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
     else:
         p1 = subprocess.Popen(["cat", "-v", binary_image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
         p2 = subprocess.Popen(["grep", "-m 1", "^image_version"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
