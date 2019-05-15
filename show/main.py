@@ -1526,26 +1526,33 @@ def config(redis_unix_socket_path):
     def tablelize(keys, data):
         table = []
 
-        for k in keys:
-            for m in data[k].get('members', []):
+        for k in natsorted(keys):
+            if len(data[k].get('members', [])) != 0:
+                for m in data[k].get('members', []):
+                    r = []
+                    r.append(k)
+                    r.append(data[k]['vlanid'])
+                    if get_interface_mode() == "alias":
+                        alias = iface_alias_converter.name_to_alias(m)
+                        r.append(alias)
+                    else:
+                        r.append(m)
+
+                    entry = config_db.get_entry('VLAN_MEMBER', (k, m))
+                    mode = entry.get('tagging_mode')
+                    if mode == None:
+                        r.append('?')
+                    else:
+                        r.append(mode)
+
+                    table.append(r)
+            else:
                 r = []
                 r.append(k)
                 r.append(data[k]['vlanid'])
-                if get_interface_mode() == "alias":
-                    alias = iface_alias_converter.name_to_alias(m)
-                    r.append(alias)
-                else:
-                    r.append(m)
-
-                entry = config_db.get_entry('VLAN_MEMBER', (k, m))
-                mode = entry.get('tagging_mode')
-                if mode == None:
-                    r.append('?')
-                else:
-                    r.append(mode)
-
+                r.append('')
+                r.append('')
                 table.append(r)
-
         return table
 
     header = ['Name', 'VID', 'Member', 'Mode']

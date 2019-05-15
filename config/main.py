@@ -19,7 +19,9 @@ import mlnx
 
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
-
+CFG_PORTCHANNEL_PREFIX = "PortChannel"
+CFG_PORTCHANNEL_PREFIX_LEN = 11
+CFG_PORTCHANNEL_NO="xxxx"
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -65,6 +67,10 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
+def is_portchannel_name_valid(portchannel_name):
+    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX:
+        return False
+    return True
 
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
@@ -472,6 +478,9 @@ def portchannel(ctx):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
     db = ctx.obj['db']
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
