@@ -74,7 +74,6 @@ def get_binary_image_type(binary_image_path):
 
 # Returns None if image doesn't exist or doesn't appear to be a valid SONiC image file
 def get_binary_image_version(binary_image_path):
-
     binary_type = get_binary_image_type(binary_image_path)
     if not binary_type:
         return None
