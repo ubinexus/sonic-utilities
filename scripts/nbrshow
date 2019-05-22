@@ -84,11 +84,19 @@ class NbrBase(object):
             if br_port_id not in self.if_br_oid_map:
                 continue
             port_id = self.if_br_oid_map[br_port_id]
-            if_name = self.if_oid_map[port_id]
+            #FIXME: When if_name not mapped to port_id in DB, using port_id as if_name in the display.
+            try:
+                if_name = self.if_oid_map[port_id]
+            except:
+                if_name = port_id
+            #FIXME: When VLAN Id for fdb entry not present in DB, then not displaying the fdb entry.
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
             elif 'bvid' in fdb:
-                vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                try:
+                    vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                except :
+                    continue
             self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,))
 
         return
