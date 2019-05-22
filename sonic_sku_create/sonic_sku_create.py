@@ -74,7 +74,7 @@ class SkuCreate(object):
 		"""
 		self.metadata = self.db.get_all(self.db.CONFIG_DB, "DEVICE_METADATA|localhost" )
 
-	def sku_def_parser(self,sku_def) :
+	def sku_def_parser(self,sku_def,sku_base) :
 		try:
 			f = open(sku_def,"r")
 		except IOError:
@@ -84,7 +84,7 @@ class SkuCreate(object):
 		root = element.getroot()
 		#print ( "tag=%s, attrib=%s" % (root.tag, root.attrib))
 		self.sku_name = root.attrib["HwSku"]
-		self.base_sku_name = root.attrib["BaseSku"]
+		self.base_sku_name = sku_base #root.attrib["BaseSku"]
 		self.base_sku_dir = DEFAULT_DEV_PATH + self.platform + '/' + self.base_sku_name + '/'
 		self.base_file_path = self.base_sku_dir + "port_config.ini"
 		self.new_sku_dir = DEFAULT_DEV_PATH+self.platform+"/"+self.sku_name+ '/'
@@ -93,23 +93,24 @@ class SkuCreate(object):
 				for interface in child:
 					for eth_iter in interface.iter():
 						if eth_iter is not None:
-							self.portconfig_dict["Ethernet"+eth_iter.get("PortName")] = ["Ethernet"+eth_iter.get("PortName"),[1,2,3,4], eth_iter.get("InterfaceName"), eth_iter.get("Speed"), eth_iter.get("Index")]
+							self.portconfig_dict[eth_iter.get("Index")] = ["Ethernet"+eth_iter.get("Index"),[1,2,3,4], eth_iter.get("InterfaceName"), eth_iter.get("Speed"), eth_iter.get("Index")]
 		f.close()
 		
 
 		
 	def split_analyze(self) :
-		# Analyze the split ports based on the interfaces alias names
+		# Analyze the front panl ports split  based on the interfaces alias names
+		# fpp_split is a hash with key=front panel port and values is a list of lists ([alias],[index])
 		alias_index = PORTCONFIG_HEADER.index('alias')
-		for ifc in self.portconfig_dict.values():
+		for idx,ifc in self.portconfig_dict.items():
 			pattern = '^etp([0-9]{1,})([a-d]?)'
 			m = re.match(pattern,str(ifc[alias_index]))
 			if m.group(1) not in self.fpp_split :
-				self.fpp_split[m.group(1)] = 1
+				self.fpp_split[m.group(1)] = [[ifc[alias_index]],[idx]] #1
 			else:
-				self.fpp_split[m.group(1)] += 1
+				self.fpp_split[m.group(1)][0].append(str(ifc[alias_index])) #+= 1
+				self.fpp_split[m.group(1)][1].append(idx)
 		self.num_of_fpp = len(self.fpp_split.keys())
-
 		
 	def get_default_lanes(self) :
 		try:
@@ -129,32 +130,41 @@ class SkuCreate(object):
 	def set_lanes(self) :
 		#set lanes and index per interfaces based on split
 		lanes_index = PORTCONFIG_HEADER.index('lanes')
-		index_index = _index = PORTCONFIG_HEADER.index('index')
-
+		index_index = PORTCONFIG_HEADER.index('index')
+		name_index = PORTCONFIG_HEADER.index('# name')
 		
-		for fp, splt in self.fpp_split.iteritems():
+		for fp, values in self.fpp_split.items():
+			splt_arr = values[0]
+			idx_arr = values[1]
+
+			splt = len(splt_arr)
 			pattern = '(\d+),(\d+),(\d+),(\d+)'
 			m = re.match(pattern,self.default_lanes_per_port[int(fp)-1])
-
 			if (splt == 1) :
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4)][lanes_index] = m.group(1)+","+m.group(2)+","+m.group(3)+","+m.group(4) 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4)][index_index] = fp
+				self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2)+","+m.group(3)+","+m.group(4) 
+				self.portconfig_dict[idx_arr[0]][index_index] = fp
+				self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((int(fp)-1)*4)
 			elif (splt == 2) :
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4)][lanes_index] = m.group(1)+","+m.group(2) 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+2)][lanes_index] = m.group(3)+","+m.group(4)
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4)][index_index] = fp 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+2)][index_index] = fp				
+				self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2) 
+				self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(3)+","+m.group(4)
+				self.portconfig_dict[idx_arr[0]][index_index] = fp 
+				self.portconfig_dict[idx_arr[1]][index_index] = fp
+				self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((int(fp)-1)*4) 
+				self.portconfig_dict[idx_arr[1]][name_index] = "Ethernet"+str((int(fp)-1)*4+2)				
 			elif (splt == 4) :
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4)][lanes_index] = m.group(1) 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+1)][lanes_index] = m.group(2) 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+2)][lanes_index] = m.group(3) 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+3)][lanes_index] = m.group(4)
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4)][index_index] = fp 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+1)][index_index] = fp 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+2)][index_index] = fp 
-				self.portconfig_dict["Ethernet"+str((int(fp)-1)*4+3)][index_index] = fp
+				self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1) 
+				self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(2) 
+				self.portconfig_dict[idx_arr[2]][lanes_index] = m.group(3) 
+				self.portconfig_dict[idx_arr[3]][lanes_index] = m.group(4)
+				self.portconfig_dict[idx_arr[0]][index_index] = fp 
+				self.portconfig_dict[idx_arr[1]][index_index] = fp 
+				self.portconfig_dict[idx_arr[2]][index_index] = fp 
+				self.portconfig_dict[idx_arr[3]][index_index] = fp
+				self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((int(fp)-1)*4) 
+				self.portconfig_dict[idx_arr[1]][name_index] = "Ethernet"+str((int(fp)-1)*4+1) 
+				self.portconfig_dict[idx_arr[2]][name_index] = "Ethernet"+str((int(fp)-1)*4+2) 
+				self.portconfig_dict[idx_arr[3]][name_index] = "Ethernet"+str((int(fp)-1)*4+3)
 		self.platform_specific()	
-
 	
 	
 
@@ -212,7 +222,7 @@ class SkuCreate(object):
 		
 		
 	def msn2700_specific(self) :
-		for fp, splt in self.fpp_split.iteritems():
+		for fp, splt in self.fpp_split.items():
 			fp=int(fp)
 			if ((fp%2) == 1 and splt == 4) :
 				self.portconfig_dict.pop("Ethernet"+str(fp*4),"nothing" )
@@ -242,6 +252,7 @@ def main():
 									version='1.0.0',
 									formatter_class=argparse.RawTextHelpFormatter)
 	parser.add_argument('-f', '--file', action='store', help='SKU definition file (default <cwd>/sku_def.xml)', default=None)
+	parser.add_argument('-b', '--base', action='store', help='SKU base definition  ', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
 	parser.add_argument('-l2', '--l2_mode', action='store_true', help='Configure SKU to L2 Mode', default=False)
 	parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
@@ -254,8 +265,7 @@ def main():
 			SKU_DEF_FILE = args.file
 		else:
 			SKU_DEF_FILE = os.getcwd() + '/sku_def.xml'
-		sku.sku_def_parser(SKU_DEF_FILE)	
-		#print (SKU_DEF_FILE)
+		sku.sku_def_parser(SKU_DEF_FILE,args.base)	
 		if args.remove:
 			sku.remove_sku_dir()
 			return
