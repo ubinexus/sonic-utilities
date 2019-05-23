@@ -180,11 +180,11 @@ class AclLoader(object):
 
     def is_table_mirror(self, tname):
         """
-        Check if ACL table type is ACL_TABLE_TYPE_MIRROR
+        Check if ACL table type is ACL_TABLE_TYPE_MIRROR or ACL_TABLE_TYPE_MIRRORV6
         :param tname: ACL table name
-        :return: True if table type is ACL_TABLE_TYPE_MIRROR else False
+        :return: True if table type is MIRROR or MIRRORV6 else False
         """
-        return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_MIRROR
+        return self.tables_db_info[tname]['type'].upper().startswith(self.ACL_TABLE_TYPE_MIRROR)
 
     def is_table_control_plane(self, tname):
         """
@@ -532,7 +532,7 @@ class AclLoader(object):
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue")
+        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue", "Policer")
 
         data = []
         for key, val in self.get_sessions_db_info().iteritems():
@@ -541,7 +541,7 @@ class AclLoader(object):
 
             data.append([key, val["status"], val["src_ip"], val["dst_ip"],
                          val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", "")])
+                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", "")])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 

@@ -14,7 +14,7 @@ import requests
 import argparse
 import syslog
 import traceback
-import sonic_platform
+import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 
@@ -190,7 +190,7 @@ def construct_neighbor_advertiser_slice():
         'hwSku': get_switch_hwsku()
     }
 
-    responding_scheme_obj = {
+    responding_schemes_obj = {
         'durationInSec': DEFAULT_DURATION
     }
 
@@ -237,7 +237,7 @@ def construct_neighbor_advertiser_slice():
     slice_obj = {
         'switchInfo': switch_info_obj,
         'vlanInterfaces': vlan_interfaces_obj,
-        'respondingScheme': responding_scheme_obj
+        'respondingSchemes': responding_schemes_obj
     }
 
     return slice_obj

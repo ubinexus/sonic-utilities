@@ -9,7 +9,7 @@ import netaddr
 import re
 import syslog
 
-import sonic_platform
+import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from minigraph import parse_device_desc_xml
@@ -530,7 +530,8 @@ def mirror_session():
 @click.argument('ttl', metavar='<ttl>', required=True)
 @click.argument('gre_type', metavar='[gre_type]', required=False)
 @click.argument('queue', metavar='[queue]', required=False)
-def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue):
+@click.option('--policer')
+def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """
     Add mirror session
     """
@@ -543,6 +544,9 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue):
             "dscp": dscp,
             "ttl": ttl
             }
+
+    if policer is not None:
+        session_info['policer'] = policer
 
     if gre_type is not None:
         session_info['gre_type'] = gre_type
@@ -955,6 +959,9 @@ def add(ctx, interface_name, ip_addr):
     elif interface_name.startswith("Vlan"):
         config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
         config_db.set_entry("VLAN_INTERFACE", interface_name, {"NULL": "NULL"})
+    elif interface_name.startswith("Loopback"):
+        config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+
 
 #
 # 'del' subcommand
@@ -982,6 +989,8 @@ def remove(ctx, interface_name, ip_addr):
     elif interface_name.startswith("Vlan"):
         config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
         if_table = "VLAN_INTERFACE"
+    elif interface_name.startswith("Loopback"):
+        config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
 
     exists = False
     if if_table:
@@ -1097,7 +1106,7 @@ def asymmetric(ctx, status):
 def platform():
     """Platform-related configuration tasks"""
 
-version_info = sonic_platform.get_sonic_version_info()
+version_info = sonic_device_util.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
     platform.add_command(mlnx.mlnx)
 
