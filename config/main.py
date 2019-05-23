@@ -948,10 +948,13 @@ def add(ctx, interface_name, ip_addr):
 
     if interface_name.startswith("Ethernet"):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        config_db.set_entry("PORTCHANNEL_INTERFACE", interface_name, {"NULL": "NULL"})
     elif interface_name.startswith("Vlan"):
         config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        config_db.set_entry("VLAN_INTERFACE", interface_name, {"NULL": "NULL"})
 
 #
 # 'del' subcommand
@@ -969,12 +972,29 @@ def remove(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
+    if_table = ""
     if interface_name.startswith("Ethernet"):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
+        if_table = "INTERFACE"
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
+        if_table = "PORTCHANNEL_INTERFACE"
     elif interface_name.startswith("Vlan"):
         config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
+        if_table = "VLAN_INTERFACE"
+
+    exists = False
+    if if_table:
+        interfaces = config_db.get_table(if_table)
+        for key in interfaces.keys():
+            if not isinstance(key, tuple):
+                continue
+            if interface_name in key:
+                exists = True
+                break
+
+    if not exists:
+        config_db.set_entry(if_table, interface_name, None)
 
 #
 # 'acl' group ('config acl ...')

@@ -115,6 +115,8 @@ def get_loopback_addr(ip_ver):
     loopback_addr = ''
 
     for intf in loopback_intfs.keys():
+        if not isinstance(intf, tuple):
+             continue
         if 'Loopback0' in intf:
             intf_ip_prefix = intf[1]
             (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)
@@ -165,6 +167,8 @@ def get_vlan_addr(vlan_intf_name, ip_ver):
     vlan_addr = []
 
     for intf in vlan_intfs.keys():
+        if not isinstance(intf, tuple):
+             continue
         if vlan_intf_name in intf:
             intf_ip_prefix = intf[1]
             (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)
