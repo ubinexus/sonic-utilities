@@ -2,7 +2,9 @@
 """
 using soni_sku_create.py  to create a new SONiC SKU based on a <SKU-DEF>.xml file
 
-usage: sonic_sku_create.py [-h] [-v] [-f FILE] [-r] [-l2] [-p] [-vv]
+usage: sonic_sku_create.py [-h] [-v] [-f FILE] [-b BASE] [-r]
+                           [-c {new_sku_only,l2_mode_only,new_sku_l2}]
+                           [-l2_sku_name L2_SKU_NAME] [-p] [-vv]
 
 Create a new SKU
 
@@ -10,10 +12,15 @@ optional arguments:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
   -f FILE, --file FILE  SKU definition file (default <cwd>/sku_def.xml)
+  -b BASE, --base BASE  SKU base definition
   -r, --remove          Remove SKU folder
-  -l2, --l2_mode        Configure SKU to L2 Mode
+  -c {new_sku_only,l2_mode_only,new_sku_l2}, --cmd {new_sku_only,l2_mode_only,new_sku_l2}
+                        Choose action to preform (Generate a new SKU, Configure L2 mode, Both
+  -l2_sku_name L2_SKU_NAME, --l2_sku_name L2_SKU_NAME
+                        SKU name to be used in the L2 configuration mode
   -p, --print           Print port_config.ini without creating a new SKU
   -vv, --verbose        Verbose output
+
 
 """
 
@@ -34,7 +41,7 @@ import xml.etree.ElementTree as ET
 
 DEFAULT_DEV_PATH = '/usr/share/sonic/device/'
 ### port_config.ini header
-PORTCONFIG_HEADER = ["# name", "lanes", "alias", "speed", "index"]
+PORTCONFIG_HEADER = ["# name", "lanes", "speed", "alias", "index"]
 
 
 class SkuCreate(object):
@@ -84,7 +91,7 @@ class SkuCreate(object):
 		root = element.getroot()
 		#print ( "tag=%s, attrib=%s" % (root.tag, root.attrib))
 		self.sku_name = root.attrib["HwSku"]
-		self.base_sku_name = sku_base #root.attrib["BaseSku"]
+		self.base_sku_name = sku_base
 		self.base_sku_dir = DEFAULT_DEV_PATH + self.platform + '/' + self.base_sku_name + '/'
 		self.base_file_path = self.base_sku_dir + "port_config.ini"
 		self.new_sku_dir = DEFAULT_DEV_PATH+self.platform+"/"+self.sku_name+ '/'
@@ -93,7 +100,7 @@ class SkuCreate(object):
 				for interface in child:
 					for eth_iter in interface.iter():
 						if eth_iter is not None:
-							self.portconfig_dict[eth_iter.get("Index")] = ["Ethernet"+eth_iter.get("Index"),[1,2,3,4], eth_iter.get("InterfaceName"), eth_iter.get("Speed"), eth_iter.get("Index")]
+							self.portconfig_dict[eth_iter.get("Index")] = ["Ethernet"+eth_iter.get("Index"),[1,2,3,4], eth_iter.get("Speed"), eth_iter.get("InterfaceName"),  eth_iter.get("Index")]
 		f.close()
 		
 
@@ -134,8 +141,8 @@ class SkuCreate(object):
 		name_index = PORTCONFIG_HEADER.index('# name')
 		
 		for fp, values in self.fpp_split.items():
-			splt_arr = values[0]
-			idx_arr = values[1]
+			splt_arr = sorted(values[0])
+			idx_arr = sorted(values[1])
 
 			splt = len(splt_arr)
 			pattern = '(\d+),(\d+),(\d+),(\d+)'
@@ -150,7 +157,7 @@ class SkuCreate(object):
 				self.portconfig_dict[idx_arr[0]][index_index] = fp 
 				self.portconfig_dict[idx_arr[1]][index_index] = fp
 				self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((int(fp)-1)*4) 
-				self.portconfig_dict[idx_arr[1]][name_index] = "Ethernet"+str((int(fp)-1)*4+2)				
+				self.portconfig_dict[idx_arr[1]][name_index] = "Ethernet"+str((int(fp)-1)*4+2)
 			elif (splt == 4) :
 				self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1) 
 				self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(2) 
@@ -222,30 +229,38 @@ class SkuCreate(object):
 		
 		
 	def msn2700_specific(self) :
-		for fp, splt in self.fpp_split.items():
+		for fp, values in self.fpp_split.items():
+			splt_arr = sorted(values[0])
+			idx_arr = sorted(values[1])
+			
+			splt = len(splt_arr)
 			fp=int(fp)
 			if ((fp%2) == 1 and splt == 4) :
-				self.portconfig_dict.pop("Ethernet"+str(fp*4),"nothing" )
-				print ("MSN2700 -  Removed interface ","Ethernet"+str((int(fp+1)-1)*4),"Due to port ",fp,"Split by 4") 
+				try :
+					self.portconfig_dict.pop(str(int(idx_arr[-1])+1) )
+				except KeyError:
+					continue
+				print ("MSN2700 -  Disabled front panel port ",fp+1, "due to port ",fp,"Split by 4") 
 			elif ((fp%2) == 0 and splt == 4) :
-				print ("MSN2700 -  even front panel ports (2,4..) are not allowed to split by 4")
+				for idx in idx_arr :
+					self.portconfig_dict.pop(idx,None )
+				print ("MSN2700 -  even front panel ports (",fp,") are not allowed to split by 4")
 				return -1
 
 
-	def l2_mode(self) :
-		if not os.path.exists(self.new_sku_dir):
-			print ("Error - path:", self.new_sku_dir, " doesn't exist")
-		cfg_db_str = "{\n\t\"DEVICE_METADATA\": {\n\t\t\"localhost\": {\n\t\t\t\"hostname\": \"sonic\"\n\t\t}\n\t}\n}\n"	
-		ps = subprocess.Popen(('echo',cfg_db_str), stdout=subprocess.PIPE)
-		output = subprocess.check_output(('grep', 'DEV'), stdin=ps.stdout)
-		print (cmd)
-		#cmd.append("sudo sonic-cfggen -H --write-to-db ;")
-		#cmd.append("sonic-cfggen -t /usr/local/lib/python2.7/dist-packages/usr/share/sonic/templates/l2switch.j2 -p -k "+ self.sku_name ) #| sudo config load /dev/stdin -y ;")
-		#cmd.append("sudo config save -y ;")
-		#cmd.append("sudo systemctl restart swss ;")
-		# for c in cmd :
-			# subprocess.call(c,shell=True)
-		# print( "Finished configuration of L2 mode based on "+self.sku_name+" SKU")
+	def l2_mode(self,l2_sku) :
+		if not os.path.exists(DEFAULT_DEV_PATH+self.platform+"/"+l2_sku):
+			print ("Error - path:", l2_sku, " doesn't exist")
+		print( "Starting L2 mode configuration based on "+l2_sku+" SKU")	
+		cfg_db_str = "\n{\n\t\"DEVICE_METADATA\": {\n\t\t\"localhost\": {\n\t\t\t\"hostname\": \"sonic\"\n\t\t}\n\t}\n}\n"
+
+		subprocess.call("cat <<EOF | sudo config reload /dev/stdin -y" + cfg_db_str, shell=True)
+		subprocess.call("sudo sonic-cfggen -H --write-to-db ", shell=True)
+		subprocess.call("sonic-cfggen -t /usr/local/lib/python2.7/dist-packages/usr/share/sonic/templates/l2switch.j2 -p -k" + l2_sku + " | sudo config load /dev/stdin -y", shell=True ) 
+		subprocess.call("sudo config save -y ", shell=True)
+		subprocess.call("sudo systemctl restart swss ", shell=True)
+
+		print( "Finished L2 mode configuration based on "+l2_sku+" SKU")
 		
 def main():
 	parser = argparse.ArgumentParser(description='Create a new SKU',
@@ -254,32 +269,57 @@ def main():
 	parser.add_argument('-f', '--file', action='store', help='SKU definition file (default <cwd>/sku_def.xml)', default=None)
 	parser.add_argument('-b', '--base', action='store', help='SKU base definition  ', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
-	parser.add_argument('-l2', '--l2_mode', action='store_true', help='Configure SKU to L2 Mode', default=False)
+	parser.add_argument('-c', '--cmd', action='store', choices=['new_sku_only', 'l2_mode_only', 'new_sku_l2'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only")
+	parser.add_argument('-l2_sku_name', '--l2_sku_name', action='store', help='SKU name to be used in the L2 configuration mode', default=None)
 	parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
 	parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
 	args = parser.parse_args()
-
+	
+	l2_mode = False
+	sku_mode = False
+	sku_name = None
 	try:
 		sku = SkuCreate()
+		if args.cmd == "l2_mode_only":
+			l2_mode = True
+			sku_mode = False
+		elif args.cmd == "new_sku_l2":
+			l2_mode = True
+			sku_mode = True
+		else :
+			l2_mode = False
+			sku_mode = True		
+		
 		if args.file:
 			SKU_DEF_FILE = args.file
 		else:
 			SKU_DEF_FILE = os.getcwd() + '/sku_def.xml'
-		sku.sku_def_parser(SKU_DEF_FILE,args.base)	
-		if args.remove:
-			sku.remove_sku_dir()
-			return
-		sku.get_default_lanes()
-		sku.split_analyze()
-		sku.set_lanes()
-		if args.print:
-			sku.print_port_config()
-		else:
-			sku.create_sku_dir()
-			sku.create_port_config()
-			print ("Created a new sku ",sku.sku_name)
-		#if args.l2_mode :
-		#	sku.l2_mode()
+		
+		sku.sku_def_parser(SKU_DEF_FILE,args.base)
+
+		if sku_mode :
+			if args.remove:
+				sku.remove_sku_dir()
+				return
+			sku.get_default_lanes()
+			sku.split_analyze()
+			sku.set_lanes()
+			if args.print:
+				sku.print_port_config()
+			else:
+				sku.create_sku_dir()
+				sku.create_port_config()
+				print ("Created a new sku ",sku.sku_name)
+			
+		if l2_mode : ##If No SKU name provided by -l2_sku_name then if -file exists, use the sku from the file otherwise use current SKU 
+			if args.l2_sku_name is None :
+				if args.file is None :
+					sku_name = sku.metadata['hwsku']
+				else :
+					sku_name = sku.sku_name 
+			else: 
+				sku_name = args.l2_sku_name
+			sku.l2_mode(sku_name)
 		
 	except Exception as e:
 		print(e.message, file=sys.stderr)
