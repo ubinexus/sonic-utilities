@@ -198,21 +198,32 @@ def sniffer():
 
 
 # 'sdk' subgroup
-@sniffer.command()
-@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='To change SDK sniffer status, swss service will be restarted, continue?')
-@click.argument('option', type=click.Choice(["enable", "disable"]))
-def sdk(option):
+@sniffer.group()
+def sdk():
     """SDK Sniffer - Command Line to enable/disable SDK sniffer"""
-    if option == 'enable':
-        sdk_sniffer_enable()
-    elif option == 'disable':
-        sdk_sniffer_disable()
+    pass
+
+
+@sdk.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
+              prompt='To turn on the SDK sniffer, swss service will be restarted and it can excessively consume storage space, continue?')
+def enable():
+    """Enable SDK Sniffer"""
+    print "Enabling SDK sniffer"
+    sdk_sniffer_enable()
+
+
+@sdk.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
+              prompt='To turn off the SDK sniffer, swss service will be restarted, continue?')
+def disable():
+    """Disable SDK Sniffer"""
+    print "Disabling SDK sniffer"
+    sdk_sniffer_disable()
 
 
 def sdk_sniffer_enable():
     """Enable SDK Sniffer"""
-    print "Enabling SDK sniffer"
     sdk_sniffer_filename = sniffer_filename_generate(SDK_SNIFFER_TARGET_PATH,
                                                      SDK_SNIFFER_FILENAME_PREFIX,
                                                      SDK_SNIFFER_FILENAME_EXT)
@@ -238,7 +249,6 @@ def sdk_sniffer_enable():
 
 def sdk_sniffer_disable():
     """Disable SDK Sniffer"""
-    print "Disabling SDK sniffer"
 
     ignore = sniffer_env_variable_set(enable=False, env_variable_name=ENV_VARIABLE_SX_SNIFFER)
     if not ignore:
