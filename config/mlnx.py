@@ -206,16 +206,17 @@ def sdk():
 
 @sdk.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='To turn on the SDK sniffer, swss service will be restarted and it can excessively consume storage space, continue?')
+              prompt='Swss service will be restarted, continue?')
 def enable():
     """Enable SDK Sniffer"""
     print "Enabling SDK sniffer"
     sdk_sniffer_enable()
+    print "Note: the sniffer file may exhaust the space on /var/log, please disable it when you are done with this sniffering."
 
 
 @sdk.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='To turn off the SDK sniffer, swss service will be restarted, continue?')
+              prompt='Swss service will be restarted, continue?')
 def disable():
     """Disable SDK Sniffer"""
     print "Disabling SDK sniffer"
@@ -242,7 +243,7 @@ def sdk_sniffer_enable():
         err = restart_swss()
         if err is not 0:
             return
-        print 'Enabled SDK sniffer, recording file is %s' % sdk_sniffer_filename
+        print 'SDK sniffer is Enabled, recording file is %s.' % sdk_sniffer_filename
     else:
         pass
 
@@ -255,7 +256,7 @@ def sdk_sniffer_disable():
         err = restart_swss()
         if err is not 0:
             return
-        print "Disabled SDK sniffer"
+        print "SDK sniffer is Disabled."
     else:
         pass
 
