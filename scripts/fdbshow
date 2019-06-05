@@ -63,25 +63,51 @@ class FdbShow(object):
             return
 
         oid_pfx = len("oid:0x")
+
+        client = self.db.redis_clients["ASIC_DB"]
+        pipe = client.pipeline()
+        values = []
+        fdb_list = []
         for s in fdb_str:
             fdb_entry = s.decode()
             fdb = json.loads(fdb_entry .split(":", 2)[-1])
             if not fdb:
                 continue
+            fdb_list.append(fdb)
+            pipe.hgetall(s)
+        values = pipe.execute()
+        client = self.db.redis_clients["ASIC_DB"]
+        pipe = client.pipeline()
+        vlans = []
+        vlan_keys = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_VLAN:*")
+        for v in vlan_keys:
+            pipe.hgetall(v)
+        vlans = pipe.execute()
 
-            ent = self.db.get_all('ASIC_DB', s, blocking=True)
+        posi = 0
+        for ent in values:
+            if 'SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID' not in ent:
+                posi = posi + 1
+                continue
             br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
             ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
             if br_port_id not in self.if_br_oid_map:
+                posi = posi + 1
                 continue
             port_id = self.if_br_oid_map[br_port_id]
-            if_name = self.if_oid_map[port_id]
+            #When if_name not mapped to port_id in DB, using port_id as if_name in the display.
+            try:
+                if_name = self.if_oid_map[port_id]
+            except :
+                if_name = port_id
+
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
             elif 'bvid' in fdb:
-                vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
-            self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
+                vlan_id  = vlans[vlan_keys.index("ASIC_STATE:SAI_OBJECT_TYPE_VLAN:{}".format(fdb_list[posi][u'bvid']))] [b"SAI_VLAN_ATTR_VLAN_ID"]
+            self.bridge_mac_list.append((int(vlan_id),) + (fdb_list[posi]["mac"],) + (if_name,) + (fdb_type,))
+            posi = posi + 1
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
         return
