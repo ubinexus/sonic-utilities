@@ -739,33 +739,11 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
                 ctx.fail("'interface_name' is None!")
-            ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
-        else:
-<<<<<<< HEAD
-            ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
-    #Validate If the interface is already untagged member any other Vlan
-    if untagged is True:
-        keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if v == interface_name ]
-        for k in keys:
-            if db.get_entry('VLAN_MEMBER',k).get('tagging_mode',)== 'untagged':
-                ctx.fail("Interface {} is already untagged member of {} ".format(interface_name,k[0]))
-                return
-
-    # Validate if member is IP interface
-    for k,v in db.get_table('INTERFACE'):
-        if k == interface_name:
-            ctx.fail(" {} has ip address configured".format(interface_name))
-            return
-    # Validate if ip interface 
-    for k,v in db.get_table('PORTCHANNEL_INTERFACE'):
-        if k == interface_name:
-            ctx.fail(" {} has ip address configured".format(interface_name))
-            return
-
-=======
             ctx.fail("{} is already a member of {}".format(interface_name,
                                                         vlan_name))
->>>>>>> parent of eee827e... Update main.py
+        else:
+            ctx.fail("{} is already a member of {}".format(interface_name,
+                                                        vlan_name))
     members.append(interface_name)
     vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
