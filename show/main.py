@@ -363,6 +363,47 @@ def cli():
     """SONiC command line - 'show' command"""
     pass
 
+#
+# 'vrf' command ("show vrf")
+#
+
+def get_interface_bind_to_vrf(config_db, vrf_name):
+    """Get interfaces belong to vrf
+    """
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    data = []
+    for table_name in tables:
+        interface_dict = config_db.get_table(table_name)
+        if interface_dict:
+            for interface in interface_dict.keys():
+                if interface_dict[interface].has_key('vrf_name') and vrf_name == interface_dict[interface]['vrf_name']:
+                    data.append(interface)
+    return data
+
+@cli.command()
+@click.argument('vrf_name', required=False)
+def vrf(vrf_name):
+    """Show vrf config"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['VRF', 'Interfaces']
+    body = []
+    vrf_dict = config_db.get_table('VRF')
+    if vrf_dict:
+        vrfs = []
+        if vrf_name is None:
+            vrfs = vrf_dict.keys()
+        elif vrf_name in vrf_dict.keys():
+            vrfs = [vrf_name]
+        for vrf in vrfs:
+            intfs = get_interface_bind_to_vrf(config_db, vrf)
+            if len(intfs) == 0:
+                body.append([vrf, ""])
+            else:
+                body.append([vrf, intfs[0]])
+                for intf in intfs[1:]:
+                    body.append(["", intf])
+    click.echo(tabulate(body, header))
 
 #
 # 'arp' command ("show arp")
@@ -895,6 +936,21 @@ def get_if_oper_state(iface):
 
 
 #
+# get_if_master
+#
+# Given an interface name, return its master reported by the kernel.
+#
+def get_if_master(iface):
+    oper_file = "/sys/class/net/{0}/master"
+
+    if os.path.exists(oper_file.format(iface)):
+        real_path = os.path.realpath(oper_file.format(iface))
+        return os.path.basename(real_path)
+    else:
+        return ""
+
+
+#
 # 'show ip interfaces' command
 #
 # Display all interfaces with an IPv4 address and their admin/oper states.
@@ -904,7 +960,7 @@ def get_if_oper_state(iface):
 @ip.command()
 def interfaces():
     """Show interfaces IPv4 address"""
-    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper']
+    header = ['Interface', 'Master', 'IPv4 address/mask', 'Admin/Oper']
     data = []
 
     interfaces = natsorted(netifaces.interfaces())
@@ -924,14 +980,14 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
-
+                master = get_if_master(iface)
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
 
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper])
 
             for ifaddr in ifaddresses[1:]:
-                data.append(["", ifaddr[1], ""])
+                data.append(["", "", ifaddr[1], ""])
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
@@ -941,14 +997,14 @@ def interfaces():
 #
 
 @ip.command()
-@click.argument('ipaddress', required=False)
+@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(ipaddress, verbose):
+def route(args, verbose):
     """Show IP (IPv4) routing table"""
     cmd = 'sudo vtysh -c "show ip route'
 
-    if ipaddress is not None:
-        cmd += ' {}'.format(ipaddress)
+    for arg in args:
+        cmd += " " + str(arg)
 
     cmd += '"'
 
@@ -1000,7 +1056,7 @@ def ipv6():
 @ipv6.command()
 def interfaces():
     """Show interfaces IPv6 address"""
-    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
+    header = ['Interface', 'Master', 'IPv6 address/mask', 'Admin/Oper']
     data = []
 
     interfaces = natsorted(netifaces.interfaces())
@@ -1020,11 +1076,12 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
+                master = get_if_master(iface)
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper])
             for ifaddr in ifaddresses[1:]:
-                data.append(["", ifaddr[1], ""])
+                data.append(["", "", ifaddr[1], ""])
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
@@ -1034,14 +1091,14 @@ def interfaces():
 #
 
 @ipv6.command()
-@click.argument('ipaddress', required=False)
+@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(ipaddress, verbose):
+def route(args, verbose):
     """Show IPv6 routing table"""
     cmd = 'sudo vtysh -c "show ipv6 route'
 
-    if ipaddress is not None:
-        cmd += ' {}'.format(ipaddress)
+    for arg in args:
+        cmd += " " + str(arg)
 
     cmd += '"'
 
