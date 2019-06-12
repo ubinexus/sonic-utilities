@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import traceback
 import sys
 import argparse
 import syslog
@@ -22,7 +23,7 @@ def log_error(msg):
 
 
 class DBMigrator():
-    def __init__(self, args=None):
+    def __init__(self, socket=None):
         """
         Version string format:
            version_<major>_<minor>_<build>
@@ -39,7 +40,12 @@ class DBMigrator():
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
-        self.configDB        = ConfigDBConnector(**args)
+
+        db_kwargs = {}
+        if socket:
+            db_kwargs['unix_socket_path'] = socket
+
+        self.configDB        = ConfigDBConnector(**db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
 
 
@@ -129,12 +135,10 @@ def main():
                         default = None )
         args = parser.parse_args()
         operation = args.operation
-        socket = args.socket
+        socket_path = args.socket
 
-        if socket:
-            db_args = {}
-            db_args['unix_socket_path'] = socket
-            dbmgtr = DBMigrator(db_args)
+        if socket_path:
+            dbmgtr = DBMigrator(socket=socket_path)
         else:
             dbmgtr = DBMigrator()
 
@@ -144,6 +148,8 @@ def main():
 
     except Exception as e:
         log_error('Caught exception: ' + str(e))
+        traceback.print_exc()
+        print(str(e))
         parser.print_help()
         sys.exit(1)
 
