@@ -3,7 +3,6 @@
 import json
 
 STATUS_NA = 'N/A'
-PORT_RATE = 40
 
 def ns_diff(newstr, oldstr):
     """
@@ -41,15 +40,15 @@ def ns_prate(newstr, oldstr, delta):
         rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
         return "{:.2f}".format(rate)+'/s'
 
-def ns_util(newstr, oldstr, delta):
+def ns_util(newstr, oldstr, delta, port_rate):
     """
         Calculate the util.
     """
-    if newstr == STATUS_NA or oldstr == STATUS_NA:
+    if newstr == STATUS_NA or oldstr == STATUS_NA or port_rate == STATUS_NA:
         return STATUS_NA
     else:
         rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
-        util = rate/(PORT_RATE*1024*1024*1024/8.0)*100
+        util = rate/(int(port_rate)*1000*1000/8.0)*100
         return "{:.2f}%".format(util)
 
 def table_as_json(table, header):
