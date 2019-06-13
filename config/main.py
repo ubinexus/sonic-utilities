@@ -721,28 +721,28 @@ def helper_ip(ctx, helper_ip, vid):
 
     if vid is None:
         if not vlan_table_dict:
-		ctx.fail("No VLAN is configured yet")
-	else:
-		for vkey in vlan_table_dict.keys():
-			if 'dhcp_servers' in vlan_table_dict[vkey]:
-				db.mod_entry('VLAN', '{}'.format(vkey), {'dhcp_servers@': '{}'.format(helper_ip)})
-			else:
-				db.set_entry('VLAN', '{}'.format(vkey), {'dhcp_servers@': '{}'.format(helper_ip)})
+	    ctx.fail("No VLAN is configured yet")
+        else:
+            for vkey in vlan_table_dict.keys():
+                if 'dhcp_servers' in vlan_table_dict[vkey]:
+                    db.mod_entry('VLAN', '{}'.format(vkey), {'dhcp_servers@': '{}'.format(helper_ip)})
+                else:
+                    db.set_entry('VLAN', '{}'.format(vkey), {'dhcp_servers@': '{}'.format(helper_ip)})
 
     else:
-	vlan_name = 'Vlan{}'.format(vid)
-	vlan_entry = db.get_entry('VLAN', vlan_name)
-	if len(vlan_entry) == 0:
-		ctx.fail("{} doesn't exist".format(vlan_name))
-	elif 'dhcp_servers' in vlan_entry:
-		db.mod_entry('VLAN', 'Vlan{}'.format(vid), {'dhcp_servers@': '{}'.format(helper_ip)})
-	else:
-		db.set_entry('VLAN', 'Vlan{}'.format(vid), {'dhcp_servers@': '{}'.format(helper_ip)})
+        vlan_name = 'Vlan{}'.format(vid)
+        vlan_entry = db.get_entry('VLAN', vlan_name)
+        if len(vlan_entry) == 0:
+            ctx.fail("{} doesn't exist".format(vlan_name))
+        elif 'dhcp_servers' in vlan_entry:
+            db.mod_entry('VLAN', 'Vlan{}'.format(vid), {'dhcp_servers@': '{}'.format(helper_ip)})
+        else:
+             db.set_entry('VLAN', 'Vlan{}'.format(vid), {'dhcp_servers@': '{}'.format(helper_ip)})
 
     try:
-	run_command("service dhcp_relay restart", display_cmd=True)
+        run_command("service dhcp_relay restart", display_cmd=True)
     except SystemExit as e:
-	click.echo("Restarting dhcp_relay service failed with error {}".format(e))
+        click.echo("Restarting dhcp_relay service failed with error {}".format(e))
         raise
 
 #
