@@ -39,8 +39,45 @@ qsfp_data_map = {'modelname': 'Vendor PN', 'vendor_oui': 'Vendor OUI',
                  }
 
 sfp_dom_channel_monitor_map = {'rx1power': 'RXPower',
-                               'tx1bias':  'TXBias',
+                               'tx1bias': 'TXBias',
                                'tx1power': 'TXPower'}
+
+sfp_dom_channel_threshold_map = {
+                                  'txpowerhighalarm':   'TxPowerHighAlarm',
+                                  'txpowerlowalarm':    'TxPowerLowAlarm',
+                                  'txpowerhighwarning': 'TxPowerHighWarning',
+                                  'txpowerlowwarning':  'TxPowerLowWarning',
+                                  'rxpowerhighalarm':   'RxPowerHighAlarm',
+                                  'rxpowerlowalarm':    'RxPowerLowAlarm',
+                                  'rxpowerhighwarning': 'RxPowerHighWarning',
+                                  'rxpowerlowwarning':  'RxPowerLowWarning',
+                                  'txbiashighalarm':    'TxBiasHighAlarm',
+                                  'txbiaslowalarm':     'TxBiasLowAlarm',
+                                  'txbiashighwarning':  'TxBiasHighWarning',
+                                  'txbiaslowwarning':   'TxBiasLowWarning',
+                                 }
+
+qsfp_dom_channel_threshold_map = {
+                                   'rxpowerhighalarm':   'RxPowerHighAlarm',
+                                   'rxpowerlowalarm':    'RxPowerLowAlarm',
+                                   'rxpowerhighwarning': 'RxPowerHighWarning',
+                                   'rxpowerlowwarning':  'RxPowerLowWarning',
+                                   'txbiashighalarm':    'TxBiasHighAlarm',
+                                   'txbiaslowalarm':     'TxBiasLowAlarm',
+                                   'txbiashighwarning':  'TxBiasHighWarning',
+                                   'txbiaslowwarning':   'TxBiasLowWarning',
+                                 }
+
+dom_module_threshold_map = {
+                             'temphighalarm':  'TempHighAlarm',
+                             'templowalarm':   'TempLowAlarm',
+                             'temphighwarning':'TempHighWarning',
+                             'templowwarning': 'TempLowWarning',
+                             'vcchighalarm':   'VccHighAlarm',
+                             'vcclowalarm':    'VccLowAlarm',
+                             'vcchighwarning': 'VccHighWarning',
+                             'vcclowwarning':  'VccLowWarning'
+                           }
 
 qsfp_dom_channel_monitor_map = {'rx1power': 'RX1Power', 'rx2power': 'RX2Power',
                                 'rx3power': 'RX3Power', 'rx4power': 'RX4Power',
@@ -51,39 +88,22 @@ qsfp_dom_channel_monitor_map = {'rx1power': 'RX1Power', 'rx2power': 'RX2Power',
 
 dom_module_monitor_map = {'temperature': 'Temperature', 'voltage': 'Vcc'}
 
-
-qsfp_dom_channel_threshold_map = {'rxpowerhighalarm':   'RxPowerHighAlarm',
-                                  'rxpowerlowalarm':    'RxPowerLowAlarm',
-                                  'rxpowerhighwarning': 'RxPowerHighWarning',
-                                  'rxpowerlowwarning':  'RxPowerLowWarning',
-                                  'txbiashighalarm':    'TxBiasHighAlarm',
-                                  'txbiaslowalarm':     'TxBiasLowAlarm',
-                                  'txbiashighwarning':  'TxBiasHighWarning',
-                                  'txbiaslowwarning':   'TxBiasLowWarning',
+dom_channel_threshold_unit_map = {
+                                   'txpowerhighalarm':   'dBm',
+                                   'txpowerlowalarm':    'dBm',
+                                   'txpowerhighwarning': 'dBm',
+                                   'txpowerlowwarning':  'dBm',
+                                   'rxpowerhighalarm':   'dBm',
+                                   'rxpowerlowalarm':    'dBm',
+                                   'rxpowerhighwarning': 'dBm',
+                                   'rxpowerlowwarning':  'dBm',
+                                   'txbiashighalarm':    'mA',
+                                   'txbiaslowalarm':     'mA',
+                                   'txbiashighwarning':  'mA',
+                                   'txbiaslowwarning':   'mA',
                                  }
 
-qsfp_dom_module_threshold_map = {'temphighalarm':  'TempHighAlarm',
-                                 'templowalarm':   'TempLowAlarm',
-                                 'temphighwarning':'TempHighWarning',
-                                 'templowwarning': 'TempLowWarning',
-                                 'vcchighalarm':   'VccHighAlarm',
-                                 'vcclowalarm':    'VccLowAlarm',
-                                 'vcchighwarning': 'VccHighWarning',
-                                 'vcclowwarning':  'VccLowWarning'
-                                }
-
-qsfp_dom_channel_threshold_unit_map = {
-                                  'rxpowerhighalarm':   'dBm',
-                                  'rxpowerlowalarm':    'dBm',
-                                  'rxpowerhighwarning': 'dBm',
-                                  'rxpowerlowwarning':  'dBm',
-                                  'txbiashighalarm':    'mA',
-                                  'txbiaslowalarm':     'mA',
-                                  'txbiashighwarning':  'mA',
-                                  'txbiaslowwarning':   'mA',
-                                 }
-
-qsfp_dom_module_threshold_unit_map = {
+dom_module_threshold_unit_map = {
                                  'temphighalarm':   'C',
                                  'templowalarm':    'C',
                                  'temphighwarning': 'C',
@@ -94,8 +114,6 @@ qsfp_dom_module_threshold_unit_map = {
                                  'vcclowwarning':   'Volts'
                                 }
 
-
-
 dom_value_unit_map = {'rx1power': 'dBm', 'rx2power': 'dBm',
                       'rx3power': 'dBm', 'rx4power': 'dBm',
                       'tx1bias': 'mA', 'tx2bias': 'mA',
@@ -103,6 +121,7 @@ dom_value_unit_map = {'rx1power': 'dBm', 'rx2power': 'dBm',
                       'tx1power': 'dBm', 'tx2power': 'dBm',
                       'tx3power': 'dBm', 'tx4power': 'dBm',
                       'temperature': 'C', 'voltage': 'Volts'}
+
 
 
 class SFPShow(object):
@@ -163,7 +182,7 @@ class SFPShow(object):
             out_put_channel_threshold = self.format_dict_value_to_string(
                                          sorted_key_table, dom_info_dict,
                                          qsfp_dom_channel_threshold_map,
-                                         qsfp_dom_channel_threshold_unit_map,
+                                         dom_channel_threshold_unit_map,
                                          channel_threshold_align)
             out_put_dom = out_put_dom + out_put_channel_threshold
 
@@ -180,11 +199,11 @@ class SFPShow(object):
             #Module Threshold
             out_put_dom = (out_put_dom + ident + 'ModuleThresholdValues'
                                                              + newline_ident)
-            sorted_key_table = natsorted(qsfp_dom_module_threshold_map)
+            sorted_key_table = natsorted(dom_module_threshold_map)
             out_put_module_threshold = self.format_dict_value_to_string(
                                          sorted_key_table, dom_info_dict,
-                                         qsfp_dom_module_threshold_map,
-                                         qsfp_dom_module_threshold_unit_map,
+                                         dom_module_threshold_map,
+                                         dom_module_threshold_unit_map,
                                          module_threshold_align)
             out_put_dom = out_put_dom + out_put_module_threshold
 
@@ -203,6 +222,26 @@ class SFPShow(object):
                                             dom_module_monitor_map,
                                             dom_value_unit_map)
             out_put_dom = out_put_dom + out_put_module
+
+            out_put_dom = (out_put_dom + ident + 'ThresholdData'
+                                                             + newline_ident)
+            #Module Threshold
+            sorted_key_table = natsorted(dom_module_threshold_map)
+            out_put_module_threshold = self.format_dict_value_to_string(
+                                         sorted_key_table, dom_info_dict,
+                                         dom_module_threshold_map,
+                                         dom_module_threshold_unit_map,
+                                         module_threshold_align)
+            out_put_dom = out_put_dom + out_put_module_threshold
+
+            #Channel Threshold
+            sorted_key_table = natsorted(sfp_dom_channel_threshold_map)
+            out_put_channel_threshold = self.format_dict_value_to_string(
+                                         sorted_key_table, dom_info_dict,
+                                         sfp_dom_channel_threshold_map,
+                                         dom_channel_threshold_unit_map,
+                                         channel_threshold_align)
+            out_put_dom = out_put_dom + out_put_channel_threshold
 
         return out_put_dom
 
