@@ -21,6 +21,11 @@ import mlnx
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 
+CFG_PORTCHANNEL_PREFIX = "PortChannel"
+CFG_PORTCHANNEL_PREFIX_LEN = 11
+CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
+CFG_PORTCHANNEL_MAX_VAL = 9999
+CFG_PORTCHANNEL_NO="<0-9999>"
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -66,6 +71,18 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
+def is_portchannel_name_valid(portchannel_name):
+    """Port Channel name validation
+    """
+
+    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX :
+        return False
+    if (portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:].isdigit() is False or
+          int(portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:]) > CFG_PORTCHANNEL_MAX_VAL) :
+        return False
+    if len(portchannel_name) > CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
 
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
@@ -473,6 +490,9 @@ def portchannel(ctx):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
     db = ctx.obj['db']
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
@@ -487,6 +507,9 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
     db = ctx.obj['db']
     db.set_entry('PORTCHANNEL', portchannel_name, None)
 
@@ -501,6 +524,15 @@ def portchannel_member(ctx):
 @click.pass_context
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+    if get_interface_naming_mode() == "alias":
+        port_name = interface_alias_to_name(port_name)
+        if port_name is None:
+            ctx.fail("'interface_name' is None!")
+    if (port_name.startswith("Ethernet") is False) or (interface_name_is_valid(port_name) is False):
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
     db = ctx.obj['db']
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -511,6 +543,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 @click.pass_context
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
     db = ctx.obj['db']
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
     db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
@@ -953,16 +988,17 @@ def add(ctx, interface_name, ip_addr):
 
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
-        if interface_name.startswith("Ethernet"):
+
+        if (interface_name.startswith("Ethernet")) and (interface_name_is_valid(interface_name) is True):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-        elif interface_name.startswith("PortChannel"):
+        elif (interface_name.startswith("PortChannel")) and (is_portchannel_name_valid(interface_name) is True):
             config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
         elif interface_name.startswith("Vlan"):
             config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
         elif interface_name.startswith("Loopback"):
             config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
         else:
-            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]<id>")
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
