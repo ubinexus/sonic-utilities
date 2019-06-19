@@ -1329,6 +1329,29 @@ def all(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+# 'accesslist' subcommand ("show runningconfiguration accesslist")
+@runningconfiguration.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def accesslist(verbose):
+    """Show acl running configuration"""
+    cmd = "sonic-cfggen -d --print-acl"
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'interface' subcommand ("show runningconfiguration interface <interfacename>")
+@runningconfiguration.command()
+@click.argument('interfacename', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def interface(interfacename, verbose):
+    """Show port running configuration"""
+    cmd = "sonic-cfggen -d --print-port"
+
+    if interfacename is not None:
+        cmd += " {0} {1}".format("--interface", interfacename)
+
+    run_command(cmd, display_cmd=verbose)
+
+
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
