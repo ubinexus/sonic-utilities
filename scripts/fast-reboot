@@ -360,7 +360,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # it is possible that the orchagent is in transient state and no opportunity to be freezed
     # Note: assume that 2*5 seconds is enough for orchagent to process the request and respone freeze or not
     debug "Pausing orchagent ..."
-    docker exec -i swss /usr/bin/orchagent_restart_check -w 2000 -r 5 || RESTARTCHECK_RC=$?
+    docker exec -i swss /usr/bin/orchagent_restart_check -w 2000 -r 5 > /dev/null || RESTARTCHECK_RC=$?
     if [[ RESTARTCHECK_RC -ne 0 ]]; then
         error "RESTARTCHECK failed"
         if [[ x"${FORCE}" == x"yes" ]]; then
