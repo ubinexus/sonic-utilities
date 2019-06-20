@@ -44,15 +44,29 @@ class DBMigrator():
 
 
     def migrate_pfc_wd_table(self):
-        # Migrate all data entries from table PFC_WD_TABLE to PFC_WD
+        '''
+        Migrate all data entries from table PFC_WD_TABLE to PFC_WD
+        '''
         data = self.configDB.get_table('PFC_WD_TABLE')
         for key in data.keys():
             self.configDB.set_entry('PFC_WD', key, data[key])
         self.configDB.delete_table('PFC_WD_TABLE')
 
+    def is_ip_prefix_in_key(self, key):
+        '''
+        Function to check if IP address is present in the key. If it
+        is present, then the key would be a tuple or else, it shall be
+        be string
+        '''
+        return (isinstance(key, tuple))
 
     def migrate_interface_table(self):
-        # Migrate all data entries for Interface table
+        '''
+        Migrate all data from existing INTERFACE table with IP Prefix
+        to have an additional ONE entry without IP Prefix. For. e.g, for an entry
+        "Vlan1000|192.168.0.1/21": {}", this function shall add an entry without
+        IP prefix as ""Vlan1000": {}". This is for VRF compatibility.
+        '''
         if_db = []
         if_tables = {
                      'INTERFACE',
@@ -62,17 +76,14 @@ class DBMigrator():
         for table in if_tables:
             data = self.configDB.get_table(table)
             for key in data.keys():
-                if not isinstance(key, tuple):
+                if not self.is_ip_prefix_in_key(key):
                     if_db.append(key)
                     continue
-
-        log_info('Existing interface objects ')
-        log_info(' '.join(if_db))
 
         for table in if_tables:
             data = self.configDB.get_table(table)
             for key in data.keys():
-                if not isinstance(key, tuple) or key[0] in if_db:
+                if not self.is_ip_prefix_in_key(key) or key[0] in if_db:
                     continue
                 log_info('Migrating interface table for ' + key[0])
                 self.configDB.set_entry(table, key[0], data[key])
