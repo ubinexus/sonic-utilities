@@ -1334,7 +1334,7 @@ def all(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def accesslist(verbose):
     """Show acl running configuration"""
-    cmd = "sonic-cfggen -d --print-acl"
+    cmd = "sonic-cfggen -d --var-json ACL_RULE"
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1344,7 +1344,7 @@ def accesslist(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def interface(interfacename, verbose):
     """Show port running configuration"""
-    cmd = "sonic-cfggen -d --print-port"
+    cmd = "sonic-cfggen -d --var-json PORT"
 
     if interfacename is not None:
         cmd += " {0} {1}".format("--interface", interfacename)
