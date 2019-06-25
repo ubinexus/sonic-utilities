@@ -1329,10 +1329,10 @@ def all(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-# 'accesslist' subcommand ("show runningconfiguration accesslist")
+# 'acl' subcommand ("show runningconfiguration acl")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def accesslist(verbose):
+def acl(verbose):
     """Show acl running configuration"""
     cmd = "sonic-cfggen -d --var-json ACL_RULE"
     run_command(cmd, display_cmd=verbose)

@@ -2785,7 +2785,7 @@ This sub-section explains the show commands for displaying the running configura
 3) ntp
 4) snmp
 5) all 
-6) accesslist
+6) acl
 7) interface
 
 **show runningconfiguration all**  
@@ -2853,17 +2853,17 @@ This command displays the running configuration of the snmp module.
   admin@sonic:~$ show runningconfiguration snmp
   ```
 
-**show runningconfiguration accesslist**
+**show runningconfiguration acl**
 
 This command displays the running configuration of the acls
 
   - Usage:
-    show runningconfiguration accesslist
+    show runningconfiguration acl
 
 
 - Example:
   ```
-  admin@sonic:~$ show runningconfiguration accesslist
+  admin@sonic:~$ show runningconfiguration acl
   ```
 
 **show runningconfiguration interface <interfacename>**
