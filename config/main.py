@@ -8,6 +8,7 @@ import subprocess
 import netaddr
 import re
 import syslog
+import time
 
 import sonic_device_util
 import ipaddress
@@ -1071,12 +1072,20 @@ def bind(ctx, interface_name, vrf_name):
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
-    # When config_db del entry and then add entry with same key, the DEL will lost.
-    if is_interface_bind_to_vrf(config_db, interface_name) is True:
-        ctx.fail("{} is already bind to a vrf!".format(interface_name))
+    if is_interface_bind_to_vrf(config_db, interface_name) is True and \
+        config_db.get_entry(table_name, interface_name).get('vrf_name') == vrf_name:
+        return
     interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
-    if interface_dependent:
-        ctx.fail("remove ip address from {} first!".format(interface_name))
+    for interface_del in interface_dependent:
+        config_db.set_entry(table_name, interface_del, None)
+    config_db.set_entry(table_name, interface_name, None)
+    # When config_db del entry and then add entry with same key, the DEL will lost.
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
+    while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
+        time.sleep(0.01)
+    state_db.close(state_db.STATE_DB)
     config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
 
 #
@@ -1098,7 +1107,7 @@ def unbind(ctx, interface_name):
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
     if is_interface_bind_to_vrf(config_db, interface_name) is False:
-        ctx.fail("{} is not bind to a vrf!".format(interface_name))
+        return
     interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
     for interface_del in interface_dependent:
         config_db.set_entry(table_name, interface_del, None)
