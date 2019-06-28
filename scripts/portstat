@@ -99,6 +99,21 @@ class Portstat(object):
             cnstat_dict[port] = get_counters(counter_port_name_map[port]) 
         return cnstat_dict
 
+    def get_port_speed(self, port_name):
+        """
+            Get the port speed
+        """
+        # Get speed from APPL_DB
+        db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        db.connect(db.APPL_DB)
+        full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
+        speed = db.get(db.APPL_DB, full_table_id, "speed")
+        if speed is None:
+            speed = PORT_RATE
+        else:
+            speed = int(speed)/1000
+        return speed
+
     def get_port_state(self, port_name):
         """
             Get the port state
@@ -209,7 +224,7 @@ class Portstat(object):
                 rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
                 return "{:.2f}".format(rate)+'/s'
 
-        def ns_util(newstr, oldstr, delta):
+        def ns_util(newstr, oldstr, delta, port_rate):
             """
                 Calculate the util.
             """
@@ -217,7 +232,7 @@ class Portstat(object):
                 return STATUS_NA
             else:
                 rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
-                util = rate/(PORT_RATE*1024*1024*1024/8.0)*100
+                util = rate/(port_rate*1024*1024*1024/8.0)*100
                 return "{:.2f}%".format(util)
 
         table = []
@@ -233,18 +248,19 @@ class Portstat(object):
 
             if print_all:
                 if old_cntr is not None:
+                    port_speed = self.get_port_speed(key)
                     table.append((key, self.get_port_state(key),
                                   ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                                   ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
                                   ns_prate(cntr.rx_ok, old_cntr.rx_ok, time_gap),
-                                  ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                                  ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
                                   ns_diff(cntr.rx_err, old_cntr.rx_err),
                                   ns_diff(cntr.rx_drop, old_cntr.rx_drop),
                                   ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
                                   ns_diff(cntr.tx_ok, old_cntr.tx_ok),
                                   ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
                                   ns_prate(cntr.tx_ok, old_cntr.tx_ok, time_gap),
-                                  ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                                  ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
                                   ns_diff(cntr.tx_err, old_cntr.tx_err),
                                   ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                   ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
@@ -266,16 +282,17 @@ class Portstat(object):
                                   cntr.tx_err))
             else:
                 if old_cntr is not None:
+                    port_speed = self.get_port_speed(key)
                     table.append((key, self.get_port_state(key),
                                       ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                                       ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
-                                      ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                                      ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
                                       ns_diff(cntr.rx_err, old_cntr.rx_err),
                                       ns_diff(cntr.rx_drop, old_cntr.rx_drop),
                                       ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
                                       ns_diff(cntr.tx_ok, old_cntr.tx_ok),
                                       ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
-                                      ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                                      ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
                                       ns_diff(cntr.tx_err, old_cntr.tx_err),
                                       ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                       ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
