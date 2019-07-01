@@ -2102,5 +2102,83 @@ def export():
         print "Export info is not configured/enabled"
 
 
+def get_process_state(service):
+    command = "systemctl status {} |grep running".format(service)
+
+    try:
+        #print "Command :"+command
+        proc = subprocess.Popen(command,
+                                stdout=subprocess.PIPE,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        result = stdout.rstrip('\n')
+
+    except OSError, e:
+        raise OSError("Cannot detect routing-stack")
+
+    #print "Result :["+ result+"]"
+    return (result)
+
+
+@cli.group('system', invoke_without_command=False)
+def system():
+    pass
+
+@system.command('status')
+def system_status():
+
+    service_list = [
+        'swss',
+        'bgp',
+        'teamd',
+        'pmon',
+        'syncd',
+        'database',
+    ]
+
+
+    app_db = SonicV2Connector(host="127.0.0.1")
+    app_db.connect(app_db.APPL_DB)
+
+        
+
+
+    #services()
+    pstate = "System is ready"
+    for service in service_list:
+        try:
+
+            state = get_process_state(service)
+            if state == "":
+                pstate=None
+                break
+        except Exception as e:
+            print str(e)
+
+    if pstate is not None:
+        pstate  = app_db.get(app_db.APPL_DB, 'PORT_TABLE:PortInitDone', 'lanes')
+    else:
+        print "System is not ready - Core services are not up"
+        for service in service_list:
+            try:
+
+                state = get_process_state(service)
+                if state == "":
+                    print "\t{0:<10} : Down".format(service)
+                else:
+                    print "\t{0:<10} : Up".format(service)
+            except Exception as e:
+                pass
+        return
+    
+    if pstate is not None:
+        print "System is ready"
+    else:
+        print "System is not ready - Ports are not up"
+    
+
+
 if __name__ == '__main__':
     cli()
