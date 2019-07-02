@@ -327,7 +327,14 @@ def install(url, force):
             run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
             run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
         else:
-            os.chmod(image_path, stat.S_IXUSR)
+            try:
+                os.chmod(image_path, stat.S_IXUSR)
+            except Exception:
+                # Upon chmod failure, copy the image to /tmp directory
+                # and then resume the following operations
+                run_command("cp -f " + image_path + " " + DEFAULT_IMAGE_PATH)
+                image_path = DEFAULT_IMAGE_PATH
+                os.chmod(image_path, stat.S_IXUSR)
             run_command(image_path)
             run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         run_command("rm -rf /host/old_config")
