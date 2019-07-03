@@ -2471,6 +2471,19 @@ This command is to add or delete a member port into the already created portchan
   This command will add Ethernet4 as member of the portchannel "PortChannel0011".
   ```
 
+**config portchannel mtu <portchannel_name> <mtu>**
+
+This command is to set the mtu of the already created portchannel.
+
+  - Usage:
+    config portchannel mtu <portchannel_name> <mtu>
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config portchannel mtu PortChannel0011 1500
+  This command will set mtu of the portchannel PortChannel0011 to 1500
+  ```
+
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#PortChannel-Configuration-And-Show)
 
 # QoS Configuration & Show
