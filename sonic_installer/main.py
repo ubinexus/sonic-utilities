@@ -8,7 +8,9 @@ import sys
 import time
 import click
 import urllib
+import tempfile
 import subprocess
+import sonic_platform.chassis
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 import collections
@@ -283,7 +285,11 @@ def cli():
 @click.argument('url')
 def install(url, force):
     """ Install image from local binary or URL"""
+
     cleanup_image = False
+    component_name = "BIOS"
+    chassis = sonic_platform.chassis.Chassis()
+
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
         DEFAULT_IMAGE_PATH = ABOOT_DEFAULT_IMAGE_PATH
     else:
@@ -333,6 +339,23 @@ def install(url, force):
         run_command("rm -rf /host/old_config")
         # copy directories and preserve original file structure, attributes and associated metadata
         run_command("cp -ar /etc/sonic /host/old_config")
+
+    # Check Latest BIOS availability
+    next_image = get_next_image()
+    squashfs_path = HOST_PATH + '/' + \
+            next_image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX) + \
+            '/' + 'fs.squashfs'
+    if squashfs_path:
+        tmpdir = tempfile.mkdtemp()
+        run_command(
+            'mount ' + squashfs_path + ' ' + tmpdir + ' -t squashfs -o loop')
+        status = chassis.install_component_firmware(component_name, tmpdir)
+
+        if not status:
+            click.echo("BIOS upgrade failed!")
+
+        run_command('umount ' + tmpdir)
+        os.rmdir(tmpdir)
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
