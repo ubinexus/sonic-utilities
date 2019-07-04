@@ -58,8 +58,8 @@ class InterfaceAliasConverter(object):
         self.port_dict = config_db.get_table('PORT')
 
         if not self.port_dict:
-            click.echo("port_dict is None!")
-            raise click.Abort()
+            click.echo("Warning: port_dict is None!")
+            return
 
         for port_name in self.port_dict.keys():
             try:
