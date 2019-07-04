@@ -513,6 +513,10 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         if warm_configured == False and warm:
            run_command("config warm_restart enable %s" % container_name)
 
+    # Fetch tag of current running image
+    tag_previous = get_docker_tag_name(image_latest)
+    # Load the new image beforehand to shorten disruption time
+    run_command("docker load < %s" % image_path)
     warm_app_names = []
     # warm restart specific procssing for swss, bgp and teamd dockers.
     if warm_configured == True or warm:
@@ -532,6 +536,12 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                     # Restore orignal config before exit
                     if warm_configured == False and warm:
                         run_command("config warm_restart disable %s" % container_name)
+                    # Clean the image loaded earlier
+                    image_id_latest = get_container_image_id(image_latest)
+                    run_command("docker rmi -f %s" % image_id_latest)
+                    # Re-point latest tag to previous tag
+                    run_command("docker tag %s:%s %s" % (image_name, tag_previous, image_latest))
+
                     sys.exit(proc.returncode)
                 else:
                     click.echo("Orchagent is not in clean state, upgrading it anyway")
@@ -563,7 +573,6 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
     run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
-    run_command("docker load < %s" % image_path)
     if tag == None:
         # example image: docker-lldp-sv2:latest
         tag = get_docker_tag_name(image_latest)
