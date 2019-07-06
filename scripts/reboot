@@ -8,6 +8,7 @@ DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 VERBOSE=no
+FORCE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 
 function debug()
@@ -50,6 +51,8 @@ function show_help_and_exit()
     echo " "
     echo "    Available options:"
     echo "        -h, -? : getting this help"
+    echo "        -v : verbose mode"
+    echo "        -f : forcing to reboot even without pre-check success"
 
     exit 0
 }
@@ -73,7 +76,7 @@ function reboot_pre_check()
     rm ${filename}
 
     # Make sure that the next image exists
-    if [[ ! -d ${IMAGE_PATH} ]]; then
+    if [[ ! -d ${IMAGE_PATH} ]] && [[ x"$FORCE" != x"yes" ]]; then
         VERBOSE=yes debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
         exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
     fi
@@ -81,13 +84,15 @@ function reboot_pre_check()
 
 function parse_options()
 {
-    while getopts "h?v" opt; do
+    while getopts "h?vf" opt; do
         case ${opt} in
             h|\? )
                 show_help_and_exit
                 ;;
             v )
                 VERBOSE=yes
+                ;;
+            f ) FORCE=yes
                 ;;
         esac
     done
