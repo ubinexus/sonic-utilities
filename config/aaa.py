@@ -5,6 +5,7 @@ import click
 import netaddr
 from swsssdk import ConfigDBConnector
 
+TAC_PLUS_MAXSERVERS = 8
 
 def is_ipaddress(val):
     if not val:
@@ -109,10 +110,10 @@ tacacs.add_command(default)
 
 
 @click.command()
-@click.argument('second', metavar='<time_second>', type=click.IntRange(0, 60), required=False)
+@click.argument('second', metavar='<time_second>', type=click.IntRange(1, 60), required=False)
 @click.pass_context
 def timeout(ctx, second):
-    """Specify TACACS+ server global timeout <0 - 60>"""
+    """Specify TACACS+ server global timeout <1 - 60>"""
     if ctx.obj == 'default':
         del_table_key('TACPLUS', 'global', 'timeout')
     elif second:
@@ -156,7 +157,7 @@ default.add_command(passkey)
 # cmd: tacacs add <ip_address> --timeout SECOND --key SECRET --type TYPE --port PORT --pri PRIORITY
 @click.command()
 @click.argument('address', metavar='<ip_address>')
-@click.option('-t', '--timeout', help='Transmission timeout interval, default 5', type=int)
+@click.option('-t', '--timeout', help='Transmission timeout interval, default 5', type=click.IntRange(1, 60))
 @click.option('-k', '--key', help='Shared secret')
 @click.option('-a', '--auth_type', help='Authentication type, default pap', type=click.Choice(["chap", "pap", "mschap", "login"]))
 @click.option('-o', '--port', help='TCP port range is 1 to 65535, default 49', type=click.IntRange(1, 65535), default=49)
@@ -167,12 +168,18 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
     if not is_ipaddress(address):
         click.echo('Invalid ip address')
         return
+    if address == "0.0.0.0":
+        click.echo('enter non-zero ip address')
+        return
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    old_data = config_db.get_entry('TACPLUS_SERVER', address)
-    if old_data != {}:
+    old_data = config_db.get_table('TACPLUS_SERVER')
+    if address in old_data :
         click.echo('server %s already exists' % address)
+        return
+    if len(old_data) == TAC_PLUS_MAXSERVERS:
+        click.echo('Maximum of %d can be configured' % TAC_PLUS_MAXSERVERS)
     else:
         data = {
             'tcp_port': str(port),
