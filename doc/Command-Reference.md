@@ -460,7 +460,7 @@ This file is saved in the path `/var/log` and can be viewed by giving the comman
 Individual process can also be viewed using the command `ps -ax | grep <\process name>
 
 - Usage:  
-  show logging ([<process_name>] [-l lines] | [-f])
+  show logging ([\<process_name\>] [-l lines] | [-f])
 
 - Example:
   ```
@@ -901,11 +901,6 @@ When user has not configured server specific passkey, this global value shall be
   root@T1-2:~#
   ```  
   
-- Example 2 : To configure default passkey value
-  ```
-  root@T1-2:~# config tacacs default passkey
-  root@T1-2:~#
-  ```
 **config tacacs timeout**  
 
 This command is used to modify the global value for the TACACS+ timeout.
@@ -913,19 +908,14 @@ When user has not configured server specific timeout, this global value shall be
 
 
    - Usage:  
-    config tacacs [default] timeout [<timeout_value_in_seconds>]
+    config tacacs [default] timeout [\<timeout_value_in_seconds\>]  
      valid values for timeout is 1 to 60 seconds. 
 	 When the optional keyword "default" is specified, timeout_value_in_seconds parameter wont be used; default value of 5 is used.
 	 Configuration using the keyword "default" is introduced in 201904 release.
 
-- Example 1 : To configure non-default timeout value  
+- Example: To configure non-default timeout value  
   ```
   root@T1-2:~# config tacacs timeout 60
-  root@T1-2:~#
-  ```
-- Example 2 : To configure default timeout value
-  ```
-  root@T1-2:~# config tacacs default timeout
   root@T1-2:~#
   ```
 
@@ -1102,7 +1092,7 @@ This command displays the ARP entries in the device with following options.
 3) Display the ARP of a specific ip-address.
 
   - Usage:  
-    show arp [-if] <if_name>] [<ip_address>]
+    show arp [-if \<if_name\>] [\<ip_address\>]
     show arp - displays all entries
     show arp -if <ifname> - displays the ARP specific to the specified interface.
     show arp <ip-address> - displays the ARP specific to the specicied ip-address.
@@ -1158,7 +1148,7 @@ This command displays the ARP entries in the device with following options.
 This command displays either all the IPv6 neighbor mac addresses, or for a particular IPv6 neighbor, or for all IPv6 neighbors reachable via a specific interface.
 
   - Usage:  
-    show ndp [-if|--iface <interface_name> <IPv6_ADDRESS>
+    show ndp [-if|--iface \<interface_name\>] [IPv6_ADDRESS]
 
 
 - Example:
@@ -1203,12 +1193,14 @@ Detailed show commands examples for Quagga are provided at the end of this docum
 ## BGP show commands  
 
 
-**show bgp summary**
+**show bgp summary (for default FRR in 201904+ version) **  
+**show ip bgp summary (for Quagga in 201811- version) **  
 
 This command displays the summary of all IPv4 & IPv6 bgp neighbors that are configured and the corresponding states.  
 
 - Usage:   
-  show bgp summary
+  show bgp summary (for default FRR in 201904+ version)   
+  show ip bgp summary (for Quagga in 201811- version)   
  
 - Example:
   ```
@@ -1244,9 +1236,12 @@ This command displays the summary of all IPv4 & IPv6 bgp neighbors that are conf
 
    Total number of neighbors 4
   ```
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga. 
 
 
-**show bgp neighbors**  
+
+**show bgp neighbors (for default FRR in 201904+ version)**   
+**show ip bgp neighbors (for Quagga in 201811- version)**   
 
 
 This command displays all the details of IPv4 & IPv6 BGP neighbors when no optional argument is specified. 
@@ -1259,7 +1254,8 @@ In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_a
 
 
 - Usage:  
-  show bgp neighbors [<ipv4-address> [advertised-routes | received-routes | routes]]
+  show bgp neighbors [\<ipv4-address\> [advertised-routes | received-routes | routes]] (for default FRR in 201904+ version)  
+  show ip bgp neighbors [\<ipv4-address\> [advertised-routes | received-routes | routes]] (for Quagga in 201811- version)  
 
 - Example:
   ```
@@ -1332,13 +1328,18 @@ In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_a
   
   ```
   
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp neighbors" for Quagga. 
 
-**show bgp ipv6 summary**  
+
+
+**show bgp ipv6 summary (for default FRR in 201904+ version)**  
+**show ipv6 bgp summary (for Quagga in 201811- version)**  
 
 This command displays the summary of all IPv6 bgp neighbors that are configured and the corresponding states.
 
 - Usage:  
-  show bgp ipv6 summary
+  show bgp ipv6 summary (for default FRR in 201904+ version)    
+  show ipv6 bgp summary (for Quagga in 201811- version)    
 
 - Example:
   ```
@@ -1358,16 +1359,20 @@ This command displays the summary of all IPv6 bgp neighbors that are configured 
   Total number of neighbors 4
   
   ```
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ipv6 bgp summary" for Quagga. 
 
 
-**show bgp ipv6 neighbors**  
+
+**show bgp ipv6 neighbors (for default FRR in 201904+ version)**  
+**show ipv6 bgp neighbors (for Quagga in 201811- version)**  
 
 
 This command displays all the details of one particular IPv6 Border Gateway Protocol (BGP) neighbor. Option is also available to display only the advertised routes, or the received routes, or all routes.
 
 
   - Usage:  
-    show bgp ipv6 neighbors <ipv6-address> (advertised-routes | received-routes | routes)`
+    show bgp ipv6 neighbors [\<ipv6-address\> [(advertised-routes | received-routes | routes)]] (for default FRR in 201904+ version)   
+    show ipv6 bgp neighbors [\<ipv6-address\> [(advertised-routes | received-routes | routes)]] (for Quagga in 201811- version)   
 
 - Example:
   ```
@@ -1378,6 +1383,8 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
    admin@sonic:~$ show bgp ipv6 neighbors fc00::72 routes  
    
   ```
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga. 
+
 
 
 **show route-map**  
@@ -1777,24 +1784,26 @@ The syntax for all such interface_subcommands are given below under each command
 NOTE: In older versions of SONiC until 201811 release, the command syntax was  
       "config interface <interface_name> interface_subcommand"
 
- **config interface ip add/remove**
+**config interface ip add <interface-name> <ip_addr> (for 201904+ version)**  
+**config interface <interface-name> ip add <ip_addr> (for 201811- version)**  
 
-This command is used for adding or removing the IP address for an interface.  
+This command is used for adding the IP address for an interface.  
 IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command. 
 
-**Adding IP Address**
 
 - Usage:  
-    config interface ip add <interface-name> <ip_addr>
+    config interface ip add <interface-name> <ip_addr> (for 201904+ version)
+    config interface <interface-name> ip add <ip_addr> (for 201811- version)  
 
 - Example:  
   ```	
   admin@sonic:~$ sudo config interface ip add Ethernet63 10.11.12.13/24 
   ```
-NOTE: In versions until 201811, syntax was "config <interface_name> ip add <ip_addr>"
+NOTE: In SONiC versions until 201811, syntax was "config <interface_name> ip add <ip_addr>"
   
   
-- Vlan Interface Usage:  
+**IP Address Configuration for Vlan Interface**  
+- Usage:  
     config interface ip add <ip_addr> <vlan_IDName>
 
 - Example:  
@@ -1805,10 +1814,12 @@ NOTE: In versions until 201811, syntax was "config interface <vlan_IDName> ip ad
 
   
   
-**Removing IP Address**  
+**config interface ip remove <interface_name> <ip_addr> (for 201904+ version)**  
+**config interface <interface_name> ip remove <ip_addr> (for 201811- version)**  
 
 - Usage:  
-    config interface ip remove <interface_name> <ip_addr> 
+    config interface ip remove <interface_name> <ip_addr> (for 201904+ version)
+    config interface ip remove <interface_name> <ip_addr> (for 201811- version)
 
 - Example:
   ```
@@ -1817,7 +1828,9 @@ NOTE: In versions until 201811, syntax was "config interface <vlan_IDName> ip ad
 NOTE: In versions until 201811, syntax is "config  interface <interface_name> ip remove <ip_addr>"
   
   
-- Vlan Interface Usage:  
+
+**IP Address Removal for Vlan Interface**  
+- Usage:  
     config interface ip remove <vlan_IDName> <ip_addr> 
 
 - Example:
@@ -1825,25 +1838,30 @@ NOTE: In versions until 201811, syntax is "config  interface <interface_name> ip
   admin@sonic:~$ sudo config interface ip remove vlan100 10.11.12.13/24 
   ```
 NOTE: In versions until 201811, syntax is "config interface <vlan_ID> ip remove <ip_addr>"
+
   
   
-**config interface pfc**  
+**config interface pfc asymmetric <interface_name> (for 201904+ version)**  
+**config interface <interface_name> pfc asymmetric (for 201811- version)**  
 This command is used for setting the asymmetric PFC for an interface to either "on" or "off". Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:  
-    config interface pfc asymmetric <interface_name> on/off
+    config interface pfc asymmetric <interface_name> on/off (for 201904+ version)
+    config interface <interface_name> pfc asymmetric on/off (for 201811- version)
 
 - Example:  
   ```	
   admin@sonic:~$ sudo config interface pfc asymmetric Ethernet60 on 
   ```
 
-**config interface shutdown**  
+**config interface shutdown <interface_name> (for 201904+ version)**  
+**config interface <interface_name> shutdown (for 201811- version)**  
 
 This command is used to administratively shut down either the Physical interface or port channel interface. Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:   
-    config interface shutdown <interface_name> 
+    config interface shutdown <interface_name> (for 201904+ version)  
+    config interface <interface_name> shutdown (for 201811- version)
 
 - Example:
   ```
@@ -1852,12 +1870,15 @@ This command is used to administratively shut down either the Physical interface
 NOTE: In versions until 201811, syntax is "config interface <interface_name> shutdown"
 
 
-**config interface startup**  
+
+**config interface startup <interface_name> (for 201904+ version)**  
+**config interface <interface_name> startup (for 201811- version)**  
 
 This command is used for administratively bringing up the Physical interface or port channel interface.Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:   
-  config interface startup <interface_name>
+    config interface startup <interface_name> (for 201904+ version)  
+    config interface <interface_name> startup (for 201811- version)
 
 - Example:
   ```
@@ -1865,13 +1886,17 @@ This command is used for administratively bringing up the Physical interface or 
   ```
 NOTE: In versions until 201811, syntax is "config interface <interface_name> startup"
 
-**config interface speed**  
+
+
+**config interface speed <interface_name> (for 201904+ version)**  
+**config interface <interface_name> speed (for 201811- version)**  
 
 This command is used to configure the speed for the Physical interface. Use the value 40000 for setting it to 40G and 100000 for 100G. Users need to know the device to configure it properly. 
 Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
 
 - Usage:  
-    config interface speed <interface_name> <speed_value>  
+    config interface speed <interface_name> <speed_value>  (for 201904+ version)  
+    config interface <interface_name> speed <speed_value>  (for 201811- version)
 	
 - Example:
   ```
@@ -1879,6 +1904,7 @@ Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot c
   ```
 
 NOTE: In versions until 201811, syntax is "config interface <interface_name> speed <4000>"
+
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#interface-configuration-and-show-commands)
 
@@ -1969,7 +1995,7 @@ This sub-section explains the various IP protocol specific show commands that ar
 This command displays either all the route entries from the routing table or a specific route.
 
   - Usage:  
-    show ip route <ip_address>
+    show ip route [\<ip_address\>]
 
 
 - Example:
@@ -2078,7 +2104,7 @@ This sub-section explains the various IPv6 protocol specific show commands that 
 This command displays either all the IPv6 route entries from the routing table or a specific IPv6 route.
 
   - Usage:  
-    show ipv6 route <ipv6_address>
+    show ipv6 route [\<ipv6_address\>]
 	 
 
 - Example:
@@ -3836,7 +3862,7 @@ Resulting archive file is saved as `/var/dump/<DEVICE_HOST_NAME>_YYYYMMDD_HHMMSS
   ```	
   admin@sonic:~$ show techsupport
   ```
-If the SONiC system was running for quite some time ```show techsupport``` will produce a large dump file. To reduce the amount of syslog and core files gathered during system dump use ```--since``` option:
+If the SONiC system was running for quite some time `show techsupport` will produce a large dump file. To reduce the amount of syslog and core files gathered during system dump use `--since` option:
 
 - Example:
   ```	
