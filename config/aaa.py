@@ -3,9 +3,11 @@
 
 import click
 import netaddr
+import ipaddress
 from swsssdk import ConfigDBConnector
 
 TAC_PLUS_MAXSERVERS = 8
+TAC_PLUS_PASSKEY_MAX_LEN = 32
 
 def is_ipaddress(val):
     if not val:
@@ -86,6 +88,9 @@ def login(auth_protocol):
         return
 
     if 'default' in auth_protocol:
+        if len(auth_protocol) !=1:
+            click.echo('Not a valid command')
+            return
         del_table_key('AAA', 'authentication', 'login')
     else:
         val = auth_protocol[0]
@@ -147,6 +152,9 @@ def passkey(ctx, secret):
     if ctx.obj == 'default':
         del_table_key('TACPLUS', 'global', 'passkey')
     elif secret:
+        if len(secret) > TAC_PLUS_PASSKEY_MAX_LEN:
+            click.echo('Maximum of %d chars can be configured' % TAC_PLUS_PASSKEY_MAX_LEN)
+            return
         add_table_kv('TACPLUS', 'global', 'passkey', secret)
     else:
         click.echo('Not support empty argument')
@@ -170,6 +178,13 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
         return
     if address == "0.0.0.0":
         click.echo('enter non-zero ip address')
+        return
+    ip = ipaddress.IPv4Address(address)
+    if ip.is_reserved:
+        click.echo('Reserved ip is not valid')
+        return
+    if ip.is_multicast:
+        click.echo('Multicast ip is not valid')
         return
 
     config_db = ConfigDBConnector()
