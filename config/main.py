@@ -1178,13 +1178,11 @@ def asymmetric(ctx, status):
 #
 # 'platform' group ('config platform ...')
 #
-
-@config.group()
-def platform():
-    """Platform-related configuration tasks"""
-
 version_info = sonic_device_util.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
+    @config.group()
+    def platform():
+        """Platform-related configuration tasks"""
     platform.add_command(mlnx.mlnx)
 
 #
