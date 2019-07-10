@@ -517,7 +517,7 @@ class AclLoader(object):
                 services = natsorted(val["services"])
                 data.append([key, val["type"], services[0], val["policy_desc"]])
 
-                if len(services) > 1:
+                if "," in services:
                     for service in services[1:]:
                         data.append(["", "", service, ""])
             else:
@@ -527,7 +527,7 @@ class AclLoader(object):
                     ports = natsorted(val["ports"])
                     data.append([key, val["type"], ports[0], val["policy_desc"]])
 
-                    if len(ports) > 1:
+                    if "," in ports:
                         for port in ports[1:]:
                             data.append(["", "", port, ""])
 
