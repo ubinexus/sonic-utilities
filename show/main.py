@@ -53,8 +53,14 @@ class InterfaceAliasConverter(object):
     def __init__(self):
         self.alias_max_length = 0
 
-        config_db = ConfigDBConnector()
-        config_db.connect()
+        try:
+            config_db = ConfigDBConnector()
+            config_db.connect()
+        except Exception as e:
+            click.echo ("System is not ready - Core services are not up")
+            click.echo("Database service is not ready!\n")
+            sys.exit(0)
+
         self.port_dict = config_db.get_table('PORT')
 
         if not self.port_dict:
