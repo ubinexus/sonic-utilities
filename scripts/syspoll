@@ -18,6 +18,8 @@ while True:
     d['total'] = int(w[1])
     d['used']  = int(w[2])
     d['free']  = int(w[3])
+    btime = int(subprocess.check_output(['bash', '-c', "cat /proc/stat | grep '^btime'"]).split()[1])
+    ticks_per_sec = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     cpus = []
     for li in subprocess.check_output(['bash', '-c', "cat /proc/stat | grep '^cpu'"]).rstrip().split('\n'):
         w = li.split()
@@ -34,7 +36,7 @@ while True:
             w2 = subprocess.check_output(['bash', '-c', 'cat /proc/{}/stat 2>/dev/null'.format(pid)]).split()
         except subprocess.CalledProcessError:
             continue
-        procs[pid] = {'cmd': cmd, 'start': w[8], 'user': int(w2[13]), 'system': int(w2[14]), 'mem': int(w[4]), 'cpuitil': float(w[2]), 'memutil': float(w[3])}
+        procs[pid] = {'cmd': cmd, 'start': btime + int(w2[21]) / ticks_per_sec, 'user': int(w2[13]), 'system': int(w2[14]), 'mem': int(w[4]), 'cpuitil': float(w[2]), 'memutil': float(w[3])}
     d['procs'] = procs
 
     f = open(tmpfile, 'w')
