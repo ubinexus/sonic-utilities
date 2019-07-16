@@ -58,8 +58,8 @@ class InterfaceAliasConverter(object):
         self.port_dict = config_db.get_table('PORT')
 
         if not self.port_dict:
-            click.echo("port_dict is None!")
-            raise click.Abort()
+            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
+            self.port_dict = {}
 
         for port_name in self.port_dict.keys():
             try:
@@ -198,6 +198,15 @@ def get_interface_mode():
     if mode is None:
         mode = "default"
     return mode
+
+
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
 
 
 # Global class instance for SONiC interface name to alias conversion
@@ -576,23 +585,19 @@ def status(interfacename, verbose):
 # 'counters' subcommand ("show interfaces counters")
 @interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
-@click.option('-c', '--clear', is_flag=True)
 @click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, clear, printall):
+def counters(ctx, verbose, period, printall):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
         cmd = "portstat"
 
-        if clear:
-            cmd += " -c"
-        else:
-            if printall:
-                cmd += " -a"
-            if period is not None:
-                cmd += " -p {}".format(period)
+        if printall:
+            cmd += " -a"
+        if period is not None:
+            cmd += " -p {}".format(period)
 
         run_command(cmd, display_cmd=verbose)
 
@@ -631,15 +636,11 @@ def pfc():
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
-@click.option('-c', '--clear', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(clear, verbose):
+def counters(verbose):
     """Show pfc counters"""
 
     cmd = "pfcstat"
-
-    if clear:
-        cmd += " -c"
 
     run_command(cmd, display_cmd=verbose)
 
@@ -682,12 +683,11 @@ def queue():
     """Show details of the queues """
     pass
 
-# 'queuecounters' subcommand ("show queue counters")
+# 'counters' subcommand ("show queue counters")
 @queue.command()
 @click.argument('interfacename', required=False)
-@click.option('-c', '--clear', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(interfacename, clear, verbose):
+def counters(interfacename, verbose):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -696,44 +696,51 @@ def counters(interfacename, clear, verbose):
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-    if clear:
-        cmd += " -c"
-    else:
-        if interfacename is not None:
-            cmd += " -p {}".format(interfacename)
+    if interfacename is not None:
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
-# watermarks subcommands ("show queue watermarks|persistent-watermarks")
+#
+# 'watermarks' subgroup ("show queue watermarks ...")
+#
 
 @queue.group()
 def watermark():
-    """Show queue user WM"""
+    """Show user WM for queues"""
     pass
 
+# 'unicast' subcommand ("show queue watermarks unicast")
 @watermark.command('unicast')
 def wm_q_uni():
     """Show user WM for unicast queues"""
     command = 'watermarkstat -t q_shared_uni'
     run_command(command)
 
+# 'multicast' subcommand ("show queue watermarks multicast")
 @watermark.command('multicast')
 def wm_q_multi():
     """Show user WM for multicast queues"""
     command = 'watermarkstat -t q_shared_multi'
     run_command(command)
 
+#
+# 'persistent-watermarks' subgroup ("show queue persistent-watermarks ...")
+#
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
-    """Show queue persistent WM"""
+    """Show persistent WM for queues"""
     pass
 
+# 'unicast' subcommand ("show queue persistent-watermarks unicast")
 @persistent_watermark.command('unicast')
 def pwm_q_uni():
-    """Show persistent WM for persistent queues"""
+    """Show persistent WM for unicast queues"""
     command = 'watermarkstat -p -t q_shared_uni'
     run_command(command)
 
+# 'multicast' subcommand ("show queue persistent-watermarks multicast")
 @persistent_watermark.command('multicast')
 def pwm_q_multi():
     """Show persistent WM for multicast queues"""
@@ -749,10 +756,9 @@ def pwm_q_multi():
 def priority_group():
     """Show details of the PGs """
 
-
 @priority_group.group()
 def watermark():
-    """Show priority_group user WM"""
+    """Show priority-group user WM"""
     pass
 
 @watermark.command('headroom')
@@ -769,7 +775,7 @@ def wm_pg_shared():
 
 @priority_group.group(name='persistent-watermark')
 def persistent_watermark():
-    """Show queue persistent WM"""
+    """Show priority-group persistent WM"""
     pass
 
 @persistent_watermark.command('headroom')
@@ -782,6 +788,27 @@ def pwm_pg_headroom():
 def pwm_pg_shared():
     """Show persistent shared WM for pg"""
     command = 'watermarkstat -p -t pg_shared'
+    run_command(command)
+
+
+#
+# 'buffer_pool' group ("show buffer_pool ...")
+#
+
+@cli.group(name='buffer_pool', cls=AliasedGroup, default_if_no_args=False)
+def buffer_pool():
+    """Show details of the buffer pools"""
+
+@buffer_pool.command('watermark')
+def wm_buffer_pool():
+    """Show user WM for buffer pools"""
+    command = 'watermarkstat -t buffer_pool'
+    run_command(command)
+
+@buffer_pool.command('persistent-watermark')
+def pwm_buffer_pool():
+    """Show persistent WM for buffer pools"""
+    command = 'watermarkstat -p -t buffer_pool'
     run_command(command)
 
 
@@ -1053,7 +1080,7 @@ elif routing_stack == "frr":
     @click.argument('bgp_args', nargs = -1, required = False)
     @click.option('--verbose', is_flag=True, help="Enable verbose output")
     def bgp(bgp_args, verbose):
-        """BGP information"""
+        """Show BGP information"""
         bgp_cmd = "show bgp"
         for arg in bgp_args:
             bgp_cmd += " " + str(arg)
@@ -1311,6 +1338,29 @@ def all(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+# 'acl' subcommand ("show runningconfiguration acl")
+@runningconfiguration.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def acl(verbose):
+    """Show acl running configuration"""
+    cmd = "sonic-cfggen -d --var-json ACL_RULE"
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'interface' subcommand ("show runningconfiguration interface <interfacename>")
+@runningconfiguration.command()
+@click.argument('interfacename', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def interface(interfacename, verbose):
+    """Show port running configuration"""
+    cmd = "sonic-cfggen -d --var-json PORT"
+
+    if interfacename is not None:
+        cmd += " {0} {1}".format("--interface", interfacename)
+
+    run_command(cmd, display_cmd=verbose)
+
+
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1462,7 +1512,7 @@ def brief(verbose):
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
-        if len(key) == 1:
+        if not is_ip_prefix_in_key(key):
             continue
         interface_key = str(key[0].strip("Vlan"))
         interface_value = str(key[1])
@@ -1526,7 +1576,14 @@ def config(redis_unix_socket_path):
     def tablelize(keys, data):
         table = []
 
-        for k in keys:
+        for k in natsorted(keys):
+            if 'members' not in data[k] :
+                r = []
+                r.append(k)
+                r.append(data[k]['vlanid'])
+                table.append(r)
+                continue
+
             for m in data[k].get('members', []):
                 r = []
                 r.append(k)
@@ -1631,6 +1688,22 @@ def mirror_session(session_name, verbose):
 
     if session_name is not None:
         cmd += " {}".format(session_name)
+
+    run_command(cmd, display_cmd=verbose)
+
+
+#
+# 'policer' command  ("show policer ...")
+#
+@cli.command()
+@click.argument('policer_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def policer(policer_name, verbose):
+    """Show existing policers"""
+    cmd = "acl-loader show policer"
+
+    if policer_name is not None:
+        cmd += " {}".format(policer_name)
 
     run_command(cmd, display_cmd=verbose)
 
