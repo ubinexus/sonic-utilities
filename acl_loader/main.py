@@ -48,7 +48,8 @@ class AclLoader(object):
     ACL_RULE = "ACL_RULE"
     ACL_TABLE_TYPE_MIRROR = "MIRROR"
     ACL_TABLE_TYPE_CTRLPLANE = "CTRLPLANE"
-    MIRROR_SESSION = "MIRROR_SESSION"
+    CFG_MIRROR_SESSION_TABLE = "MIRROR_SESSION"
+    STATE_MIRROR_SESSION_TABLE = "MIRROR_SESSION_TABLE"
     SESSION_PREFIX = "everflow"
 
     min_priority = 1
@@ -118,9 +119,9 @@ class AclLoader(object):
         Read ACL tables information from Config DB
         :return:
         """
-        self.sessions_db_info = self.configdb.get_table(self.MIRROR_SESSION)
+        self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
         for key in self.sessions_db_info.keys():
-            state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.MIRROR_SESSION, key))
+            state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
             if state_db_info:
                 status = state_db_info.get("status", "inactive")
             else:
