@@ -1375,17 +1375,6 @@ def ntp(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-# 'sflow' subcommand ("show runningconfiguration sflow")
-@runningconfiguration.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def sflow(verbose):
-    """Show sFlow running configuration"""
-    cmd = "cat /etc/sflow.conf"
-    run_command(cmd, display_cmd=verbose)
-    cmd = "cat /etc/hsflow.conf"
-    run_command(cmd, display_cmd=verbose)
-
-
 #
 # 'startupconfiguration' group ("show startupconfiguration ...")
 #
@@ -1686,27 +1675,90 @@ def policer(policer_name, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-#
-# 'sFlow' command ("show sflow")
-#
-@cli.command()
-def sFlow():
+@cli.group()
+def sflow():
     """Show sFlow related information"""
+    pass
+
+def show_sflow_interface(config_db):
+    sflow_global = config_db.get_table('SFLOW')
+    if not sflow_global:
+        click.echo("sFlow not configured")
+        return
+    port_tbl = config_db.get_table('PORT')
+    idx_to_port_map = {int(port_tbl[name]['index']) : name for name in port_tbl.keys()}
+    sflow_session_tbl = config_db.get_table('SFLOW_SESSION')
+    if not port_tbl:
+        click.echo("No ports configured")
+        return
+    click.echo("\n\tsFlow interface configurations")
+    click.echo("\t\tInterface\t\tAdmin State\t\tSampling Rate")
+    click.echo("\t\t==============================================================")
+    for idx in sorted(idx_to_port_map.keys()):
+        pname = idx_to_port_map[idx]
+        click.echo("\t\t{}".format(pname), nl=False)
+        if sflow_session_tbl and pname in sflow_session_tbl.keys():
+            if 'admin_state' in sflow_session_tbl[pname].keys():
+                click.echo("\t\t{}".format(sflow_session_tbl[pname]['admin_state']), nl=False)
+            else:
+                click.echo("\t\t{}".format(sflow_global['global']['admin_state']), nl=False)
+        else:
+                click.echo("\t\t{}".format(sflow_global['global']['admin_state']), nl=False)
+        #TODO get sample-rate from appsDB
+        click.echo("\t\t\t{}".format(port_tbl[pname]['speed']))
+
+def show_sflow_global(config_db):
+    sflow_info = config_db.get_table('SFLOW')
+    if not sflow_info:
+        click.echo("sFlow not configured")
+        return
+    default_polling = 20
+    default_agent = 'default'
+    click.echo("\n\tSFlow Global Information:")
+    click.echo("\t\tSFlow Admin State: \t\t\t: {}".format(sflow_info['global']['admin_state']))
+
+    click.echo("\t\tSFlow Polling Interval: ", nl=False)
+    if ('polling_interval' in sflow_info['global'].keys()):
+        click.echo("\t\t: {}".format(sflow_info['global']['polling_interval']))
+    else:
+        click.echo("\t\t: {}".format(default_polling))
+
+    click.echo("\t\tSFlow AgentID: ", nl=False)
+    if ('agent_id' in sflow_info['global'].keys()):
+        click.echo("\t\t\t\t: {}".format(sflow_info['global']['agent_id']))
+    else:
+        click.echo("\t\t\t\t: {}".format(default_agent))
+
+    sflow_info = config_db.get_table('SFLOW_COLLECTOR')
+    click.echo("\n\t\t{} Collectors configured:".format(len(sflow_info)))
+    for collector_name in sflow_info.keys():
+        click.echo("\t\t\tCollector IP addr: {}\t UDP port:{}".format(sflow_info[collector_name]['collector_ip'], sflow_info[collector_name]['collector_port']))
+
+#
+# 'sflow command ("show sflow ...")
+#
+@sflow.command('interface')
+def sflow_interface():
+    """Show sFlow interface information"""
     config_db = ConfigDBConnector()
     config_db.connect()
-    sflow_info = config_db.get_table('SFLOW_CONFIG')
-    if sflow_info:
-        click.echo("\n\tSample-rate(s):")
-        for key in sflow_info:
-            click.echo("\t\tName: {}\t\t\tSample-rate: {}".format(key, sflow_info[key]['sample_rate']))
-    sflow_info = config_db.get_table('SFLOW_COLLECTOR')
-    if sflow_info:
-        click.echo("\n\tsFlow Collector(s) information:")
-        for key in sorted(sflow_info):
-            click.echo("\t\tName: {}".format(key))
-            for info_key in sflow_info[key]:
-                click.echo("\t\t\t{}: \t{}".format(info_key, sflow_info[key][info_key]))
+    show_sflow_interface(config_db)
 
+
+@sflow.command('global')
+def sflow_global():
+    """Show global sFlow information"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    show_sflow_global(config_db)
+
+@sflow.command('all')
+def sflow_all():
+    """Show all sFlow related information"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    show_sflow_global(config_db)
+    show_sflow_interface(config_db)
 
 #
 # 'acl' group ###

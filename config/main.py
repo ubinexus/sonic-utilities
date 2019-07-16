@@ -8,6 +8,7 @@ import subprocess
 import netaddr
 import re
 import syslog
+import netifaces
 
 import sonic_device_util
 import ipaddress
@@ -1236,81 +1237,131 @@ def naming_mode_alias():
 def sflow():
     """sFlow-related configuration tasks"""
     pass
-
-
 #
-# 'sflow' command ('config sflow samplerate ...')
+# 'sflow' command ('config sflow enable ...')
 #
 @sflow.command()
-@click.argument('rate', required=True, type=float)
-def samplerate(rate):
-    """Set the sFlow sample rate."""
-    if (rate > 1):
-        click.echo("Error: Sample rate must be less than 1")
-        return
-
+def enable():
+    """Enable sFlow"""
     config_db = ConfigDBConnector()
     config_db.connect()
-
-    # Currently only supporting global sample-rate instead of
-    # per port
-    rate_dict = config_db.get_table('SFLOW_CONFIG')
-    if rate_dict:
-        config_db.mod_entry('SFLOW_CONFIG', 'global', {'key' : 'global', 'sample_rate' : rate})
+    sflow_tbl = config_db.get_table('SFLOW')
+    if not sflow_tbl:
+        sflow_tbl = {'global' : {'admin_state' : 'enable'}}
     else:
-        config_db.set_entry('SFLOW_CONFIG', 'global', {'key' : 'global', 'sample_rate' : rate})
-
+        sflow_tbl['global']['admin_state'] = 'enable'
+    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
-# 'sflow genetlink' group
+# 'sflow' command ('config sflow disable ...')
+#
+@sflow.command()
+def disable():
+    """Disable sFlow"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    sflow_tbl = config_db.get_table('SFLOW')
+    if not sflow_tbl:
+        sflow_tbl = {'global' : {'admin_state' : 'disable'}}
+    else:
+        sflow_tbl['global']['admin_state'] = 'disable'
+    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
+#
+# 'sflow' command ('config sflow disable ...')
+#
+@sflow.command('polling-interval')
+@click.argument('intv', required=True, type=int)
+def polling_int(intv):
+    """Set polling-interval for counter-sampling (0 to disable)"""
+    if (0 > intv or intv > 300):
+        click.echo("Polling interval must be between 0-300")
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    sflow_tbl = config_db.get_table('SFLOW')
+    if not sflow_tbl:
+        click.echo("sFlow not configured")
+        return
+    sflow_tbl['global']['polling_interval'] = intv
+    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
+def is_valid_sample_rate(rate):
+    return rate >= 256 and rate <= 8388608
+
+def valid_intf(intf):
+    interfaces = netifaces.interfaces()
+    return intf in interfaces
+
+#
+# 'sflow interface' group
 #
 @sflow.group()
-def genetlink():
-    """Update sFlow Netlink groups"""
+def interface():
+    """Configure sFlow on interface"""
     pass
 
-
-def is_valid_genetlink_input(name, group_id):
-    if len(name) > 16:
-        click.echo("Netlink family name must be 16 characters or less")
-        return false
-    if group_id > 9999:
-        click.echo("Netlink multicast ID must be 4 digits or less")
-        return false
-    return true
-
-
 #
-# 'sflow' command ('config sflow genetlink add ...')
+# 'sflow' command ('config sflow interface enable  ...')
 #
-@genetlink.command()
+@interface.command()
 @click.argument('name', required=True, type=str)
-@click.argument('group_id', required=True, type=int)
-def add(name, group_id):
-    """Add a new Netlink group"""
-    if not is_valid_genetlink_input(name, group_id):
+def enable(name):
+    if not valid_intf(name):
+        click.echo("Invalid interface name")
+        return
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    intf_dict = config_db.get_table('SFLOW_SESSION')
+    if intf_dict and name in intf_dict.keys():
+        intf_dict[name]['admin_state'] = 'enable'
+        config_db.set_entry('SFLOW_SESSION', name, intf_dict[name])
+    else:
+        config_db.set_entry('SFLOW_SESSION', name, {'admin_state' : 'enable'})
+
+
+#
+# 'sflow' command ('config sflow interface disable  ...')
+#
+@interface.command()
+@click.argument('name', required=True, type=str)
+def disable(name):
+    if not valid_intf(name):
+        click.echo("Invalid interface name")
+        return
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    intf_dict = config_db.get_table('SFLOW_SESSION')
+
+    if intf_dict and name in intf_dict.keys():
+        intf_dict[name]['admin_state'] = 'disable'
+        config_db.set_entry('SFLOW_SESSION', name, intf_dict[name])
+    else:
+        config_db.set_entry('SFLOW_SESSION', name, {'admin_state' : 'disable'})
+
+
+#
+# 'sflow' command ('config sflow interface sample-rate  ...')
+#
+@interface.command('sample-rate')
+@click.argument('name', required=True, type=str)
+@click.argument('rate', required=True, type=int)
+def sample_rate(name, rate):
+    if not valid_intf(name):
+        click.echo('Invalid interface name')
+        return
+    if not is_valid_sample_rate(rate):
+        click.echo('Error: Sample rate must be between 256 and 8388608')
         return
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.set_entry('SFLOW_GENETLINK', name, {'genetlink_name' : name, 'genetlink_id' : group_id})
-
-
-#
-# 'sflow' command ('config sflow genetlink del ...')
-#
-@genetlink.command('del')
-@click.argument('name', required=True, type=str)
-@click.argument('group_id', required=True, type=int)
-def clear(name, group_id):
-    """Delete a Netlink group"""
-    if not valid_genetlink_input(name, group_id):
-        return
-
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    config_db.set_entry('SFLOW_GENETLINK', name, None)
-
+    sess_dict = config_db.get_table('SFLOW_SESSION')
+    if sess_dict and name in sess_dict.keys():
+        sess_dict[name]['sample_rate'] = rate
+        config_db.set_entry('SFLOW_SESSION', name, sess_dict[name])
+    elif sess_dict:
+        config_db.set_entry('SFLOW_SESSION', name, {'sample_rate' : rate})
 
 #
 # 'sflow collector' group
@@ -1333,68 +1384,96 @@ def del_collector(name):
     config_db.set_entry('SFLOW_COLLECTOR', name, None)
 
 
-def is_valid_collector_info(name, ip, agentaddr, port, maxsize):
-    if len(name) > 250:  # TODO get max length for collector name
-        click.echo("Collector name too long")
+def is_valid_collector_info(name, ip, port):
+    if len(name) > 250:
+        click.echo("Collector name must not exceed 250 characters")
         return False
-    if port > 99999:
-        click.echo("Collector port number must be 5-digits or less")
-        return False
-    if maxsize > 9999:
-        click.echo("Maximum datagram size must be 4-digits or less")
+    if port < 0 or port > 65535:
+        click.echo("Collector port number must be between 0 and 65535")
         return False
 
     import socket
-    valid_input = True
     try:
         socket.inet_pton(socket.AF_INET, ip)
     except:
         try:
             socket.inet_pton(socket.AF_INET6, ip)
         except:
-            valid_input = False
             click.echo("Invalid collector IPv4 or IPv6 address")
+            return False
 
-    if agentaddr:
-        try:
-            socket.inet_pton(socket.AF_INET, agentaddr)
-        except:
-            try:
-                socket.inet_pton(socket.AF_INET6, agentaddr)
-            except:
-                valid_input = False
-                click.echo("Invalid agent IPv4 or IPv6 address")
+    return True
 
-    return valid_input
-
-def make_collector_info_dict(ip, agentaddr, port, maxsize):
-    return {"collector_ip" : ip, "agent_addr" : agentaddr, "collector_port": port, \
-            "max_datagram_size" : maxsize}
+def make_collector_info_dict(ip, port):
+    return {"collector_ip" : ip,  "collector_port": port}
 
 
 #
 # 'sflow' command ('config sflow collector add ...')
 #
 @collector.command()
-@click.option('--agentaddr', required=True, type=str, default=None, help="Agent IP address")
-@click.option('--port', required=False, type=int, default=None, help="Collector port number")
-@click.option('--maxsize', required=False, type=int, default=None, help="Maximum datagram size")
+@click.option('--port', required=False, type=int, default=6343, help='Collector port number')
 @click.argument('name', required=True)
 @click.argument('ip', required=True)
 
-def add(name, ip, agentaddr, port, maxsize):
+def add(name, ip, port):
     """Add a sFlow collector"""
     ip = ip.lower()
-    if (agentaddr):
-        agentaddr = agentaddr.lower()
-    if not is_valid_collector_info(name, ip , agentaddr, port, maxsize):
+    if not is_valid_collector_info(name, ip, port):
         return
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.set_entry('SFLOW_COLLECTOR', name, make_collector_info_dict(ip, agentaddr, port, maxsize))
+    collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
+    if (collector_tbl and len(collector_tbl) == 2):
+        click.echo("Only 2 collectors can be configured, please delete one")
+        return
+    config_db.set_entry('SFLOW_COLLECTOR', name, make_collector_info_dict(ip, port))
     return
 
+#
+# 'sflow agent-id' group
+#
+@sflow.group('agent-id')
+def agent_id():
+    """Add/Delete a sFlow agent"""
+    pass
+
+#
+# 'sflow' command ('config sflow agent-id add ...')
+#
+@agent_id.command()
+@click.argument('name', required=True)
+def add(name):
+    """Add sFlow agent information"""
+    if not valid_intf(name):
+        click.echo("Invalid interface name")
+        return
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    sflow_tbl = config_db.get_table('SFLOW')
+    if not sflow_tbl:
+        click.echo("sFlow not configured.")
+        return
+    sflow_tbl['global']['agent_id'] = name
+    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
+
+#
+# 'sflow' command ('config sflow agent-id del ...')
+#
+@agent_id.command('del')
+def delete():
+    """Delete sFlow agent information"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    sflow_tbl = config_db.get_table('SFLOW')
+    if not sflow_tbl:
+        click.echo("sFlow not configured.")
+        return
+    sflow_tbl['global'].pop('agent_id')
+    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+    pass
 
 if __name__ == '__main__':
     config()
