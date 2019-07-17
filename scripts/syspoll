@@ -11,6 +11,8 @@ progname = sys.argv[0]
 outfile = '/var/platform/system'
 tmpfile = '/var/platform/system.tmp'
 
+ticks_per_sec = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+
 while True:
     d = {}
     d['hostname'] = subprocess.check_output(['hostname']).rstrip()
@@ -19,7 +21,6 @@ while True:
     d['used']  = int(w[2])
     d['free']  = int(w[3])
     btime = int(subprocess.check_output(['bash', '-c', "cat /proc/stat | grep '^btime'"]).split()[1])
-    ticks_per_sec = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     cpus = []
     for li in subprocess.check_output(['bash', '-c', "cat /proc/stat | grep '^cpu'"]).rstrip().split('\n'):
         w = li.split()
