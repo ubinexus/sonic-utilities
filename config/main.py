@@ -1306,7 +1306,7 @@ def interface():
 @interface.command()
 @click.argument('name', required=True, type=str)
 def enable(name):
-    if not valid_intf(name):
+    if not valid_intf(name) and name != 'all':
         click.echo("Invalid interface name")
         return
     config_db = ConfigDBConnector()
@@ -1326,7 +1326,7 @@ def enable(name):
 @interface.command()
 @click.argument('name', required=True, type=str)
 def disable(name):
-    if not valid_intf(name):
+    if not valid_intf(name) and name != 'all':
         click.echo("Invalid interface name")
         return
     config_db = ConfigDBConnector()
@@ -1360,7 +1360,7 @@ def sample_rate(name, rate):
     if sess_dict and name in sess_dict.keys():
         sess_dict[name]['sample_rate'] = rate
         config_db.set_entry('SFLOW_SESSION', name, sess_dict[name])
-    elif sess_dict:
+    else:
         config_db.set_entry('SFLOW_SESSION', name, {'sample_rate' : rate})
 
 #

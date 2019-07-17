@@ -1675,13 +1675,30 @@ def policer(policer_name, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-@cli.group()
+
+@cli.group(invoke_without_command=True)
 def sflow():
     """Show sFlow related information"""
-    pass
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    show_sflow_global(config_db)
+
+def sflow_appDB_connect():
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.APPL_DB, False)
+    keys = db.keys(db.APPL_DB, 'SFLOW_SAMPLE_RATE_TABLE:*')
+    if not keys:
+        click.echo('No sampling rate information found in apps_db')
+        return None
+    return db.get_all(db.APPL_DB, keys[0])
+
 
 def show_sflow_interface(config_db):
     sflow_global = config_db.get_table('SFLOW')
+    sflow_sampling_tbl = sflow_appDB_connect()
+    if not sflow_sampling_tbl:
+        click.echo("sflow AppDB error")
+        return
     if not sflow_global:
         click.echo("sFlow not configured")
         return
@@ -1702,10 +1719,13 @@ def show_sflow_interface(config_db):
                 click.echo("\t\t{}".format(sflow_session_tbl[pname]['admin_state']), nl=False)
             else:
                 click.echo("\t\t{}".format(sflow_global['global']['admin_state']), nl=False)
+            if 'sample_rate' in sflow_session_tbl[pname].keys():
+                click.echo("\t\t\t{}".format(sflow_session_tbl[pname]['sample_rate']))
+            else:
+                click.echo("\t\t\t{}".format(sflow_sampling_tbl[port_tbl[pname]['speed']]))
         else:
-                click.echo("\t\t{}".format(sflow_global['global']['admin_state']), nl=False)
-        #TODO get sample-rate from appsDB
-        click.echo("\t\t\t{}".format(port_tbl[pname]['speed']))
+            click.echo("\t\t{}".format(sflow_global['global']['admin_state']), nl=False)
+            click.echo("\t\t\t{}".format(sflow_sampling_tbl[port_tbl[pname]['speed']]))
 
 def show_sflow_global(config_db):
     sflow_info = config_db.get_table('SFLOW')
@@ -1735,7 +1755,7 @@ def show_sflow_global(config_db):
         click.echo("\t\t\tCollector IP addr: {}\t UDP port:{}".format(sflow_info[collector_name]['collector_ip'], sflow_info[collector_name]['collector_port']))
 
 #
-# 'sflow command ("show sflow ...")
+# 'sflow command ("show sflow interface ...")
 #
 @sflow.command('interface')
 def sflow_interface():
@@ -1744,21 +1764,6 @@ def sflow_interface():
     config_db.connect()
     show_sflow_interface(config_db)
 
-
-@sflow.command('global')
-def sflow_global():
-    """Show global sFlow information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    show_sflow_global(config_db)
-
-@sflow.command('all')
-def sflow_all():
-    """Show all sFlow related information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    show_sflow_global(config_db)
-    show_sflow_interface(config_db)
 
 #
 # 'acl' group ###
