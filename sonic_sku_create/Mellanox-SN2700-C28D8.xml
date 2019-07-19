@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<DeviceInfo Vendor="Mellanox" BaseSku="Mellanox" HwSku="Mellanox-SN2700-C28D8" ClusterSku="Mellanox-SN2700" xmlns:xsi="http://www.w3.org01/XMLSchema-instance" xsi:noNamespaceSchemaLocation="..\appdata\schemas\DeviceTemplate.xsd">
+  <Ethernet>
+    <Interface Index="1" InterfaceName="etp1" Speed="100000" />
+    <Interface Index="2" InterfaceName="etp2" Speed="100000" />
+    <Interface Index="3" InterfaceName="etp3" Speed="100000" />
+    <Interface Index="4" InterfaceName="etp4" Speed="100000" />
+    <Interface Index="5" InterfaceName="etp5" Speed="100000" />
+    <Interface Index="6" InterfaceName="etp6" Speed="100000" />
+    <Interface Index="7" InterfaceName="etp7" Speed="100000" />
+    <Interface Index="8" InterfaceName="etp8" Speed="100000" />
+    <Interface Index="9" InterfaceName="etp9" Speed="100000" />
+    <Interface Index="10" InterfaceName="etp10" Speed="100000" />
+    <Interface Index="11" InterfaceName="etp11" Speed="100000" />
+    <Interface Index="12" InterfaceName="etp12" Speed="100000" />
+    <Interface Index="13" InterfaceName="etp13" Speed="100000" />
+    <Interface Index="14" InterfaceName="etp14" Speed="100000" />
+    <Interface Index="15" InterfaceName="etp15" Speed="100000" />
+    <Interface Index="16" InterfaceName="etp16" Speed="100000" />
+    <Interface Index="17" InterfaceName="etp17" Speed="100000" />
+    <Interface Index="18" InterfaceName="etp18" Speed="100000" />
+    <Interface Index="19" InterfaceName="etp19" Speed="100000" />
+    <Interface Index="20" InterfaceName="etp20" Speed="100000" />
+    <Interface Index="21" InterfaceName="etp21" Speed="100000" />
+    <Interface Index="22" InterfaceName="etp22" Speed="100000" />
+    <Interface Index="23" InterfaceName="etp23" Speed="100000" />
+    <Interface Index="24" InterfaceName="etp24" Speed="100000" />
+    <Interface Index="25" InterfaceName="etp25" Speed="100000" />
+    <Interface Index="26" InterfaceName="etp26" Speed="100000" />
+    <Interface Index="27" InterfaceName="etp27" Speed="100000" />
+    <Interface Index="28" InterfaceName="etp28" Speed="100000" />
+    <Interface Index="29" InterfaceName="etp29a" Speed="50000" />
+    <Interface Index="30" InterfaceName="etp29b" Speed="50000" />
+    <Interface Index="31" InterfaceName="etp30a" Speed="50000" />
+    <Interface Index="32" InterfaceName="etp30b" Speed="50000" />
+    <Interface Index="33" InterfaceName="etp31a" Speed="50000" />
+    <Interface Index="34" InterfaceName="etp31b" Speed="50000" />
+    <Interface Index="35" InterfaceName="etp32a" Speed="50000" />
+    <Interface Index="36" InterfaceName="etp32b" Speed="50000" />
+  </Ethernet>
+  <Management>
+    <Interface Index="1" InterfaceName="mgmt0" Speed="1000" />
+    <Interface Index="2" InterfaceName="mgmt1" Speed="1000" />
+  </Management>
+  <Serial>
+    <Interface Index="1" InterfaceName="ttyS0" Speed="9600" />
+  </Serial>
+   <Power>
+    <Interface Index="1" InterfaceName="ps1_12_aux" PortType="C13" Redundant="false" />
+    <Interface Index="2" InterfaceName="ps2_12_aux" PortType="C13" Redundant="true" />
+  </Power>
+</DeviceInfo>
