@@ -1677,11 +1677,13 @@ def policer(policer_name, verbose):
 
 
 @cli.group(invoke_without_command=True)
-def sflow():
+@click.pass_context
+def sflow(ctx):
     """Show sFlow related information"""
     config_db = ConfigDBConnector()
     config_db.connect()
-    show_sflow_global(config_db)
+    if ctx.invoked_subcommand is None:
+        show_sflow_global(config_db)
 
 def sflow_appDB_connect():
     db = SonicV2Connector(host='127.0.0.1')
