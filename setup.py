@@ -83,7 +83,8 @@ setup(
         'scripts/teamshow',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
-        'scripts/watermarkcfg'
+        'scripts/watermarkcfg',
+        'scripts/sonic_sku_create'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
