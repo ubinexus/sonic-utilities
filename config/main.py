@@ -320,6 +320,16 @@ def _restart_services():
             log_error("Restart {} failed with error {}".format(service, e))
             raise
 
+def is_ipaddress(val):
+    """ Validate if an entry is a valid IP """
+    if not val:
+        return False
+    try:
+        netaddr.IPAddress(str(val))
+    except:
+        return False
+    return True
+
 # This is our main entrypoint - the main 'config' command
 @click.group()
 def config():
@@ -782,6 +792,70 @@ def del_vlan_member(ctx, vid, interface_name):
     db.set_entry('VLAN', vlan_name, vlan)
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
+@vlan.group('dhcp_servers')
+@click.pass_context
+def vlan_dhcp_servers(ctx):
+    pass
+
+@vlan_dhcp_servers.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('dhcp_server_ip', metavar='<dhcp_server_ip>', required=True, type=str)
+@click.pass_context
+def add_vlan_dhcp_servers(ctx, vid, dhcp_server_ip):
+    """ Add a DHCP server IP helper under the vlan """
+    if not is_ipaddress(dhcp_server_ip):
+        click.echo('Invalid ip address')
+        return
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+
+    if len(vlan) == 0:
+        click.echo("{} doesn't exist".format(vlan_name))
+        raise click.Abort()
+    dhcp_servers = vlan.get('dhcp_servers', [])
+    dhcp_server_ip = str(dhcp_server_ip)
+    if dhcp_server_ip in dhcp_servers:
+        click.echo("{} is already a member of {}".format(dhcp_server_ip,vlan_name))
+        raise click.Abort()
+    else: 
+        click.echo("{} is being added as a dhcp address to {}".format(dhcp_server_ip,vlan_name))
+        dhcp_servers.append(dhcp_server_ip)
+        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_servers})
+        try:
+            run_command("systemctl restart dhcp_relay", display_cmd=True)
+        except SystemExit as e:
+            log_error("Restart service dhcp_relay failed with error {}".format(e))
+
+@vlan_dhcp_servers.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('dhcp_server_ip', metavar='<dhcp_server_ip>', required=True, type=str)
+@click.pass_context
+def del_vlan_dhcp_servers(ctx, vid, dhcp_server_ip):
+    """ Remove a DHCP server IP helper under the vlan """
+    if not is_ipaddress(dhcp_server_ip):
+        click.echo('Invalid ip address')
+        return
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+
+    if len(vlan) == 0:
+        click.echo("{} doesn't exist".format(vlan_name))
+        raise click.Abort()
+    dhcp_servers = vlan.get('dhcp_servers', [])
+    dhcp_server_ip = str(dhcp_server_ip)
+    if dhcp_server_ip in dhcp_servers:
+        click.echo("Removing DHCP Helper {} from {}".format(dhcp_server_ip, vlan_name))
+        dhcp_servers.remove(dhcp_server_ip)
+        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_servers})
+        try: 
+            run_command("systemctl restart dhcp_relay", display_cmd=True)
+        except SystemExit as e: 
+            log_error("Restart service dhcp_relay failed with error {}".format(e))
+    else:
+        click.echo("DHCP Helper {} is not in {}".format(dhcp_server_ip, vlan_name))  
+        raise click.Abort()
 
 #
 # 'bgp' group ('config bgp ...')
