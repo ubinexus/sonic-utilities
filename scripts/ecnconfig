@@ -21,9 +21,9 @@ optional arguments:
   -ymax  --yellow-max          set max threshold for packets marked yellow
   -rmin  --red-min             set min threshold for packets marked red
   -rmax  --red-max             set max threshold for packets marked red
-  -gdrop --green-drop-prob     set max probability for packets marked green
-  -ydrop --yellow-drop-prob    set max probability for packets marked yellow
-  -rdrop --red-drop-prob       set max probability for packets marked red
+  -gdrop --green-drop-prob     set max drop/mark probability for packets marked green
+  -ydrop --yellow-drop-prob    set max drop/mark probability for packets marked yellow
+  -rdrop --red-drop-prob       set max drop/mark probability for packets marked red
 
 2) show and change ECN on/off status on queues
 
@@ -243,9 +243,9 @@ def main():
     parser.add_argument('-ymax', '--yellow-max', type=str, help='set max threshold for packets marked \'yellow\'', default=None)
     parser.add_argument('-rmin', '--red-min', type=str, help='set min threshold for packets marked \'red\'', default=None)
     parser.add_argument('-rmax', '--red-max', type=str, help='set max threshold for packets marked \'red\'', default=None)
-    parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set max probability for packets marked \'green\'', default=None)
-    parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set max probability for packets marked \'yellow\'', default=None)
-    parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set max probability for packets marked \'red\'', default=None)
+    parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set max drop/mark probability for packets marked \'green\'', default=None)
+    parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set max drop/mark probability for packets marked \'yellow\'', default=None)
+    parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set max drop/mark probability for packets marked \'red\'', default=None)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
 
     parser.add_argument('command', nargs='?', choices=['on', 'off'], type=str, help='turn on/off ecn', default=None)
