@@ -336,10 +336,14 @@ def main():
 				sku.create_port_config()
 				print ("Created a new sku ",sku.sku_name)
 			
-		if l2_mode : ##If No SKU name provided by -l2_sku_name then if -file exists, use the sku from the file otherwise use current SKU 
+		if l2_mode : ##If No SKU name provided by -l2_sku_name then if -file exists, use the sku from the file otherwise use base 
 			if args.l2_sku_name is None :
 				if args.file is None :
-					sku_name = sku.metadata['hwsku']
+					if args.base is None :
+						print ("Error in configuring L2 Mode: Must provide a SKU Name . Use: -l2_sku_name <SKU_NAME>, -b <SKU_NAME> or -f <SKU DEF File>\n")
+						exit()
+					else :
+						sku_name = args.base
 				else :
 					sku_name = sku.sku_name 
 			else: 
