@@ -490,6 +490,15 @@ def remove_portchannel(ctx, portchannel_name):
     db = ctx.obj['db']
     db.set_entry('PORTCHANNEL', portchannel_name, None)
 
+@portchannel.command('mtu')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.argument('mtu', metavar='<mtu>', required=True)
+@click.pass_context
+def set_portchannel_mtu(ctx, portchannel_name, mtu):
+    """set port channel mtu"""
+    db = ctx.obj['db']
+    db.mod_entry('PORTCHANNEL', portchannel_name, {"mtu":mtu})
+
 @portchannel.group('member')
 @click.pass_context
 def portchannel_member(ctx):
