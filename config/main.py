@@ -319,6 +319,7 @@ def _restart_services():
         'snmp',
         'dhcp_relay',
         'hostcfgd',
+        'sflow',
     ]
     for service in services:
         try:
