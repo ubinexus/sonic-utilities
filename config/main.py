@@ -1238,6 +1238,7 @@ def naming_mode_alias():
 def sflow():
     """sFlow-related configuration tasks"""
     pass
+
 #
 # 'sflow' command ('config sflow enable ...')
 #
@@ -1269,7 +1270,7 @@ def disable():
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
-# 'sflow' command ('config sflow disable ...')
+# 'sflow' command ('config sflow polling-interval ...')
 #
 @sflow.command('polling-interval')
 @click.argument('intv', required=True, type=int)
@@ -1320,7 +1321,6 @@ def enable(name):
     else:
         config_db.set_entry('SFLOW_SESSION', name, {'admin_state' : 'enable'})
 
-
 #
 # 'sflow' command ('config sflow interface disable  ...')
 #
@@ -1339,7 +1339,6 @@ def disable(name):
         config_db.set_entry('SFLOW_SESSION', name, intf_dict[name])
     else:
         config_db.set_entry('SFLOW_SESSION', name, {'admin_state' : 'disable'})
-
 
 #
 # 'sflow' command ('config sflow interface sample-rate  ...')
@@ -1372,7 +1371,6 @@ def collector():
     """Add/Delete a sFlow collector"""
     pass
 
-
 #
 # 'sflow' command ('config sflow collector del ...')
 #
@@ -1383,7 +1381,6 @@ def del_collector(name):
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.set_entry('SFLOW_COLLECTOR', name, None)
-
 
 def is_valid_collector_info(name, ip, port):
     if len(name) > 250:
@@ -1407,7 +1404,6 @@ def is_valid_collector_info(name, ip, port):
 
 def make_collector_info_dict(ip, port):
     return {"collector_ip" : ip,  "collector_port": port}
-
 
 #
 # 'sflow' command ('config sflow collector add ...')
@@ -1459,7 +1455,6 @@ def add(name):
     sflow_tbl['global']['agent_id'] = name
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
-
 #
 # 'sflow' command ('config sflow agent-id del ...')
 #
@@ -1475,6 +1470,7 @@ def delete():
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
     pass
+
 
 if __name__ == '__main__':
     config()

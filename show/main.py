@@ -1676,6 +1676,9 @@ def policer(policer_name, verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+#
+# 'sflow command ("show sflow ...")
+#
 @cli.group(invoke_without_command=True)
 @click.pass_context
 def sflow(ctx):
@@ -1693,7 +1696,6 @@ def sflow_appDB_connect():
         click.echo('No sampling rate information found in apps_db')
         return None
     return db.get_all(db.APPL_DB, keys[0])
-
 
 def show_sflow_interface(config_db):
     sflow_global = config_db.get_table('SFLOW')
