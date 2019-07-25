@@ -1239,6 +1239,7 @@ def sflow():
     """sFlow-related configuration tasks"""
     pass
 
+
 #
 # 'sflow' command ('config sflow enable ...')
 #
@@ -1249,10 +1250,11 @@ def enable():
     config_db.connect()
     sflow_tbl = config_db.get_table('SFLOW')
     if not sflow_tbl:
-        sflow_tbl = {'global' : {'admin_state' : 'enable'}}
+        sflow_tbl = {'global': {'admin_state': 'enable'}}
     else:
         sflow_tbl['global']['admin_state'] = 'enable'
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
 
 #
 # 'sflow' command ('config sflow disable ...')
@@ -1264,10 +1266,11 @@ def disable():
     config_db.connect()
     sflow_tbl = config_db.get_table('SFLOW')
     if not sflow_tbl:
-        sflow_tbl = {'global' : {'admin_state' : 'disable'}}
+        sflow_tbl = {'global': {'admin_state': 'disable'}}
     else:
         sflow_tbl['global']['admin_state'] = 'disable'
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
 
 #
 # 'sflow' command ('config sflow polling-interval ...')
@@ -1287,12 +1290,15 @@ def polling_int(intv):
     sflow_tbl['global']['polling_interval'] = intv
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
+
 def is_valid_sample_rate(rate):
     return rate >= 256 and rate <= 8388608
+
 
 def valid_intf(intf):
     interfaces = netifaces.interfaces()
     return intf in interfaces
+
 
 #
 # 'sflow interface' group
@@ -1301,6 +1307,7 @@ def valid_intf(intf):
 def interface():
     """Configure sFlow on interface"""
     pass
+
 
 #
 # 'sflow' command ('config sflow interface enable  ...')
@@ -1319,7 +1326,8 @@ def enable(name):
         intf_dict[name]['admin_state'] = 'enable'
         config_db.set_entry('SFLOW_SESSION', name, intf_dict[name])
     else:
-        config_db.set_entry('SFLOW_SESSION', name, {'admin_state' : 'enable'})
+        config_db.set_entry('SFLOW_SESSION', name, {'admin_state': 'enable'})
+
 
 #
 # 'sflow' command ('config sflow interface disable  ...')
@@ -1338,7 +1346,8 @@ def disable(name):
         intf_dict[name]['admin_state'] = 'disable'
         config_db.set_entry('SFLOW_SESSION', name, intf_dict[name])
     else:
-        config_db.set_entry('SFLOW_SESSION', name, {'admin_state' : 'disable'})
+        config_db.set_entry('SFLOW_SESSION', name, {'admin_state': 'disable'})
+
 
 #
 # 'sflow' command ('config sflow interface sample-rate  ...')
@@ -1361,7 +1370,8 @@ def sample_rate(name, rate):
         sess_dict[name]['sample_rate'] = rate
         config_db.set_entry('SFLOW_SESSION', name, sess_dict[name])
     else:
-        config_db.set_entry('SFLOW_SESSION', name, {'sample_rate' : rate})
+        config_db.set_entry('SFLOW_SESSION', name, {'sample_rate': rate})
+
 
 #
 # 'sflow collector' group
@@ -1370,6 +1380,7 @@ def sample_rate(name, rate):
 def collector():
     """Add/Delete a sFlow collector"""
     pass
+
 
 #
 # 'sflow' command ('config sflow collector del ...')
@@ -1381,6 +1392,7 @@ def del_collector(name):
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.set_entry('SFLOW_COLLECTOR', name, None)
+
 
 def is_valid_collector_info(name, ip, port):
     if len(name) > 250:
@@ -1402,17 +1414,19 @@ def is_valid_collector_info(name, ip, port):
 
     return True
 
+
 def make_collector_info_dict(ip, port):
-    return {"collector_ip" : ip,  "collector_port": port}
+    return {"collector_ip": ip,  "collector_port": port}
+
 
 #
 # 'sflow' command ('config sflow collector add ...')
 #
 @collector.command()
-@click.option('--port', required=False, type=int, default=6343, help='Collector port number')
+@click.option('--port', required=False, type=int, default=6343,
+              help='Collector port number')
 @click.argument('name', required=True)
 @click.argument('ip', required=True)
-
 def add(name, ip, port):
     """Add a sFlow collector"""
     ip = ip.lower()
@@ -1425,8 +1439,10 @@ def add(name, ip, port):
     if (collector_tbl and len(collector_tbl) == 2):
         click.echo("Only 2 collectors can be configured, please delete one")
         return
-    config_db.set_entry('SFLOW_COLLECTOR', name, make_collector_info_dict(ip, port))
+    config_db.set_entry('SFLOW_COLLECTOR', name,
+                        make_collector_info_dict(ip, port))
     return
+
 
 #
 # 'sflow agent-id' group
@@ -1435,6 +1451,7 @@ def add(name, ip, port):
 def agent_id():
     """Add/Delete a sFlow agent"""
     pass
+
 
 #
 # 'sflow' command ('config sflow agent-id add ...')
@@ -1454,6 +1471,7 @@ def add(name):
         return
     sflow_tbl['global']['agent_id'] = name
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
 
 #
 # 'sflow' command ('config sflow agent-id del ...')
