@@ -58,8 +58,8 @@ class InterfaceAliasConverter(object):
         self.port_dict = config_db.get_table('PORT')
 
         if not self.port_dict:
-            click.echo("port_dict is None!")
-            raise click.Abort()
+            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
+            self.port_dict = {}
 
         for port_name in self.port_dict.keys():
             try:
@@ -198,6 +198,15 @@ def get_interface_mode():
     if mode is None:
         mode = "default"
     return mode
+
+
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
 
 
 # Global class instance for SONiC interface name to alias conversion
@@ -449,32 +458,32 @@ def expected(interfacename):
 
     #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
-    for port in natsorted(neighbor_dict.keys()):
+    for port in natsorted(neighbor_dict['DEVICE_NEIGHBOR'].keys()):
         temp_port = port
         if get_interface_mode() == "alias":
             port = iface_alias_converter.name_to_alias(port)
-            neighbor_dict[port] = neighbor_dict.pop(temp_port)
-        device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
+            neighbor_dict['DEVICE_NEIGHBOR'][port] = neighbor_dict['DEVICE_NEIGHBOR'].pop(temp_port)
+        device2interface_dict[neighbor_dict['DEVICE_NEIGHBOR'][port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict['DEVICE_NEIGHBOR'][port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
     if interfacename:
-        for device in natsorted(neighbor_metadata_dict.keys()):
+        for device in natsorted(neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'].keys()):
             if device2interface_dict[device]['localPort'] == interfacename:
                 body.append([device2interface_dict[device]['localPort'],
                              device,
                              device2interface_dict[device]['neighborPort'],
-                             neighbor_metadata_dict[device]['lo_addr'],
-                             neighbor_metadata_dict[device]['mgmt_addr'],
-                             neighbor_metadata_dict[device]['type']])
+                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['lo_addr'],
+                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['mgmt_addr'],
+                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['type']])
     else:
-        for device in natsorted(neighbor_metadata_dict.keys()):
+        for device in natsorted(neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'].keys()):
             body.append([device2interface_dict[device]['localPort'],
                          device,
                          device2interface_dict[device]['neighborPort'],
-                         neighbor_metadata_dict[device]['lo_addr'],
-                         neighbor_metadata_dict[device]['mgmt_addr'],
-                         neighbor_metadata_dict[device]['type']])
+                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['lo_addr'],
+                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['mgmt_addr'],
+                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['type']])
 
     click.echo(tabulate(body, header))
 
@@ -1329,6 +1338,29 @@ def all(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+# 'acl' subcommand ("show runningconfiguration acl")
+@runningconfiguration.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def acl(verbose):
+    """Show acl running configuration"""
+    cmd = "sonic-cfggen -d --var-json ACL_RULE"
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'interface' subcommand ("show runningconfiguration interface <interfacename>")
+@runningconfiguration.command()
+@click.argument('interfacename', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def interface(interfacename, verbose):
+    """Show port running configuration"""
+    cmd = "sonic-cfggen -d --var-json PORT"
+
+    if interfacename is not None:
+        cmd += " {0} {1}".format("--interface", interfacename)
+
+    run_command(cmd, display_cmd=verbose)
+
+
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1480,7 +1512,7 @@ def brief(verbose):
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
-        if len(key) == 1:
+        if not is_ip_prefix_in_key(key):
             continue
         interface_key = str(key[0].strip("Vlan"))
         interface_value = str(key[1])
