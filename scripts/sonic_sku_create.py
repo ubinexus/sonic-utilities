@@ -35,10 +35,14 @@ import traceback
 import sys
 import shutil
 import sonic_platform
+#import minigraph  
 
 from tabulate import tabulate
 import xml.etree.ElementTree as ET
+from lxml.etree import QName
 
+minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
+minigraph_ns1 = "http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"
 
 DEFAULT_DEV_PATH = '/usr/share/sonic/device/'
 ### port_config.ini header
@@ -93,11 +97,11 @@ class SkuCreate(object):
 			print ("Error While trying to retrieve METADATA from CONFIG_DB", file=sys.stderr)
 			exit()
 			
-	def sku_def_parser(self,sku_def,sku_base) :
+	def sku_def_parser(self,sku_def) :
 		try:
-			f = open(sku_def,"r")
+			f = open(str(sku_def),"r")
 		except IOError:
-			print ("Couldn't open file: " + sku_def, file=sys.stderr)
+			print ("Couldn't open file: " + str(sku_def), file=sys.stderr)
 			exit()
 		element = ET.parse(f)
 		
@@ -105,9 +109,6 @@ class SkuCreate(object):
 		if (self.verbose):
 			print ( "tag=%s, attrib=%s" % (root.tag, root.attrib))
 		self.sku_name = root.attrib["HwSku"]
-		self.base_sku_name = sku_base
-		self.base_sku_dir = DEFAULT_DEV_PATH + self.platform + '/' + self.base_sku_name + '/'
-		self.base_file_path = self.base_sku_dir + "port_config.ini"
 		self.new_sku_dir = DEFAULT_DEV_PATH+self.platform+"/"+self.sku_name+ '/'
 		idx = 1
 		for child in root:
@@ -122,6 +123,48 @@ class SkuCreate(object):
 							idx += 1
 
 		f.close()
+
+	def parse_deviceinfo(self,meta,hwsku):
+		#port_speeds = {}
+		idx = 1
+		match = None
+		for device_info in meta.findall(str(QName(minigraph_ns, "DeviceInfo"))):
+			dev_sku = device_info.find(str(QName(minigraph_ns, "HwSku"))).text
+			if dev_sku == hwsku :
+				match = True
+				interfaces = device_info.find(str(QName(minigraph_ns, "EthernetInterfaces"))).findall(str(QName(minigraph_ns1, "EthernetInterface")))
+				for interface in interfaces:
+					alias = interface.find(str(QName(minigraph_ns, "InterfaceName"))).text
+					speed = interface.find(str(QName(minigraph_ns, "Speed"))).text
+					index  = interface.find(str(QName(minigraph_ns, "Index"))).text
+					port_name  = "Ethernet"+interface.find(str(QName(minigraph_ns, "PortName"))).text				
+					#port_speeds[port_alias_map.get(alias, alias)] = speed
+					self.portconfig_dict[idx] = [port_name,[1,2,3,4], speed, alias,  index]	
+					if (self.verbose) :
+						print ("parse_device_info(minigraph)--> ",self.portconfig_dict[idx])
+					idx +=1
+		if match is None :
+			raise ValueError("Couldn't find a SKU ",hwsku, "in minigraph file")
+			
+
+	def minigraph_parser(self,minigraph_file) :
+		root = ET.parse(minigraph_file).getroot()
+		if (self.verbose):
+			print ( "tag=%s, attrib=%s" % (root.tag, root.attrib))
+		hwsku_qn = QName(minigraph_ns, "HwSku")
+		for child in root:
+			if (self.verbose) :
+				print("TAG: ",child.tag, "TEXT: ",child.text)
+			if child.tag == str(hwsku_qn):
+				hwsku = child.text
+
+		self.new_sku_dir = DEFAULT_DEV_PATH+self.platform+"/"+hwsku+ '/'
+				
+		for child in root:
+			if child.tag == str(QName(minigraph_ns, "DeviceInfos")):
+			#for device_info in meta.findall(str(QName(minigraph_ns, "DeviceInfo"))):
+				self.parse_deviceinfo(child,hwsku)
+
 		
 
 		
@@ -141,7 +184,10 @@ class SkuCreate(object):
 				print("split_analyze -> ",m.group(1), " : ", self.fpp_split[int(m.group(1))])
 		self.num_of_fpp = len(self.fpp_split.keys())
 		
-	def get_default_lanes(self) :
+	def get_default_lanes(self,sku_base) :
+		self.base_sku_name = sku_base
+		self.base_sku_dir = DEFAULT_DEV_PATH + self.platform + '/' + self.base_sku_name + '/'
+		self.base_file_path = self.base_sku_dir + "port_config.ini"
 		try:
 			f = open(self.base_file_path,"r")
 		except IOError:
@@ -286,7 +332,6 @@ class SkuCreate(object):
 		
 		
 	def msn2700_specific(self) :
-		#import pdb; pdb.set_trace()
 		for fp, values in self.fpp_split.items():
 			splt_arr = sorted(values[0])
 			idx_arr = sorted(values[1])
@@ -337,7 +382,7 @@ def main():
 									formatter_class=argparse.RawTextHelpFormatter)
 	group = parser.add_mutually_exclusive_group()
 	group.add_argument('-f', '--file', action='store', help='SKU definition from xml file. -f OR -m must be provided when creating a new SKU', default=None)
-	group.add_argument('-m', '--minigraph', action='store', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', default=None)
+	group.add_argument('-m', '--minigraph_file', action='store', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', default=None)
 	parser.add_argument('-b', '--base', action='store', help='SKU base definition  ', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
 	parser.add_argument('-c', '--cmd', action='store', choices=['new_sku_only', 'l2_mode_only', 'new_sku_l2'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only")
@@ -348,6 +393,7 @@ def main():
 	l2_mode = False
 	sku_mode = False
 	sku_name = None
+	base = None
 	try:
 		sku = SkuCreate()
 		sku.verbose = args.verbose
@@ -361,20 +407,24 @@ def main():
 			l2_mode = False
 			sku_mode = True
 			
+		if args.base:
+			base = args.base
+		else :
+			f=open(DEFAULT_DEV_PATH + sku.platform + '/' + "default_sku","r")
+			base=f.read().split()[0]
+			
 		if args.file:
-			sku.sku_def_parser(args.file,args.base)
-		elif args.minigraph:
-			print ("NEED to implement the minigraph parser")
-			#sku.minigraph_parser(args.file,args.base)
+			sku.sku_def_parser(args.file)
+		elif args.minigraph_file:
+			sku.minigraph_parser(args.minigraph_file)
 		elif sku_mode:
 			print ("SKU definition file was not provided (-f OR -m flags) while trying to create a new SKU.\n Only l2_mode_only command can omit the definition file", file=sys.stderr)
 			exit() 
-			
 		if sku_mode :
 			if args.remove:
 				sku.remove_sku_dir()
 				return
-			sku.get_default_lanes()
+			sku.get_default_lanes(base)
 			sku.split_analyze()
 			sku.set_lanes()
 			if args.print:
