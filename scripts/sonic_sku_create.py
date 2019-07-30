@@ -35,10 +35,9 @@ import traceback
 import sys
 import shutil
 import sonic_platform
-#import minigraph  
 
 from tabulate import tabulate
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 from lxml.etree import QName
 
 minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
@@ -55,7 +54,7 @@ class SkuCreate(object):
 	"""
 
 	def __init__(self):
-		###self.metadata = {}
+
 		self.portconfig_dict = {}
 		self.platform_specific_dict = {"x86_64-mlnx_msn2700-r0":self.msn2700_specific}
 		self.default_lanes_per_port = []
@@ -64,14 +63,7 @@ class SkuCreate(object):
 		self.num_of_fpp = 0
 		self.num_of_lanes_dict = {"1" : 4, "2" : 2, "4" : 1}
 		
-		# Set up db connections
-		###self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
-		###self.db.connect(self.db.CONFIG_DB)
-		
-		###self.configdb = swsssdk.ConfigDBConnector()
-		###self.configdb.connect()
 
-		###self.read_metadata()
 		try:
 			platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
 			self.platform = platform.rstrip()
@@ -116,7 +108,6 @@ class SkuCreate(object):
 				for interface in child:
 					for eth_iter in interface.iter():
 						if eth_iter is not None:
-							#self.portconfig_dict[eth_iter.get("Index")] = ["Ethernet"+eth_iter.get("Index"),[1,2,3,4], eth_iter.get("Speed"), eth_iter.get("InterfaceName"),  eth_iter.get("Index")]
 							self.portconfig_dict[idx] = ["Ethernet"+eth_iter.get("Index"),[1,2,3,4], eth_iter.get("Speed"), eth_iter.get("InterfaceName"),  eth_iter.get("Index")]
 							if (self.verbose):
 								print ("sku_def_parser:portconfig_dict[",idx,"] -> ",self.portconfig_dict[idx])
@@ -125,7 +116,6 @@ class SkuCreate(object):
 		f.close()
 
 	def parse_deviceinfo(self,meta,hwsku):
-		#port_speeds = {}
 		idx = 1
 		match = None
 		for device_info in meta.findall(str(QName(minigraph_ns, "DeviceInfo"))):
@@ -138,7 +128,6 @@ class SkuCreate(object):
 					speed = interface.find(str(QName(minigraph_ns, "Speed"))).text
 					index  = interface.find(str(QName(minigraph_ns, "Index"))).text
 					port_name  = "Ethernet"+interface.find(str(QName(minigraph_ns, "PortName"))).text				
-					#port_speeds[port_alias_map.get(alias, alias)] = speed
 					self.portconfig_dict[idx] = [port_name,[1,2,3,4], speed, alias,  index]	
 					if (self.verbose) :
 						print ("parse_device_info(minigraph)--> ",self.portconfig_dict[idx])
@@ -162,7 +151,6 @@ class SkuCreate(object):
 				
 		for child in root:
 			if child.tag == str(QName(minigraph_ns, "DeviceInfos")):
-			#for device_info in meta.findall(str(QName(minigraph_ns, "DeviceInfo"))):
 				self.parse_deviceinfo(child,hwsku)
 
 		
@@ -349,10 +337,7 @@ class SkuCreate(object):
 						self.portconfig_dict.pop(i)
 					print ("MSN2700 - Front panel port ",next_fp, " should be removed due to port ",fp,"Split by 4")
 					raise  ValueError()
-					#continue
 				elif ((fp%2) == 0 and splt == 4) :
-					#for idx in idx_arr :
-					#	self.portconfig_dict.pop(idx,None )
 					print ("MSN2700 -  even front panel ports (",fp,") are not allowed to split by 4")
 					raise  ValueError()
 			except ValueError:
