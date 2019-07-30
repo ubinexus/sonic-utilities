@@ -1235,170 +1235,212 @@ def naming_mode_alias():
 # 'sflow' group ('config sflow ...')
 #
 @config.group()
-def sflow():
+@click.pass_context
+def sflow(ctx):
     """sFlow-related configuration tasks"""
-    pass
-
-
-#
-# 'sflow' command ('config sflow enable ...')
-#
-@sflow.command()
-def enable():
-    """Enable sFlow"""
     config_db = ConfigDBConnector()
     config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+#
+# 'sflow' command ('config sflow enable')
+#
+@sflow.command()
+@click.pass_context
+def enable(ctx):
+    """Enable sFlow"""
+    config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
+
     if not sflow_tbl:
         sflow_tbl = {'global': {'admin_state': 'enable'}}
     else:
         sflow_tbl['global']['admin_state'] = 'enable'
+
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
-
 #
-# 'sflow' command ('config sflow disable ...')
+# 'sflow' command ('config sflow disable')
 #
 @sflow.command()
-def disable():
+@click.pass_context
+def disable(ctx):
     """Disable sFlow"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
+
     if not sflow_tbl:
         sflow_tbl = {'global': {'admin_state': 'disable'}}
     else:
         sflow_tbl['global']['admin_state'] = 'disable'
-    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
+    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
 # 'sflow' command ('config sflow polling-interval ...')
 #
 @sflow.command('polling-interval')
-@click.argument('intv', required=True, type=int)
-def polling_int(intv):
+@click.argument('interval',  metavar='<polling_interval>', required=True,
+                type=int)
+@click.pass_context
+def polling_int(ctx, interval):
     """Set polling-interval for counter-sampling (0 to disable)"""
-    if (0 > intv or intv > 300):
+    if interval not in range(0, 300 + 1):
         click.echo("Polling interval must be between 0-300")
-    config_db = ConfigDBConnector()
-    config_db.connect()
+
+    config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
+
     if not sflow_tbl:
         click.echo("sFlow not configured")
         return
-    sflow_tbl['global']['polling_interval'] = intv
+
+    sflow_tbl['global']['polling_interval'] = interval
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
-
 def is_valid_sample_rate(rate):
-    return rate >= 256 and rate <= 8388608
-
-
-def valid_intf(intf):
-    interfaces = netifaces.interfaces()
-    return intf in interfaces
+    return rate in range(256, 8388608 + 1)
 
 
 #
 # 'sflow interface' group
 #
 @sflow.group()
-def interface():
-    """Configure sFlow on interface"""
+@click.pass_context
+def interface(ctx):
+    """Configure sFlow settings for an interface"""
     pass
-
 
 #
 # 'sflow' command ('config sflow interface enable  ...')
 #
 @interface.command()
-@click.argument('name', required=True, type=str)
-def enable(name):
-    if not valid_intf(name) and name != 'all':
+@click.argument('ifname', metavar='<interface_name>', required=True, type=str)
+@click.pass_context
+def enable(ctx, ifname):
+    if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
-    config_db = ConfigDBConnector()
-    config_db.connect()
 
+    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
-    if intf_dict and name in intf_dict.keys():
-        intf_dict[name]['admin_state'] = 'enable'
-        config_db.set_entry('SFLOW_SESSION', name, intf_dict[name])
-    else:
-        config_db.set_entry('SFLOW_SESSION', name, {'admin_state': 'enable'})
 
+    if intf_dict and ifname in intf_dict.keys():
+        intf_dict[ifname]['admin_state'] = 'enable'
+        config_db.set_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
+    else:
+        config_db.set_entry('SFLOW_SESSION', ifname, {'admin_state': 'enable'})
 
 #
 # 'sflow' command ('config sflow interface disable  ...')
 #
 @interface.command()
-@click.argument('name', required=True, type=str)
-def disable(name):
-    if not valid_intf(name) and name != 'all':
+@click.argument('ifname', metavar='<interface_name>', required=True, type=str)
+@click.pass_context
+def disable(ctx, ifname):
+    if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
-    config_db = ConfigDBConnector()
-    config_db.connect()
+
+    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
-    if intf_dict and name in intf_dict.keys():
-        intf_dict[name]['admin_state'] = 'disable'
-        config_db.set_entry('SFLOW_SESSION', name, intf_dict[name])
+    if intf_dict and ifname in intf_dict.keys():
+        intf_dict[ifname]['admin_state'] = 'disable'
+        config_db.set_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
-        config_db.set_entry('SFLOW_SESSION', name, {'admin_state': 'disable'})
-
+        config_db.set_entry('SFLOW_SESSION', ifname,
+                            {'admin_state': 'disable'})
 
 #
 # 'sflow' command ('config sflow interface sample-rate  ...')
 #
 @interface.command('sample-rate')
-@click.argument('name', required=True, type=str)
-@click.argument('rate', required=True, type=int)
-def sample_rate(name, rate):
-    if not valid_intf(name):
+@click.argument('ifname', metavar='<interface_name>', required=True, type=str)
+@click.argument('rate', metavar='<sample_rate>', required=True, type=int)
+@click.pass_context
+def sample_rate(ctx, ifname, rate):
+    if not interface_name_is_valid(ifname):
         click.echo('Invalid interface name')
         return
     if not is_valid_sample_rate(rate):
         click.echo('Error: Sample rate must be between 256 and 8388608')
         return
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = ctx.obj['db']
     sess_dict = config_db.get_table('SFLOW_SESSION')
-    if sess_dict and name in sess_dict.keys():
-        sess_dict[name]['sample_rate'] = rate
-        config_db.set_entry('SFLOW_SESSION', name, sess_dict[name])
+
+    if sess_dict and ifname in sess_dict.keys():
+        sess_dict[ifname]['sample_rate'] = rate
+        config_db.set_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
     else:
-        config_db.set_entry('SFLOW_SESSION', name, {'sample_rate': rate})
+        config_db.set_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
 
 
 #
 # 'sflow collector' group
 #
 @sflow.group()
-def collector():
+@click.pass_context
+def collector(ctx):
     """Add/Delete a sFlow collector"""
     pass
 
+#
+# 'sflow' command ('config sflow collector add ...')
+#
+@collector.command()
+@click.option('--port', required=False, type=int, default=6343,
+              help='Collector port number')
+@click.argument('name', metavar='<collector_name>', required=True)
+@click.argument('ipaddr', metavar='<IPv4/v6_address>', required=True)
+@click.pass_context
+def add(ctx, name, ipaddr, port):
+    """Add a sFlow collector"""
+    ipaddr = ipaddr.lower()
+
+    if not is_valid_collector_info(name, ipaddr, port):
+        return
+
+    config_db = ctx.obj['db']
+    collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
+
+    if (collector_tbl and len(collector_tbl) == 2):
+        click.echo("Only 2 collectors can be configured, please delete one")
+        return
+    if name in collector_tbl.keys():
+        click.echo("Collector {} already configured. Please delete it first".
+                   format(name))
+        return
+
+    config_db.set_entry('SFLOW_COLLECTOR', name,
+                        {"collector_ip": ipaddr,  "collector_port": port})
+    return
 
 #
 # 'sflow' command ('config sflow collector del ...')
 #
 @collector.command('del')
-@click.argument('name', required=True)
-def del_collector(name):
+@click.argument('name', metavar='<collector_name>', required=True)
+@click.pass_context
+def del_collector(ctx, name):
     """Delete a sFlow collector"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = ctx.obj['db']
+    collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
+
+    if name not in collector_tbl.keys():
+        click.echo("Collector: {} not configured".format(name))
+        return
+
     config_db.set_entry('SFLOW_COLLECTOR', name, None)
 
-
 def is_valid_collector_info(name, ip, port):
-    if len(name) > 250:
-        click.echo("Collector name must not exceed 250 characters")
+    if len(name) > 16:
+        click.echo("Collector name must not exceed 16 characters")
         return False
-    if port < 0 or port > 65535:
+
+    if port not in range(0, 65535 + 1):
         click.echo("Collector port number must be between 0 and 65535")
         return False
 
@@ -1415,79 +1457,61 @@ def is_valid_collector_info(name, ip, port):
     return True
 
 
-def make_collector_info_dict(ip, port):
-    return {"collector_ip": ip,  "collector_port": port}
-
-
-#
-# 'sflow' command ('config sflow collector add ...')
-#
-@collector.command()
-@click.option('--port', required=False, type=int, default=6343,
-              help='Collector port number')
-@click.argument('name', required=True)
-@click.argument('ip', required=True)
-def add(name, ip, port):
-    """Add a sFlow collector"""
-    ip = ip.lower()
-    if not is_valid_collector_info(name, ip, port):
-        return
-
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
-    if (collector_tbl and len(collector_tbl) == 2):
-        click.echo("Only 2 collectors can be configured, please delete one")
-        return
-    config_db.set_entry('SFLOW_COLLECTOR', name,
-                        make_collector_info_dict(ip, port))
-    return
-
-
 #
 # 'sflow agent-id' group
 #
 @sflow.group('agent-id')
-def agent_id():
+@click.pass_context
+def agent_id(ctx):
     """Add/Delete a sFlow agent"""
     pass
-
 
 #
 # 'sflow' command ('config sflow agent-id add ...')
 #
 @agent_id.command()
-@click.argument('name', required=True)
-def add(name):
+@click.argument('ifname', metavar='<interface_name>', required=True)
+@click.pass_context
+def add(ctx, ifname):
     """Add sFlow agent information"""
-    if not valid_intf(name):
+    if not interface_name_is_valid(ifname):
         click.echo("Invalid interface name")
         return
-    config_db = ConfigDBConnector()
-    config_db.connect()
+
+    config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
+
     if not sflow_tbl:
         click.echo("sFlow not configured.")
         return
-    sflow_tbl['global']['agent_id'] = name
+
+    if 'agent_id' in sflow_tbl['global'].keys():
+        click.echo("Agent already configured. Please delete it first.")
+        return
+
+    sflow_tbl['global']['agent_id'] = ifname
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
-
 #
-# 'sflow' command ('config sflow agent-id del ...')
+# 'sflow' command ('config sflow agent-id del')
 #
 @agent_id.command('del')
-def delete():
+@click.pass_context
+def delete(ctx):
     """Delete sFlow agent information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
+
     if not sflow_tbl:
         click.echo("sFlow not configured.")
         return
+
+    if 'agent_id' not in sflow_tbl['global'].keys():
+        click.echo("sFlow agent not configured.")
+        return
+
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
-    pass
 
 
 if __name__ == '__main__':

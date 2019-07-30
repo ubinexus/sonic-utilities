@@ -1685,9 +1685,18 @@ def sflow(ctx):
     """Show sFlow related information"""
     config_db = ConfigDBConnector()
     config_db.connect()
+    ctx.obj = {'db': config_db}
     if ctx.invoked_subcommand is None:
         show_sflow_global(config_db)
 
+#
+# 'sflow command ("show sflow interface ...")
+#
+@sflow.command('interface')
+@click.pass_context
+def sflow_interface(ctx):
+    """Show sFlow interface information"""
+    show_sflow_interface(ctx.obj['db'])
 
 def sflow_appDB_connect():
     db = SonicV2Connector(host='127.0.0.1')
@@ -1698,49 +1707,49 @@ def sflow_appDB_connect():
         return None
     return db.get_all(db.APPL_DB, keys[0])
 
-
 def show_sflow_interface(config_db):
     sflow_global = config_db.get_table('SFLOW')
     sflow_sampling_tbl = sflow_appDB_connect()
+
     if not sflow_sampling_tbl:
         click.echo("sflow AppDB error")
         return
+
     if not sflow_global:
         click.echo("sFlow not configured")
         return
+
     port_tbl = config_db.get_table('PORT')
     idx_to_port_map = {int(port_tbl[name]['index']): name for name in
                        port_tbl.keys()}
     sflow_session_tbl = config_db.get_table('SFLOW_SESSION')
+
     if not port_tbl:
         click.echo("No ports configured")
         return
-    click.echo("\n\tsFlow interface configurations")
-    click.echo("\t\tInterface\t\tAdmin State\t\tSampling Rate")
-    click.echo("\t\t=====================================================" +
-               "=========")
+
+    click.echo("\nsFlow interface configurations")
+    header = ['Interface', 'Admin State', 'Sampling Rate']
+    body = []
     for idx in sorted(idx_to_port_map.keys()):
         pname = idx_to_port_map[idx]
-        click.echo("\t\t{}".format(pname), nl=False)
+        body_info = [pname]
+
         if sflow_session_tbl and pname in sflow_session_tbl.keys():
             if 'admin_state' in sflow_session_tbl[pname].keys():
-                click.echo("\t\t{}".format(sflow_session_tbl[pname]
-                                           ['admin_state']), nl=False)
+                body_info.append(sflow_session_tbl[pname]['admin_state'])
             else:
-                click.echo("\t\t{}".format(sflow_global['global']
-                                           ['admin_state']), nl=False)
-            if 'sample_rate' in sflow_session_tbl[pname].keys():
-                click.echo("\t\t\t{}".format(sflow_session_tbl[pname]
-                                             ['sample_rate']))
-            else:
-                click.echo("\t\t\t{}".format(sflow_sampling_tbl[port_tbl
-                                             [pname]['speed']]))
-        else:
-            click.echo("\t\t{}".format(sflow_global['global']
-                                       ['admin_state']), nl=False)
-            click.echo("\t\t\t{}".format(sflow_sampling_tbl[port_tbl
-                                         [pname]['speed']]))
+                body_info.append(sflow_global['global']['admin_state'])
 
+            if 'sample_rate' in sflow_session_tbl[pname].keys():
+                body_info.append(sflow_session_tbl[pname]['sample_rate'])
+            else:
+                body_info.append(sflow_sampling_tbl[port_tbl[pname]['speed']])
+        else:
+            body_info.append(sflow_global['global']['admin_state'])
+            body_info.append(sflow_sampling_tbl[port_tbl[pname]['speed']])
+        body.append(body_info)
+    click.echo(tabulate(body, header, tablefmt='grid'))
 
 def show_sflow_global(config_db):
     sflow_info = config_db.get_table('SFLOW')
@@ -1749,41 +1758,28 @@ def show_sflow_global(config_db):
         return
     default_polling = 20
     default_agent = 'default'
-    click.echo("\n\tSFlow Global Information:")
-    click.echo("\t\tSFlow Admin State: \t\t\t: {}".format(sflow_info
-                                                          ['global']
-                                                          ['admin_state']))
+    click.echo("\nSFlow Global Information:")
+    click.echo("  SFlow Admin State:         {}".format(sflow_info['global']
+                                                        ['admin_state']))
 
-    click.echo("\t\tSFlow Polling Interval: ", nl=False)
+    click.echo("  SFlow Polling Interval: ", nl=False)
     if ('polling_interval' in sflow_info['global'].keys()):
-        click.echo("\t\t: {}".format(sflow_info['global']
-                                     ['polling_interval']))
+        click.echo("   {}".format(sflow_info['global']['polling_interval']))
     else:
-        click.echo("\t\t: {}".format(default_polling))
+        click.echo("   {}".format(default_polling))
 
-    click.echo("\t\tSFlow AgentID: ", nl=False)
+    click.echo("  SFlow AgentID: ", nl=False)
     if ('agent_id' in sflow_info['global'].keys()):
-        click.echo("\t\t\t\t: {}".format(sflow_info['global']['agent_id']))
+        click.echo("            {}".format(sflow_info['global']['agent_id']))
     else:
-        click.echo("\t\t\t\t: {}".format(default_agent))
+        click.echo("            {}".format(default_agent))
 
     sflow_info = config_db.get_table('SFLOW_COLLECTOR')
-    click.echo("\n\t\t{} Collectors configured:".format(len(sflow_info)))
+    click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
     for collector_name in sflow_info.keys():
-        click.echo("\t\t\tCollector IP addr: {}\t UDP port:{}".format(
+        click.echo("    Collector IP addr: {}\t UDP port:{}".format(
                     sflow_info[collector_name]['collector_ip'],
                     sflow_info[collector_name]['collector_port']))
-
-
-#
-# 'sflow command ("show sflow interface ...")
-#
-@sflow.command('interface')
-def sflow_interface():
-    """Show sFlow interface information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    show_sflow_interface(config_db)
 
 
 #
