@@ -44,6 +44,7 @@ minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
 minigraph_ns1 = "http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"
 
 DEFAULT_DEV_PATH = '/usr/share/sonic/device/'
+
 ### port_config.ini header
 PORTCONFIG_HEADER = ["# name", "lanes", "speed", "alias", "index"]
 
@@ -69,7 +70,7 @@ class SkuCreate(object):
 			self.platform = platform.rstrip()
 		except KeyError:
 			print ("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
-			exit()
+			exit(1)
 		self.sku_name = None
 		self.base_sku_name = None
 		self.base_sku_dir = None
@@ -87,14 +88,14 @@ class SkuCreate(object):
 			self.metadata = self.db.get_all(self.db.CONFIG_DB, "DEVICE_METADATA|localhost" )
 		except:
 			print ("Error While trying to retrieve METADATA from CONFIG_DB", file=sys.stderr)
-			exit()
+			exit(1)
 			
 	def sku_def_parser(self,sku_def) :
 		try:
 			f = open(str(sku_def),"r")
 		except IOError:
 			print ("Couldn't open file: " + str(sku_def), file=sys.stderr)
-			exit()
+			exit(1)
 		element = ET.parse(f)
 		
 		root = element.getroot()
@@ -172,15 +173,13 @@ class SkuCreate(object):
 				print("split_analyze -> ",m.group(1), " : ", self.fpp_split[int(m.group(1))])
 		self.num_of_fpp = len(self.fpp_split.keys())
 		
-	def get_default_lanes(self,sku_base) :
-		self.base_sku_name = sku_base
-		self.base_sku_dir = DEFAULT_DEV_PATH + self.platform + '/' + self.base_sku_name + '/'
-		self.base_file_path = self.base_sku_dir + "port_config.ini"
+	def get_default_lanes(self) :
+
 		try:
 			f = open(self.base_file_path,"r")
 		except IOError:
 			print ("Could not open file "+ self.base_file_path, file=sys.stderr)
-			exit()
+			exit(1)
 		line_header = f.next().split() # get the file header split into columns 
 		if line_header[0] == "#" : del line_header[0] # if hashtag is in a different column, remove it to align column header and data
 		alias_index = line_header.index('alias')
@@ -254,13 +253,13 @@ class SkuCreate(object):
 		#create a port_config.ini file based on the sku definition 
 		if not os.path.exists(self.new_sku_dir):
 			print("Error - path:", self.new_sku_dir, " doesn't exist",file=sys.stderr)
-			exit()
+			exit(1)
 			
 		try:
 			f = open(self.new_sku_dir+"port_config.ini","w+")
 		except IOError:
 			print ("Could not open file "+ self.new_sku_dir+"port_config.ini", file=sys.stderr)
-			exit()
+			exit(1)
 		header = PORTCONFIG_HEADER # ["name", "lanes", "alias", "index"]
 		port_config = []
 		for line in self.portconfig_dict.values():
@@ -286,7 +285,7 @@ class SkuCreate(object):
 		# create a new SKU directory based on the base SKU
 		if (os.path.exists(self.new_sku_dir)):
 			print ("SKU directory: "+self.new_sku_dir+ " already exists\n Please use -r flag to remove the SKU dir first", file=sys.stderr)
-			exit()
+			exit(1)
 		try:
 			shutil.copytree(self.base_sku_dir, self.new_sku_dir)
 		except OSError as e:
@@ -294,9 +293,10 @@ class SkuCreate(object):
 	
 	def remove_sku_dir(self) :
 		# remove SKU directory 
-		if (self.base_sku_dir == self.new_sku_dir) :
+		DEFAULT_BASE_PATH = DEFAULT_DEV_PATH+self.platform + '/' + "ACS-MSN2700/"
+		if (self.new_sku_dir in [self.base_sku_dir,DEFAULT_BASE_PATH]) :
 			print ("Removing the base SKU" + self.new_sku_dir + " is not allowed", file=sys.stderr)
-			exit()
+			exit(1)
 		try:
 			if not os.path.exists(self.new_sku_dir):
 				print ("Trying to remove a SKU "+ self.new_sku_dir + " that doesn't exists, Ignoring -r command")
@@ -342,14 +342,14 @@ class SkuCreate(object):
 					raise  ValueError()
 			except ValueError:
 				print ("Error - Illegal split by 4 ", file=sys.stderr)
-				exit()
+				exit(1)
 
 		
 	
 	def l2_mode(self,l2_sku) :
 		if not os.path.exists(DEFAULT_DEV_PATH+self.platform+"/"+l2_sku):
 			print ("Error - path:", l2_sku, " doesn't exist", file=sys.stderr)
-			exit()
+			exit(1)
 		print( "Starting L2 mode configuration based on "+l2_sku+" SKU")	
 		cfg_db_str = "\n{\n\t\"DEVICE_METADATA\": {\n\t\t\"localhost\": {\n\t\t\t\"hostname\": \"sonic\"\n\t\t}\n\t}\n}\n"
 
@@ -365,16 +365,17 @@ def main():
 	parser = argparse.ArgumentParser(description='Create a new SKU',
 									version='1.0.0',
 									formatter_class=argparse.RawTextHelpFormatter)
-	group = parser.add_mutually_exclusive_group()
-	group.add_argument('-f', '--file', action='store', help='SKU definition from xml file. -f OR -m must be provided when creating a new SKU', default=None)
-	group.add_argument('-m', '--minigraph_file', action='store', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', default=None)
+	group = parser.add_mutually_exclusive_group(required=True)
+	group.add_argument('-f', '--file', action='store', nargs=1, help='SKU definition from xml file. -f OR -m must be provided when creating a new SKU', default=None)
+	group.add_argument('-m', '--minigraph_file', action='store', nargs='?', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', const="/etc/sonic/minigraph.xml")
 	parser.add_argument('-b', '--base', action='store', help='SKU base definition  ', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
 	parser.add_argument('-c', '--cmd', action='store', choices=['new_sku_only', 'l2_mode_only', 'new_sku_l2'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only")
-	parser.add_argument('-s', '--sku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
+	parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
 	parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
 	parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
 	args = parser.parse_args()
+	
 	l2_mode = False
 	sku_mode = False
 	sku_name = None
@@ -393,23 +394,24 @@ def main():
 			sku_mode = True
 			
 		if args.base:
-			base = args.base
+			sku.base_sku_name = args.base
 		else :
 			f=open(DEFAULT_DEV_PATH + sku.platform + '/' + "default_sku","r")
-			base=f.read().split()[0]
-			
+			sku.base_sku_name=f.read().split()[0]
+		
+		sku.base_sku_dir = DEFAULT_DEV_PATH + sku.platform + '/' + sku.base_sku_name + '/'
+		sku.base_file_path = sku.base_sku_dir + "port_config.ini"
+		
 		if args.file:
-			sku.sku_def_parser(args.file)
-		elif args.minigraph_file:
+			sku.sku_def_parser(args.file[0])
+		else :
 			sku.minigraph_parser(args.minigraph_file)
-		elif sku_mode:
-			print ("SKU definition file was not provided (-f OR -m flags) while trying to create a new SKU.\n Only l2_mode_only command can omit the definition file", file=sys.stderr)
-			exit() 
+			
 		if sku_mode :
 			if args.remove:
 				sku.remove_sku_dir()
 				return
-			sku.get_default_lanes(base)
+			sku.get_default_lanes()
 			sku.split_analyze()
 			sku.set_lanes()
 			if args.print:
@@ -420,17 +422,17 @@ def main():
 				print ("Created a new sku (Location: " + sku.new_sku_dir+")")
 			
 		if l2_mode : ##If No SKU name provided by -s then if -file exists, use the sku from the file otherwise use base 
-			if args.sku is None :
+			if args.hwsku is None :
 				if args.file is None :
 					if args.base is None :
 						print ("Error in configuring L2 Mode: Must provide a SKU Name . Use: -sku <SKU_NAME>, -b <SKU_NAME> or -f <SKU DEF File>\n", file=sys.stderr)
-						exit()
+						exit(1)
 					else :
 						sku_name = args.base
 				else :
 					sku_name = sku.sku_name 
 			else: 
-				sku_name = args.sku
+				sku_name = args.hwsku
 			sku.l2_mode(sku_name)
 		
 	except Exception :
