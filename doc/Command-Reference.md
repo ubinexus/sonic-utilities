@@ -2043,16 +2043,16 @@ The type of interfaces include the following.
 - Example:
   ```
 	admin@sonic:~$ show ip interfaces
-	Interface      IPv4 address/mask    Admin/Oper    Neighbor    PeerIp
-	-------------  -------------------  ------------  ----------  ---------
-	PortChannel01  10.0.0.56/31         up/down       DEVICE1     10.0.0.57
-	PortChannel02  10.0.0.58/31         up/down       DEVICE2     10.0.0.59
-	PortChannel03  10.0.0.60/31         up/down       DEVICE3     10.0.0.61
-	PortChannel04  10.0.0.62/31         up/down       DEVICE4     10.0.0.63
-	Vlan100        10.168.0.1/27        up/up         N/A         N/A
-	docker0        240.127.1.1/24       up/down       N/A         N/A
-	eth0           10.3.147.252/23      up/up         N/A         N/A
-	lo             127.0.0.1/8          up/up         N/A         N/A
+	Interface      IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
+	-------------  -------------------  ------------  --------------  -------------
+	PortChannel01  10.0.0.56/31         up/down       DEVICE1         10.0.0.57
+	PortChannel02  10.0.0.58/31         up/down       DEVICE2         10.0.0.59
+	PortChannel03  10.0.0.60/31         up/down       DEVICE3         10.0.0.61
+	PortChannel04  10.0.0.62/31         up/down       DEVICE4         10.0.0.63
+	Vlan1000       192.168.0.1/27       up/up         N/A             N/A
+	docker0        240.127.1.1/24       up/down       N/A             N/A
+	eth0           10.3.147.252/23      up/up         N/A             N/A
+	lo             127.0.0.1/8          up/up         N/A             N/A
   ```
 
 **show ip protocol**
