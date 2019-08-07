@@ -970,7 +970,7 @@ def get_bgp_peer():
     for neighbor_ip in data.keys():
         local_addr = data[neighbor_ip]['local_addr']
         neighbor_name = data[neighbor_ip]['name']
-        bgp_peer.setdefault(local_addr,[neighbor_name,neighbor_ip])
+        bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
     return bgp_peer
 
 #
