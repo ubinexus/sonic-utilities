@@ -1,22 +1,22 @@
 #! /usr/bin/env python2
 """
-usage: sonic_sku_create.py [-h] [-v] [-f FILE | -m MINIGRAPH] [-b BASE] [-r]
-                           [-c {new_sku_only,l2_mode_only,new_sku_l2}]
-                           [-s SKU] [-p] [-vv]
-
+usage: sonic_sku_create.py [-h] [-v] [-f FILE] [-m [MINIGRAPH_FILE]] [-b BASE]
+                           [-r] [-c [{new_sku_only,l2_mode_only}]] [-k HWSKU]
+                           [-p] [-vv]
 Create a new SKU
 
 optional arguments:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
   -f FILE, --file FILE  SKU definition from xml file. -f OR -m must be provided when creating a new SKU
-  -m MINIGRAPH, --minigraph MINIGRAPH
+  -m [MINIGRAPH_FILE], --minigraph_file [MINIGRAPH_FILE]
                         SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU
-  -b BASE, --base BASE  SKU base definition  
+  -b BASE, --base BASE  SKU base definition
   -r, --remove          Remove SKU folder
-  -c {new_sku_only,l2_mode_only,new_sku_l2}, --cmd {new_sku_only,l2_mode_only,new_sku_l2}
+  -c [{new_sku_only,l2_mode_only}], --cmd [{new_sku_only,l2_mode_only}]
                         Choose action to preform (Generate a new SKU, Configure L2 mode, Both
-  -s SKU, --sku SKU     SKU name to be used when creating a new SKU or for  L2 configuration mode
+  -k HWSKU, --hwsku HWSKU
+                        SKU name to be used when creating a new SKU or for  L2 configuration mode
   -p, --print           Print port_config.ini without creating a new SKU
   -vv, --verbose        Verbose output
 
@@ -34,7 +34,6 @@ import swsssdk
 import traceback
 import sys
 import shutil
-import sonic_platform
 
 from tabulate import tabulate
 from lxml import etree as ET
@@ -76,8 +75,6 @@ class SkuCreate(object):
 		self.base_sku_dir = None
 		self.base_file_path = None		
 		self.new_sku_dir = None
-		self.version_info = sonic_platform.get_sonic_version_info()
-		self.build_version = format(self.version_info['build_version'])
 		self.verbose = None
 
 	def read_metadata(self):
@@ -368,9 +365,9 @@ def main():
 	group = parser.add_mutually_exclusive_group(required=True)
 	group.add_argument('-f', '--file', action='store', nargs=1, help='SKU definition from xml file. -f OR -m must be provided when creating a new SKU', default=None)
 	group.add_argument('-m', '--minigraph_file', action='store', nargs='?', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', const="/etc/sonic/minigraph.xml")
-	parser.add_argument('-b', '--base', action='store', help='SKU base definition  ', default=None)
+	parser.add_argument('-b', '--base', action='store', help='SKU base definition', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
-	parser.add_argument('-c', '--cmd', action='store', choices=['new_sku_only', 'l2_mode_only', 'new_sku_l2'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only")
+	group.add_argument('-c', '--cmd', action='store', nargs='?', choices=['new_sku_only', 'l2_mode_only'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', const="new_sku_only")
 	parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
 	parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
 	parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
@@ -386,9 +383,6 @@ def main():
 		if args.cmd == "l2_mode_only":
 			l2_mode = True
 			sku_mode = False
-		elif args.cmd == "new_sku_l2":
-			l2_mode = True
-			sku_mode = True
 		else :
 			l2_mode = False
 			sku_mode = True
@@ -404,7 +398,7 @@ def main():
 		
 		if args.file:
 			sku.sku_def_parser(args.file[0])
-		else :
+		elif args.minigraph_file :
 			sku.minigraph_parser(args.minigraph_file)
 			
 		if sku_mode :
@@ -421,16 +415,13 @@ def main():
 				sku.create_port_config()
 				print ("Created a new sku (Location: " + sku.new_sku_dir+")")
 			
-		if l2_mode : ##If No SKU name provided by -s then if -file exists, use the sku from the file otherwise use base 
+		if l2_mode : 
 			if args.hwsku is None :
-				if args.file is None :
-					if args.base is None :
-						print ("Error in configuring L2 Mode: Must provide a SKU Name . Use: -sku <SKU_NAME>, -b <SKU_NAME> or -f <SKU DEF File>\n", file=sys.stderr)
-						exit(1)
-					else :
-						sku_name = args.base
-				else :
-					sku_name = sku.sku_name 
+				try:
+					sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
+				except KeyError:
+					print ("Couldn't find HwSku info in Platform summary", file=sys.stderr)
+					exit(1)
 			else: 
 				sku_name = args.hwsku
 			sku.l2_mode(sku_name)
