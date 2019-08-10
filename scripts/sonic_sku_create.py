@@ -148,6 +148,8 @@ class SkuCreate(object):
 		self.new_sku_dir = DEFAULT_DEV_PATH+self.platform+"/"+hwsku+ '/'
 				
 		for child in root:
+			if (self.verbose):
+				print ( "tag=%s, attrib=%s" % (child.tag, child.attrib))
 			if child.tag == str(QName(minigraph_ns, "DeviceInfos")):
 				self.parse_deviceinfo(child,hwsku)
 
@@ -367,7 +369,7 @@ def main():
 	group.add_argument('-m', '--minigraph_file', action='store', nargs='?', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', const="/etc/sonic/minigraph.xml")
 	parser.add_argument('-b', '--base', action='store', help='SKU base definition', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
-	group.add_argument('-c', '--cmd', action='store', nargs='?', choices=['new_sku_only', 'l2_mode_only'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', const="new_sku_only")
+	group.add_argument('-c', '--cmd', action='store', nargs='?', choices=['new_sku_only', 'l2_mode_only'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only",const="new_sku_only")
 	parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
 	parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
 	parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
@@ -380,6 +382,8 @@ def main():
 	try:
 		sku = SkuCreate()
 		sku.verbose = args.verbose
+		if (args.verbose) :
+			print ("ARGS: ", args)
 		if args.cmd == "l2_mode_only":
 			l2_mode = True
 			sku_mode = False
