@@ -88,6 +88,8 @@ class SkuCreate(object):
 			exit(1)
 			
 	def sku_def_parser(self,sku_def) :
+		# Parsing XML sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d> to be used to analyze split configuration
+		# Rest of the fields are used as placeholders for portconfig_dict [name,lanes,SPEED,ALIAS,index]
 		try:
 			f = open(str(sku_def),"r")
 		except IOError:
@@ -106,7 +108,7 @@ class SkuCreate(object):
 				for interface in child:
 					for eth_iter in interface.iter():
 						if eth_iter is not None:
-							self.portconfig_dict[idx] = ["Ethernet"+eth_iter.get("Index"),[1,2,3,4], eth_iter.get("Speed"), eth_iter.get("InterfaceName"),  eth_iter.get("Index")]
+							self.portconfig_dict[idx] = ["Ethernet"+str(idx),[1,2,3,4], eth_iter.get("Speed"), eth_iter.get("InterfaceName"),  str(idx)]
 							if (self.verbose):
 								print ("sku_def_parser:portconfig_dict[",idx,"] -> ",self.portconfig_dict[idx])
 							idx += 1
@@ -114,6 +116,8 @@ class SkuCreate(object):
 		f.close()
 
 	def parse_deviceinfo(self,meta,hwsku):
+		# Parsing minigraph sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d> to be used to analyze split configuration
+		# Rest of the fields are used as placeholders for portconfig_dict [name,lanes,SPEED,ALIAS,index]
 		idx = 1
 		match = None
 		for device_info in meta.findall(str(QName(minigraph_ns, "DeviceInfo"))):
@@ -124,9 +128,8 @@ class SkuCreate(object):
 				for interface in interfaces:
 					alias = interface.find(str(QName(minigraph_ns, "InterfaceName"))).text
 					speed = interface.find(str(QName(minigraph_ns, "Speed"))).text
-					index  = interface.find(str(QName(minigraph_ns, "Index"))).text
-					port_name  = "Ethernet"+interface.find(str(QName(minigraph_ns, "PortName"))).text				
-					self.portconfig_dict[idx] = [port_name,[1,2,3,4], speed, alias,  index]	
+					port_name  = "Ethernet"+str(idx)					
+					self.portconfig_dict[idx] = [port_name,[1,2,3,4], speed, alias,  idx]
 					if (self.verbose) :
 						print ("parse_device_info(minigraph)--> ",self.portconfig_dict[idx])
 					idx +=1
@@ -367,9 +370,9 @@ def main():
 	group = parser.add_mutually_exclusive_group(required=True)
 	group.add_argument('-f', '--file', action='store', nargs=1, help='SKU definition from xml file. -f OR -m must be provided when creating a new SKU', default=None)
 	group.add_argument('-m', '--minigraph_file', action='store', nargs='?', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', const="/etc/sonic/minigraph.xml")
+	group.add_argument('-c', '--cmd', action='store', nargs='?', choices=['new_sku_only', 'l2_mode_only'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only",const="new_sku_only")
 	parser.add_argument('-b', '--base', action='store', help='SKU base definition', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
-	group.add_argument('-c', '--cmd', action='store', nargs='?', choices=['new_sku_only', 'l2_mode_only'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only",const="new_sku_only")
 	parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
 	parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
 	parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
