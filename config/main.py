@@ -799,11 +799,11 @@ def vlan_dhcp_relay(ctx):
 
 @vlan_dhcp_relay.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('dhcp_relay_ip', metavar='<dhcp_relay_ip>', required=True)
+@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
 @click.pass_context
-def add_vlan_dhcp_relay(ctx, vid, dhcp_relay_ip):
-    """ Add a DHCP relay address to the vlan """
-    if not is_ipaddress(dhcp_relay_ip):
+def add_vlan_dhcp_relay(ctx, vid, dhcp_relay_destination_ip):
+    """ Add a destinatino IP address to the VLAN's DHCP relay """
+    if not is_ipaddress(dhcp_relay_destination_ip):
         ctx.fail('Invalid IP address')
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
@@ -812,12 +812,12 @@ def add_vlan_dhcp_relay(ctx, vid, dhcp_relay_ip):
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
     dhcp_relay_dests = vlan.get('dhcp_servers', [])
-    if dhcp_relay_ip in dhcp_relay_dests:
-        ctx.fail("DHCP relay address {} is already a member of {}".format(dhcp_relay_ip, vlan_name))
+    if dhcp_relay_destination_ip in dhcp_relay_dests:
+        ctx.fail("{} is already a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
     else:
-        click.echo("Added DHCP relay address {} to {}".format(dhcp_relay_ip, vlan_name))
-        dhcp_relay_dests.append(dhcp_relay_ip)
+        dhcp_relay_dests.append(dhcp_relay_destination_ip)
         db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
             run_command("systemctl restart dhcp_relay", display_cmd=True)
@@ -826,11 +826,11 @@ def add_vlan_dhcp_relay(ctx, vid, dhcp_relay_ip):
 
 @vlan_dhcp_relay.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('dhcp_relay_ip', metavar='<dhcp_relay_ip>', required=True)
+@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
 @click.pass_context
-def del_vlan_dhcp_relay(ctx, vid, dhcp_relay_ip):
-    """ Remove a DHCP relay IP address to the vlan """
-    if not is_ipaddress(dhcp_relay_ip):
+def del_vlan_dhcp_relay(ctx, vid, dhcp_relay_destination_ip):
+    """ Remove a destination IP address from the VLAN's DHCP relay """
+    if not is_ipaddress(dhcp_relay_destination_ip):
         ctx.fail('Invalid IP address')
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
@@ -839,17 +839,17 @@ def del_vlan_dhcp_relay(ctx, vid, dhcp_relay_ip):
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
     dhcp_relay_dests = vlan.get('dhcp_servers', [])
-    if dhcp_relay_ip in dhcp_relay_dests:
-        click.echo("Removing DHCP Helper {} from {}".format(dhcp_relay_ip, vlan_name))
-        dhcp_relay_dests.remove(dhcp_relay_ip)
+    if dhcp_relay_destination_ip in dhcp_relay_dests:
+        dhcp_relay_dests.remove(dhcp_relay_destination_ip)
         db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
             run_command("systemctl restart dhcp_relay", display_cmd=True)
         except SystemExit as e:
             log_error("Restart service dhcp_relay failed with error {}".format(e))
     else:
-        ctx.fail("DHCP relay address {} is not in {}".format(dhcp_relay_ip, vlan_name))
+        ctx.fail("{} is not a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
 
 #
 # 'bgp' group ('config bgp ...')
@@ -1314,4 +1314,3 @@ def naming_mode_alias():
 
 if __name__ == '__main__':
     config()
-
