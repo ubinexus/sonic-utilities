@@ -1708,21 +1708,20 @@ def sflow_appDB_connect():
     return db.get_all(db.APPL_DB, keys[0])
 
 def show_sflow_interface(config_db):
-    sflow_global = config_db.get_table('SFLOW')
+    default_admin_state = 'enabled'
     sflow_sampling_tbl = sflow_appDB_connect()
-
     if not sflow_sampling_tbl:
         click.echo("sflow AppDB error")
-        return
-
-    if not sflow_global:
-        click.echo("sFlow not configured")
         return
 
     port_tbl = config_db.get_table('PORT')
     idx_to_port_map = {int(port_tbl[name]['index']): name for name in
                        port_tbl.keys()}
     sflow_session_tbl = config_db.get_table('SFLOW_SESSION')
+    all_session_admin_state = None
+    if sflow_session_tbl and 'all' in sflow_session_tbl.keys():
+        if 'admin_state' in sflow_session_tbl['all']:
+            all_session_admin_state = sflow_session_tbl['all']['admin_state']
 
     if not port_tbl:
         click.echo("No ports configured")
@@ -1738,46 +1737,54 @@ def show_sflow_interface(config_db):
         if sflow_session_tbl and pname in sflow_session_tbl.keys():
             if 'admin_state' in sflow_session_tbl[pname].keys():
                 body_info.append(sflow_session_tbl[pname]['admin_state'])
+            elif all_session_admin_state is not None:
+                body_info.append(all_session_admin_state)
             else:
-                body_info.append(sflow_global['global']['admin_state'])
+                body_info.append(default_admin_state)
 
             if 'sample_rate' in sflow_session_tbl[pname].keys():
                 body_info.append(sflow_session_tbl[pname]['sample_rate'])
             else:
                 body_info.append(sflow_sampling_tbl[port_tbl[pname]['speed']])
         else:
-            body_info.append(sflow_global['global']['admin_state'])
+            if all_session_admin_state is not None:
+                body_info.append(all_session_admin_state)
+            else:
+                body_info.append(default_admin_state)
             body_info.append(sflow_sampling_tbl[port_tbl[pname]['speed']])
         body.append(body_info)
     click.echo(tabulate(body, header, tablefmt='grid'))
 
 def show_sflow_global(config_db):
-    sflow_info = config_db.get_table('SFLOW')
-    if not sflow_info:
-        click.echo("sFlow not configured")
-        return
     default_polling = 20
     default_agent = 'default'
-    click.echo("\nSFlow Global Information:")
-    click.echo("  SFlow Admin State:         {}".format(sflow_info['global']
-                                                        ['admin_state']))
+
+    sflow_info = config_db.get_table('SFLOW')
+    global_admin_state = 'disabled'
+    if sflow_info:
+        global_admin_state = sflow_info['global']['admin_state']
+
+    click.echo("\nsFlow Global Information:")
+    click.echo("  sFlow Daemon State:        {}".format(global_admin_state))
+
 
     click.echo("  SFlow Polling Interval: ", nl=False)
-    if ('polling_interval' in sflow_info['global'].keys()):
+    if (sflow_info and 'polling_interval' in sflow_info['global'].keys()):
         click.echo("   {}".format(sflow_info['global']['polling_interval']))
     else:
         click.echo("   {}".format(default_polling))
 
     click.echo("  SFlow AgentID: ", nl=False)
-    if ('agent_id' in sflow_info['global'].keys()):
+    if (sflow_info and 'agent_id' in sflow_info['global'].keys()):
         click.echo("            {}".format(sflow_info['global']['agent_id']))
     else:
         click.echo("            {}".format(default_agent))
 
     sflow_info = config_db.get_table('SFLOW_COLLECTOR')
     click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
-    for collector_name in sflow_info.keys():
-        click.echo("    Collector IP addr: {}\t UDP port:{}".format(
+    for collector_name in sorted(sflow_info.keys()):
+        click.echo("    Name: {}\t IP addr: {}\t UDP port:{}".format(
+                    collector_name,
                     sflow_info[collector_name]['collector_ip'],
                     sflow_info[collector_name]['collector_port']))
 

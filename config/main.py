@@ -1293,8 +1293,7 @@ def polling_int(ctx, interval):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        click.echo("sFlow not configured")
-        return
+        sflow_tbl = {'global': {'admin_state': 'disable'}}
 
     sflow_tbl['global']['polling_interval'] = interval
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
@@ -1361,7 +1360,7 @@ def disable(ctx, ifname):
 @click.argument('rate', metavar='<sample_rate>', required=True, type=int)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
-    if not interface_name_is_valid(ifname):
+    if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
     if not is_valid_sample_rate(rate):
@@ -1406,12 +1405,8 @@ def add(ctx, name, ipaddr, port):
     config_db = ctx.obj['db']
     collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
-    if (collector_tbl and len(collector_tbl) == 2):
+    if (collector_tbl and name not in collector_tbl.keys() and len(collector_tbl) == 2):
         click.echo("Only 2 collectors can be configured, please delete one")
-        return
-    if name in collector_tbl.keys():
-        click.echo("Collector {} already configured. Please delete it first".
-                   format(name))
         return
 
     config_db.set_entry('SFLOW_COLLECTOR', name,
@@ -1474,7 +1469,7 @@ def agent_id(ctx):
 @click.pass_context
 def add(ctx, ifname):
     """Add sFlow agent information"""
-    if not interface_name_is_valid(ifname):
+    if ifname not in netifaces.interfaces():
         click.echo("Invalid interface name")
         return
 
@@ -1482,8 +1477,7 @@ def add(ctx, ifname):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        click.echo("sFlow not configured.")
-        return
+        sflow_tbl = {'global': {'admin_state': 'disable'}}
 
     if 'agent_id' in sflow_tbl['global'].keys():
         click.echo("Agent already configured. Please delete it first.")
@@ -1503,8 +1497,7 @@ def delete(ctx):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        click.echo("sFlow not configured.")
-        return
+        sflow_tbl = {'global': {'admin_state': 'disable'}}
 
     if 'agent_id' not in sflow_tbl['global'].keys():
         click.echo("sFlow agent not configured.")
