@@ -821,7 +821,7 @@ def add_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
         click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
-            run_command("systemctl restart dhcp_relay", display_cmd=True)
+            run_command("systemctl restart dhcp_relay", display_cmd=False)
         except SystemExit as e:
             ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
 
@@ -846,7 +846,7 @@ def del_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
         click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
-            run_command("systemctl restart dhcp_relay", display_cmd=True)
+            run_command("systemctl restart dhcp_relay", display_cmd=False)
         except SystemExit as e:
             ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
     else:
