@@ -296,7 +296,8 @@ def _stop_services():
     ]
     for service in services:
         try:
-            run_command("systemctl stop %s" % service, display_cmd=True)
+            click.echo("Stopping {} ...".format(service))
+            run_command("systemctl stop {}".format(service))
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
             raise
@@ -315,7 +316,11 @@ def _restart_services():
     ]
     for service in services:
         try:
-            run_command("systemctl restart %s" % service, display_cmd=True)
+            # We first run "systemctl reset-failed" to ensure that we
+            # can restart the service, even if it has entered a failed state
+            click.echo("Restarting {} ...".format(service))
+            run_command("systemctl reset-failed {}".format(service))
+            run_command("systemctl restart {}".format(service))
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
