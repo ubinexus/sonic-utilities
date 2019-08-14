@@ -474,6 +474,10 @@ debug "Stopping syncd ..."
 systemctl stop syncd
 debug "Stopped  syncd ..."
 
+#Stopping Host services
+systemctl stop sysmonitor.service hostcfgd.service caclmgrd.service
+debug "Stopped  sysmonitor hostcfgd caclmgrd ..."
+
 # Kill other containers to make the reboot faster
 # We call `docker kill ...` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop ...` to prevent the service from
