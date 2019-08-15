@@ -314,12 +314,15 @@ def _restart_services():
         'lldp',
         'hostcfgd',
     ]
+
+    # We first run "systemctl reset-failed" to remove the "failed"
+    # status from all services before we attempt to restart them
+    click.echo("Resetting all failed services ...")
+    run_command("systemctl reset-failed")
+
     for service in services:
         try:
-            # We first run "systemctl reset-failed" to ensure that we
-            # can restart the service, even if it has entered a failed state
             click.echo("Restarting {} ...".format(service))
-            run_command("systemctl reset-failed {}".format(service))
             run_command("systemctl restart {}".format(service))
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
