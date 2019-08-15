@@ -374,6 +374,7 @@ fi
 # Kill radv before stopping BGP service to prevent annoucing our departure.
 debug "Stopping radv ..."
 docker kill radv &>/dev/null || [ $? == 1 ]
+systemctl stop radv
 
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
