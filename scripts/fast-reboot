@@ -356,23 +356,25 @@ setup_control_plane_assistant
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     # Freeze orchagent for warm restart
-    # Try freeze 5 times, it is possible that the orchagent is in transient state and no opportunity to be freezed
-    # Note: assume that 1 second is enough for orchagent to process the request and respone freeze or not
+    # Ask orchagent_restart_check to try freeze 5 times with interval of 2 seconds,
+    # it is possible that the orchagent is in transient state and no opportunity to be freezed
+    # Note: assume that 2*5 seconds is enough for orchagent to process the request and respone freeze or not
     debug "Pausing orchagent ..."
-    for i in `seq 4 -1 0`; do
-        docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 > /dev/null && break
-        error "RESTARTCHECK failed $i"
-        if [[ "$i" = "0" ]]; then
-            error "RESTARTCHECK failed finally"
-            if [[ x"${FORCE}" == x"yes" ]]; then
-                debug "Ignoring orchagent pausing failure ..."
-                break;
-            fi
+    docker exec -i swss /usr/bin/orchagent_restart_check -w 2000 -r 5 > /dev/null || RESTARTCHECK_RC=$?
+    if [[ RESTARTCHECK_RC -ne 0 ]]; then
+        error "RESTARTCHECK failed"
+        if [[ x"${FORCE}" == x"yes" ]]; then
+            debug "Ignoring orchagent pausing failure ..."
+        else
             exit "${EXIT_ORCHAGENT_SHUTDOWN}"
         fi
-        sleep 1
-    done
+    fi
 fi
+
+# Kill radv before stopping BGP service to prevent annoucing our departure.
+debug "Stopping radv ..."
+docker kill radv &>/dev/null || [ $? == 1 ]
+systemctl stop radv
 
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
@@ -380,18 +382,30 @@ docker exec -i bgp pkill -9 zebra
 docker exec -i bgp pkill -9 bgpd || [ $? == 1 ]
 debug "Stopped  bgp ..."
 
-# Kill lldp, otherwise it sends informotion about reboot
+# Kill lldp, otherwise it sends informotion about reboot.
+# We call `docker kill lldp` to ensure the container stops as quickly as possible,
+# then immediately call `systemctl stop lldp` to prevent the service from
+# restarting the container automatically.
 docker kill lldp > /dev/null
+systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Kill teamd, otherwise it gets down all LAGs
+    # We call `docker kill teamd` to ensure the container stops as quickly as possible,
+    # then immediately call `systemctl stop teamd` to prevent the service from
+    # restarting the container automatically.
     # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
     # TODO: stop teamd gracefully to allow teamd to send last valid update to be sure we'll have 90 seconds reboot time
     docker kill teamd > /dev/null
+    systemctl stop teamd
 fi
 
-# Kill swss dockers
+# Kill swss Docker container
+# We call `docker kill swss` to ensure the container stops as quickly as possible,
+# then immediately call `systemctl stop swss` to prevent the service from
+# restarting the container automatically.
 docker kill swss > /dev/null
+systemctl stop swss
 
 # Pre-shutdown syncd
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
@@ -428,19 +442,16 @@ systemctl stop syncd
 debug "Stopped  syncd ..."
 
 # Kill other containers to make the reboot faster
-docker ps -q | xargs docker kill > /dev/null
+# We call `docker kill ...` to ensure the container stops as quickly as possible,
+# then immediately call `systemctl stop ...` to prevent the service from
+# restarting the container automatically.
+for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
+    docker kill $CONTAINER_NAME > /dev/null
+    systemctl stop $CONTAINER_NAME
+done
 
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
-
-if [[ "$REBOOT_TYPE" != "warm-reboot" ]]; then
-    # Stop opennsl modules for Broadcom platform
-    if [[ "$sonic_asic_type" = 'broadcom' ]];
-    then
-      service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
-      systemctl stop "$service_name"
-    fi
-fi
 
 # Stop kernel modules for Nephos platform
 if [[ "$sonic_asic_type" = 'nephos' ]];
