@@ -1332,13 +1332,18 @@ def add_syslog_server(ctx, syslog_ip_address):
     if not is_ipaddress(syslog_ip_address):
         ctx.fail('Invalid ip address')
     db = ctx.obj['db']
-    db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
-    click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
-    try:
-        click.echo("Restarting rsyslog-config service...")
-        run_command("systemctl restart rsyslog-config", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
+    syslog_servers = db.get_table("SYSLOG_SERVER")
+    if syslog_ip_address in syslog_servers:
+        click.echo("Syslog server {} is already configured".format(syslog_ip_address))
+        return
+    else: 
+        db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
+        click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
+        try:
+            click.echo("Restarting rsyslog-config service...")
+            run_command("systemctl restart rsyslog-config", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
 
 @syslog.command('del')
 @click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
