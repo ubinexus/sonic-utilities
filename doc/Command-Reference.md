@@ -4079,7 +4079,7 @@ This command displays the routing policy that takes precedence over the other ro
 		Exit routemap
   ```
 
-**Syslog config commands 
+# Syslog Server Configuration Commands 
 
 This sub-section of commands is used to add or remove the configured syslog servers.
 
