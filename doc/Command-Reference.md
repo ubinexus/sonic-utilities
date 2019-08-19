@@ -4083,7 +4083,7 @@ This command displays the routing policy that takes precedence over the other ro
 
 This sub-section of commands is used to add or remove the configured syslog servers.
 
-**config syslog add 
+**config syslog add** 
 
 This command is used to add a SYSLOG server to the syslog server list.  Note that more that one syslog server can be added in the device.
 
@@ -4096,7 +4096,7 @@ This command is used to add a SYSLOG server to the syslog server list.  Note tha
   admin@str-s6000-acs-11:~$
   ```
 
-**config syslog delete
+**config syslog delete**
 
 This command is used to delete the syslog server configured. 
 
