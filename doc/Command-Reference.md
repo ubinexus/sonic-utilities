@@ -4109,13 +4109,13 @@ This command is used to delete the syslog server configured.
   admin@str-s6000-acs-11:~$
   ```
 
-# DHCP Relay Destination Server Configuration Commands 
+# DHCP Relay Destination IP address Configuration Commands 
 
-This sub-section of commands is used to add or remove the DHCP Relay Destination Servers on a VLAN interface.
+This sub-section of commands is used to add or remove the DHCP Relay Destination IP address on a VLAN interface.
 
 **config vlan dhcp_relay add** 
 
-This command is used to add a DHCP Relay Destination server to the a VLAN.  Note that more that one DHCP Relay Destination server can be added on a VLAN interface.
+This command is used to add a DHCP Relay Destination IP address to the a VLAN.  Note that more that one DHCP Relay Destination IP address can be added on a VLAN interface.
 
 - Usage: config vlan dhcp_relay add <vlan-id> <dhcp_relay_destination_ip>
 - Example: 
@@ -4129,7 +4129,7 @@ This command is used to add a DHCP Relay Destination server to the a VLAN.  Note
 
 **config vlan dhcp_relay delete**
 
-This command is used to delete the DHCP Relay Destination server configured on a VLAN interface. 
+This command is used to delete the DHCP Relay Destination IP address configured on a VLAN interface. 
 
 - Usage: config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ip>
 - Example:
