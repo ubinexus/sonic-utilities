@@ -100,7 +100,7 @@ setup(
             'debug = debug.main:cli',
             'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
-            'ssdutil = ssdutil.main:cli',
+            'ssdutil = ssdutil.main:ssdutil',
             'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
             'show = show.main:cli',

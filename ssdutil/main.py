@@ -97,7 +97,7 @@ def import_ssd_api(diskdev):
     return SsdUtil(diskdev)
 
 # ==================== Entry point ====================
-def cli():
+def ssdutil():
     if os.geteuid() != 0:
         print "Root privileges are required for this operation"
         sys.exit(1)
@@ -120,4 +120,4 @@ def cli():
         print ssd.get_vendor_output()
 
 if __name__ == '__main__':
-    cli()
+    ssdutil()
