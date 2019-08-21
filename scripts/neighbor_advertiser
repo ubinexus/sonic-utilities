@@ -201,18 +201,30 @@ def get_vlan_addresses(vlan_interface):
     ipv4_addr = []
     ipv6_addr = []
 
+    '''
+    Sample output for "ip show addr Vlan101"
+
+	218: Vlan101@Bridge: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+		link/ether 98:5d:82:01:d8:48 brd ff:ff:ff:ff:ff:ff
+		inet 10.171.22.113/29 scope global Vlan101
+		   valid_lft forever preferred_lft forever
+		inet6 2603:10b0:10f:843c::1/64 scope global
+		   valid_lft forever preferred_lft forever
+		inet6 fe80::9a5d:82ff:fe01:d848/64 scope link
+		   valid_lft forever preferred_lft forever
+    '''
     try:
-        out = subprocess.check_output(["ifconfig", vlan_interface])
+        out = subprocess.check_output(['ip', 'addr', 'show', vlan_interface])
         for line in out.splitlines():
             keys=line.strip().split(' ')
             if keys[0] == 'inet':
-                ipv4_addr.append(keys[1])
+                ipv4_addr.append(keys[1].split('/')[0])
             elif keys[0] == 'inet6':
-                ipv6_addr.append(keys[1])
-            elif keys[0] == 'ether':
+                ipv6_addr.append(keys[1].split('/')[0])
+            elif keys[0] == 'link/ether':
                 mac_addr = keys[1]
     except Exception as e:
-        log_error("failted to get %s addresses from o.s." % vlan_interface)
+        log_error('failed to get %s addresses from o.s.' % vlan_interface)
         pass
 
     if not mac_addr:
