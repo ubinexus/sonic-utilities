@@ -14,6 +14,7 @@ import requests
 import argparse
 import syslog
 import traceback
+import subprocess
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
@@ -192,6 +193,39 @@ def get_vlan_addr(vlan_intf_name, ip_ver):
     return vlan_addr
 
 
+def get_vlan_addresses(vlan_interface):
+    vlan_id = get_vlan_interface_vlan_id(vlan_interface)
+    vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
+
+    mac_addr = None
+    ipv4_addr = []
+    ipv6_addr = []
+
+    try:
+        out = subprocess.check_output(["ifconfig", vlan_interface])
+        for line in out.splitlines():
+            keys=line.strip().split(' ')
+            if keys[0] == 'inet':
+                ipv4_addr.append(keys[1])
+            elif keys[0] == 'inet6':
+                ipv6_addr.append(keys[1])
+            elif keys[0] == 'ether':
+                mac_addr = keys[1]
+    except Exception as e:
+        log_error("failted to get %s addresses from o.s." % vlan_interface)
+        pass
+
+    if not mac_addr:
+        mac_addr = get_vlan_interface_mac_address(vlan_interface)
+
+    if not ipv4_addr:
+        ipv4_addr = get_vlan_addr(vlan_interface, 4)
+
+    if not ipv6_addr:
+        ipv6_addr = get_vlan_addr(vlan_interface, 6)
+
+    return vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr
+
 #
 # Set up neighbor advertiser slice on Ferret
 #
@@ -213,11 +247,7 @@ def construct_neighbor_advertiser_slice():
     all_vlan_interfaces = get_vlan_interfaces()
 
     for vlan_interface in all_vlan_interfaces:
-        vlan_id = get_vlan_interface_vlan_id(vlan_interface)
-        vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
-        ipv4_addr = get_vlan_addr(vlan_interface, 4)
-        ipv6_addr = get_vlan_addr(vlan_interface, 6)
-        mac_addr = get_vlan_interface_mac_address(vlan_interface)
+        vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr = get_vlan_addresses(vlan_interface)
 
         if not mac_addr:
             log_warning('Cannot find mac addr of vlan interface {}'.format(vlan_interface))
