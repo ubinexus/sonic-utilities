@@ -202,7 +202,7 @@ def get_vlan_addresses(vlan_interface):
     ipv6_addr = []
 
     '''
-    Sample output for "ip show addr Vlan101"
+    Sample output for "ip addr show Vlan101"
 
 	218: Vlan101@Bridge: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
 		link/ether 98:5d:82:01:d8:48 brd ff:ff:ff:ff:ff:ff
