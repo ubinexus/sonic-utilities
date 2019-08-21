@@ -614,6 +614,52 @@ def remove(session_name):
     config_db.connect()
     config_db.set_entry("MIRROR_SESSION", session_name, None)
 
+#
+# 'pfcwd' group ('config pfcwd ...')
+#
+@config.group()
+def pfcwd():
+    """Configure pfc watchdog """
+    pass
+
+@pfcwd.command()
+@click.option('--action', '-a', type=click.Choice(['drop', 'forward', 'alert']))
+@click.option('--restoration-time', '-r', type=click.IntRange(100, 60000))
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.argument('ports', nargs=-1)
+@click.argument('detection-time', type=click.IntRange(100, 5000))
+def start(action, restoration_time, ports, detection_time, verbose):
+    """
+    Start PFC watchdog on port(s). To config all ports, use all as input.
+
+    Example:
+        config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
+    """
+    cmd = "pfcwd start"
+
+    if action:
+        cmd += " --action {}".format(action)
+
+    if ports:
+        ports = set(ports) - set(['ports', 'detection-time'])
+        cmd += " ports {}".format(' '.join(ports))
+
+    if detection_time:
+        cmd += " detection-time {}".format(detection_time)
+
+    if restoration_time:
+        cmd += " --restoration-time {}".format(restoration_time)
+
+    run_command(cmd, display_cmd=verbose)
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def stop(verbose):
+    """ Stop PFC watchdog """
+
+    cmd = "pfcwd stop"
+
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'qos' group ('config qos ...')

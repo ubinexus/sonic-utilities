@@ -55,6 +55,7 @@ Table of Contents
       * [Mirroring Config command](#mirroring-config-command)
    * [NTP](#ntp)
       * [NTP show command](#network-time-protocol-show-command)
+   * [PFC Watchdog Commands](#pfc-watchdog-commands)
    * [Platform Specific Commands](#platform-specific-commands)
    * [PortChannel Configuration And Show](#portchannel-configuration-and-show)
       * [PortChannel Show commands](#portchannel-show-commands)
@@ -2509,6 +2510,37 @@ This command displays a list of NTP peers known to the server as well as a summa
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#NTP)
 
+# PFC Watchdog Commands
+
+**config pfcwd start \<arguments\>**
+
+This command starts PFC Watchdog
+
+  - Usage:  
+    config pfcwd start --action drop ports all detection-time 400 --restoration-time 400  
+    config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+
+
+**config pfcwd stop**
+
+This command stops PFC Watchdog
+
+  - Usage:  
+    config pfcwd stop
+
+**show pfcwd config**
+
+This command shows current PFC Watchdog configuration
+
+  - Usage:  
+    show pfcwd config
+
+**show pfcwd stats**
+
+This command shows current PFC Watchdog statistics (storms detected, packets dropped, etc)
+
+  - Usage:  
+    show pfcwd stats
 
 # Platform Specific Commands
 
