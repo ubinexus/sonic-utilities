@@ -1445,8 +1445,12 @@ def del_ntp_server(ctx, ntp_ip_address):
     if not is_ipaddress(ntp_ip_address):
         ctx.fail('Invalid IP address')
     db = ctx.obj['db']
-    db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
-    click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
+    ntp_servers = db.get_table("NTP_SERVER")
+    if ntp_ip_address in ntp_servers:
+        db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
+        click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
+    else: 
+        ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
     try:
         click.echo("Restarting ntp-config service...")
         run_command("systemctl restart ntp-config", display_cmd=False)
