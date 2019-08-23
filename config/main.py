@@ -661,6 +661,45 @@ def stop(verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.argument('poll_interval', type=click.IntRange(100, 3000))
+def interval(poll_interval, verbose):
+    """ Set PFC watchdog counter polling interval (ms) """
+
+    cmd = "pfcwd interval {}".format(poll_interval)
+
+    run_command(cmd, display_cmd=verbose)
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
+def counter_poll(counter_poll, verbose):
+    """ Enable/disable counter polling """
+
+    cmd = "pfcwd counter_poll {}".format(counter_poll)
+
+    run_command(cmd, display_cmd=verbose)
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
+def big_red_switch(big_red_switch, verbose):
+    """ Enable/disable BIG_RED_SWITCH mode """
+
+    cmd = "pfcwd big_red_switch {}".format(big_red_switch)
+
+    run_command(cmd, display_cmd=verbose)
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def start_default(verbose):
+    """ Start PFC WD by default configurations  """
+
+    cmd = "pfcwd start_default"
+
+    run_command(cmd, display_cmd=verbose)
+
 #
 # 'qos' group ('config qos ...')
 #

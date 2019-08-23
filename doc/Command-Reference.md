@@ -2528,6 +2528,34 @@ This command stops PFC Watchdog
   - Usage:  
     config pfcwd stop
 
+**config pfcwd interval \<interval_in_ms\>**
+
+This command sets PFC Watchdog counter polling interval (in ms)
+
+  - Usage:
+    config pfcwd interval 200
+
+**config pfcwd counter_poll \<enable/disable\>**
+
+This command enables or disables PFCWD related counters polling
+
+  - Usage:
+    config pfcwd counter_poll disable
+
+**config pfcwd big_red_switch \<enable/disable\>**
+
+This command enables or disables PFCWD's "BIG RED SWITCH"(BRS). After enabling BRS PFC Watchdog will be activated on all ports/queues it is configured for no matter whether the storm was detected or not
+
+  - Usage:
+    config pfcwd big_red_switch enable
+
+**config pfcwd start_default**
+
+This command starts PFC Watchdog with the default settings
+
+  - Usage:
+    config pfcwd start_default
+
 **show pfcwd config**
 
 This command shows current PFC Watchdog configuration
