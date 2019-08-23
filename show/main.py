@@ -58,8 +58,8 @@ class InterfaceAliasConverter(object):
         self.port_dict = config_db.get_table('PORT')
 
         if not self.port_dict:
-            click.echo("port_dict is None!")
-            raise click.Abort()
+            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
+            self.port_dict = {}
 
         for port_name in self.port_dict.keys():
             try:
@@ -198,6 +198,15 @@ def get_interface_mode():
     if mode is None:
         mode = "default"
     return mode
+
+
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
 
 
 # Global class instance for SONiC interface name to alias conversion
@@ -418,6 +427,43 @@ def interfaces():
     """Show details of the network interfaces"""
     pass
 
+# 'alias' subcommand ("show interfaces alias")
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def alias(interfacename):
+    """Show Interface Name/Alias Mapping"""
+
+    cmd = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+
+    port_dict = json.loads(p.stdout.read())
+
+    header = ['Name', 'Alias']
+    body = []
+
+    if interfacename is not None:
+        if get_interface_mode() == "alias":
+            interfacename = iface_alias_converter.alias_to_name(interfacename)
+
+        # If we're given an interface name, output name and alias for that interface only
+        if interfacename in port_dict:
+            if 'alias' in port_dict[interfacename]:
+                body.append([interfacename, port_dict[interfacename]['alias']])
+            else:
+                body.append([interfacename, interfacename])
+        else:
+            click.echo("Invalid interface name, '{0}'".format(interfacename))
+            return
+    else:
+        # Output name and alias for all interfaces
+        for port_name in natsorted(port_dict.keys()):
+            if 'alias' in port_dict[port_name]:
+                body.append([port_name, port_dict[port_name]['alias']])
+            else:
+                body.append([port_name, port_name])
+
+    click.echo(tabulate(body, header))
+
 #
 # 'neighbor' group ###
 #
@@ -449,35 +495,34 @@ def expected(interfacename):
 
     #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
-    for port in natsorted(neighbor_dict.keys()):
+    for port in natsorted(neighbor_dict['DEVICE_NEIGHBOR'].keys()):
         temp_port = port
         if get_interface_mode() == "alias":
             port = iface_alias_converter.name_to_alias(port)
-            neighbor_dict[port] = neighbor_dict.pop(temp_port)
-        device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
+            neighbor_dict['DEVICE_NEIGHBOR'][port] = neighbor_dict['DEVICE_NEIGHBOR'].pop(temp_port)
+        device2interface_dict[neighbor_dict['DEVICE_NEIGHBOR'][port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict['DEVICE_NEIGHBOR'][port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
     if interfacename:
-        for device in natsorted(neighbor_metadata_dict.keys()):
+        for device in natsorted(neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'].keys()):
             if device2interface_dict[device]['localPort'] == interfacename:
                 body.append([device2interface_dict[device]['localPort'],
                              device,
                              device2interface_dict[device]['neighborPort'],
-                             neighbor_metadata_dict[device]['lo_addr'],
-                             neighbor_metadata_dict[device]['mgmt_addr'],
-                             neighbor_metadata_dict[device]['type']])
+                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['lo_addr'],
+                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['mgmt_addr'],
+                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['type']])
     else:
-        for device in natsorted(neighbor_metadata_dict.keys()):
+        for device in natsorted(neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'].keys()):
             body.append([device2interface_dict[device]['localPort'],
                          device,
                          device2interface_dict[device]['neighborPort'],
-                         neighbor_metadata_dict[device]['lo_addr'],
-                         neighbor_metadata_dict[device]['mgmt_addr'],
-                         neighbor_metadata_dict[device]['type']])
+                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['lo_addr'],
+                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['mgmt_addr'],
+                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['type']])
 
     click.echo(tabulate(body, header))
-
 
 @interfaces.group(cls=AliasedGroup, default_if_no_args=False)
 def transceiver():
@@ -897,15 +942,16 @@ def get_if_oper_state(iface):
 #
 # 'show ip interfaces' command
 #
-# Display all interfaces with an IPv4 address and their admin/oper states.
+# Display all interfaces with an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
 @ip.command()
 def interfaces():
     """Show interfaces IPv4 address"""
-    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper']
+    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
+    bgp_peer = get_bgp_peer()
 
     interfaces = natsorted(netifaces.interfaces())
 
@@ -915,8 +961,16 @@ def interfaces():
         if netifaces.AF_INET in ipaddresses:
             ifaddresses = []
             for ipaddr in ipaddresses[netifaces.AF_INET]:
+                neighbor_name = 'N/A'
+                neighbor_ip = 'N/A'
+                local_ip = str(ipaddr['addr'])
                 netmask = netaddr.IPAddress(ipaddr['netmask']).netmask_bits()
-                ifaddresses.append(["", str(ipaddr['addr']) + "/" + str(netmask)])
+                ifaddresses.append(["", local_ip + "/" + str(netmask)])
+                try:
+                    neighbor_name = bgp_peer[local_ip][0]
+                    neighbor_ip = bgp_peer[local_ip][1]
+                except:
+                    pass
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -928,13 +982,32 @@ def interfaces():
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
 
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
 
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
+# get bgp peering info
+def get_bgp_peer():
+    """
+    collects local and bgp neighbor ip along with device name in below format
+    {
+     'local_addr1':['neighbor_device1_name', 'neighbor_device1_ip'],
+     'local_addr2':['neighbor_device2_name', 'neighbor_device2_ip']
+     }
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('BGP_NEIGHBOR')
+    bgp_peer = {}
+
+    for neighbor_ip in data.keys():
+        local_addr = data[neighbor_ip]['local_addr']
+        neighbor_name = data[neighbor_ip]['name']
+        bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
+    return bgp_peer
 
 #
 # 'route' subcommand ("show ip route")
@@ -993,7 +1066,7 @@ def ipv6():
 #
 # 'show ipv6 interfaces' command
 #
-# Display all interfaces with an IPv6 address and their admin/oper states.
+# Display all interfaces with an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
@@ -1002,6 +1075,7 @@ def interfaces():
     """Show interfaces IPv6 address"""
     header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
     data = []
+    bgp_peer = get_bgp_peer()
 
     interfaces = natsorted(netifaces.interfaces())
 
@@ -1011,8 +1085,16 @@ def interfaces():
         if netifaces.AF_INET6 in ipaddresses:
             ifaddresses = []
             for ipaddr in ipaddresses[netifaces.AF_INET6]:
+                neighbor_name = 'N/A'
+                neighbor_ip = 'N/A'
+                local_ip = str(ipaddr['addr'])
                 netmask = ipaddr['netmask'].split('/', 1)[-1]
-                ifaddresses.append(["", str(ipaddr['addr']) + "/" + str(netmask)])
+                ifaddresses.append(["", local_ip + "/" + str(netmask)])
+                try:
+                    neighbor_name = bgp_peer[local_ip][0]
+                    neighbor_ip = bgp_peer[local_ip][1]
+                except:
+                    pass
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -1022,7 +1104,7 @@ def interfaces():
                     oper = "down"
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper], neighbor_name, neighbor_ip)
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
@@ -1338,16 +1420,16 @@ def acl(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-# 'interface' subcommand ("show runningconfiguration interface <interfacename>")
+# 'ports' subcommand ("show runningconfiguration ports <portname>")
 @runningconfiguration.command()
-@click.argument('interfacename', required=False)
+@click.argument('portname', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def interface(interfacename, verbose):
-    """Show port running configuration"""
+def ports(portname, verbose):
+    """Show ports running configuration"""
     cmd = "sonic-cfggen -d --var-json PORT"
 
-    if interfacename is not None:
-        cmd += " {0} {1}".format("--interface", interfacename)
+    if portname is not None:
+        cmd += " {0} {1}".format("--key", portname)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1367,10 +1449,10 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def interfaces(interfacename, verbose):
     """Show interfaces running configuration"""
-    cmd = "cat /etc/network/interfaces"
+    cmd = "sonic-cfggen -d --var-json INTERFACE"
 
     if interfacename is not None:
-        cmd += " | grep {} -A 4".format(interfacename)
+        cmd += " {0} {1}".format("--key", interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1503,7 +1585,7 @@ def brief(verbose):
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
-        if len(key) == 1:
+        if not is_ip_prefix_in_key(key):
             continue
         interface_key = str(key[0].strip("Vlan"))
         interface_value = str(key[1])

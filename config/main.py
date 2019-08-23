@@ -287,44 +287,85 @@ def _abort_if_false(ctx, param, value):
         ctx.abort()
 
 def _stop_services():
-    services = [
-        'dhcp_relay',
+    services_to_stop = [
         'swss',
-        'snmp',
         'lldp',
         'pmon',
         'bgp',
-        'teamd',
         'hostcfgd',
     ]
-    for service in services:
+
+    for service in services_to_stop:
         try:
-            run_command("systemctl stop %s" % service, display_cmd=True)
+            click.echo("Stopping service {} ...".format(service))
+            run_command("systemctl stop {}".format(service))
+
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
             raise
 
+def _reset_failed_services():
+    services_to_reset = [
+        'bgp',
+        'dhcp_relay',
+        'hostcfgd',
+        'hostname-config',
+        'interfaces-config',
+        'lldp',
+        'ntp-config',
+        'pmon',
+        'radv',
+        'rsyslog-config',
+        'snmp',
+        'swss',
+        'syncd',
+        'teamd'
+    ]
+
+    command = "systemctl --failed | grep failed | awk '{ print $2 }' | awk -F'.' '{ print $1 }'"
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    failed_services = out.rstrip('\n').split('\n')
+
+    for service in failed_services:
+        if service in services_to_reset:
+            try:
+                click.echo("Resetting failed service {} ...".format(service))
+                run_command("systemctl reset-failed {}".format(service))
+            except SystemExit as e:
+                log_error("Failed to reset service {}".format(service))
+                raise
+
 def _restart_services():
-    services = [
+    services_to_restart = [
         'hostname-config',
         'interfaces-config',
         'ntp-config',
         'rsyslog-config',
         'swss',
         'bgp',
-        'teamd',
         'pmon',
         'lldp',
-        'snmp',
-        'dhcp_relay',
         'hostcfgd',
     ]
-    for service in services:
+
+    for service in services_to_restart:
         try:
-            run_command("systemctl restart %s" % service, display_cmd=True)
+            click.echo("Restarting service {} ...".format(service))
+            run_command("systemctl restart {}".format(service))
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
+
+def is_ipaddress(val):
+    """ Validate if an entry is a valid IP """
+    if not val:
+        return False
+    try:
+        netaddr.IPAddress(str(val))
+    except:
+        return False
+    return True
 
 # This is our main entrypoint - the main 'config' command
 @click.group()
@@ -394,6 +435,9 @@ def reload(filename, yes, load_sysinfo):
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         run_command(db_migrator + ' -o migrate')
 
+    # We first run "systemctl reset-failed" to remove the "failed"
+    # status from all services before we attempt to restart them
+    _reset_failed_services()
     _restart_services()
 
 @config.command()
@@ -450,6 +494,9 @@ def load_minigraph():
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         run_command(db_migrator + ' -o set_version')
 
+    # We first run "systemctl reset-failed" to remove the "failed"
+    # status from all services before we attempt to restart them
+    _reset_failed_services()
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
     _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
@@ -788,6 +835,65 @@ def del_vlan_member(ctx, vid, interface_name):
     db.set_entry('VLAN', vlan_name, vlan)
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
+@vlan.group('dhcp_relay')
+@click.pass_context
+def vlan_dhcp_relay(ctx):
+    pass
+
+@vlan_dhcp_relay.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
+@click.pass_context
+def add_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
+    """ Add a destination IP address to the VLAN's DHCP relay """
+    if not is_ipaddress(dhcp_relay_destination_ip):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    dhcp_relay_dests = vlan.get('dhcp_servers', [])
+    if dhcp_relay_destination_ip in dhcp_relay_dests:
+        click.echo("{} is already a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
+        return
+    else:
+        dhcp_relay_dests.append(dhcp_relay_destination_ip)
+        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
+        try:
+            click.echo("Restarting DHCP relay service...")
+            run_command("systemctl restart dhcp_relay", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
+
+@vlan_dhcp_relay.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
+@click.pass_context
+def del_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
+    """ Remove a destination IP address from the VLAN's DHCP relay """
+    if not is_ipaddress(dhcp_relay_destination_ip):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    dhcp_relay_dests = vlan.get('dhcp_servers', [])
+    if dhcp_relay_destination_ip in dhcp_relay_dests:
+        dhcp_relay_dests.remove(dhcp_relay_destination_ip)
+        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
+        try:
+            click.echo("Restarting DHCP relay service...")
+            run_command("systemctl restart dhcp_relay", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
+    else:
+        ctx.fail("{} is not a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
 
 #
 # 'bgp' group ('config bgp ...')
@@ -955,10 +1061,13 @@ def add(ctx, interface_name, ip_addr):
         ipaddress.ip_network(unicode(ip_addr), strict=False)
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+            config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
         elif interface_name.startswith("PortChannel"):
             config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+            config_db.set_entry("PORTCHANNEL_INTERFACE", interface_name, {"NULL": "NULL"})
         elif interface_name.startswith("Vlan"):
             config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+            config_db.set_entry("VLAN_INTERFACE", interface_name, {"NULL": "NULL"})
         elif interface_name.startswith("Loopback"):
             config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
         else:
@@ -982,20 +1091,38 @@ def remove(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
+    if_table = ""
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
+            if_table = "INTERFACE"
         elif interface_name.startswith("PortChannel"):
             config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
+            if_table = "PORTCHANNEL_INTERFACE"
         elif interface_name.startswith("Vlan"):
             config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
+            if_table = "VLAN_INTERFACE"
         elif interface_name.startswith("Loopback"):
             config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
         else:
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
+    
+    exists = False
+    if if_table:
+        interfaces = config_db.get_table(if_table)
+        for key in interfaces.keys():
+            if not isinstance(key, tuple):
+                continue
+            if interface_name in key:
+                exists = True
+                break
+
+    if not exists:
+        config_db.set_entry(if_table, interface_name, None)
+
 #
 # 'acl' group ('config acl ...')
 #
@@ -1228,6 +1355,54 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
+#
+# 'syslog' group ('config syslog ...')
+#
+@config.group()
+@click.pass_context
+def syslog(ctx):
+    """Syslog server configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@syslog.command('add')
+@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
+@click.pass_context
+def add_syslog_server(ctx, syslog_ip_address):
+    """ Add syslog server IP """
+    if not is_ipaddress(syslog_ip_address):
+        ctx.fail('Invalid ip address')
+    db = ctx.obj['db']
+    syslog_servers = db.get_table("SYSLOG_SERVER")
+    if syslog_ip_address in syslog_servers:
+        click.echo("Syslog server {} is already configured".format(syslog_ip_address))
+        return
+    else: 
+        db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
+        click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
+        try:
+            click.echo("Restarting rsyslog-config service...")
+            run_command("systemctl restart rsyslog-config", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
+
+@syslog.command('del')
+@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
+@click.pass_context
+def del_syslog_server(ctx, syslog_ip_address):
+    """ Delete syslog server IP """
+    if not is_ipaddress(syslog_ip_address):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
+    click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
+    try:
+        click.echo("Restarting rsyslog-config service...")
+        run_command("systemctl restart rsyslog-config", display_cmd=False)
+    except SystemExit as e:
+        ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
 
 if __name__ == '__main__':
     config()
