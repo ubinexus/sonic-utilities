@@ -3010,7 +3010,11 @@ This command displays the running configuration of the ntp module.
 
 - Example:
   ```
-  admin@sonic:~$ show runningconfiguration ntp
+  admin@str-s6000-acs-11:~$ show run ntp
+  NTP Servers
+  -------------
+  1.1.1.1
+  2.2.2.2
   ```
 
 **show runningconfiguration syslog**
