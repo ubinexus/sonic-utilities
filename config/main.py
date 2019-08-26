@@ -1356,6 +1356,25 @@ def naming_mode_alias():
     set_interface_naming_mode('alias')
 
 #
+# 'assert' group ('config assert ...')
+#
+@config.group()
+def custom_assert():
+        """Configuration action on assert"""
+        pass
+
+@custom_assert.command()
+@click.argument('action', metavar='<action>', default='ABORT', required=False,
+        type=click.Choice(['SYSLOG', 'BTRACE', 'DUMP', 'ABORT']))
+def action(action):
+    """ Configure the action to execute when assert condition is false"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    table = "DEBUGFM_CONFIG_TABLE"
+    key = "ASSERTACT"
+    config_db.set_entry(table, key, {"ASSERTACT": action})
+
+#
 # 'syslog' group ('config syslog ...')
 #
 @config.group()
