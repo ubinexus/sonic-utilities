@@ -3028,7 +3028,6 @@ This command displays the running configuration of the syslog module.
   ----------------
   4.4.4.4
   5.5.5.5
-  admin@str-s6000-acs-11:~$  
   ```
 
 
