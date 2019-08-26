@@ -2959,6 +2959,7 @@ This sub-section explains the show commands for displaying the running configura
 5) all
 6) acl
 7) ports
+8) syslog
 
 **show runningconfiguration all**
 
@@ -3011,6 +3012,20 @@ This command displays the running configuration of the ntp module.
   ```
   admin@sonic:~$ show runningconfiguration ntp
   ```
+
+**show runningconfiguration syslog**
+
+This command displays the running configuration of the syslog module. 
+
+  - Usage:
+    show runningconfiguration syslog
+
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration syslog
+  ```
+
 
 **show runningconfiguration snmp**
 
