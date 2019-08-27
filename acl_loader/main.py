@@ -57,7 +57,7 @@ class PacketAction:
 
 
 class Stage:
-    """ namespace for ACL stage """
+    """ namespace for ACL stages """
 
     INGRESS = "INGRESS"
     EGRESS  = "EGRESS"
