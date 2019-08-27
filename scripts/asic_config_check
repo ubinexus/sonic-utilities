@@ -19,7 +19,8 @@ function debug()
 
 # Retrieve the source ASIC config checksum from the source image
 # Exits with error SRC_ASIC_CONFIG_NOT_FOUND if the checksum is not found
-function GetSourceASICConfigChecksum() {
+function GetSourceASICConfigChecksum()
+{
     if [[ ! -f "/etc/sonic/asic_config_checksum" ]]; then
             error "ASIC config not found in src image, can't verify changes"
             exit "${SRC_ASIC_CONFIG_NOT_FOUND}"
@@ -28,7 +29,8 @@ function GetSourceASICConfigChecksum() {
 
 # Retrieve the destination ASIC config checksum from the destination image
 # Exits with error DST_ASIC_CONFIG_NOT_FOUND if the checksum is not found
-function GetDestinationASICConfigChecksum() {
+function GetDestinationASICConfigChecksum()
+{
     DST_IMAGE_PATH="/host/image-${DST_SONIC_IMAGE#SONiC-OS-}"
     FS_PATH="${DST_IMAGE_PATH}/fs.squashfs"
     FS_MOUNTPOINT="/tmp/image-${DST_SONIC_IMAGE#SONiC-OS-}-fs"
@@ -56,7 +58,8 @@ function GetDestinationASICConfigChecksum() {
 
 # Confirm that the src and dst ASIC config checksums match
 # Exits with ASIC_CONFIG_CHANGED if the checksums differ
-function ConfirmASICConfigChecksumsMatch() {
+function ConfirmASICConfigChecksumsMatch()
+{
     SRC_CONFIG_CHECKSUM=$(cat /etc/sonic/asic_config_checksum)
     DST_CONFIG_CHECKSUM=$(cat /tmp/dst_asic_config_checksum)
     if [[ "${SRC_CONFIG_CHECKSUM}" != "${DST_CONFIG_CHECKSUM}" ]]; then
