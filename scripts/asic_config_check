@@ -10,6 +10,7 @@ DST_ASIC_CONFIG_NOT_FOUND=3
 function error()
 {
     logger -p user.err "$@"
+    echo $@ >&2
 }
 
 function debug()
@@ -69,7 +70,7 @@ function ConfirmASICConfigChecksumsMatch()
 }
 
 # Main starts here
-debug "Checking if ASIC config has changed"
+debug "Checking that ASIC configuration has not changed"
 
 SRC_SONIC_IMAGE="$(sonic_installer list | grep "Current: " | cut -f2 -d' ')"
 DST_SONIC_IMAGE="$(sonic_installer list | grep "Next: " | cut -f2 -d' ')"

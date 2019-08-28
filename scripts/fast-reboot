@@ -253,14 +253,7 @@ function reboot_pre_check()
     
     # Make sure ASIC configuration has not changed between images
     ASIC_CONFIG_CHECK_SCRIPT="/usr/bin/asic_config_check"
-    ASIC_CONFIG_CHECK_SUCCESS=0
-
-    debug "Checking that ASIC configuration has not changed"
-    ${ASIC_CONFIG_CHECK_SCRIPT} || ASIC_CONFIG_CHECK_EXIT_CODE=$?
-    if [[ "${ASIC_CONFIG_CHECK_EXIT_CODE}" != "${ASIC_CONFIG_CHECK_SUCCESS}" ]]; then
-        error "ASIC config may have changed: errno=${ASIC_CONFIG_CHECK_EXIT_CODE}"
-        exit "${EXIT_FAILURE}"
-    fi
+    ${ASIC_CONFIG_CHECK_SCRIPT}
 }
 
 function unload_kernel()
