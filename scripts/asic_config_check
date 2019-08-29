@@ -10,7 +10,6 @@ DST_ASIC_CONFIG_NOT_FOUND=3
 function error()
 {
     logger -p user.err "$@"
-    echo $@ >&2
 }
 
 function debug()
