@@ -238,6 +238,14 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(ip_addr, status, verbose)
 
+def _remove_bgp_neighbor_config(neighbor_ip):
+    """Removes BGP configuration of the given neighbor
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry('bgp_neighbor', neighbor_ip, None)
+    click.echo("Removed configuration of BGP neighbor {}".format(neighbor_ip))
+
 def _change_hostname(hostname):
     current_hostname = os.uname()[1]
     if current_hostname != hostname:
@@ -951,6 +959,29 @@ def all(verbose):
 def neighbor(ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
     _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
+
+#
+# 'remove' subgroup ('config bgp remove ...')
+#
+
+@bgp.group()
+def remove():
+    "Remove BGP neighbor configuration from the device"
+    pass
+
+@remove.command('neighbor_ip')
+@click.argument('neighbor_ip', metavar='<neighbor_ip>', required=True)
+def remove_neighbor_with_ip(neighbor_ip):
+    """Deletes BGP neighbor configuration of given ip from devices"""
+    _remove_bgp_neighbor_config(neighbor_ip)
+
+@remove.command('neighbor_name')
+@click.argument('neighbor_name', metavar='<neighbor_name>', required=True)
+def remove_neighbor_with_name(neighbor_name):
+    """Deletes BGP neighbor configuration of given hostname from devices"""
+    bgp_neighbor_ip_list = _get_neighbor_ipaddress_list_by_hostname(neighbor_name)
+    for ipaddress in bgp_neighbor_ip_list:
+        _remove_bgp_neighbor_config(ipaddress)
 
 #
 # 'interface' group ('config interface ...')
