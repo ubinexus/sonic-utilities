@@ -1451,6 +1451,9 @@ The list of possible BGP config commands are given below.
         startup
             all
             neighbor
+        remove
+            neighbor_ip
+            neighbor_name
 
 **config bgp shut down all**
 
@@ -1507,6 +1510,32 @@ This command is used to start up the particular IPv4 or IPv6 BGP neighbor using 
   ```
   ```
   admin@sonic:~$ sudo config bgp startup neighbor SONIC02SPINE
+  ```
+
+
+**config bgp remove neighbor_ip <neighbor_ip>**
+
+This command is used to remove particular IPv4 or IPv6 BGP neighbor configuration.
+
+  - Usage:
+    sudo config bgp remove neighbor_ip <neighbor_ip>
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config bgp remove neighbor_ip 192.168.1.124
+  ```
+
+
+**config bgp remove neighbor_name <neighbor_name>**
+
+This command is used to remove particular neighbor device's IPv4 and IPv6 BGP configuration.
+
+  - Usage:
+    sudo config bgp remove neighbor_ip <neighbor_name>
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config bgp remove neighbor_name SONIC02SPINE
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#BGP-Configuration-And-Show-Commands)
