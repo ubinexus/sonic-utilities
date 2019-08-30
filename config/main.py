@@ -181,6 +181,23 @@ def get_interface_naming_mode():
         mode = "default"
     return mode
 
+def is_ipaddress_overlapped(ip_addr):
+    """Check if the ip address overlapped with existing networks
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    interface_dict = config_db.get_table('INTERFACE')
+    interface_dict.update(config_db.get_table('PORTCHANNEL_INTERFACE'))
+    interface_dict.update(config_db.get_table('VLAN_INTERFACE'))
+    interface_dict.update(config_db.get_table('LOOPBACK_INTERFACE'))
+    ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
+    for key in interface_dict.keys():
+        if not isinstance(key, tuple):
+            continue
+        if ipaddress.ip_network(unicode(key[1]), strict=False).overlaps(ip_network):
+            return True
+    return False
+
 def _is_neighbor_ipaddress(ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
     """
@@ -1058,7 +1075,11 @@ def add(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is None!")
 
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if not interface_name.startswith("Loopback") and ip_network.prefixlen == ip_network.max_prefixlen:
+            ctx.fail("Bad mask /{} for 'ip_addr'".format(ip_network.max_prefixlen))
+        if is_ipaddress_overlapped(ip_addr):
+            ctx.fail("'ip_addr' overlaps with existing subnet")
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
             config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
@@ -1093,7 +1114,9 @@ def remove(ctx, interface_name, ip_addr):
 
     if_table = ""
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if not interface_name.startswith("Loopback") and ip_network.prefixlen == ip_network.max_prefixlen:
+            ctx.fail("Bad mask /{} for 'ip_addr'".format(ip_network.max_prefixlen))
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
             if_table = "INTERFACE"
