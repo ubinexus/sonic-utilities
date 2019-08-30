@@ -1542,7 +1542,28 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ntp(verbose):
     """Show NTP information"""
-    cmd = "ntpq -p -n"
+    cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocc
+ess.PIPE)
+    res = p.communicate()
+    if p.returncode == 0 :
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subb
+process.PIPE)
+        mvrf_dict = json.loads(p.stdout.read())
+
+        # if the mgmtVrfEnabled attribute is configured, check the value
+        # and print Enabled or Disabled accordingly.
+        if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+            if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
+                #ManagementVRF is enabled. Call ntpq using cgexec
+                cmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+            else:
+                #ManagementVRF is disabled. Call ntpq without cgexec
+                cmd = "ntpq -p -n"
+        else:
+            cmd = "ntpq -p -n"
+
     run_command(cmd, display_cmd=verbose)
 
 
