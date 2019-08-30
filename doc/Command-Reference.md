@@ -1531,7 +1531,7 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
 This command is used to remove particular neighbor device's IPv4 and IPv6 BGP configuration.
 
   - Usage:
-    sudo config bgp remove neighbor_ip <neighbor_name>
+    sudo config bgp remove neighbor_name <neighbor_name>
 
 - Examples:
   ```
