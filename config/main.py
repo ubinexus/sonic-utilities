@@ -241,6 +241,10 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
 def _remove_bgp_neighbor_config(neighbor_ip):
     """Removes BGP configuration of the given neighbor
     """
+    neighbor_ip = neighbor_ip.lower()
+    if not is_ipaddress(neighbor_ip):
+        click.echo("{} is not a valid neighbor address".format(neighbor_ip))
+        return
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.mod_entry('bgp_neighbor', neighbor_ip, None)
@@ -979,7 +983,7 @@ def remove_neighbor_with_ip(neighbor_ip):
 @click.argument('neighbor_name', metavar='<neighbor_name>', required=True)
 def remove_neighbor_with_name(neighbor_name):
     """Deletes BGP neighbor configuration of given hostname from devices"""
-    bgp_neighbor_ip_list = _get_neighbor_ipaddress_list_by_hostname(neighbor_name)
+    bgp_neighbor_ip_list = _get_neighbor_ipaddress_list_by_hostname(neighbor_name.upper())
     for ipaddress in bgp_neighbor_ip_list:
         _remove_bgp_neighbor_config(ipaddress)
 
