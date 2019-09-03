@@ -1917,7 +1917,7 @@ def config(redis_unix_socket_path):
 # 'ztp status' command ("show ztp status")
 #
 @cli.command()
-@click.argument('status', required=False)
+@click.argument('status', required=False, type=click.Choice(["status"]))
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ztp(status, verbose):
     """Show Zero Touch Provisioning status"""

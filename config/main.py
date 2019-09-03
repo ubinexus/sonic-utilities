@@ -1256,7 +1256,7 @@ def ztp():
 @ztp.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='ZTP will be restarted. You may lose switch data and connectivity, continue?')
-@click.argument('run', required=False)
+@click.argument('run', required=False, type=click.Choice(["run"]))
 def run(run):
     """Restart ZTP of the device."""
     command = "ztp run -y"
@@ -1265,14 +1265,14 @@ def run(run):
 @ztp.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Active ZTP session will be stopped and disabled, continue?')
-@click.argument('disable', required=False)
+@click.argument('disable', required=False, type=click.Choice(["disable"]))
 def disable(disable):
     """Administratively Disable ZTP."""
     command = "ztp disable -y"
     run_command(command, display_cmd=True)
 
 @ztp.command()
-@click.argument('enable', required=False)
+@click.argument('enable', required=False, type=click.Choice(["enable"]))
 def enable(enable):
     """Administratively Enable ZTP."""
     command = "ztp enable"
