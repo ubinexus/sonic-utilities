@@ -413,7 +413,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # then immediately call `systemctl stop teamd` to prevent the service from
     # restarting the container automatically.
     # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -INT teamd
+    docker exec -i teamd pkill -INT teamd || [ $? == 1 ]
     docker kill teamd > /dev/null
     systemctl stop teamd
 fi
