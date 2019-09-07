@@ -1077,9 +1077,9 @@ def add(ctx, interface_name, ip_addr):
     try:
         ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
         if not interface_name.startswith("Loopback") and ip_network.prefixlen == ip_network.max_prefixlen:
-            ctx.fail("Bad mask /{} for 'ip_addr'".format(ip_network.max_prefixlen))
+            ctx.fail("Bad mask /{} for IP address {}".format(ip_network.max_prefixlen, ip_addr))
         if is_ipaddress_overlapped(ip_addr):
-            ctx.fail("'ip_addr' overlaps with existing subnet")
+            ctx.fail("IP address {} overlaps with existing subnet".format(ip_addr))
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
             config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
@@ -1116,7 +1116,7 @@ def remove(ctx, interface_name, ip_addr):
     try:
         ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
         if not interface_name.startswith("Loopback") and ip_network.prefixlen == ip_network.max_prefixlen:
-            ctx.fail("Bad mask /{} for 'ip_addr'".format(ip_network.max_prefixlen))
+            ctx.fail("Bad mask /{} for IP address {}".format(ip_network.max_prefixlen, ip_addr))
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
             if_table = "INTERFACE"
