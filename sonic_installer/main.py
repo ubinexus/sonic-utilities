@@ -8,6 +8,7 @@ import sys
 import time
 import click
 import urllib
+import syslog
 import subprocess
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
@@ -53,11 +54,62 @@ def reporthook(count, block_size, total_size):
                                   (percent, progress_size / (1024 * 1024), speed, time_left))
     sys.stdout.flush()
 
-def get_image_type():
+def get_running_image_type():
+    """ Attempt to determine whether we are running an ONIE or Aboot image """
     cmdline = open('/proc/cmdline', 'r')
     if "Aboot=" in cmdline.read():
         return IMAGE_TYPE_ABOOT
     return IMAGE_TYPE_ONIE
+
+# Returns None if image doesn't exist or isn't a regular file
+def get_binary_image_type(binary_image_path):
+    """ Attempt to determine whether this is an ONIE or Aboot image file """
+    if not os.path.isfile(binary_image_path):
+        return None
+
+    with open(binary_image_path) as f:
+        # Aboot file is a zip archive; check the start of the file for the zip magic number
+        if f.read(4) == "\x50\x4b\x03\x04":
+           return IMAGE_TYPE_ABOOT
+    return IMAGE_TYPE_ONIE
+
+# Returns None if image doesn't exist or doesn't appear to be a valid SONiC image file
+def get_binary_image_version(binary_image_path):
+    binary_type = get_binary_image_type(binary_image_path)
+    if not binary_type:
+        return None
+    elif binary_type == IMAGE_TYPE_ABOOT:
+        p1 = subprocess.Popen(["unzip", "-p", binary_image_path, "boot0"], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["grep", "-m 1", "^image_name"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_name=\"\image-\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+    else:
+        p1 = subprocess.Popen(["cat", "-v", binary_image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["grep", "-m 1", "^image_version"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_version=\"\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+
+    stdout = p3.communicate()[0]
+    p3.wait()
+    version_num = stdout.rstrip('\n')
+
+    # If we didn't read a version number, this doesn't appear to be a valid SONiC image file
+    if len(version_num) == 0:
+        return None
+
+    return IMAGE_PREFIX + version_num
+
+# Sets specified image as default image to boot from
+def set_default_image(image):
+    images = get_installed_images()
+    if image not in images:
+        return False
+
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
+        image_path = aboot_image_path(image)
+        aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
+    else:
+        command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
+        run_command(command)
+    return True
 
 def aboot_read_boot_config(path):
     config = collections.OrderedDict()
@@ -100,7 +152,7 @@ def run_command(command):
 # Returns list of installed images
 def get_installed_images():
     images = []
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         for filename in os.listdir(HOST_PATH):
             if filename.startswith(IMAGE_DIR_PREFIX):
                 images.append(filename.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX))
@@ -123,7 +175,7 @@ def get_current_image():
 
 # Returns name of next boot image
 def get_next_image():
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         config = open(HOST_PATH + ABOOT_BOOT_CONFIG, 'r')
         next_image = re.search("SWI=flash:(\S+)/", config.read()).group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
         config.close()
@@ -143,7 +195,7 @@ def get_next_image():
     return next_image
 
 def remove_image(image):
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         nextimage = get_next_image()
         current = get_current_image()
         if image == nextimage:
@@ -214,6 +266,37 @@ def abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
 
+def get_container_image_name(container_name):
+    # example image: docker-lldp-sv2:latest
+    cmd = "docker inspect --format '{{.Config.Image}}' " + container_name
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    (out, err) = proc.communicate()
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
+    image_latest = out.rstrip()
+
+    # example image_name: docker-lldp-sv2
+    cmd = "echo " + image_latest + " | cut -d ':' -f 1"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    image_name = proc.stdout.read().rstrip()
+    return image_name
+
+def get_container_image_id(image_tag):
+    # TODO: extract commond docker info fetching functions
+    # this is image_id for image with tag, like 'docker-teamd:latest'
+    cmd = "docker images --format '{{.ID}}' " + image_tag
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    image_id = proc.stdout.read().rstrip()
+    return image_id
+
+def get_container_image_id_all(image_name):
+    # All images id under the image name like 'docker-teamd'
+    cmd = "docker images --format '{{.ID}}' " + image_name
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    image_id_all = proc.stdout.read()
+    image_id_all = image_id_all.splitlines()
+    image_id_all = set(image_id_all)
+    return image_id_all
 
 # Main entrypoint
 @click.group()
@@ -227,11 +310,13 @@ def cli():
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='New image will be installed, continue?')
+@click.option('-f', '--force', is_flag=True,
+        help="Force installation of an image of a type which differs from that of the current running image")
 @click.argument('url')
-def install(url):
+def install(url, force):
     """ Install image from local binary or URL"""
     cleanup_image = False
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         DEFAULT_IMAGE_PATH = ABOOT_DEFAULT_IMAGE_PATH
     else:
         DEFAULT_IMAGE_PATH = ONIE_DEFAULT_IMAGE_PATH
@@ -248,24 +333,39 @@ def install(url):
     else:
         image_path = os.path.join("./", url)
 
-    # Verify that the local file exists and is a regular file
-    # TODO: Verify the file is a *proper SONiC image file*
-    if not os.path.isfile(image_path):
-        click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+    running_image_type = get_running_image_type()
+    binary_image_type = get_binary_image_type(image_path)
+    binary_image_version = get_binary_image_version(image_path)
+    if not binary_image_type or not binary_image_version:
+        click.echo("Image file does not exist or is not a valid SONiC image file")
         raise click.Abort()
 
-    if get_image_type() == IMAGE_TYPE_ABOOT:
-        run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
-        run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
+    # Is this version already installed?
+    if binary_image_version in get_installed_images():
+        click.echo("Image {} is already installed. Setting it as default...".format(binary_image_version))
+        if not set_default_image(binary_image_version):
+            click.echo('Error: Failed to set image as default')
+            raise click.Abort()
     else:
-        os.chmod(image_path, stat.S_IXUSR)
-        run_command(image_path)
-        run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
-    run_command("rm -rf /host/old_config")
-    # copy directories and preserve original file structure, attributes and associated metadata
-    run_command("cp -ar /etc/sonic /host/old_config")
+        # Verify that the binary image is of the same type as the running image
+        if (binary_image_type != running_image_type) and not force:
+            click.echo("Image file '{}' is of a different type than running image.\n" +
+                       "If you are sure you want to install this image, use -f|--force.\n" +
+                       "Aborting...".format(image_path))
+            raise click.Abort()
 
-    # sync filesystem, keep at last step.
+        click.echo("Installing image {} and setting it as default...".format(binary_image_version))
+        if running_image_type == IMAGE_TYPE_ABOOT:
+            run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
+            run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
+        else:
+            run_command("bash " + image_path)
+            run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+        run_command("rm -rf /host/old_config")
+        # copy directories and preserve original file structure, attributes and associated metadata
+        run_command("cp -ar /etc/sonic /host/old_config")
+
+    # Finally, sync filesystem
     run_command("sync;sync;sync")
     run_command("sleep 3") # wait 3 seconds after sync
     click.echo('Done')
@@ -289,16 +389,9 @@ def list():
 @click.argument('image')
 def set_default(image):
     """ Choose image to boot from by default """
-    images = get_installed_images()
-    if image not in images:
-        click.echo('Image does not exist')
-        sys.exit(1)
-    if get_image_type() == IMAGE_TYPE_ABOOT:
-        image_path = aboot_image_path(image)
-        aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
-    else:
-        command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
-        run_command(command)
+    if not set_default_image(image):
+        click.echo('Error: Image does not exist')
+        raise click.Abort()
 
 
 # Set image for next boot
@@ -310,7 +403,7 @@ def set_next_boot(image):
     if image not in images:
         click.echo('Image does not exist')
         sys.exit(1)
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         image_path = aboot_image_path(image)
         aboot_boot_config_set(SWI=image_path)
     else:
@@ -341,36 +434,12 @@ def remove(image):
 @click.argument('binary_image_path')
 def binary_version(binary_image_path):
     """ Get version from local binary image file """
-    if not os.path.isfile(binary_image_path):
-        click.echo('Image file does not exist')
+    binary_version = get_binary_image_version(binary_image_path)
+    if not binary_version:
+        click.echo("Image file does not exist or is not a valid SONiC image file")
         sys.exit(1)
-
-    # Attempt to determine whether this is an ONIE or Aboot image
-    is_aboot = False
-
-    with open(binary_image_path) as f:
-        # Aboot file is a zip archive; check the start of the file for the zip magic number
-        if f.read(4) == "\x50\x4b\x03\x04":
-            is_aboot = True
-
-    if is_aboot:
-        p1 = subprocess.Popen(["unzip", "-p", binary_image_path, "boot0"], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p2 = subprocess.Popen(["grep", "-m 1", "^image_path"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p3 = subprocess.Popen(["sed", "-n", r"s/^image_path=\"\$target_path\/image-\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
     else:
-        p1 = subprocess.Popen(["cat", "-v", binary_image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p2 = subprocess.Popen(["grep", "-m 1", "^image_version"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p3 = subprocess.Popen(["sed", "-n", r"s/^image_version=\"\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-
-    stdout = p3.communicate()[0]
-    p3.wait()
-    version_num = stdout.rstrip('\n')
-
-    if len(version_num) == 0:
-        click.echo("File does not appear to be a vaild SONiC image file")
-        sys.exit(1)
-
-    click.echo(IMAGE_PREFIX + version_num)
+        click.echo(binary_version)
 
 # Remove installed images which are not current and next
 @cli.command()
@@ -396,26 +465,18 @@ def cleanup():
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='New docker image will be installed, continue?')
 @click.option('--cleanup_image', is_flag=True, help="Clean up old docker image")
-@click.option('--enforce_check', is_flag=True, help="Enforce pending task check for docker upgrade")
+@click.option('--skip_check', is_flag=True, help="Skip task check for docker upgrade")
 @click.option('--tag', type=str, help="Tag for the new docker image")
+@click.option('--warm', is_flag=True, help="Perform warm upgrade")
 @click.argument('container_name', metavar='<container_name>', required=True,
-    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd"]))
+    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon"]))
 @click.argument('url')
-def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
+def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
 
-    # example image: docker-lldp-sv2:latest
-    cmd = "docker inspect --format '{{.Config.Image}}' " + container_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    (out, err) = proc.communicate()
-    if proc.returncode != 0:
-        sys.exit(proc.returncode)
-    image_latest = out.rstrip()
-
-    # example image_name: docker-lldp-sv2
-    cmd = "echo " + image_latest + " | cut -d ':' -f 1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    image_name = proc.stdout.read().rstrip()
+    image_name = get_container_image_name(container_name)
+    image_latest = image_name + ":latest"
+    image_id_previous = get_container_image_id(image_latest)
 
     DEFAULT_IMAGE_PATH = os.path.join("/tmp/", image_name)
     if url.startswith('http://') or url.startswith('https://'):
@@ -436,7 +497,7 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
         click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
         raise click.Abort()
 
-    warm = False
+    warm_configured = False
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)
@@ -444,40 +505,56 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, container_name)
     if state_db.get(state_db.STATE_DB, _hash, "enable") == "true":
-        warm = True
+        warm_configured = True
     state_db.close(state_db.STATE_DB)
 
+    if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
+        if warm_configured == False and warm:
+           run_command("config warm_restart enable %s" % container_name)
+
+    # Fetch tag of current running image
+    tag_previous = get_docker_tag_name(image_latest)
+    # Load the new image beforehand to shorten disruption time
+    run_command("docker load < %s" % image_path)
+    warm_app_names = []
     # warm restart specific procssing for swss, bgp and teamd dockers.
-    if warm == True:
+    if warm_configured == True or warm:
         # make sure orchagent is in clean state if swss is to be upgraded
         if container_name == "swss":
-            skipPendingTaskCheck = " -s"
-            if enforce_check:
-                skipPendingTaskCheck = ""
+            skipPendingTaskCheck = ""
+            if skip_check:
+                skipPendingTaskCheck = " -s"
 
-            cmd = "docker exec -i swss orchagent_restart_check -w 1000 " + skipPendingTaskCheck
-            for i in range(1, 6):
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                (out, err) = proc.communicate()
-                if proc.returncode != 0:
-                    if enforce_check:
-                        click.echo("Orchagent is not in clean state, RESTARTCHECK failed {}".format(i))
-                        if i == 5:
-                            sys.exit(proc.returncode)
-                    else:
-                        click.echo("Orchagent is not in clean state, upgrading it anyway")
-                        break
+            cmd = "docker exec -i swss orchagent_restart_check -w 2000 -r 5 " + skipPendingTaskCheck
+
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            (out, err) = proc.communicate()
+            if proc.returncode != 0:
+                if not skip_check:
+                    click.echo("Orchagent is not in clean state, RESTARTCHECK failed")
+                    # Restore orignal config before exit
+                    if warm_configured == False and warm:
+                        run_command("config warm_restart disable %s" % container_name)
+                    # Clean the image loaded earlier
+                    image_id_latest = get_container_image_id(image_latest)
+                    run_command("docker rmi -f %s" % image_id_latest)
+                    # Re-point latest tag to previous tag
+                    run_command("docker tag %s:%s %s" % (image_name, tag_previous, image_latest))
+
+                    sys.exit(proc.returncode)
                 else:
-                    click.echo("Orchagent is in clean state and frozen for warm upgrade")
-                    break
-                run_command("sleep 1")
+                    click.echo("Orchagent is not in clean state, upgrading it anyway")
+            else:
+                click.echo("Orchagent is in clean state and frozen for warm upgrade")
+
+            warm_app_names = ["orchagent", "neighsyncd"]
 
         elif container_name == "bgp":
             # Kill bgpd to restart the bgp graceful restart procedure
             click.echo("Stopping bgp ...")
             run_command("docker exec -i bgp pkill -9 zebra")
             run_command("docker exec -i bgp pkill -9 bgpd")
-            run_command("sleep 2") # wait 2 seconds for bgp to settle down
+            warm_app_names = ["bgp"]
             click.echo("Stopped  bgp ...")
 
         elif container_name == "teamd":
@@ -485,38 +562,101 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
             # Send USR1 signal to all teamd instances to stop them
             # It will prepare teamd for warm-reboot
             run_command("docker exec -i teamd pkill -USR1 teamd > /dev/null")
-            run_command("sleep 2") # wait 2 seconds for teamd to settle down
+            warm_app_names = ["teamsyncd"]
             click.echo("Stopped  teamd ...")
 
-    run_command("systemctl stop %s" % container_name)
+        # clean app reconcilation state from last warm start if exists
+        for warm_app_name in warm_app_names:
+            cmd = "docker exec -i database redis-cli -n 6 hdel 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
+            run_command(cmd)
+
+    run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
-    run_command("docker rmi %s " % image_latest)
-    run_command("docker load < %s" % image_path)
     if tag == None:
         # example image: docker-lldp-sv2:latest
         tag = get_docker_tag_name(image_latest)
     run_command("docker tag %s:latest %s:%s" % (image_name, image_name, tag))
     run_command("systemctl restart %s" % container_name)
 
-    # Clean up old docker images
-    if cleanup_image:
-        # All images id under the image name
-        cmd = "docker images --format '{{.ID}}' " + image_name
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        image_id_all = proc.stdout.read()
-        image_id_all = image_id_all.splitlines()
-        image_id_all = set(image_id_all)
+    # All images id under the image name
+    image_id_all = get_container_image_id_all(image_name)
 
-        # this is image_id for image with "latest" tag
-        cmd = "docker images --format '{{.ID}}' " + image_latest
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        image_id_latest = proc.stdout.read().rstrip()
+    # this is image_id for image with "latest" tag
+    image_id_latest = get_container_image_id(image_latest)
 
-        for id in image_id_all:
-            if id != image_id_latest:
-                run_command("docker rmi -f %s" % id)
+    for id in image_id_all:
+        if id != image_id_latest:
+            # Unless requested, the previoud docker image will be preserved
+            if not cleanup_image and id == image_id_previous:
+                continue
+            run_command("docker rmi -f %s" % id)
 
-    run_command("sleep 5") # wait 5 seconds for application to sync
+    exp_state = "reconciled"
+    state = ""
+    # post warm restart specific procssing for swss, bgp and teamd dockers, wait for reconciliation state.
+    if warm_configured == True or warm:
+        count = 0
+        for warm_app_name in warm_app_names:
+            state = ""
+            cmd = "docker exec -i database redis-cli -n 6 hget 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
+            # Wait up to 180 seconds for reconciled state
+            while state != exp_state and count < 90:
+                sys.stdout.write("\r  {}: ".format(warm_app_name))
+                sys.stdout.write("[%-s" % ('='*count))
+                sys.stdout.flush()
+                count += 1
+                time.sleep(2)
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                state = proc.stdout.read().rstrip()
+                syslog.syslog("%s reached %s state"%(warm_app_name, state))
+            sys.stdout.write("]\n\r")
+            if state != exp_state:
+                click.echo("%s failed to reach %s state"%(warm_app_name, exp_state))
+                syslog.syslog(syslog.LOG_ERR, "%s failed to reach %s state"%(warm_app_name, exp_state))
+    else:
+        exp_state = ""  # this is cold upgrade
+
+    # Restore to previous cold restart setting
+    if warm_configured == False and warm:
+        if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
+            run_command("config warm_restart disable %s" % container_name)
+
+    if state == exp_state:
+        click.echo('Done')
+    else:
+        click.echo('Failed')
+        sys.exit(1)
+
+# rollback docker image
+@cli.command()
+@click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
+        expose_value=False, prompt='Docker image will be rolled back, continue?')
+@click.argument('container_name', metavar='<container_name>', required=True,
+    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon"]))
+def rollback_docker(container_name):
+    """ Rollback docker image to previous version"""
+    image_name = get_container_image_name(container_name)
+    # All images id under the image name
+    image_id_all = get_container_image_id_all(image_name)
+    if len(image_id_all) != 2:
+        click.echo("Two images required, but there are '{}' images for '{}'. Aborting...".format(len(image_id_all), image_name))
+        raise click.Abort()
+
+    image_latest = image_name + ":latest"
+    image_id_previous = get_container_image_id(image_latest)
+
+    version_tag = ""
+    for id in image_id_all:
+        if id != image_id_previous:
+            version_tag = get_docker_tag_name(id)
+
+    # make previous image as latest
+    run_command("docker tag %s:%s %s:latest" % (image_name, version_tag, image_name))
+    if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
+        click.echo("Cold reboot is required to restore system state after '{}' rollback !!".format(container_name))
+    else:
+        run_command("systemctl restart %s" % container_name)
+
     click.echo('Done')
 
 if __name__ == '__main__':
