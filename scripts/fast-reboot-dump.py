@@ -11,6 +11,7 @@ import binascii
 import argparse
 import syslog
 import traceback
+import datetime
 
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
@@ -147,6 +148,108 @@ def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
 
     return fdb_entries, available_macs, map_mac_ip
 
+def generate_fdb_entries_2(filename):
+    #print("START generate_fdb_entries_2 " + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+    fdb_entries = []
+    map_vlan_oid_to_vlan_id = {}
+    map_vlan_id_to_vlan_oid = {}
+    vlan_oid_list = []
+    all_available_macs = set()
+    map_mac_ip_per_vlan = {}
+
+    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    db.connect(db.ASIC_DB, False)   # Make one attempt only
+
+    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(db)
+
+    vlan_ifaces = get_vlan_ifaces()
+    for vlan in vlan_ifaces:
+        map_mac_ip_per_vlan[vlan] = {}
+
+    client = db.redis_clients["ASIC_DB"]
+    pipe = client.pipeline()
+
+    #print("generate_fdb_entries_2 before vlan-key-getall" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+    vlan_list = db.keys(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_VLAN:oid:*')
+    vlan_list = [] if vlan_list is None else vlan_list
+    for vlan_entry in vlan_list:
+        vlan_oid = vlan_entry.replace('ASIC_STATE:SAI_OBJECT_TYPE_VLAN:', '')
+        map_vlan_oid_to_vlan_id[vlan_oid] = 0
+        vlan_oid_list.append(vlan_oid)
+        pipe.hgetall(vlan_entry)
+    vlan_values = pipe.execute()
+    #print("generate_fdb_entries_2 after vlan-key-getall" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+
+    #print("generate_fdb_entries_2 before vlan-map" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+    posi = 0
+    for vlan_ent in vlan_values:
+        if 'SAI_VLAN_ATTR_VLAN_ID' not in vlan_ent:
+            posi = posi + 1
+            continue
+        vlan_id = int(vlan_ent['SAI_VLAN_ATTR_VLAN_ID'])
+        vlan_oid = vlan_oid_list[posi]
+        map_vlan_id_to_vlan_oid[vlan_id] = vlan_oid
+        map_vlan_oid_to_vlan_id[vlan_oid] = vlan_id
+        posi = posi + 1
+    #print("generate_fdb_entries_2 after vlan-map" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+
+    #print("generate_fdb_entries_2 before fdb-key-getall" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+    pipe = client.pipeline()
+    fdb_list = db.keys(db.ASIC_DB, "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
+    fdb_list = [] if fdb_list is None else fdb_list
+    for s in fdb_list:
+        pipe.hgetall(s)
+    fdb_values = pipe.execute()
+    #print("generate_fdb_entries_2 after fdb-key-getall" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+
+    #print("generate_fdb_entries_2 before fdb-process" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+    posi = 0
+    for fdb_ent in fdb_values:
+        if 'SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID' not in fdb_ent:
+            posi = posi + 1
+            continue
+        br_port_id = fdb_ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"]
+        if br_port_id not in bridge_id_2_iface:
+            posi = posi + 1
+            continue
+        fdb_port = bridge_id_2_iface[br_port_id]
+        ent_type = fdb_ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
+        fdb_type = ['dynamic','static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
+        key = fdb_list[posi]
+        key_obj = json.loads(key.replace('ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:', ''))
+        mac = str(key_obj['mac'])
+        vlan_id = map_vlan_oid_to_vlan_id[key_obj['bvid']] 
+        vlan_name = "Vlan" + str(vlan_id)
+        if not is_mac_unicast(mac):
+            posi = posi + 1
+            continue
+        all_available_macs.add((vlan_name, mac.lower()))
+        fdb_mac = mac.replace(':', '-')
+        obj = {
+          'FDB_TABLE:Vlan%d:%s' % (vlan_id, fdb_mac) : {
+            'type': fdb_type,
+            'port': fdb_port,
+          },
+          'OP': 'SET'
+        }
+
+        fdb_entries.append(obj)
+        if map_mac_ip_per_vlan.get(vlan_name) is None:
+            map_mac_ip_per_vlan[vlan_name] = {}
+        map_mac_ip_per_vlan[vlan_name][mac.lower()] = fdb_port
+        posi = posi + 1
+
+    #print("generate_fdb_entries_2 after fdb-process" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+    db.close(db.ASIC_DB)
+
+    with open(filename, 'w') as fp:
+        json.dump(fdb_entries, fp, indent=2, separators=(',', ': '))
+
+    #print("map_mac_ip_per_vlan :" + str(map_mac_ip_per_vlan))
+    #print("all_available_macs :" + str(all_available_macs))
+    #print("END generate_fdb_entries_2 " + datetime.datetime.now().strftime("%H:%M:%S.%f"))
+    return all_available_macs, map_mac_ip_per_vlan
+
 def generate_fdb_entries(filename):
     fdb_entries = []
 
@@ -270,10 +373,14 @@ def main():
     if not os.path.isdir(root_dir):
         print "Target directory '%s' not found" % root_dir
         return 3
-    all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
+    #start_time = datetime.datetime.now().strftime("%H:%M:%S.%f")
+    all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries_2(root_dir + '/fdb.json')
+    #print("all available macs : " + str(all_available_macs))
     arp_entries = generate_arp_entries(root_dir + '/arp.json', all_available_macs)
     generate_default_route_entries(root_dir + '/default_routes.json')
     garp_send(arp_entries, map_mac_ip_per_vlan)
+    #end_time = datetime.datetime.now().strftime("%H:%M:%S.%f")
+    #print("START :" + start_time + "====" + "END :" + end_time)
     return 0
 
 if __name__ == '__main__':

@@ -869,6 +869,46 @@ def mac(vlan, port, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+@mac.command()
+def aging_time():
+    """Show MAC Aging-Time"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    # Fetching data from config_db for SWITCH
+    switch_table = config_db.get_table('SWITCH')
+    switch_keys = switch_table.keys()
+
+    age_time = 0
+    for key in switch_keys:
+        if key == "switch":
+            try:
+                age_time = switch_table[key]['fdb_aging_time']
+            except KeyError:
+                age_time = '0'
+                pass
+    output = 'Mac Aging-Time : '
+    output += ('%s seconds\n' % (str(age_time)))
+    click.echo(output)
+
+@mac.command()
+def count():
+    """Show MAC count"""
+    db = SonicV2Connector(host="127.0.0.1")
+    db.connect(db.ASIC_DB)
+
+    # Fetching FDB keys from ASIC DB
+    fdb_keys = db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
+
+    if not fdb_keys:
+        fdb_count = 0
+    else:
+        fdb_count = len(fdb_keys)
+
+    output = 'Total MAC count:'
+    output += ('%s \n' % (str(fdb_count)))
+    click.echo(output)
+
 #
 # 'show route-map' command ("show route-map")
 #
@@ -1706,6 +1746,24 @@ def config(redis_unix_socket_path):
 
     header = ['Name', 'VID', 'Member', 'Mode']
     click.echo(tabulate(tablelize(keys, data), header))
+
+@vlan.command()
+def count():
+    """Show Vlan count"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    # Fetching Vlan keys from config DB
+    vlan_keys = config_db.keys('CONFIG_DB', "VLAN|*")
+
+    if not vlan_keys:
+        vlan_count = 0
+    else:
+        vlan_count = len(vlan_keys)
+
+    output = 'Total Vlan count:'
+    output += ('%s \n' % (str(vlan_count)))
+    click.echo(output)
 
 @cli.command('services')
 def services():

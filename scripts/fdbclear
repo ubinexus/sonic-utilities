@@ -44,12 +44,17 @@ def main():
     try:
         fdb = FdbClear()
         if args.vlan is not None:
-            print("command not supported yet.")
+            if (args.vlan.find("Vlan",0,4) == -1):
+                print ("error:vlan id is not in 'Vlan...' format")
+            else:
+                fdb.send_notification("VLAN", args.vlan)
+                print("Dynamic FDB entries are cleared on VLAN.", args.vlan)
         elif args.port is not None:
-            print("command not supported yet.")
+            fdb.send_notification("PORT", args.port)
+            print("Dynamic FDB entries are cleared on Port.", args.port)
         else:
             fdb.send_notification("ALL", "ALL")
-            print("FDB entries are cleared.")
+            print("Dynamic FDB entries are cleared.")
     except Exception as e:
         print e.message
         sys.exit(1)

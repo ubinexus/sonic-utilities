@@ -361,8 +361,6 @@ def clear_all_fdb():
     command = 'fdbclear'
     run_command(command)
 
-# 'sonic-clear fdb port' and 'sonic-clear fdb vlan' will be added later
-'''
 @fdb.command('port')
 @click.argument('portid', required=True)
 def clear_port_fdb(portid):
@@ -376,7 +374,6 @@ def clear_vlan_fdb(vlanid):
     """Clear FDB entries learned in one VLAN"""
     command = 'fdbclear' + ' -v ' + vlanid
     run_command(command)
-'''
 
 #
 # 'line' command
