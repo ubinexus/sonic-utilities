@@ -852,22 +852,20 @@ def pwm_buffer_pool():
 # 'mac' command ("show mac ...")
 #
 
-@cli.command()
+@cli.group(invoke_without_command=True)
+@click.pass_context
 @click.option('-v', '--vlan')
 @click.option('-p', '--port')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def mac(vlan, port, verbose):
+def mac(ctx, vlan, port, verbose):
     """Show MAC (FDB) entries"""
-
-    cmd = "fdbshow"
-
-    if vlan is not None:
-        cmd += " -v {}".format(vlan)
-
-    if port is not None:
-        cmd += " -p {}".format(port)
-
-    run_command(cmd, display_cmd=verbose)
+    if ctx.invoked_subcommand is None:
+        cmd = "fdbshow"
+        if vlan is not None:
+            cmd += " -v {}".format(vlan)
+        if port is not None:
+            cmd += " -p {}".format(port)
+        run_command(cmd, display_cmd=verbose)
 
 @mac.command()
 def aging_time():
