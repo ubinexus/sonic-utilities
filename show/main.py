@@ -2040,5 +2040,19 @@ def config(redis_unix_socket_path):
     click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
     state_db.close(state_db.STATE_DB)
 
+@cli.command('export')
+def export():
+    """ show tech-support export configurations """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    cfg_entry = config_db.get_entry('EXPORT', 'export')
+
+    if 'servername' in cfg_entry:
+        del cfg_entry['password']
+        print "Export Info : {}".format(cfg_entry)
+    else:
+        print "Export info is not configured/enabled"
+
+
 if __name__ == '__main__':
     cli()
