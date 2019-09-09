@@ -238,7 +238,7 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(ip_addr, status, verbose)
 
-def _validate_bgp_neighbor_ip(neighbor_ip_or_hostname):
+def _validate_bgp_neighbor(neighbor_ip_or_hostname):
     """validates whether the given ip or host name is a BGP neighbor
     """
     ip_addrs = []
@@ -255,7 +255,7 @@ def _validate_bgp_neighbor_ip(neighbor_ip_or_hostname):
 def _remove_bgp_neighbor_config(neighbor_ip_or_hostname):
     """Removes BGP configuration of the given neighbor
     """
-    ip_addrs = _validate_bgp_neighbor_ip(neighbor_ip_or_hostname)
+    ip_addrs = _validate_bgp_neighbor(neighbor_ip_or_hostname)
     config_db = ConfigDBConnector()
     config_db.connect()
 
