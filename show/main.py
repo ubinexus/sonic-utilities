@@ -1539,19 +1539,18 @@ def bgp(verbose):
 #
 
 @cli.command()
+@click.pass_context
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def ntp(verbose):
+def ntp(ctx, verbose):
     """Show NTP information"""
     ntpcmd = "ntpq -p -n"
     if ctx.invoked_subcommand is None:
         cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
 
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subb
-process.PIPE)
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         res = p.communicate()
         if p.returncode == 0 :
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderrr
-=subprocess.PIPE)
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             mvrf_dict = json.loads(p.stdout.read())
 
             # if the mgmtVrfEnabled attribute is configured, check the value
