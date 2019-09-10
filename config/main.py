@@ -295,6 +295,10 @@ def _stop_services():
         'hostcfgd',
     ]
 
+    # on Mellanox platform pmon is stopped by syncd
+    if (version_info and version_info.get('asic_type') == 'mellanox'):
+        services_to_stop.remove('pmon')
+
     for service in services_to_stop:
         try:
             click.echo("Stopping service {} ...".format(service))
@@ -348,6 +352,10 @@ def _restart_services():
         'lldp',
         'hostcfgd',
     ]
+
+    # on Mellanox platform pmon is started by syncd
+    if (version_info and version_info.get('asic_type') == 'mellanox'):
+        services_to_restart.remove('pmon')
 
     for service in services_to_restart:
         try:
@@ -1379,7 +1387,7 @@ def add_syslog_server(ctx, syslog_ip_address):
     if syslog_ip_address in syslog_servers:
         click.echo("Syslog server {} is already configured".format(syslog_ip_address))
         return
-    else:
+    else: 
         db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
         click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
         try:
@@ -1400,7 +1408,7 @@ def del_syslog_server(ctx, syslog_ip_address):
     if syslog_ip_address in syslog_servers:
         db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
         click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
-    else:
+    else: 
         ctx.fail("Syslog server {} is not configured.".format(syslog_ip_address))
     try:
         click.echo("Restarting rsyslog-config service...")
