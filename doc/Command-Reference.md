@@ -382,6 +382,21 @@ This command displays the current date and time configured on the system
   Mon Mar 25 20:25:16 UTC 2019
   ```
 
+**show boot**
+This command displays the current OS image, the image loaded on next reboot, and the lists the available images on the system
+
+-  Usage:
+   show boot
+
+- Example:
+  ```
+  admin@sonic:~$ show boot
+  Current: SONiC-OS-20181130.31
+  Next: SONiC-OS-20181130.31
+  Available: 
+  SONiC-OS-20181130.31
+  ```
+
 **show environment**
 This command displays the platform environmentals, such as voltages, temperatures and fan speeds
 
@@ -1451,6 +1466,8 @@ The list of possible BGP config commands are given below.
         startup
             all
             neighbor
+        remove
+            neighbor
 
 **config bgp shut down all**
 
@@ -1508,6 +1525,26 @@ This command is used to start up the particular IPv4 or IPv6 BGP neighbor using 
   ```
   admin@sonic:~$ sudo config bgp startup neighbor SONIC02SPINE
   ```
+
+
+**config bgp remove neighbor <neighbor_ip_or_hostname>**
+
+This command is used to remove particular IPv4 or IPv6 BGP neighbor configuration using either the IP address or hostname.
+
+  - Usage:
+    sudo config bgp remove neighbor <neighbor_ip_or_hostname>
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config bgp remove neighbor 192.168.1.124
+  ```
+  ```
+  admin@sonic:~$ sudo config bgp remove neighbor 2603:10b0:b0f:346::4a
+  ```
+  ```
+  admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
+  ``` 
+
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#BGP-Configuration-And-Show-Commands)
 
@@ -2043,22 +2080,17 @@ The type of interfaces include the following.
 - Example:
   ```
 	admin@sonic:~$ show ip interfaces
-	Interface        IPv4 address/mask    Admin/Oper
-	---------------  -------------------  ------------
-	Ethernet112      10.1.1.0/31          up/up
-	Ethernet116      10.1.1.2/31          up/up
-	PortChannel0001  10.0.1.1/31          up/down
-	PortChannel0002  10.0.1.3/31          up/down
-	Vlan100          1.1.2.2/16           up/down
-	docker0          240.127.1.1/24       up/down
-	eth0             10.11.162.42/24      up/up
-	lo               127.0.0.1/8          up/up
-					 10.1.0.1/32
-					 10.1.0.32/32
-					 10.12.0.102/32
+	Interface      IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
+	-------------  -------------------  ------------  --------------  -------------
+	PortChannel01  10.0.0.56/31         up/down       DEVICE1         10.0.0.57
+	PortChannel02  10.0.0.58/31         up/down       DEVICE2         10.0.0.59
+	PortChannel03  10.0.0.60/31         up/down       DEVICE3         10.0.0.61
+	PortChannel04  10.0.0.62/31         up/down       DEVICE4         10.0.0.63
+	Vlan1000       192.168.0.1/27       up/up         N/A             N/A
+	docker0        240.127.1.1/24       up/down       N/A             N/A
+	eth0           10.3.147.252/23      up/up         N/A             N/A
+	lo             127.0.0.1/8          up/up         N/A             N/A
   ```
-
-
 
 **show ip protocol**
 
@@ -2156,23 +2188,16 @@ The type of interfaces include the following.
 - Example:
   ```
 	admin@sonic:~$ show ipv6 interfaces
-	Interface        IPv6 address/mask                            Admin/Oper
-	---------------  -------------------------------------------  ------------
-	Bridge           fe80::d494:dcff:fe37:535e%Bridge/64          up/down
-	Ethernet112      2018:2001::1/126                             up/up
-					 fe80::3617:ebff:fe38:100%Ethernet112/64
-	Ethernet116      2018:2002::1/126                             up/up
-					 fe80::3617:ebff:fe38:100%Ethernet116/64
-	PortChannel0001  2018:1002::2/126                             up/down
-	PortChannel0002  2018:1002::6/126                             up/down
-	PortChannel0011  fe80::3617:ebff:fe38:100%PortChannel0011/64  up/up
-	Vlan100          fe80::3617:ebff:fe38:100%Vlan100/64          up/down
-	eth0             fc00:2::102/128                              up/up
-					 fe80::3617:ebff:fe38:100%eth0/64
-	lo               fc00:1::102/128                              up/up
-					 fc00:1::32/128
-					 ::1/128
-
+	Interface      IPv6 address/mask                         Admin/Oper    BGP Neighbor    Neighbor IP
+	-------------  ----------------------------------------  ------------  --------------  -------------
+	Bridge         fe80::7c45:1dff:fe08:cdd%Bridge/64        up/up         N/A             N/A
+	PortChannel01  fc00::71/126                              up/down       DEVICE1         fc00::72
+	PortChannel02  fc00::75/126                              up/down       DEVICE2         fc00::76
+	PortChannel03  fc00::79/126                              up/down       DEVICE3         fc00::7a
+	PortChannel04  fc00::7d/126                              up/down       DEVICE4         fc00::7e
+	Vlan100        fe80::eef4:bbff:fefe:880a%Vlan100/64      up/up         N/A             N/A
+	eth0           fe80::eef4:bbff:fefe:880a%eth0/64         up/up         N/A             N/A
+	lo             fc00:1::32/128                            up/up         N/A             N/A
   ```
 
 **show ipv6 protocol**
@@ -2970,7 +2995,8 @@ This sub-section explains the show commands for displaying the running configura
 4) snmp
 5) all
 6) acl
-7) interface
+7) ports
+8) syslog
 
 **show runningconfiguration all**
 
@@ -3021,8 +3047,30 @@ This command displays the running configuration of the ntp module.
 
 - Example:
   ```
-  admin@sonic:~$ show runningconfiguration ntp
+  admin@str-s6000-acs-11:~$ show runningconfiguration ntp
+  NTP Servers
+  -------------
+  1.1.1.1
+  2.2.2.2
   ```
+
+**show runningconfiguration syslog**
+
+This command displays the running configuration of the syslog module. 
+
+  - Usage:
+    show runningconfiguration syslog
+
+
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ show runningconfiguration syslog 
+  Syslog Servers
+  ----------------
+  4.4.4.4
+  5.5.5.5
+  ```
+
 
 **show runningconfiguration snmp**
 
@@ -3050,21 +3098,21 @@ This command displays the running configuration of the snmp module.
   admin@sonic:~$ show runningconfiguration acl
   ```
 
- **show runningconfiguration interface <interfacename>**
+ **show runningconfiguration ports <portname>**
 
  This command displays the running configuration of the ports
 
    - Usage:
-    show runningconfiguration interface <interfacename>
+    show runningconfiguration ports <portname>
 
 
  - Example:
   ```
-  admin@sonic:~$ show runningconfiguration interface
+  admin@sonic:~$ show runningconfiguration ports
   ```
 
    ```
-  admin@sonic:~$ show runningconfiguration interface <interfacename>
+  admin@sonic:~$ show runningconfiguration ports <portname>
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Startup--Running-Configuration)
@@ -4089,6 +4137,98 @@ This command displays the routing policy that takes precedence over the other ro
 	  Call clause:
 	  Action:
 		Exit routemap
+  ```
+
+# Syslog Server Configuration Commands 
+
+This sub-section of commands is used to add or remove the configured syslog servers.
+
+**config syslog add** 
+
+This command is used to add a SYSLOG server to the syslog server list.  Note that more that one syslog server can be added in the device.
+
+- Usage: config syslog add <ip-address>
+- Example: 
+  ```
+  admin@str-s6000-acs-11:~$ sudo config syslog add 1.1.1.1
+  Syslog server 1.1.1.1 added to configuration
+  Restarting rsyslog-config service...
+  admin@str-s6000-acs-11:~$
+  ```
+
+**config syslog delete**
+
+This command is used to delete the syslog server configured. 
+
+- Usage: config syslog del <ip-address>
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ sudo config syslog del 1.1.1.1
+  Syslog server 1.1.1.1 removed from configuration
+  Restarting rsyslog-config service...
+  admin@str-s6000-acs-11:~$
+  ```
+
+# DHCP Relay Destination IP address Configuration Commands 
+
+This sub-section of commands is used to add or remove the DHCP Relay Destination IP address(es) for a VLAN interface.
+
+**config vlan dhcp_relay add** 
+
+This command is used to add a DHCP Relay Destination IP address to the a VLAN.  Note that more that one DHCP Relay Destination IP address can be added on a VLAN interface.
+
+- Usage: config vlan dhcp_relay add <vlan-id> <dhcp_relay_destination_ip>
+- Example: 
+  ```
+  admin@str-s6000-acs-11:~$ sudo config vlan dhcp_relay add 1000 7.7.7.7
+  Added DHCP relay destination address 7.7.7.7 to Vlan1000
+  Restarting DHCP relay service...
+  Running command: systemctl restart dhcp_relay
+  admin@str-s6000-acs-11:~$ 
+  ```
+
+**config vlan dhcp_relay delete**
+
+This command is used to delete a configured DHCP Relay Destination IP address from a VLAN interface. 
+
+- Usage: config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ip>
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
+  Removed DHCP relay destination address 7.7.7.7 from Vlan1000
+  Restarting DHCP relay service...
+  Running command: systemctl restart dhcp_relay
+  admin@str-s6000-acs-11:~$ 
+  ```
+  
+# NTP Server Configuration Commands 
+
+This sub-section of commands is used to add or remove the configured NTP servers.
+
+**config ntp add** 
+
+This command is used to add a NTP server IP address to the NTP server list.  Note that more that one NTP server IP address can be added in the device.
+
+- Usage: config ntp add <ip-address>
+- Example: 
+  ```
+  admin@str-s6000-acs-11:~$ sudo config ntp add 9.9.9.9
+  NTP server 9.9.9.9 added to configuration
+  Restarting ntp-config service...
+  admin@str-s6000-acs-11:~$
+  ```
+
+**config ntp delete**
+
+This command is used to delete a configured NTP server IP address. 
+
+- Usage: config ntp del <ip-address>
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ sudo config ntp del 9.9.9.9
+  NTP server 9.9.9.9 removed from configuration
+  Restarting ntp-config service...
+  admin@str-s6000-acs-11:~$
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Quagga-BGP-Show-Commands)
