@@ -287,17 +287,22 @@ def _abort_if_false(ctx, param, value):
         ctx.abort()
 
 def _stop_services():
-    services_to_stop = [
-        'swss',
-        'lldp',
-        'pmon',
-        'bgp',
-        'hostcfgd',
-    ]
-
     # on Mellanox platform pmon is stopped by syncd
     if (version_info and version_info.get('asic_type') == 'mellanox'):
-        services_to_stop.remove('pmon')
+        services_to_stop = [
+            'swss',
+            'lldp',
+            'bgp',
+            'hostcfgd',
+        ]
+    else:
+        services_to_stop = [
+            'swss',
+            'lldp',
+            'pmon',
+            'bgp',
+            'hostcfgd',
+        ]
 
     for service in services_to_stop:
         try:
@@ -341,21 +346,30 @@ def _reset_failed_services():
                 raise
 
 def _restart_services():
-    services_to_restart = [
-        'hostname-config',
-        'interfaces-config',
-        'ntp-config',
-        'rsyslog-config',
-        'swss',
-        'bgp',
-        'pmon',
-        'lldp',
-        'hostcfgd',
-    ]
-
     # on Mellanox platform pmon is started by syncd
     if (version_info and version_info.get('asic_type') == 'mellanox'):
-        services_to_restart.remove('pmon')
+        services_to_restart = [
+            'hostname-config',
+            'interfaces-config',
+            'ntp-config',
+            'rsyslog-config',
+            'swss',
+            'bgp',
+            'lldp',
+            'hostcfgd',
+        ]
+    else:
+        services_to_restart = [
+            'hostname-config',
+            'interfaces-config',
+            'ntp-config',
+            'rsyslog-config',
+            'swss',
+            'bgp',
+            'pmon',
+            'lldp',
+            'hostcfgd',
+        ]
 
     for service in services_to_restart:
         try:
