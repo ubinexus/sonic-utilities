@@ -9,8 +9,8 @@ Table of Contents
       * [SSH Login](#ssh-login)
       * [Configuring Management Interface](#configuring-management-interface)
       * [Config Help](#config-help)
-	  * [Show Help](#show-help)
       * [Show Versions](#show-versions)
+      * [Show Help](#show-help)
       * [Show System Status](#show-system-status)
       * [Show Hardware Platform](#show-hardware-platform)
          * [Transceivers](#transceivers)
@@ -109,6 +109,7 @@ After logging into the device, SONiC software can be configured in following thr
  2) [config_db.json](https://github.com/Azure/SONiC/wiki/Configuration)
  3) [minigraph.xml](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
+
 This document explains the first method and gives the complete list of commands that are supported in SONiC 201904 version (build#19).
 All the configuration commands need root privileges to execute them. Note that show commands can be executed by all users without the root privileges.
 Root privileges can be obtained either by using "sudo" keyword in front of all config commands, or by going to root prompt using "sudo -i".
@@ -128,6 +129,7 @@ Note that the command list given in this document is just a subset of all possib
 Please follow config_db.json based configuration for the complete list of configuration options.
 
 **Scope Of The Document**
+
 It is assumed that all configuration commands start with the keyword “config” as prefix.
 Any other scripts/utilities/commands  that need user configuration control are wrapped as sub-commands under the “config” command.
 The direct scripts/utilities/commands (examples given below) that are not wrapped under the "config" command are not in the scope of this document.
@@ -149,7 +151,9 @@ This section covers the basic configurations related to the following
 ## SSH Login
 
 All SONiC devices support both the serial console based login and the SSH based login by default.
+
 The default credential (if not modified at image build time) for login is `admin/YourPaSsWoRd`.
+
 In case of SSH login, users can login to the management interface (eth0) IP address after configuring the same using serial console.
 Refer the following section for configuring the IP address for management interface.
 
@@ -165,6 +169,7 @@ Refer the following section for configuring the IP address for management interf
   user@debug:~$ ssh admin@sonic_ip_address(or SONIC DNS Name)
   admin@sonic's password:
   ```
+
 
 By default, login takes the user to the default prompt from which all the show commands can be executed.
 
@@ -855,9 +860,6 @@ When this command is executed, the configured tacacs+ server addresses are updat
 	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.13:50 secret=testing789 login=mschap timeout=10  try_first_pass
 	auth    [success=1 default=ignore]      pam_unix.so nullok try_first_pass
 
-	   NOTE: In the above example, the servers are stored (sorted) based on the priority value configured for the server.
-
-  ```
 
 **config tacacs delete**
 
@@ -1767,35 +1769,83 @@ This command displays information regarding port-channel interfaces
       8  PortChannel8   LACP(A)(Up)  Ethernet8(S) Ethernet12(S)
   ```
 
-**show interface status**
+## Interface status Show Commands
 
-This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetric PFC status and also the operational and administrative status of the interfaces
-
-- Usage:
-  show interfaces status [INTERFACENAME]
+This sub-section lists all the possible show commands for the interfaces status available in the device. Following example gives the list of possible shows on interface status.
 
 - Example:
   ```
-  show interface status of all interfaces
+  admin@lnos-x1-a-csw02:~$ show  interfaces status -?
+  Usage: show interfaces status [OPTIONS] COMMAND [ARGS]...
 
-  admin@sonic:~$ show interfaces status
-  Interface            Lanes    Speed    MTU            Alias    Oper    Admin    Type    Asym PFC
-  -----------  ---------------  -------  -----  ---------------  ------  -------  ------  ----------
-  Ethernet0      49,50,51,52     100G   9100   hundredGigE1/1    down       up     N/A         off
-  Ethernet4      53,54,55,56     100G   9100   hundredGigE1/2    down       up     N/A         off
-  Ethernet8      57,58,59,60     100G   9100   hundredGigE1/3    down     down     N/A         off
-  <contiues to display all the interfaces>
+    Show interface status information
 
+  Options:
+    -?, -h, --help  Show this message and exit.
+
+  Commands:
+    brief    Show Interface status brief information
+    details  Show Interface status details information
+  admin@lnos-x1-a-csw02:~$
+  ```
+
+**show interface status brief**
+
+This command displays fields such as Lanes, Speed, MTU, Vlan and also the operational and administrative status of the interfaces
+
+  - Usage:
+    show interfaces status brief [INTERFACENAME]
+
+- Example:
+  ```
+  show interface status brief of all interfaces
+
+  admin@lnos-x1-a-csw02:~$ show  interfaces status brief
+  Interface            Lanes    Speed    MTU    Alias    Vlan    Oper    Admin
+  ----------  ---------------  -------  -----  -------  ------  ------  -------
+  Ethernet0      65,66,67,68     100G   9100     Eth1  routed    down       up
+  Ethernet4      69,70,71,72     100G   9100     Eth2  routed      up       up
+  Ethernet8      73,74,75,76     100G   9100     Eth3  routed    down       up
+  Ethernet9      77,78,79,80     100G   9100     Eth4  routed    down       up
   ```
 
   ```
-  show interface status for one particular interface
+  show interface status brief for one particular interface
 
-  admin@sonic:~$ show interface status Ethernet0
-  Interface     Lanes    Speed    MTU            Alias    Oper    Admin
-  -----------  --------  -------  -----   --------------  ------  -------
-  Ethernet0   101,102      40G   9100   fortyGigE1/1/1      up       up
+  admin@lnos-x1-a-csw02:~$ show  interfaces status brief Ethernet4
+  Interface        Lanes    Speed    MTU    Alias    Vlan    Oper    Admin
+  ----------  -----------  -------  -----  -------  ------  ------  -------
+  Ethernet4  69,70,71,72     100G   9100     Eth2  routed      up       up
+  admin@lnos-x1-a-csw02:~$
+  ```
 
+**show interface status details**
+
+This command displays some more additional fields such as Type, Asymmetric PFC status, Flap count and Last flap time
+
+  - Usage:
+    show interfaces status details [INTERFACENAME]
+
+- Example:
+  ```
+  show interfaces status details of all interfaces
+
+  admin@lnos-x1-a-csw02:~$ show  interfaces status details
+  Interface            Lanes    Speed    MTU    Alias    Vlan    Oper    Admin             Type    Asym PFC    Flaps        Last Flap (in UTC)
+  ----------  ---------------  -------  -----  -------  ------  ------  -------  ---------------  ----------  -------  ------------------------
+  Ethernet0      65,66,67,68     100G   9100     Eth1  routed    down       up  QSFP28 or later         N/A        0                       N/A
+  Ethernet4      69,70,71,72     100G   9100     Eth2  routed      up       up  QSFP28 or later         N/A        2  Wed Jun 12 09:38:28 2019
+  <continues to display all the interfaces>
+  ```
+
+  ```
+  show interfaces status details for one particular interface
+
+  admin@lnos-x1-a-csw02:~$ show  interfaces status details Ethernet4
+  Interface        Lanes    Speed    MTU    Alias    Vlan    Oper    Admin             Type    Asym PFC    Flaps        Last Flap (in UTC)
+  ----------  -----------  -------  -----  -------  ------  ------  -------  ---------------  ----------  -------  ------------------------
+  Ethernet4  69,70,71,72     100G   9100     Eth2  routed      up       up  QSFP28 or later         N/A        2  Wed Jun 12 09:38:28 2019
+  admin@lnos-x1-a-csw02:~$
   ```
 
 **show interfaces transceiver**
@@ -1944,6 +1994,7 @@ NOTE: In versions until 201811, syntax is "config interface <interface_name> spe
 
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#interface-configuration-and-show-commands)
+
 
 
 # Interface Naming Mode
@@ -3400,6 +3451,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 ## VLAN
 
 ### VLAN show commands
+
 
 **show vlan brief**
 

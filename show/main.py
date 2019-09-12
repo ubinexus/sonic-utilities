@@ -530,6 +530,12 @@ def transceiver():
     pass
 
 
+@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+def status():
+    """Show interface status information"""
+    pass
+
+
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
@@ -601,18 +607,27 @@ def description(interfacename, verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-@interfaces.command()
+@status.command()
 @click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def status(interfacename, verbose):
-    """Show Interface status information"""
+def details(interfacename, verbose):
+    """Show Interface status details information"""
 
-    cmd = "intfutil status"
-
+    cmd = "intfutil status details"
     if interfacename is not None:
-        if get_interface_mode() == "alias":
-            interfacename = iface_alias_converter.alias_to_name(interfacename)
+        cmd += " {}".format(interfacename)
 
+    run_command(cmd, display_cmd=verbose)
+
+
+@status.command()
+@click.argument('interfacename', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def brief(interfacename, verbose):
+    """Show Interface status brief information"""
+
+    cmd = "intfutil status brief"
+    if interfacename is not None:
         cmd += " {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
@@ -1200,7 +1215,7 @@ def table(verbose):
 
 def get_hw_info_dict():
     """
-    This function is used to get the HW info helper function  
+    This function is used to get the HW info helper function
     """
     hw_info_dict = {}
     machine_info = sonic_device_util.get_machine_info()
@@ -1208,7 +1223,7 @@ def get_hw_info_dict():
     config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('DEVICE_METADATA')
-    try: 
+    try:
         hwsku = data['localhost']['hwsku']
     except KeyError:
         hwsku = "Unknown"
@@ -1298,7 +1313,7 @@ def version(verbose):
     version_info = sonic_device_util.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
