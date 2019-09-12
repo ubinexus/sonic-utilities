@@ -21,6 +21,15 @@ class Crm:
 
         configdb.mod_entry("CRM", 'Config', {attr: val})
 
+    def clear(self):
+        """
+        CRM handler for 'config clear' CLI commands.
+        """
+        configdb = swsssdk.ConfigDBConnector()
+        configdb.connect()
+
+        configdb.delete_table('CRM')
+
     def show_summary(self):
         """
         CRM Handler to display general information.
@@ -161,6 +170,12 @@ def cli(ctx):
 def config(ctx):
     """CRM related configuration"""
     pass
+
+@config.command()
+@click.pass_context
+def clear(ctx):
+    """CRM config clear"""
+    ctx.obj["crm"].clear()
 
 @config.group()
 @click.pass_context
