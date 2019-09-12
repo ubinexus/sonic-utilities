@@ -288,7 +288,7 @@ def _abort_if_false(ctx, param, value):
 
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
-    if (version_info and version_info.get('asic_type') == 'mellanox'):
+    if version_info and version_info.get('asic_type') == 'mellanox':
         services_to_stop = [
             'swss',
             'lldp',
@@ -347,7 +347,7 @@ def _reset_failed_services():
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
-    if (version_info and version_info.get('asic_type') == 'mellanox'):
+    if version_info and version_info.get('asic_type') == 'mellanox':
         services_to_restart = [
             'hostname-config',
             'interfaces-config',
