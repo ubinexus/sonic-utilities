@@ -47,6 +47,16 @@ def log_error(msg):
     syslog.closelog()
 
 #
+# Load asic_type for further use
+#
+
+try:
+    version_info = sonic_device_util.get_sonic_version_info()
+    asic_type = version_info['asic_type']
+except KeyError, TypeError:
+    raise click.Abort()
+
+#
 # Helper functions
 #
 
@@ -288,7 +298,7 @@ def _abort_if_false(ctx, param, value):
 
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
-    if version_info and version_info.get('asic_type') == 'mellanox':
+    if asic_type == 'mellanox':
         services_to_stop = [
             'swss',
             'lldp',
@@ -347,7 +357,7 @@ def _reset_failed_services():
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
-    if version_info and version_info.get('asic_type') == 'mellanox':
+    if asic_type == 'mellanox':
         services_to_restart = [
             'hostname-config',
             'interfaces-config',
@@ -1332,8 +1342,7 @@ def asymmetric(ctx, status):
 def platform():
     """Platform-related configuration tasks"""
 
-version_info = sonic_device_util.get_sonic_version_info()
-if (version_info and version_info.get('asic_type') == 'mellanox'):
+if asic_type == 'mellanox':
     platform.add_command(mlnx.mlnx)
 
 #
