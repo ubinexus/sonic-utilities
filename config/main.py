@@ -1592,6 +1592,60 @@ def incremental(file_name):
     run_command(command)
 
 #
+# 'drops' group ('config drops ...')
+#
+@config.group()
+def drops():
+    """Drop counter related configuration tasks"""
+    pass
+
+#
+# 'init' subcommand ('config drops init')
+#
+@drops.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("counter_type", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option("-a", "--alias", type=str, help="Alias for this counter")
+@click.option("-g", "--group", type=str, help="Group for this counter")
+@click.option("-d", "--desc",  type=str, help="Description for this counter")
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def init(counter_name, alias, group, counter_type, desc, reasons, verbose):
+    """Initialize a new drop counter"""
+    command = "dropconfig -c install -n '{}' -t '{}' -r '{}'".format(counter_name, counter_type, reasons)
+    if alias: command += " -a '{}'".format(alias)
+    if group: command += " -g '{}'".format(group)
+    if desc:  command += " -d '{}'".format(desc)
+
+    run_command(command, display_cmd=verbose)
+
+@drops.command()
+@click.argument("counter_name", type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def delete(counter_name, verbose):
+    """Delete an existing drop counter"""
+    command = "dropconfig -c uninstall -n {}".format(counter_name)
+    run_command(command, display_cmd=verbose)
+
+@drops.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def add(counter_name, reasons, verbose):
+    """Add reasons to an existing drop counter"""
+    command = "dropconfig -c add -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
+@drops.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def remove(counter_name, reasons, verbose):
+    """Remove reasons from an existing drop counter"""
+    command = "dropconfig -c remove -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
+#
 # 'ecn' command ('config ecn ...')
 #
 @config.command()
