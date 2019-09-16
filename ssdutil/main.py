@@ -96,6 +96,13 @@ def import_ssd_api(diskdev):
 
     return SsdUtil(diskdev)
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 # ==================== Entry point ====================
 def ssdutil():
     if os.geteuid() != 0:
@@ -114,8 +121,8 @@ def ssdutil():
     if args.verbose:
         print "Firmware     : {}".format(ssd.get_firmware())
         print "Serial       : {}".format(ssd.get_serial())
-    print "Health       : {}%".format(ssd.get_health())
-    print "Temperature  : {}C".format(ssd.get_temperature())
+    print "Health       : {}{}".format(ssd.get_health(),      "%" if is_number(ssd.get_health()) else "")
+    print "Temperature  : {}{}".format(ssd.get_temperature(), "C" if is_number(ssd.get_temperature()) else "")
     if args.vendor:
         print ssd.get_vendor_output()
 
