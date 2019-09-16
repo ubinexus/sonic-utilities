@@ -17,6 +17,7 @@ from minigraph import parse_device_desc_xml
 
 import aaa
 import mlnx
+import nat
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -347,6 +348,7 @@ def _stop_services():
         'pmon',
         'bgp',
         'hostcfgd',
+        'nat'
     ]
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
@@ -375,7 +377,8 @@ def _reset_failed_services():
         'snmp',
         'swss',
         'syncd',
-        'teamd'
+        'teamd',
+        'nat'
     ]
 
     for service in services_to_reset:
@@ -398,6 +401,7 @@ def _restart_services():
         'pmon',
         'lldp',
         'hostcfgd',
+        'nat'
     ]
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
@@ -429,6 +433,8 @@ def config():
         exit("Root privileges are required for this operation")
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+# === Add NAT Configuration ==========
+config.add_command(nat.nat)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,

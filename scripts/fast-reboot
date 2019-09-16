@@ -410,6 +410,12 @@ docker exec -i bgp pkill -9 zebra
 docker exec -i bgp pkill -9 bgpd || [ $? == 1 ]
 debug "Stopped  bgp ..."
 
+# Kill nat docker after saving the conntrack table
+debug "Stopping nat ..."
+/usr/bin/dump_nat_entries.py
+docker kill nat > /dev/null
+debug "Stopped nat ..."
+
 # Kill lldp, otherwise it sends informotion about reboot.
 # We call `docker kill lldp` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop lldp` to prevent the service from

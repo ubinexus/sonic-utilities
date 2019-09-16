@@ -59,6 +59,7 @@ setup(
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
+        'scripts/dump_nat_entries.py'
         'scripts/ecnconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
@@ -69,6 +70,9 @@ setup(
         'scripts/intfstat',
         'scripts/lldpshow',
         'scripts/mmuconfig',
+        'scripts/natclear',
+        'scripts/natconfig',
+        'scripts/natshow',
         'scripts/nbrshow',
         'scripts/neighbor_advertiser',
         'scripts/pcmping',
