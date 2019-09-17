@@ -53,6 +53,10 @@ except KeyError:
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
+import aaa
+import mlnx
+import stp
+
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
@@ -875,6 +879,7 @@ config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
+config.add_command(stp.spanning_tree)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,

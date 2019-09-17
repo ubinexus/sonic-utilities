@@ -177,6 +177,9 @@ cli.add_command(warm_restart.warm_restart)
 if is_gearbox_configured():
     cli.add_command(gearbox.gearbox)
 
+from .stp import spanning_tree
+cli.add_command(spanning_tree)
+
 
 #
 # 'vrf' command ("show vrf")
@@ -1150,6 +1153,22 @@ def syslog(verbose):
     syslog_dict['Syslog Servers'] = syslog_servers
     print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
+
+# 'spanning-tree' subcommand ("show runningconfiguration spanning_tree")
+@runningconfiguration.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def spanning_tree(verbose):
+    """Show spanning_tree running configuration"""
+    config_db = ConfigDBConnector(host="127.0.0.1")
+    config_db.connect()
+
+    stp_list = ["STP", "STP_INTF", "STP_VLAN", "STP_VLAN_INTF"]
+    for key in stp_list:
+        table = config_db.get_table(key)
+        if len(table):
+            print "\"" + key + "\":"
+            cmd = 'sudo sonic-cfggen -d --var-json ' + key
+            run_command(cmd, display_cmd=verbose)
 
 #
 # 'startupconfiguration' group ("show startupconfiguration ...")
