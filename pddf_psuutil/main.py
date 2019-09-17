@@ -262,7 +262,7 @@ def seninfo(index):
         # p_out would be in micro watts, convert it into milli watts
         p_out = p_out/1000
 
-        fan1_rpm = platform_psuutil.get_fan_rpm(psu, 1)
+        fan1_rpm = platform_psuutil.get_fan_speed(psu, 1)
         click.echo("{} is OK\nOutput Voltage: {} mv\n" \
                 "Output Current: {} ma\nOutput Power: {} mw\n" \
                 "Fan1 Speed: {} rpm\n".format(psu_name, v_out, i_out, p_out, fan1_rpm))
