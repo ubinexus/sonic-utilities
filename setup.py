@@ -59,7 +59,7 @@ setup(
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
-        'scripts/dump_nat_entries.py'
+        'scripts/dump_nat_entries.py',
         'scripts/ecnconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
