@@ -15,7 +15,7 @@ ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
-PLATFORM_PLUGIN="platform_plugin"
+PLATFORM_PLUGIN="fastboot_plugin"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
