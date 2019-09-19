@@ -2033,16 +2033,28 @@ def config(redis_unix_socket_path):
             if k not in data:
                 r.append("NULL")
                 r.append("NULL")
+                r.append("NULL")
             elif 'neighsyncd_timer' in  data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
-            elif 'bgp_timer' in data[k]:
-                r.append("bgp_timer")
-                r.append(data[k]['bgp_timer'])
+                r.append("NULL")
+            elif 'bgp_timer' in data[k] or 'bgp_eoiu' in data[k]:
+                if 'bgp_timer' in data[k]:
+                    r.append("bgp_timer")
+                    r.append(data[k]['bgp_timer'])
+                else:
+                    r.append("NULL")
+                    r.append("NULL")
+                if 'bgp_eoiu' in data[k]:
+                    r.append(data[k]['bgp_eoiu'])
+                else:
+                    r.append("NULL")
             elif 'teamsyncd_timer' in data[k]:
                 r.append("teamsyncd_timer")
                 r.append(data[k]['teamsyncd_timer'])
+                r.append("NULL")
             else:
+                r.append("NULL")
                 r.append("NULL")
                 r.append("NULL")
 
@@ -2050,7 +2062,7 @@ def config(redis_unix_socket_path):
 
         return table
 
-    header = ['name', 'enable', 'timer_name', 'timer_duration']
+    header = ['name', 'enable', 'timer_name', 'timer_duration', 'eoiu_enable']
     click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
     state_db.close(state_db.STATE_DB)
 
