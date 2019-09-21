@@ -339,20 +339,14 @@ def run_command_in_alias_mode(command):
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
-
             else:
                 if index:
+                    converted_output = raw_output
                     for port_name in iface_alias_converter.port_dict.keys():
-                        regex = re.compile(r"\b{}\b".format(port_name))
-                        result = re.findall(regex, raw_output)
-                        if result:
-                            interface_name = ''.join(result)
-                            if not raw_output.startswith("    PortID:"):
-                                raw_output = raw_output.replace(
-                                    interface_name,
-                                    iface_alias_converter.name_to_alias(
-                                            interface_name))
-                    click.echo(raw_output.rstrip('\n'))
+                        converted_output = re.sub(r"(^|\s){}($|\s)".format(port_name),
+                                r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
+                                converted_output)
+                    click.echo(converted_output.rstrip('\n'))
 
     rc = process.poll()
     if rc != 0:
