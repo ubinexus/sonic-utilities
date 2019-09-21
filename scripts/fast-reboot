@@ -417,6 +417,11 @@ debug "Stopped  bgp ..."
 docker kill lldp > /dev/null
 systemctl stop lldp
 
+# Kill tam docker
+debug "Stopping tam"
+docker kill tam > /dev/null
+debug "Stopped tam"
+
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Kill teamd processes inside of teamd container with SIGUSR2 to allow them to send last LACP frames
     # We call `docker kill teamd` to ensure the container stops as quickly as possible,

@@ -320,6 +320,7 @@ def _stop_services():
         'pmon',
         'bgp',
         'hostcfgd',
+        'tam',
     ]
 
     for service in services_to_stop:
@@ -347,6 +348,7 @@ def _reset_failed_services():
         'swss',
         'syncd',
         'teamd'
+        'tam'
     ]
 
     for service in services_to_reset:
@@ -368,6 +370,7 @@ def _restart_services():
         'pmon',
         'lldp',
         'hostcfgd',
+        'tam',
     ]
 
     for service in services_to_restart:
@@ -1394,6 +1397,75 @@ def naming_mode_default():
 def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
+
+@config.group('priority-group')
+def priority_group():
+    """ Configure priority group thresholds """
+    pass
+
+@priority_group.command('threshold')
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.argument('pg_index', metavar='<pg_index>', required=True, type=int)
+@click.argument('threshold_type', type=click.Choice(['shared', 'headroom']))
+@click.argument('threshold_value', metavar='<threshold_value>', required=True, type=int)
+@click.pass_context
+def threshold(ctx, port_name, pg_index, threshold_type, threshold_value):
+    """ Configure priority group threshold value for a priority group on a port """
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    if pg_index not in range(0, 8):
+        ctx.fail("priority-group must be in range 0-7")
+
+    if threshold_value not in range(1, 101):
+        ctx.fail("threshold value must be in range 1-100")
+
+    if interface_name_is_valid(config_db, port_name) is False:
+        ctx.fail("Interface name is invalid!!")
+
+    key = 'priority-group' + '|' + threshold_type + '|' + port_name + '|' + str(pg_index)
+    entry = config_db.get_entry('THRESHOLD_TABLE', key)
+    if entry is None:
+        config_db.set_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
+    else:
+        entry_value = entry.get('threshold', [])
+        if entry_value != threshold_value:
+            config_db.mod_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
+
+@config.group('queue')
+def queue():
+    """ Configure queue thresholds """
+    pass
+
+@queue.command('threshold')
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.argument('queue_index', metavar='<queue_index>', required=True, type=int)
+@click.argument('queue_type', type=click.Choice(['unicast', 'multicast']))
+@click.argument('threshold_value', metavar='<threshold_value>', required=True, type=int)
+@click.pass_context
+def threshold(ctx, port_name, queue_index, queue_type, threshold_value):
+    """ Configure queue threshold value for a queue on a port """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    if queue_index not in range(0, 8):
+        ctx.fail("queue index must be in range 0-7")
+
+    if threshold_value not in range(1, 101):
+        ctx.fail("threshold value must be in range 1-100")
+
+    if interface_name_is_valid(config_db, port_name) is False:
+        ctx.fail("Interface name is invalid!!")
+
+    key = 'queue' + '|' + queue_type + '|' + port_name + '|' + str(queue_index)
+    entry = config_db.get_entry('THRESHOLD_TABLE', key)
+    if entry is None:
+        config_db.set_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
+    else:
+        entry_value = entry.get('threshold', [])
+        if entry_value != threshold_value:
+            config_db.mod_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
 
 #
 # 'syslog' group ('config syslog ...')

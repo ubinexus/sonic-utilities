@@ -4,6 +4,8 @@ import click
 import os
 import subprocess
 from click_default_group import DefaultGroup
+from natsort import natsorted
+from swsssdk import ConfigDBConnector
 
 try:
     # noinspection PyPep8Naming
@@ -253,6 +255,63 @@ def clear_pwm_pg_shared():
     command = 'watermarkstat -c -p -t pg_shared'
     run_command(command)
 
+def interface_name_is_valid(interface_name):
+    """Check if the interface name is valid
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
+    port_channel_dict = config_db.get_table('PORTCHANNEL')
+
+    if interface_name is not None:
+        if not port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
+        for port_name in port_dict.keys():
+            if interface_name == port_name:
+                return True
+        if port_channel_dict:
+            for port_channel_name in port_channel_dict.keys():
+                if interface_name == port_channel_name:
+                    return True
+    return False
+
+@priority_group.command('threshold')
+@click.argument('port_name', metavar='<port_name>', required=False)
+@click.argument('pg_index', metavar='<pg_index>', required=False, type=int)
+@click.argument('threshold_type', required=False, type=click.Choice(['shared', 'headroom']))
+@click.pass_context
+def threshold(ctx, port_name, pg_index, threshold_type):
+    """ Clear priority group threshold """
+    # If no params are provided, clear all priority-group entries.
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    all = False
+
+    if port_name is None and pg_index is None and threshold_type is None:
+        # clear all entries.
+        key = 'priority-group'
+        all = True
+    elif port_name is None or pg_index is None or threshold_type is None:
+        ctx.fail("port_name, pg_index and threshold_type are mandatory parameters.")
+    else:
+        if pg_index not in range(0, 8):
+            ctx.fail("priority-group must be in range 0-7")
+        if interface_name_is_valid(port_name) is False:
+            ctx.fail("Interface name is invalid!!")
+        key = 'priority-group' + '|' + threshold_type + '|' + port_name + '|' + str(pg_index)
+
+    if all is True:
+        entry_table = config_db.get_keys('THRESHOLD_TABLE')
+        # Clear data for all keys
+        for k in natsorted(entry_table):
+            if k[0] == 'priority-group':
+                config_db.set_entry('THRESHOLD_TABLE', k, None)
+    else:
+        entry = config_db.get_entry('THRESHOLD_TABLE', key)
+        if entry:
+            config_db.set_entry('THRESHOLD_TABLE', key, None)
 
 @cli.group()
 def queue():
@@ -294,6 +353,44 @@ def clear_pwm_q_multi():
     """Clear persistent WM for multicast queues"""
     command = 'watermarkstat -c -p -t q_shared_multi'
     run_command(command)
+
+@queue.command('threshold')
+@click.argument('port_name', metavar='<port_name>', required=False)
+@click.argument('queue_index', metavar='<queue_index>', required=False, type=int)
+@click.argument('queue_type', required=False, type=click.Choice(['unicast', 'multicast']))
+@click.pass_context
+def threshold(ctx, port_name, queue_index, queue_type):
+    """ Clear queue threshold for a queue on a port """
+    # If no params are provided, clear all priority-group entries.
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    all = False
+
+    if port_name is None and queue_index is None and queue_type is None:
+        # clear all entries.
+        key = 'queue'
+        all = True
+    elif port_name is None or queue_index is None or queue_type is None:
+        ctx.fail("port_name, queue_index and queue_type are mandatory parameters.")
+    else:
+        if queue_index not in range(0, 8):
+            ctx.fail("queue index must be in range 0-7")
+        if interface_name_is_valid(port_name) is False:
+            ctx.fail("Interface name is invalid!!")
+        key = 'queue' + '|' + queue_type + '|' + port_name + '|' + str(queue_index)
+
+    if all is True:
+        entry_table = config_db.get_keys('THRESHOLD_TABLE')
+        # Clear data for all keys
+        for k in natsorted(entry_table):
+            if k[0] == 'queue':
+                config_db.set_entry('THRESHOLD_TABLE', k, None)
+    else:
+        entry = config_db.get_entry('THRESHOLD_TABLE', key)
+        if entry:
+            config_db.set_entry('THRESHOLD_TABLE', key, None)
+
 
 #
 # 'arp' command ####
@@ -386,6 +483,22 @@ def clear_vlan_fdb(vlanid):
 def line(linenum):
     """Clear preexisting connection to line"""
     cmd = "consutil clear " + str(linenum)
+    run_command(cmd)
+
+@cli.group('threshold')
+def threshold():
+    """Clear threshold breach entries"""
+    pass
+
+@threshold.command()
+@click.argument('id', type=int, required=False)
+def breach(id):
+    """Clear threshold breach entries all | event-id"""
+    if id is not None:
+        cmd = "thresholdbreach -c -cnt {}".format(id)
+    else:
+        cmd = 'thresholdbreach -c'
+
     run_command(cmd)
 
 if __name__ == '__main__':

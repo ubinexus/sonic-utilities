@@ -83,6 +83,8 @@ setup(
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/teamshow',
+        'scripts/thresholdbreach',
+        'scripts/thresholdcfg',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'

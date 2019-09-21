@@ -783,6 +783,23 @@ def pwm_q_multi():
     command = 'watermarkstat -p -t q_shared_multi'
     run_command(command)
 
+@queue.group()
+def threshold():
+    """Show queue threshold config"""
+    pass
+
+@threshold.command('unicast')
+def th_q_uni():
+    """Show threshold config for unicast queues"""
+    command = 'thresholdcfg -t q_shared_uni'
+    run_command(command)
+
+@threshold.command('multicast')
+def th_q_multi():
+    """Show threshold config for multicast queues"""
+    command = 'thresholdcfg -t q_shared_multi'
+    run_command(command)
+
 
 #
 # 'priority-group' group ("show priority-group ...")
@@ -824,6 +841,23 @@ def pwm_pg_headroom():
 def pwm_pg_shared():
     """Show persistent shared WM for pg"""
     command = 'watermarkstat -p -t pg_shared'
+    run_command(command)
+
+@priority_group.group()
+def threshold():
+    """Show priority group threshold config"""
+    pass
+
+@threshold.command('headroom')
+def th_pg_headroom():
+    """Show headroom threshold config for pg"""
+    command = 'thresholdcfg -t pg_headroom'
+    run_command(command)
+
+@threshold.command('shared')
+def th_pg_shared():
+    """Show shared threshold config for pg"""
+    command = 'thresholdcfg -t pg_shared'
     run_command(command)
 
 
@@ -1942,6 +1976,27 @@ def line():
     run_command(cmd, display_cmd=verbose)
     return
 
+#
+# 'threshold breaches' command ("show threshold breaches")
+#
+
+@cli.group('threshold')
+def threshold():
+    """Show threshold breaches"""
+    pass
+
+@threshold.command('breaches')
+@click.argument('count', metavar='<count>', required=False, type=int)
+def threshold_breaches(count):
+    """Show threshold breaches"""
+
+    if count is not None:
+        cmd = "thresholdbreach -cnt {}".format(count)
+    else:
+        cmd = "thresholdbreach"
+
+    run_command(cmd)
+    return
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def warm_restart():
