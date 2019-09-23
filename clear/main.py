@@ -388,5 +388,17 @@ def line(linenum):
     cmd = "consutil clear " + str(linenum)
     run_command(cmd)
 
+# 'error_database' group ("clear error_database ...")
+@cli.command('error_database')
+@click.argument('tablename', metavar='<tablename>', required=False, type=str)
+def error_database_clear(tablename):
+    """Clear ERROR DB entries"""
+
+    cmd = "errordbclear"
+    if tablename is not None:
+        cmd += " -t {}".format(tablename)
+
+    run_command(cmd)
+
 if __name__ == '__main__':
     cli()

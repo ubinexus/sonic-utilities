@@ -60,6 +60,8 @@ setup(
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/ecnconfig',
+        'scripts/errordbclear',
+        'scripts/errordbshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
