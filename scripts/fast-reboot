@@ -466,7 +466,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # Send USR1 signal to all teamd instances to stop them
     # It will prepare teamd for warm-reboot
     # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -USR1 teamd || [ $? == 1 ] > /dev/null
+    docker exec -i teamd pkill -USR1 teamd > /dev/null || [ $? == 1 ]
     debug "Stopped  teamd ..."
 fi
 
