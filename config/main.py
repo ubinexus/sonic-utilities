@@ -19,6 +19,8 @@ from minigraph import parse_device_desc_xml
 import aaa
 import mlnx
 
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
+
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 
@@ -290,6 +292,31 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(ip_addr, status, verbose)
 
+def _validate_bgp_neighbor(neighbor_ip_or_hostname):
+    """validates whether the given ip or host name is a BGP neighbor
+    """
+    ip_addrs = []
+    if _is_neighbor_ipaddress(neighbor_ip_or_hostname.lower()):
+        ip_addrs.append(neighbor_ip_or_hostname.lower())
+    else:
+        ip_addrs = _get_neighbor_ipaddress_list_by_hostname(neighbor_ip_or_hostname.upper())
+
+    if not ip_addrs:
+        click.get_current_context().fail("Could not locate neighbor '{}'".format(neighbor_ip_or_hostname))
+
+    return ip_addrs
+
+def _remove_bgp_neighbor_config(neighbor_ip_or_hostname):
+    """Removes BGP configuration of the given neighbor
+    """
+    ip_addrs = _validate_bgp_neighbor(neighbor_ip_or_hostname)
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    for ip_addr in ip_addrs:
+        config_db.mod_entry('bgp_neighbor', ip_addr, None)
+        click.echo("Removed configuration of BGP neighbor {}".format(ip_addr))
+
 def _change_hostname(hostname):
     current_hostname = os.uname()[1]
     if current_hostname != hostname:
@@ -339,47 +366,83 @@ def _abort_if_false(ctx, param, value):
         ctx.abort()
 
 def _stop_services():
-    services = [
-        'dhcp_relay',
+    services_to_stop = [
         'swss',
-        'snmp',
         'lldp',
         'pmon',
         'bgp',
-        'teamd',
         'hostcfgd',
     ]
-    for service in services:
+
+    for service in services_to_stop:
         try:
-            run_command("systemctl stop %s" % service, display_cmd=True)
+            click.echo("Stopping service {} ...".format(service))
+            run_command("systemctl stop {}".format(service))
+
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
             raise
 
+def _reset_failed_services():
+    services_to_reset = [
+        'bgp',
+        'dhcp_relay',
+        'hostcfgd',
+        'hostname-config',
+        'interfaces-config',
+        'lldp',
+        'ntp-config',
+        'pmon',
+        'radv',
+        'rsyslog-config',
+        'snmp',
+        'swss',
+        'syncd',
+        'teamd'
+    ]
+
+    for service in services_to_reset:
+        try:
+            click.echo("Resetting failed status for service {} ...".format(service))
+            run_command("systemctl reset-failed {}".format(service))
+        except SystemExit as e:
+            log_error("Failed to reset failed status for service {}".format(service))
+            raise
+
 def _restart_services():
-    services = [
+    services_to_restart = [
         'hostname-config',
         'interfaces-config',
         'ntp-config',
         'rsyslog-config',
         'swss',
         'bgp',
-        'teamd',
         'pmon',
         'lldp',
-        'snmp',
-        'dhcp_relay',
         'hostcfgd',
     ]
-    for service in services:
+
+    for service in services_to_restart:
         try:
-            run_command("systemctl restart %s" % service, display_cmd=True)
+            click.echo("Restarting service {} ...".format(service))
+            run_command("systemctl restart {}".format(service))
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
 
+def is_ipaddress(val):
+    """ Validate if an entry is a valid IP """
+    if not val:
+        return False
+    try:
+        netaddr.IPAddress(str(val))
+    except:
+        return False
+    return True
+
+
 # This is our main entrypoint - the main 'config' command
-@click.group()
+@click.group(context_settings=CONTEXT_SETTINGS)
 def config():
     """SONiC command line - 'config' command"""
     if os.geteuid() != 0:
@@ -446,6 +509,9 @@ def reload(filename, yes, load_sysinfo):
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         run_command(db_migrator + ' -o migrate')
 
+    # We first run "systemctl reset-failed" to remove the "failed"
+    # status from all services before we attempt to restart them
+    _reset_failed_services()
     _restart_services()
 
 @config.command()
@@ -502,6 +568,9 @@ def load_minigraph():
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         run_command(db_migrator + ' -o set_version')
 
+    # We first run "systemctl reset-failed" to remove the "failed"
+    # status from all services before we attempt to restart them
+    _reset_failed_services()
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
     _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
@@ -840,6 +909,65 @@ def del_vlan_member(ctx, vid, interface_name):
     db.set_entry('VLAN', vlan_name, vlan)
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
+@vlan.group('dhcp_relay')
+@click.pass_context
+def vlan_dhcp_relay(ctx):
+    pass
+
+@vlan_dhcp_relay.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
+@click.pass_context
+def add_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
+    """ Add a destination IP address to the VLAN's DHCP relay """
+    if not is_ipaddress(dhcp_relay_destination_ip):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    dhcp_relay_dests = vlan.get('dhcp_servers', [])
+    if dhcp_relay_destination_ip in dhcp_relay_dests:
+        click.echo("{} is already a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
+        return
+    else:
+        dhcp_relay_dests.append(dhcp_relay_destination_ip)
+        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
+        try:
+            click.echo("Restarting DHCP relay service...")
+            run_command("systemctl restart dhcp_relay", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
+
+@vlan_dhcp_relay.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
+@click.pass_context
+def del_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
+    """ Remove a destination IP address from the VLAN's DHCP relay """
+    if not is_ipaddress(dhcp_relay_destination_ip):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    dhcp_relay_dests = vlan.get('dhcp_servers', [])
+    if dhcp_relay_destination_ip in dhcp_relay_dests:
+        dhcp_relay_dests.remove(dhcp_relay_destination_ip)
+        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
+        try:
+            click.echo("Restarting DHCP relay service...")
+            run_command("systemctl restart dhcp_relay", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
+    else:
+        ctx.fail("{} is not a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
 
 #
 # 'bgp' group ('config bgp ...')
@@ -897,6 +1025,21 @@ def all(verbose):
 def neighbor(ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
     _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
+
+#
+# 'remove' subgroup ('config bgp remove ...')
+#
+
+@bgp.group()
+def remove():
+    "Remove BGP neighbor configuration from the device"
+    pass
+
+@remove.command('neighbor')
+@click.argument('neighbor_ip_or_hostname', metavar='<neighbor_ip_or_hostname>', required=True)
+def remove_neighbor(neighbor_ip_or_hostname):
+    """Deletes BGP neighbor configuration of given hostname or ip from devices"""
+    _remove_bgp_neighbor_config(neighbor_ip_or_hostname)
 
 #
 # 'interface' group ('config interface ...')
@@ -1432,14 +1575,17 @@ def pfc(ctx):
 #
 
 @pfc.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('status', type=click.Choice(['on', 'off']))
 @click.pass_context
-def asymmetric(ctx, status):
+def asymmetric(ctx, interface_name, status):
     """Set asymmetric PFC configuration."""
-    config_db = ctx.obj["config_db"]
-    interface = ctx.obj["interface_name"]
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
 
-    run_command("pfc config asymmetric {0} {1}".format(status, interface))
+    run_command("pfc config asymmetric {0} {1}".format(status, interface_name))
 
 #
 # 'platform' group ('config platform ...')
@@ -1494,6 +1640,111 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
+#
+# 'syslog' group ('config syslog ...')
+#
+@config.group('syslog')
+@click.pass_context
+def syslog_group(ctx):
+    """Syslog server configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@syslog_group.command('add')
+@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
+@click.pass_context
+def add_syslog_server(ctx, syslog_ip_address):
+    """ Add syslog server IP """
+    if not is_ipaddress(syslog_ip_address):
+        ctx.fail('Invalid ip address')
+    db = ctx.obj['db']
+    syslog_servers = db.get_table("SYSLOG_SERVER")
+    if syslog_ip_address in syslog_servers:
+        click.echo("Syslog server {} is already configured".format(syslog_ip_address))
+        return
+    else:
+        db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
+        click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
+        try:
+            click.echo("Restarting rsyslog-config service...")
+            run_command("systemctl restart rsyslog-config", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
+
+@syslog_group.command('del')
+@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
+@click.pass_context
+def del_syslog_server(ctx, syslog_ip_address):
+    """ Delete syslog server IP """
+    if not is_ipaddress(syslog_ip_address):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    syslog_servers = db.get_table("SYSLOG_SERVER")
+    if syslog_ip_address in syslog_servers:
+        db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
+        click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
+    else:
+        ctx.fail("Syslog server {} is not configured.".format(syslog_ip_address))
+    try:
+        click.echo("Restarting rsyslog-config service...")
+        run_command("systemctl restart rsyslog-config", display_cmd=False)
+    except SystemExit as e:
+        ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
+
+#
+# 'ntp' group ('config ntp ...')
+#
+@config.group()
+@click.pass_context
+def ntp(ctx):
+    """NTP server configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@ntp.command('add')
+@click.argument('ntp_ip_address', metavar='<ntp_ip_address>', required=True)
+@click.pass_context
+def add_ntp_server(ctx, ntp_ip_address):
+    """ Add NTP server IP """
+    if not is_ipaddress(ntp_ip_address):
+        ctx.fail('Invalid ip address')
+    db = ctx.obj['db']
+    ntp_servers = db.get_table("NTP_SERVER")
+    if ntp_ip_address in ntp_servers:
+        click.echo("NTP server {} is already configured".format(ntp_ip_address))
+        return
+    else: 
+        db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
+        click.echo("NTP server {} added to configuration".format(ntp_ip_address))
+        try:
+            click.echo("Restarting ntp-config service...")
+            run_command("systemctl restart ntp-config", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service ntp-config failed with error {}".format(e))
+
+@ntp.command('del')
+@click.argument('ntp_ip_address', metavar='<ntp_ip_address>', required=True)
+@click.pass_context
+def del_ntp_server(ctx, ntp_ip_address):
+    """ Delete NTP server IP """
+    if not is_ipaddress(ntp_ip_address):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    ntp_servers = db.get_table("NTP_SERVER")
+    if ntp_ip_address in ntp_servers:
+        db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
+        click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
+    else: 
+        ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
+    try:
+        click.echo("Restarting ntp-config service...")
+        run_command("systemctl restart ntp-config", display_cmd=False)
+    except SystemExit as e:
+        ctx.fail("Restart service ntp-config failed with error {}".format(e))
 
 if __name__ == '__main__':
     config()
