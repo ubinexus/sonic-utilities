@@ -331,7 +331,6 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
     url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = None
 
-    ferret_server_ipv4_addr = None
     for i in range(DEFAULT_FERRET_QUERY_RETRIES):
         try:
             response = requests.post(url, json = request_slice, timeout = DEFAULT_REQUEST_TIMEOUT)
