@@ -220,6 +220,7 @@ This command lists all the possible configuration commands at the top level.
     aaa                    AAA command line
     acl                    ACL-related configuration tasks
     bgp                    BGP-related configuration tasks
+    change-hostname        Change Hostname on a SONiC device without...
     ecn                    ECN-related configuration tasks
     interface              Interface-related configuration tasks
     interface_naming_mode  Modify interface naming mode for interacting...
@@ -1560,6 +1561,28 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#BGP-Configuration-And-Show-Commands)
 
+# Update Hostname Configuration Commands
+
+This sub-section of commands is used to change the hostname on a SONiC device without traffic being impacted.
+
+**config change-hostname <hostname>**
+This command is used to change the hostname on a SONiC device without traffic being impacted.
+- Usage: config change-hostname [OPTIONS] <hostname>
+
+        Change Hostname on a SONiC device without impacting the traffic.
+
+        Options:
+          --help  Show this message and exit.
+- Examples:
+  ```
+  admin@csw06:~$ sudo config change-hostname csw06-sonic
+  Running command: service hostname-config restart
+  Please note loaded setting will be lost after system reboot. To preserve setting, run config save.
+
+
+  admin@csw06:~$ sudo config save -y
+  Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+  ```
 
 # ECN Configuration And Show Commands
 
