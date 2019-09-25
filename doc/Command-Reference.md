@@ -1565,23 +1565,20 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 This sub-section of commands is used to change the hostname on a SONiC device without traffic being impacted.
 
-**config change-hostname <hostname>**
+**config hostname <new_hostname>**
 This command is used to change the hostname on a SONiC device without traffic being impacted.
-- Usage: config change-hostname [OPTIONS] <hostname>
+
+- Usage: config hostname [OPTIONS] <new_hostname>
 
         Change Hostname on a SONiC device without impacting the traffic.
+ Options:
+  -?, -h, --help  Show this message and exit.
 
-        Options:
-          --help  Show this message and exit.
 - Examples:
   ```
-  admin@csw06:~$ sudo config change-hostname csw06-sonic
+  admin@lnos-x1-a-csw06:~$ sudo config hostname CSW06
   Running command: service hostname-config restart
-  Please note loaded setting will be lost after system reboot. To preserve setting, run config save.
-
-
-  admin@csw06:~$ sudo config save -y
-  Running command: /usr/local/bin/sonic-cfggen -d --print-data > /etc/sonic/config_db.json
+  Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
   ```
 
 # ECN Configuration And Show Commands

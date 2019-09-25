@@ -525,16 +525,16 @@ def load_minigraph():
 
 
 #
-# 'change-hostname' command
+# 'hostname' command
 #
-@config.command('change-hostname')
-@click.argument('hostname', metavar='<hostname>', required=True)
-def change_hostname(hostname):
+@config.command('hostname')
+@click.argument('new_hostname', metavar='<new_hostname>', required=True)
+def hostname(new_hostname):
     """Change Hostname on a SONiC device without impacting the traffic."""
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"hostname" : hostname})
+    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"hostname" : new_hostname})
     try:
         command = "service hostname-config restart"
         run_command(command, display_cmd=True)
