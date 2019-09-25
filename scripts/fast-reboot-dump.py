@@ -174,7 +174,11 @@ def generate_fdb_entries(filename):
 
 def get_if(iff, cmd):
     s = socket.socket()
-    ifreq = ioctl(s, cmd, struct.pack("16s16x",iff))
+    try:
+        ifreq = ioctl(s, cmd, struct.pack("16s16x",iff))
+    except IOError:
+        # cannot retrieve data from interface, set to ""
+        ifreq = ""
     s.close()
     return ifreq
 
