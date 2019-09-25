@@ -328,7 +328,6 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
     url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = None
 
-    ferret_server_ipv4_addr = None
     for i in range(DEFAULT_FERRET_QUERY_RETRIES):
         try:
             response = requests.post(url, json = request_slice, timeout = DEFAULT_REQUEST_TIMEOUT)
@@ -336,6 +335,7 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
             log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
             return None
 
+        # Handle response errors
         if not response:
             log_error('Failed to set up neighbor advertiser slice, vip: {}, no response obtained'.format(ferret_service_vip))
             return None
@@ -344,19 +344,20 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
             return None
 
         neighbor_advertiser_configuration = json.loads(response.content)
-        ferret_dip = neighbor_advertiser_configuration['ipv4Addr']
+        ferret_server_ipv4_addr = neighbor_advertiser_configuration['ipv4Addr']
 
-        if not is_dip_in_device_vlan(ferret_dip):
-            save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
-            ferret_server_ipv4_addr = ferret_dip
-            break
+        # Retry the request if the provided DIP is in the device VLAN
+        if is_dip_in_device_vlan(ferret_server_ipv4_addr):
+            log_info('Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN, retrying...'.format(ferret_service_vip, ferret_server_ipv4_addr))
+            continue
 
-    if not ferret_server_ipv4_addr:
-        log_error('Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN'.format(ferret_service_vip))
-        return None
+        # If all the proceeding checks pass, return the provided DIP
+        save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
+        log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
+        return ferret_server_ipv4_addr
 
-    log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
-    return ferret_server_ipv4_addr
+    log_error('Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN'.format(ferret_service_vip))
+    return None
 
 
 def save_as_json(obj, file_path):
