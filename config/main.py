@@ -1218,6 +1218,7 @@ def bind(ctx, interface_name, vrf_name):
     if is_interface_bind_to_vrf(config_db, interface_name) is True and \
         config_db.get_entry(table_name, interface_name).get('vrf_name') == vrf_name:
         return
+    # Clean ip addresses if interface configured
     interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
     for interface_del in interface_dependent:
         config_db.set_entry(table_name, interface_del, None)
@@ -1279,6 +1280,8 @@ def add_vrf(ctx, vrf_name):
     config_db = ctx.obj['config_db']
     if not vrf_name.startswith("Vrf"):
         ctx.fail("'vrf_name' is not start with Vrf!")
+    if len(vrf_name) > 15:
+        ctx.fail("'vrf_name' is too long!")
     config_db.set_entry('VRF', vrf_name, {"NULL": "NULL"})
 
 @vrf.command('del')
@@ -1287,6 +1290,10 @@ def add_vrf(ctx, vrf_name):
 def del_vrf(ctx, vrf_name):
     """Del vrf"""
     config_db = ctx.obj['config_db']
+    if not vrf_name.startswith("Vrf"):
+        ctx.fail("'vrf_name' is not start with Vrf!")
+    if len(vrf_name) > 15:
+        ctx.fail("'vrf_name' is too long!")
     del_interface_bind_to_vrf(config_db, vrf_name)
     config_db.set_entry('VRF', vrf_name, None)
 
