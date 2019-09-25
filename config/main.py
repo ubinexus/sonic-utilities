@@ -18,6 +18,8 @@ from minigraph import parse_device_desc_xml
 import aaa
 import mlnx
 
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
+
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 
@@ -347,19 +349,13 @@ def _reset_failed_services():
         'teamd'
     ]
 
-    command = "systemctl --failed | grep failed | awk '{ print $2 }' | awk -F'.' '{ print $1 }'"
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
-    failed_services = out.rstrip('\n').split('\n')
-
-    for service in failed_services:
-        if service in services_to_reset:
-            try:
-                click.echo("Resetting failed service {} ...".format(service))
-                run_command("systemctl reset-failed {}".format(service))
-            except SystemExit as e:
-                log_error("Failed to reset service {}".format(service))
-                raise
+    for service in services_to_reset:
+        try:
+            click.echo("Resetting failed status for service {} ...".format(service))
+            run_command("systemctl reset-failed {}".format(service))
+        except SystemExit as e:
+            log_error("Failed to reset failed status for service {}".format(service))
+            raise
 
 def _restart_services():
     services_to_restart = [
@@ -392,8 +388,9 @@ def is_ipaddress(val):
         return False
     return True
 
+
 # This is our main entrypoint - the main 'config' command
-@click.group()
+@click.group(context_settings=CONTEXT_SETTINGS)
 def config():
     """SONiC command line - 'config' command"""
     if os.geteuid() != 0:
@@ -1342,8 +1339,10 @@ def asymmetric(ctx, interface_name, status):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
     if interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid!!")
+
 
     run_command("pfc config asymmetric {0} {1}".format(status, interface_name))
 
