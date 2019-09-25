@@ -298,21 +298,15 @@ def _abort_if_false(ctx, param, value):
 
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
-    if asic_type == 'mellanox':
-        services_to_stop = [
-            'swss',
-            'lldp',
-            'bgp',
-            'hostcfgd',
-        ]
-    else:
-        services_to_stop = [
-            'swss',
-            'lldp',
-            'pmon',
-            'bgp',
-            'hostcfgd',
-        ]
+    services_to_stop = [
+        'swss',
+        'lldp',
+        'pmon',
+        'bgp',
+        'hostcfgd',
+    ]
+    if asic_type == 'mellanox' and 'pmon' in services_to_stop:
+        services_to_stop.remove('pmon')
 
     for service in services_to_stop:
         try:
@@ -357,29 +351,19 @@ def _reset_failed_services():
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
-    if asic_type == 'mellanox':
-        services_to_restart = [
-            'hostname-config',
-            'interfaces-config',
-            'ntp-config',
-            'rsyslog-config',
-            'swss',
-            'bgp',
-            'lldp',
-            'hostcfgd',
-        ]
-    else:
-        services_to_restart = [
-            'hostname-config',
-            'interfaces-config',
-            'ntp-config',
-            'rsyslog-config',
-            'swss',
-            'bgp',
-            'pmon',
-            'lldp',
-            'hostcfgd',
-        ]
+    services_to_restart = [
+        'hostname-config',
+        'interfaces-config',
+        'ntp-config',
+        'rsyslog-config',
+        'swss',
+        'bgp',
+        'pmon',
+        'lldp',
+        'hostcfgd',
+    ]
+    if asic_type == 'mellanox' and 'pmon' in services_to_restart:
+        services_to_restart.remove('pmon')
 
     for service in services_to_restart:
         try:
