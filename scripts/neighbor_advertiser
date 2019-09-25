@@ -103,10 +103,7 @@ def get_device_vlan_checker():
     vlan_interfaces = config_db.get_table('VLAN_INTERFACE')
 
     def check_device(ferret_server_ip_addr):
-        for vlan_int, _ in vlan_interfaces.iteritems():
-            if IPAddress(ferret_server_ip_addr) in IPNetwork(vlan_int[1]):
-                return True
-        return False
+        return any(IPAddress(ferret_server_ip_addr) in IPNetwork(vlan_int[1]) for vlan_int in vlan_interfaces.iterkeys())
     
     is_dip_in_device_vlan = check_device
 
@@ -339,26 +336,26 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
             log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
             return None
 
-        if response and response.ok
-            neighbor_advertiser_configuration = json.loads(response.content)
-            save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
-            ferret_dip = neighbor_advertiser_configuration['ipv4Addr']
-
-            if not is_dip_in_device_vlan(ferret_dip):
-                ferret_server_ipv4_addr = ferret_dip
-                break
-        elif response:
-            log_error('Failed to set up neighbor advertiser slice, vip: {}, error_code: {}, error_content: {}'.format(ferret_service_vip, response.status_code, response.content))
-            return None
-        else:
+        if not response:
             log_error('Failed to set up neighbor advertiser slice, vip: {}, no response obtained'.format(ferret_service_vip))
             return None
+        if response and not response.ok:
+            log_error('Failed to set up neighbor advertiser slice, vip: {}, error_code: {}, error_content: {}'.format(ferret_service_vip, response.status_code, response.content))
+            return None
 
-    if ferret_server_ipv4_addr:
-        log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
-    else:
+        neighbor_advertiser_configuration = json.loads(response.content)
+        ferret_dip = neighbor_advertiser_configuration['ipv4Addr']
+
+        if not is_dip_in_device_vlan(ferret_dip):
+            save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
+            ferret_server_ipv4_addr = ferret_dip
+            break
+
+    if not ferret_server_ipv4_addr:
         log_error('Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN'.format(ferret_service_vip))
+        return None
 
+    log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
     return ferret_server_ipv4_addr
 
 
