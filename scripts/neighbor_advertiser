@@ -107,12 +107,11 @@ def is_dip_in_device_vlan(ferret_dip):
     ferret_dip = IPAddress(ferret_dip)
 
     for vlan_interface in vlan_interface_query.iterkeys():
-        vlan_subnet = vlan_interface[1]
-        try:
-            vlan_subnet = IPNetwork(vlan_subnet)
-        except:
+        if not is_ip_prefix_in_key(vlan_subnet):
             log_info('{} does not have a subnet, skipping...'.format(vlan_interface))
             continue
+
+        vlan_subnet = IPNetwork(vlan_interface[1])
 
         if ferret_dip.version != vlan_subnet.version
             log_info('{} version (IPv{}) does not match provided DIP version (IPv{}), skipping...'.format(vlan_interface[0], vlan_subnet.version, ferret_dip.version))
