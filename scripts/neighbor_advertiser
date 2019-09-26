@@ -328,7 +328,7 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
     url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = None
 
-    for i in range(DEFAULT_FERRET_QUERY_RETRIES):
+    for retry in range(DEFAULT_FERRET_QUERY_RETRIES):
         try:
             response = requests.post(url, json = request_slice, timeout = DEFAULT_REQUEST_TIMEOUT)
         except Exception as e:
@@ -348,7 +348,7 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
 
         # Retry the request if the provided DIP is in the device VLAN
         if is_dip_in_device_vlan(ferret_server_ipv4_addr):
-            log_info('Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN, retrying...'.format(ferret_service_vip, ferret_server_ipv4_addr))
+            log_info('Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN (attempt {}/{})'.format(ferret_service_vip, ferret_server_ipv4_addr, retry + 1, DEFAULT_FERRET_QUERY_RETRIES))
             continue
 
         # If all the proceeding checks pass, return the provided DIP
