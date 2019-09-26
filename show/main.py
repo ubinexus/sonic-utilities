@@ -698,9 +698,9 @@ def counters(interfacename, clear, verbose):
 
     if clear:
         cmd += " -c"
-    else:
-        if interfacename is not None:
-            cmd += " -p {}".format(interfacename)
+        
+    if interfacename is not None:
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 

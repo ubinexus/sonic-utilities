@@ -251,6 +251,34 @@ class Queuestat(object):
             else:
                 print "Clear and update saved counters for " + port
 
+    def clear_per_port_stat(self, port):
+        if not port in self.port_queues_map:
+            print "Port doesn't exist!", port
+            sys.exit(1)
+
+        if not os.path.exists(cnstat_dir):
+            try:
+                os.makedirs(cnstat_dir)
+            except IOError as e:
+                print e.errno, e
+                sys.exit(1)
+
+        # Get stat for the port queried
+        cnstat_dict = self.get_cnstat(self.port_queues_map[port])
+        cnstat_cached_dict = OrderedDict()
+        cnstat_fqn_file_name = cnstat_fqn_file + port
+        if os.path.isfile(cnstat_fqn_file_name):
+            try:
+                pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'w'))
+            except IOError as e:
+                print e.errno, e
+            else:
+                print "Clear and update saved counters for " + port
+        else:
+            pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'w'))
+            print "Clear and update saved counters for " + port
+
+
 def main():
     global cnstat_dir
     global cnstat_fqn_file
@@ -317,7 +345,10 @@ Examples:
     queuestat = Queuestat()
 
     if save_fresh_stats:
-        queuestat.save_fresh_stats()
+        if port_to_show_stats!=None:
+            queuestat.clear_per_port_stat(port_to_show_stats)
+        else:
+            queuestat.save_fresh_stats()
         sys.exit(0)
 
     if port_to_show_stats!=None:
