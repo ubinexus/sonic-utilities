@@ -380,6 +380,8 @@ def reload(filename, yes, load_sysinfo):
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
     client.flushdb()
+    # Clear cached queue statistics
+    run_command("queuestat -D", display_cmd=True)
     if load_sysinfo:
         command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
         run_command(command, display_cmd=True)

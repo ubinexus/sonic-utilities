@@ -14,6 +14,7 @@ import json
 import os.path
 import swsssdk
 import sys
+import shutil
 
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
@@ -263,15 +264,18 @@ Examples:
   queuestat -p Ethernet0
   queuestat -c
   queuestat -d
+  queuestat -D
 """)
 
     parser.add_argument('-p', '--port', type=str, help='Show the queue conters for just one port', default=None)
     parser.add_argument('-c', '--clear', action='store_true', help='Clear previous stats and save new ones')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats')
+    parser.add_argument('-D', '--delete_all', action='store_true', help='Delete saved stats for all user sessions')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
-    delete_all_stats = args.delete
+    delete_all_stats = args.delete_all
+    delete_stats = args.delete
 
     port_to_show_stats = args.port
 
@@ -281,12 +285,30 @@ Examples:
     cnstat_dir = "/tmp/queuestat-" + uid
     cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
 
-    if delete_all_stats:
-        for file in os.listdir(cnstat_dir):
-            os.remove(cnstat_dir + "/" + file)
+    if delete_stats:
+        if os.path.exists(cnstat_dir):
+           for file in os.listdir(cnstat_dir):
+               cnstat_cache_file = cnstat_dir + "/" + file
+               if os.path.exists(cnstat_cache_file):
+                  os.remove(cnstat_cache_file)
 
         try:
-            os.rmdir(cnstat_dir)
+            if os.path.exists(cnstat_dir):
+               os.rmdir(cnstat_dir)
+            else:
+               print cnstat_dir + "does not exist"
+            sys.exit(0)
+        except IOError as e:
+            print e.errno, e
+            sys.exit(e)
+
+    if delete_all_stats:
+        tmp_dir = os.listdir("/tmp")
+        try:
+            for dir in tmp_dir:
+                if dir.startswith('queuestat'):
+                    cnstat_dir = "/tmp/" + dir
+                    shutil.rmtree(cnstat_dir)
             sys.exit(0)
         except IOError as e:
             print e.errno, e
