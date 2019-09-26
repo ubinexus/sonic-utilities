@@ -94,18 +94,16 @@ def connect_config_db():
 # Check if a DIP returned from ferret is in any of this switch's VLANs
 #
 
-is_dip_in_device_vlan = None
+vlan_interface_query = None
 
 
-def get_device_vlan_checker():
-    global is_dip_in_device_vlan
+def is_dip_in_device_vlan(ferret_server_ip_addr):
+    global vlan_interface_query
 
-    vlan_interfaces = config_db.get_table('VLAN_INTERFACE')
+    if not vlan_interface_query
+        vlan_interface_query = config_db.get_table('VLAN_INTERFACE')
 
-    def check_device(ferret_server_ip_addr):
-        return any(IPAddress(ferret_server_ip_addr) in IPNetwork(vlan_int[1]) for vlan_int in vlan_interfaces.iterkeys())
-    
-    is_dip_in_device_vlan = check_device
+    return any(IPAddress(ferret_server_ip_addr) in IPNetwork(vlan_int[1]) for vlan_int in vlan_interface_query.iterkeys())
 
 
 #
@@ -494,7 +492,6 @@ def main():
         sys.exit(1)
 
     connect_config_db()
-    get_device_vlan_checker()
 
     if operation_mode == 'set':
         set_success = False
