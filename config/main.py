@@ -530,7 +530,7 @@ def load_minigraph():
 @config.command('hostname')
 @click.argument('new_hostname', metavar='<new_hostname>', required=True)
 def hostname(new_hostname):
-    """Change Hostname on a SONiC device without impacting the traffic."""
+    """Change device hostname without impacting the traffic."""
 
     config_db = ConfigDBConnector()
     config_db.connect()
