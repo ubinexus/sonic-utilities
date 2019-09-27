@@ -245,6 +245,11 @@ def _change_hostname(hostname):
         run_command('hostname -F /etc/hostname', display_cmd=True)
         run_command('sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        curr_host_name = config_db.get_entry('DEVICE_METADATA', "localhost").get('hostname')
+        if (curr_host_name != hostname):
+            config_db.mod_entry('DEVICE_METADATA', "localhost", {'hostname': hostname})
 
 def _clear_qos():
     QOS_TABLE_NAMES = [
