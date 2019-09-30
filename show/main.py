@@ -192,6 +192,14 @@ def run_command(command, display_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
+def vlan_id_is_valid(vid):
+    """Check if the vlan id is in acceptable range (between 1 and 4094)
+    """
+
+    if vid < 1 or vid > 4094:
+        return False
+
+    return True
 
 def get_interface_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
@@ -1606,6 +1614,97 @@ def system_memory(verbose):
 def vlan():
     """Show VLAN information"""
     pass
+
+@vlan.command()
+@click.argument('vlanid', required=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def id(vlanid, verbose):
+    """Show Vlan Information"""
+
+    header = ['VLAN ID', 'IP Address', 'Ports', 'Port Tagging', 'DHCP Helper Address']
+    body = []
+    vlan_dhcp_helper_dict = {}
+    vlan_ip_dict = {}
+    vlan_ports_dict = {}
+    vlan_tagging_dict = {}
+
+    if vlan_id_is_valid(vlanid) is 'False':
+        click.echo(" Invalid Vlan ID, Valid Range : 1 to 4094 ")
+        return
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    vlan = 'Vlan{}'.format(vlanid)
+
+    vlan_entry = config_db.get_entry('VLAN', vlan)
+
+    if len(vlan_entry) == 0:
+        output = " Vlan ID " + vlanid + " not found "
+        click.echo(output)
+        return
+
+    vlan_ports_data = config_db.get_table('VLAN_MEMBER')
+    vlan_ip_data = config_db.get_table('VLAN_INTERFACE')
+
+    # Parsing VLAN Ports info
+    for key in natsorted(vlan_ports_data.keys()):
+        ports_key = str(key[0].strip("Vlan"))
+        ports_value = str(key[1])
+        ports_tagging = vlan_ports_data[key]['tagging_mode']
+
+        if str(key[0].strip('Vlan')) == vlanid:
+            output = "VLAN Match"
+        else:
+            continue
+
+        if ports_key in vlan_ports_dict:
+            if get_interface_mode() == "alias":
+                ports_value = iface_alias_converter.name_to_alias(ports_value)
+            vlan_ports_dict[ports_key].append(ports_value)
+        else:
+            if get_interface_mode() == "alias":
+                ports_value = iface_alias_converter.name_to_alias(ports_value)
+            vlan_ports_dict[ports_key] = [ports_value]
+        if ports_key in vlan_tagging_dict:
+            vlan_tagging_dict[ports_key].append(ports_tagging)
+        else:
+            vlan_tagging_dict[ports_key] = [ports_tagging]
+
+    for key in natsorted(vlan_ip_data.keys()):
+        if not isinstance(key, tuple):
+            continue
+        if str(key[0]) != vlan:
+            continue
+
+        interface_key = str(key[0].strip("Vlan"))
+        interface_value = str(key[1])
+        if interface_key in vlan_ip_dict:
+            vlan_ip_dict[interface_key].append(interface_value)
+        else:
+            vlan_ip_dict[interface_key] = [interface_value]
+
+
+    key = vlanid
+
+    if key not in vlan_ip_dict:
+        ip_address = ""
+    else:
+        ip_address = ','.replace(',', '\n').join(vlan_ip_dict[key])
+    if key not in vlan_ports_dict:
+        vlan_ports = ""
+    else:
+        vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
+    if key not in vlan_dhcp_helper_dict:
+        dhcp_helpers = ""
+    else:
+        dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
+    if key not in vlan_tagging_dict:
+        vlan_tagging = ""
+    else:
+        vlan_tagging = ','.replace(',', '\n').join((vlan_tagging_dict[key]))
+    body.append([key, ip_address, vlan_ports, vlan_tagging, dhcp_helpers])
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 @vlan.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
