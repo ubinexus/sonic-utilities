@@ -67,6 +67,8 @@ Table of Contents
    * [Startup &amp; Running Configuration](#startup--running-configuration)
       * [Startup Configuration command](#startup-configuration-command)
       * [Running Configuration command](#running-configuration-command)
+   * [SNMP Community Configuration](#snmp-community-configuration)
+      * [snmp-community config command](#snmp-community-config-commands)
    * [System State](#system-state)
       * [Processes show commands](#processes-show-commands)
       * [Services &amp; memory show commands](#services--memory-show-commands)
@@ -232,6 +234,7 @@ This command lists all the possible configuration commands at the top level.
     qos
     reload                 Clear current configuration and import a...
     save                   Export current config DB to a file on disk.
+    snmp-community         Set SNMP community string
     tacacs                 TACACS+ server configuration
     vlan                   VLAN-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
@@ -3129,7 +3132,23 @@ This command displays the running configuration of the snmp module.
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Startup--Running-Configuration)
 
+# SNMP Community  Configuration
 
+## snmp-community config command
+
+  This command is used to set SNMP community string or add more string to snmp_rocommunities.
+
+  - Usage:
+	config snmp-community <community_name>
+
+  - Example:
+
+	```
+	admin@sonic:~$ sudo config snmp-community new_public
+	Restarting SNMP service...
+	```
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#snmp-community-configuration)
 
 # System State
 
