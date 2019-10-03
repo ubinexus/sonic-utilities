@@ -107,18 +107,15 @@ routing_stack = get_routing_stack()
 
 def run_command(command, pager=False, return_output=False):
     # Provide option for caller function to Process the output.
-    if return_output == True:
-        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    if return_output:
         return proc.communicate()
-
-    if pager is True:
+    elif pager:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo_via_pager(p.stdout.read())
+        click.echo_via_pager(proc.stdout.read())
     else:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo(p.stdout.read())
+        click.echo(proc.stdout.read())
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
