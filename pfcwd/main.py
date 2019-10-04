@@ -42,7 +42,13 @@ def get_all_queues(db):
     return natsorted(queue_names.keys())
 
 def get_all_ports(db):
-    port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
+    all_port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
+
+    # Get list of physical ports
+    port_names = {}
+    for i in all_port_names:
+        if i.startswith('Ethernet'):
+            port_names[i]= all_port_names[i]
     return natsorted(port_names.keys())
 
 def get_server_facing_ports(db):
@@ -84,7 +90,7 @@ def stats(empty, queues):
             line = stats.get(stat[1], '0') + '/' + stats.get(stat[2], '0')
             stats_list.append(line)
         if stats_list != ['0/0'] * len(STATS_DESCRIPTION) or empty:
-            table.append([queue, stats['PFC_WD_STATUS']] + stats_list)
+            table.append([queue, stats.get('PFC_WD_STATUS', 'N/A')] + stats_list)
 
     click.echo(tabulate(table, STATS_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
