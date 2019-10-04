@@ -396,13 +396,9 @@ def _reset_failed_services():
             log_error("Failed to reset failed status for service {}".format(service))
             raise
 
-def _restart_services():
+def _start_services():
     # on Mellanox platform pmon is started by syncd
     services_to_restart = [
-        'hostname-config',
-        'interfaces-config',
-        'ntp-config',
-        'rsyslog-config',
         'swss',
         'bgp',
         'pmon',
@@ -414,11 +410,31 @@ def _restart_services():
 
     for service in services_to_restart:
         try:
-            click.echo("Restarting service {} ...".format(service))
-            run_command("systemctl restart {}".format(service))
+            click.echo("Starting service {} ...".format(service))
+            run_command("systemctl start {}".format(service))
+        except SystemExit as e:
+            log_error("Start {} failed with error {}".format(service, e))
+            raise
+def _restart_services_config():
+    services = [
+        'hostname-config',
+        'interfaces-config',
+        'ntp-config',
+        'rsyslog-config',
+    ]
+
+    for service in services:
+        try:
+            run_command("systemctl restart %s" % service, display_cmd=True)
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
+
+
+def _restart_services():
+    _restart_services_config()
+    _start_services()
+
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
