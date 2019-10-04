@@ -333,6 +333,7 @@ def run_command_in_alias_mode(command):
                 elif output[0].isdigit():
                     output = "    " + output
                 print_output_in_alias_mode(output, index)
+
             elif command.startswith("nbrshow"):
                 """show arp"""
                 index = 2
@@ -340,19 +341,33 @@ def run_command_in_alias_mode(command):
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
 
+            elif command.startswith("sudo teamshow"):
+                """
+                sudo teamshow
+                Search for port names either at the start of a line or preceded immediately by
+                whitespace and followed immediately by either the end of a line or whitespace
+                OR followed immediately by '(D)', '(S)', '(D*)' or '(S*)'
+                """
+                converted_output = raw_output
+                for port_name in iface_alias_converter.port_dict.keys():
+                    converted_output = re.sub(r"(^|\s){}(\([DS]\*{{0,1}}\)(?:$|\s))".format(port_name),
+                            r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
+                            converted_output)
+                click.echo(converted_output.rstrip('\n'))
+
             else:
-                if index:
-                    for port_name in iface_alias_converter.port_dict.keys():
-                        regex = re.compile(r"\b{}\b".format(port_name))
-                        result = re.findall(regex, raw_output)
-                        if result:
-                            interface_name = ''.join(result)
-                            if not raw_output.startswith("    PortID:"):
-                                raw_output = raw_output.replace(
-                                    interface_name,
-                                    iface_alias_converter.name_to_alias(
-                                            interface_name))
-                    click.echo(raw_output.rstrip('\n'))
+                """
+                Default command conversion
+                Search for port names either at the start of a line or preceded immediately by
+                whitespace and followed immediately by either the end of a line or whitespace
+                or a comma followed by whitespace
+                """
+                converted_output = raw_output
+                for port_name in iface_alias_converter.port_dict.keys():
+                    converted_output = re.sub(r"(^|\s){}($|,{{0,1}}\s)".format(port_name),
+                            r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
+                            converted_output)
+                click.echo(converted_output.rstrip('\n'))
 
     rc = process.poll()
     if rc != 0:
@@ -1062,6 +1077,22 @@ def ipv6():
     """Show IPv6 commands"""
     pass
 
+#
+# 'prefix-list' subcommand ("show ipv6 prefix-list")
+#
+
+@ipv6.command('prefix-list')
+@click.argument('prefix_list_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def prefix_list(prefix_list_name, verbose):
+    """show ip prefix-list"""
+    cmd = 'sudo vtysh -c "show ipv6 prefix-list'
+    if prefix_list_name is not None:
+        cmd += ' {}'.format(prefix_list_name)
+    cmd += '"'
+    run_command(cmd, display_cmd=verbose)
+
+
 
 #
 # 'show ipv6 interfaces' command
@@ -1073,7 +1104,7 @@ def ipv6():
 @ipv6.command()
 def interfaces():
     """Show interfaces IPv6 address"""
-    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
+    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     bgp_peer = get_bgp_peer()
 
@@ -1104,7 +1135,7 @@ def interfaces():
                     oper = "down"
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper], neighbor_name, neighbor_ip)
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
@@ -1143,12 +1174,15 @@ def protocol(verbose):
 # Inserting BGP functionality into cli's show parse-chain.
 # BGP commands are determined by the routing-stack being elected.
 #
+from .bgp_quagga_v4 import bgp
+ip.add_command(bgp)
+
 if routing_stack == "quagga":
-    from .bgp_quagga_v4 import bgp
-    ip.add_command(bgp)
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
     @cli.command()
     @click.argument('bgp_args', nargs = -1, required = False)
     @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1200,7 +1234,7 @@ def table(verbose):
 
 def get_hw_info_dict():
     """
-    This function is used to get the HW info helper function  
+    This function is used to get the HW info helper function
     """
     hw_info_dict = {}
     machine_info = sonic_device_util.get_machine_info()
@@ -1208,7 +1242,7 @@ def get_hw_info_dict():
     config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('DEVICE_METADATA')
-    try: 
+    try:
         hwsku = data['localhost']['hwsku']
     except KeyError:
         hwsku = "Unknown"
@@ -1312,7 +1346,7 @@ def version(verbose):
     version_info = sonic_device_util.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
