@@ -209,6 +209,23 @@ def get_interface_naming_mode():
         mode = "default"
     return mode
 
+def is_ipaddress_overlapped(ip_addr):
+    """Check if the ip address overlapped with existing networks
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    interface_dict = config_db.get_table('INTERFACE')
+    interface_dict.update(config_db.get_table('PORTCHANNEL_INTERFACE'))
+    interface_dict.update(config_db.get_table('VLAN_INTERFACE'))
+    interface_dict.update(config_db.get_table('LOOPBACK_INTERFACE'))
+    ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
+    for key in interface_dict.keys():
+        if not isinstance(key, tuple):
+            continue
+        if ipaddress.ip_network(unicode(key[1]), strict=False).overlaps(ip_network):
+            return True
+    return False
+
 def _is_neighbor_ipaddress(ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
     """
@@ -1251,7 +1268,11 @@ def add(ctx, interface_name, ip_addr, gw):
             ctx.fail("'interface_name' is None!")
 
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if not interface_name.startswith("Loopback") and ip_network.prefixlen == ip_network.max_prefixlen:
+            ctx.fail("Bad mask /{} for IP address {}".format(ip_network.max_prefixlen, ip_addr))
+        if is_ipaddress_overlapped(ip_addr):
+            ctx.fail("IP address {} overlaps with existing subnet".format(ip_addr))
         if interface_name.startswith("Ethernet"):
             if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
                 config_db.set_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
@@ -1317,7 +1338,9 @@ def remove(ctx, interface_name, ip_addr):
 
     if_table = ""
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        ip_network = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if not interface_name.startswith("Loopback") and ip_network.prefixlen == ip_network.max_prefixlen:
+            ctx.fail("Bad mask /{} for IP address {}".format(ip_network.max_prefixlen, ip_addr))
         if interface_name.startswith("Ethernet"):
             if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
                 config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), None)
