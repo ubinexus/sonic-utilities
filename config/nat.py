@@ -389,7 +389,7 @@ def add_tcp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
         count = 0
         if twice_nat_id is not None:
             count = getTwiceNatIdCountWithStaticEntries(twice_nat_id, table, count)
-            count = getTwiceNatIdCountWithDynamicBinding(twice_nat_id, count)
+            count = getTwiceNatIdCountWithDynamicBinding(twice_nat_id, count, None)
             if count > 1:
                 ctx.fail("Same Twice nat id is not allowed for more than 2 entries!!")
 
@@ -783,14 +783,8 @@ def add_binding(ctx, binding_name, pool_name, acl_name, nat_type, twice_nat_id):
             count = getTwiceNatIdCountWithDynamicBinding(twice_nat_id, count, key)
             if count > 1:
                 ctx.fail("Same Twice nat id is not allowed for more than 2 entries!!")
-        #if nat_type is not None and twice_nat_id is not None:
+
         config_db.set_entry(table, key, {dataKey1: acl_name, dataKey2: pool_name, dataKey3: nat_type, dataKey4: twice_nat_id})
-        #elif nat_type is not None:
-            #config_db.set_entry(table, key, {dataKey1: acl_name, dataKey2: pool_name, dataKey3: nat_type})
-        #elif twice_nat_id is not None:
-            #config_db.set_entry(table, key, {dataKey1: acl_name, dataKey2: pool_name, dataKey4: twice_nat_id})
-        #else:
-            #config_db.set_entry(table, key, {dataKey1: acl_name, dataKey2 : pool_name})
 
 #
 # 'nat remove pool' command ('config nat remove pool <pool_name>')
@@ -937,14 +931,7 @@ def add_interface(ctx, interface_name, nat_zone):
     if tableFound == False:
         ctx.fail("Interface table is not present. Please configure ip-address on {} and apply the nat zone !!".format(interface_name)) 
 
-    if interface_name.startswith("Ethernet"):
-        config_db.mod_entry("INTERFACE", interface_name, {"nat_zone": nat_zone})
-    elif interface_name.startswith("PortChannel"):
-        config_db.mod_entry("PORTCHANNEL_INTERFACE", interface_name, {"nat_zone": nat_zone})
-    elif interface_name.startswith("Vlan"):
-        config_db.mod_entry("VLAN_INTERFACE", interface_name, {"nat_zone": nat_zone})
-    elif interface_name.startswith("Loopback"):
-        config_db.mod_entry('LOOPBACK_INTERFACE', interface_name, {"nat_zone": nat_zone})
+    config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": nat_zone})
 
 #
 # 'nat remove interface' command ('config nat remove interface <interface_name>')
@@ -981,16 +968,7 @@ def remove_interface(ctx, interface_name):
     if tableFound == False:
         ctx.fail("Interface table is not present. Ignoring the nat zone configuration")
 
-    nat_config = {"nat_zone": "0"}
-
-    if interface_name.startswith("Ethernet"):
-        config_db.mod_entry('INTERFACE', interface_name, nat_config)
-    elif interface_name.startswith("PortChannel"):
-        config_db.mod_entry('PORTCHANNEL_INTERFACE', interface_name, nat_config)
-    elif interface_name.startswith("Vlan"):
-        config_db.mod_entry('VLAN_INTERFACE', interface_name, nat_config)
-    elif interface_name.startswith("Loopback"):
-        config_db.mod_entry('LOOPBACK_INTERFACE', interface_name, nat_config)
+    config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": "0"})
 
 #
 # 'nat remove interfaces' command ('config nat remove interfaces')
