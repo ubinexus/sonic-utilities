@@ -1581,7 +1581,7 @@ def delete(ctx):
         return
 
     sflow_tbl['global'].pop('agent_id')
-    config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
+    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
 
 if __name__ == '__main__':
