@@ -1342,7 +1342,7 @@ def enable(ctx):
     else:
         sflow_tbl['global']['admin_state'] = 'enable'
 
-    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+    config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
 # 'sflow' command ('config sflow disable')
@@ -1359,7 +1359,7 @@ def disable(ctx):
     else:
         sflow_tbl['global']['admin_state'] = 'disable'
 
-    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+    config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
 # 'sflow' command ('config sflow polling-interval ...')
@@ -1370,7 +1370,7 @@ def disable(ctx):
 @click.pass_context
 def polling_int(ctx, interval):
     """Set polling-interval for counter-sampling (0 to disable)"""
-    if interval not in range(5, 300 + 1) and interval != 0:
+    if interval not in range(5, 301) and interval != 0:
         click.echo("Polling interval must be between 5-300 (0 to disable)")
 
     config_db = ctx.obj['db']
@@ -1380,7 +1380,7 @@ def polling_int(ctx, interval):
         sflow_tbl = {'global': {'admin_state': 'disable'}}
 
     sflow_tbl['global']['polling_interval'] = interval
-    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+    config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 def is_valid_sample_rate(rate):
     return rate in range(256, 8388608 + 1)
@@ -1411,9 +1411,9 @@ def enable(ctx, ifname):
 
     if intf_dict and ifname in intf_dict.keys():
         intf_dict[ifname]['admin_state'] = 'enable'
-        config_db.set_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
+        config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
-        config_db.set_entry('SFLOW_SESSION', ifname, {'admin_state': 'enable'})
+        config_db.mod_entry('SFLOW_SESSION', ifname, {'admin_state': 'enable'})
 
 #
 # 'sflow' command ('config sflow interface disable  ...')
@@ -1431,9 +1431,9 @@ def disable(ctx, ifname):
 
     if intf_dict and ifname in intf_dict.keys():
         intf_dict[ifname]['admin_state'] = 'disable'
-        config_db.set_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
+        config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
-        config_db.set_entry('SFLOW_SESSION', ifname,
+        config_db.mod_entry('SFLOW_SESSION', ifname,
                             {'admin_state': 'disable'})
 
 #
@@ -1456,9 +1456,9 @@ def sample_rate(ctx, ifname, rate):
 
     if sess_dict and ifname in sess_dict.keys():
         sess_dict[ifname]['sample_rate'] = rate
-        config_db.set_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
+        config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
     else:
-        config_db.set_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
+        config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
 
 
 #
@@ -1469,6 +1469,21 @@ def sample_rate(ctx, ifname, rate):
 def collector(ctx):
     """Add/Delete a sFlow collector"""
     pass
+
+def is_valid_collector_info(name, ip, port):
+    if len(name) > 16:
+        click.echo("Collector name must not exceed 16 characters")
+        return False
+
+    if port not in range(0, 65535 + 1):
+        click.echo("Collector port number must be between 0 and 65535")
+        return False
+
+    if not is_ipaddress(ip):
+        click.echo("Invalid IP address")
+        return False
+
+    return True
 
 #
 # 'sflow' command ('config sflow collector add ...')
@@ -1493,7 +1508,7 @@ def add(ctx, name, ipaddr, port):
         click.echo("Only 2 collectors can be configured, please delete one")
         return
 
-    config_db.set_entry('SFLOW_COLLECTOR', name,
+    config_db.mod_entry('SFLOW_COLLECTOR', name,
                         {"collector_ip": ipaddr,  "collector_port": port})
     return
 
@@ -1512,29 +1527,7 @@ def del_collector(ctx, name):
         click.echo("Collector: {} not configured".format(name))
         return
 
-    config_db.set_entry('SFLOW_COLLECTOR', name, None)
-
-def is_valid_collector_info(name, ip, port):
-    if len(name) > 16:
-        click.echo("Collector name must not exceed 16 characters")
-        return False
-
-    if port not in range(0, 65535 + 1):
-        click.echo("Collector port number must be between 0 and 65535")
-        return False
-
-    import socket
-    try:
-        socket.inet_pton(socket.AF_INET, ip)
-    except:
-        try:
-            socket.inet_pton(socket.AF_INET6, ip)
-        except:
-            click.echo("Invalid collector IPv4 or IPv6 address")
-            return False
-
-    return True
-
+    config_db.mod_entry('SFLOW_COLLECTOR', name, None)
 
 #
 # 'sflow agent-id' group
@@ -1568,7 +1561,7 @@ def add(ctx, ifname):
         return
 
     sflow_tbl['global']['agent_id'] = ifname
-    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+    config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
 # 'sflow' command ('config sflow agent-id del')
@@ -1588,7 +1581,7 @@ def delete(ctx):
         return
 
     sflow_tbl['global'].pop('agent_id')
-    config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+    config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 
 if __name__ == '__main__':
