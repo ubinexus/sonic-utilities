@@ -15,6 +15,9 @@ try:
     import types
     import traceback
     from tabulate import tabulate
+    from utilities_common import util_base
+    from utilities_common.util_base import UtilLogger
+    from utilities_common.util_base import UtilHelper
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -24,112 +27,10 @@ SYSLOG_IDENTIFIER = "thermalutil"
 PLATFORM_SPECIFIC_MODULE_NAME = "thermalutil"
 PLATFORM_SPECIFIC_CLASS_NAME = "ThermalUtil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-PLATFORM_ROOT_PATH_DOCKER = '/usr/share/sonic/platform'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-PDDF_FILE_PATH = '/usr/share/sonic/platform/pddf_support'
 # Global platform-specific thermalutil class instance
 platform_thermalutil = None
-pddf_support = 0
 
-
-# ========================== Syslog wrappers ==========================
-
-
-def log_info(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_warning(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_error(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-# ==================== Methods for initialization ====================
-
-# Returns platform and HW SKU
-def get_platform_and_hwsku():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError, e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
-
-# Loads platform specific thermalutil module from source
-def load_platform_thermalutil():
-    global platform_thermalutil
-
-    # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
-
-    # Load platform module from source
-    platform_path = ''
-    if len(platform) != 0:
-        platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-    else:
-        platform_path = PLATFORM_ROOT_PATH_DOCKER
-    hwsku_path = "/".join([platform_path, hwsku])
-
-    try:
-        module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
-        module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
-    except IOError, e:
-        log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
-        return -1
-
-    try:
-        platform_thermalutil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
-        # the operation below should be permitted only in PDDF mode
-        platform_thermalutil = platform_thermalutil_class()
-    except AttributeError, e:
-        log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
-        return -2
-
-    return 0
-
-def check_pddf_mode():
-    if os.path.exists(PDDF_FILE_PATH):
-        pddf_support = 1
-        return True
-    else:
-        pddf_support = 0
-        return False
+#logger = UtilLogger(SYSLOG_IDENTIFIER)
 
 # ==================== CLI commands and groups ====================
 
@@ -143,14 +44,21 @@ def cli():
         click.echo("Root privileges are required for this operation")
         sys.exit(1)
 
-    if not check_pddf_mode():
+    # Load the helper class
+    helper = UtilHelper()
+
+    if not helper.check_pddf_mode():
         click.echo("PDDF mode should be supported and enabled for this platform for this operation")
         sys.exit(1)
 
-    # Load platform-specific thermalutil class
-    err = load_platform_thermalutil()
-    if err != 0:
+    # Load platform-specific fanutil class
+    global platform_thermalutil
+    try:
+        platform_thermalutil = helper.load_platform_util(PLATFORM_SPECIFIC_MODULE_NAME, PLATFORM_SPECIFIC_CLASS_NAME)
+    except Exception as e:
+        click.echo("Failed to load {}: {}".format(PLATFORM_SPECIFIC_MODULE_NAME, str(e)))
         sys.exit(2)
+
 
 # 'version' subcommand
 @cli.command()
