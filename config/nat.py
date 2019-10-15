@@ -199,7 +199,6 @@ def getTwiceNatIdCountWithDynamicBinding(twice_nat_id, count, dynamic_key):
     return twice_id_count
  
 ############### NAT Configuration ##################
-
 #
 # 'nat' group ('config nat ...')
 #
