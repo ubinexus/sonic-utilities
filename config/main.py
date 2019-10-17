@@ -1111,6 +1111,53 @@ def remove_neighbor(neighbor_ip_or_hostname):
     _remove_bgp_neighbor_config(neighbor_ip_or_hostname)
 
 #
+# 'add' subgroup ('config bgp add ...')
+#
+
+@bgp.group()
+def add():
+    "Add BGP neighbor configuration to the device"
+    pass
+
+@add.command('neighbor')
+@click.argument('neighbor_ip', metavar='<neighbor_ip>', required=True)
+@click.option('-a','--asn', metavar='<neighbor_asn>',type=int, required=True, help="Neighbor ASN number")
+@click.option('-l','--localip', metavar='<local_ip>', required=False, help="Local ip communicate with neighbor")
+@click.option('-n','--name', metavar='[neighbor_name]', required=False, help="Neighbor description name")
+def add_neighbor(neighbor_ip,asn,localip,name):
+    """Add BGP session by neighbor IP address"""
+    if not is_ipaddress(neighbor_ip):
+        click.echo("{} is not a valid neighbor address.".format(neighbor_ip))
+        return
+
+    if (localip is not None) and (not is_ipaddress(localip)):
+        click.echo("{} is not a valid local address.".format(localip))
+        return
+
+    if asn > 4294967295 or asn < 1:
+        click.echo("neighbor asn {} is not a valid asn. The valid asn is from 1 to 4294967295".format(asn))
+        return
+
+    if _is_neighbor_ipaddress(neighbor_ip):
+        click.echo("neighbor {} already exist".format(neighbor_ip))
+
+    conf_db = ConfigDBConnector()
+    conf_db.connect()
+
+    session_info = {
+            "admin_status": 'up',
+            "asn": asn
+            }
+
+    if localip is not None:
+        session_info['local_addr'] = localip
+
+    if name is not None:
+        session_info['name'] = name.upper()
+
+    conf_db.set_entry("BGP_NEIGHBOR", neighbor_ip, session_info)
+
+#
 # 'interface' group ('config interface ...')
 #
 
