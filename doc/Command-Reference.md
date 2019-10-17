@@ -205,7 +205,9 @@ All commands has got in-built help that helps the user to understand the command
 This command lists all the possible configuration commands at the top level.
 
 - Usage:
+  ```
   config --help
+  ```
 
 - Example:
   ```
@@ -247,7 +249,9 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 This command displays the full list of show commands available in the software; the output of each of those show commands can be used to analyze, debug or troubleshoot the network node.
 
 - Usage:
-  You can enter `show -?`, `show -h` or `show --help`
+  ```
+  show (-?|-h|--help)
+  ```
 
 - Example:
   ```
@@ -329,7 +333,9 @@ This command displays software component versions of the currently running SONiC
 This command displays relevant information as the SONiC and Linux kernel version being utilized, as well as the commit-id used to build the SONiC image. The second section of the output displays the various docker images and their associated id’s.
 
 - Usage:
+  ```
   show version
+  ```
 
 - Example:
   ```
@@ -374,8 +380,10 @@ This sub-section explains some set of sub-commands that are used to display the 
 **show clock**
 This command displays the current date and time configured on the system
 
--  Usage:
-   show clock
+- Usage:
+  ```
+  show clock
+  ```
 
 - Example:
   ```
@@ -386,23 +394,27 @@ This command displays the current date and time configured on the system
 **show boot**
 This command displays the current OS image, the image loaded on next reboot, and the lists the available images on the system
 
--  Usage:
-   show boot
+- Usage:
+  ```
+  show boot
+  ```
 
 - Example:
   ```
   admin@sonic:~$ show boot
   Current: SONiC-OS-20181130.31
   Next: SONiC-OS-20181130.31
-  Available: 
+  Available:
   SONiC-OS-20181130.31
   ```
 
 **show environment**
 This command displays the platform environmentals, such as voltages, temperatures and fan speeds
 
--  Usage:
-   show environment
+- Usage:
+  ```
+  show environment
+  ```
 
 - Example:
   ```
@@ -449,9 +461,11 @@ Though the displayed output slightly differs from one platform to another platfo
 This command displays the cause of the previous reboot
 
 - Usage:
+  ```
   show reboot-cause
+  ```
 
--  Example:
+- Example:
   ```
   admin@sonic:~$ show reboot-cause
   User issued reboot command [User: admin, Time: Mon Mar 25 01:02:03 UTC 2019]
@@ -461,7 +475,9 @@ This command displays the cause of the previous reboot
 This command displays the current system uptime
 
 - Usage:
+  ```
   show uptime
+  ```
 
 - Example:
   ```
@@ -476,7 +492,9 @@ This file is saved in the path `/var/log` and can be viewed by giving the comman
 Individual process can also be viewed using the command `ps -ax | grep <\process name>
 
 - Usage:
-  show logging ([\<process_name\>] [-l lines] | [-f])
+  ```
+  show logging ([<process_name>] [(-l|--lines) <number_of_lines>]) | [-f|--follow]
+  ```
 
 - Example:
   ```
@@ -515,7 +533,9 @@ Individual process can also be viewed using the command `ps -ax | grep <\process
 This command displays a list of users currently logged in to the device
 
 - Usage:
+  ```
   show users
+  ```
 
 - Examples:
   ```
@@ -536,7 +556,9 @@ The information displayed in this set of commands partially overlaps with the on
 This command displays a summary of the device's hardware platform
 
 - Usage:
+  ```
   show platform summary
+  ```
 
 - Example:
   ```
@@ -552,7 +574,9 @@ Note that the output of this command is not the same for all vendor's platforms.
 Couple of example outputs are given below.
 
 - Usage:
+  ```
   show platform syseeprom
+  ```
 
 - Example:
   ```
@@ -572,38 +596,40 @@ Couple of example outputs are given below.
   ```
 
   ```
-	admin@arc-switch1025:~$ show platform syseeprom
-	TlvInfo Header:
-	  Id String:    TlvInfo
-	  Version:      1
-	  Total Length: 527
-	TLV Name             Code Len Value
-	---- --- -----
-	Product Name         0x21  64 MSN2700
-	Part Number          0x22  20 MSN2700-CS2FO
-	Serial Number        0x23  24 MT1822K07815
-	Base MAC Address     0x24   6 50:6B:4B:8F:CE:40
-	Manufacture Date     0x25  19 05/28/2018 23:56:02
-	Device Version       0x26   1 16
-	MAC Addresses        0x2A   2 128
-	Manufacturer         0x2B   8 Mellanox
-	Vendor Extension     0xFD  36
-	Vendor Extension     0xFD 164
-	Vendor Extension     0xFD  36
-	Vendor Extension     0xFD  36
-	Vendor Extension     0xFD  36
-	Platform Name        0x28  18 x86_64-mlnx_x86-r0
-	ONIE Version         0x29  21 2018.08-5.2.0006-9600
-	CRC-32               0xFE   4 0x11C017E1
+  admin@arc-switch1025:~$ show platform syseeprom
+  TlvInfo Header:
+    Id String:    TlvInfo
+    Version:      1
+    Total Length: 527
+  TLV Name             Code Len Value
+  ---- --- -----
+  Product Name         0x21  64 MSN2700
+  Part Number          0x22  20 MSN2700-CS2FO
+  Serial Number        0x23  24 MT1822K07815
+  Base MAC Address     0x24   6 50:6B:4B:8F:CE:40
+  Manufacture Date     0x25  19 05/28/2018 23:56:02
+  Device Version       0x26   1 16
+  MAC Addresses        0x2A   2 128
+  Manufacturer         0x2B   8 Mellanox
+  Vendor Extension     0xFD  36
+  Vendor Extension     0xFD 164
+  Vendor Extension     0xFD  36
+  Vendor Extension     0xFD  36
+  Vendor Extension     0xFD  36
+  Platform Name        0x28  18 x86_64-mlnx_x86-r0
+  ONIE Version         0x29  21 2018.08-5.2.0006-9600
+  CRC-32               0xFE   4 0x11C017E1
 
-	(checksum valid)
+  (checksum valid)
   ```
 
-**show platform ssdhealth**  
+**show platform ssdhealth**
 This command displays health parameters of the device's SSD
 
-- Usage:  
-  show platform ssdhealth [--verbose, --vendor]
+- Usage:
+  ```
+  show platform ssdhealth [--vendor]
+  ```
 
 - Example:
   ```
@@ -617,7 +643,9 @@ This command displays health parameters of the device's SSD
 This command displays the status of the device's power supply units
 
 - Usage:
+  ```
   show platform psustatus
+  ```
 
 - Example:
   ```
@@ -635,10 +663,11 @@ Displays diagnostic monitoring information of the transceivers
 This command displays information for all the interfaces for the transceiver requested or a specific interface if the optional "interface-name" is specified.
 
 - Usage:
-  show interfaces transceiver [eeprom | lpmode | presence]
-  show interfaces transceiver [eeprom [-d | --dom] | lpmode | presence] [<interface-name>]
+  ```
+  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence]) [<interface-name>]
+  ```
 
-- Example (Decode and display information stored on the SFP EEPROM):
+- Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
   ```
   admin@sonic:~$ show interfaces transceiver eeprom --dom Ethernet0
   Ethernet0: SFP detected
@@ -673,7 +702,7 @@ This command displays information for all the interfaces for the transceiver req
                   Vcc : 0.0000Volts
   ```
 
-- Example (Display status of low-power mode):
+- Example (Display status of low-power mode of SFP transceiver connected to Ethernet100):
   ```
   admin@sonic:~$ show interfaces transceiver lpmode Ethernet100
   Port         Low-power Mode
@@ -682,7 +711,7 @@ This command displays information for all the interfaces for the transceiver req
   ```
 
 
-- Example (Display SFP transceiver presence):
+- Example (Display presence of SFP transceiver connected to Ethernet100):
   ```
   admin@sonic:~$ show interfaces transceiver presence Ethernet100
   Port         Presence
@@ -706,7 +735,9 @@ This command is used to view the Authentication, Authorization & Accounting sett
 This command displays the AAA settings currently present in the network node
 
 - Usage:
+  ```
   show aaa
+  ```
 
 - Example:
    ```
@@ -720,11 +751,11 @@ This command displays the AAA settings currently present in the network node
 
 This sub-section explains all the possible CLI based configuration options for the AAA module. The list of commands/sub-commands possible for aaa is given below.
 
-	Command: aaa authentication
-             sub-commands:
-               aaa authentication failthrough
-               aaa authentication fallback
-               aaa authentication login
+  Command: aaa authentication
+    sub-commands:
+      - aaa authentication failthrough
+      - aaa authentication fallback
+      - aaa authentication login
 
 **aaa authentication failthrough**
 
@@ -736,12 +767,14 @@ When this is disabled and if the authentication request fails on first server, a
 
 
 - Usage:
-  config aaa authentication failthrough enable|disable|default
+  ```
+  config aaa authentication failthrough (enable | disable | default)
+  ```
 
-		   Allow AAA fail-through [enable | disable | default]
-           enable - this allows the AAA module to process with local authentication if remote authentication fails.
-		   disbale - this disallows the AAA module to proceed further if remote authentication fails.
-		   default - this re-configures the default value, which is "enable".
+  - Options:
+    - enable: This allows the AAA module to process with local authentication if remote authentication fails.
+    - disable: This disallows the AAA module to proceed further if remote authentication fails.
+    - default: This re-configures the default value, which is "enable".
 
 
 - Example:
@@ -756,9 +789,9 @@ The command is not used at the moment.
 When the tacacs+ authentication fails, it falls back to local authentication by default.
 
 - Usage:
-  config aaa authentication fallback enable|disable|default
-
-	   Allow AAA fallback [enable | disable | default]
+  ```
+  config aaa authentication fallback (enable | disable | default)
+  ```
 
 - Example:
   ```
@@ -776,12 +809,13 @@ Once if the admins choose the remote authentication based on tacacs+ server, all
 If the authentication fails, AAA will check the "failthrough" configuration and authenticates the user based on local database if failthrough is enabled.
 
 - Usage:
-  Switch login authentication [ {tacacs+, local} | default ]
+  ```
+  config aaa authentication (tacacs+ | local | default)
 
-	  Switch login authentication [ {tacacs+, local} | default ]
-	  tacacs+ - This enables remote authentication based on tacacs+
-	  local - this disables remote authentication and uses local authentication
-	  default - reset back to default value, which is nothing but the "local" authentication
+  - Options:
+    - tacacs+: Enables remote authentication based on tacacs+
+    - local: Disables remote authentication and uses local authentication
+    - default: Reset back to default value, which is only "local" authentication
 
 
 - Example:
@@ -800,24 +834,27 @@ If the authentication fails, AAA will check the "failthrough" configuration and 
 This command displays the global configuration fields and the list of all tacacs servers and their correponding configurations.
 
 - Usage:
-	show tacacs
+  ```
+  show tacacs
+  ```
 
 - Example:
   ```
-	TACPLUS global auth_type pap (default)
-	TACPLUS global timeout 99
-	TACPLUS global passkey <EMPTY_STRING> (default)
+  admin@sonic:~$ show tacacs
+  TACPLUS global auth_type pap (default)
+  TACPLUS global timeout 99
+  TACPLUS global passkey <EMPTY_STRING> (default)
 
-	TACPLUS_SERVER address 10.11.12.14
-				   priority 9
-				   tcp_port 50
-				   auth_type mschap
-				   timeout 10
-				   passkey testing789
+  TACPLUS_SERVER address 10.11.12.14
+                         priority 9
+                         tcp_port 50
+                         auth_type mschap
+                         timeout 10
+                         passkey testing789
 
-	TACPLUS_SERVER address 10.0.0.9
-				   priority 1
-				   tcp_port 49
+  TACPLUS_SERVER address 10.0.0.9
+                         priority 1
+                         tcp_port 49
   ```
 
 ### TACACS+ Config commands
@@ -840,44 +877,45 @@ When any server times out, device will try the next server one by one based on t
 When this command is executed, the configured tacacs+ server addresses are updated in /etc/pam.d/common-auth-sonic configuration file which is being used by tacacs service.
 
 - Usage:
-   config tacacs add <ip_address> [-t|--timeout SECOND] [-k|--key SECRET] [-a|--type TYPE] [-o|--port PORT] [-p|--pri PRIORITY] [-m|--use-mgmt-vrf]
+   config tacacs add <ip_address> [-t|--timeout <seconds>] [-k|--key <secret>] [-a|--type <type>] [-o|--port <port>] [-p|--pri <priority>] [-m|--use-mgmt-vrf]
 
-	 **Arguments:**
-
-	 ip_address - TACACS+ server IP address.
-	 timeout - Transmission timeout interval in seconds, range 1 to 60, default 5
-	 key - Shared secret
-	 type - Authentication type, "chap" or "pap" or "mschap" or "login", default is "pap".
-	 port - TCP port range is 1 to 65535, default 49
-	 pri - Priority, priority range 1 to 64, default 1.
-	 use-mgmt-vrf - this means that the server is part of Management vrf, default is "no vrf"
+  - Arguments:
+    - ip_address: TACACS+ server IP address.
+    - timeout: Transmission timeout interval in seconds, range 1 to 60, default 5
+    - key: Shared secret
+    - type: Authentication type, "chap" or "pap" or "mschap" or "login", default is "pap".
+    - port: TCP port range is 1 to 65535, default 49
+    - pri: Priority, priority range 1 to 64, default 1.
+    - use-mgmt-vrf: this means that the server is part of Management vrf, default is "no vrf"
 
 
 - Example:
   ```
   root@T1-2:~# config tacacs add 10.11.12.13 -t 10 -k testing789 -a mschap -o 50 -p 9
   root@T1-2:~#
-
-	Example Server Configuration in /etc/pam.d/common-auth-sonic configuration file:
-
-	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.14:50 secret=testing789 login=mschap timeout=10  try_first_pass
-	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.24:50 secret=testing789 login=mschap timeout=987654321098765433211
-	0987  try_first_pass
-	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.0.0.9:49 secret= login=mschap timeout=5  try_first_pass
-	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.0.0.8:49 secret= login=mschap timeout=5  try_first_pass
-	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.13:50 secret=testing789 login=mschap timeout=10  try_first_pass
-	auth    [success=1 default=ignore]      pam_unix.so nullok try_first_pass
-
-	   NOTE: In the above example, the servers are stored (sorted) based on the priority value configured for the server.
-
   ```
+
+  - Example Server Configuration in /etc/pam.d/common-auth-sonic configuration file:
+    ```
+    auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.14:50 secret=testing789 login=mschap timeout=10  try_first_pass
+    auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.24:50 secret=testing789 login=mschap timeout=987654321098765433211
+    0987  try_first_pass
+    auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.0.0.9:49 secret= login=mschap timeout=5  try_first_pass
+    auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.0.0.8:49 secret= login=mschap timeout=5  try_first_pass
+    auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.13:50 secret=testing789 login=mschap timeout=10  try_first_pass
+    auth    [success=1 default=ignore]      pam_unix.so nullok try_first_pass
+    ```
+
+    *NOTE: In the above example, the servers are stored (sorted) based on the priority value configured for the server.*
 
 **config tacacs delete**
 
 This command is used to delete the tacacs+ servers configured.
 
 - Usage:
-   config tacacs delete <ip_address>
+  ```
+  config tacacs delete <ip_address>
+  ```
 
 - Example:
   ```
@@ -890,8 +928,10 @@ This command is used to delete the tacacs+ servers configured.
 This command is used to modify the global value for the TACACS+ authtype.
 When user has not configured server specific authtype, this global value shall be used for that server.
 
-   - Usage:
-     config tacacs authtype  chap|pap||mschap|login
+- Usage:
+  ```
+  config tacacs authtype (chap | pap | mschap | login)
+  ```
 
 - Example:
   ```
@@ -905,8 +945,9 @@ This command is used to reset the global value for authtype or passkey or timeou
 Default for authtype is "pap", default for passkey is EMPTY_STRING and default for timeout is 5 seconds.
 
 - Usage:
-   config tacacs default authtype|passkey|timeout
-
+  ```
+  config tacacs default (authtype | passkey | timeout)
+  ```
 
 - Example:
   ```
@@ -919,8 +960,10 @@ Default for authtype is "pap", default for passkey is EMPTY_STRING and default f
 This command is used to modify the global value for the TACACS+ passkey.
 When user has not configured server specific passkey, this global value shall be used for that server.
 
-   - Usage:
-     config tacacs passkey <pass_key>
+- Usage:
+  ```
+  config tacacs passkey <pass_key>
+  ```
 
 
 - Example:
@@ -935,11 +978,15 @@ This command is used to modify the global value for the TACACS+ timeout.
 When user has not configured server specific timeout, this global value shall be used for that server.
 
 
-   - Usage:
-    config tacacs [default] timeout [\<timeout_value_in_seconds\>]
-     valid values for timeout is 1 to 60 seconds.
-	 When the optional keyword "default" is specified, timeout_value_in_seconds parameter wont be used; default value of 5 is used.
-	 Configuration using the keyword "default" is introduced in 201904 release.
+- Usage:
+  ```
+  config tacacs [default] timeout [<timeout_value_in_seconds>]
+  ```
+
+  - Options:
+    - Valid values for timeout is 1 to 60 seconds.
+    - When the optional keyword "default" is specified, timeout_value_in_seconds parameter wont be used; default value of 5 is used.
+    - Configuration using the keyword "default" is introduced in 201904 release.
 
 - Example: To configure non-default timeout value
   ```
@@ -963,7 +1010,9 @@ This command displays either all the ACL tables that are configured or only the 
 Output from the command displays the table name, type of the table, the list of interface(s) to which the table is bound and the description about the table.
 
 - Usage:
-  show acl table [TABLE_NAME]
+  ```
+  show acl table [<table_name>]
+  ```
 
 - Example:
   ```
@@ -982,7 +1031,6 @@ Output from the command displays the table name, type of the table, the list of 
                        Ethernet112
                        Ethernet116
   SSH_ONLY  CTRLPLANE  SSH              SSH_ONLY         ingress
-
   ```
 
 **show acl rule**
@@ -1008,8 +1056,9 @@ Users can choose to have a default permit rule or default deny rule. In case of 
 5) Match  - The fields from the packet header that need to be matched against the same present in the incoming traffic.
 
 - Usage:
-  show acl rule [TABLE_NAME] [RULE_ID]
-
+  ```
+  show acl rule [<table_name>] [<rule_id>]
+  ```
 
 - Example:
   ```
@@ -1030,17 +1079,10 @@ Users can choose to have a default permit rule or default deny rule. In case of 
   ```
 
 
-
 ## ACL config commands
 This sub-section explains the list of configuration options available for ACL module.
 Note that there is no direct command to add or delete or modify the ACL table and ACL rule.
 Existing ACL tables and ACL rules can be updated by specifying the ACL rules in json file formats and configure those files using this CLI command.
-
-	Command :acl
-              update
-                 full
-                 incremental
-
 
 **config acl update full**
 
@@ -1061,15 +1103,17 @@ When "--mirror_stage" optional argument is specified, command sets the mirror ac
 When the optional argument "max_priority"  is specified, each rule’s priority is calculated by subtracting its “sequence_id” value from the “max_priority”. If this value is not passed, the default “max_priority” 10000 is used.
 
 - Usage:
-  config acl update full FILE_NAME
-	Some of the possible options are
-	1) --table_name <table_name>, Example: config acl update full " --table_name DT_ACL_T1  /etc/sonic/acl_table_1.json "
-	2) --session_name <session_name>, Example: config acl update full " --session_name mirror_ses1 /etc/sonic/acl_table_1.json "
-	3) --mirror_stage ingress|egress, Example: config acl update full " --mirror_stage egress /etc/sonic/acl_table_1.json "
-	4) --max_priority <priority_value>, Example: config acl update full " --max-priority 100  /etc/sonic/acl_table_1.json "
+  ```
+  config acl update full [--table_name <table_name>] [--session_name <session_name>] [--mirror_stage (ingress | egress)] [--max_priority <priority_value>] <acl_json_file_name>
+  ```
 
-	NOTE: All these optional parameters should be inside the double quotes. If none of the options are provided, double quotes is not required for specifying filename alone.
-	Any number of optional parameters can be configured in the same command.
+  - Options:
+    - table_name: Specifiy the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
+    - session_name: Specifiy the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
+    - priority_value: Specify the maximum priority to use when loading ACL rules. Example: config acl update full "--max-priority 100  /etc/sonic/acl_table_1.json"
+
+    *NOTE 1: All these optional parameters should be inside double quotes. If none of the options are provided, double quotes are not required for specifying filename alone.*
+    *NOTE 2: Any number of optional parameters can be configured in the same command.*
 
 - Example:
   ```
@@ -1083,7 +1127,7 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
   Refer another example [here](https://github.com/Azure/sonic-mgmt/blob/master/ansible/roles/test/tasks/acl/acltb_test_rules_part_1.json)
   ```
 
-**config acl update incremental:**
+**config acl update incremental**
 
 This command is used to perform incremental update of ACL rule table. This command gets existing rules from Config DB and compares with rules specified in input file and performs corresponding modifications.
 
@@ -1104,15 +1148,18 @@ When "--mirror_stage" optional argument is specified, command sets the mirror ac
 
 When the optional argument "max_priority"  is specified, each rule’s priority is calculated by subtracting its “sequence_id” value from the “max_priority”. If this value is not passed, the default “max_priority” 10000 is used.
 
-  - Usage:
-    config acl update incremental FILE_NAME
-	Some of the possible options are
-	1) --session_name <session_name>, Example: config acl update full " --session_name mirror_ses1 /etc/sonic/acl_table_1.json "
-	2) --mirror_stage ingress|egress, Example: config acl update full " --mirror_stage egress /etc/sonic/acl_table_1.json "
-	3) --max-priority <priority_value>, Example: config acl update full " --max-priority 100  /etc/sonic/acl_table_1.json "
+- Usage:
+  ```
+  config acl update incremental [--session_name <session_name>] [--mirror_stage (ingress | egress)] [--max_priority <priority_value>] <acl_json_file_name>
+  ```
 
-	NOTE: All these optional parameters should be inside the double quotes. If none of the options are provided, double quotes is not required for specifying filename alone.
-	Any number of optional parameters can be configured in the same command.
+  - Options:
+    - table_name: Specifiy the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
+    - session_name: Specifiy the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
+    - priority_value: Specify the maximum priority to use when loading ACL rules. Example: config acl update full "--max-priority 100  /etc/sonic/acl_table_1.json"
+
+    *NOTE 1: All these optional parameters should be inside double quotes. If none of the options are provided, double quotes are not required for specifying filename alone.*
+    *NOTE 2: Any number of optional parameters can be configured in the same command.*
 
 - Example:
   ```
@@ -1141,8 +1188,11 @@ This command displays the ARP entries in the device with following options.
 2) Display the ARP entries learnt on a specific interface.
 3) Display the ARP of a specific ip-address.
 
-  - Usage:
-    show arp [-if \<if_name\>] [\<ip_address\>]
+- Usage:
+  ```
+  show arp [-if <interface_name>] [<ip_address>]
+  ```
+
     show arp - displays all entries
     show arp -if <ifname> - displays the ARP specific to the specified interface.
     show arp <ip-address> - displays the ARP specific to the specicied ip-address.
@@ -1167,67 +1217,69 @@ This command displays the ARP entries in the device with following options.
   Total number of entries 10
   ```
 
-  - Optionally, you can specify the interface in order to display the ARPs learnt on that particular interface
+- Optionally, you can specify the interface in order to display the ARPs learnt on that particular interface
 
+  - Example:
+    ```
+      admin@sonic:~$ show arp -if Ethernet40
+      Address          MacAddress          Iface        Vlan
+      -------------    -----------------   ----------   ------
+      192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+      Total number of entries 1
 
-- Example:
-  ```
-    admin@sonic:~$ show arp -if Ethernet40
-    Address          MacAddress          Iface        Vlan
-    -------------    -----------------   ----------   ------
-    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-    Total number of entries 1
+    ```
 
-  ```
+- Optionally, you can specify an IP address in order to display only that particular entry
 
-  - Optionally, you can specify an IP address in order to display only that particular entry
+  - Example:
+    ```
+      admin@sonic:~$ show arp 192.168.1.181
+      Address          MacAddress          Iface        Vlan
+      -------------    -----------------   ----------   ------
+      192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+      Total number of entries 1
 
-- Example:
-  ```
-    admin@sonic:~$ show arp 192.168.1.181
-    Address          MacAddress          Iface        Vlan
-    -------------    -----------------   ----------   ------
-    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-    Total number of entries 1
-
-  ```
+    ```
 
 ## NDP show commands
 
 **show ndp**
 This command displays either all the IPv6 neighbor mac addresses, or for a particular IPv6 neighbor, or for all IPv6 neighbors reachable via a specific interface.
 
-  - Usage:
-    show ndp [-if|--iface \<interface_name\>] [IPv6_ADDRESS]
-
-
-- Example:
+- Usage:
   ```
-    **ALL IPv6 NEIGHBORS:**
-	admin@sonic:~$ show ndp
-	Address                   MacAddress         Iface    Vlan    Status
-	------------------------  -----------------  -------  ------  ---------
-	fe80::20c:29ff:feb8:b11e  00:0c:29:b8:b1:1e  eth0     -       REACHABLE
-	fe80::20c:29ff:feb8:cff0  00:0c:29:b8:cf:f0  eth0     -       REACHABLE
-	fe80::20c:29ff:fef9:324   00:0c:29:f9:03:24  eth0     -       REACHABLE
-	Total number of entries 3
+  show ndp [-if|--iface <interface_name>] <ipv6_address>
+  ```
 
-	**SPECIFIC IPv6 NEIGHBOR**
-	admin@sonic:~$ show ndp fe80::20c:29ff:feb8:b11e
-	Address                   MacAddress         Iface    Vlan    Status
-	------------------------  -----------------  -------  ------  ---------
-	fe80::20c:29ff:feb8:b11e  00:0c:29:b8:b1:1e  eth0     -       REACHABLE
-	Total number of entries 1
+- Example (show all IPv6 neighbors):
+  ```
+  admin@sonic:~$ show ndp
+  Address                   MacAddress         Iface    Vlan    Status
+  ------------------------  -----------------  -------  ------  ---------
+  fe80::20c:29ff:feb8:b11e  00:0c:29:b8:b1:1e  eth0     -       REACHABLE
+  fe80::20c:29ff:feb8:cff0  00:0c:29:b8:cf:f0  eth0     -       REACHABLE
+  fe80::20c:29ff:fef9:324   00:0c:29:f9:03:24  eth0     -       REACHABLE
+  Total number of entries 3
+  ```
 
-	**SPECIFIC INTERFACE**
-	admin@sonic:~$ show ndp -if eth0
-	Address                   MacAddress         Iface    Vlan    Status
-	------------------------  -----------------  -------  ------  ---------
-	fe80::20c:29ff:feb8:b11e  00:0c:29:b8:b1:1e  eth0     -       REACHABLE
-	fe80::20c:29ff:feb8:cff0  00:0c:29:b8:cf:f0  eth0     -       REACHABLE
-	fe80::20c:29ff:fef9:324   00:0c:29:f9:03:24  eth0     -       REACHABLE
-	Total number of entries 3
+- Example (show specific IPv6 neighbor):
+  ```
+  admin@sonic:~$ show ndp fe80::20c:29ff:feb8:b11e
+  Address                   MacAddress         Iface    Vlan    Status
+  ------------------------  -----------------  -------  ------  ---------
+  fe80::20c:29ff:feb8:b11e  00:0c:29:b8:b1:1e  eth0     -       REACHABLE
+  Total number of entries 1
+  ```
 
+- Example (show IPv6 neighbors learned on a specific interface):
+  ```
+  admin@sonic:~$ show ndp -if eth0
+  Address                   MacAddress         Iface    Vlan    Status
+  ------------------------  -----------------  -------  ------  ---------
+  fe80::20c:29ff:feb8:b11e  00:0c:29:b8:b1:1e  eth0     -       REACHABLE
+  fe80::20c:29ff:feb8:cff0  00:0c:29:b8:cf:f0  eth0     -       REACHABLE
+  fe80::20c:29ff:fef9:324   00:0c:29:f9:03:24  eth0     -       REACHABLE
+  Total number of entries 3
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Watermark-Configuration-And-Show)
