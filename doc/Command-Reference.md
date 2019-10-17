@@ -1295,18 +1295,26 @@ Detailed show commands examples for Quagga are provided at the end of this docum
 ## BGP show commands
 
 
-**show bgp summary (for default FRR in 201904+ version) **
-**show ip bgp summary (for Quagga in 201811- version) **
+**show bgp summary (Versions >= 201904 using default FRR routing stack)**
+
+**show ip bgp summary (Versions <= 201811 using Quagga routing stack)**
 
 This command displays the summary of all IPv4 & IPv6 bgp neighbors that are configured and the corresponding states.
 
 - Usage:
-  show bgp summary (for default FRR in 201904+ version)
-  show ip bgp summary (for Quagga in 201811- version)
+
+  *Versions >= 201904 using default FRR routing stack*
+  ```
+  show bgp summary
+  ```
+  *Versions <= 201811 using Quagga routing stack*
+  ```
+  show ip bgp summary
+  ```
 
 - Example:
   ```
-   root@sonic-z9264f-9251:~# show bgp summary
+   admin@sonic-z9264f-9251:~# show bgp summary
 
    IPv4 Unicast Summary:
    BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
@@ -1342,9 +1350,9 @@ This command displays the summary of all IPv4 & IPv6 bgp neighbors that are conf
 
 
 
-**show bgp neighbors (for default FRR in 201904+ version)**
-**show ip bgp neighbors (for Quagga in 201811- version)**
+**show bgp neighbors (Versions >= 201904 using default FRR routing stack)**
 
+**show ip bgp neighbors (Versions <= 201811 using Quagga routing stack)**
 
 This command displays all the details of IPv4 & IPv6 BGP neighbors when no optional argument is specified.
 
@@ -1356,8 +1364,15 @@ In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_a
 
 
 - Usage:
-  show bgp neighbors [\<ipv4-address\> [advertised-routes | received-routes | routes]] (for default FRR in 201904+ version)
-  show ip bgp neighbors [\<ipv4-address\> [advertised-routes | received-routes | routes]] (for Quagga in 201811- version)
+
+  *Versions >= 201904 using default FRR routing stack*
+  ```
+  show bgp neighbors [<ipv4-address> [advertised-routes | received-routes | routes]]
+  ```
+  *Versions <= 201811 using Quagga routing stack*
+  ```
+  show ip bgp neighbors [<ipv4-address> [advertised-routes | received-routes | routes]]
+  ```
 
 - Example:
   ```
@@ -1434,14 +1449,22 @@ In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_a
 
 
 
-**show bgp ipv6 summary (for default FRR in 201904+ version)**
-**show ipv6 bgp summary (for Quagga in 201811- version)**
+**show bgp ipv6 summary (Versions >= 201904 using default FRR routing stack)**
+
+**show ipv6 bgp summary (Versions <= 201811 using Quagga routing stack)**
 
 This command displays the summary of all IPv6 bgp neighbors that are configured and the corresponding states.
 
 - Usage:
-  show bgp ipv6 summary (for default FRR in 201904+ version)
-  show ipv6 bgp summary (for Quagga in 201811- version)
+
+  *Versions >= 201904 using default FRR routing stack*
+  ```
+  show bgp ipv6 summary
+  ```
+  *Versions <= 201811 using Quagga routing stack*
+  ```
+  show ipv6 bgp summary
+  ```
 
 - Example:
   ```
@@ -1465,24 +1488,31 @@ This command displays the summary of all IPv6 bgp neighbors that are configured 
 
 
 
-**show bgp ipv6 neighbors (for default FRR in 201904+ version)**
-**show ipv6 bgp neighbors (for Quagga in 201811- version)**
+**show bgp ipv6 neighbors (Versions >= 201904 using default FRR routing stack)**
 
+**show ipv6 bgp neighbors (Versions <= 201811 using Quagga routing stack)**
 
 This command displays all the details of one particular IPv6 Border Gateway Protocol (BGP) neighbor. Option is also available to display only the advertised routes, or the received routes, or all routes.
 
 
-  - Usage:
-    show bgp ipv6 neighbors [\<ipv6-address\> [(advertised-routes | received-routes | routes)]] (for default FRR in 201904+ version)
-    show ipv6 bgp neighbors [\<ipv6-address\> [(advertised-routes | received-routes | routes)]] (for Quagga in 201811- version)
+- Usage:
+
+  *Versions >= 201904 using default FRR routing stack*
+  ```
+  show bgp ipv6 neighbors [<ipv6-address> [(advertised-routes | received-routes | routes)]]
+  ```
+  *Versions <= 201811 using Quagga routing stack*
+  ```
+  show ipv6 bgp neighbors [<ipv6-address> [(advertised-routes | received-routes | routes)]]
+  ```
 
 - Example:
   ```
-   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 advertised-routes
+  admin@sonic:~$ show bgp ipv6 neighbors fc00::72 advertised-routes
 
-   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 received-routes
+  admin@sonic:~$ show bgp ipv6 neighbors fc00::72 received-routes
 
-   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 routes
+  admin@sonic:~$ show bgp ipv6 neighbors fc00::72 routes
 
   ```
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga.
@@ -1493,50 +1523,52 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
 
 This command displays the routing policy that takes precedence over the other route processes that are configured.
 
-  - Usage:
-    show route-map
-
-  - Example:
+- Usage:
   ```
-	admin@T1-2:~$ show route-map
-	ZEBRA:
-	route-map RM_SET_SRC, permit, sequence 10
-	  Match clauses:
-	  Set clauses:
-		src 10.12.0.102
-	  Call clause:
-	  Action:
-		Exit routemap
-	ZEBRA:
-	route-map RM_SET_SRC6, permit, sequence 10
-	  Match clauses:
-	  Set clauses:
-		src fc00:1::102
-	  Call clause:
-	  Action:
-		Exit routemap
-	BGP:
-	route-map FROM_BGP_SPEAKER_V4, permit, sequence 10
-	  Match clauses:
-	  Set clauses:
-	  Call clause:
-	  Action:
-	    Exit routemap
-	BGP:
-	route-map TO_BGP_SPEAKER_V4, deny, sequence 10
-	  Match clauses:
-	  Set clauses:
-	  Call clause:
-	  Action:
-	    Exit routemap
-	BGP:
-	route-map ISOLATE, permit, sequence 10
-	  Match clauses:
-	  Set clauses:
-		as-path prepend 65000
-	  Call clause:
-	  Action:
-		Exit routemap
+  show route-map
+  ```
+
+- Example:
+  ```
+  admin@T1-2:~$ show route-map
+  ZEBRA:
+  route-map RM_SET_SRC, permit, sequence 10
+    Match clauses:
+    Set clauses:
+      src 10.12.0.102
+    Call clause:
+    Action:
+      Exit routemap
+  ZEBRA:
+  route-map RM_SET_SRC6, permit, sequence 10
+    Match clauses:
+    Set clauses:
+      src fc00:1::102
+    Call clause:
+    Action:
+      Exit routemap
+  BGP:
+  route-map FROM_BGP_SPEAKER_V4, permit, sequence 10
+    Match clauses:
+    Set clauses:
+    Call clause:
+    Action:
+      Exit routemap
+  BGP:
+  route-map TO_BGP_SPEAKER_V4, deny, sequence 10
+    Match clauses:
+    Set clauses:
+    Call clause:
+    Action:
+      Exit routemap
+  BGP:
+  route-map ISOLATE, permit, sequence 10
+    Match clauses:
+    Set clauses:
+      as-path prepend 65000
+    Call clause:
+    Action:
+      Exit routemap
   ```
 
 
@@ -1544,37 +1576,29 @@ This command displays the routing policy that takes precedence over the other ro
 
 This sub-section explains the list of configuration options available for BGP module for both IPv4 and IPv6 BGP neighbors.
 
-The list of possible BGP config commands are given below.
-
-	bgp
-        shutdown
-            all
-            neighbor
-        startup
-            all
-            neighbor
-        remove
-            neighbor
-
-**config bgp shut down all**
+**config bgp shutdown all**
 
 This command is used to shutdown all the BGP IPv4 & IPv6 sessions.
 When the session is shutdown using this command, BGP state in "show ip bgp summary" is displayed as "Idle (Admin)"
 
-  - Usage:
-    sudo config bgp shutdown all
+- Usage:
+  ```
+  sudo config bgp shutdown all
+  ```
 
-- Examples:
+- Example:
   ```
   admin@sonic:~$ sudo config bgp shutdown all
   ```
 
-**config bgp shutdown <neighbor>**
+**config bgp shutdown neighbor**
 
 This command is to shut down a BGP session with a neighbor by that neighbor's IP address or hostname
 
-  - Usage:
-    sudo config bgp shutdown (<ip-address> | <hostname>)
+- Usage:
+  ```
+  sudo config bgp shutdown neighbor (<ip_address> | <hostname>)
+  ```
 
 - Examples:
   ```
@@ -1589,21 +1613,25 @@ This command is to shut down a BGP session with a neighbor by that neighbor's IP
 
 This command is used to start up all the IPv4 & IPv6 BGP neighbors
 
-  - Usage:
-    sudo config bgp startup all`
+- Usage:
+  ```
+  sudo config bgp startup all
+  ```
 
-- Examples:
+- Example:
   ```
   admin@sonic:~$ sudo config bgp startup all
   ```
 
 
-**config bgp startup <neighbor>**
+**config bgp startup neighbor**
 
 This command is used to start up the particular IPv4 or IPv6 BGP neighbor using either the IP address or hostname.
 
-  - Usage:
-    sudo config bgp startup (<ip-address> | <hostname>)`
+- Usage:
+  ```
+  sudo config bgp startup neighbor (<ip-address> | <hostname>)`
+  ```
 
 - Examples:
   ```
@@ -1618,8 +1646,10 @@ This command is used to start up the particular IPv4 or IPv6 BGP neighbor using 
 
 This command is used to remove particular IPv4 or IPv6 BGP neighbor configuration using either the IP address or hostname.
 
-  - Usage:
-    sudo config bgp remove neighbor <neighbor_ip_or_hostname>
+- Usage:
+  ```
+  sudo config bgp remove neighbor <neighbor_ip_or_hostname>
+  ```
 
 - Examples:
   ```
@@ -1630,7 +1660,7 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
   ```
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
-  ``` 
+  ```
 
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#BGP-Configuration-And-Show-Commands)
