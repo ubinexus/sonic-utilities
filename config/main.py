@@ -1122,7 +1122,7 @@ def add():
 @add.command('neighbor')
 @click.argument('neighbor_ip', metavar='<neighbor_ip>', required=True)
 @click.option('-a','--asn', metavar='<neighbor_asn>',type=int, required=True, help="Neighbor ASN number")
-@click.option('-l','--localip', metavar='<local_ip>', required=False, help="Local ip communicate with neighbor")
+@click.option('-l','--localip', metavar='[local_ip]', required=False, help="Local ip communicate with neighbor")
 @click.option('-n','--name', metavar='[neighbor_name]', required=False, help="Neighbor description name")
 def add_neighbor(neighbor_ip,asn,localip,name):
     """Add BGP session by neighbor IP address"""
