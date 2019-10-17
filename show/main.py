@@ -1839,7 +1839,7 @@ def show_sflow_interface(config_db):
 def show_sflow_global(config_db):
 
     sflow_info = config_db.get_table('SFLOW')
-    global_admin_state = 'disabled'
+    global_admin_state = 'down'
     if sflow_info:
         global_admin_state = sflow_info['global']['admin_state']
 

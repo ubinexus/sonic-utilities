@@ -1068,7 +1068,7 @@ def remove(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
-    
+
     exists = False
     if if_table:
         interfaces = config_db.get_table(if_table)
@@ -1338,9 +1338,9 @@ def enable(ctx):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        sflow_tbl = {'global': {'admin_state': 'enable'}}
+        sflow_tbl = {'global': {'admin_state': 'up'}}
     else:
-        sflow_tbl['global']['admin_state'] = 'enable'
+        sflow_tbl['global']['admin_state'] = 'up'
 
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
@@ -1355,9 +1355,9 @@ def disable(ctx):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        sflow_tbl = {'global': {'admin_state': 'disable'}}
+        sflow_tbl = {'global': {'admin_state': 'down'}}
     else:
-        sflow_tbl['global']['admin_state'] = 'disable'
+        sflow_tbl['global']['admin_state'] = 'down'
 
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
@@ -1377,7 +1377,7 @@ def polling_int(ctx, interval):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        sflow_tbl = {'global': {'admin_state': 'disable'}}
+        sflow_tbl = {'global': {'admin_state': 'down'}}
 
     sflow_tbl['global']['polling_interval'] = interval
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
@@ -1410,10 +1410,10 @@ def enable(ctx, ifname):
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
-        intf_dict[ifname]['admin_state'] = 'enable'
+        intf_dict[ifname]['admin_state'] = 'up'
         config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
-        config_db.mod_entry('SFLOW_SESSION', ifname, {'admin_state': 'enable'})
+        config_db.mod_entry('SFLOW_SESSION', ifname, {'admin_state': 'up'})
 
 #
 # 'sflow' command ('config sflow interface disable  ...')
@@ -1430,11 +1430,11 @@ def disable(ctx, ifname):
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
-        intf_dict[ifname]['admin_state'] = 'disable'
+        intf_dict[ifname]['admin_state'] = 'down'
         config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
         config_db.mod_entry('SFLOW_SESSION', ifname,
-                            {'admin_state': 'disable'})
+                            {'admin_state': 'down'})
 
 #
 # 'sflow' command ('config sflow interface sample-rate  ...')
@@ -1554,7 +1554,7 @@ def add(ctx, ifname):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        sflow_tbl = {'global': {'admin_state': 'disable'}}
+        sflow_tbl = {'global': {'admin_state': 'down'}}
 
     if 'agent_id' in sflow_tbl['global'].keys():
         click.echo("Agent already configured. Please delete it first.")
@@ -1574,7 +1574,7 @@ def delete(ctx):
     sflow_tbl = config_db.get_table('SFLOW')
 
     if not sflow_tbl:
-        sflow_tbl = {'global': {'admin_state': 'disable'}}
+        sflow_tbl = {'global': {'admin_state': 'down'}}
 
     if 'agent_id' not in sflow_tbl['global'].keys():
         click.echo("sFlow agent not configured.")
