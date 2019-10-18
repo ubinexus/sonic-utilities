@@ -93,7 +93,7 @@ Table of Contents
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
-| v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Fix a few errors |
+| v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Fix a few errors; Minor reorganization |
 | v3 | Jun-26-2019 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
 | v2 | Apr-22-2019 | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
 | v1 | Mar-23-2019 | Initial version of CLI Guide with minimal command set |
@@ -106,9 +106,9 @@ SONiC software shall be loaded in these [supported devices](https://github.com/A
 Follow the [Quick Start Guide](https://github.com/Azure/SONiC/wiki/Quick-Start) to boot the device in ONIE mode, install the SONiC software using the steps specified in the document and login to the device using the default username and password.
 
 After logging into the device, SONiC software can be configured in following three methods.
- 1) Command Line Interface (CLI)
- 2) [config_db.json](https://github.com/Azure/SONiC/wiki/Configuration)
- 3) [minigraph.xml](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
+  1. Command Line Interface (CLI)
+  2. [config_db.json](https://github.com/Azure/SONiC/wiki/Configuration)
+  3. [minigraph.xml](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
 This document explains the first method and gives the complete list of commands that are supported in SONiC 201904 version (build#19).
 All the configuration commands need root privileges to execute them. Note that show commands can be executed by all users without the root privileges.
@@ -132,20 +132,15 @@ Please follow config_db.json based configuration for the complete list of config
 It is assumed that all configuration commands start with the keyword “config” as prefix.
 Any other scripts/utilities/commands  that need user configuration control are wrapped as sub-commands under the “config” command.
 The direct scripts/utilities/commands (examples given below) that are not wrapped under the "config" command are not in the scope of this document.
-  1) acl_loader – This script is already wrapped inside “config acl” command; i.e. any ACL configuration that user is allowed to do is already part of “config acl” command; users are not expected to use the acl_loader script directly and hence this document need not explain the “acl_loader” script.
-  2) crm – this command is not explained in this document.
-  3) sonic-clear, sfputil, etc., This document does not explain these scripts also.
+  1. acl_loader – This script is already wrapped inside “config acl” command; i.e. any ACL configuration that user is allowed to do is already part of “config acl” command; users are not expected to use the acl_loader script directly and hence this document need not explain the “acl_loader” script.
+  2. crm – this command is not explained in this document.
+  3. sonic-clear, sfputil, etc., This document does not explain these scripts also.
 
-# Basic Configuration And Show
+# Basic Configuration
 
-This section covers the basic configurations related to the following
- 1) [SSH login](#SSH-Login),
- 2) [configuring the management interface](#Configuring-Management-Interface),
- 3) [Help for Config Commands](#Config-Help),
- 4) [Help For Show Commands](#Show-Help),
- 5) [show version](#Show-Versions),
- 6) [Show System Status](#Show-System-Status) and
- 7) [Show Hardware Platform](#Show-Hardware-Platform).
+This section covers the basic configurations related to the following:
+  1. [SSH login](#SSH-Login)
+  2. [Configuring the Management Interface](#Configuring-Management-Interface)
 
 ## SSH Login
 
@@ -177,13 +172,13 @@ The management interface (eth0) in SONiC is configured (by default) to use DHCP 
 The IP address received from DHCP server can be verified using the "/sbin/ifconfig eth0" linux command.
 
 SONiC does not provide a CLI to configure the static IP for the management interface. There are few alternate ways by which a static IP address can be configured for the management interface.
-   1) use "ifconfig eth0" linux command (example: ifconfig eth0 10.11.12.13/24). This configuration won't be preserved across reboot.
+   1. Use "ifconfig eth0" linux command (example: ifconfig eth0 10.11.12.13/24). NOTE: This configuration **will not** be preserved across reboots.
    Example:
    ```
    admin@sonic:~$ /sbin/ifconfig eth0 10.11.12.13/24
    ```
-   2) use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/Azure/SONiC/wiki/Configuration#Management-Interface)
-   3) use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
+   2. Use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/Azure/SONiC/wiki/Configuration#Management-Interface)
+   3. Use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
 Once the IP address is configured, the same can be verified using "/sbin/ifconfig eth0" linux command.
 Users can SSH login to this management interface IP address from their management network.
@@ -196,7 +191,16 @@ Users can SSH login to this management interface IP address from their managemen
    ```
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
-## Config Help
+# Getting Help
+
+Subsections:
+  1. [Help for Config Commands](#Config-Help)
+  2. [Help For Show Commands](#Show-Help)
+  3. [show version](#Show-Versions)
+  4. [Show System Status](#Show-System-Status)
+  5. [Show Hardware Platform](#Show-Hardware-Platform)
+
+## Help for Config Commands
 
 All commands has got in-built help that helps the user to understand the command as well as the possible sub-commands and options.
 "--help" can be used at any level of the command; i.e. it can be used at the command level, or sub-command level or at argument level. The in-built help will display the next possibilities corresponding to that particular command/sub-command.
@@ -244,7 +248,7 @@ This command lists all the possible configuration commands at the top level.
   ```
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
-## Show Help
+## Help For Show Commands
 
 **show help**
 This command displays the full list of show commands available in the software; the output of each of those show commands can be used to analyze, debug or troubleshoot the network node.
@@ -326,6 +330,12 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
+# Basic 'show' Commands
+
+Subsections:
+  1. [Show Versions](#Show-Versions)
+  2. [Show System Status](#Show-System-Status)
+  3. [Show Hardware Platform](#Show-Hardware-Platform)
 
 ## Show Versions
 
