@@ -1992,6 +1992,7 @@ IP address for either physical interface or for portchannel or for VLAN interfac
 
 
 - Usage:
+
   *Versions >= 201904*
   ```
   config interface ip add <interface_name> <ip_addr>
@@ -2002,6 +2003,7 @@ IP address for either physical interface or for portchannel or for VLAN interfac
   ```
 
 - Example:
+
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip add Ethernet63 10.11.12.13/24
@@ -2028,6 +2030,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
 **config interface <interface_name> ip remove <ip_addr> (Versions <= 201811)**
 
 - Usage:
+
   *Versions >= 201904*
   ```
   config interface ip remove <interface_name> <ip_addr>
@@ -2038,6 +2041,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
   ```
 
 - Example:
+
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip remove Ethernet63 10.11.12.13/24
@@ -2050,6 +2054,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
 VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be named `vlan100`
 
 - Example:
+
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip remove vlan100 10.11.12.13/24
@@ -2066,6 +2071,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
 This command is used for setting the asymmetric PFC for an interface to either "on" or "off". Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:
+
   *Versions >= 201904*
   ```
   config interface pfc asymmetric <interface_name> on/off (for 201904+ version)
@@ -2076,6 +2082,7 @@ This command is used for setting the asymmetric PFC for an interface to either "
   ```
 
 - Example:
+
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface pfc asymmetric Ethernet60 on
@@ -2092,6 +2099,7 @@ This command is used for setting the asymmetric PFC for an interface to either "
 This command is used to administratively shut down either the Physical interface or port channel interface. Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:
+
   *Versions >= 201904*
   ```
   config interface shutdown <interface_name> (for 201904+ version)
@@ -2101,6 +2109,7 @@ This command is used to administratively shut down either the Physical interface
   config interface <interface_name> shutdown (for 201811- version)
 
 - Example:
+
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface shutdown Ethernet63
@@ -2117,6 +2126,7 @@ This command is used to administratively shut down either the Physical interface
 This command is used for administratively bringing up the Physical interface or port channel interface.Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:
+
   *Versions >= 201904*
   ```
   config interface startup <interface_name> (for 201904+ version)
@@ -2126,6 +2136,7 @@ This command is used for administratively bringing up the Physical interface or 
   config interface <interface_name> startup (for 201811- version)
 
 - Example:
+
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface startup Ethernet63
@@ -2143,6 +2154,7 @@ This command is used to configure the speed for the Physical interface. Use the 
 Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
 
 - Usage:
+
   *Versions >= 201904*
   ```
   config interface speed <interface_name> <speed_value>
