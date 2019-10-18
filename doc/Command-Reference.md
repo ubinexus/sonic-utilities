@@ -1677,34 +1677,35 @@ This sub-section contains the show commands that are supported in ECN.
 
 This command displays all the WRED profiles that are configured in the device.
 
-  - Usage:
-    show ecn
+- Usage:
+  ```
+  show ecn
+  ```
 
 - Example:
   ```
-	show ecn
-	Profile: **AZURE_LOSSLESS**
-	-----------------------  -------
-	red_max_threshold        2097152
-	red_drop_probability     5
-	yellow_max_threshold     2097152
-	ecn                      ecn_all
-	green_min_threshold      1048576
-	red_min_threshold        1048576
-	wred_yellow_enable       true
-	yellow_min_threshold     1048576
-	green_max_threshold      2097152
-	green_drop_probability   5
-	wred_green_enable        true
-	yellow_drop_probability  5
-	wred_red_enable          true
-	-----------------------  -------
+  show ecn
+  Profile: **AZURE_LOSSLESS**
+  -----------------------  -------
+  red_max_threshold        2097152
+  red_drop_probability     5
+  yellow_max_threshold     2097152
+  ecn                      ecn_all
+  green_min_threshold      1048576
+  red_min_threshold        1048576
+  wred_yellow_enable       true
+  yellow_min_threshold     1048576
+  green_max_threshold      2097152
+  green_drop_probability   5
+  wred_green_enable        true
+  yellow_drop_probability  5
+  wred_red_enable          true
+  -----------------------  -------
 
-	Profile: **wredprofileabcd**
-	-----------------  ---
-	red_max_threshold  100
-	-----------------  ---
-
+  Profile: **wredprofileabcd**
+  -----------------  ---
+  red_max_threshold  100
+  -----------------  ---
   ```
 
 ## ECN config commands
@@ -1716,27 +1717,23 @@ This sub-section contains the configuration commands that can configure the WRED
 This command configures the possible fields in a particular WRED profile that is specified using "-profile <profilename>" argument.
 The list of the WRED profile fields that are configurable is listed in the below "Usage".
 
-  - Usage:
-    config ecn [OPTIONS]
-
+- Usage:
   ```
-    ECN Config OPTIONS:
-	  -profile <profile_name>       Profile name  [required] - Even though the profile_name is specified as optional parameter, it is a mandatory parameter.
-	  -rmax <red threshold max>     Set red max threshold
-	  -rmin <red threshold min>     Set red min threshold
-	  -ymax <yellow threshold max>  Set yellow max threshold
-	  -ymin <yellow threshold min>  Set yellow min threshold
-	  -gmax <green threshold max>   Set green max threshold
-	  -gmin <green threshold min>   Set green min threshold
-	  -v, --verbose                 Enable verbose output
-	  --help                        Show this message and exit.
+  config ecn -profile <profile_name> [-rmax <red_threshold_max>] [-rmin <red_threshold_min>] [-ymax <yellow_threshold_max>] [-ymin <yellow_threshold_min>] [-gmax <green_threshold_max>] [-gmin <green_threshold_min>] [-v|--verbose]
   ```
 
+  - Parameters:
+    - profile_name          Profile name
+    - red_threshold_max     Set red max threshold
+    - red_threshold_min     Set red min threshold
+    - yellow_threshold_max  Set yellow max threshold
+    - yellow_threshold_min  Set yellow min threshold
+    - green_threshold_max   Set green max threshold
+    - green_threshold_min   Set green min threshold
 
-- Example:
+- Example (Configures the "red max threshold" for the WRED profile name "wredprofileabcd". It will create the WRED profile if it does not exist.):
   ```
-     root@T1-2:~# config ecn -profile wredprofileabcd -rmax 100
-        This command configures the "red max threshold" for the WRED profile name "wredprofileabcd". It will create the WRED profile if it does not exist.
+  root@T1-2:~# config ecn -profile wredprofileabcd -rmax 100
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ECN-Configuration-And-Show-Commands)
