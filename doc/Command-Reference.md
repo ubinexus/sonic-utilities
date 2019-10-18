@@ -4506,7 +4506,7 @@ This command is used to delete the syslog server configured.
   Restarting rsyslog-config service...
   ```
 
-## DHCP Relay Destination IP address Configuration Commands
+## DHCP Relay Destination IP Address Configuration Commands
 
 This sub-section of commands is used to add or remove the DHCP Relay Destination IP address(es) for a VLAN interface.
 
