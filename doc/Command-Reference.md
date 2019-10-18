@@ -496,10 +496,11 @@ This command displays the current system uptime
   ```
 
 **show logging**
+
 This command displays all the currently stored log messages.
 All the latest processes and corresponding transactions are stored in the "syslog" file.
 This file is saved in the path `/var/log` and can be viewed by giving the command ` sudo cat syslog` as this requires root login.
-Individual process can also be viewed using the command `ps -ax | grep <\process name>
+Individual processes can also be viewed using the command `ps -ax | grep <process name>`
 
 - Usage:
   ```
@@ -525,7 +526,7 @@ Optionally, you can specify a process name in order to display only log messages
   admin@sonic:~$ show logging sensord
   ```
 
-Optionally, you can specify a number of lines to display using the `-l' or `--lines` option. Only the most recent N lines will be displayed. Also note that this option can be combined with a process name.
+Optionally, you can specify a number of lines to display using the `-l` or `--lines` option. Only the most recent N lines will be displayed. Also note that this option can be combined with a process name.
 
 - Examples:
   ```
@@ -1646,7 +1647,7 @@ This command is used to start up the particular IPv4 or IPv6 BGP neighbor using 
 
 - Usage:
   ```
-  sudo config bgp startup neighbor (<ip-address> | <hostname>)`
+  sudo config bgp startup neighbor (<ip-address> | <hostname>)
   ```
 
 - Examples:
@@ -3200,7 +3201,7 @@ This command is used to display the startup configuration for the BGP module.
 
 - Usage:
   ```
-  show startupconfiguration bgp`
+  show startupconfiguration bgp
   ```
 
 - Example:
@@ -4406,7 +4407,7 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
 
 - Usage:
   ```
-  show ipv6 bgp neighbors <ipv6-address> (advertised-routes | received-routes | routes)`
+  show ipv6 bgp neighbors <ipv6-address> (advertised-routes | received-routes | routes)
   ```
 
 - Examples:
