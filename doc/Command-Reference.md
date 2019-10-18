@@ -115,7 +115,7 @@ All the configuration commands need root privileges to execute them. Note that s
 Root privileges can be obtained either by using "sudo" keyword in front of all config commands, or by going to root prompt using "sudo -i".
 Note that all commands are case sensitive.
 
-  - Example:
+- Example:
   ```
   admin@sonic:~$ sudo config aaa authentication login tacacs+
 
@@ -149,7 +149,7 @@ The default credential (if not modified at image build time) for login is `admin
 In case of SSH login, users can login to the management interface (eth0) IP address after configuring the same using serial console.
 Refer the following section for configuring the IP address for management interface.
 
-  - Example:
+- Example:
   ```
   At Console:
   Debian GNU/Linux 9 sonic ttyS1
@@ -183,7 +183,7 @@ SONiC does not provide a CLI to configure the static IP for the management inter
 Once the IP address is configured, the same can be verified using "/sbin/ifconfig eth0" linux command.
 Users can SSH login to this management interface IP address from their management network.
 
-  - Example:
+- Example:
    ```
    admin@sonic:~$ /sbin/ifconfig eth0
    eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
@@ -195,8 +195,8 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 Subsections:
   1. [Help for Config Commands](#Config-Help)
-  2. [Help For Show Commands](#Show-Help)
-  3. [show version](#Show-Versions)
+  2. [Help for Show Commands](#Show-Help)
+  3. [Show Versions](#Show-Versions)
   4. [Show System Status](#Show-System-Status)
   5. [Show Hardware Platform](#Show-Hardware-Platform)
 
@@ -3942,8 +3942,8 @@ Supported range: 1-3600.
   config warm_restart [-s|--redis-unix-socket-path <socket_path>] bgp_timer <seconds>
   ```
 
-- Parameters:
-  - seconds: Range from 1 to 3600
+  - Parameters:
+    - seconds: Range from 1 to 3600
 
 - Example:
   ```
@@ -3961,8 +3961,8 @@ If this configuration is enabled for that service, it will perform warm reboot f
   config warm_restart [-s|--redis-unix-socket-path <socket_path>] enable [<module_name>]
   ```
 
-- Parameters:
-  - module_name: Can be either system or swss or bgp or teamd. If "module_name" argument is not specified, it will enable "system" module.
+  - Parameters:
+    - module_name: Can be either system or swss or bgp or teamd. If "module_name" argument is not specified, it will enable "system" module.
 
 - Example (Set warm_restart as "enable" for the "system" service):
   ```
@@ -3994,8 +3994,8 @@ Valid value is 1-9999. 0 is invalid.
   config warm_restart [-s|--redis-unix-socket-path <socket_path>] neighsyncd_timer <seconds>
   ```
 
-- Parameters:
-  - seconds: Range from 1 to 9999
+  - Parameters:
+    - seconds: Range from 1 to 9999
 
 - Example:
   ```
@@ -4017,8 +4017,8 @@ Valid value is 1-9999. 0 is invalid.
   config warm_restart [-s|--redis-unix-socket-path <socket_path>] bgp_timer <seconds>
   ```
 
-- Parameters:
-  - seconds: Range from 1 to 9999
+  - Parameters:
+    - seconds: Range from 1 to 9999
 
 - Example:
   ```
@@ -4039,8 +4039,8 @@ Supported range: 1-9999. 0 is invalid
   config warm_restart teamsyncd_timer <seconds>
   ```
 
-- Parameters:
-  - seconds: Range from 1 to 9999
+  - Parameters:
+    - seconds: Range from 1 to 9999
 
 - Example:
   ```
