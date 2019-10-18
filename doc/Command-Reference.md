@@ -1217,29 +1217,29 @@ This command displays the ARP entries in the device with following options.
   Total number of entries 10
   ```
 
-- Optionally, you can specify the interface in order to display the ARPs learnt on that particular interface
+Optionally, you can specify the interface in order to display the ARPs learnt on that particular interface
 
-  - Example:
-    ```
-      admin@sonic:~$ show arp -if Ethernet40
-      Address          MacAddress          Iface        Vlan
-      -------------    -----------------   ----------   ------
-      192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-      Total number of entries 1
+- Example:
+  ```
+    admin@sonic:~$ show arp -if Ethernet40
+    Address          MacAddress          Iface        Vlan
+    -------------    -----------------   ----------   ------
+    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+    Total number of entries 1
 
-    ```
+  ```
 
-- Optionally, you can specify an IP address in order to display only that particular entry
+Optionally, you can specify an IP address in order to display only that particular entry
 
-  - Example:
-    ```
-      admin@sonic:~$ show arp 192.168.1.181
-      Address          MacAddress          Iface        Vlan
-      -------------    -----------------   ----------   ------
-      192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-      Total number of entries 1
+- Example:
+  ```
+    admin@sonic:~$ show arp 192.168.1.181
+    Address          MacAddress          Iface        Vlan
+    -------------    -----------------   ----------   ------
+    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+    Total number of entries 1
 
-    ```
+  ```
 
 ## NDP show commands
 
@@ -1430,7 +1430,7 @@ In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_a
    Read thread: on  Write thread: on
   ```
 
-- Optionally, you can specify an IP address in order to display only that particular neighbor. In this mode, you can optionally specify whether you want to display all routes advertised to the specified neighbor, all routes received from the specified neighbor or all routes (received and accepted) from the specified neighbor.
+Optionally, you can specify an IP address in order to display only that particular neighbor. In this mode, you can optionally specify whether you want to display all routes advertised to the specified neighbor, all routes received from the specified neighbor or all routes (received and accepted) from the specified neighbor.
 
 
 - Example:
@@ -1790,13 +1790,10 @@ This show command displays packet counters for all interfaces since the last tim
 Optional argument "-c" can be used to clear the counters for all interfaces.
 Optional argument "-p" specify a period (in seconds) with which to gather counters over.
 
-  - Usage:
-    show interfaces counters [OPTIONS]
-      OPTIONS:
-      -a, --printall
-      -c, --clear
-      -p, --period TEXT
-
+- Usage:
+  ```
+  show interfaces counters [-a|--printall] [-p|--period <period>]
+  ```
 
 - Example:
   ```
@@ -1812,7 +1809,7 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
   ```
 
-  - Optionally, you can specify a period (in seconds) with which to gather counters over. Note that this function will take `<period>` seconds to execute.
+Optionally, you can specify a period (in seconds) with which to gather counters over. Note that this function will take `<period>` seconds to execute.
 
 - Example:
   ```
@@ -1833,11 +1830,13 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
 
 This command displays the key fields of the interfaces such as Operational Status, Administrative Status, Alias and Description.
 
-  - Usage:
-    show interfaces description [INTERFACENAME]
+- Usage:
+  ```
+  show interfaces description [<interface_name>]
+  ```
 
 - Example:
-   ```
+  ```
   admin@sonic:~$ show interfaces description
   Interface    Oper    Admin            Alias           Description
   -----------  ------  -------  ---------------  --------------------
@@ -1846,9 +1845,10 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet8    down     down   hundredGigE1/3        hundredGigE1/3
   Ethernet12   down     down   hundredGigE1/4        hundredGigE1/4
   ```
-  ```
-  show the description for one particular interface.
 
+- Example (to only display the description for interface Ethernet4):
+
+  ```
   admin@sonic:~$ show interfaces description Ethernet4
   Interface    Oper    Admin           Alias           Description
   -----------  ------  -------  --------------  --------------------
@@ -1866,18 +1866,20 @@ Refer sub-section [Interface-Naming-Mode](#Interface-Naming-Mode)
 
 This command is used to display the list of expected neighbors for all interfaces (or for a particular interface) that is configured.
 
-  - Usage:
-    show interfaces neighbor expected [INTERFACENAME]
+- Usage:
+  ```
+  show interfaces neighbor expected [<interface_name>]
+  ```
 
 - Example:
   ```
   root@sonic-z9264f-9251:~# show interfaces neighbor expected
-	LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
-	-----------  ----------  --------------  ------------------  --------------  --------------
-	Ethernet112  ARISTA01T1  Ethernet1       None                10.16.205.100   ToRRouter
-	Ethernet116  ARISTA02T1  Ethernet1       None                10.16.205.101   SpineRouter
-	Ethernet120  ARISTA03T1  Ethernet1       None                10.16.205.102   LeafRouter
-	Ethernet124  ARISTA04T1  Ethernet1       None                10.16.205.103   LeafRouter
+  LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
+  -----------  ----------  --------------  ------------------  --------------  --------------
+  Ethernet112  ARISTA01T1  Ethernet1       None                10.16.205.100   ToRRouter
+  Ethernet116  ARISTA02T1  Ethernet1       None                10.16.205.101   SpineRouter
+  Ethernet120  ARISTA03T1  Ethernet1       None                10.16.205.102   LeafRouter
+  Ethernet124  ARISTA04T1  Ethernet1       None                10.16.205.103   LeafRouter
 
   ```
 
@@ -1885,8 +1887,10 @@ This command is used to display the list of expected neighbors for all interface
 
 This command displays information regarding port-channel interfaces
 
-  - Usage:
-    show interfaces portchannel
+- Usage:
+  ```
+  show interfaces portchannel
+  ```
 
 - Example:
   ```
@@ -1906,7 +1910,7 @@ This command displays information regarding port-channel interfaces
 This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetric PFC status and also the operational and administrative status of the interfaces
 
 - Usage:
-  show interfaces status [INTERFACENAME]
+  show interfaces status[<interface_name>]
 
 - Example:
   ```
@@ -1922,6 +1926,7 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
 
   ```
 
+- Example (to only display the status for interface Ethernet0):
   ```
   show interface status for one particular interface
 
@@ -1944,7 +1949,7 @@ This sub-section explains the following list of configuration on the interfaces.
 4) speed - to set the interface speed
 5) startup - to bring up the administratively shutdown interface
 
-From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows
+From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
 - config interface  interface_subcommand <interface_name>
 i.e Interface name comes after the subcommand
@@ -1956,6 +1961,7 @@ NOTE: In older versions of SONiC until 201811 release, the command syntax was
       "config interface <interface_name> interface_subcommand"
 
 **config interface ip add <interface-name> <ip_addr> (for 201904+ version)**
+
 **config interface <interface-name> ip add <ip_addr> (for 201811- version)**
 
 This command is used for adding the IP address for an interface.
