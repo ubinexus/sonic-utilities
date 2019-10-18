@@ -2196,7 +2196,7 @@ NOTE: Some platforms do not support alias mapping. In such cases, this command i
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Interface-Naming-Mode)
 
 
-## IP
+## IP / IPv6
 
 ### IP show commands
 
