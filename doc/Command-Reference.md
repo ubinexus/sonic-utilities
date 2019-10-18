@@ -771,7 +771,7 @@ When this is disabled and if the authentication request fails on first server, a
   config aaa authentication failthrough (enable | disable | default)
   ```
 
-  - Options:
+  - Parameters:
     - enable: This allows the AAA module to process with local authentication if remote authentication fails.
     - disable: This disallows the AAA module to proceed further if remote authentication fails.
     - default: This re-configures the default value, which is "enable".
@@ -812,7 +812,7 @@ If the authentication fails, AAA will check the "failthrough" configuration and 
   ```
   config aaa authentication (tacacs+ | local | default)
 
-  - Options:
+  - Parameters:
     - tacacs+: Enables remote authentication based on tacacs+
     - local: Disables remote authentication and uses local authentication
     - default: Reset back to default value, which is only "local" authentication
