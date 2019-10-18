@@ -493,26 +493,29 @@ Individual process can also be viewed using the command `ps -ax | grep <\process
 
 - Usage:
   ```
-  show logging ([<process_name>] [(-l|--lines) <number_of_lines>]) | [-f|--follow]
+  show logging [(<process_name> [-l|--lines <number_of_lines>]) | (-f|--follow)]
   ```
 
 - Example:
   ```
   admin@sonic:~$ show logging
   ```
-  - It can be useful to pipe the output from `show logging` to the command `more` in order to examine one screenful of log messages at a time
+
+It can be useful to pipe the output from `show logging` to the command `more` in order to examine one screenful of log messages at a time
 
 - Example:
   ```
   admin@sonic:~$ show logging | more
   ```
-  - Optionally, you can specify a process name in order to display only log messages mentioning that process
+
+Optionally, you can specify a process name in order to display only log messages mentioning that process
 
 - Example:
   ```
   admin@sonic:~$ show logging sensord
   ```
-  - Optionally, you can specify a number of lines to display using the `-l' or `--lines` option. Only the most recent N lines will be displayed. Also note that this option can be combined with a process name.
+
+Optionally, you can specify a number of lines to display using the `-l' or `--lines` option. Only the most recent N lines will be displayed. Also note that this option can be combined with a process name.
 
 - Examples:
   ```
@@ -522,7 +525,7 @@ Individual process can also be viewed using the command `ps -ax | grep <\process
   admin@sonic:~$ show logging sensord --lines 50
   ```
 
-  - Optionally, you can follow the log live as entries are written to it by specifying the `-f` or `--follow` flag
+Optionally, you can follow the log live as entries are written to it by specifying the `-f` or `--follow` flag
 
 - Example:
   ```
@@ -660,11 +663,11 @@ This command displays the status of the device's power supply units
 Displays diagnostic monitoring information of the transceivers
 
 **show interfaces transceiver**
-This command displays information for all the interfaces for the transceiver requested or a specific interface if the optional "interface-name" is specified.
+This command displays information for all the interfaces for the transceiver requested or a specific interface if the optional "interface_name" is specified.
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence]) [<interface-name>]
+  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -811,6 +814,7 @@ If the authentication fails, AAA will check the "failthrough" configuration and 
 - Usage:
   ```
   config aaa authentication (tacacs+ | local | default)
+  ```
 
   - Parameters:
     - tacacs+: Enables remote authentication based on tacacs+
@@ -877,16 +881,18 @@ When any server times out, device will try the next server one by one based on t
 When this command is executed, the configured tacacs+ server addresses are updated in /etc/pam.d/common-auth-sonic configuration file which is being used by tacacs service.
 
 - Usage:
+  ```
    config tacacs add <ip_address> [-t|--timeout <seconds>] [-k|--key <secret>] [-a|--type <type>] [-o|--port <port>] [-p|--pri <priority>] [-m|--use-mgmt-vrf]
+  ```
 
-  - Arguments:
+  - Parameters:
     - ip_address: TACACS+ server IP address.
     - timeout: Transmission timeout interval in seconds, range 1 to 60, default 5
     - key: Shared secret
     - type: Authentication type, "chap" or "pap" or "mschap" or "login", default is "pap".
     - port: TCP port range is 1 to 65535, default 49
     - pri: Priority, priority range 1 to 64, default 1.
-    - use-mgmt-vrf: this means that the server is part of Management vrf, default is "no vrf"
+    - use-mgmt-vrf: This means that the server is part of Management vrf, default is "no vrf"
 
 
 - Example:
@@ -949,10 +955,10 @@ Default for authtype is "pap", default for passkey is EMPTY_STRING and default f
   config tacacs default (authtype | passkey | timeout)
   ```
 
-- Example:
+- Example (This will reset the global authtype back to the default value "pap"):
   ```
   root@T1-2:~# config tacacs default authtype
-  This will reset the global authtype back to the default value "pap".
+  root@T1-2:~#
   ```
 
 **config tacacs passkey**
@@ -964,7 +970,6 @@ When user has not configured server specific passkey, this global value shall be
   ```
   config tacacs passkey <pass_key>
   ```
-
 
 - Example:
   ```
@@ -1107,7 +1112,7 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
   config acl update full [--table_name <table_name>] [--session_name <session_name>] [--mirror_stage (ingress | egress)] [--max_priority <priority_value>] <acl_json_file_name>
   ```
 
-  - Options:
+  - Parameters:
     - table_name: Specifiy the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
     - session_name: Specifiy the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
     - priority_value: Specify the maximum priority to use when loading ACL rules. Example: config acl update full "--max-priority 100  /etc/sonic/acl_table_1.json"
@@ -1115,17 +1120,17 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
     *NOTE 1: All these optional parameters should be inside double quotes. If none of the options are provided, double quotes are not required for specifying filename alone.*
     *NOTE 2: Any number of optional parameters can be configured in the same command.*
 
-- Example:
+- Examples:
   ```
   admin@sonic:~$ config acl update full /etc/sonic/acl_full_snmp_1_2_ssh_4.json
-  admin@sonic:~$ config acl update full " --table_name SNMP-ACL /etc/sonic/acl_full_snmp_1_2_ssh_4.json "
-  admin@sonic:~$ config acl update full " --session_name everflow0 /etc/sonic/acl_full_snmp_1_2_ssh_4.json "
+  admin@sonic:~$ config acl update full "--table_name SNMP-ACL /etc/sonic/acl_full_snmp_1_2_ssh_4.json"
+  admin@sonic:~$ config acl update full "--session_name everflow0 /etc/sonic/acl_full_snmp_1_2_ssh_4.json"
+  ```
 
   This command will remove all rules from all the ACL tables and insert all the rules present in this input file.
   Refer the example file [acl_full_snmp_1_2_ssh_4.json](#) that adds two rules for SNMP (Rule1 and Rule2) and one rule for SSH (Rule4)
   Refer an example for input file format [here](https://github.com/Azure/sonic-mgmt/blob/master/ansible/roles/test/files/helpers/config_service_acls.sh)
   Refer another example [here](https://github.com/Azure/sonic-mgmt/blob/master/ansible/roles/test/tasks/acl/acltb_test_rules_part_1.json)
-  ```
 
 **config acl update incremental**
 
@@ -1153,7 +1158,7 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
   config acl update incremental [--session_name <session_name>] [--mirror_stage (ingress | egress)] [--max_priority <priority_value>] <acl_json_file_name>
   ```
 
-  - Options:
+  - Parameters:
     - table_name: Specifiy the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
     - session_name: Specifiy the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
     - priority_value: Specify the maximum priority to use when loading ACL rules. Example: config acl update full "--max-priority 100  /etc/sonic/acl_table_1.json"
@@ -1161,18 +1166,19 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
     *NOTE 1: All these optional parameters should be inside double quotes. If none of the options are provided, double quotes are not required for specifying filename alone.*
     *NOTE 2: Any number of optional parameters can be configured in the same command.*
 
-- Example:
+- Examples:
   ```
   admin@sonic:~$ config acl update incremental /etc/sonic/acl_incremental_snmp_1_3_ssh_4.json
-  admin@sonic:~$ config acl update incremental " --session_name everflow0 /etc/sonic/acl_incremental_snmp_1_3_ssh_4.json "
+  ```
+  ```
+  admin@sonic:~$ config acl update incremental "--session_name everflow0 /etc/sonic/acl_incremental_snmp_1_3_ssh_4.json"
+  ```
 
   Refer the example file [acl_incremental_snmp_1_3_ssh_4.json](#) that adds two rules for SNMP (Rule1 and Rule3) and one rule for SSH (Rule4)
   When this "incremental" command is executed after "full" command, it has removed SNMP Rule2 and added SNMP Rule3 in the example.
   File "acl_full_snmp_1_2_ssh_4.json" has got SNMP Rule1, SNMP Rule2 and SSH Rule4.
   File "acl_incremental_snmp_1_3_ssh_4.json" has got SNMP Rule1, SNMP Rule3 and SSH Rule4.
   This file is created by copying the file "acl_full_snmp_1_2_ssh_4.json" to "acl_incremental_snmp_1_3_ssh_4.json" and then removing SNMP Rule2 and adding SNMP Rule3.
-
-  ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ACL-Configuration-And-Show)
 
@@ -1193,9 +1199,10 @@ This command displays the ARP entries in the device with following options.
   show arp [-if <interface_name>] [<ip_address>]
   ```
 
-    show arp - displays all entries
-    show arp -if <ifname> - displays the ARP specific to the specified interface.
-    show arp <ip-address> - displays the ARP specific to the specicied ip-address.
+- Details:
+  - show arp: Displays all entries
+  - show arp -if <ifname>: Displays the ARP specific to the specified interface.
+  - show arp <ip-address>: Displays the ARP specific to the specicied ip-address.
 
 
 - Example:
@@ -1221,11 +1228,11 @@ Optionally, you can specify the interface in order to display the ARPs learnt on
 
 - Example:
   ```
-    admin@sonic:~$ show arp -if Ethernet40
-    Address          MacAddress          Iface        Vlan
-    -------------    -----------------   ----------   ------
-    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-    Total number of entries 1
+  admin@sonic:~$ show arp -if Ethernet40
+  Address          MacAddress          Iface        Vlan
+  -------------    -----------------   ----------   ------
+  192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+  Total number of entries 1
 
   ```
 
@@ -1233,11 +1240,11 @@ Optionally, you can specify an IP address in order to display only that particul
 
 - Example:
   ```
-    admin@sonic:~$ show arp 192.168.1.181
-    Address          MacAddress          Iface        Vlan
-    -------------    -----------------   ----------   ------
-    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-    Total number of entries 1
+  admin@sonic:~$ show arp 192.168.1.181
+  Address          MacAddress          Iface        Vlan
+  -------------    -----------------   ----------   ------
+  192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+  Total number of entries 1
 
   ```
 
@@ -1314,37 +1321,37 @@ This command displays the summary of all IPv4 & IPv6 bgp neighbors that are conf
 
 - Example:
   ```
-   admin@sonic-z9264f-9251:~# show bgp summary
+  admin@sonic-z9264f-9251:~# show bgp summary
 
-   IPv4 Unicast Summary:
-   BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
-   BGP table version 6465
-   RIB entries 12807, using 2001 KiB of memory
-   Peers 4, using 83 KiB of memory
-   Peer groups 2, using 128 bytes of memory
+  IPv4 Unicast Summary:
+  BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+  BGP table version 6465
+  RIB entries 12807, using 2001 KiB of memory
+  Peers 4, using 83 KiB of memory
+  Peer groups 2, using 128 bytes of memory
 
-   Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
-   10.0.0.57       4      64600    3995    4001        0    0    0 00:39:32         6400
-   10.0.0.59       4      64600    3995    3998        0    0    0 00:39:32         6400
-   10.0.0.61       4      64600    3995    4001        0    0    0 00:39:32         6400
-   10.0.0.63       4      64600    3995    3998        0    0    0 00:39:32         6400
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
+  10.0.0.57       4      64600    3995    4001        0    0    0 00:39:32         6400
+  10.0.0.59       4      64600    3995    3998        0    0    0 00:39:32         6400
+  10.0.0.61       4      64600    3995    4001        0    0    0 00:39:32         6400
+  10.0.0.63       4      64600    3995    3998        0    0    0 00:39:32         6400
 
-   Total number of neighbors 4
+  Total number of neighbors 4
 
-   IPv6 Unicast Summary:
-   BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
-   BGP table version 12803
-   RIB entries 12805, using 2001 KiB of memory
-   Peers 4, using 83 KiB of memory
-   Peer groups 2, using 128 bytes of memory
+  IPv6 Unicast Summary:
+  BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+  BGP table version 12803
+  RIB entries 12805, using 2001 KiB of memory
+  Peers 4, using 83 KiB of memory
+  Peer groups 2, using 128 bytes of memory
 
-   Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
-   fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400
-   fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400
-   fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400
-   fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
+  fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400
+  fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400
+  fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400
+  fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400
 
-   Total number of neighbors 4
+  Total number of neighbors 4
   ```
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga.
 
@@ -1376,40 +1383,40 @@ In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_a
 
 - Example:
   ```
-   admin@sonic:~$ show bgp neighbors
-   BGP neighbor is 10.0.0.57, remote AS 64600, local AS 65100, external link
-   Description: ARISTA01T1
-   BGP version 4, remote router ID 100.1.0.29, local router ID 10.1.0.32
-   BGP state = Established, up for 00:42:15
-   Last read 00:00:00, Last write 00:00:03
-   Hold time is 10, keepalive interval is 3 seconds
-   Configured hold time is 10, keepalive interval is 3 seconds
-   Neighbor capabilities:
-     4 Byte AS: advertised and received
-     AddPath:
-       IPv4 Unicast: RX advertised IPv4 Unicast and received
-     Route refresh: advertised and received(new)
-     Address Family IPv4 Unicast: advertised and received
-     Hostname Capability: advertised (name: sonic-z9264f-9251,domain name: n/a) not received
-     Graceful Restart Capabilty: advertised and received
-       Remote Restart timer is 300 seconds
-       Address families by peer:
-         none
-   Graceful restart information:
-     End-of-RIB send: IPv4 Unicast
-     End-of-RIB received: IPv4 Unicast
-   Message statistics:
-     Inq depth is 0
-     Outq depth is 0
-                          Sent       Rcvd
-     Opens:                  2          1
-     Notifications:          2          0
-     Updates:             3206       3202
-     Keepalives:           845        847
-     Route Refresh:          0          0
-     Capability:             0          0
-     Total:               4055       4050
-   Minimum time between advertisement runs is 0 seconds
+  admin@sonic:~$ show bgp neighbors
+  BGP neighbor is 10.0.0.57, remote AS 64600, local AS 65100, external link
+  Description: ARISTA01T1
+  BGP version 4, remote router ID 100.1.0.29, local router ID 10.1.0.32
+  BGP state = Established, up for 00:42:15
+  Last read 00:00:00, Last write 00:00:03
+  Hold time is 10, keepalive interval is 3 seconds
+  Configured hold time is 10, keepalive interval is 3 seconds
+  Neighbor capabilities:
+    4 Byte AS: advertised and received
+    AddPath:
+      IPv4 Unicast: RX advertised IPv4 Unicast and received
+    Route refresh: advertised and received(new)
+    Address Family IPv4 Unicast: advertised and received
+    Hostname Capability: advertised (name: sonic-z9264f-9251,domain name: n/a) not received
+    Graceful Restart Capabilty: advertised and received
+      Remote Restart timer is 300 seconds
+      Address families by peer:
+        none
+  Graceful restart information:
+    End-of-RIB send: IPv4 Unicast
+    End-of-RIB received: IPv4 Unicast
+  Message statistics:
+    Inq depth is 0
+    Outq depth is 0
+                         Sent       Rcvd
+    Opens:                  2          1
+    Notifications:          2          0
+    Updates:             3206       3202
+    Keepalives:           845        847
+    Route Refresh:          0          0
+    Capability:             0          0
+    Total:               4055       4050
+  Minimum time between advertisement runs is 0 seconds
 
   For address family: IPv4 Unicast
    Update group 1, subgroup 1
@@ -1432,16 +1439,15 @@ In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_a
 
 Optionally, you can specify an IP address in order to display only that particular neighbor. In this mode, you can optionally specify whether you want to display all routes advertised to the specified neighbor, all routes received from the specified neighbor or all routes (received and accepted) from the specified neighbor.
 
-
 - Example:
   ```
-    admin@sonic:~$ show bgp neighbors 10.0.0.57
+  admin@sonic:~$ show bgp neighbors 10.0.0.57
 
-    admin@sonic:~$ show bgp neighbors 10.0.0.57 advertised-routes
+  admin@sonic:~$ show bgp neighbors 10.0.0.57 advertised-routes
 
-    admin@sonic:~$ show bgp neighbors 10.0.0.57 received-routes
+  admin@sonic:~$ show bgp neighbors 10.0.0.57 received-routes
 
-    admin@sonic:~$ show bgp neighbors 10.0.0.57 routes
+  admin@sonic:~$ show bgp neighbors 10.0.0.57 routes
 
   ```
 
@@ -1910,7 +1916,9 @@ This command displays information regarding port-channel interfaces
 This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetric PFC status and also the operational and administrative status of the interfaces
 
 - Usage:
-  show interfaces status[<interface_name>]
+  ```
+  show interfaces status [<interface_name>]
+  ```
 
 - Example:
   ```
