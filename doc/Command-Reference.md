@@ -243,7 +243,6 @@ This command lists all the possible configuration commands at the top level.
     vlan                   VLAN-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
-
   ```
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
@@ -303,7 +302,6 @@ This command displays the full list of show commands available in the software; 
     vlan                  Show VLAN information
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
-
   ```
 
 The same syntax applies to all subgroups of `show` which themselves contain subcommands, and subcommands which accept options/arguments.
@@ -379,7 +377,6 @@ This command displays relevant information as the SONiC and Linux kernel version
   docker-platform-monitor    latest              40b40a4b2164        287MB
   docker-fpm-quagga          HEAD.32-21ea29a     546036fe6838        282MB
   docker-fpm-quagga          latest              546036fe6838        282MB
-
   ```
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
@@ -462,7 +459,6 @@ This command displays the platform environmentals, such as voltages, temperature
     PSU 1:
       Input:           AC
   <... few more things ...>
-
   ```
 NOTE: The show output has got lot of information; only the sample output is given in the above example.
 Though the displayed output slightly differs from one platform to another platform, the overall content will be similar to the example mentioned above.
@@ -558,7 +554,6 @@ This command displays a list of users currently logged in to the device
 
   admin@sonic:~$ show users
   admin    ttyS1        2019-03-25 20:31
-
   ```
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
@@ -893,7 +888,7 @@ When this command is executed, the configured tacacs+ server addresses are updat
 
 - Usage:
   ```
-   config tacacs add <ip_address> [-t|--timeout <seconds>] [-k|--key <secret>] [-a|--type <type>] [-o|--port <port>] [-p|--pri <priority>] [-m|--use-mgmt-vrf]
+  config tacacs add <ip_address> [-t|--timeout <seconds>] [-k|--key <secret>] [-a|--type <type>] [-o|--port <port>] [-p|--pri <priority>] [-m|--use-mgmt-vrf]
   ```
 
   - Parameters:
@@ -1244,7 +1239,6 @@ Optionally, you can specify the interface in order to display the ARPs learnt on
   -------------    -----------------   ----------   ------
   192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
   Total number of entries 1
-
   ```
 
 Optionally, you can specify an IP address in order to display only that particular entry
@@ -1256,7 +1250,6 @@ Optionally, you can specify an IP address in order to display only that particul
   -------------    -----------------   ----------   ------
   192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
   Total number of entries 1
-
   ```
 
 ### NDP show commands
@@ -1459,7 +1452,6 @@ Optionally, you can specify an IP address in order to display only that particul
   admin@sonic:~$ show bgp neighbors 10.0.0.57 received-routes
 
   admin@sonic:~$ show bgp neighbors 10.0.0.57 routes
-
   ```
 
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp neighbors" for Quagga.
@@ -1499,7 +1491,6 @@ This command displays the summary of all IPv6 bgp neighbors that are configured 
   fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400
 
   Total number of neighbors 4
-
   ```
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ipv6 bgp summary" for Quagga.
 
@@ -1530,7 +1521,6 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 received-routes
 
   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 routes
-
   ```
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga.
 
@@ -1874,7 +1864,6 @@ This command displays the key fields of the interfaces such as Operational Statu
   Interface    Oper    Admin           Alias           Description
   -----------  ------  -------  --------------  --------------------
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
-
   ```
 
 
@@ -1901,7 +1890,6 @@ This command is used to display the list of expected neighbors for all interface
   Ethernet116  ARISTA02T1  Ethernet1       None                10.16.205.101   SpineRouter
   Ethernet120  ARISTA03T1  Ethernet1       None                10.16.205.102   LeafRouter
   Ethernet124  ARISTA04T1  Ethernet1       None                10.16.205.103   LeafRouter
-
   ```
 
 **show interfaces portchannel**
@@ -1946,7 +1934,6 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   Ethernet4      53,54,55,56     100G   9100   hundredGigE1/2    down       up     N/A         off
   Ethernet8      57,58,59,60     100G   9100   hundredGigE1/3    down     down     N/A         off
   <contiues to display all the interfaces>
-
   ```
 
 - Example (to only display the status for interface Ethernet0):
@@ -1957,7 +1944,6 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   Interface     Lanes    Speed    MTU            Alias    Oper    Admin
   -----------  --------  -------  -----   --------------  ------  -------
   Ethernet0   101,102      40G   9100   fortyGigE1/1/1      up       up
-
   ```
 
 **show interfaces transceiver**
@@ -2404,7 +2390,6 @@ This command displays either all the IPv6 route entries from the routing table o
   C * fe80::/64 is directly connected, Bridge
   C * fe80::/64 is directly connected, PortChannel0011
   C>* fe80::/64 is directly connected, eth0
-
   ```
  - Optionally, you can specify an IPv6 address in order to display only routes to that particular IPv6 address
 
@@ -2749,7 +2734,6 @@ This command displays all the mirror sessions that are configured.
   Name       Status    SRC IP     DST IP    GRE    DSCP    TTL    Queue
   ---------  --------  ---------  --------  -----  ------  -----  -------
   everflow0  active    10.1.0.32  10.0.0.7
-
   ```
 
 ### Mirroring Config command
@@ -3091,7 +3075,6 @@ This command displays the user watermark for the queues (Egress shared pool occu
     Ethernet12     0      0      0      0      0      0      0      0
 
   admin@sonic:~$ show queue  watermark multicast (Egress shared pool occupancy per multicast queue)
-
   ```
 
 **show priority-group watermark|persistent-watermark**
@@ -3193,7 +3176,7 @@ This command is used to clear all the QoS configuration from all the following Q
 
 - Usage:
   ```
-   config qos clear
+  config qos clear
   ```
 
 - Example:
@@ -3716,7 +3699,6 @@ NOTE: This command is not working. It crashes as follows. A bug ticket is opened
 - Example:
   ```
   admin@T1-2:~$ show line
-
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#System-State)
