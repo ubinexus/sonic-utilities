@@ -1980,113 +1980,160 @@ i.e Interface name comes after the subcommand
 
 The syntax for all such interface_subcommands are given below under each command
 
-NOTE: In older versions of SONiC until 201811 release, the command syntax was
-      "config interface <interface_name> interface_subcommand"
+NOTE: In older versions of SONiC until 201811 release, the command syntax was `config interface <interface_name> interface_subcommand`
 
-**config interface ip add <interface-name> <ip_addr> (for 201904+ version)**
 
-**config interface <interface-name> ip add <ip_addr> (for 201811- version)**
+**config interface ip add <interface_name> <ip_addr> (Versions >= 201904)**
+
+**config interface <interface_name> ip add <ip_addr> (Versions <= 201811)**
 
 This command is used for adding the IP address for an interface.
 IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command.
 
 
 - Usage:
-    config interface ip add <interface-name> <ip_addr> (for 201904+ version)
-    config interface <interface-name> ip add <ip_addr> (for 201811- version)
+  *Versions >= 201904*
+  ```
+  config interface ip add <interface_name> <ip_addr>
+  ```
+  *Versions <= 201811*
+  ```
+  config interface <interface_name> ip add <ip_addr>
+  ```
 
 - Example:
+  *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip add Ethernet63 10.11.12.13/24
   ```
-NOTE: In SONiC versions until 201811, syntax was "config <interface_name> ip add <ip_addr>"
+  *Versions <= 201811*
+  ```
+  admin@sonic:~$ sudo config interface Ethernet63 ip add 10.11.12.13/24
+  ```
 
-
-**IP Address Configuration for Vlan Interface**
-- Usage:
-    config interface ip add <ip_addr> <vlan_IDName>
+VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be named `vlan100`
 
 - Example:
   ```
   admin@sonic:~$ sudo config interface ip add vlan100 10.11.12.13/24
   ```
-NOTE: In versions until 201811, syntax was "config interface <vlan_IDName> ip add <ip_addr>"
+  *Versions <= 201811*
+  ```
+  admin@sonic:~$ sudo config interface vlan100 ip add 10.11.12.13/24
+  ```
 
 
+**config interface ip remove <interface_name> <ip_addr> (Versions >= 201904)**
 
-**config interface ip remove <interface_name> <ip_addr> (for 201904+ version)**
-**config interface <interface_name> ip remove <ip_addr> (for 201811- version)**
+**config interface <interface_name> ip remove <ip_addr> (Versions <= 201811)**
 
 - Usage:
-    config interface ip remove <interface_name> <ip_addr> (for 201904+ version)
-    config interface ip remove <interface_name> <ip_addr> (for 201811- version)
+  *Versions >= 201904*
+  ```
+  config interface ip remove <interface_name> <ip_addr>
+  ```
+  *Versions <= 201811*
+  ```
+  config interface ip remove <interface_name> <ip_addr>
+  ```
 
 - Example:
+  *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip remove Ethernet63 10.11.12.13/24
   ```
-NOTE: In versions until 201811, syntax is "config  interface <interface_name> ip remove <ip_addr>"
+  *Versions <= 201811*
+  ```
+  admin@sonic:~$ sudo config interface Ethernet63 ip remove 10.11.12.13/24
+  ```
 
-
-
-**IP Address Removal for Vlan Interface**
-- Usage:
-    config interface ip remove <vlan_IDName> <ip_addr>
+VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be named `vlan100`
 
 - Example:
+  *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip remove vlan100 10.11.12.13/24
   ```
-NOTE: In versions until 201811, syntax is "config interface <vlan_ID> ip remove <ip_addr>"
+  *Versions <= 201811*
+  ```
+  admin@sonic:~$ sudo config interface vlan100 ip remove 10.11.12.13/24
+  ```
 
+**config interface pfc asymmetric <interface_name> (Versions >= 201904)**
 
+**config interface <interface_name> pfc asymmetric (Versions <= 201811)**
 
-**config interface pfc asymmetric <interface_name> (for 201904+ version)**
-**config interface <interface_name> pfc asymmetric (for 201811- version)**
 This command is used for setting the asymmetric PFC for an interface to either "on" or "off". Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:
-    config interface pfc asymmetric <interface_name> on/off (for 201904+ version)
-    config interface <interface_name> pfc asymmetric on/off (for 201811- version)
+  *Versions >= 201904*
+  ```
+  config interface pfc asymmetric <interface_name> on/off (for 201904+ version)
+  ```
+  *Versions <= 201811*
+  ```
+  config interface <interface_name> pfc asymmetric on/off (for 201811- version)
+  ```
 
 - Example:
+  *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface pfc asymmetric Ethernet60 on
   ```
+  *Versions <= 201811*
+  ```
+  admin@sonic:~$ sudo config interface Ethernet60 pfc asymmetric on
+  ```
 
-**config interface shutdown <interface_name> (for 201904+ version)**
-**config interface <interface_name> shutdown (for 201811- version)**
+**config interface shutdown <interface_name> (Versions >= 201904)**
+
+**config interface <interface_name> shutdown (Versions <= 201811)**
 
 This command is used to administratively shut down either the Physical interface or port channel interface. Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:
-    config interface shutdown <interface_name> (for 201904+ version)
-    config interface <interface_name> shutdown (for 201811- version)
+  *Versions >= 201904*
+  ```
+  config interface shutdown <interface_name> (for 201904+ version)
+  ```
+  *Versions <= 201811*
+  ```
+  config interface <interface_name> shutdown (for 201811- version)
 
 - Example:
+  *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface shutdown Ethernet63
   ```
-NOTE: In versions until 201811, syntax is "config interface <interface_name> shutdown"
+  *Versions <= 201811*
+  ```
+  admin@sonic:~$ sudo config interface Ethernet63 shutdown
+  ```
 
+**config interface startup <interface_name> (Versions >= 201904)**
 
-
-**config interface startup <interface_name> (for 201904+ version)**
-**config interface <interface_name> startup (for 201811- version)**
+**config interface <interface_name> startup (Versions <= 201811)**
 
 This command is used for administratively bringing up the Physical interface or port channel interface.Once if it is configured, use "show interfaces status" to check the same.
 
 - Usage:
-    config interface startup <interface_name> (for 201904+ version)
-    config interface <interface_name> startup (for 201811- version)
+  *Versions >= 201904*
+  ```
+  config interface startup <interface_name> (for 201904+ version)
+  ```
+  *Versions <= 201811*
+  ```
+  config interface <interface_name> startup (for 201811- version)
 
 - Example:
+  *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface startup Ethernet63
   ```
-NOTE: In versions until 201811, syntax is "config interface <interface_name> startup"
-
-
+  *Versions <= 201811*
+  ```
+  admin@sonic:~$ sudo config interface Ethernet63 startup
+  ```
 
 **config interface speed <interface_name> (Versions >= 201904)**
 
@@ -2114,7 +2161,6 @@ Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot c
   ```
   admin@sonic:~$ sudo config interface Ethernet63 speed 40000
   ```
-
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#interface-configuration-and-show-commands)
 
