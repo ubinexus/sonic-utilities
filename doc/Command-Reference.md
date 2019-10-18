@@ -1754,11 +1754,11 @@ The list of the WRED profile fields that are configurable is listed in the below
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ECN-Configuration-And-Show-Commands)
 
-# Update Device Hostname Configuration Commands
+## Update Device Hostname Configuration Commands
 
 This sub-section of commands is used to change device hostname without traffic being impacted.
 
-**config hostname <new_hostname>**
+**config hostname**
 
 This command is used to change device hostname without traffic being impacted.
 
