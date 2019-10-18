@@ -2016,6 +2016,8 @@ IP address for either physical interface or for portchannel or for VLAN interfac
 VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be named `vlan100`
 
 - Example:
+
+  *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip add vlan100 10.11.12.13/24
   ```
