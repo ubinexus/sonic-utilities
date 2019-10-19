@@ -2,90 +2,92 @@
 
 ## Table of Contents
 
-   * [Document History](#document-history)
-   * [Introduction](#introduction)
-   * [Basic Configuration And Show](#basic-configuration-and-show)
-      * [SSH Login](#ssh-login)
-      * [Configuring Management Interface](#configuring-management-interface)
-      * [Config Help](#config-help)
-         * [Show Help](#show-help)
-      * [Show Versions](#show-versions)
-      * [Show System Status](#show-system-status)
-      * [Show Hardware Platform](#show-hardware-platform)
-         * [Transceivers](#transceivers)
-   * [AAA &amp; TACACS  Configuration And Show](#aaa--tacacs-configuration-and-show)
-      * [AAA Configuration And Show](#aaa-configuration-and-show)
-         * [AAA show commands](#aaa-show-commands)
-         * [AAA config commands](#aaa-config-commands)
-      * [TACACS  Configuration And Show](#tacacs-configuration-and-show)
-         * [TACACS  show commands](#tacacs-show-commands)
-         * [TACACS  Config commands](#tacacs-config-commands)
-   * [ACL Configuration And Show](#acl-configuration-and-show)
-      * [ACL show commands](#acl-show-commands)
-      * [ACL config commands](#acl-config-commands)
-   * [ARP &amp; NDP](#arp--ndp)
-      * [ARP show commands](#arp-show-commands)
-      * [NDP show commands](#ndp-show-commands)
-   * [BGP Configuration And Show Commands](#bgp-configuration-and-show-commands)
-      * [BGP show commands](#bgp-show-commands)
-      * [BGP config commands](#bgp-config-commands)
-   * [ECN Configuration And Show Commands](#ecn-configuration-and-show-commands)
-      * [ECN show commands](#ecn-show-commands)
-      * [ECN config commands](#ecn-config-commands)
-   * [Interface Configuration And Show-Commands](#interface-configuration-and-show-commands)
-      * [Interface Show Commands](#interface-show-commands)
-      * [Interface Config Commands](#interface-config-commands)
-   * [Interface Naming Mode](#interface-naming-mode)
-      * [Interface naming mode show commands](#interface-naming-mode-show-commands)
-      * [Interface naming mode config commands](#interface-naming-mode-config-commands)
-   * [IP](#ip)
-      * [IP show commands](#ip-show-commands)
-         * [IPv6 show commands](#ipv6-show-commands)
-   * [LLDP](#lldp)
-      * [LLDP show commands](#lldp-show-commands)
-   * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
-      * [Load config command](#load-config-command)
-      * [Load_mgmt_config command](#load_mgmt_config-command)
-      * [Load_minigraph config command](#load_minigraph-config-command)
-      * [Reload config command](#reload-config-command)
-      * [Save config  command](#save-config--command)
-   * [Mirroring Configuration And Show](#mirroring-configuration-and-show)
-      * [Mirroring Show command](#mirroring-show-command)
-      * [Mirroring Config command](#mirroring-config-command)
-   * [NTP](#ntp)
-      * [NTP show command](#network-time-protocol-show-command)
-   * [Platform Specific Commands](#platform-specific-commands)
-   * [PortChannel Configuration And Show](#portchannel-configuration-and-show)
-      * [PortChannel Show commands](#portchannel-show-commands)
-      * [PortChannel Config commands](#portchannel-config-commands)
-   * [QoS Configuration &amp; Show](#qos-configuration--show)
-      * [QoS Show commands](#qos-show-commands)
-         * [PFC](#pfc)
-         * [Queue And Priority-Group](#queue-and-priority-group)
-      * [QoS config commands](#qos-config-commands)
-   * [Startup &amp; Running Configuration](#startup--running-configuration)
-      * [Startup Configuration command](#startup-configuration-command)
-      * [Running Configuration command](#running-configuration-command)
-   * [System State](#system-state)
-      * [Processes show commands](#processes-show-commands)
-      * [Services &amp; memory show commands](#services--memory-show-commands)
-   * [VLAN &amp; FDB](#vlan--fdb)
-      * [VLAN](#vlan)
-         * [VLAN show commands](#vlan-show-commands)
-         * [VLAN Config commands](#vlan-config-commands)
-      * [FDB](#fdb)
-         * [FDB show commands](#fdb-show-commands)
-   * [Warm Restart](#warm-restart)
-      * [Warm Restart show command](#warm-restart-show-command)
-      * [Warm Restart Config command](#warm-restart-config-command)
-   * [Watermark Configuration And Show](#watermark-configuration-and-show)
-      * [Watermark Show command](#watermark-show-command)
-      * [Watermark Config command](#watermark-config-command)
-   * [Software Installation Commands](#software-installation-commands)
-      * [SONiC Installer](#sonic-installer)
-   * [Troubleshooting Commands](#troubleshooting-commands)
-   * [Routing Stack Configuration And Show](#routing-stack-configuration-and-show)
-   * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
+* [Document History](#document-history)
+* [Introduction](#introduction)
+* [Basic Tasks](#basic-tasks)
+  * [SSH Login](#ssh-login)
+  * [Configuring Management Interface](#configuring-management-interface)
+* [Getting Help](#getting-help)
+  * [Help for Config Commands](#help-for-config-commands)
+  * [Help for Show Commands](#help-for-show-commands)
+* [Basic Show Commands](#basic-show-commands)
+  * [Show Versions](#show-versions)
+  * [Show System Status](#show-system-status)
+  * [Show Hardware Platform](#show-hardware-platform)
+    * [Transceivers](#transceivers)
+* [AAA &amp; TACACS+](#aaa--tacacs)
+  * [AAA](#aaa)
+    * [AAA show commands](#aaa-show-commands)
+    * [AAA config commands](#aaa-config-commands)
+  * [TACACS+](#tacacs)
+    * [TACACS+ show commands](#tacacs-show-commands)
+    * [TACACS+ config commands](#tacacs-config-commands)
+* [ACL](#acl)
+  * [ACL show commands](#acl-show-commands)
+  * [ACL config commands](#acl-config-commands)
+* [ARP &amp; NDP](#arp--ndp)
+  * [ARP show commands](#arp-show-commands)
+  * [NDP show commands](#ndp-show-commands)
+* [BGP](#bgp)
+  * [BGP show commands](#bgp-show-commands)
+  * [BGP config commands](#bgp-config-commands)
+* [ECN](#ecn)
+  * [ECN show commands](#ecn-show-commands)
+  * [ECN config commands](#ecn-config-commands)
+* [Interfaces](#interfaces)
+  * [Interface Show Commands](#interface-show-commands)
+  * [Interface Config Commands](#interface-config-commands)
+* [Interface Naming Mode](#interface-naming-mode)
+  * [Interface naming mode show commands](#interface-naming-mode-show-commands)
+  * [Interface naming mode config commands](#interface-naming-mode-config-commands)
+* [IP / IPv6](#ip--ipv6)
+  * [IP show commands](#ip-show-commands)
+  * [IPv6 show commands](#ipv6-show-commands)
+* [LLDP](#lldp)
+  * [LLDP show commands](#lldp-show-commands)
+* [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
+  * [Loading configuration from JSON file](#loading-configuration-from-json-file)
+  * [Loading configuration from minigraph (XML) file](#loading-configuration-from-minigraph-xml-file)
+  * [Reloading Configuration](#reloading-configuration)
+  * [Loading Management Configuration](#loading-management-configuration)
+  * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
+* [Mirroring](#mirroring)
+  * [Mirroring Show commands](#mirroring-show-commands)
+  * [Mirroring Config commands](#mirroring-config-commands)
+* [NTP](#ntp)
+  * [NTP show commands](#ntp-show-commands)
+* [Platform Specific Commands](#platform-specific-commands)
+* [PortChannels](#portchannels)
+  * [PortChannel Show commands](#portchannel-show-commands)
+  * [PortChannel Config commands](#portchannel-config-commands)
+* [QoS](#qos)
+  * [QoS Show commands](#qos-show-commands)
+    * [PFC](#pfc)
+    * [Queue And Priority-Group](#queue-and-priority-group)
+  * [QoS config commands](#qos-config-commands)
+* [Startup &amp; Running Configuration](#startup--running-configuration)
+  * [Startup Configuration](#startup-configuration)
+  * [Running Configuration](#running-configuration)
+* [System State](#system-state)
+  * [Processes](#processes)
+  * [Services &amp; Memory](#services--memory)
+* [VLAN &amp; FDB](#vlan--fdb)
+  * [VLAN](#vlan)
+    * [VLAN show commands](#vlan-show-commands)
+    * [VLAN Config commands](#vlan-config-commands)
+  * [FDB](#fdb)
+    * [FDB show commands](#fdb-show-commands)
+* [Warm Restart](#warm-restart)
+  * [Warm Restart show commands](#warm-restart-show-commands)
+  * [Warm Restart Config commands](#warm-restart-config-commands)
+* [Watermark](#watermark)
+  * [Watermark Show commands](#watermark-show-commands)
+  * [Watermark Config commands](#watermark-config-commands)
+* [Software Installation Commands](#software-installation-commands)
+  * [SONiC Installer](#sonic-installer)
+* [Troubleshooting Commands](#troubleshooting-commands)
+* [Routing Stack](#routing-stack)
+* [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
 
 
 ## Document History
@@ -136,7 +138,7 @@ The direct scripts/utilities/commands (examples given below) that are not wrappe
   2. crm – this command is not explained in this document.
   3. sonic-clear, sfputil, etc., This document does not explain these scripts also.
 
-## Basic Configuration
+## Basic Tasks
 
 This section covers the basic configurations related to the following:
   1. [SSH login](#SSH-Login)
@@ -329,7 +331,7 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
-## Basic 'show' Commands
+## Basic Show Commands
 
 Subsections:
   1. [Show Versions](#Show-Versions)
@@ -742,12 +744,12 @@ This command displays information for all the interfaces for the transceiver req
   ```
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
-## AAA & TACACS+ Configuration And Show
+## AAA & TACACS+
 This section captures the various show commands & configuration commands that are applicable for the AAA (Authentication, Authorization, and Accounting) module.
 Admins can configure the type of authentication (local or remote tacacs based) required for the users and also the authentication failthrough and fallback options.
 Following show command displays the current running configuration related to the AAA.
 
-### AAA Configuration And Show
+### AAA
 
 #### AAA show commands
 
@@ -849,7 +851,7 @@ If the authentication fails, AAA will check the "failthrough" configuration and 
   ```
 
 
-### TACACS+ Configuration And Show
+### TACACS+
 
 #### TACACS+ show commands
 
@@ -881,7 +883,7 @@ This command displays the global configuration fields and the list of all tacacs
                          tcp_port 49
   ```
 
-#### TACACS+ Config commands
+#### TACACS+ config commands
 
 This sub-section explains the command "config tacacs" and its sub-commands that are used to configure the following tacacs+ parameters.
 Some of the parameters like authtype, passkey and timeout can be either configured at per server level or at global level (global value will be applied if there no server level configuration)
@@ -1023,7 +1025,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 
 
-## ACL Configuration And Show
+## ACL
 
 This section explains the various show commands and configuration commands available for users.
 
@@ -1311,7 +1313,7 @@ This command displays either all the IPv6 neighbor mac addresses, or for a parti
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Watermark-Configuration-And-Show)
 
 
-## BGP Configuration And Show Commands
+## BGP
 
 This section explains all the BGP show commands and BGP configuation commands in both "Quagga" and "FRR" routing software that are supported in SONiC.
 In 201811 and older verisons "Quagga" was enabled by default. In current version "FRR" is enabled by default.
@@ -1688,7 +1690,7 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#BGP-Configuration-And-Show-Commands)
 
 
-## ECN Configuration And Show Commands
+## ECN
 
 This section explains all the Explicit Congestion Notification (ECN) show commands and ECN configuation options that are supported in SONiC.
 
@@ -1780,7 +1782,7 @@ This command is used to change device hostname without traffic being impacted.
   Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
   ```
 
-## Interface Configuration And Show-Commands
+## Interfaces
 
 ### Interface Show Commands
 
@@ -2587,7 +2589,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 This section explains the commands that are used to load the configuration from either the ConfigDB or from the minigraph.
 
-### Loading config from JSON file
+### Loading configuration from JSON file
 
 **config load**
 
@@ -2614,7 +2616,7 @@ If the argument is not specified, it prompts the user to confirm whether user re
   root@T1-2:~#
   ```
 
-### Loading config from a minigraph (MXL) file
+### Loading configuration from minigraph (XML) file
 
 **config load_minigraph**
 
@@ -2741,9 +2743,9 @@ Saved file can be transferred to remote machines for debugging. If users wants t
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#loading-reloading-and-saving-configuration)
 
 
-## Mirroring Configuration And Show
+## Mirroring
 
-### Mirroring Show command
+### Mirroring Show commands
 
 **show mirror_session**
 
@@ -2762,7 +2764,7 @@ This command displays all the mirror sessions that are configured.
   everflow0  active    10.1.0.32  10.0.0.7
   ```
 
-### Mirroring Config command
+### Mirroring Config commands
 
 **config mirror_session**
 
@@ -2796,7 +2798,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 ## NTP
 
-### NTP show command
+### NTP show commands
 
 **show ntp**
 
@@ -2890,7 +2892,7 @@ In order to avoid that confirmation the -y / --yes option should be used.
   NOTE: In order to avoid that confirmation the -y / --yes option should be used.
   ```
 
-## PortChannel Configuration And Show
+## PortChannels
 
 ### PortChannel Show commands
 
@@ -2960,7 +2962,7 @@ This command adds or deletes a member port to/from the already created portchann
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#PortChannel-Configuration-And-Show)
 
-## QoS Configuration & Show
+## QoS
 
 ### QoS Show commands
 
@@ -3268,7 +3270,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 ## Startup & Running Configuration
 
-### Startup Configuration command
+### Startup Configuration
 
 **show startupconfiguration bgp**
 
@@ -3310,7 +3312,7 @@ This command is used to display the startup configuration for the BGP module.
   <Only the partial output is shown here. In actual command, more configuration information will be displayed>
   ```
 
-### Running Configuration command
+### Running Configuration
 This sub-section explains the show commands for displaying the running configuration for the following modules.
 1) bgp
 2) interfaces
@@ -3452,7 +3454,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 ## System State
 
-### Processes show commands
+### Processes
 
 This command is used to determine the CPU utilization. It also lists the active processes along with their corresponding process ID and other relevant parameters.
 
@@ -3556,7 +3558,7 @@ This command displays the current summary information about all the processes
   ```
 
 
-### Services & memory show commands
+### Services & Memory
 
 These commands are used to know the services that are running and the memory that is utilized currently.
 
@@ -3939,7 +3941,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 ## Warm Restart
 
-### Warm Restart show command
+### Warm Restart show commands
 
 **show warm_restart config**
 
@@ -3986,7 +3988,7 @@ This command displays the warm_restart state.
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#VLAN-Configuration-And-Show)
 
-### Warm Restart Config command
+### Warm Restart Config commands
 
 This sub-section explains the various configuration related to warm restart feature. Following parameters can be configured using this command.
 1) bgp_timer
@@ -4126,9 +4128,9 @@ Supported range: 1-9999. 0 is invalid
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Warm-Restart)
 
 
-## Watermark Configuration And Show
+## Watermark
 
-### Watermark Show command
+### Watermark Show commands
 
 **show watermark telemetry interval**
 
@@ -4146,7 +4148,7 @@ This command displays the configured interval for the telemetry.
   Telemetry interval 120 second(s)
   ```
 
-### Watermark Config command
+### Watermark Config commands
 
 **config watermark telemetry interval**
 
@@ -4320,7 +4322,7 @@ If the SONiC system was running for quite some time `show techsupport` will prod
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Troubleshooting-commands)
 
-## Routing Stack Configuration And Show
+## Routing Stack
 
 SONiC software is agnostic of the routing software that is being used in the device. For example, users can use either Quagga or FRR routing stack as per their requirement.
 A separate shell (vtysh) is provided to configure such routing stacks.
