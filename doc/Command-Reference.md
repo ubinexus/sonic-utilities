@@ -4307,6 +4307,25 @@ SONiC software can be installed in two methods, viz, "using sonic_installer tool
 This is a command line tool available as part of the SONiC software; If the device is already running the SONiC software, this tool can be used to install an alternate image in the partition.
 This tool has facility to install an alternate image, list the available images and to set the next reboot image.
 
+**sonic_installer list**
+
+This command displays information about currently installed images. It displays a list of installed images, currently running image and image set to be loaded in next reboot.
+
+- Usage:
+  ```
+  sonic_installer list
+  ```
+
+- Example:
+   ```
+  admin@sonic:~$ sudo sonic_installer list
+  Current: SONiC-OS-HEAD.XXXX
+  Next: SONiC-OS-HEAD.XXXX
+  Available:
+  SONiC-OS-HEAD.XXXX
+  SONiC-OS-HEAD.YYYY
+  ```
+
 **sonic_installer install**
 
 This command is used to install a new image on the alternate image partition.  This command takes a path to an installable SONiC image or URL and installs the image.
@@ -4318,7 +4337,7 @@ This command is used to install a new image on the alternate image partition.  T
 
 - Example:
   ```
-  admin@sonic:~$ sonic_installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin
+  admin@sonic:~$ sudo sonic_installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin
   New image will be installed, continue? [y/N]: y
   Downloading image...
   ...100%, 480 MB, 3357 KB/s, 146 seconds passed
@@ -4350,25 +4369,6 @@ This command is used to install a new image on the alternate image partition.  T
   Done
   ```
 
-**sonic_installer list**
-
-This command displays information about currently installed images. It displays a list of installed images, currently running image and image set to be loaded in next reboot.
-
-- Usage:
-  ```
-  sonic_installer list
-  ```
-
-- Example:
-   ```
-  admin@sonic:~$ sonic_installer list
-  Current: SONiC-OS-HEAD.XXXX
-  Next: SONiC-OS-HEAD.XXXX
-  Available:
-  SONiC-OS-HEAD.XXXX
-  SONiC-OS-HEAD.YYYY
-  ```
-
 **sonic_installer set_default**
 
 This command is be used to change the image which can be loaded by default in all the subsequent reboots.
@@ -4380,7 +4380,7 @@ This command is be used to change the image which can be loaded by default in al
 
 - Example:
   ```
-  admin@sonic:~$ sonic_installer set_default SONiC-OS-HEAD.XXXX
+  admin@sonic:~$ sudo sonic_installer set_default SONiC-OS-HEAD.XXXX
   ```
 
 **sonic_installer set_next_boot**
@@ -4408,7 +4408,7 @@ This command is used to remove the unused SONiC image from the disk. Note that i
 
 - Example:
   ```
-  admin@sonic:~$ sonic_installer remove SONiC-OS-HEAD.YYYY
+  admin@sonic:~$ sudo sonic_installer remove SONiC-OS-HEAD.YYYY
   Image will be removed, continue? [y/N]: y
   Updating GRUB...
   Done
