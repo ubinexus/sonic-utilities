@@ -71,6 +71,8 @@
 * [Startup &amp; Running Configuration](#startup--running-configuration)
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
+* [Syslog](#syslog)
+  * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
   * [Processes](#processes)
   * [Services &amp; Memory](#services--memory)
@@ -97,7 +99,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
-| v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Minor reorganization |
+| v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
 | v3 | Jun-26-2019 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
 | v2 | Apr-22-2019 | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
 | v1 | Mar-23-2019 | Initial version of CLI Guide with minimal command set |
@@ -3533,6 +3535,45 @@ This command displays the running configuration of the snmp module.
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Startup--Running-Configuration)
 
 
+## Syslog
+
+### Syslog Config Commands
+
+This sub-section of commands is used to add or remove the configured syslog servers.
+
+**config syslog add**
+
+This command is used to add a SYSLOG server to the syslog server list.  Note that more that one syslog server can be added in the device.
+
+- Usage:
+  ```
+  config syslog add <ip_address>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog add 1.1.1.1
+  Syslog server 1.1.1.1 added to configuration
+  Restarting rsyslog-config service...
+  ```
+
+**config syslog delete**
+
+This command is used to delete the syslog server configured.
+
+- Usage:
+  ```
+  config syslog del <ip_address>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog del 1.1.1.1
+  Syslog server 1.1.1.1 removed from configuration
+  Restarting rsyslog-config service...
+  ```
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Startup--Running-Configuration)
 
 ## System State
 
@@ -4629,42 +4670,6 @@ This command displays the routing policy that takes precedence over the other ro
     Call clause:
     Action:
       Exit routemap
-  ```
-
-## Syslog Server Configuration Commands
-
-This sub-section of commands is used to add or remove the configured syslog servers.
-
-**config syslog add**
-
-This command is used to add a SYSLOG server to the syslog server list.  Note that more that one syslog server can be added in the device.
-
-- Usage:
-  ```
-  config syslog add <ip_address>
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config syslog add 1.1.1.1
-  Syslog server 1.1.1.1 added to configuration
-  Restarting rsyslog-config service...
-  ```
-
-**config syslog delete**
-
-This command is used to delete the syslog server configured.
-
-- Usage:
-  ```
-  config syslog del <ip_address>
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config syslog del 1.1.1.1
-  Syslog server 1.1.1.1 removed from configuration
-  Restarting rsyslog-config service...
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Quagga-BGP-Show-Commands)
