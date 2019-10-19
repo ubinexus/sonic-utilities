@@ -4306,6 +4306,7 @@ SONiC software can be installed in two methods, viz, "using sonic_installer tool
 ### SONiC Installer
 This is a command line tool available as part of the SONiC software; If the device is already running the SONiC software, this tool can be used to install an alternate image in the partition.
 This tool has facility to install an alternate image, list the available images and to set the next reboot image.
+This command requires elevated (root) privileges to run.
 
 **sonic_installer list**
 
@@ -4325,6 +4326,8 @@ This command displays information about currently installed images. It displays 
   SONiC-OS-HEAD.XXXX
   SONiC-OS-HEAD.YYYY
   ```
+
+TIP: This output can be obtained without evelated privileges by running the `show boot` command. See [here](#show-system-status) for details.
 
 **sonic_installer install**
 
