@@ -31,6 +31,8 @@
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
+* [DHCP Relay](#dhcp-relay)
+  * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
@@ -1687,6 +1689,49 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
   ```
 
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#BGP-Configuration-And-Show-Commands)
+
+## DHCP Relay
+
+### DHCP Relay config commands
+
+This sub-section of commands is used to add or remove the DHCP Relay Destination IP address(es) for a VLAN interface.
+
+**config vlan dhcp_relay add**
+
+This command is used to add a DHCP Relay Destination IP address to the a VLAN.  Note that more that one DHCP Relay Destination IP address can be added on a VLAN interface.
+
+- Usage:
+  ```
+  config vlan dhcp_relay add <vlan_id> <dhcp_relay_destination_ip>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config vlan dhcp_relay add 1000 7.7.7.7
+  Added DHCP relay destination address 7.7.7.7 to Vlan1000
+  Restarting DHCP relay service...
+  Running command: systemctl restart dhcp_relay
+  admin@str-s6000-acs-11:~$
+  ```
+
+**config vlan dhcp_relay delete**
+
+This command is used to delete a configured DHCP Relay Destination IP address from a VLAN interface.
+
+- Usage:
+  ```
+  config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ip>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
+  Removed DHCP relay destination address 7.7.7.7 from Vlan1000
+  Restarting DHCP relay service...
+  Running command: systemctl restart dhcp_relay
+  ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#BGP-Configuration-And-Show-Commands)
 
@@ -4620,45 +4665,6 @@ This command is used to delete the syslog server configured.
   admin@sonic:~$ sudo config syslog del 1.1.1.1
   Syslog server 1.1.1.1 removed from configuration
   Restarting rsyslog-config service...
-  ```
-
-## DHCP Relay Destination IP Address Configuration Commands
-
-This sub-section of commands is used to add or remove the DHCP Relay Destination IP address(es) for a VLAN interface.
-
-**config vlan dhcp_relay add**
-
-This command is used to add a DHCP Relay Destination IP address to the a VLAN.  Note that more that one DHCP Relay Destination IP address can be added on a VLAN interface.
-
-- Usage:
-  ```
-  config vlan dhcp_relay add <vlan_id> <dhcp_relay_destination_ip>
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config vlan dhcp_relay add 1000 7.7.7.7
-  Added DHCP relay destination address 7.7.7.7 to Vlan1000
-  Restarting DHCP relay service...
-  Running command: systemctl restart dhcp_relay
-  admin@str-s6000-acs-11:~$
-  ```
-
-**config vlan dhcp_relay delete**
-
-This command is used to delete a configured DHCP Relay Destination IP address from a VLAN interface.
-
-- Usage:
-  ```
-  config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ip>
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
-  Removed DHCP relay destination address 7.7.7.7 from Vlan1000
-  Restarting DHCP relay service...
-  Running command: systemctl restart dhcp_relay
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Quagga-BGP-Show-Commands)
