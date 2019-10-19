@@ -4477,7 +4477,7 @@ Once if users go to "vtysh", they can use the routing stack specific commands as
 Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about about the routing stack configuration.
 
 
-Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#routing-stack)
 
 
 ## Quagga BGP Show Commands
