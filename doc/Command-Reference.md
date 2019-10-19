@@ -3576,7 +3576,7 @@ This command is used to delete the syslog server configured.
   Restarting rsyslog-config service...
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#Startup--Running-Configuration)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
 
 ## System State
 
