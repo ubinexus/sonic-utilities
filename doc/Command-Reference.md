@@ -92,7 +92,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
-| v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix a few errors; Minor reorganization |
+| v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Minor reorganization |
 | v3 | Jun-26-2019 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
 | v2 | Apr-22-2019 | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
 | v1 | Mar-23-2019 | Initial version of CLI Guide with minimal command set |
@@ -127,7 +127,8 @@ Note that all commands are case sensitive.
 Note that the command list given in this document is just a subset of all possible configurations in SONiC.
 Please follow config_db.json based configuration for the complete list of configuration options.
 
-**Scope Of The Document**
+**Scope of this Document**
+
 It is assumed that all configuration commands start with the keyword “config” as prefix.
 Any other scripts/utilities/commands  that need user configuration control are wrapped as sub-commands under the “config” command.
 The direct scripts/utilities/commands (examples given below) that are not wrapped under the "config" command are not in the scope of this document.
@@ -168,26 +169,26 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 ### Configuring Management Interface
 
 The management interface (eth0) in SONiC is configured (by default) to use DHCP client to get the IP address from the DHCP server. Connect the management interface to the same network in which your DHCP server is connected and get the IP address from DHCP server.
-The IP address received from DHCP server can be verified using the "/sbin/ifconfig eth0" linux command.
+The IP address received from DHCP server can be verified using the `/sbin/ifconfig eth0` Linux command.
 
 SONiC does not provide a CLI to configure the static IP for the management interface. There are few alternate ways by which a static IP address can be configured for the management interface.
-   1. Use "ifconfig eth0" linux command (example: ifconfig eth0 10.11.12.13/24). NOTE: This configuration **will not** be preserved across reboots.
-   Example:
-   ```
-   admin@sonic:~$ /sbin/ifconfig eth0 10.11.12.13/24
-   ```
-   2. Use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/Azure/SONiC/wiki/Configuration#Management-Interface)
-   3. Use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
+  1. Use the `/sbin/ifconfig eth0 ...` Linux command. NOTE: This configuration **will not** be preserved across reboots.
+  - Example:
+  ```
+  admin@sonic:~$ /sbin/ifconfig eth0 10.11.12.13/24
+  ```
+  2. Use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/Azure/SONiC/wiki/Configuration#Management-Interface)
+  3. Use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
 Once the IP address is configured, the same can be verified using "/sbin/ifconfig eth0" linux command.
 Users can SSH login to this management interface IP address from their management network.
 
 - Example:
-   ```
-   admin@sonic:~$ /sbin/ifconfig eth0
-   eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
-         inet 10.11.11.13  netmask 255.255.255.0  broadcast 10.11.12.255
-   ```
+ ```
+ admin@sonic:~$ /sbin/ifconfig eth0
+ eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+       inet 10.11.11.13  netmask 255.255.255.0  broadcast 10.11.12.255
+ ```
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Basic-Configuration-And-Show)
 
 ## Getting Help
@@ -201,8 +202,8 @@ Subsections:
 
 ### Help for Config Commands
 
-All commands has got in-built help that helps the user to understand the command as well as the possible sub-commands and options.
-"--help" can be used at any level of the command; i.e. it can be used at the command level, or sub-command level or at argument level. The in-built help will display the next possibilities corresponding to that particular command/sub-command.
+All commands have in-built help that aids the user in understanding the command as well as the possible sub-commands and options.
+"--help" can be used at any level of the command; i.e. it can be used at the command level, or sub-command level or at argument level. The in-built help will display the available possibilities corresponding to that particular command/sub-command.
 
 **config --help**
 
@@ -249,6 +250,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 ### Help For Show Commands
 
 **show help**
+
 This command displays the full list of show commands available in the software; the output of each of those show commands can be used to analyze, debug or troubleshoot the network node.
 
 - Usage:
@@ -337,8 +339,9 @@ Subsections:
 ### Show Versions
 
 **show version**
+
 This command displays software component versions of the currently running SONiC image. This includes the SONiC image version as well as Docker image versions.
-This command displays relevant information as the SONiC and Linux kernel version being utilized, as well as the commit-id used to build the SONiC image. The second section of the output displays the various docker images and their associated id’s.
+This command displays relevant information as the SONiC and Linux kernel version being utilized, as well as the ID of the commit used to build the SONiC image. The second section of the output displays the various docker images and their associated IDs.
 
 - Usage:
   ```
@@ -385,6 +388,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 This sub-section explains some set of sub-commands that are used to display the status of various parameters pertaining to the physical state of the network node.
 
 **show clock**
+
 This command displays the current date and time configured on the system
 
 - Usage:
@@ -399,7 +403,8 @@ This command displays the current date and time configured on the system
   ```
 
 **show boot**
-This command displays the current OS image, the image loaded on next reboot, and the lists the available images on the system
+
+This command displays the current OS image, the image to be loaded on next reboot, and lists all the available images installed on the device
 
 - Usage:
   ```
@@ -416,6 +421,7 @@ This command displays the current OS image, the image loaded on next reboot, and
   ```
 
 **show environment**
+
 This command displays the platform environmentals, such as voltages, temperatures and fan speeds
 
 - Usage:
@@ -464,6 +470,7 @@ NOTE: The show output has got lot of information; only the sample output is give
 Though the displayed output slightly differs from one platform to another platform, the overall content will be similar to the example mentioned above.
 
 **show reboot-cause**
+
 This command displays the cause of the previous reboot
 
 - Usage:
@@ -478,6 +485,7 @@ This command displays the cause of the previous reboot
   ```
 
 **show uptime**
+
 This command displays the current system uptime
 
 - Usage:
@@ -496,7 +504,6 @@ This command displays the current system uptime
 This command displays all the currently stored log messages.
 All the latest processes and corresponding transactions are stored in the "syslog" file.
 This file is saved in the path `/var/log` and can be viewed by giving the command ` sudo cat syslog` as this requires root login.
-Individual processes can also be viewed using the command `ps -ax | grep <process name>`
 
 - Usage:
   ```
@@ -540,6 +547,7 @@ Optionally, you can follow the log live as entries are written to it by specifyi
   ```
 
 **show users**
+
 This command displays a list of users currently logged in to the device
 
 - Usage:
@@ -562,6 +570,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 The information displayed in this set of commands partially overlaps with the one generated by “show envinronment” instruction. In this case though, the information is presented in a more succinct fashion. In the future these two CLI stanzas may end up getting combined.
 
 **show platform summary**
+
 This command displays a summary of the device's hardware platform
 
 - Usage:
@@ -578,6 +587,7 @@ This command displays a summary of the device's hardware platform
   ```
 
 **show platform syseeprom**
+
 This command displays information stored on the system EEPROM.
 Note that the output of this command is not the same for all vendor's platforms.
 Couple of example outputs are given below.
@@ -633,6 +643,7 @@ Couple of example outputs are given below.
   ```
 
 **show platform ssdhealth**
+
 This command displays health parameters of the device's SSD
 
 - Usage:
@@ -649,6 +660,7 @@ This command displays health parameters of the device's SSD
   ```
 
 **show platform psustatus**
+
 This command displays the status of the device's power supply units
 
 - Usage:
@@ -669,6 +681,7 @@ This command displays the status of the device's power supply units
 Displays diagnostic monitoring information of the transceivers
 
 **show interfaces transceiver**
+
 This command displays information for all the interfaces for the transceiver requested or a specific interface if the optional "interface_name" is specified.
 
 - Usage:
@@ -741,6 +754,7 @@ Following show command displays the current running configuration related to the
 This command is used to view the Authentication, Authorization & Accounting settings that are configured in the network node.
 
 **show aaa**
+
 This command displays the AAA settings currently present in the network node
 
 - Usage:
@@ -1255,6 +1269,7 @@ Optionally, you can specify an IP address in order to display only that particul
 ### NDP show commands
 
 **show ndp**
+
 This command displays either all the IPv6 neighbor mac addresses, or for a particular IPv6 neighbor, or for all IPv6 neighbors reachable via a specific interface.
 
 - Usage:
@@ -1649,7 +1664,7 @@ This command is used to start up the particular IPv4 or IPv6 BGP neighbor using 
   ```
 
 
-**config bgp remove neighbor <neighbor_ip_or_hostname>**
+**config bgp remove neighbor**
 
 This command is used to remove particular IPv4 or IPv6 BGP neighbor configuration using either the IP address or hostname.
 
@@ -2171,7 +2186,8 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 This command displays the current interface naming mode. Interface naming mode originally set to 'default'. Interfaces are referenced by default SONiC interface names.
 Users can change the naming_mode using "config interface_naming_mode" command.
 
-**show interfce naming mode**
+**show interfaces naming_mode**
+
 This command displays the current interface naming mode
 
 - Usage:
@@ -2197,14 +2213,14 @@ This command displays the current interface naming mode
 
 ### Interface naming mode config commands
 
-**config interface naming mode**
+**config interface_naming_ mode**
+
 This command is used to change the interface naming mode.
 Users can select between default mode (SONiC interface names) or alias mode (Hardware vendor names).
 The user must log out and log back in for changes to take effect. Note that the newly-applied interface mode will affect all interface-related show/config commands.
 
 
-
-NOTE: Some platforms do not support alias mapping. In such cases, this command is not applicable. Such platforms always use the same SONiC interface names.
+*NOTE: Some platforms do not support alias mapping. In such cases, this command is not applicable. Such platforms always use the same SONiC interface names.*
 
 - Usage:
   ```
@@ -2571,15 +2587,16 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 This section explains the commands that are used to load the configuration from either the ConfigDB or from the minigraph.
 
-### Load config command
+### Loading config from JSON file
 
-This command is used to load the configuration from configDB.
-This command loads the configuration from the input file (if user specifies this optional filename, it will use that input file. Or else, it will use the /etc/sonic/config_db.json as the input file) into CONFIG_DB.
-The configurations present in the input file are applied on top of the already running configuration.
-This command does not flush the config DB before loading the new configuration.
-i.e. If the configuration present in the input file is same as the current running-configuration, nothing happens.
-If the config present in the input file is not present in running-configuration, it will be added.
-If the config present in the input file matches (when key matches) with the running-configuration, it will be modified as per the new values for those keys.
+**config load**
+
+This command is used to load the configuration from a JSON file like the file which SONiC saves its configuration to, `/etc/sonic/config_db.json`
+This command loads the configuration from the input file (if user specifies this optional filename, it will use that input file. Otherwise, it will use the default `/etc/sonic/config_db.json` file as the input file) into CONFIG_DB.
+The configuration present in the input file is applied on top of the already running configuration.
+This command does not flush the config DB before loading the new configuration (i.e., If the configuration present in the input file is same as the current running configuration, nothing happens)
+If the config present in the input file is not present in running configuration, it will be added.
+If the config present in the input file differs (when key matches) from that of the running configuration, it will be modified as per the new values for those keys.
 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
@@ -2597,30 +2614,9 @@ If the argument is not specified, it prompts the user to confirm whether user re
   root@T1-2:~#
   ```
 
-### Load_mgmt_config command
+### Loading config from a minigraph (MXL) file
 
-This command is used to reconfigure hostname and mgmt interface based on device description file.
-This command either uses the optional file specified as arguement or looks for the file "/etc/sonic/device_desc.xml".
-If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress", it fails.
-
-When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
-If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
-
-- Usage:
-  ```
-  config load_mgmt_config [-y|--yes] [<filename>]
-  ```
-
-- Example:
-  ```
-  root@T1-2:~# config load_mgmt_config
-  Reload config from minigraph? [y/N]: y
-  Running command: /usr/local/bin/sonic-cfggen -M /etc/sonic/device_desc.xml --write-to-db
-  root@T1-2:~#
-  ```
-
-
-### Load_minigraph config command
+**config load_minigraph**
 
 This command is used to load the configuration from /etc/sonic/minigraph.xml.
 When users do not want to use configuration from config_db.json, they can copy the minigraph.xml configuration file to the device and load it using this command.
@@ -2645,7 +2641,9 @@ If the argument is not specified, it prompts the user to confirm whether user re
   root@T1-2:~#
   ```
 
-### Reload config command
+### Reloading Configuration
+
+**config reload**
 
 This command is used to clear current configuration and import new configurationn from the input file or from /etc/sonic/config_db.json.
 This command shall stop all services before clearing the configuration and it then restarts those services.
@@ -2692,7 +2690,35 @@ If the argument is not specified, it prompts the user to confirm whether user re
   root@T1-2:~#
   ```
 
-### Save config command
+
+### Loading Management Configuration
+
+**config load_mgmt_config**
+
+This command is used to reconfigure hostname and mgmt interface based on device description file.
+This command either uses the optional file specified as arguement or looks for the file "/etc/sonic/device_desc.xml".
+If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress", it fails.
+
+When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
+If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
+
+- Usage:
+  ```
+  config load_mgmt_config [-y|--yes] [<filename>]
+  ```
+
+- Example:
+  ```
+  root@T1-2:~# config load_mgmt_config
+  Reload config from minigraph? [y/N]: y
+  Running command: /usr/local/bin/sonic-cfggen -M /etc/sonic/device_desc.xml --write-to-db
+  root@T1-2:~#
+  ```
+
+
+### Saving Configuration to a File for Persistence
+
+**config save**
 
 This command is to save the config DB configuration into the user-specified filename or into the default /etc/sonic/config_db.json. This saves the configuration into the disk which is available even after reboots.
 Saved file can be transferred to remote machines for debugging. If users wants to load the configuration from this new file at any point of time, they can use "config load" command and provide this newly generated file as input. If users wants this newly generated file to be used during reboot, they need to copy this file to /etc/sonic/config_db.json.
@@ -2737,6 +2763,8 @@ This command displays all the mirror sessions that are configured.
   ```
 
 ### Mirroring Config command
+
+**config mirror_session**
 
 This command is used to add or remove mirroring sessions. Mirror session is identified by "session_name".
 While adding a new session, users need to configure the following fields that are used while forwarding the mirrored packets.
@@ -2836,6 +2864,7 @@ In the case ISSU is disabled and warm-boot is called, the user will get a notifi
   ```
 
 **config platform mlnx**
+
 This command is valid only on mellanox devices. The sub-commands for "config platform" gets populated only on mellanox platforms.
 There are no other subcommands on non-Mellanox devices and hence this command appears empty and useless in other platforms.
 The platform mellanox command currently includes a single sub command which is the SDK sniffer.
@@ -2892,7 +2921,7 @@ This command displays all the port channels that are configured in the device an
 
 This sub-section explains how to configure the portchannel and its member ports.
 
-**config portchannel add/del <portchannel_name>**
+**config portchannel**
 
 This command is used to add or delete the portchannel.
 It is recommended to use portchannel names in the format "PortChannelxxxx", where "xxxx" is number of 1 to 4 digits. Ex: "PortChannel0002".
@@ -2915,7 +2944,7 @@ Command takes two optional arguements given below.
   admin@sonic:~$ sudo config portchannel add PortChannel0011
   ```
 
-**config portchannel member add/del <portchannel_name> <member_portname>**
+**config portchannel member**
 
 This command adds or deletes a member port to/from the already created portchannel.
 
@@ -2938,6 +2967,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 #### PFC
 
 **show pfc counters**
+
 This command displays the details of Rx & Tx priority-flow-control (pfc) for all ports. This command can be used to clear the counters using -c option.
 
 - Usage:
@@ -3077,7 +3107,8 @@ This command displays the user watermark for the queues (Egress shared pool occu
   admin@sonic:~$ show queue  watermark multicast (Egress shared pool occupancy per multicast queue)
   ```
 
-**show priority-group watermark|persistent-watermark**
+**show priority-group**
+
 This command displays the user watermark or persistent-watermark for the Ingress "headroom" or "shared pool occupancy" per priority-group for  all ports
 
 - Usage:
@@ -3116,6 +3147,7 @@ In addition to user watermark("show queue|priority-group watermark ..."), a pers
 It hold values independently of user watermark. This way user can use "user watermark" for debugging, clear it, etc, but the "persistent watermark" will not be affected.
 
 **show queue persistent-watermark**
+
 This command displays the user persistet-watermark for the queues (Egress shared pool occupancy per queue) for either the unicast queues or multicast queues for all ports
 
 - Usage:
@@ -3440,7 +3472,7 @@ This command displays the current CPU usage by process. This command uses linux'
   show processes cpu
   ```
 
-*NOTE that pipe option can be used using " | head -n" to display only the "n" number of lines*
+*TIP: Users can pipe the output to "head" to display only the "n" number of lines (e.g., `show processes cpu | head -n 10`)*
 
 - Example:
   ```
@@ -3461,6 +3493,8 @@ This command displays the current CPU usage by process. This command uses linux'
       5 root       0 -20       0      0      0 S   0.0  0.0   0:00.00 kworker/0:0H
   ...
   ```
+
+*TIP: Advanced users can view individual processes using variations of the `ps` command (e.g., `ps -ax | grep <process name>`)*
 
 **show processes memory**
 
