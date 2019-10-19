@@ -4403,7 +4403,7 @@ This command is used to remove the unused SONiC image from the disk. Note that i
 
 - Usage:
   ```
-  sonic_installer remove <image_name>
+  sonic_installer remove [-y|--yes] <image_name>
   ```
 
 - Example:
@@ -4417,6 +4417,22 @@ This command is used to remove the unused SONiC image from the disk. Note that i
   Command: grub-set-default --boot-directory=/host 0
 
   Image removed
+  ```
+
+**sonic_installer cleanup**
+
+This command removes all unused images from the device, leaving only the currently active image and the image which will be booted into next (if different) installed. If there are no images which can be removed, the command will output `No image(s) to remove`
+
+- Usage:
+  ```
+  sonic_installer cleanup [-y|--yes]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic_installer cleanup
+  Remove images which are not current and next, continue? [y/N]: y
+  No image(s) to remove
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#software-installation-and-management)
