@@ -15,7 +15,7 @@
   * [Show System Status](#show-system-status)
   * [Show Hardware Platform](#show-hardware-platform)
     * [Transceivers](#transceivers)
-* [AAA &amp; TACACS+](#aaa--tacacs)
+* [AAA & TACACS+](#aaa--tacacs)
   * [AAA](#aaa)
     * [AAA show commands](#aaa-show-commands)
     * [AAA config commands](#aaa-config-commands)
@@ -25,7 +25,7 @@
 * [ACL](#acl)
   * [ACL show commands](#acl-show-commands)
   * [ACL config commands](#acl-config-commands)
-* [ARP &amp; NDP](#arp--ndp)
+* [ARP & NDP](#arp--ndp)
   * [ARP show commands](#arp-show-commands)
   * [NDP show commands](#ndp-show-commands)
 * [BGP](#bgp)
@@ -68,15 +68,15 @@
     * [PFC](#pfc)
     * [Queue And Priority-Group](#queue-and-priority-group)
   * [QoS config commands](#qos-config-commands)
-* [Startup &amp; Running Configuration](#startup--running-configuration)
+* [Startup & Running Configuration](#startup--running-configuration)
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
 * [Syslog](#syslog)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
   * [Processes](#processes)
-  * [Services &amp; Memory](#services--memory)
-* [VLAN &amp; FDB](#vlan--fdb)
+  * [Services & Memory](#services--memory)
+* [VLAN & FDB](#vlan--fdb)
   * [VLAN](#vlan)
     * [VLAN show commands](#vlan-show-commands)
     * [VLAN Config commands](#vlan-config-commands)
@@ -1211,7 +1211,7 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
 
 
-## ARP &amp; NDP
+## ARP & NDP
 
 ### ARP show commands
 
@@ -3867,7 +3867,7 @@ NOTE: This command is not working. It crashes as follows. A bug ticket is opened
 Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
 
 
-## VLAN &amp; FDB
+## VLAN & FDB
 
 ### VLAN
 
@@ -3952,6 +3952,8 @@ This command is to add or delete a member port into the already created vlan.
   admin@sonic:~$ sudo config vlan member add 100 Ethernet4
   This command will add Ethernet4 as member of the vlan 100.
   ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)
 
 ### FDB
 
@@ -4063,7 +4065,6 @@ Clear the FDB table
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)
-
 
 
 ## Warm Restart
