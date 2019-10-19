@@ -56,6 +56,7 @@
   * [Mirroring Config commands](#mirroring-config-commands)
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
+  * [NTP config commands](#ntp-config-commands)
 * [Platform Specific Commands](#platform-specific-commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
@@ -2818,6 +2819,42 @@ This command displays a list of NTP peers known to the server as well as a summa
   *204.2.134.164   46.233.231.73    2 u  916 1024  377    3.079    0.394   0.128
   ```
 
+## NTP Config Commands
+
+This sub-section of commands is used to add or remove the configured NTP servers.
+
+**config ntp add**
+
+This command is used to add a NTP server IP address to the NTP server list.  Note that more that one NTP server IP address can be added in the device.
+
+- Usage:
+  ```
+  config ntp add <ip_address>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config ntp add 9.9.9.9
+  NTP server 9.9.9.9 added to configuration
+  Restarting ntp-config service...
+  ```
+
+**config ntp delete**
+
+This command is used to delete a configured NTP server IP address.
+
+- Usage:
+  ```
+  config ntp del <ip_address>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config ntp del 9.9.9.9
+  NTP server 9.9.9.9 removed from configuration
+  Restarting ntp-config service...
+  ```
+
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#NTP)
 
 
@@ -4622,42 +4659,6 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
   Removed DHCP relay destination address 7.7.7.7 from Vlan1000
   Restarting DHCP relay service...
   Running command: systemctl restart dhcp_relay
-  ```
-
-## NTP Server Configuration Commands
-
-This sub-section of commands is used to add or remove the configured NTP servers.
-
-**config ntp add**
-
-This command is used to add a NTP server IP address to the NTP server list.  Note that more that one NTP server IP address can be added in the device.
-
-- Usage:
-  ```
-  config ntp add <ip_address>
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config ntp add 9.9.9.9
-  NTP server 9.9.9.9 added to configuration
-  Restarting ntp-config service...
-  ```
-
-**config ntp delete**
-
-This command is used to delete a configured NTP server IP address.
-
-- Usage:
-  ```
-  config ntp del <ip_address>
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config ntp del 9.9.9.9
-  NTP server 9.9.9.9 removed from configuration
-  Restarting ntp-config service...
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Quagga-BGP-Show-Commands)
