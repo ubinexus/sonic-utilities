@@ -2866,7 +2866,7 @@ This command displays a list of NTP peers known to the server as well as a summa
   *204.2.134.164   46.233.231.73    2 u  916 1024  377    3.079    0.394   0.128
   ```
 
-## NTP Config Commands
+### NTP Config Commands
 
 This sub-section of commands is used to add or remove the configured NTP servers.
 
