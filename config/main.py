@@ -568,6 +568,7 @@ def config():
         exit("Root privileges are required for this operation")
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(aaa.radius)
 # === Add NAT Configuration ==========
 config.add_command(nat.nat)
 
