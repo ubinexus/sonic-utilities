@@ -433,6 +433,76 @@ def ndp(ip6address, iface, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+def is_mgmt_vrf_enabled(ctx):
+    """Check if management VRF is enabled"""
+    if ctx.invoked_subcommand is None:
+        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        res = p.communicate()
+        if p.returncode == 0:
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            mvrf_dict = json.loads(p.stdout.read())
+
+            # if the mgmtVrfEnabled attribute is configured, check the value
+            # and return True accordingly.
+            if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+                if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
+                    #ManagementVRF is enabled. Return True.
+                    return True
+    return False
+
+#
+# 'mgmt-vrf' group ("show mgmt-vrf ...")
+#
+
+@cli.group('mgmt-vrf', invoke_without_command=True)
+@click.argument('routes', required=False)
+@click.pass_context
+def mgmt_vrf(ctx,routes):
+    """Show management VRF attributes"""
+
+    if is_mgmt_vrf_enabled(ctx) is False:
+        click.echo("\nManagementVRF : Disabled")
+        return
+    else:
+        if routes is None:
+            click.echo("\nManagementVRF : Enabled")
+            click.echo("\nManagement VRF interfaces in Linux:")
+            cmd = "ip -d link show mgmt"
+            run_command(cmd)
+            cmd = "ip link show vrf mgmt"
+            run_command(cmd)
+        else:
+            click.echo("\nRoutes in Management VRF Routing Table:")
+            cmd = "ip route show table 5000"
+            run_command(cmd)
+
+#
+# 'management_interface' group ("show management_interface ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def management_interface():
+    """Show management interface parameters"""
+    pass
+
+# 'address' subcommand ("show management_interface address")
+@management_interface.command()
+def address ():
+    """Show IP address configured for management interface"""
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['IFNAME', 'IP Address', 'PrefixLen',]
+    body = []
+
+    # Fetching data from config_db for MGMT_INTERFACE
+    mgmt_ip_data = config_db.get_table('MGMT_INTERFACE')
+    for key in natsorted(mgmt_ip_data.keys()):
+        click.echo("Management IP address = {0}".format(key[1]))
+        click.echo("Management Network Default Gateway = {0}".format(mgmt_ip_data[key]['gwaddr']))
+
 #
 # 'interfaces' group ("show interfaces ...")
 #
@@ -1077,6 +1147,22 @@ def ipv6():
     """Show IPv6 commands"""
     pass
 
+#
+# 'prefix-list' subcommand ("show ipv6 prefix-list")
+#
+
+@ipv6.command('prefix-list')
+@click.argument('prefix_list_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def prefix_list(prefix_list_name, verbose):
+    """show ip prefix-list"""
+    cmd = 'sudo vtysh -c "show ipv6 prefix-list'
+    if prefix_list_name is not None:
+        cmd += ' {}'.format(prefix_list_name)
+    cmd += '"'
+    run_command(cmd, display_cmd=verbose)
+
+
 
 #
 # 'show ipv6 interfaces' command
@@ -1088,7 +1174,7 @@ def ipv6():
 @ipv6.command()
 def interfaces():
     """Show interfaces IPv6 address"""
-    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
+    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     bgp_peer = get_bgp_peer()
 
@@ -1119,7 +1205,7 @@ def interfaces():
                     oper = "down"
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper], neighbor_name, neighbor_ip)
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
@@ -1158,12 +1244,15 @@ def protocol(verbose):
 # Inserting BGP functionality into cli's show parse-chain.
 # BGP commands are determined by the routing-stack being elected.
 #
+from .bgp_quagga_v4 import bgp
+ip.add_command(bgp)
+
 if routing_stack == "quagga":
-    from .bgp_quagga_v4 import bgp
-    ip.add_command(bgp)
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
     @cli.command()
     @click.argument('bgp_args', nargs = -1, required = False)
     @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1215,7 +1304,7 @@ def table(verbose):
 
 def get_hw_info_dict():
     """
-    This function is used to get the HW info helper function  
+    This function is used to get the HW info helper function
     """
     hw_info_dict = {}
     machine_info = sonic_device_util.get_machine_info()
@@ -1223,7 +1312,7 @@ def get_hw_info_dict():
     config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('DEVICE_METADATA')
-    try: 
+    try:
         hwsku = data['localhost']['hwsku']
     except KeyError:
         hwsku = "Unknown"
@@ -1327,7 +1416,7 @@ def version(verbose):
     version_info = sonic_device_util.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
@@ -1573,21 +1662,9 @@ def bgp(verbose):
 def ntp(ctx, verbose):
     """Show NTP information"""
     ntpcmd = "ntpq -p -n"
-    if ctx.invoked_subcommand is None:
-        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
-
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        res = p.communicate()
-        if p.returncode == 0 :
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            mvrf_dict = json.loads(p.stdout.read())
-
-            # if the mgmtVrfEnabled attribute is configured, check the value
-            # and print Enabled or Disabled accordingly.
-            if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
-                if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
-                    #ManagementVRF is enabled. Call ntpq using cgexec
-                    ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+    if is_mgmt_vrf_enabled(ctx) is True:
+        #ManagementVRF is enabled. Call ntpq using cgexec
+        ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
     run_command(ntpcmd, display_cmd=verbose)
 
 
