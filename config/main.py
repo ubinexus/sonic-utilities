@@ -716,7 +716,7 @@ def reload():
 @config.command('snmp-community')
 @click.argument('community-name', metavar='<community_name>', required=True)
 def snmp_community(community_name):
-    """Set SNMP community string"""
+    """Add SNMP community string"""
 
     """Serialization of a Python dict from a SNMP YAML File """
     with open(SNMP_COMMUNITY_FILE, 'r') as stream:
@@ -727,14 +727,10 @@ def snmp_community(community_name):
             raise
 
     if 'snmp_rocommunity' in snmp_community_dict.keys():
-        community_exist_name = snmp_community_dict['snmp_rocommunity']
-        del snmp_community_dict['snmp_rocommunity']
-        snmp_community_dict['snmp_rocommunities'] = [community_exist_name]
+        existing_community_name = snmp_community_dict['snmp_rocommunity']
+        if 'snmp_rocommunities' not in snmp_community_dict.keys():
+            snmp_community_dict['snmp_rocommunities'] = [existing_community_name]
         snmp_community_dict['snmp_rocommunities'].append(community_name)
-
-    elif 'snmp_rocommunities' in snmp_community_dict.keys():
-        snmp_community_dict['snmp_rocommunities'].append(community_name)
-
     else:
         snmp_community_dict['snmp_rocommunity'] = community_name
 

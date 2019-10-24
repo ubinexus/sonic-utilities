@@ -234,7 +234,7 @@ This command lists all the possible configuration commands at the top level.
     qos
     reload                 Clear current configuration and import a...
     save                   Export current config DB to a file on disk.
-    snmp-community         Set SNMP community string
+    snmp-community         Add SNMP community string
     tacacs                 TACACS+ server configuration
     vlan                   VLAN-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
@@ -3136,7 +3136,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 ## snmp-community config command
 
-  This command is used to set SNMP community string or add more string to snmp_rocommunities.
+  This command is used to add SNMP community string to snmp_rocommunities.
 
   - Usage:
 	config snmp-community <community_name>
