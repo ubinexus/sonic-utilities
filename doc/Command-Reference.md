@@ -1982,7 +1982,7 @@ This command displays information regarding port-channel interfaces
 
 **show interface status**
 
-This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetric PFC status and also the operational and administrative status of the interfaces
+This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetric PFC status, Neighbor device, Neighbor port and also the operational and administrative status of the interfaces
 
 - Usage:
   ```
@@ -1994,11 +1994,17 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   show interface status of all interfaces
 
   admin@sonic:~$ show interfaces status
-  Interface            Lanes    Speed    MTU            Alias    Oper    Admin    Type    Asym PFC
-  -----------  ---------------  -------  -----  ---------------  ------  -------  ------  ----------
-  Ethernet0      49,50,51,52     100G   9100   hundredGigE1/1    down       up     N/A         off
-  Ethernet4      53,54,55,56     100G   9100   hundredGigE1/2    down       up     N/A         off
-  Ethernet8      57,58,59,60     100G   9100   hundredGigE1/3    down     down     N/A         off
+    Interface            Lanes    Speed    MTU           Alias           Vlan    Oper    Admin    Type    Asym PFC    Neighbour         Port
+-------------  ---------------  -------  -----  --------------  -------------  ------  -------  ------  ----------  -----------  -----------
+  Ethernet100  125,126,127,128      40G   9100  fortyGigE0/100         routed    down     down   QSFP+         off          N/A          N/A
+  Ethernet104      85,86,87,88      40G   9100  fortyGigE0/104         routed    down     down   QSFP+         off          N/A          N/A
+  Ethernet108      81,82,83,84      40G   9100  fortyGigE0/108         routed    down     down   QSFP+         off          N/A          N/A
+  Ethernet112      89,90,91,92      40G   9100  fortyGigE0/112  PortChannel01      up       up   QSFP+         off      Device1  Ethernet1/1
+  Ethernet116      93,94,95,96      40G   9100  fortyGigE0/116  PortChannel02    down     down   QSFP+         off      Device2  Ethernet1/1
+  Ethernet120     97,98,99,100      40G   9100  fortyGigE0/120  PortChannel03    down     down   QSFP+         off      Device3  Ethernet1/1
+  Ethernet124  101,102,103,104      40G   9100  fortyGigE0/124  PortChannel04      up       up   QSFP+         off      Device4  Ethernet1/1
+  PortChannel01            N/A      40G   9100             N/A         routed    down       up     N/A         N/A
+  PortChannel02            N/A      40G   9100             N/A         routed    down       up     N/A         N/A
   <contiues to display all the interfaces>
   ```
 

@@ -267,9 +267,38 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
         return "N/A"
     return status 
 
+def neighbour_port(config_db):
+    """
+    Get neighbour device and connected port info from REDIS ConfigDB
+    """
+    device_neighbour_dict = config_db.get_table('DEVICE_NEIGHBOR')
+    return device_neighbour_dict
+
+def connected_device_detail(device_neighbour_dict, local_interface):
+    """
+    Gets far end device of the given local interface
+    """
+    far_end_device = 'N/A'
+    try:
+        far_end_device = device_neighbour_dict[local_interface]['name']
+        return far_end_device
+    except:
+        return far_end_device
+
+def connected_interface_detail(device_neighbour_dict, local_interface):
+    """
+    Gets far end device's interface of the given local interface
+    """
+    far_end_port = 'N/A'
+    try:
+        far_end_port = device_neighbour_dict[local_interface]['port']
+        return far_end_port
+    except:
+        return far_end_port
+
 # ========================== interface-status logic ==========================
 
-header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC', 'Neighbour', 'Port']
 
 class IntfStatus(object):
 
@@ -298,7 +327,9 @@ class IntfStatus(object):
                               appl_db_port_status_get(self.appl_db, key, PORT_OPER_STATUS),
                               appl_db_port_status_get(self.appl_db, key, PORT_ADMIN_STATUS),
                               state_db_port_optics_get(self.state_db, key, PORT_OPTICS_TYPE),
-                              appl_db_port_status_get(self.appl_db, key, PORT_PFC_ASYM_STATUS)))
+                              appl_db_port_status_get(self.appl_db, key, PORT_PFC_ASYM_STATUS),
+                              connected_device_detail(self.neighbour_connected, key),
+                              connected_interface_detail(self.neighbour_connected, key)))
         # Sorting and tabulating the result table.
         for po, value in portchannel_speed_dict.iteritems():
             if po:
@@ -344,6 +375,7 @@ class IntfStatus(object):
         self.combined_int_to_vlan_po_dict = merge_dicts(self.int_to_vlan_dict, self.int_po_dict)
         self.portchannel_speed_dict = po_speed_dict(self.po_int_dict, self.appl_db)
         self.portchannel_keys = self.portchannel_speed_dict.keys()
+        self.neighbour_connected = neighbour_port(self.config_db)
         if appl_db_keys is None:
             return
         self.display_intf_status(appl_db_keys, self.front_panel_ports_list, self.portchannel_speed_dict)
