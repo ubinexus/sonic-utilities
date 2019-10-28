@@ -2511,6 +2511,7 @@ This command displays a list of NTP peers known to the server as well as a summa
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#NTP)
 
 # PFC Watchdog Commands
+Detailed description of the PFC Watchdog could be fount on the [this wiki page](https://github.com/Azure/SONiC/wiki/PFC-Watchdog)
 
 **config pfcwd start \<arguments\>**
 
@@ -2519,7 +2520,6 @@ This command starts PFC Watchdog
   - Usage:  
     config pfcwd start --action drop ports all detection-time 400 --restoration-time 400  
     config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
-
 
 **config pfcwd stop**
 
@@ -2532,29 +2532,39 @@ This command stops PFC Watchdog
 
 This command sets PFC Watchdog counter polling interval (in ms)
 
-  - Usage:
+  - Usage:  
     config pfcwd interval 200
 
 **config pfcwd counter_poll \<enable/disable\>**
 
 This command enables or disables PFCWD related counters polling
 
-  - Usage:
+  - Usage:  
     config pfcwd counter_poll disable
 
 **config pfcwd big_red_switch \<enable/disable\>**
 
 This command enables or disables PFCWD's "BIG RED SWITCH"(BRS). After enabling BRS PFC Watchdog will be activated on all ports/queues it is configured for no matter whether the storm was detected or not
 
-  - Usage:
+  - Usage:  
     config pfcwd big_red_switch enable
 
 **config pfcwd start_default**
 
-This command starts PFC Watchdog with the default settings
+This command starts PFC Watchdog with the default settings.
 
-  - Usage:
+  - Usage:  
     config pfcwd start_default
+
+Default values are the following:  
+
+   - detection time - 200ms
+   - restoration time - 200ms
+   - polling interval - 200ms
+   - action - 'drop'
+
+Additionally if number of ports in the system exceeds 32, all times will be multiplied by roughly <num_ports\>/32.
+
 
 **show pfcwd config**
 
