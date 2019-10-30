@@ -52,7 +52,7 @@ std_port_tx_counters = ['SAI_PORT_STAT_IF_OUT_ERRORS', 'SAI_PORT_STAT_IF_OUT_DIS
 # Standard Port-Level Headers
 std_port_description_header = ['IFACE', 'STATE']
 std_headers_map = {
-    'SAI_PORT_STAT_IF_IN_ERRORS':    'RX_ERR', 
+    'SAI_PORT_STAT_IF_IN_ERRORS':    'RX_ERR',
     'SAI_PORT_STAT_IF_IN_DISCARDS':  'RX_DROPS',
     'SAI_PORT_STAT_IF_OUT_ERRORS':   'TX_ERR',
     'SAI_PORT_STAT_IF_OUT_DISCARDS': 'TX_DROPS'
@@ -234,7 +234,7 @@ class DropStat(object):
                 self.stat_lookup[object_stat_map] = None
 
         return self.stat_lookup[object_stat_map]
-    
+
     def get_reverse_stat_lookup(self, object_stat_map):
         """
             Retrieves the mapping from object stat -> counter name for
@@ -368,7 +368,7 @@ Examples:
     # Variables
     parser.add_argument('-g', '--group',   type=str, help='The group of the target drop counter', default=None)
     parser.add_argument('-t', '--type',    type=str, help='The type of the target drop counter', default=None)
-    
+
     args = parser.parse_args()
 
     command = args.command

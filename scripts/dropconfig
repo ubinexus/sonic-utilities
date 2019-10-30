@@ -35,7 +35,7 @@ class DropConfig(object):
         self.state_db = swsssdk.SonicV2Connector(host='127.0.0.1')
         self.state_db.connect(self.state_db.STATE_DB)
 
-    # -c show_config 
+    # -c show_config
     def print_counter_config(self, group):
         """
             Prints out the configuration for all counters that are currently set up
@@ -43,7 +43,7 @@ class DropConfig(object):
 
         table = []
         for counter in self.get_config(group):
-            table.append((counter.get('name', ''), 
+            table.append((counter.get('name', ''),
                           counter.get('alias', ''),
                           counter.get('group', ''),
                           counter.get('type', ''),
@@ -69,7 +69,7 @@ class DropConfig(object):
                 print('\n{}'.format(counter))
                 for reason in supported_reasons:
                     print('\t{}'.format(reason))
-    
+
     def create_counter(self, counter_name, alias, group, counter_type, description, reasons):
         """
             Creates a new counter configuration
@@ -77,20 +77,20 @@ class DropConfig(object):
 
         if not counter_name:
             raise Exception('Counter name not provided')
-        
+
         if not counter_type:
             raise Exception('Counter type not provided')
 
         if not reasons:
             raise Exception('No drop reasons provided')
-        
+
         if self.counter_name_in_use(counter_name):
             raise Exception('Counter name \'{}\' already in use'.format(counter_name))
 
         # TODO: Ideally we would like to be able to check the device capabilities
         # to see if the counter type and reasons are supported on this device. Once
         # these features have broader platform support we can incorporate these checks.
- 
+
         for reason in reasons:
             self.config_db.set_entry(self.config_db.serialize_key((DROP_REASON_TABLE_PREFIX, counter_name)), reason, {})
 
@@ -163,27 +163,27 @@ class DropConfig(object):
                 Gets the configuration for a specific counter.
             """
 
-            counter_metadata = { 
+            counter_metadata = {
                 'name':        counter_name,
                 'alias':       counter_attributes.get('alias', counter_name),
                 'group':       counter_attributes.get('group', 'N/A'),
                 'type':        counter_attributes.get('type', 'N/A'),
                 'description': counter_attributes.get('desc', 'N/A')
             }
-            
+
             # Get the drop reasons for this counter
             drop_reason_keys = sorted(self.config_db.get_keys(self.config_db.serialize_key((DROP_REASON_TABLE_PREFIX, counter_name))), key=lambda x: x[1])
-           
+
             # Fill in the first drop reason
             num_reasons = len(drop_reason_keys)
             if num_reasons == 0:
                 counter_metadata['reason'] = 'None'
             else:
                 counter_metadata['reason'] = drop_reason_keys[0][1]
-            
+
             if num_reasons <= 1:
                 return [counter_metadata]
-            
+
             # Add additional rows for remaining drop reasons
             counter_config = [counter_metadata]
             for drop_reason in drop_reason_keys[1:]:
@@ -206,7 +206,7 @@ class DropConfig(object):
         """
 
         capability_query = self.state_db.keys(self.state_db.STATE_DB, '{}|*'.format(DEBUG_COUNTER_CAPABILITY_TABLE))
-        
+
         if not capability_query:
             return None
 
@@ -215,7 +215,7 @@ class DropConfig(object):
             # Because keys returns the whole key, we trim off the DEBUG_COUNTER_CAPABILITY prefix here
             counter_caps[counter_type[len(DEBUG_COUNTER_CAPABILITY_TABLE) + 1:]] = self.state_db.get_all(self.state_db.STATE_DB, counter_type)
         return counter_caps
-    
+
     def counter_name_in_use(self, counter_name):
         return self.config_db.get_entry(DEBUG_COUNTER_CONFIG_TABLE, counter_name) != {}
 
@@ -229,7 +229,7 @@ def deserialize_reason_list(list_str):
     list_str = list_str.replace(' ', '')
     list_str = list_str.strip('[')
     list_str = list_str.strip(']')
-    
+
     if len(list_str) == 0:
         return []
     else:
@@ -254,8 +254,8 @@ Examples:
     parser.add_argument('-t', '--type',    type=str, help='The type of the target drop counter',                   default=None)
     parser.add_argument('-d', '--desc',    type=str, help='The description for the target drop counter',           default=None)
     parser.add_argument('-r', '--reasons', type=str, help='The list of drop reasons for the target drop counter',  default=None)
-    
-    
+
+
     args = parser.parse_args()
 
     command = args.command

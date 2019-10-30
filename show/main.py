@@ -2073,11 +2073,11 @@ def drops():
     """Show drop counter related information"""
     pass
 
-# 'config' subcommand ("show drops config")
+# 'configuration' subcommand ("show drops configuration")
 @drops.command()
 @click.option('-g', '--group', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def config(group, verbose):
+def configuration(group, verbose):
     """Show current drop counter configuration"""
     cmd = "dropconfig -c show_config"
 
