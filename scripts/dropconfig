@@ -58,6 +58,9 @@ class DropConfig(object):
 
         device_caps = self.get_device_capabilities()
 
+        if not device_caps:
+            print('Current device does not support drop counters')
+
         table = []
         for counter, capabilities in device_caps.iteritems():
             table.append((counter, capabilities.get('count', 'N/A')))
@@ -87,9 +90,17 @@ class DropConfig(object):
         if self.counter_name_in_use(counter_name):
             raise Exception('Counter name \'{}\' already in use'.format(counter_name))
 
-        # TODO: Ideally we would like to be able to check the device capabilities
-        # to see if the counter type and reasons are supported on this device. Once
-        # these features have broader platform support we can incorporate these checks.
+        available_counters = self.get_available_counters(counter_type)
+        if available_counters is None:
+            raise Exception('Counter type not supported on this device')
+        elif int(available_counters) == 0:
+            raise Exception('All counters of this type are currently in use')
+
+        supported_reasons = self.get_supported_reasons(counter_type)
+        if supported_reasons is None:
+            raise Exception('No drop reasons found for this device')
+        elif not all(r in supported_reasons for r in reasons):
+            raise Exception('One or more provided drop reason not supported on this device')
 
         for reason in reasons:
             self.config_db.set_entry(self.config_db.serialize_key((DROP_REASON_TABLE_PREFIX, counter_name)), reason, {})
@@ -132,6 +143,12 @@ class DropConfig(object):
 
         if not self.counter_name_in_use(counter_name):
             raise Exception('Counter \'{}\' not found'.format(counter_name))
+
+        supported_reasons = self.get_supported_reasons(self.get_counter_type(counter_name))
+        if supported_reasons is None:
+            raise Exception('No drop reasons found for this device')
+        elif not all(r in supported_reasons for r in reasons):
+            raise Exception('One or more provided drop reason not supported on this device')
 
         for reason in reasons:
             self.config_db.set_entry(self.config_db.serialize_key((DROP_REASON_TABLE_PREFIX, counter_name)), reason, {})
@@ -218,6 +235,31 @@ class DropConfig(object):
 
     def counter_name_in_use(self, counter_name):
         return self.config_db.get_entry(DEBUG_COUNTER_CONFIG_TABLE, counter_name) != {}
+
+    def get_counter_type(self, counter_name):
+        return self.config_db.get_entry(DEBUG_COUNTER_CONFIG_TABLE, counter_name).get('type', None)
+
+    def get_available_counters(self, counter_type):
+        if counter_type is None:
+            return None
+
+        cap_query = self.state_db.get_all(self.state_db.STATE_DB, '{}|{}'.format(DEBUG_COUNTER_CAPABILITY_TABLE, counter_type))
+
+        if not cap_query:
+            return None
+
+        return cap_query.get('count', 0)
+
+    def get_supported_reasons(self, counter_type):
+        if counter_type is None:
+            return None
+
+        cap_query = self.state_db.get_all(self.state_db.STATE_DB, '{}|{}'.format(DEBUG_COUNTER_CAPABILITY_TABLE, counter_type))
+
+        if not cap_query:
+            return None
+
+        return deserialize_reason_list(cap_query.get('reasons', ''))
 
 def deserialize_reason_list(list_str):
     if list_str is None:
