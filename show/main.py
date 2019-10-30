@@ -1844,28 +1844,27 @@ def show_sflow_global(config_db):
         global_admin_state = sflow_info['global']['admin_state']
 
     click.echo("\nsFlow Global Information:")
-    click.echo("  sFlow Admin State:        {}".format(global_admin_state))
+    click.echo("  sFlow Admin State:".ljust(30) + "{}".format(global_admin_state))
 
 
-    click.echo("  SFlow Polling Interval: ", nl=False)
+    click.echo("  sFlow Polling Interval:".ljust(30), nl=False)
     if (sflow_info and 'polling_interval' in sflow_info['global'].keys()):
-        click.echo("  {}".format(sflow_info['global']['polling_interval']))
+        click.echo("{}".format(sflow_info['global']['polling_interval']))
     else:
-        click.echo("  default")
+        click.echo("default")
 
-    click.echo("  SFlow AgentID: ", nl=False)
+    click.echo("  sFlow AgentID:".ljust(30), nl=False)
     if (sflow_info and 'agent_id' in sflow_info['global'].keys()):
-        click.echo("           {}".format(sflow_info['global']['agent_id']))
+        click.echo("{}".format(sflow_info['global']['agent_id']))
     else:
-        click.echo("           default")
+        click.echo("default")
 
     sflow_info = config_db.get_table('SFLOW_COLLECTOR')
     click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
     for collector_name in sorted(sflow_info.keys()):
-        click.echo("    Name: {}\t IP addr: {}\t UDP port:{}".format(
-                    collector_name,
-                    sflow_info[collector_name]['collector_ip'],
-                    sflow_info[collector_name]['collector_port']))
+        click.echo("    Name: {}".format(collector_name).ljust(30) +
+                   "IP addr: {}".format(sflow_info[collector_name]['collector_ip']).ljust(20) +
+                   "UDP port: {}".format(sflow_info[collector_name]['collector_port']))
 
 
 #
