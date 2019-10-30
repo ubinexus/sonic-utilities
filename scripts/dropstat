@@ -51,7 +51,7 @@ std_port_tx_counters = ['SAI_PORT_STAT_IF_OUT_ERRORS', 'SAI_PORT_STAT_IF_OUT_DIS
 
 # Standard Port-Level Headers
 std_port_description_header = ['IFACE', 'STATE']
-std_headers_map = {
+std_port_headers_map = {
     'SAI_PORT_STAT_IF_IN_ERRORS':    'RX_ERR',
     'SAI_PORT_STAT_IF_IN_DISCARDS':  'RX_DROPS',
     'SAI_PORT_STAT_IF_OUT_ERRORS':   'TX_ERR',
@@ -96,9 +96,9 @@ class DropStat(object):
         """
 
         try:
-            pickle.dump(self.get_counts_table(self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP), COUNTERS_PORT_NAME_MAP), 
+            pickle.dump(self.get_counts_table(self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP), COUNTERS_PORT_NAME_MAP),
                 open(self.port_drop_stats_file, 'w+'))
-            pickle.dump(self.get_counts_table(self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP), COUNTERS_SWITCH_NAME_MAP), 
+            pickle.dump(self.get_counts_table(self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP), COUNTERS_SWITCH_NAME_MAP),
                 open(self.switch_drop_stats_file, 'w+'))
         except IOError as e:
             print(e)
@@ -111,7 +111,7 @@ class DropStat(object):
         """
 
         port_drop_ckpt = {}
-        
+
         # Grab the latest clear checkpoint, if it exists
         if os.path.isfile(self.port_drop_stats_file):
             port_drop_ckpt = pickle.load(open(self.port_drop_stats_file, 'r'))
@@ -123,12 +123,12 @@ class DropStat(object):
             return
 
         table = []
-        for key, value in self.get_counts_table(counters, COUNTERS_PORT_NAME_MAP).iteritems():   
+        for key, value in self.get_counts_table(counters, COUNTERS_PORT_NAME_MAP).iteritems():
             row = [key, self.get_port_state(key)]
             for counter in counters:
                 row.append(value.get(counter, 0) - port_drop_ckpt.get(key, {}).get(counter, 0))
             table.append(row)
-        
+
         if table:
             print(tabulate(table, headers, tablefmt='simple', stralign='right'))
 
@@ -138,7 +138,7 @@ class DropStat(object):
         """
 
         switch_drop_ckpt = {}
-        
+
         # Grab the latest clear checkpoint, if it exists
         if os.path.isfile(self.switch_drop_stats_file):
             switch_drop_ckpt = pickle.load(open(self.switch_drop_stats_file, 'r'))
@@ -150,7 +150,7 @@ class DropStat(object):
             return
 
         table = []
-        for key, value in self.get_counts_table(counters, COUNTERS_SWITCH_NAME_MAP).iteritems():   
+        for key, value in self.get_counts_table(counters, COUNTERS_SWITCH_NAME_MAP).iteritems():
             row = [key]
             for counter in counters:
                 row.append(value.get(counter, 0) - switch_drop_ckpt.get(key, {}).get(counter, 0))
@@ -167,7 +167,7 @@ class DropStat(object):
 
         configured_counters = self.get_configured_counters(object_stat_map)
         counters = std_counters + configured_counters
-        return [ ctr for ctr in counters 
+        return [ ctr for ctr in counters
                     if self.in_group(ctr, object_stat_map, group)
                     and self.is_type(ctr, object_stat_map, counter_type) ]
 
@@ -180,8 +180,8 @@ class DropStat(object):
         counter_names = self.get_reverse_stat_lookup(object_stat_map)
 
         for counter in counters:
-            if counter in std_headers_map.iterkeys():
-                headers.append(std_headers_map[counter])
+            if counter in std_port_headers_map.iterkeys():
+                headers.append(std_port_headers_map[counter])
             else:
                 headers.append(self.get_alias(counter_names[counter]))
 
@@ -200,7 +200,7 @@ class DropStat(object):
             """
 
             counts = {}
-            
+
             for counter in counters:
                 table_id = COUNTER_TABLE_PREFIX + oid
                 counter_data = self.db.get(self.db.COUNTERS_DB, table_id, counter)
@@ -209,13 +209,13 @@ class DropStat(object):
                 else:
                     counts[counter] = int(counter_data)
             return counts
-        
+
         counter_object_name_map = self.db.get_all(self.db.COUNTERS_DB, object_table)
         current_stat_dict = OrderedDict()
-        
+
         if counter_object_name_map is None:
             return current_stat_dict
-        
+
         for obj in natsorted(counter_object_name_map):
             current_stat_dict[obj] = get_counts(counters, counter_object_name_map[obj])
         return current_stat_dict
@@ -257,7 +257,7 @@ class DropStat(object):
         """
 
         counters = self.get_stat_lookup(object_stat_map)
-        
+
         configured_counters = []
         if not counters:
             return configured_counters
@@ -287,7 +287,7 @@ class DropStat(object):
 
         if not alias_query:
             return counter_name
-        
+
         return alias_query.get('alias', counter_name)
 
     def in_group(self, counter_stat, object_stat_map, group):
@@ -300,7 +300,7 @@ class DropStat(object):
 
         if not group:
             return True
-        
+
         if counter_stat in std_port_rx_counters or counter_stat in std_port_tx_counters:
             return False
 
@@ -308,7 +308,7 @@ class DropStat(object):
 
         if not group_query:
             return False
-        
+
         return group == group_query.get('group', None)
 
     def is_type(self, counter_stat, object_stat_map, counter_type):
@@ -332,7 +332,7 @@ class DropStat(object):
 
         if not type_query:
             return False
-        
+
         return counter_type == type_query.get('type', None)
 
     def get_port_state(self, port_name):

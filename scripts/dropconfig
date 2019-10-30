@@ -27,6 +27,10 @@ DEBUG_COUNTER_CAPABILITY_TABLE = 'DEBUG_COUNTER_CAPABILITIES'
 drop_counter_config_header       = ['Counter', 'Alias', 'Group', 'Type', 'Reasons', 'Description']
 drop_counter_capability_header = ['Counter Type', 'Total']
 
+# Drop Reason Prefixes
+in_drop_reason_prefix = 'SAI_IN_DROP_REASON_'
+out_drop_reason_prefix = 'SAI_OUT_DROP_REASON_'
+
 class DropConfig(object):
     def __init__(self):
         self.config_db = swsssdk.ConfigDBConnector()
@@ -71,6 +75,10 @@ class DropConfig(object):
             if supported_reasons:
                 print('\n{}'.format(counter))
                 for reason in supported_reasons:
+                    if reason.startswith(in_drop_reason_prefix):
+                        reason = reason[len(in_drop_reason_prefix):]
+                    elif reason.startswith(out_drop_reason_prefix):
+                        reason = reason[len(out_drop_reason_prefix):]
                     print('\t{}'.format(reason))
 
     def create_counter(self, counter_name, alias, group, counter_type, description, reasons):
@@ -259,7 +267,13 @@ class DropConfig(object):
         if not cap_query:
             return None
 
-        return deserialize_reason_list(cap_query.get('reasons', ''))
+        reasons = []
+        for reason in deserialize_reason_list(cap_query.get('reasons', '')):
+            if reason.startswith(in_drop_reason_prefix):
+                reasons.append(reason[len(in_drop_reason_prefix):])
+            elif reason.startswith(out_drop_reason_prefix):
+                reasons.append(reason[len(out_drop_reason_prefix):])
+        return reasons
 
 def deserialize_reason_list(list_str):
     if list_str is None:
