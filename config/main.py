@@ -752,6 +752,7 @@ def snmp_community(community_name):
         snmp_community_dict['snmp_rocommunities'].append(community_name)
     else:
         snmp_community_dict['snmp_rocommunity'] = community_name
+        snmp_community_dict['snmp_rocommunities'] = community_name
 
     """Serialization of a Python dict into a SNMP YAML File"""
     with open(SNMP_COMMUNITY_FILE, 'w') as yaml_file:
