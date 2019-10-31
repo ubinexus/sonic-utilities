@@ -15,9 +15,11 @@ import argparse
 import syslog
 import traceback
 import subprocess
+import time
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from netaddr import IPAddress, IPNetwork
 
 
 #
@@ -26,6 +28,8 @@ from swsssdk import SonicV2Connector
 
 DEFAULT_DURATION = 300
 DEFAULT_REQUEST_TIMEOUT = 2
+DEFAULT_FERRET_QUERY_RETRIES = 3
+DEFAULT_CONFIG_DB_WAIT_TIME = 3 # seconds
 SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 
 
@@ -34,6 +38,7 @@ SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 #
 
 MIRROR_SESSION_NAME = 'neighbor_advertiser'
+MIRROR_ACL_TABLE_PREFIX = 'SONIC_'
 MIRROR_ACL_TABLE_NAME = 'EVERFLOW'
 MIRROR_ACL_TABLEV6_NAME = 'EVERFLOWV6'
 MIRROR_ACL_RULE_NAME = 'rule_arp'
@@ -82,15 +87,48 @@ def log_error(msg):
 config_db = None
 
 
-#
-# Get switch info and intf addr
-#
-
 def connect_config_db():
     global config_db
     config_db = ConfigDBConnector()
     config_db.connect()
 
+
+#
+# Check if a DIP returned from ferret is in any of this switch's VLANs
+#
+
+vlan_interface_query = None
+
+
+def is_dip_in_device_vlan(ferret_dip):
+    global vlan_interface_query
+
+    # Lazy load the vlan interfaces the first time we run this check.
+    if not vlan_interface_query:
+        vlan_interface_query = config_db.get_table('VLAN_INTERFACE')
+
+    ferret_dip = IPAddress(ferret_dip)
+
+    for vlan_interface in vlan_interface_query.iterkeys():
+        if not is_ip_prefix_in_key(vlan_interface):
+            log_info('{} does not have a subnet, skipping...'.format(vlan_interface))
+            continue
+
+        vlan_subnet = IPNetwork(vlan_interface[1])
+
+        if ferret_dip.version != vlan_subnet.version:
+            log_info('{} version (IPv{}) does not match provided DIP version (IPv{}), skipping...'.format(vlan_interface[0], vlan_subnet.version, ferret_dip.version))
+            continue
+
+        if ferret_dip in vlan_subnet:
+            return True
+
+    return False
+
+
+#
+# Get switch info and intf addr
+#
 
 def get_switch_name():
     metadata = config_db.get_table('DEVICE_METADATA')
@@ -308,24 +346,36 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
     url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = None
 
-    try:
-        response = requests.post(url, json = request_slice, timeout = DEFAULT_REQUEST_TIMEOUT)
-    except Exception as e:
-        log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
+    for retry in range(DEFAULT_FERRET_QUERY_RETRIES):
+        try:
+            response = requests.post(url, json = request_slice, timeout = DEFAULT_REQUEST_TIMEOUT)
+        except Exception as e:
+            log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
+            return None
 
-    ferret_server_ipv4_addr = None
+        # Handle response errors
+        if not response:
+            log_error('Failed to set up neighbor advertiser slice, vip: {}, no response obtained'.format(ferret_service_vip))
+            return None
+        if response and not response.ok:
+            log_error('Failed to set up neighbor advertiser slice, vip: {}, error_code: {}, error_content: {}'.format(ferret_service_vip, response.status_code, response.content))
+            return None
 
-    if response and response.ok:
         neighbor_advertiser_configuration = json.loads(response.content)
-        save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
         ferret_server_ipv4_addr = neighbor_advertiser_configuration['ipv4Addr']
-        log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
-    elif response:
-        log_error('Failed to set up neighbor advertiser slice, vip: {}, error_code: {}, error_content: {}'.format(ferret_service_vip, response.status_code, response.content))
-    else:
-        log_error('Failed to set up neighbor advertiser slice, vip: {}, no response obtained'.format(ferret_service_vip))
 
-    return ferret_server_ipv4_addr
+        # Retry the request if the provided DIP is in the device VLAN
+        if is_dip_in_device_vlan(ferret_server_ipv4_addr):
+            log_info('Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN (attempt {}/{})'.format(ferret_service_vip, ferret_server_ipv4_addr, retry + 1, DEFAULT_FERRET_QUERY_RETRIES))
+            continue
+
+        # If all the proceeding checks pass, return the provided DIP
+        save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
+        log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
+        return ferret_server_ipv4_addr
+
+    log_error('Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN'.format(ferret_service_vip))
+    return None
 
 
 def save_as_json(obj, file_path):
@@ -337,9 +387,29 @@ def save_as_json(obj, file_path):
         json.dump(obj, outfile, sort_keys = True)
 
 
+# This function tries to find the corresponding names of the mirror v4 and v6 table
+# Right now, the name could be EVERFLOW/EVERFLOWv6 or SONIC_EVERFLOW/SONIC_EVERFLOWV6
+def find_mirror_table_name():
+    acl_tables = config_db.get_keys("ACL_TABLE")
+    v4_table, v6_table = "", ""
+    for table in acl_tables:
+        if MIRROR_ACL_TABLE_NAME == table or \
+                MIRROR_ACL_TABLE_PREFIX + MIRROR_ACL_TABLE_NAME == table:
+            v4_table = table
+        if MIRROR_ACL_TABLEV6_NAME == table or \
+                MIRROR_ACL_TABLE_PREFIX + MIRROR_ACL_TABLEV6_NAME == table:
+            v6_table = table
+    if not v4_table:
+        log_error(MIRROR_ACL_TABLE_NAME + " table does not exist")
+    if not v6_table:
+        log_error(MIRROR_ACL_TABLEV6_NAME + " table does not exist")
+    return (v4_table, v6_table)
+
+
 #
 # Set mirror tunnel
 #
+
 
 def add_mirror_session(dst_ipv4_addr):
     session_info = {
@@ -350,29 +420,32 @@ def add_mirror_session(dst_ipv4_addr):
     config_db.set_entry('MIRROR_SESSION', MIRROR_SESSION_NAME, session_info)
 
 
-
 def add_mirror_acl_rule():
-    acl_rule_info = {
-        'PRIORITY': '8888',
-        'ether_type': '2054',
-        'mirror_action': MIRROR_SESSION_NAME
-    }
+    (v4_table, v6_table) = find_mirror_table_name()
 
-    config_db.set_entry('ACL_RULE',
-            (MIRROR_ACL_TABLE_NAME, MIRROR_ACL_RULE_NAME), acl_rule_info)
+    if v4_table:
+        acl_rule_info = {
+            'PRIORITY': '8888',
+            'ether_type': '2054',
+            'mirror_action': MIRROR_SESSION_NAME
+        }
+        config_db.set_entry('ACL_RULE',
+                (v4_table, MIRROR_ACL_RULE_NAME), acl_rule_info)
 
-    acl_rule_info = {
-        'PRIORITY': '8887',
-        'ICMPV6_TYPE': '135',
-        'mirror_action': MIRROR_SESSION_NAME
-    }
-
-    config_db.set_entry('ACL_RULE',
-            (MIRROR_ACL_TABLEV6_NAME, MIRROR_ACL_RULEV6_NAME), acl_rule_info)
+    if v6_table:
+        acl_rule_info = {
+            'PRIORITY': '8887',
+            'ICMPV6_TYPE': '135',
+            'mirror_action': MIRROR_SESSION_NAME
+        }
+        config_db.set_entry('ACL_RULE',
+                (v6_table, MIRROR_ACL_RULEV6_NAME), acl_rule_info)
 
 
 def set_mirror_tunnel(ferret_server_ip):
     add_mirror_session(ferret_server_ip)
+    # Ensure the mirror session is created before creating the rules
+    time.sleep(DEFAULT_CONFIG_DB_WAIT_TIME)
     add_mirror_acl_rule()
     log_info('Finish setting mirror tunnel; Ferret: {}'.format(ferret_server_ip))
 
@@ -386,12 +459,19 @@ def remove_mirror_session():
 
 
 def remove_mirror_acl_rule():
-    config_db.set_entry('ACL_RULE', (MIRROR_ACL_TABLE_NAME, MIRROR_ACL_RULE_NAME), None)
-    config_db.set_entry('ACL_RULE', (MIRROR_ACL_TABLEV6_NAME, MIRROR_ACL_RULEV6_NAME), None)
+    (v4_table, v6_table) = find_mirror_table_name()
+
+    if v4_table:
+        config_db.set_entry('ACL_RULE', (v4_table, MIRROR_ACL_RULE_NAME), None)
+
+    if v6_table:
+        config_db.set_entry('ACL_RULE', (v6_table, MIRROR_ACL_RULEV6_NAME), None)
 
 
 def reset_mirror_tunnel():
     remove_mirror_acl_rule()
+    # Ensure the rules are removed before removing the mirror session
+    time.sleep(DEFAULT_CONFIG_DB_WAIT_TIME)
     remove_mirror_session()
     log_info('Finish resetting mirror tunnel')
 
