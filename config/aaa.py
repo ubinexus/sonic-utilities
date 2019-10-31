@@ -351,7 +351,7 @@ def sourceip(ctx, src_ip):
         click.echo('Not support empty argument')
         return
 
-    if not is_ipaddress(address):
+    if not is_ipaddress(src_ip):
         click.echo('Invalid ip address')
         return
 
