@@ -33,6 +33,10 @@
   * [BGP config commands](#bgp-config-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
+* [Drop Counters](#drop-counters)
+  * [Drop Counter show commands](#drop-counters-show-commands)
+  * [Drop Counter config commands](#drop-counters-config-commands)
+  * [Drop Counter clear commands](#drop-counters-clear-commands)
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
@@ -1737,6 +1741,112 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
+
+
+# Drop Counters
+
+This section explains all the Configurable Drop Counters show commands and configuration options that are supported in SONiC.
+
+### Drop Counters show commands
+
+**show dropcounter capabilities**
+
+This command is used to show the drop counter capabilities that are available on this device. It displays the total number of drop counters that can be configured on this device as well as the drop reasons that can be configured for the counters.
+
+- Usage:
+  ```
+  show dropcounter capabilities
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ show dropcounter capabilities
+  Counter Type            Total
+  --------------------  -------
+  PORT_INGRESS_DROPS          3
+  PORT_EGRESS_DROPS           0
+  SWITCH_EGRESS_DROPS         2
+  SWITCH_INGRESS_DROPS        0
+
+  PORT_INGRESS_DROPS:
+        L2_ANY
+        SMAC_MULTICAST
+        SMAC_EQUALS_DMAC
+        INGRESS_VLAN_FILTER
+        EXCEEDS_L2_MTU
+        SIP_CLASS_E
+        SIP_LINK_LOCAL
+        DIP_LINK_LOCAL
+        UNRESOLVED_NEXT_HOP
+        DECAP_ERROR
+
+  SWITCH_EGRESS_DROPS:
+        L2_ANY
+        L3_ANY
+        A_CUSTOM_REASON
+  ```
+
+**show dropcounter configuration**
+
+This command is used to show the current running configuration of the drop counters on this device.
+
+- Usage:
+  ```
+  show dropcounter configuration [-g <group name>]
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ show dropcounter configuration
+  Counter   Alias     Group  Type                 Reasons              Description
+  --------  --------  -----  ------------------   -------------------  --------------
+  DEBUG_0   RX_LEGIT  LEGIT  PORT_INGRESS_DROPS   SMAC_EQUALS_DMAC     Legitimate port-level RX pipeline drops
+                                                  INGRESS_VLAN_FILTER
+  DEBUG_1   TX_LEGIT  None   SWITCH_EGRESS_DROPS  EGRESS_VLAN_FILTER   Legitimate switch-level TX pipeline drops
+
+  admin@sonic:~$ show dropcounter configuration -g LEGIT
+  Counter   Alias     Group  Type                 Reasons              Description
+  --------  --------  -----  ------------------   -------------------  --------------
+  DEBUG_0   RX_LEGIT  LEGIT  PORT_INGRESS_DROPS   SMAC_EQUALS_DMAC     Legitimate port-level RX pipeline drops
+                                                  INGRESS_VLAN_FILTER
+  ```
+
+**show dropcounter counts**
+
+This command is used to show the current statistics for the configured drop counters. Standard drop counters are displayed as well for convenience.
+
+- Usage:
+  ```
+  show dropcounter counts [-g <group name>] [-t <counter type>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dropcounter counts
+      IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS   RX_LEGIT
+  ---------  -------  --------  ----------  --------  ----------  ---------
+  Ethernet0        U        10         100         0           0         20
+  Ethernet4        U         0        1000         0           0        100
+  Ethernet8        U       100          10         0           0          0
+
+  DEVICE  TX_LEGIT
+  ------  --------
+  sonic       1000
+
+  admin@sonic:~$ show dropcounter counts -g LEGIT
+      IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS   RX_LEGIT
+  ---------  -------  --------  ----------  --------  ----------  ---------
+  Ethernet0        U        10         100         0           0         20
+  Ethernet4        U         0        1000         0           0        100
+  Ethernet8        U       100          10         0           0          0
+
+  admin@sonic:~$ show dropcounter counts -t SWITCH_EGRESS_DROPS
+  DEVICE  TX_LEGIT
+  ------  --------
+  sonic       1000
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#drop-counters)
 
 
 ## ECN
