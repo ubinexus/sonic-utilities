@@ -8,6 +8,10 @@ import subprocess
 import netaddr
 import re
 import syslog
+import logging
+import swsssdk
+import getpass
+import uuid
 
 import sonic_device_util
 import ipaddress
@@ -17,6 +21,12 @@ from minigraph import parse_device_desc_xml
 
 import aaa
 import mlnx
+import traceback
+import base64
+from Crypto.Cipher import AES
+from Crypto.Hash import SHA256
+from Crypto import Random
+import time
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -386,13 +396,9 @@ def _reset_failed_services():
             log_error("Failed to reset failed status for service {}".format(service))
             raise
 
-def _restart_services():
+def _start_services():
     # on Mellanox platform pmon is started by syncd
     services_to_restart = [
-        'hostname-config',
-        'interfaces-config',
-        'ntp-config',
-        'rsyslog-config',
         'swss',
         'bgp',
         'pmon',
@@ -404,11 +410,31 @@ def _restart_services():
 
     for service in services_to_restart:
         try:
-            click.echo("Restarting service {} ...".format(service))
-            run_command("systemctl restart {}".format(service))
+            click.echo("Starting service {} ...".format(service))
+            run_command("systemctl start {}".format(service))
+        except SystemExit as e:
+            log_error("Start {} failed with error {}".format(service, e))
+            raise
+def _restart_services_config():
+    services = [
+        'hostname-config',
+        'interfaces-config',
+        'ntp-config',
+        'rsyslog-config',
+    ]
+
+    for service in services:
+        try:
+            run_command("systemctl restart %s" % service, display_cmd=True)
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
+
+
+def _restart_services():
+    _restart_services_config()
+    _start_services()
+
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
@@ -1802,5 +1828,134 @@ def del_ntp_server(ctx, ntp_ip_address):
     except SystemExit as e:
         ctx.fail("Restart service ntp-config failed with error {}".format(e))
 
+g_ext_cfg = {}
+
+@config.group('export', invoke_without_command=False)
+@click.pass_context
+def export(ctx):
+    pass
+
+@export.command('enable')
+@click.pass_context
+def export_enable(ctx):
+    """Enable the tech-support export service"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    cfg_entry = config_db.get_entry('EXPORT', 'export')
+
+    if 'servername' in cfg_entry:
+        cfg_entry['config'] = 'enable'
+        config_db.set_entry('EXPORT', 'export',cfg_entry)
+    else:
+        print "export is not configured\n"
+
+@export.command('disable')
+@click.pass_context
+def export_disable(ctx):
+    """Disable the tech-support export service"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    cfg_entry = config_db.get_entry('EXPORT', 'export')
+
+    if 'servername' in cfg_entry:
+        cfg_entry['config'] = 'disable'
+        config_db.set_entry('EXPORT', 'export',cfg_entry)
+    else:
+        print "export is not configured\n"
+
+
+
+class BasedIntParamType(click.ParamType):
+
+    def convert(self, value, param, ctx):
+        minval=30
+        maxval=1440
+        try:
+            if int (value) == 0:
+                return int(value)
+
+            if ( int(value) >= minval and int(value) <= maxval) :
+                return int(value)
+            else:
+                print "Invalid interval range, valid values[ 0(disable), {}-{} minutes]".format(minval, maxval)
+        except Exception as e:
+            print str(e)
+
+BASED_INT = BasedIntParamType()
+
+@export.command('interval')
+#@click.argument('interval', metavar='<interval in secs>', nargs=1,  required=True, type=click.IntRange(0,1800,86400))
+@click.argument('interval', metavar='<interval in minutes>', nargs=1,  required=True, type=BASED_INT)
+@click.pass_context
+def export_interval(ctx, interval):
+    """Configure the tech-support export interval """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    cfg_entry = config_db.get_entry('EXPORT', 'export')
+
+    if 'servername' in cfg_entry:
+        cfg_entry['interval'] = interval
+        config_db.set_entry('EXPORT', 'export',cfg_entry)
+    else:
+        print "export is not configured\n"
+
+
+def encrypt(key, source, encode=True):
+    key = key.ljust(16,'F')
+    obj = AES.new(key, AES.MODE_CFB, 'A287AJSHJKHJS562')
+    data = obj.encrypt(source)
+    return base64.b64encode(data).decode("latin-1") if encode else data
+
+
+@export.group('server')
+@click.pass_context
+def export_server(ctx):
+    """Configure the remote server name to connect""" 
+    pass
+
+@export_server.group('username', invoke_without_command=False)
+@click.pass_context
+def export_user(ctx):
+    """Configure the remote server user name to upload""" 
+    pass
+
+@export_user.group('destdir', invoke_without_command=False)
+@click.pass_context
+def export_destdir(ctx):
+    """Configure the remote server directory to save the tech-support data""" 
+    pass
+
+
+@export_destdir.command('protocol')
+@click.argument('servername', metavar='<server name>', nargs=1,  required=True)
+@click.argument('username', metavar='<user name>', required=True)
+@click.argument('destdir', metavar='<destination directory>', required=True)
+@click.argument('protocol', metavar='<protocol: scp/sftp>', required=True, type=click.Choice(["scp", "sftp"]))
+@click.pass_context
+def export_protocol(ctx, servername, username, destdir, protocol ):
+    """
+    Configures the export service to upload the tech-support data to a remote server \n
+       <server name> -  Configure the remote server name to connect \n
+       <user name>   -  Configure the remote server user name to upload \n
+       <dest dir>    -  Configure the remote server directory to save 
+                        the tech-support data \n
+       <protocol>    -  Configure the protocol type[scp/sftp] to upload 
+                        the tech-support data \n
+    """ 
+    g_ext_cfg['servername'] = servername
+    g_ext_cfg['username'] = username
+    g_ext_cfg['destdir'] = destdir
+    g_ext_cfg['protocol'] = protocol
+
+    try:
+        g_ext_cfg['password'] = getpass.getpass('Password:')
+        g_ext_cfg['password'] = encrypt(str(uuid.getnode()), g_ext_cfg['password'])
+    except:
+        print "Input reading error!"
+        traceback.print_exc(file=sys.stdout)
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.set_entry('EXPORT', 'export', g_ext_cfg)
 if __name__ == '__main__':
     config()

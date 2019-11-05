@@ -25,11 +25,13 @@ DO_COMPRESS=true
 CMD_PREFIX=
 SINCE_DATE="@0" # default is set to January 1, 1970 at 00:00:00 GMT
 REFERENCE_FILE=/tmp/reference
-BASE=sonic_dump_`hostname`_`date +%Y%m%d_%H%M%S`
+BASE=${BASE:-sonic_dump_`hostname`_`date +%Y%m%d_%H%M%S`}
 DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
 TARFILE=$DUMPDIR/$BASE.tar
 LOGDIR=$DUMPDIR/$BASE/dump
+HOME=${HOME:-/root}
+USER=${USER:-root}
 
 ###############################################################################
 # Runs a comamnd and saves its output to the incrementally built tar.
