@@ -123,7 +123,7 @@ class TestDropCounters(object):
 
     def test_show_counts_with_clear(self):
         runner = CliRunner()
-        runner.invoke(clear.cli.commands["dropcounters"])
+        runner.invoke(clear.cli.commands["dropcounter"])
         result = runner.invoke(show.cli.commands["dropcounter"].commands["counts"], [])
         print(result.output)
         assert result.output == expected_counts_with_clear
