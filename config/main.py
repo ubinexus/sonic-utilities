@@ -1639,7 +1639,7 @@ def delete_counter(counter_name, verbose):
 
 
 #
-# 'add_reason' subcommand ('config dropcounter add_reason')
+# 'add_reasons' subcommand ('config dropcounter add_reasons')
 #
 @dropcounter.command()
 @click.argument("counter_name", type=str, required=True)
@@ -1652,7 +1652,7 @@ def add_reasons(counter_name, reasons, verbose):
 
 
 #
-# 'remove_reason' subcommand ('config dropcounter remove_reason')
+# 'remove_reasons' subcommand ('config dropcounter remove_reasons')
 #
 @dropcounter.command()
 @click.argument("counter_name", type=str, required=True)
