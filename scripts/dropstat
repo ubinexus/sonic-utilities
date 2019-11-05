@@ -22,12 +22,26 @@ from tabulate import tabulate
 from collections import OrderedDict
 from natsort import natsorted
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "sonic-utilities-tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+        socket.gethostname = lambda : 'sonic_drops_test'
+except KeyError:
+    pass
+
 # COUNTERS_DB Tables
 DEBUG_COUNTER_PORT_STAT_MAP = 'COUNTERS_DEBUG_NAME_PORT_STAT_MAP'
 DEBUG_COUNTER_SWITCH_STAT_MAP = 'COUNTERS_DEBUG_NAME_SWITCH_STAT_MAP'
 COUNTERS_PORT_NAME_MAP = 'COUNTERS_PORT_NAME_MAP'
-COUNTERS_SWITCH_NAME_MAP = 'COUNTERS_SWITCH_NAME_MAP'
 COUNTER_TABLE_PREFIX = 'COUNTERS:'
+
+# ASIC_DB Tables
+ASIC_SWITCH_INFO_PREFIX = 'ASIC_STATE:SAI_OBJECT_TYPE_SWITCH:'
 
 # APPL_DB Tables
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
@@ -46,7 +60,7 @@ PORT_STATE_NA = 'N/A'
 DEBUG_COUNTER_CONFIG_TABLE = 'DEBUG_COUNTER'
 
 # Standard Port-Level Counters
-std_port_rx_counters  = ['SAI_PORT_STAT_IF_IN_ERRORS', 'SAI_PORT_STAT_IF_IN_DISCARDS']
+std_port_rx_counters = ['SAI_PORT_STAT_IF_IN_ERRORS', 'SAI_PORT_STAT_IF_IN_DISCARDS']
 std_port_tx_counters = ['SAI_PORT_STAT_IF_OUT_ERRORS', 'SAI_PORT_STAT_IF_OUT_DISCARDS']
 
 # Standard Port-Level Headers
@@ -64,14 +78,15 @@ std_switch_description_header = ['DEVICE']
 # Bookkeeping Files
 dropstat_dir = '/tmp/dropstat/'
 
-class DropStat(object):
 
+class DropStat(object):
     def __init__(self):
         self.config_db = swsssdk.ConfigDBConnector()
         self.config_db.connect()
 
         self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
         self.db.connect(self.db.COUNTERS_DB)
+        self.db.connect(self.db.ASIC_DB)
         self.db.connect(self.db.APPL_DB)
 
         self.port_drop_stats_file = os.path.join(dropstat_dir, 'port-stats-{}'.format(os.getuid()))
@@ -97,9 +112,9 @@ class DropStat(object):
 
         try:
             pickle.dump(self.get_counts_table(self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP), COUNTERS_PORT_NAME_MAP),
-                open(self.port_drop_stats_file, 'w+'))
-            pickle.dump(self.get_counts_table(self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP), COUNTERS_SWITCH_NAME_MAP),
-                open(self.switch_drop_stats_file, 'w+'))
+                        open(self.port_drop_stats_file, 'w+'))
+            pickle.dump(self.get_counts(self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP), self.get_switch_id()),
+                        open(self.switch_drop_stats_file, 'w+'))
         except IOError as e:
             print(e)
             sys.exit(e.errno)
@@ -149,17 +164,20 @@ class DropStat(object):
         if not counters:
             return
 
-        table = []
-        for key, value in self.get_counts_table(counters, COUNTERS_SWITCH_NAME_MAP).iteritems():
-            row = [key]
-            for counter in counters:
-                row.append(value.get(counter, 0) - switch_drop_ckpt.get(key, {}).get(counter, 0))
-            table.append(row)
+        switch_id = self.get_switch_id()
+        switch_stats = self.get_counts(counters, switch_id)
 
-        if table:
-            print(tabulate(table, headers, tablefmt='simple', stralign='right'))
+        if not switch_stats:
+            return
 
-    def gather_counters(self, std_counters, object_stat_map, group = None, counter_type = None):
+        row = [socket.gethostname()]
+        for counter in counters:
+            row.append(switch_stats.get(counter, 0) - switch_drop_ckpt.get(counter, 0))
+
+        if row:
+            print(tabulate([row], headers, tablefmt='simple', stralign='right'))
+
+    def gather_counters(self, std_counters, object_stat_map, group=None, counter_type=None):
         """
             Gather the list of counters to be counted, filtering out those that are not in
             the group or not the right counter type.
@@ -167,9 +185,9 @@ class DropStat(object):
 
         configured_counters = self.get_configured_counters(object_stat_map)
         counters = std_counters + configured_counters
-        return [ ctr for ctr in counters
-                    if self.in_group(ctr, object_stat_map, group)
-                    and self.is_type(ctr, object_stat_map, counter_type) ]
+        return [ctr for ctr in counters
+                if self.in_group(ctr, object_stat_map, group) and
+                self.is_type(ctr, object_stat_map, counter_type)]
 
     def gather_headers(self, counters, object_stat_map):
         """
@@ -187,28 +205,28 @@ class DropStat(object):
 
         return headers
 
-    def get_counts_table(self, counters, object_table):
-        """
-            Returns a dictionary containing a mapping from an object (like a port)
-            to its drop counts. Drop counts are contained in a dictionary that maps
-            counter name to its counts.
-        """
-
-        def get_counts(counters, oid):
+    def get_counts(self, counters, oid):
             """
                 Get the drop counts for an individual counter.
             """
 
             counts = {}
 
+            table_id = COUNTER_TABLE_PREFIX + oid
             for counter in counters:
-                table_id = COUNTER_TABLE_PREFIX + oid
                 counter_data = self.db.get(self.db.COUNTERS_DB, table_id, counter)
                 if counter_data is None:
                     counts[counter] = 0
                 else:
                     counts[counter] = int(counter_data)
             return counts
+
+    def get_counts_table(self, counters, object_table):
+        """
+            Returns a dictionary containing a mapping from an object (like a port)
+            to its drop counts. Drop counts are contained in a dictionary that maps
+            counter name to its counts.
+        """
 
         counter_object_name_map = self.db.get_all(self.db.COUNTERS_DB, object_table)
         current_stat_dict = OrderedDict()
@@ -217,8 +235,16 @@ class DropStat(object):
             return current_stat_dict
 
         for obj in natsorted(counter_object_name_map):
-            current_stat_dict[obj] = get_counts(counters, counter_object_name_map[obj])
+            current_stat_dict[obj] = self.get_counts(counters, counter_object_name_map[obj])
         return current_stat_dict
+
+    def get_switch_id(self):
+        """
+            Returns the ID of the current switch
+        """
+
+        switch_id = self.db.keys(self.db.ASIC_DB, ASIC_SWITCH_INFO_PREFIX + '*')[0]
+        return switch_id[len(ASIC_SWITCH_INFO_PREFIX):]
 
     def get_stat_lookup(self, object_stat_map):
         """
@@ -244,7 +270,7 @@ class DropStat(object):
         if not self.reverse_stat_lookup.get(object_stat_map, None):
             stats_map = self.get_stat_lookup(object_stat_map)
             if stats_map:
-                self.reverse_stat_lookup[object_stat_map] = { v: k for k, v in stats_map.iteritems() }
+                self.reverse_stat_lookup[object_stat_map] = {v: k for k, v in stats_map.iteritems()}
             else:
                 self.reverse_stat_lookup[object_stat_map] = None
 
@@ -262,7 +288,7 @@ class DropStat(object):
         if not counters:
             return configured_counters
 
-        return [ ctr for ctr in counters.itervalues() ]
+        return [ctr for ctr in counters.itervalues()]
 
     def get_counter_name(self, object_stat_map, counter_stat):
         """
@@ -343,7 +369,7 @@ class DropStat(object):
         admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
         oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
         if admin_state is None or oper_state is None:
-             return PORT_STATE_NA
+            return PORT_STATE_NA
         elif admin_state.upper() == PORT_STATUS_VALUE_DOWN:
             return PORT_STATE_DISABLED
         elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_UP:
@@ -353,11 +379,12 @@ class DropStat(object):
         else:
             return PORT_STATE_NA
 
+
 def main():
-    parser  = argparse.ArgumentParser(description='Display drop counters',
-                                      version='1.0.0',
-                                      formatter_class=argparse.RawTextHelpFormatter,
-                                      epilog="""
+    parser = argparse.ArgumentParser(description='Display drop counters',
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     epilog="""
 Examples:
   dropstat
 """)
@@ -373,7 +400,7 @@ Examples:
 
     command = args.command
 
-    group        = args.group
+    group = args.group
     counter_type = args.type
 
     # Create the directory to hold clear results
