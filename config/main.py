@@ -532,8 +532,8 @@ def load_minigraph():
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     device_type, err = proc.communicate()
     if err:
-        click.echo("Could not get the device type from minigraph, exiting")
-        sys.exit(1)
+        click.echo("Could not get the device type from minigraph, setting device type to Unknown")
+        device_type = 'Unknown'
     else:
         device_type = device_type.strip()
 
