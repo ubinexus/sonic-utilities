@@ -110,7 +110,7 @@ def db_update(t, k, lst):
     if to_upd:
         db.mod_entry(t, k, lst)
 
-def db_filtered_upd(t, k, lst):
+def db_delete_fields(t, k, lst):
     init()
     to_set = False
     data = db.get_entry(t, k)
@@ -132,7 +132,7 @@ def db_delete_deep(t, k):
 def db_delete(t, k, lst):
     init()
     if lst:
-        db_filtered_upd(t, k, lst)
+        db_delete_fields(t, k, lst)
     else:
         db_delete_deep(t, k)
 
