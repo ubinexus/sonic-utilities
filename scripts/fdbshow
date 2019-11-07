@@ -43,6 +43,8 @@ class FdbShow(object):
         self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, \
         self.if_oid_map = port_util.get_interface_oid_map(self.db)
+        self.lag_if_name_map, \
+        self.lag_if_oid_map = port_util.get_lag_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
         return
@@ -76,7 +78,12 @@ class FdbShow(object):
             if br_port_id not in self.if_br_oid_map:
                 continue
             port_id = self.if_br_oid_map[br_port_id]
-            if_name = self.if_oid_map[port_id]
+            if port_id in self.if_oid_map:
+                if_name = self.if_oid_map[port_id]
+            elif port_id in self.lag_if_oid_map:
+                if_name = self.lag_if_oid_map[port_id]
+            else:
+                if_name = ""
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
             elif 'bvid' in fdb:
