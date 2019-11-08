@@ -2170,7 +2170,6 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
-
 #
 # 'syslog' group ('config syslog ...')
 #
@@ -2367,7 +2366,8 @@ def enable(ctx, ifname):
     if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
-        
+
+
     config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
@@ -2387,7 +2387,8 @@ def disable(ctx, ifname):
     if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
-        
+
+
     config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
@@ -2406,7 +2407,7 @@ def disable(ctx, ifname):
 @click.argument('rate', metavar='<sample_rate>', required=True, type=int)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
-    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
+    if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
     if not is_valid_sample_rate(rate):
