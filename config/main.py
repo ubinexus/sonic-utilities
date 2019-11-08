@@ -112,37 +112,33 @@ def interface_alias_to_name(interface_alias):
     return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
 
-def interface_name_is_valid(config_db, interface_name):
+def interface_name_is_valid(interface_name):
     """Check if the interface name is valid
     """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
+    port_channel_dict = config_db.get_table('PORTCHANNEL')
     sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
 
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
 
     if interface_name is not None:
-        if interface_name.startswith("Ethernet"):
-            port_dict = config_db.get_table('PORT')
-            if not port_dict:
-                click.echo("port_dict is None!")
-                raise click.Abort()
-
-            for port_name in port_dict.keys():
-                if interface_name == port_name:
+        if not port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
+        for port_name in port_dict.keys():
+            if interface_name == port_name:
+                return True
+        if port_channel_dict:
+            for port_channel_name in port_channel_dict.keys():
+                if interface_name == port_channel_name:
                     return True
-
-        if interface_name.startswith("PortChannel"):
-            port_channel_dict = config_db.get_table('PORTCHANNEL')
-            if port_channel_dict:
-                for port_channel_name in port_channel_dict.keys():
-                    if interface_name == port_channel_name:
-                        return True
-
         if sub_port_intf_dict:
             for sub_port_intf_name in sub_port_intf_dict.keys():
                 if interface_name == sub_port_intf_name:
                     return True
-                    
     return False
 
 def vlan_id_is_valid(vid):
@@ -1396,7 +1392,7 @@ def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(db, interface_name) is False:
+    if interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid!!")
 
     vid2 = vid2+1
@@ -1477,7 +1473,7 @@ def del_vlan_member_range(ctx, vid1, vid2, interface_name, warning):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(db, interface_name) is False:
+    if interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid!!")
 
     vid2 = vid2+1
@@ -1589,7 +1585,7 @@ def add_mac(ctx, mac, vlan, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(db, interface_name) is False:
+    if interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid!!")
 
     db.set_entry('FDB', (vlan_name, mac), {'port': interface_name })
@@ -1714,7 +1710,7 @@ def startup(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(config_db, interface_name) is False:
+    if interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     if interface_name.startswith("Ethernet"):
@@ -1742,7 +1738,7 @@ def shutdown(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(config_db, interface_name) is False:
+    if interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     if interface_name.startswith("Ethernet"):
@@ -2368,11 +2364,11 @@ def interface(ctx):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def enable(ctx, ifname):
-    config_db = ctx.obj['db']
-    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
+    if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
-
+        
+    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -2388,11 +2384,11 @@ def enable(ctx, ifname):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def disable(ctx, ifname):
-    config_db = ctx.obj['db']
-    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
+    if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
-
+        
+    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -2410,7 +2406,6 @@ def disable(ctx, ifname):
 @click.argument('rate', metavar='<sample_rate>', required=True, type=int)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
-    config_db = ctx.obj['db']
     if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
@@ -2418,6 +2413,7 @@ def sample_rate(ctx, ifname, rate):
         click.echo('Error: Sample rate must be between 256 and 8388608')
         return
 
+    config_db = ctx.obj['db']
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
     if sess_dict and ifname in sess_dict.keys():
