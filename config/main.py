@@ -2368,11 +2368,11 @@ def interface(ctx):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def enable(ctx, ifname):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
 
-    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -2388,11 +2388,11 @@ def enable(ctx, ifname):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def disable(ctx, ifname):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
 
-    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -2410,14 +2410,14 @@ def disable(ctx, ifname):
 @click.argument('rate', metavar='<sample_rate>', required=True, type=int)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
     if not is_valid_sample_rate(rate):
         click.echo('Error: Sample rate must be between 256 and 8388608')
         return
 
-    config_db = ctx.obj['db']
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
     if sess_dict and ifname in sess_dict.keys():
