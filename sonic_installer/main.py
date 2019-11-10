@@ -13,6 +13,7 @@ import subprocess
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 import collections
+import platform
 
 HOST_PATH = '/host'
 IMAGE_PREFIX = 'SONiC-OS-'
@@ -22,6 +23,10 @@ ABOOT_DEFAULT_IMAGE_PATH = '/tmp/sonic_image.swi'
 IMAGE_TYPE_ABOOT = 'aboot'
 IMAGE_TYPE_ONIE = 'onie'
 ABOOT_BOOT_CONFIG = '/boot-config'
+BOOTLOADER_TYPE_GRUB = 'grub'
+BOOTLOADER_TYPE_UBOOT = 'uboot'
+ARCH = platform.machine()
+BOOTLOADER = BOOTLOADER_TYPE_UBOOT if "arm" in ARCH else BOOTLOADER_TYPE_GRUB
 
 #
 # Helper functions
@@ -106,7 +111,7 @@ def set_default_image(image):
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
         image_path = aboot_image_path(image)
         aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
         run_command(command)
     return True
@@ -156,7 +161,7 @@ def get_installed_images():
         for filename in os.listdir(HOST_PATH):
             if filename.startswith(IMAGE_DIR_PREFIX):
                 images.append(filename.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX))
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         config = open(HOST_PATH + '/grub/grub.cfg', 'r')
         for line in config:
             if line.startswith('menuentry'):
@@ -164,6 +169,17 @@ def get_installed_images():
                 if IMAGE_PREFIX in image:
                     images.append(image)
         config.close()
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+        image = out.rstrip()
+        if IMAGE_PREFIX in image:
+            images.append(image)
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_old", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+        image = out.rstrip()
+        if IMAGE_PREFIX in image:
+            images.append(image)
     return images
 
 # Returns name of current image
@@ -179,7 +195,7 @@ def get_next_image():
         config = open(HOST_PATH + ABOOT_BOOT_CONFIG, 'r')
         next_image = re.search("SWI=flash:(\S+)/", config.read()).group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
         config.close()
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         images = get_installed_images()
         grubenv = subprocess.check_output(["/usr/bin/grub-editenv", HOST_PATH + "/grub/grubenv", "list"])
         m = re.search("next_entry=(\d+)", grubenv)
@@ -192,6 +208,12 @@ def get_next_image():
             else:
                 next_image_index = 0
         next_image = images[next_image_index]
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_old", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+        image = out.rstrip()
+        if IMAGE_PREFIX in image:
+            next_image = image;
     return next_image
 
 def remove_image(image):
@@ -207,7 +229,7 @@ def remove_image(image):
         click.echo('Removing image root filesystem...')
         subprocess.call(['rm','-rf', os.path.join(HOST_PATH, image_dir)])
         click.echo('Image removed')
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         click.echo('Updating GRUB...')
         config = open(HOST_PATH + '/grub/grub.cfg', 'r')
         old_config = config.read()
@@ -360,7 +382,8 @@ def install(url, force):
             run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
         else:
             run_command("bash " + image_path)
-            run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+            if BOOTLOADER == BOOTLOADER_TYPE_GRUB:
+                run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         run_command("rm -rf /host/old_config")
         # copy directories and preserve original file structure, attributes and associated metadata
         run_command("cp -ar /etc/sonic /host/old_config")
