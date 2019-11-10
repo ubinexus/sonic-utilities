@@ -114,6 +114,12 @@ def set_default_image(image):
     elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
         run_command(command)
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        if image in images[0]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_1"')
+        elif image in images[1]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_2"')
+
     return True
 
 def aboot_read_boot_config(path):
@@ -170,12 +176,12 @@ def get_installed_images():
                     images.append(image)
         config.close()
     elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
-        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version", shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_1", shell=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
         image = out.rstrip()
         if IMAGE_PREFIX in image:
             images.append(image)
-        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_old", shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_2", shell=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
         image = out.rstrip()
         if IMAGE_PREFIX in image:
@@ -209,11 +215,15 @@ def get_next_image():
                 next_image_index = 0
         next_image = images[next_image_index]
     elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
-        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_old", shell=True, stdout=subprocess.PIPE)
+        images = get_installed_images()
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n boot_next", shell=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
         image = out.rstrip()
-        if IMAGE_PREFIX in image:
-            next_image = image;
+        if "sonic_image_2" in image:
+            next_image_index = 1
+        else:
+            next_image_index = 0
+        next_image = images[next_image_index]
     return next_image
 
 def remove_image(image):
@@ -248,6 +258,19 @@ def remove_image(image):
 
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         click.echo('Image removed')
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        click.echo('Updating next boot ...')
+        images = get_installed_images()
+        if image in images[0]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_2"')
+            run_command('/usr/bin/fw_setenv sonic_version_1 "NONE"')
+        elif image in images[1]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_1"')
+            run_command('/usr/bin/fw_setenv sonic_version_2 "NONE"')
+        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        click.echo('Removing image root filesystem...')
+        subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
+        click.echo('Done')
 
 # TODO: Embed tag name info into docker image meta data at build time,
 # and extract tag name from docker image file.
@@ -429,9 +452,14 @@ def set_next_boot(image):
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
         image_path = aboot_image_path(image)
         aboot_boot_config_set(SWI=image_path)
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         command = 'grub-reboot --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
         run_command(command)
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        if image in images[0]:
+            run_command('/usr/bin/fw_setenv boot_once "run sonic_image_1"')
+        elif image in images[1]:
+            run_command('/usr/bin/fw_setenv boot_once "run sonic_image_2"')
 
 
 # Uninstall image
