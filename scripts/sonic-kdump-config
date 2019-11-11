@@ -168,36 +168,33 @@ def get_kdump_administrative_mode():
 #
 #  @return The current memory string used for kdump (read from running configuration)
 def get_kdump_memory():
-    memory = "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                mem = config_data.get('memory')
-                if mem:
-                    memory = mem
-    return memory
+    (rc, lines, err_str) = run_command("/usr/bin/show kdump memory", use_shell=False)
+    try:
+        if rc == 0 and len(lines) == 1:
+            p = lines[0].find(': ')
+            if p != -1:
+                #print('XXX')
+                #print(lines[0][p+2:])
+                #print('XXX')
+                return lines[0][p+2:]
+    except:
+        pass
+    return "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
 
 ## Query current configuration for kdump num_dumps
 #
 #  @return The maximum number of kernel dump files stored locally
 #          (read from running configuration)
 def get_kdump_num_dumps():
-    num_dumps = 2
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                num = config_data.get('num_dumps')
-                if num:
-                    num_dumps = num
-    return num_dumps
+    (rc, lines, err_str) = run_command("/usr/bin/show kdump num_dumps", use_shell=False)
+    try:
+        if rc == 0 and len(lines) == 1:
+            p = lines[0].find(': ')
+            if p != -1:
+                return int(lines[0][p+2:])
+    except:
+        pass
+    return 3
 
 ## Read current value for USE_KDUMP in kdump config file
 #
@@ -257,27 +254,17 @@ def write_num_dumps(num_dumps):
         print_err("Error while writing KDUMP_NUM_DUMPS into %s" % kdump_cfg)
         sys.exit(1)
 
-## Perform reboot command
-#
-#  We trigger a system reboot, WITHOUT asking for a confirmation
-def perform_reboot():
-    run_command("/usr/bin/config save -y", use_shell=False);
-    (rc, lines, err_str) = run_command("/usr/bin/reboot -y", use_shell=False);
-    if rc == 0 and type(lines) == list and len(lines) == 0:
-        print("We are Rebooting...")
-        os.sleep(60)
-    else:
-        print_err("Error while trying to Reboot")
-        sys.exit(1)
-
 ## Command: Enable kdump
 #
 #  @param verbose If True, the function will display a few additinal information
-#  @param yes     If True, will reboot immediately if needed, without comfirmation
 #  @param no      If True, will not display reboot needed message
 #  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_enable(verbose, yes, no):
+def cmd_kdump_enable(verbose, no):
 
+    if not os.path.exists(grub_cfg):
+        print("Feature not supported on this platform")
+        run_command("config kdump disable", use_shell=False);
+        return False
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
@@ -331,11 +318,12 @@ def cmd_kdump_enable(verbose, yes, no):
 ## Command: Enable kdump on Next image only
 #
 #  @param verbose If True, the function will display a few additional information
-#  @param yes     If True, will reboot immediately if needed, without comfirmation
 #  @param no      If True, will not display reboot needed message
 #  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_config_next(verbose, yes, no):
+def cmd_kdump_config_next(verbose, no):
 
+    if not os.path.exists(grub_cfg):
+        return False
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
@@ -389,11 +377,11 @@ def cmd_kdump_config_next(verbose, yes, no):
 ## Command: Disable kdump
 #
 #  @param verbose If True, the function will display a few additional information
-#  @param yes     If True, will reboot immediately if needed, without comfirmation
 #  @param no      If True, will not display reboot needed message
-#  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_disable(verbose, yes):
+def cmd_kdump_disable(verbose):
 
+    if not os.path.exists(grub_cfg):
+        return False
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
@@ -435,7 +423,7 @@ def cmd_kdump_memory(verbose, memory):
         if use_kdump_in_cfg:
             crash_kernel_in_cmdline = search_for_crash_kernel_in_cmdline()
             if memory != crash_kernel_in_cmdline:
-                cmd_kdump_enable(verbose, False, False)
+                cmd_kdump_enable(verbose, False)
                 print("kdump updated memory will be only operational after the system reboots")
 
 ## Command: Set / Get num_dumps
@@ -578,9 +566,6 @@ def main():
         help='displays detailed kdump status information. Used with status command.')
 
     # Skips user from requiring to answer yes/no? to continue
-    parser.add_argument("-y", "--yes", action='store_true')
-
-    # Skips user from requiring to answer yes/no? to continue
     parser.add_argument("-n", "--no", action='store_true')
 
     # How many lines should we display from the kernel log
@@ -599,11 +584,11 @@ def main():
     changed = False
     try:
         if options.enable:
-            changed = cmd_kdump_enable(options.verbose, options.yes, options.no)
+            changed = cmd_kdump_enable(options.verbose, options.no)
         elif options.config_next:
-            changed = cmd_kdump_config_next(options.verbose, options.yes, options.no)
+            changed = cmd_kdump_config_next(options.verbose, options.no)
         elif options.disable:
-            changed = cmd_kdump_disable(options.verbose, options.yes)
+            changed = cmd_kdump_disable(options.verbose)
         elif options.memory != False:
             cmd_kdump_memory(options.verbose, options.memory)
         elif options.num_dumps != False:
@@ -622,9 +607,7 @@ def main():
         sys.exit(1)
 
     if changed:
-        if options.yes:
-            perform_reboot()
-        elif options.no is False:
+        if options.no is False:
             print("Kdump configuration changes will be applied after the system reboots")
 
     sys.exit(0)
