@@ -1162,7 +1162,7 @@ def spanning_tree(verbose):
     config_db = ConfigDBConnector(host="127.0.0.1")
     config_db.connect()
 
-    stp_list = ["STP", "STP_INTF", "STP_VLAN", "STP_VLAN_INTF"]
+    stp_list = ["STP", "STP_PORT", "STP_VLAN", "STP_VLAN_PORT"]
     for key in stp_list:
         table = config_db.get_table(key)
         if len(table):

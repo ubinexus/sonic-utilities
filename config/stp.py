@@ -248,7 +248,7 @@ def interface_enable_stp(ctx, interface_name):
            'portfast': 'true',
            'uplink_fast': 'false'
            }
-    db.set_entry('STP_INTF', interface_name, fvs)
+    db.set_entry('STP_PORT', interface_name, fvs)
 
 
 def interface_disable_stp(ctx, interface_name):
@@ -257,7 +257,7 @@ def interface_disable_stp(ctx, interface_name):
 
 def interface_set_stp_enable(ctx, interface_name, state):
     db = ctx.obj['db']
-    db.set_entry('STP_INTF', interface_name, {'enabled': state})
+    db.set_entry('STP_PORT', interface_name, {'enabled': state})
 
 
 def is_vlan_configured_interface(ctx, interface_name):
@@ -296,7 +296,7 @@ def get_pc_member_port_list(db):
 
 
 def get_vlan_list_from_stp_vlan_intf_table(db, intf_name):
-    stp_vlan_intf_info = db.get_table('STP_VLAN_INTF')
+    stp_vlan_intf_info = db.get_table('STP_VLAN_PORT')
     vlan_list = []
     for line in stp_vlan_intf_info:
         if line[1] == intf_name:
@@ -305,7 +305,7 @@ def get_vlan_list_from_stp_vlan_intf_table(db, intf_name):
 
 
 def get_intf_list_from_stp_vlan_intf_table(db, vlan_name):
-    stp_vlan_intf_info = db.get_table('STP_VLAN_INTF')
+    stp_vlan_intf_info = db.get_table('STP_VLAN_PORT')
     intf_list = []
     for line in stp_vlan_intf_info:
         if line[0] == vlan_name:
@@ -338,12 +338,12 @@ def enable_stp_for_interfaces(ctx):
 
     for port_key in port_dict:
         if port_key in intf_list_in_vlan_member_table:
-            pipe.hmset('STP_INTF|{}'.format(port_key), fvs)
+            pipe.hmset('STP_PORT|{}'.format(port_key), fvs)
 
     po_ch_dict = natsorted(db.get_table('PORTCHANNEL'))
     for po_ch_key in po_ch_dict:
         if po_ch_key in intf_list_in_vlan_member_table:
-            pipe.hmset('STP_INTF|{}'.format(po_ch_key), fvs)
+            pipe.hmset('STP_PORT|{}'.format(po_ch_key), fvs)
     pipe.execute()
     pass
 
@@ -452,8 +452,8 @@ def stp_disable(ctx, mode):
     db.set_entry('STP', "GLOBAL", None)
     # Disable STP for all VLANs and interfaces
     db.delete_table('STP_VLAN')
-    db.delete_table('STP_INTF')
-    db.delete_table('STP_VLAN_INTF')
+    db.delete_table('STP_PORT')
+    db.delete_table('STP_VLAN_PORT')
     pass
 
 
@@ -581,11 +581,11 @@ def stp_vlan_enable(ctx, vid):
     else:
         db.mod_entry('STP_VLAN', vlan_name, {'enabled': 'true'})
     # Refresh stp_vlan_intf entry for vlan
-    for vlan, intf in db.get_table('STP_VLAN_INTF'):
+    for vlan, intf in db.get_table('STP_VLAN_PORT'):
         if vlan == vlan_name:
             vlan_intf_key = "{}|{}".format(vlan_name, intf)
-            vlan_intf_entry = db.get_entry('STP_VLAN_INTF', vlan_intf_key)
-            db.mod_entry('STP_VLAN_INTF', vlan_intf_key, vlan_intf_entry)
+            vlan_intf_entry = db.get_entry('STP_VLAN_PORT', vlan_intf_key)
+            db.mod_entry('STP_VLAN_PORT', vlan_intf_key, vlan_intf_entry)
     pass
 
 
@@ -671,7 +671,7 @@ def stp_vlan_priority(ctx, vid, priority):
 
 def is_stp_enabled_for_interface(ctx, intf_name):
     db = ctx.obj['db']
-    stp_entry = db.get_entry('STP_INTF', intf_name)
+    stp_entry = db.get_entry('STP_PORT', intf_name)
     stp_enabled = stp_entry.get("enabled")
     if stp_enabled == "true":
         return True
@@ -716,7 +716,7 @@ def stp_interface_enable(ctx, interface_name):
         ctx.fail("STP is already enabled for " + interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    stp_intf_entry = db.get_entry('STP_INTF', interface_name)
+    stp_intf_entry = db.get_entry('STP_PORT', interface_name)
     if len(stp_intf_entry) == 0:
         fvs = {'enabled': 'true',
                'root_guard': 'false',
@@ -725,9 +725,9 @@ def stp_interface_enable(ctx, interface_name):
                'portfast': 'true',
                'uplink_fast': 'false'
         }
-        db.set_entry('STP_INTF', interface_name, fvs)
+        db.set_entry('STP_PORT', interface_name, fvs)
     else:
-        db.mod_entry('STP_INTF', interface_name, {'enabled': 'true'})
+        db.mod_entry('STP_PORT', interface_name, {'enabled': 'true'})
 
 
 @spanning_tree_interface.command('disable')
@@ -738,7 +738,7 @@ def stp_interface_disable(ctx, interface_name):
     check_if_global_stp_enabled(ctx)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'enabled': 'false'})
+    db.mod_entry('STP_PORT', interface_name, {'enabled': 'false'})
 
 
 # STP interface port priority
@@ -762,17 +762,17 @@ def stp_interface_priority(ctx, interface_name, priority):
     check_if_interface_is_valid(ctx, interface_name)
     is_valid_interface_priority(ctx, priority)
     db = ctx.obj['db']
-    curr_intf_proirty = db.get_entry('STP_INTF', interface_name).get('priority')
-    db.mod_entry('STP_INTF', interface_name, {'priority': priority})
+    curr_intf_proirty = db.get_entry('STP_PORT', interface_name).get('priority')
+    db.mod_entry('STP_PORT', interface_name, {'priority': priority})
     # update interface priority in all stp_vlan_intf entries if entry exists
-    for vlan, intf in db.get_table('STP_VLAN_INTF'):
+    for vlan, intf in db.get_table('STP_VLAN_PORT'):
         if intf == interface_name:
             vlan_intf_key = "{}|{}".format(vlan, interface_name)
-            vlan_intf_entry = db.get_entry('STP_VLAN_INTF', vlan_intf_key)
+            vlan_intf_entry = db.get_entry('STP_VLAN_PORT', vlan_intf_key)
             if len(vlan_intf_entry) != 0:
                 vlan_intf_priority = vlan_intf_entry.get('priority')
                 if curr_intf_proirty == vlan_intf_priority:
-                    db.mod_entry('STP_VLAN_INTF', vlan_intf_key, {'priority': priority})
+                    db.mod_entry('STP_VLAN_PORT', vlan_intf_key, {'priority': priority})
     # end
 
 
@@ -796,17 +796,17 @@ def stp_interface_path_cost(ctx, interface_name, cost):
     check_if_interface_is_valid(ctx, interface_name)
     is_valid_interface_path_cost(ctx, cost)
     db = ctx.obj['db']
-    curr_intf_cost = db.get_entry('STP_INTF', interface_name).get('path_cost')
-    db.mod_entry('STP_INTF', interface_name, {'path_cost': cost})
+    curr_intf_cost = db.get_entry('STP_PORT', interface_name).get('path_cost')
+    db.mod_entry('STP_PORT', interface_name, {'path_cost': cost})
     # update interface path_cost in all stp_vlan_intf entries if entry exists
-    for vlan, intf in db.get_table('STP_VLAN_INTF'):
+    for vlan, intf in db.get_table('STP_VLAN_PORT'):
         if intf == interface_name:
             vlan_intf_key = "{}|{}".format(vlan, interface_name)
-            vlan_intf_entry = db.get_entry('STP_VLAN_INTF', vlan_intf_key)
+            vlan_intf_entry = db.get_entry('STP_VLAN_PORT', vlan_intf_key)
             if len(vlan_intf_entry) != 0:
                 vlan_intf_cost = vlan_intf_entry.get('path_cost')
                 if curr_intf_cost == vlan_intf_cost:
-                    db.mod_entry('STP_VLAN_INTF', vlan_intf_key, {'path_cost': cost})
+                    db.mod_entry('STP_VLAN_PORT', vlan_intf_key, {'path_cost': cost})
     # end
 
 
@@ -826,7 +826,7 @@ def stp_interface_root_guard_enable(ctx, interface_name):
     check_if_stp_enabled_for_interface(ctx, interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'root_guard': 'true'})
+    db.mod_entry('STP_PORT', interface_name, {'root_guard': 'true'})
 
 
 @spanning_tree_interface_root_guard.command('disable')
@@ -837,7 +837,7 @@ def stp_interface_root_guard_disable(ctx, interface_name):
     check_if_stp_enabled_for_interface(ctx, interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'root_guard': 'false'})
+    db.mod_entry('STP_PORT', interface_name, {'root_guard': 'false'})
 
 
 # STP interface bpdu guard
@@ -864,7 +864,7 @@ def stp_interface_bpdu_guard_enable(ctx, interface_name, shutdown):
     fvs = {'bpdu_guard': 'true',
            'bpdu_guard_do_disable': bpdu_guard_do_disable
     }
-    db.mod_entry('STP_INTF', interface_name, fvs)
+    db.mod_entry('STP_PORT', interface_name, fvs)
 
 
 @spanning_tree_interface_bpdu_guard.command('disable')
@@ -875,7 +875,7 @@ def stp_interface_bpdu_guard_disable(ctx, interface_name):
     check_if_stp_enabled_for_interface(ctx, interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'bpdu_guard': 'false'})
+    db.mod_entry('STP_PORT', interface_name, {'bpdu_guard': 'false'})
 
 
 # STP interface portfast
@@ -894,7 +894,7 @@ def stp_interface_portfast_enable(ctx, interface_name):
     check_if_stp_enabled_for_interface(ctx, interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'portfast': 'true'})
+    db.mod_entry('STP_PORT', interface_name, {'portfast': 'true'})
 
 
 @spanning_tree_interface_portfast.command('disable')
@@ -905,7 +905,7 @@ def stp_interface_portfast_disable(ctx, interface_name):
     check_if_stp_enabled_for_interface(ctx, interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'portfast': 'false'})
+    db.mod_entry('STP_PORT', interface_name, {'portfast': 'false'})
 
 
 # STP interface root uplink_fast
@@ -924,7 +924,7 @@ def stp_interface_uplink_fast_enable(ctx, interface_name):
     check_if_stp_enabled_for_interface(ctx, interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'uplink_fast': 'true'})
+    db.mod_entry('STP_PORT', interface_name, {'uplink_fast': 'true'})
 
 
 @spanning_tree_interface_uplink_fast.command('disable')
@@ -935,7 +935,7 @@ def stp_interface_uplink_fast_disable(ctx, interface_name):
     check_if_stp_enabled_for_interface(ctx, interface_name)
     check_if_interface_is_valid(ctx, interface_name)
     db = ctx.obj['db']
-    db.mod_entry('STP_INTF', interface_name, {'uplink_fast': 'false'})
+    db.mod_entry('STP_PORT', interface_name, {'uplink_fast': 'false'})
 
 
 ###############################################
@@ -969,7 +969,7 @@ def stp_vlan_interface_priority(ctx, vid, interface_name, priority):
     is_interface_vlan_member(ctx, vlan_name, interface_name)
     is_valid_vlan_interface_priority(ctx, priority)
     vlan_interface = str(vlan_name) + "|" + interface_name
-    db.mod_entry('STP_VLAN_INTF', vlan_interface, {'priority': priority})
+    db.mod_entry('STP_VLAN_PORT', vlan_interface, {'priority': priority})
 
 
 @spanning_tree_vlan_interface.command('cost')
@@ -987,7 +987,7 @@ def stp_vlan_interface_cost(ctx, vid, interface_name, cost):
     is_interface_vlan_member(ctx, vlan_name, interface_name)
     is_valid_interface_path_cost(ctx, cost)
     vlan_interface = str(vlan_name) + "|" + interface_name
-    db.mod_entry('STP_VLAN_INTF', vlan_interface, {'path_cost': cost})
+    db.mod_entry('STP_VLAN_PORT', vlan_interface, {'path_cost': cost})
 
 
 # Invoke main()
