@@ -105,6 +105,7 @@ setup(
             'ssdutil = ssdutil.main:ssdutil',
             'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
+            'pcieutil = pcieutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
             'sonic_installer = sonic_installer.main:cli',
