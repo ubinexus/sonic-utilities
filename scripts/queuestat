@@ -231,7 +231,7 @@ class Queuestat(object):
         else:
             self.cnstat_print(port, cnstat_dict)
 
-    def save_fresh_stats(self):
+    def save_fresh_stats(self, port_clear):
         if not os.path.exists(cnstat_dir):
             try:
                 os.makedirs(cnstat_dir)
@@ -241,6 +241,8 @@ class Queuestat(object):
 
         # Get stat for each port and save
         for port in natsorted(self.counter_port_name_map):
+            if port_clear and port != port_clear:
+                continue
             cnstat_dict = self.get_cnstat(self.port_queues_map[port])
             try:
                 pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'w'))
@@ -263,9 +265,11 @@ Examples:
   queuestat -p Ethernet0
   queuestat -c
   queuestat -d
+  queuestat -c -P Ethernet0
 """)
 
     parser.add_argument('-p', '--port', type=str, help='Show the queue conters for just one port', default=None)
+    parser.add_argument('-P', '--port_clear', type=str, help='Clear previous stats and save new ones for just one port', default=None)
     parser.add_argument('-c', '--clear', action='store_true', help='Clear previous stats and save new ones')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats')
     args = parser.parse_args()
@@ -274,6 +278,8 @@ Examples:
     delete_all_stats = args.delete
 
     port_to_show_stats = args.port
+
+    port_to_clear_stats = args.port_clear
 
     uid = str(os.getuid())
     cnstat_file = uid
@@ -295,7 +301,7 @@ Examples:
     queuestat = Queuestat()
 
     if save_fresh_stats:
-        queuestat.save_fresh_stats()
+        queuestat.save_fresh_stats(port_to_clear_stats)
         sys.exit(0)
 
     if port_to_show_stats!=None:
