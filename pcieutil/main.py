@@ -190,7 +190,7 @@ def pcie_check():
 @cli.command()
 #@click.confirmation_option(prompt="Are you sure to generate config file with current pci device")
 def pcie_generate():
-    '''generate config file with current pci device'''
+    '''generate config file with current pcie device'''
     platform_pcieutil.dump_conf_yaml()
 
 
