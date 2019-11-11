@@ -1242,7 +1242,7 @@ def kdump():
 
 @kdump.command()
 def disable():
-    """Disable kdump operation!"""
+    """Disable kdump operation"""
     config_db = ConfigDBConnector()
     if config_db is not None:
         config_db.connect()
