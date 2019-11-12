@@ -278,7 +278,6 @@ Examples:
     delete_all_stats = args.delete
 
     port_to_show_stats = args.port
-
     port_to_clear_stats = args.port_clear
 
     uid = str(os.getuid())
