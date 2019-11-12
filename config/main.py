@@ -756,7 +756,7 @@ def snmp_community(community_name):
     else:
         snmp_community_dict['snmp_rocommunity'] = community_name
         if 'snmp_rocommunities' not in snmp_community_dict.keys():
-            snmp_community_dict['snmp_rocommunities'] = community_name
+            snmp_community_dict['snmp_rocommunities'] = [community_name]
         else:
             snmp_community_dict['snmp_rocommunities'].append(community_name)
 
