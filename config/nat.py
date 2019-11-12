@@ -1,4 +1,4 @@
-#!/usr/bin/env python -u
+#!/usr/bin/env python
 
 import click
 import socket
@@ -6,8 +6,6 @@ import netaddr
 import ipaddress
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
-
-TABLE_NAME_SEPARATOR = '|'
 
 def is_valid_ipv4_address(address):
     """Check if the given ipv4 address is valid"""
@@ -27,19 +25,10 @@ def is_valid_port_address(address):
         port_address = int(address)
     except ValueError:
         return False
- 
-    if ((port_address < 1) or (port_address > 65535)):
+
+    if port_address not in xrange(1, 65535): 
         return False
 
-    return True
-
-def is_ipsubnet(val):
-    if not val:
-        return False
-    try:
-        netaddr.IPNetwork(val)
-    except:
-        return False
     return True
 
 def nat_interface_name_is_valid(interface_name):
@@ -62,9 +51,8 @@ def nat_interface_name_is_valid(interface_name):
     if interface_name is not None:
         if not interface_dict:
             return False
-        for interface in interface_dict.keys():
-            if interface_name == interface:
-                return True
+        return interface_name in interface_dict
+
     return False
 
 def isIpOverlappingWithAnyStaticEntry(ipAddress, table):
@@ -199,6 +187,7 @@ def getTwiceNatIdCountWithDynamicBinding(twice_nat_id, count, dynamic_key):
     return twice_id_count
  
 ############### NAT Configuration ##################
+
 #
 # 'nat' group ('config nat ...')
 #
@@ -297,13 +286,16 @@ def add_basic(ctx, global_ip, local_ip, nat_type, twice_nat_id):
         counters_db = SonicV2Connector(host="127.0.0.1")
         counters_db.connect(counters_db.COUNTERS_DB)
         snat_entries = 0
+        max_entries = 0
         exists = counters_db.exists(counters_db.COUNTERS_DB, 'COUNTERS_GLOBAL_NAT:Values')
         if exists:
             counter_entry = counters_db.get_all(counters_db.COUNTERS_DB, 'COUNTERS_GLOBAL_NAT:Values')
             if 'SNAT_ENTRIES' in counter_entry:
                 snat_entries = counter_entry['SNAT_ENTRIES']
+            if 'MAX_NAT_ENTRIES' in counter_entry:
+                max_entries = counter_entry['MAX_NAT_ENTRIES']
 
-        if int(snat_entries) >= 1024:
+        if int(snat_entries) >= int(max_entries):
             click.echo("Max limit 1024 is reached for NAT entries, skipping adding the entry.")
             entryFound = True
 
@@ -374,13 +366,16 @@ def add_tcp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
         counters_db = SonicV2Connector(host="127.0.0.1")
         counters_db.connect(counters_db.COUNTERS_DB)
         snat_entries = 0
+        max_entries = 0
         exists = counters_db.exists(counters_db.COUNTERS_DB, 'COUNTERS_GLOBAL_NAT:Values')
         if exists:
             counter_entry = counters_db.get_all(counters_db.COUNTERS_DB, 'COUNTERS_GLOBAL_NAT:Values')
             if 'SNAT_ENTRIES' in counter_entry:
                 snat_entries = counter_entry['SNAT_ENTRIES']
+            if 'MAX_NAT_ENTRIES' in counter_entry:
+                max_entries = counter_entry['MAX_NAT_ENTRIES']
 
-        if int(snat_entries) >= 1024:
+        if int(snat_entries) >= int(max_entries):
             click.echo("Max limit 1024 is reached for NAT entries, skipping adding the entry.")
             entryFound = True
 
@@ -451,13 +446,16 @@ def add_udp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
         counters_db = SonicV2Connector(host="127.0.0.1")
         counters_db.connect(counters_db.COUNTERS_DB)
         snat_entries = 0
+        max_entries = 0
         exists = counters_db.exists(counters_db.COUNTERS_DB, 'COUNTERS_GLOBAL_NAT:Values')
         if exists:
             counter_entry = counters_db.get_all(counters_db.COUNTERS_DB, 'COUNTERS_GLOBAL_NAT:Values')
             if 'SNAT_ENTRIES' in counter_entry:
                 snat_entries = counter_entry['SNAT_ENTRIES']
-
-        if int(snat_entries) >= 1024:
+            if 'MAX_NAT_ENTRIES' in counter_entry:
+                max_entries = counter_entry['MAX_NAT_ENTRIES']
+ 
+        if int(snat_entries) >= int(max_entries):
             click.echo("Max limit 1024 is reached for NAT entries, skipping adding the entry.")
             entryFound = True
 
@@ -904,7 +902,6 @@ def add_interface(ctx, interface_name, nat_zone):
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    tableFound = False
 
     if nat_interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a  valid interface name!!")
@@ -920,15 +917,8 @@ def add_interface(ctx, interface_name, nat_zone):
 
     interface_table_dict = config_db.get_table(interface_table_type)
 
-    if not interface_table_dict:
+    if not interface_table_dict or interface_name not in interface_table_dict:
         ctx.fail("Interface table is not present. Please configure ip-address on {} and apply the nat zone !!".format(interface_name))
-
-    for interface in interface_table_dict.keys():
-        if interface_name == interface:
-            tableFound = True
-    
-    if tableFound == False:
-        ctx.fail("Interface table is not present. Please configure ip-address on {} and apply the nat zone !!".format(interface_name)) 
 
     config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": nat_zone})
 
@@ -957,14 +947,7 @@ def remove_interface(ctx, interface_name):
 
     interface_table_dict = config_db.get_table(interface_table_type)
 
-    if not interface_table_dict:
-        ctx.fail("Interface table is not present. Ignoring the nat zone configuartion")
-
-    for interface in interface_table_dict.keys():
-        if interface_name == interface:
-            tableFound = True
-
-    if tableFound == False:
+    if not interface_table_dict or interface_name not in interface_table_dict:
         ctx.fail("Interface table is not present. Ignoring the nat zone configuration")
 
     config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": "0"})
@@ -1006,6 +989,7 @@ def feature():
 @click.pass_context
 def enable(ctx):
     """Enbale the NAT feature """
+
     config_db = ConfigDBConnector()
     config_db.connect()
     config_db.mod_entry("NAT_GLOBAL", "Values", {"admin_mode": "enabled"})
