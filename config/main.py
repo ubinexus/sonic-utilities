@@ -1718,14 +1718,6 @@ def threshold(ctx, port_name, pg_index, threshold_type, threshold_value):
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    appl_db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    appl_db.connect(appl_db.APPL_DB)
-
-    key = 'SWITCH_TABLE:switch'
-    data = appl_db.get(appl_db.APPL_DB, key, 'threshold_supported')
-    if data and data == 'False':
-        ctx.fail("Threshold feature not supported on platform")
-
     if pg_index not in range(0, 8):
         ctx.fail("priority-group must be in range 0-7")
 
@@ -1759,14 +1751,6 @@ def threshold(ctx, port_name, queue_index, queue_type, threshold_value):
     """ Configure queue threshold value for a queue on a port """
     config_db = ConfigDBConnector()
     config_db.connect()
-
-    appl_db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    appl_db.connect(appl_db.APPL_DB)
-
-    key = 'SWITCH_TABLE:switch'
-    data = appl_db.get(appl_db.APPL_DB, key, 'threshold_supported')
-    if data and data == 'False':
-        ctx.fail("Threshold feature not supported on platform")
 
     if queue_index not in range(0, 8):
         ctx.fail("queue index must be in range 0-7")
