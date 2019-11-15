@@ -518,6 +518,7 @@ fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     debug "Running ${PLATFORM} specific plugin..."
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
 # Reboot: explicity call Linux native reboot under sbin
