@@ -50,8 +50,8 @@ out_drop_reason_prefix = 'SAI_OUT_DROP_REASON_'
 
 
 class InvalidArgumentError(RuntimeError):
-    def __init__(self, arg):
-        self.args = arg
+    def __init__(self, msg):
+        self.message = msg
 
 
 class DropConfig(object):
@@ -128,23 +128,19 @@ class DropConfig(object):
             raise InvalidArgumentError('No drop reasons provided')
 
         if self.counter_name_in_use(counter_name):
-            raise InvalidArgumentError('Counter name \'{}\' already in use'
-                                       .format(counter_name))
+            raise InvalidArgumentError('Counter name \'{}\' already in use'.format(counter_name))
 
         available_counters = self.get_available_counters(counter_type)
         if available_counters is None:
-            raise InvalidArgumentError('Counter type not supported on this \
-                                       device')
+            raise InvalidArgumentError('Counter type not supported on this device')
         elif int(available_counters) == 0:
-            raise InvalidArgumentError('All counters of this type are \
-                                       currently in use')
+            raise InvalidArgumentError('All counters of this type are currently in use')
 
         supported_reasons = self.get_supported_reasons(counter_type)
         if supported_reasons is None:
             raise InvalidArgumentError('No drop reasons found for this device')
         elif not all(r in supported_reasons for r in reasons):
-            raise InvalidArgumentError('One or more provided drop reason not \
-                                       supported on this device')
+            raise InvalidArgumentError('One or more provided drop reason not supported on this device')
 
         for reason in reasons:
             self.config_db.set_entry(self.config_db.serialize_key(
@@ -174,8 +170,7 @@ class DropConfig(object):
             raise InvalidArgumentError('No counter name provided')
 
         if not self.counter_name_in_use(counter_name):
-            raise InvalidArgumentError('Counter \'{}\' not found'
-                                       .format(counter_name))
+            raise InvalidArgumentError('Counter \'{}\' not found'.format(counter_name))
 
         self.config_db.set_entry(DEBUG_COUNTER_CONFIG_TABLE,
                                  counter_name,
@@ -195,15 +190,13 @@ class DropConfig(object):
             raise InvalidArgumentError('No drop reasons provided')
 
         if not self.counter_name_in_use(counter_name):
-            raise InvalidArgumentError('Counter \'{}\' not found'
-                                       .format(counter_name))
+            raise InvalidArgumentError('Counter \'{}\' not found'.format(counter_name))
 
         supported_reasons = self.get_supported_reasons(self.get_counter_type(counter_name))
         if supported_reasons is None:
             raise InvalidArgumentError('No drop reasons found for this device')
         elif not all(r in supported_reasons for r in reasons):
-            raise InvalidArgumentError('One or more provided drop reason not \
-                                       supported on this device')
+            raise InvalidArgumentError('One or more provided drop reason not supported on this device')
 
         for reason in reasons:
             self.config_db.set_entry(self.config_db.serialize_key(
@@ -223,8 +216,7 @@ class DropConfig(object):
             raise InvalidArgumentError('No drop reasons provided')
 
         if not self.counter_name_in_use(counter_name):
-            raise InvalidArgumentError('Counter \'{}\' not found'
-                                       .format(counter_name))
+            raise InvalidArgumentError('Counter \'{}\' not found'.format(counter_name))
 
         for reason in reasons:
             self.config_db.set_entry(self.config_db.serialize_key(
@@ -391,27 +383,25 @@ Examples:
                                    description,
                                    reasons)
         except InvalidArgumentError as err:
-            print('Encountered error trying to install counter: {}'
-                  .format(err))
+            print('Encountered error trying to install counter: {}'.format(err.message))
             exit(1)
     elif command == 'uninstall':
         try:
             dconfig.delete_counter(name)
         except InvalidArgumentError as err:
-            print('Encountered error trying to uninstall counter: {}'
-                  .format(err))
+            print('Encountered error trying to uninstall counter: {}'.format(err.message))
             exit(1)
     elif command == 'add':
         try:
             dconfig.add_reasons(name, reasons)
         except InvalidArgumentError as err:
-            print('Encountered error trying to add reasons: {}'.format(err))
+            print('Encountered error trying to add reasons: {}'.format(err.message))
             exit(1)
     elif command == 'remove':
         try:
             dconfig.remove_reasons(name, reasons)
         except InvalidArgumentError as err:
-            print('Encountered error trying to remove reasons: {}'.format(err))
+            print('Encountered error trying to remove reasons: {}'.format(err.message))
             exit(1)
     elif command == 'show_config':
         dconfig.print_counter_config(group)
