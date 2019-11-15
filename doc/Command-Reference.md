@@ -1848,7 +1848,7 @@ Because clear (see below) is handled on a per-user basis different users may see
 
 ### Drop Counters config commands
 
-**config dropcounters initialize_counter**
+**config dropcounters install**
 
 This command is used to initialize a new drop counter. The user must specify a name, type, and initial list of drop reasons.
 
@@ -1856,12 +1856,12 @@ This command will fail if the given name is already in use, if the type of count
 
 - Usage:
   ```
-  admin@sonic:~$ sudo config dropcounters initialize_counter <counter name> <counter type> <reasons list> [-d <description>] [-g <group>] [-a <alias>]
+  admin@sonic:~$ sudo config dropcounters install <counter name> <counter type> <reasons list> [-d <description>] [-g <group>] [-a <alias>]
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config dropcounters initialize_counter DEBUG_2 PORT_INGRESS_DROPS [EXCEEDS_L2_MTU,DECAP_ERROR] -d "More port ingress drops" -g BAD -a BAD_DROPS
+  admin@sonic:~$ sudo config dropcounters install DEBUG_2 PORT_INGRESS_DROPS [EXCEEDS_L2_MTU,DECAP_ERROR] -d "More port ingress drops" -g BAD -a BAD_DROPS
   ```
 
 **config dropcounters add_reasons**
@@ -1894,18 +1894,18 @@ This command is used to remove drop reasons from an already initialized counter.
   admin@sonic:~$ sudo config dropcounters remove_reasons DEBUG_2 [SIP_CLASS_E]
   ```
 
-**config dropcounters delete_counter**
+**config dropcounters delete**
 
 This command is used to delete a drop counter.
 
 - Usage:
   ```
-  admin@sonic:~$ sudo config dropcounters delete_counter <counter name>
+  admin@sonic:~$ sudo config dropcounters delete <counter name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config dropcounters delete_counter DEBUG_2
+  admin@sonic:~$ sudo config dropcounters delete DEBUG_2
   ```
 
 ### Drop Counters clear commands

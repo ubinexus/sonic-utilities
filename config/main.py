@@ -1603,7 +1603,7 @@ def dropcounters():
 
 
 #
-# 'initialize_counter' subcommand ('config dropcounters initialize_counter')
+# 'install' subcommand ('config dropcounters install')
 #
 @dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
@@ -1613,8 +1613,8 @@ def dropcounters():
 @click.option("-g", "--group", type=str, help="Group for this counter")
 @click.option("-d", "--desc",  type=str, help="Description for this counter")
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def initialize_counter(counter_name, alias, group, counter_type, desc, reasons, verbose):
-    """Initialize a new drop counter"""
+def install(counter_name, alias, group, counter_type, desc, reasons, verbose):
+    """Install a new drop counter"""
     command = "dropconfig -c install -n '{}' -t '{}' -r '{}'".format(counter_name, counter_type, reasons)
     if alias:
         command += " -a '{}'".format(alias)
@@ -1627,12 +1627,12 @@ def initialize_counter(counter_name, alias, group, counter_type, desc, reasons, 
 
 
 #
-# 'delete_counter' subcommand ('config dropcounters delete_counter')
+# 'delete' subcommand ('config dropcounters delete')
 #
 @dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def delete_counter(counter_name, verbose):
+def delete(counter_name, verbose):
     """Delete an existing drop counter"""
     command = "dropconfig -c uninstall -n {}".format(counter_name)
     run_command(command, display_cmd=verbose)
