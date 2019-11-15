@@ -16,7 +16,7 @@ from tabulate import tabulate
 from swsssdk import ConfigDBConnector
 
 
-THRESHOLD_BREACH_TABLE_PREFIX = "THRESHOLD_BREACH_TABLE"
+THRESHOLD_BREACH_TABLE_PREFIX = "THRESHOLD_BREACH"
 header = ['Event-id', 'Buffer', 'Type', 'Port', 'Index', 'Breach Value(%)', 'Breach Value(bytes)', 'Time-stamp']
 
 class Thresholdbreach(object):
