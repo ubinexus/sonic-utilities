@@ -1749,24 +1749,22 @@ This section explains all the Configurable Drop Counters show commands and confi
 
 ### Drop Counters show commands
 
-**show dropcounter capabilities**
+**show dropcounters capabilities**
 
 This command is used to show the drop counter capabilities that are available on this device. It displays the total number of drop counters that can be configured on this device as well as the drop reasons that can be configured for the counters.
 
 - Usage:
   ```
-  show dropcounter capabilities
+  show dropcounters capabilities
   ```
 
 - Examples:
   ```
-  admin@sonic:~$ show dropcounter capabilities
+  admin@sonic:~$ show dropcounters capabilities
   Counter Type            Total
   --------------------  -------
   PORT_INGRESS_DROPS          3
-  PORT_EGRESS_DROPS           0
   SWITCH_EGRESS_DROPS         2
-  SWITCH_INGRESS_DROPS        0
 
   PORT_INGRESS_DROPS:
         L2_ANY
@@ -1786,32 +1784,32 @@ This command is used to show the drop counter capabilities that are available on
         A_CUSTOM_REASON
   ```
 
-**show dropcounter configuration**
+**show dropcounters configuration**
 
 This command is used to show the current running configuration of the drop counters on this device.
 
 - Usage:
   ```
-  show dropcounter configuration [-g <group name>]
+  show dropcounters configuration [-g <group name>]
   ```
 
 - Examples:
   ```
-  admin@sonic:~$ show dropcounter configuration
+  admin@sonic:~$ show dropcounters configuration
   Counter   Alias     Group  Type                 Reasons              Description
   --------  --------  -----  ------------------   -------------------  --------------
   DEBUG_0   RX_LEGIT  LEGIT  PORT_INGRESS_DROPS   SMAC_EQUALS_DMAC     Legitimate port-level RX pipeline drops
                                                   INGRESS_VLAN_FILTER
   DEBUG_1   TX_LEGIT  None   SWITCH_EGRESS_DROPS  EGRESS_VLAN_FILTER   Legitimate switch-level TX pipeline drops
 
-  admin@sonic:~$ show dropcounter configuration -g LEGIT
+  admin@sonic:~$ show dropcounters configuration -g LEGIT
   Counter   Alias     Group  Type                 Reasons              Description
   --------  --------  -----  ------------------   -------------------  --------------
   DEBUG_0   RX_LEGIT  LEGIT  PORT_INGRESS_DROPS   SMAC_EQUALS_DMAC     Legitimate port-level RX pipeline drops
                                                   INGRESS_VLAN_FILTER
   ```
 
-**show dropcounter counts**
+**show dropcounters counts**
 
 This command is used to show the current statistics for the configured drop counters. Standard drop counters are displayed as well for convenience.
 
@@ -1819,12 +1817,12 @@ Because clear (see below) is handled on a per-user basis different users may see
 
 - Usage:
   ```
-  show dropcounter counts [-g <group name>] [-t <counter type>]
+  show dropcounters counts [-g <group name>] [-t <counter type>]
   ```
 
 - Example:
   ```
-  admin@sonic:~$ show dropcounter counts
+  admin@sonic:~$ show dropcounters counts
       IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS   RX_LEGIT
   ---------  -------  --------  ----------  --------  ----------  ---------
   Ethernet0        U        10         100         0           0         20
@@ -1835,14 +1833,14 @@ Because clear (see below) is handled on a per-user basis different users may see
   ------  --------
   sonic       1000
 
-  admin@sonic:~$ show dropcounter counts -g LEGIT
+  admin@sonic:~$ show dropcounters counts -g LEGIT
       IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS   RX_LEGIT
   ---------  -------  --------  ----------  --------  ----------  ---------
   Ethernet0        U        10         100         0           0         20
   Ethernet4        U         0        1000         0           0        100
   Ethernet8        U       100          10         0           0          0
 
-  admin@sonic:~$ show dropcounter counts -t SWITCH_EGRESS_DROPS
+  admin@sonic:~$ show dropcounters counts -t SWITCH_EGRESS_DROPS
   DEVICE  TX_LEGIT
   ------  --------
   sonic       1000
@@ -1850,7 +1848,7 @@ Because clear (see below) is handled on a per-user basis different users may see
 
 ### Drop Counters config commands
 
-**config dropcounter initialize_counter**
+**config dropcounters initialize_counter**
 
 This command is used to initialize a new drop counter. The user must specify a name, type, and initial list of drop reasons.
 
@@ -1858,15 +1856,15 @@ This command will fail if the given name is already in use, if the type of count
 
 - Usage:
   ```
-  admin@sonic:~$ sudo config dropcounter initialize_counter <counter name> <counter type> <reasons list> [-d <description>] [-g <group>] [-a <alias>]
+  admin@sonic:~$ sudo config dropcounters initialize_counter <counter name> <counter type> <reasons list> [-d <description>] [-g <group>] [-a <alias>]
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config dropcounter initialize_counter DEBUG_2 PORT_INGRESS_DROPS [EXCEEDS_L2_MTU,DECAP_ERROR] -d "More port ingress drops" -g BAD -a BAD_DROPS
+  admin@sonic:~$ sudo config dropcounters initialize_counter DEBUG_2 PORT_INGRESS_DROPS [EXCEEDS_L2_MTU,DECAP_ERROR] -d "More port ingress drops" -g BAD -a BAD_DROPS
   ```
 
-**config dropcounter add_reasons**
+**config dropcounters add_reasons**
 
 This command is used to add drop reasons to an already initialized counter.
 
@@ -1874,56 +1872,56 @@ This command will fail if any of the specified drop reasons are not supported.
 
 - Usage:
   ```
-  admin@sonic:~$ sudo config dropcounter add_reasons <counter name> <reasons list>
+  admin@sonic:~$ sudo config dropcounters add_reasons <counter name> <reasons list>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config dropcounter add_reasons DEBUG_2 [SIP_CLASS_E]
+  admin@sonic:~$ sudo config dropcounters add_reasons DEBUG_2 [SIP_CLASS_E]
   ```
 
-**config dropcounter remove_reasons**
+**config dropcounters remove_reasons**
 
 This command is used to remove drop reasons from an already initialized counter.
 
 - Usage:
   ```
-  admin@sonic:~$ sudo config dropcounter remove_reasons <counter name> <reasons list>
+  admin@sonic:~$ sudo config dropcounters remove_reasons <counter name> <reasons list>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config dropcounter remove_reasons DEBUG_2 [SIP_CLASS_E]
+  admin@sonic:~$ sudo config dropcounters remove_reasons DEBUG_2 [SIP_CLASS_E]
   ```
 
-**config dropcounter delete_counter**
+**config dropcounters delete_counter**
 
 This command is used to delete a drop counter.
 
 - Usage:
   ```
-  admin@sonic:~$ sudo config dropcounter delete_counter <counter name>
+  admin@sonic:~$ sudo config dropcounters delete_counter <counter name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config dropcounter delete_counter DEBUG_2
+  admin@sonic:~$ sudo config dropcounters delete_counter DEBUG_2
   ```
 
 ### Drop Counters clear commands
 
-**sonic-clear dropcounter**
+**sonic-clear dropcounters**
 
 This comnmand is used to clear drop counters. This is done on a per-user basis.
 
 - Usage:
   ```
-  admin@sonic:~$ sonic-clear dropcounter
+  admin@sonic:~$ sonic-clear dropcounters
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sonic-clear dropcounter
+  admin@sonic:~$ sonic-clear dropcounters
   Cleared drop counters
   ```
 

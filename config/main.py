@@ -1593,19 +1593,19 @@ def incremental(file_name):
 
 
 #
-# 'dropcounter' group ('config dropcounter ...')
+# 'dropcounters' group ('config dropcounters ...')
 #
 
 @config.group()
-def dropcounter():
+def dropcounters():
     """Drop counter related configuration tasks"""
     pass
 
 
 #
-# 'initialize_counter' subcommand ('config dropcounter initialize_counter')
+# 'initialize_counter' subcommand ('config dropcounters initialize_counter')
 #
-@dropcounter.command()
+@dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
 @click.argument("counter_type", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
@@ -1627,9 +1627,9 @@ def initialize_counter(counter_name, alias, group, counter_type, desc, reasons, 
 
 
 #
-# 'delete_counter' subcommand ('config dropcounter delete_counter')
+# 'delete_counter' subcommand ('config dropcounters delete_counter')
 #
-@dropcounter.command()
+@dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def delete_counter(counter_name, verbose):
@@ -1639,9 +1639,9 @@ def delete_counter(counter_name, verbose):
 
 
 #
-# 'add_reasons' subcommand ('config dropcounter add_reasons')
+# 'add_reasons' subcommand ('config dropcounters add_reasons')
 #
-@dropcounter.command()
+@dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
@@ -1652,9 +1652,9 @@ def add_reasons(counter_name, reasons, verbose):
 
 
 #
-# 'remove_reasons' subcommand ('config dropcounter remove_reasons')
+# 'remove_reasons' subcommand ('config dropcounters remove_reasons')
 #
-@dropcounter.command()
+@dropcounters.command()
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")

@@ -195,7 +195,7 @@ def pfccounters():
     run_command(command)
 
 @cli.command()
-def dropcounter():
+def dropcounters():
     """Clear drop counters"""
     command = "dropstat -c clear"
     run_command(command)

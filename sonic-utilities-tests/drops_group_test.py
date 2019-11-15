@@ -87,44 +87,44 @@ class TestDropCounters(object):
 
     def test_show_capabilities(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["dropcounter"].commands["capabilities"], [])
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["capabilities"], [])
         print(result.output)
         assert result.output == expected_counter_capabilities
 
     def test_show_configuration(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["dropcounter"].commands["configuration"], [])
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["configuration"], [])
         print(result.output)
         assert result.output == expected_counter_configuration
 
     def test_show_configuration_with_group(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["dropcounter"].commands["configuration"], ["-g", "PACKET_DROPS"])
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["configuration"], ["-g", "PACKET_DROPS"])
         print(result.output)
         assert result.output == expected_counter_configuration_with_group
 
     def test_show_counts(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["dropcounter"].commands["counts"], [])
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["counts"], [])
         print(result.output)
         assert result.output == expected_counts
 
     def test_show_counts_with_group(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["dropcounter"].commands["counts"], ["-g", "PACKET_DROPS"])
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["counts"], ["-g", "PACKET_DROPS"])
         print(result.output)
         assert result.output == expected_counts_with_group
 
     def test_show_counts_with_type(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["dropcounter"].commands["counts"], ["-t", "PORT_INGRESS_DROPS"])
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["counts"], ["-t", "PORT_INGRESS_DROPS"])
         print(result.output)
         assert result.output == expected_counts_with_type
 
     def test_show_counts_with_clear(self):
         runner = CliRunner()
-        runner.invoke(clear.cli.commands["dropcounter"])
-        result = runner.invoke(show.cli.commands["dropcounter"].commands["counts"], [])
+        runner.invoke(clear.cli.commands["dropcounters"])
+        result = runner.invoke(show.cli.commands["dropcounters"].commands["counts"], [])
         print(result.output)
         assert result.output == expected_counts_with_clear
 

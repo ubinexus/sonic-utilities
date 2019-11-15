@@ -2066,17 +2066,17 @@ def table(table_name, verbose):
 
 
 #
-# 'dropcounter' group ###
+# 'dropcounters' group ###
 #
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
-def dropcounter():
+def dropcounters():
     """Show drop counter related information"""
     pass
 
 
-# 'configuration' subcommand ("show dropcounter configuration")
-@dropcounter.command()
+# 'configuration' subcommand ("show dropcounters configuration")
+@dropcounters.command()
 @click.option('-g', '--group', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def configuration(group, verbose):
@@ -2089,8 +2089,8 @@ def configuration(group, verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-# 'capabilities' subcommand ("show dropcounter capabilities")
-@dropcounter.command()
+# 'capabilities' subcommand ("show dropcounters capabilities")
+@dropcounters.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def capabilities(verbose):
     """Show device drop counter capabilities"""
@@ -2099,8 +2099,8 @@ def capabilities(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-# 'counts' subcommand ("show dropcounter counts")
-@dropcounter.command()
+# 'counts' subcommand ("show dropcounters counts")
+@dropcounters.command()
 @click.option('-g', '--group', required=False)
 @click.option('-t', '--counter_type', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
