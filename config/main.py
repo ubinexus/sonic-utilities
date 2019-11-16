@@ -1250,17 +1250,13 @@ def disable():
         run_command("sonic-kdump-config --disable")
 
 @kdump.command()
-@click.option('-y', '--yes', is_flag=True, help="Force rebooting after enabling kdump")
-def enable(yes):
+def enable():
     """Enable kdump operation"""
     config_db = ConfigDBConnector()
     if config_db is not None:
         config_db.connect()
         config_db.mod_entry("KDUMP", "config", {"enabled": "true"})
-        if yes:
-            run_command("sonic-kdump-config --enable --yes")
-        else:
-            run_command("sonic-kdump-config --enable")
+        run_command("sonic-kdump-config --enable")
 
 @kdump.command()
 @click.argument('kdump_memory', metavar='<kdump_memory>', required=True)

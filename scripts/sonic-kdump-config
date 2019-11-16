@@ -259,7 +259,7 @@ def write_num_dumps(num_dumps):
 #  @param verbose If True, the function will display a few additinal information
 #  @param no      If True, will not display reboot needed message
 #  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_enable(verbose, no):
+def cmd_kdump_enable(verbose):
 
     if not os.path.exists(grub_cfg):
         print("Feature not supported on this platform")
@@ -298,8 +298,7 @@ def cmd_kdump_enable(verbose, no):
     else:
         if curr_crash_kernel_mem == memory:
             if curr_crash_kernel_mem == crash_kernel_in_cmdline:
-                if no is False:
-                    print("kdump is already enabled")
+                print("kdump is already enabled")
             else:
                 changed = True
         else:
@@ -318,9 +317,8 @@ def cmd_kdump_enable(verbose, no):
 ## Command: Enable kdump on Next image only
 #
 #  @param verbose If True, the function will display a few additional information
-#  @param no      If True, will not display reboot needed message
 #  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_config_next(verbose, no):
+def cmd_kdump_config_next(verbose):
 
     if not os.path.exists(grub_cfg):
         return False
@@ -357,8 +355,7 @@ def cmd_kdump_config_next(verbose, no):
     else:
         if curr_crash_kernel_mem == memory:
             if curr_crash_kernel_mem == crash_kernel_in_cmdline:
-                if no is False:
-                    print("kdump is already enabled")
+                print("kdump is already enabled")
             else:
                 changed = True
         else:
@@ -377,7 +374,6 @@ def cmd_kdump_config_next(verbose, no):
 ## Command: Disable kdump
 #
 #  @param verbose If True, the function will display a few additional information
-#  @param no      If True, will not display reboot needed message
 def cmd_kdump_disable(verbose):
 
     if not os.path.exists(grub_cfg):
@@ -565,9 +561,6 @@ def main():
     parser.add_argument("-v", "--verbose", action='store_true',
         help='displays detailed kdump status information. Used with status command.')
 
-    # Skips user from requiring to answer yes/no? to continue
-    parser.add_argument("-n", "--no", action='store_true')
-
     # How many lines should we display from the kernel log
     parser.add_argument("-l", "--lines", default=75, type=int,
         help="Number of lines displayed from the kernel log")
@@ -584,9 +577,9 @@ def main():
     changed = False
     try:
         if options.enable:
-            changed = cmd_kdump_enable(options.verbose, options.no)
+            changed = cmd_kdump_enable(options.verbose)
         elif options.config_next:
-            changed = cmd_kdump_config_next(options.verbose, options.no)
+            changed = cmd_kdump_config_next(options.verbose)
         elif options.disable:
             changed = cmd_kdump_disable(options.verbose)
         elif options.memory != False:
@@ -607,8 +600,7 @@ def main():
         sys.exit(1)
 
     if changed:
-        if options.no is False:
-            print("Kdump configuration changes will be applied after the system reboots")
+        print("Kdump configuration changes will be applied after the system reboots")
 
     sys.exit(0)
 
