@@ -254,22 +254,11 @@ def write_num_dumps(num_dumps):
         print_err("Error while writing KDUMP_NUM_DUMPS into %s" % kdump_cfg)
         sys.exit(1)
 
-## Command: Enable kdump
+## Command: Enable kdump - Grub mode
 #
 #  @param verbose If True, the function will display a few additinal information
-#  @param no      If True, will not display reboot needed message
 #  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_enable(verbose):
-
-    if not os.path.exists(grub_cfg):
-        print("Feature not supported on this platform")
-        run_command("config kdump disable", use_shell=False);
-        return False
-    kdump_enabled = get_kdump_administrative_mode()
-    memory = get_kdump_memory()
-    num_dumps = get_kdump_num_dumps()
-    if verbose:
-        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
+def kdump_enable_grub(verbose, kdump_enabled, memory, num_dumps):
 
     current_img = get_current_image();
     if verbose:
@@ -314,20 +303,30 @@ def cmd_kdump_enable(verbose):
 
     return changed
 
-## Command: Enable kdump on Next image only
+## Command: Enable kdump
 #
-#  @param verbose If True, the function will display a few additional information
+#  @param verbose If True, the function will display a few additinal information
 #  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_config_next(verbose):
+def cmd_kdump_enable(verbose):
 
-    if not os.path.exists(grub_cfg):
-        return False
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
     if verbose:
         print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
 
+    if os.path.exists(grub_cfg):
+        return kdump_enable_grub(verbose, kdump_enabled, memory, num_dumps)
+    else:
+        print("Feature not supported on this platform")
+        run_command("config kdump disable", use_shell=False);
+        return False
+
+## Command: Enable kdump on Next image only - Grub mode
+#
+#  @param verbose If True, the function will display a few additional information
+#  @return        True is the grub configuration has changed, and False if it has not
+def kdump_config_next_grub(verbose, kdump_enabled, memory, num_dumps):
     next_img = get_next_image();
     if verbose:
         print("Next image=[%s]" % next_img)
@@ -371,19 +370,27 @@ def cmd_kdump_config_next(verbose):
 
     return changed
 
-## Command: Disable kdump
+## Command: Enable kdump on Next image only
 #
 #  @param verbose If True, the function will display a few additional information
-def cmd_kdump_disable(verbose):
+#  @return        True is the grub configuration has changed, and False if it has not
+def cmd_kdump_config_next(verbose):
 
-    if not os.path.exists(grub_cfg):
-        return False
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
     if verbose:
         print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
 
+    if os.path.exists(grub_cfg):
+        return kdump_config_next_grub(verbose, kdump_enabled, memory, num_dumps)
+    else:
+        return False
+
+## Command: Disable kdump - Grub mode
+#
+#  @param verbose If True, the function will display a few additional information
+def kdump_disable_grub(verbose, kdump_enabled, memory, num_dumps):
     write_use_kdump(0)
 
     current_img = get_current_image();
@@ -404,6 +411,23 @@ def cmd_kdump_disable(verbose):
 
     if changed:
         rewrite_grub_cfg(lines, grub_cfg)
+
+
+## Command: Disable kdump
+#
+#  @param verbose If True, the function will display a few additional information
+def cmd_kdump_disable(verbose):
+
+    kdump_enabled = get_kdump_administrative_mode()
+    memory = get_kdump_memory()
+    num_dumps = get_kdump_num_dumps()
+    if verbose:
+        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
+
+    if os.path.exists(grub_cfg):
+        return kdump_disable_grub(verbose, kdump_enabled, memory, num_dumps)
+    else:
+        return False
 
 ## Command: Set / Get memory
 #
