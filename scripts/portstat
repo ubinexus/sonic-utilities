@@ -155,7 +155,7 @@ class Portstat(object):
 
 
         if use_json:
-            table_as_json(table, header_all if print_all else header)
+            print table_as_json(table, header_all if print_all else header)
         else:
             print tabulate(table, header_all if print_all else header, tablefmt='simple', stralign='right')
 
