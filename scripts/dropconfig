@@ -133,7 +133,7 @@ class DropConfig(object):
         available_counters = self.get_available_counters(counter_type)
         if available_counters is None:
             raise InvalidArgumentError('Counter type not supported on this device')
-        elif int(available_counters) == 0:
+        elif int(available_counters) <= len(self.config_db.get_keys(DEBUG_COUNTER_CONFIG_TABLE)):
             raise InvalidArgumentError('All counters of this type are currently in use')
 
         supported_reasons = self.get_supported_reasons(counter_type)
