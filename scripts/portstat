@@ -157,7 +157,7 @@ class Portstat(object):
         if use_json:
             table_as_json(table, header_all if print_all else header)
         else:
-            print tabulate(table, header_all, tablefmt='simple', stralign='right') #  if print_all else header
+            print tabulate(table, header_all if print_all else header, tablefmt='simple', stralign='right')
 
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json, print_all):
         """
