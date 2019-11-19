@@ -4119,16 +4119,38 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#Warm-R
 
 ## Warm Restart
 
-Besides device level warm reboot, SoNIC also provides docker based warm restart. This feature is currently supported by following dockers: BGP, teamD,  and SWSS. A user can manage to restart a particular docker, with no interruption on packet forwarding and no effect on other services. This helps to reduce operational costs as well as development efforts. For example, to fix a bug in BGP routing stack, only the BGP docker image needs to be built, upgraded and tested.
+Besides device level warm reboot, SONiC also provides docker based warm restart. This feature is currently supported by following dockers: BGP, teamD,  and SWSS. A user can manage to restart a particular docker, with no interruption on packet forwarding and no effect on other services. This helps to reduce operational costs as well as development efforts. For example, to fix a bug in BGP routing stack, only the BGP docker image needs to be built, tested and upgraded.
 
-To achieve uninterrupted packet forwarding during the restarting stage and database reconciliation at the post restarting stage, warm reboot enabled dockers with adjacency state machine facilitate standardized protocols. For example, a BGP restarting must have BGP graceful restart enabled and its BGP neighbors must be graceful restart helper capable, which are specified in [IETF RFC4724](https://tools.ietf.org/html/rfc4724). Before warm restart BGP docker, the following BGP commands should be configured:
+To achieve uninterrupted packet forwarding during the restarting stage and database reconciliation at the post restarting stage, warm restart enabled dockers with adjacency state machine facilitate standardized protocols. For example, a BGP restarting switch must have BGP "Graceful Restart" enabled, and its BGP neighbors must be "Graceful Restart Helper Capable", which are specified in [IETF RFC4724](https://tools.ietf.org/html/rfc4724). 
 
+Before warm restart BGP docker, the following BGP commands should be configured:
+
+  ```
   bgp graceful-restart
   bgp graceful-restart preserve-fw-state
+  ```
 
-It should be aware that during a warm reboot, some fast convergence features, such as BFD, fast Hello, must be disabled. Otherwise, the fast timers would affect warm restart and cause packet drop.
+It should be aware that during a warm restart, certain BGP fast convergence feature and black hole avoidance feature should be either disabled or be set to lower preference to avoid conflicts with BGP graceful restart.  
 
-Only planned warm restart is supported in the current release. Unplanned one is under development.
+For example, BGP BFD could be disabled via:
+
+  ```
+  no neighbor <A.B.C.D|X:X::X:X|WORD> bfd
+  ```
+  
+otherwise, the fast failure detection would cause packet drop during warm reboot.
+
+Another commonly deployed blackhole avoidance feature: dynamic route priority adjustment, could be disabled via:
+
+  ```
+  no bgp max-med on-peerup
+  ```
+
+to avoid large routes churn during BGP restart.
+
+
+
+In the current release, only planned warm restart is supported. The unplanned one is still under development.
 
 
 ### Warm Restart show commands
