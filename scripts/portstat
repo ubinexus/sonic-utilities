@@ -583,6 +583,10 @@ Examples:
     cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
 
     if delete_all_stats:
+        #in case no saved data listdir will raise exception
+        if not os.path.isdir(cnstat_dir):
+            sys.exit(0)
+
         for file in os.listdir(cnstat_dir):
             os.remove(cnstat_dir + "/" + file)
 
