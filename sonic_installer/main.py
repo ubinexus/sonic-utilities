@@ -176,9 +176,12 @@ def get_current_image():
 # Returns name of next boot image
 def get_next_image():
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
-        config = open(HOST_PATH + ABOOT_BOOT_CONFIG, 'r')
-        next_image = re.search("SWI=flash:(\S+)/", config.read()).group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
-        config.close()
+        with open(HOST_PATH + ABOOT_BOOT_CONFIG, 'r') as f:
+            config = f.read()
+            match = re.search("SWI=flash:(\S+)/", config)
+            if match is None:
+                match = re.search("SWI=flash:/?(\S+)", config)
+            next_image = match.group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
     else:
         images = get_installed_images()
         grubenv = subprocess.check_output(["/usr/bin/grub-editenv", HOST_PATH + "/grub/grubenv", "list"])
