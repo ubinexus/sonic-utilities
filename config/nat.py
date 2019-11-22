@@ -14,7 +14,7 @@ def is_valid_ipv4_address(address):
         ip = ipaddress.IPv4Address(address)
         if (ip.is_reserved) or (ip.is_multicast) or (ip.is_loopback) or (address in invalid_list):
             return False
-    except:
+    except ipaddress.AddressValueError:
         return False
 
     return True
@@ -296,7 +296,7 @@ def add_basic(ctx, global_ip, local_ip, nat_type, twice_nat_id):
                 max_entries = counter_entry['MAX_NAT_ENTRIES']
 
         if int(snat_entries) >= int(max_entries):
-            click.echo("Max limit 1024 is reached for NAT entries, skipping adding the entry.")
+            click.echo("Max limit is reached for NAT entries, skipping adding the entry.")
             entryFound = True
 
     if entryFound is False:
@@ -376,7 +376,7 @@ def add_tcp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
                 max_entries = counter_entry['MAX_NAT_ENTRIES']
 
         if int(snat_entries) >= int(max_entries):
-            click.echo("Max limit 1024 is reached for NAT entries, skipping adding the entry.")
+            click.echo("Max limit is reached for NAT entries, skipping adding the entry.")
             entryFound = True
 
     if entryFound is False:
@@ -456,7 +456,7 @@ def add_udp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
                 max_entries = counter_entry['MAX_NAT_ENTRIES']
  
         if int(snat_entries) >= int(max_entries):
-            click.echo("Max limit 1024 is reached for NAT entries, skipping adding the entry.")
+            click.echo("Max limit is reached for NAT entries, skipping adding the entry.")
             entryFound = True
 
     if entryFound is False:
