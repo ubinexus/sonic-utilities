@@ -357,7 +357,7 @@ def wrapped_ferret_request(request_slice, https_endpoint, http_endpoint):
                                      timeout=DEFAULT_REQUEST_TIMEOUT,
                                      verify=False)
     except ConnectTimeout:
-        log_info("Failed to connect to Ferret endpoint, trying the backup...")
+        log_info("HTTPS Ferret endpoint not found, trying HTTP...")
         response = requests.post(http_endpoint,
                                  json=request_slice,
                                  timeout=DEFAULT_REQUEST_TIMEOUT)
