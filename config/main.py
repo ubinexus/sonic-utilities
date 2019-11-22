@@ -841,11 +841,14 @@ def vlan(ctx, redis_unix_socket_path):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def add_vlan(ctx, vid):
-    db = ctx.obj['db']
-    vlan = 'Vlan{}'.format(vid)
-    if len(db.get_entry('VLAN', vlan)) != 0:
-        ctx.fail("{} already exists".format(vlan))
-    db.set_entry('VLAN', vlan, {'vlanid': vid})
+    if vid >= 1 and vid <= 4094:
+        db = ctx.obj['db']
+        vlan = 'Vlan{}'.format(vid)
+        if len(db.get_entry('VLAN', vlan)) != 0:
+            ctx.fail("{} already exists".format(vlan))
+        db.set_entry('VLAN', vlan, {'vlanid': vid})
+    else :
+        ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -1616,6 +1619,79 @@ def incremental(file_name):
     """Incremental update of ACL rule configuration."""
     command = "acl-loader update incremental {}".format(file_name)
     run_command(command)
+
+
+#
+# 'dropcounters' group ('config dropcounters ...')
+#
+
+@config.group()
+def dropcounters():
+    """Drop counter related configuration tasks"""
+    pass
+
+
+#
+# 'install' subcommand ('config dropcounters install')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("counter_type", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option("-a", "--alias", type=str, help="Alias for this counter")
+@click.option("-g", "--group", type=str, help="Group for this counter")
+@click.option("-d", "--desc",  type=str, help="Description for this counter")
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def install(counter_name, alias, group, counter_type, desc, reasons, verbose):
+    """Install a new drop counter"""
+    command = "dropconfig -c install -n '{}' -t '{}' -r '{}'".format(counter_name, counter_type, reasons)
+    if alias:
+        command += " -a '{}'".format(alias)
+    if group:
+        command += " -g '{}'".format(group)
+    if desc:
+        command += " -d '{}'".format(desc)
+
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'delete' subcommand ('config dropcounters delete')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def delete(counter_name, verbose):
+    """Delete an existing drop counter"""
+    command = "dropconfig -c uninstall -n {}".format(counter_name)
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'add_reasons' subcommand ('config dropcounters add_reasons')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def add_reasons(counter_name, reasons, verbose):
+    """Add reasons to an existing drop counter"""
+    command = "dropconfig -c add -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'remove_reasons' subcommand ('config dropcounters remove_reasons')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def remove_reasons(counter_name, reasons, verbose):
+    """Remove reasons from an existing drop counter"""
+    command = "dropconfig -c remove -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
 
 #
 # 'ecn' command ('config ecn ...')
