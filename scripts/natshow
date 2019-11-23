@@ -171,11 +171,11 @@ class NatShow(object):
                 else:
                     translated_src = translated_src_ip
 
-            source_ip = nat["key.src_ip"]
-            destination_ip = nat["key.dst_ip"]               
-            source_port = nat["key.l4_src_port"]
-            destination_port = nat["key.l4_dst_port"]
-            protocol = nat["key.proto"]
+            source_ip = nat['nat_data']['key']["src_ip"]
+            destination_ip = nat['nat_data']['key']["dst_ip"]
+            source_port = nat['nat_data']['key']["l4_src_port"]
+            destination_port = nat['nat_data']['key']["l4_dst_port"]
+            protocol = nat['nat_data']['key']["proto"]
 
             if (source_ip == "0.0.0.0"):
                 source_ip = "---"
