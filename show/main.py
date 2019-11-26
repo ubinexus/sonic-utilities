@@ -393,6 +393,49 @@ def run_command_in_alias_mode(command):
         sys.exit(rc)
 
 
+def get_bgp_summary_extended(command):
+    """
+    Adds Neighbor name to the show ip[v6] bgp summary command
+    :param command: command to get bgp summary
+    """
+    try:
+        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        device_output = p.stdout.read()
+        modified_output = []
+        my_list = iter(device_output.splitlines())
+        for element in my_list:
+            if element.startswith("Neighbor"):
+                element = "{}\tNeighborName".format(element)
+                modified_output.append(element)
+                for line in my_list:
+                    if not line or line.startswith('Total'):
+                        modified_output.append(line)
+                        continue
+                    ip = bgp_neighbor_ip_to_name(line.split()[0])
+                    if len(line.split()) == 1:
+                        modified_output.append(line)
+                        line = next(my_list)
+                    line = f"{}\t{}".format(line, ip)
+                    modified_output.append(line)
+                continue
+            modified_output.append(element)
+        click.echo("\n".join(modified_output))
+    except:
+        click.echo('unable to get output.\nTry issuing sudo vtysh -c "show ip[v6] bgp summary"')
+
+
+def bgp_neighbor_ip_to_name(address):
+    """
+    Gets BGP neighbor name from the given ipv4/v6 address
+    :param address: ipv4/ipv6 address
+    :return: string
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    neighbor_data = config_db.get_table('BGP_NEIGHBOR')
+    return neighbor_data[address].get("name", "NotAvailable") if address in neighbor_data else "NotAvailable"
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 #
