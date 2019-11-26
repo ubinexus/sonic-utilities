@@ -42,6 +42,9 @@
         "mtu": "9100",
         "speed": "40000"
     },
+    "VLAN_SUB_INTERFACE|Ethernet0.10": {
+        "admin_status": "up"
+    },
     "ACL_RULE|DATAACL|DEFAULT_RULE": {
             "PACKET_ACTION": "DROP",
             "PRIORITY": "1"
@@ -101,6 +104,12 @@
             "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet100,Ethernet104,Ethernet92,Ethernet96,Ethernet84,Ethernet88,Ethernet76,Ethernet80,Ethernet108,Ethernet112,Ethernet64,Ethernet120,Ethernet116,Ethernet124,Ethernet72,Ethernet68",
             "type": "MIRROR"
     },
+    "ACL_TABLE|EVERFLOW_EGRESS": {
+            "policy_desc": "EGRESS EVERFLOW",
+            "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet100,Ethernet104,Ethernet92,Ethernet96,Ethernet84,Ethernet88,Ethernet76,Ethernet80,Ethernet108,Ethernet112,Ethernet64,Ethernet120,Ethernet116,Ethernet124,Ethernet72,Ethernet68",
+            "type": "MIRROR",
+            "stage": "egress"
+    },
     "ACL_TABLE|SNMP_ACL": {
             "policy_desc": "SNMP_ACL",
             "services@": "SNMP",
@@ -110,5 +119,22 @@
             "policy_desc": "SSH_ONLY",
             "services@": "SSH",
             "type": "CTRLPLANE"
-    }
+    },
+    "DEBUG_COUNTER|DEBUG_0": {
+        "type": "PORT_INGRESS_DROPS"
+    },
+    "DEBUG_COUNTER|DEBUG_1": {
+        "type": "SWITCH_EGRESS_DROPS",
+        "alias": "SWITCH_DROPS",
+        "group": "PACKET_DROPS",
+        "desc": "Outgoing packet drops, tracked at the switch level"
+    },
+    "DEBUG_COUNTER|DEBUG_2": {
+        "type": "PORT_INGRESS_DROPS",
+        "desc": ""
+    },
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_0|IP_HEADER_ERROR": {},
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_1|ACL_ANY": {},
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_2|IP_HEADER_ERROR": {},
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_2|NO_L3_HEADER": {}
 }
