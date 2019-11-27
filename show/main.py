@@ -188,7 +188,7 @@ def get_routing_stack():
 routing_stack = get_routing_stack()
 
 
-def run_command(command, display_cmd=False):
+def run_command(command, display_cmd=False, return_cmd=False):
     if display_cmd:
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -201,6 +201,8 @@ def run_command(command, display_cmd=False):
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
 
     while True:
+        if return_cmd:
+            return proc.stdout.read()
         output = proc.stdout.readline()
         if output == "" and proc.poll() is not None:
             break
@@ -393,35 +395,30 @@ def run_command_in_alias_mode(command):
         sys.exit(rc)
 
 
-def get_bgp_summary_extended(command):
+def get_bgp_summary_extended(command_output):
     """
     Adds Neighbor name to the show ip[v6] bgp summary command
     :param command: command to get bgp summary
     """
-    try:
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        device_output = p.stdout.read()
-        modified_output = []
-        my_list = iter(device_output.splitlines())
-        for element in my_list:
-            if element.startswith("Neighbor"):
-                element = "{}\tNeighborName".format(element)
-                modified_output.append(element)
-                for line in my_list:
-                    if not line or line.startswith('Total'):
-                        modified_output.append(line)
-                        continue
-                    ip = bgp_neighbor_ip_to_name(line.split()[0])
-                    if len(line.split()) == 1:
-                        modified_output.append(line)
-                        line = next(my_list)
-                    line = f"{}\t{}".format(line, ip)
-                    modified_output.append(line)
-                continue
+    modified_output = []
+    my_list = iter(command_output.splitlines())
+    for element in my_list:
+        if element.startswith("Neighbor"):
+            element = "{}\tNeighborName".format(element)
             modified_output.append(element)
-        click.echo("\n".join(modified_output))
-    except:
-        click.echo('unable to get output.\nTry issuing sudo vtysh -c "show ip[v6] bgp summary"')
+        elif not element or element.startswith("Total number "):
+            modified_output.append(element)
+        elif re.match(r"([0-9A-Fa-f]{1,4}:|\d+.\d+.\d+.\d+)", element.split()[0]):
+            ip = element.split()[0]
+            name = bgp_neighbor_ip_to_name(ip)
+            if len(element.split()) == 1:
+                modified_output.append(element)
+                element = next(my_list)
+            element = "{}\t{}".format(element, name)
+            modified_output.append(element)
+        else:
+            modified_output.append(element)
+    click.echo("\n".join(modified_output))
 
 
 def bgp_neighbor_ip_to_name(address):
