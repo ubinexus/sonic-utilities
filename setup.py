@@ -63,6 +63,7 @@ setup(
         'scripts/dropconfig',
         'scripts/dropstat',
         'scripts/ecnconfig',
+        'scripts/fanshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
@@ -86,6 +87,7 @@ setup(
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/teamshow',
+        'scripts/tempershow',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
