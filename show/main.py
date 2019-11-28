@@ -202,7 +202,8 @@ def run_command(command, display_cmd=False, return_cmd=False):
 
     while True:
         if return_cmd:
-            return proc.stdout.read()
+            output = proc.communicate()[0].decode("utf-8")
+            return output
         output = proc.stdout.readline()
         if output == "" and proc.poll() is not None:
             break
@@ -400,6 +401,7 @@ def get_bgp_summary_extended(command_output):
     Adds Neighbor name to the show ip[v6] bgp summary command
     :param command: command to get bgp summary
     """
+    bgp_neighbors = get_config_db_table('BGP_NEIGHBOR')
     modified_output = []
     my_list = iter(command_output.splitlines())
     for element in my_list:
@@ -410,7 +412,7 @@ def get_bgp_summary_extended(command_output):
             modified_output.append(element)
         elif re.match(r"([0-9A-Fa-f]{1,4}:|\d+.\d+.\d+.\d+)", element.split()[0]):
             ip = element.split()[0]
-            name = bgp_neighbor_ip_to_name(ip)
+            name = bgp_neighbors[ip].get("name", "NotAvailable") if ip in bgp_neighbors else "NotAvailable"
             if len(element.split()) == 1:
                 modified_output.append(element)
                 element = next(my_list)
@@ -421,16 +423,16 @@ def get_bgp_summary_extended(command_output):
     click.echo("\n".join(modified_output))
 
 
-def bgp_neighbor_ip_to_name(address):
+def get_config_db_table(table_name):
     """
-    Gets BGP neighbor name from the given ipv4/v6 address
-    :param address: ipv4/ipv6 address
+    Gets table from configDB
+    :param table_name: name of table from config_db
     :return: string
     """
     config_db = ConfigDBConnector()
     config_db.connect()
-    neighbor_data = config_db.get_table('BGP_NEIGHBOR')
-    return neighbor_data[address].get("name", "NotAvailable") if address in neighbor_data else "NotAvailable"
+    neighbor_data = config_db.get_table(table_name)
+    return neighbor_data
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
