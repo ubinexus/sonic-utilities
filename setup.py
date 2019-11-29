@@ -41,6 +41,7 @@ setup(
         'ssdutil',
         'pfc',
         'psuutil',
+        'pcieutil',
         'show',
         'sonic_installer',
         'sonic-utilities-tests',
