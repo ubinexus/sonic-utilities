@@ -319,7 +319,6 @@ def _stop_services():
         'lldp',
         'pmon',
         'bgp',
-        'iccpd',
         'hostcfgd',
     ]
 
@@ -330,6 +329,16 @@ def _stop_services():
 
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
+            raise
+
+    # iccpd service doesn't start by default
+    (out, err) = run_command("systemctl status iccpd", return_output = True)
+    if not err and 'Active: active (running)' in out:
+        try:
+            click.echo("Stopping service iccpd ...")
+            run_command("systemctl stop iccpd")
+        except SystemExit as e:
+            log_error("Stopping iccpd failed with error {}".format(e))
             raise
 
 def _reset_failed_services():
@@ -347,7 +356,6 @@ def _reset_failed_services():
         'snmp',
         'swss',
         'syncd',
-        'iccpd',
         'teamd'
     ]
 
@@ -359,6 +367,16 @@ def _reset_failed_services():
             log_error("Failed to reset failed status for service {}".format(service))
             raise
 
+    # iccpd service doesn't start by default
+    (out, err) = run_command("systemctl is-enabled iccpd", return_output = True)
+    if not err and 'enabled' in out:
+        try:
+            click.echo("Resetting failed status for service iccpd ...")
+            run_command("systemctl reset-failed iccpd")
+        except SystemExit as e:
+            log_error("Failed to reset failed status for service iccpd")
+            raise
+
 def _restart_services():
     services_to_restart = [
         'hostname-config',
@@ -367,7 +385,6 @@ def _restart_services():
         'rsyslog-config',
         'swss',
         'bgp',
-        'iccpd',
         'pmon',
         'lldp',
         'hostcfgd',
@@ -379,6 +396,16 @@ def _restart_services():
             run_command("systemctl restart {}".format(service))
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
+            raise
+
+    # iccpd service doesn't start by default
+    (out, err) = run_command("systemctl is-enabled iccpd", return_output = True)
+    if not err and 'enabled' in out:
+        try:
+            click.echo("Restarting service iccpd ...")
+            run_command("systemctl restart iccpd")
+        except SystemExit as e:
+            log_error("Restart iccpd failed with error {}".format(e))
             raise
 
 def is_ipaddress(val):
