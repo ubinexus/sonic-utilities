@@ -406,6 +406,47 @@ def cli():
     """SONiC command line - 'show' command"""
     pass
 
+#
+# 'vrf' command ("show vrf")
+#
+
+def get_interface_bind_to_vrf(config_db, vrf_name):
+    """Get interfaces belong to vrf
+    """
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    data = []
+    for table_name in tables:
+        interface_dict = config_db.get_table(table_name)
+        if interface_dict:
+            for interface in interface_dict.keys():
+                if interface_dict[interface].has_key('vrf_name') and vrf_name == interface_dict[interface]['vrf_name']:
+                    data.append(interface)
+    return data
+
+@cli.command()
+@click.argument('vrf_name', required=False)
+def vrf(vrf_name):
+    """Show vrf config"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['VRF', 'Interfaces']
+    body = []
+    vrf_dict = config_db.get_table('VRF')
+    if vrf_dict:
+        vrfs = []
+        if vrf_name is None:
+            vrfs = vrf_dict.keys()
+        elif vrf_name in vrf_dict.keys():
+            vrfs = [vrf_name]
+        for vrf in vrfs:
+            intfs = get_interface_bind_to_vrf(config_db, vrf)
+            if len(intfs) == 0:
+                body.append([vrf, ""])
+            else:
+                body.append([vrf, intfs[0]])
+                for intf in intfs[1:]:
+                    body.append(["", intf])
+    click.echo(tabulate(body, header))
 
 #
 # 'arp' command ("show arp")
@@ -1156,16 +1197,31 @@ def get_if_oper_state(iface):
 
 
 #
+# get_if_master
+#
+# Given an interface name, return its master reported by the kernel.
+#
+def get_if_master(iface):
+    oper_file = "/sys/class/net/{0}/master"
+
+    if os.path.exists(oper_file.format(iface)):
+        real_path = os.path.realpath(oper_file.format(iface))
+        return os.path.basename(real_path)
+    else:
+        return ""
+
+
+#
 # 'show ip interfaces' command
 #
-# Display all interfaces with an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
+# Display all interfaces with master, an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
 @ip.command()
 def interfaces():
     """Show interfaces IPv4 address"""
-    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
+    header = ['Interface', 'Master', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     bgp_peer = get_bgp_peer()
 
@@ -1194,14 +1250,14 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
-
+                master = get_if_master(iface)
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
 
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
 
             for ifaddr in ifaddresses[1:]:
-                data.append(["", ifaddr[1], ""])
+                data.append(["", "", ifaddr[1], ""])
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
@@ -1230,14 +1286,14 @@ def get_bgp_peer():
 #
 
 @ip.command()
-@click.argument('ipaddress', required=False)
+@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(ipaddress, verbose):
+def route(args, verbose):
     """Show IP (IPv4) routing table"""
     cmd = 'sudo vtysh -c "show ip route'
 
-    if ipaddress is not None:
-        cmd += ' {}'.format(ipaddress)
+    for arg in args:
+        cmd += " " + str(arg)
 
     cmd += '"'
 
@@ -1298,14 +1354,14 @@ def prefix_list(prefix_list_name, verbose):
 #
 # 'show ipv6 interfaces' command
 #
-# Display all interfaces with an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
+# Display all interfaces with master, an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
 @ipv6.command()
 def interfaces():
     """Show interfaces IPv6 address"""
-    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
+    header = ['Interface', 'Master', 'IPv6 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     bgp_peer = get_bgp_peer()
 
@@ -1334,11 +1390,12 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
+                master = get_if_master(iface)
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
             for ifaddr in ifaddresses[1:]:
-                data.append(["", ifaddr[1], ""])
+                data.append(["", "", ifaddr[1], ""])
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
@@ -1348,14 +1405,14 @@ def interfaces():
 #
 
 @ipv6.command()
-@click.argument('ipaddress', required=False)
+@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(ipaddress, verbose):
+def route(args, verbose):
     """Show IPv6 routing table"""
     cmd = 'sudo vtysh -c "show ipv6 route'
 
-    if ipaddress is not None:
-        cmd += ' {}'.format(ipaddress)
+    for arg in args:
+        cmd += " " + str(arg)
 
     cmd += '"'
 
@@ -2208,6 +2265,58 @@ def table(table_name, verbose):
 
 
 #
+# 'dropcounters' group ###
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def dropcounters():
+    """Show drop counter related information"""
+    pass
+
+
+# 'configuration' subcommand ("show dropcounters configuration")
+@dropcounters.command()
+@click.option('-g', '--group', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def configuration(group, verbose):
+    """Show current drop counter configuration"""
+    cmd = "dropconfig -c show_config"
+
+    if group:
+        cmd += " -g '{}'".format(group)
+
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'capabilities' subcommand ("show dropcounters capabilities")
+@dropcounters.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def capabilities(verbose):
+    """Show device drop counter capabilities"""
+    cmd = "dropconfig -c show_capabilities"
+
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'counts' subcommand ("show dropcounters counts")
+@dropcounters.command()
+@click.option('-g', '--group', required=False)
+@click.option('-t', '--counter_type', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def counts(group, counter_type, verbose):
+    """Show drop counts"""
+    cmd = "dropstat -c show"
+
+    if group:
+        cmd += " -g '{}'".format(group)
+
+    if counter_type:
+        cmd += " -t '{}'".format(counter_type)
+
+    run_command(cmd, display_cmd=verbose)
+
+
+#
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
@@ -2392,6 +2501,22 @@ def config(redis_unix_socket_path):
     header = ['name', 'enable', 'timer_name', 'timer_duration', 'eoiu_enable']
     click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
     state_db.close(state_db.STATE_DB)
+
+#
+# show features
+#
+
+@cli.command('features')
+def features():
+    """Show status of optional features"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Feature', 'Status']
+    body = []
+    status_data = config_db.get_table('FEATURE')
+    for key in status_data.keys():
+        body.append([key, status_data[key]['status']])
+    click.echo(tabulate(body, header))
 
 if __name__ == '__main__':
     cli()
