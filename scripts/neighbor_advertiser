@@ -380,14 +380,6 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
             log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
             return None
 
-        # Handle response errors
-        if not response:
-            log_error('Failed to set up neighbor advertiser slice, vip: {}, no response obtained'.format(ferret_service_vip))
-            return None
-        if response and not response.ok:
-            log_error('Failed to set up neighbor advertiser slice, vip: {}, error_code: {}, error_content: {}'.format(ferret_service_vip, response.status_code, response.content))
-            return None
-
         neighbor_advertiser_configuration = json.loads(response.content)
         ferret_server_ipv4_addr = neighbor_advertiser_configuration['ipv4Addr']
 
