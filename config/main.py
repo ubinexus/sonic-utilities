@@ -12,7 +12,6 @@ import yaml
 import time
 import netifaces
 
-
 import sonic_device_util
 import ipaddress
 from swsssdk import ConfigDBConnector
@@ -28,7 +27,6 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 SNMP_COMMUNITY_FILE = '/etc/sonic/snmp.yml'
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
-
 
 # ========================== Syslog wrappers ==========================
 
