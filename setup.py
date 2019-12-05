@@ -130,9 +130,9 @@ setup(
     # - sonic-config-engine
     # - swsssdk
     # - tabulate
+    # - click
     install_requires=[
         'click-default-group',
-        'click',
         'natsort'
     ],
     setup_requires= [
