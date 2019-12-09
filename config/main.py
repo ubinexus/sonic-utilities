@@ -1029,33 +1029,25 @@ def vrf_delete_management_vrf():
     mvrf_restart_services()
 
 #
-# 'vrf' group ('config vrf ...')
+# 'mgmt-vrf' group ('config mgmt-vrf ...')
 #
 
-@config.group('vrf')
-def vrf():
-    """VRF-related configuration tasks"""
+@config.group('mgmt-vrf')
+def mgmt_vrf():
+    """Management VRF-related configuration tasks"""
     pass
 
-@vrf.command('add')
-@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=True)
+@mgmt_vrf.command('add')
 @click.pass_context
-def vrf_add (ctx, vrfname):
+def mgmt_vrf_add(ctx):
     """Create management VRF and move eth0 into it"""
-    if vrfname == 'mgmt' or vrfname == 'management':
-        vrf_add_management_vrf()
-    else:
-        click.echo("Creation of data vrf={} is not yet supported".format(vrfname))
+    vrf_add_management_vrf()
 
-@vrf.command('del')
-@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=False)
+@mgmt_vrf.command('del')
 @click.pass_context
-def vrf_del (ctx, vrfname):
+def mgmt_vrf_del(ctx):
     """Delete management VRF and move back eth0 to default VRF"""
-    if vrfname == 'mgmt' or vrfname == 'management':
-        vrf_delete_management_vrf()
-    else:
-        click.echo("Deletion of data vrf={} is not yet supported".format(vrfname))
+    vrf_delete_management_vrf()
 
 @config.group()
 @click.pass_context
