@@ -2209,6 +2209,58 @@ def table(table_name, verbose):
 
 
 #
+# 'dropcounters' group ###
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def dropcounters():
+    """Show drop counter related information"""
+    pass
+
+
+# 'configuration' subcommand ("show dropcounters configuration")
+@dropcounters.command()
+@click.option('-g', '--group', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def configuration(group, verbose):
+    """Show current drop counter configuration"""
+    cmd = "dropconfig -c show_config"
+
+    if group:
+        cmd += " -g '{}'".format(group)
+
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'capabilities' subcommand ("show dropcounters capabilities")
+@dropcounters.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def capabilities(verbose):
+    """Show device drop counter capabilities"""
+    cmd = "dropconfig -c show_capabilities"
+
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'counts' subcommand ("show dropcounters counts")
+@dropcounters.command()
+@click.option('-g', '--group', required=False)
+@click.option('-t', '--counter_type', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def counts(group, counter_type, verbose):
+    """Show drop counts"""
+    cmd = "dropstat -c show"
+
+    if group:
+        cmd += " -g '{}'".format(group)
+
+    if counter_type:
+        cmd += " -t '{}'".format(counter_type)
+
+    run_command(cmd, display_cmd=verbose)
+
+
+#
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
@@ -2361,16 +2413,28 @@ def config(redis_unix_socket_path):
             if k not in data:
                 r.append("NULL")
                 r.append("NULL")
+                r.append("NULL")
             elif 'neighsyncd_timer' in  data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
-            elif 'bgp_timer' in data[k]:
-                r.append("bgp_timer")
-                r.append(data[k]['bgp_timer'])
+                r.append("NULL")
+            elif 'bgp_timer' in data[k] or 'bgp_eoiu' in data[k]:
+                if 'bgp_timer' in data[k]:
+                    r.append("bgp_timer")
+                    r.append(data[k]['bgp_timer'])
+                else:
+                    r.append("NULL")
+                    r.append("NULL")
+                if 'bgp_eoiu' in data[k]:
+                    r.append(data[k]['bgp_eoiu'])
+                else:
+                    r.append("NULL")
             elif 'teamsyncd_timer' in data[k]:
                 r.append("teamsyncd_timer")
                 r.append(data[k]['teamsyncd_timer'])
+                r.append("NULL")
             else:
+                r.append("NULL")
                 r.append("NULL")
                 r.append("NULL")
 
@@ -2378,9 +2442,25 @@ def config(redis_unix_socket_path):
 
         return table
 
-    header = ['name', 'enable', 'timer_name', 'timer_duration']
+    header = ['name', 'enable', 'timer_name', 'timer_duration', 'eoiu_enable']
     click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
     state_db.close(state_db.STATE_DB)
+
+#
+# show features
+#
+
+@cli.command('features')
+def features():
+    """Show status of optional features"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Feature', 'Status']
+    body = []
+    status_data = config_db.get_table('FEATURE')
+    for key in status_data.keys():
+        body.append([key, status_data[key]['status']])
+    click.echo(tabulate(body, header))
 
 if __name__ == '__main__':
     cli()

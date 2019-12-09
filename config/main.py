@@ -532,7 +532,7 @@ def reload(filename, yes, load_sysinfo):
     _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
-    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
     if load_sysinfo:
         command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
@@ -583,12 +583,22 @@ def load_minigraph():
     """Reconfigure based on minigraph."""
     log_info("'load_minigraph' executing...")
 
+    # get the device type
+    command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    device_type, err = proc.communicate()
+    if err:
+        click.echo("Could not get the device type from minigraph, setting device type to Unknown")
+        device_type = 'Unknown'
+    else:
+        device_type = device_type.strip()
+
     #Stop services before config push
     _stop_services()
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
     if os.path.isfile('/etc/sonic/init_cfg.json'):
         command = "{} -H -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
@@ -596,7 +606,8 @@ def load_minigraph():
         command = "{} -H -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
-    run_command('pfcwd start_default', display_cmd=True)
+    if device_type != 'MgmtToRRouter':
+        run_command('pfcwd start_default', display_cmd=True)
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
     run_command("config qos reload", display_cmd=True)
@@ -853,6 +864,13 @@ def warm_restart_teamsyncd_timer(ctx, seconds):
         ctx.fail("teamsyncd warm restart timer must be in range 1-3600")
     db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
 
+@warm_restart.command('bgp_eoiu')
+@click.argument('enable', metavar='<enable>', default='true', required=False, type=click.Choice(["true", "false"]))
+@click.pass_context
+def warm_restart_bgp_eoiu(ctx, enable):
+    db = ctx.obj['db']
+    db.mod_entry('WARM_RESTART', 'bgp', {'bgp_eoiu': enable})
+
 #
 # 'vlan' group ('config vlan ...')
 #
@@ -873,11 +891,14 @@ def vlan(ctx, redis_unix_socket_path):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def add_vlan(ctx, vid):
-    db = ctx.obj['db']
-    vlan = 'Vlan{}'.format(vid)
-    if len(db.get_entry('VLAN', vlan)) != 0:
-        ctx.fail("{} already exists".format(vlan))
-    db.set_entry('VLAN', vlan, {'vlanid': vid})
+    if vid >= 1 and vid <= 4094:
+        db = ctx.obj['db']
+        vlan = 'Vlan{}'.format(vid)
+        if len(db.get_entry('VLAN', vlan)) != 0:
+            ctx.fail("{} already exists".format(vlan))
+        db.set_entry('VLAN', vlan, {'vlanid': vid})
+    else :
+        ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -1842,6 +1863,79 @@ def incremental(file_name):
     command = "acl-loader update incremental {}".format(file_name)
     run_command(command)
 
+
+#
+# 'dropcounters' group ('config dropcounters ...')
+#
+
+@config.group()
+def dropcounters():
+    """Drop counter related configuration tasks"""
+    pass
+
+
+#
+# 'install' subcommand ('config dropcounters install')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("counter_type", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option("-a", "--alias", type=str, help="Alias for this counter")
+@click.option("-g", "--group", type=str, help="Group for this counter")
+@click.option("-d", "--desc",  type=str, help="Description for this counter")
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def install(counter_name, alias, group, counter_type, desc, reasons, verbose):
+    """Install a new drop counter"""
+    command = "dropconfig -c install -n '{}' -t '{}' -r '{}'".format(counter_name, counter_type, reasons)
+    if alias:
+        command += " -a '{}'".format(alias)
+    if group:
+        command += " -g '{}'".format(group)
+    if desc:
+        command += " -d '{}'".format(desc)
+
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'delete' subcommand ('config dropcounters delete')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def delete(counter_name, verbose):
+    """Delete an existing drop counter"""
+    command = "dropconfig -c uninstall -n {}".format(counter_name)
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'add_reasons' subcommand ('config dropcounters add_reasons')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def add_reasons(counter_name, reasons, verbose):
+    """Add reasons to an existing drop counter"""
+    command = "dropconfig -c add -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'remove_reasons' subcommand ('config dropcounters remove_reasons')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def remove_reasons(counter_name, reasons, verbose):
+    """Remove reasons from an existing drop counter"""
+    command = "dropconfig -c remove -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
+
 #
 # 'ecn' command ('config ecn ...')
 #
@@ -2321,6 +2415,23 @@ def delete(ctx):
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
+#
+# 'feature' command ('config feature name state')
+# 
+@config.command('feature')
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('state', metavar='<feature-state>', required=True, type=click.Choice(["enabled", "disabled"]))
+def feature_status(name, state):
+    """ Configure status of feature"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    status_data = config_db.get_entry('FEATURE', name)
+
+    if not status_data:
+        click.echo(" Feature '{}' doesn't exist".format(name))
+        return
+
+    config_db.mod_entry('FEATURE', name, {'status': state})
 
 if __name__ == '__main__':
     config()
