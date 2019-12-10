@@ -61,6 +61,8 @@ setup(
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
+        'scripts/dropconfig',
+        'scripts/dropstat',
         'scripts/ecnconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',

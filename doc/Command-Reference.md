@@ -33,6 +33,10 @@
   * [BGP config commands](#bgp-config-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
+* [Drop Counters](#drop-counters)
+  * [Drop Counter show commands](#drop-counters-show-commands)
+  * [Drop Counter config commands](#drop-counters-config-commands)
+  * [Drop Counter clear commands](#drop-counters-clear-commands)
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
@@ -1739,6 +1743,191 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
 
 
+# Drop Counters
+
+This section explains all the Configurable Drop Counters show commands and configuration options that are supported in SONiC.
+
+### Drop Counters show commands
+
+**show dropcounters capabilities**
+
+This command is used to show the drop counter capabilities that are available on this device. It displays the total number of drop counters that can be configured on this device as well as the drop reasons that can be configured for the counters.
+
+- Usage:
+  ```
+  show dropcounters capabilities
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ show dropcounters capabilities
+  Counter Type            Total
+  --------------------  -------
+  PORT_INGRESS_DROPS          3
+  SWITCH_EGRESS_DROPS         2
+
+  PORT_INGRESS_DROPS:
+        L2_ANY
+        SMAC_MULTICAST
+        SMAC_EQUALS_DMAC
+        INGRESS_VLAN_FILTER
+        EXCEEDS_L2_MTU
+        SIP_CLASS_E
+        SIP_LINK_LOCAL
+        DIP_LINK_LOCAL
+        UNRESOLVED_NEXT_HOP
+        DECAP_ERROR
+
+  SWITCH_EGRESS_DROPS:
+        L2_ANY
+        L3_ANY
+        A_CUSTOM_REASON
+  ```
+
+**show dropcounters configuration**
+
+This command is used to show the current running configuration of the drop counters on this device.
+
+- Usage:
+  ```
+  show dropcounters configuration [-g <group name>]
+  ```
+
+- Examples:
+  ```
+  admin@sonic:~$ show dropcounters configuration
+  Counter   Alias     Group  Type                 Reasons              Description
+  --------  --------  -----  ------------------   -------------------  --------------
+  DEBUG_0   RX_LEGIT  LEGIT  PORT_INGRESS_DROPS   SMAC_EQUALS_DMAC     Legitimate port-level RX pipeline drops
+                                                  INGRESS_VLAN_FILTER
+  DEBUG_1   TX_LEGIT  None   SWITCH_EGRESS_DROPS  EGRESS_VLAN_FILTER   Legitimate switch-level TX pipeline drops
+
+  admin@sonic:~$ show dropcounters configuration -g LEGIT
+  Counter   Alias     Group  Type                 Reasons              Description
+  --------  --------  -----  ------------------   -------------------  --------------
+  DEBUG_0   RX_LEGIT  LEGIT  PORT_INGRESS_DROPS   SMAC_EQUALS_DMAC     Legitimate port-level RX pipeline drops
+                                                  INGRESS_VLAN_FILTER
+  ```
+
+**show dropcounters counts**
+
+This command is used to show the current statistics for the configured drop counters. Standard drop counters are displayed as well for convenience.
+
+Because clear (see below) is handled on a per-user basis different users may see different drop counts.
+
+- Usage:
+  ```
+  show dropcounters counts [-g <group name>] [-t <counter type>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dropcounters counts
+      IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS   RX_LEGIT
+  ---------  -------  --------  ----------  --------  ----------  ---------
+  Ethernet0        U        10         100         0           0         20
+  Ethernet4        U         0        1000         0           0        100
+  Ethernet8        U       100          10         0           0          0
+
+  DEVICE  TX_LEGIT
+  ------  --------
+  sonic       1000
+
+  admin@sonic:~$ show dropcounters counts -g LEGIT
+      IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS   RX_LEGIT
+  ---------  -------  --------  ----------  --------  ----------  ---------
+  Ethernet0        U        10         100         0           0         20
+  Ethernet4        U         0        1000         0           0        100
+  Ethernet8        U       100          10         0           0          0
+
+  admin@sonic:~$ show dropcounters counts -t SWITCH_EGRESS_DROPS
+  DEVICE  TX_LEGIT
+  ------  --------
+  sonic       1000
+  ```
+
+### Drop Counters config commands
+
+**config dropcounters install**
+
+This command is used to initialize a new drop counter. The user must specify a name, type, and initial list of drop reasons.
+
+This command will fail if the given name is already in use, if the type of counter is not supported, or if any of the specified drop reasons are not supported. It will also fail if all avaialble counters are already in use on the device.
+
+- Usage:
+  ```
+  admin@sonic:~$ sudo config dropcounters install <counter name> <counter type> <reasons list> [-d <description>] [-g <group>] [-a <alias>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dropcounters install DEBUG_2 PORT_INGRESS_DROPS [EXCEEDS_L2_MTU,DECAP_ERROR] -d "More port ingress drops" -g BAD -a BAD_DROPS
+  ```
+
+**config dropcounters add_reasons**
+
+This command is used to add drop reasons to an already initialized counter.
+
+This command will fail if any of the specified drop reasons are not supported.
+
+- Usage:
+  ```
+  admin@sonic:~$ sudo config dropcounters add_reasons <counter name> <reasons list>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dropcounters add_reasons DEBUG_2 [SIP_CLASS_E]
+  ```
+
+**config dropcounters remove_reasons**
+
+This command is used to remove drop reasons from an already initialized counter.
+
+- Usage:
+  ```
+  admin@sonic:~$ sudo config dropcounters remove_reasons <counter name> <reasons list>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dropcounters remove_reasons DEBUG_2 [SIP_CLASS_E]
+  ```
+
+**config dropcounters delete**
+
+This command is used to delete a drop counter.
+
+- Usage:
+  ```
+  admin@sonic:~$ sudo config dropcounters delete <counter name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dropcounters delete DEBUG_2
+  ```
+
+### Drop Counters clear commands
+
+**sonic-clear dropcounters**
+
+This comnmand is used to clear drop counters. This is done on a per-user basis.
+
+- Usage:
+  ```
+  admin@sonic:~$ sonic-clear dropcounters
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear dropcounters
+  Cleared drop counters
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#drop-counters)
+
+
 ## ECN
 
 This section explains all the Explicit Congestion Notification (ECN) show commands and ECN configuation options that are supported in SONiC.
@@ -1859,13 +2048,13 @@ Subsequent pages explain each of these commands in detail.
 
 **show interfaces counters**
 
-This show command displays packet counters for all interfaces since the last time the counters were cleared. There is no facility to display counters for one specific interface. Optional argument "-a" does not have any significance in this command.
-Optional argument "-c" can be used to clear the counters for all interfaces.
+This show command displays packet counters for all interfaces since the last time the counters were cleared. To display l3 counters "rif" subcommand can be used. There is no facility to display counters for one specific l2 interface. For l3 interfaces a single interface output mode is present. Optional argument "-a" provides two additional columns - RX-PPS and TX_PPS.
 Optional argument "-p" specify a period (in seconds) with which to gather counters over.
 
 - Usage:
   ```
   show interfaces counters [-a|--printall] [-p|--period <period>]
+  show interfaces counters rif [-p|--period <period>] <interface_name>
   ```
 
 - Example:
@@ -1882,10 +2071,49 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
   ```
 
+The "rif" subcommand is used to display l3 interface counters. Layer 3 interfaces include router interfaces, portchannels and vlan interfaces.
+
+- Example:
+
+```
+  admin@sonic:~$ show interfaces counters rif
+          IFACE    RX_OK      RX_BPS    RX_PPS    RX_ERR    TX_OK    TX_BPS    TX_PPS    TX_ERR
+---------------  -------  ----------  --------  --------  -------  --------  --------  --------
+PortChannel0001   62,668  107.81 B/s    1.34/s         3        6  0.02 B/s    0.00/s         0
+PortChannel0002   62,645  107.77 B/s    1.34/s         3        2  0.01 B/s    0.00/s         0
+PortChannel0003   62,481  107.56 B/s    1.34/s         3        3  0.01 B/s    0.00/s         0
+PortChannel0004   62,732  107.88 B/s    1.34/s         2        3  0.01 B/s    0.00/s         0
+       Vlan1000        0    0.00 B/s    0.00/s         0        0  0.00 B/s    0.00/s         0
+```
+
+
+Optionally, you can specify a layer 3 interface name to display the counters in single interface mode.
+
+- Example:
+
+```
+  admin@sonic:~$ show interfaces counters rif PortChannel0001
+  PortChannel0001
+  ---------------
+
+          RX:
+                3269 packets
+              778494 bytesq
+                   3 error packets
+                 292 error bytes
+          TX:
+                   0 packets
+                   0 bytes
+                   0 error packets
+                   0 error bytes
+```
+
+
 Optionally, you can specify a period (in seconds) with which to gather counters over. Note that this function will take `<period>` seconds to execute.
 
 - Example:
-  ```
+
+```
   admin@sonic:~$ show interfaces counters -p 5
         IFACE    STATE    RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
   -----------  -------  -------  -----------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
@@ -1896,11 +2124,18 @@ Optionally, you can specify a period (in seconds) with which to gather counters 
   Ethernet16        U      377   32.64 KB/s      0.00%         0         0         0      214   18.01 KB/s      0.00%         0         0         0
   Ethernet20        U      284   36.81 KB/s      0.00%         0         0         0      138  8758.25 B/s      0.00%         0         0         0
   Ethernet24        U      173   16.09 KB/s      0.00%         0         0         0      169   11.39 KB/s      0.00%         0         0         0
-  ```
+```
 
 - NOTE: Interface counters can be cleared by the user with the following command:
+
   ```
   root@sonic:~# sonic-clear counters
+  ```
+
+- NOTE: Layer 3 interface counters can be cleared by the user with the following command:
+
+  ```
+  root@sonic:~# sonic-clear rifcounters
   ```
 
 **show interfaces description**
