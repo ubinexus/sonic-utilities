@@ -417,12 +417,9 @@ debug "Stopped  bgp ..."
 docker kill lldp > /dev/null
 systemctl stop lldp
 
-# Kill iccpd
-#docker kill iccpd > /dev/null
-
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     if echo $(docker ps) | grep -q iccpd; then
-        docker kill iccpd > /dev/null
+        docker kill iccpd > /dev/null || [ $? == 1 ]
     fi
 fi
 
