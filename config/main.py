@@ -313,6 +313,14 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
 
+def _get_optional_services():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    optional_services_dict = config_db.get_table('FEATURE')
+    if not optional_services_dict:
+        return None
+    return optional_services_dict.keys()
+
 def _stop_services():
     services_to_stop = [
         'swss',
@@ -331,15 +339,16 @@ def _stop_services():
             log_error("Stopping {} failed with error {}".format(service, e))
             raise
 
-    # iccpd service doesn't start by default
-    (out, err) = run_command("systemctl status iccpd", return_output = True)
-    if not err and 'Active: active (running)' in out:
-        try:
-            click.echo("Stopping service iccpd ...")
-            run_command("systemctl stop iccpd")
-        except SystemExit as e:
-            log_error("Stopping iccpd failed with error {}".format(e))
-            raise
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl status {}".format(service), return_output = True)
+        if not err and 'Active: active (running)' in out:
+            try:
+                click.echo("Stopping service {} ...".format(service))
+                run_command("systemctl stop {}".format(service))
+            except SystemExit as e:
+                log_error("Stopping {} failed with error {}".format(service, e))
+                raise
 
 def _reset_failed_services():
     services_to_reset = [
@@ -367,15 +376,16 @@ def _reset_failed_services():
             log_error("Failed to reset failed status for service {}".format(service))
             raise
 
-    # iccpd service doesn't start by default
-    (out, err) = run_command("systemctl is-enabled iccpd", return_output = True)
-    if not err and 'enabled' in out:
-        try:
-            click.echo("Resetting failed status for service iccpd ...")
-            run_command("systemctl reset-failed iccpd")
-        except SystemExit as e:
-            log_error("Failed to reset failed status for service iccpd")
-            raise
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
+        if not err and 'enabled' in out:
+            try:
+                click.echo("Resetting failed status for service {} ...".format(service))
+                run_command("systemctl reset-failed {}".format(service))
+            except SystemExit as e:
+                log_error("Failed to reset failed status for service {}".format(service))
+                raise
 
 def _restart_services():
     services_to_restart = [
@@ -398,15 +408,16 @@ def _restart_services():
             log_error("Restart {} failed with error {}".format(service, e))
             raise
 
-    # iccpd service doesn't start by default
-    (out, err) = run_command("systemctl is-enabled iccpd", return_output = True)
-    if not err and 'enabled' in out:
-        try:
-            click.echo("Restarting service iccpd ...")
-            run_command("systemctl restart iccpd")
-        except SystemExit as e:
-            log_error("Restart iccpd failed with error {}".format(e))
-            raise
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
+        if not err and 'enabled' in out:
+            try:
+                click.echo("Restarting service {} ...".format(service))
+                run_command("systemctl restart {}".format(service))
+            except SystemExit as e:
+                log_error("Restart {} failed with error {}".format(service, e))
+                raise
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
