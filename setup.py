@@ -68,6 +68,7 @@ setup(
         'scripts/mmuconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
+        'scripts/watchdog',
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/generate_dump',
