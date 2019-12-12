@@ -347,6 +347,7 @@ def sourceip(ctx, src_ip):
     """Specify RADIUS server global source ip <IPAddress>"""
     if ctx.obj == 'default':
         del_table_key('RADIUS', 'global', 'src_ip')
+        return
     elif not src_ip:
         click.echo('Not support empty argument')
         return
