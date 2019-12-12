@@ -514,9 +514,9 @@ if [ -x /sbin/hwclock ]; then
 fi
 
 # Enable Watchdog Timer
-if [[ -e /usr/local/bin/platform_watchdog_enable.sh ]]; then
+if [[ -x /usr/bin/watchdog ]]; then
     debug "Enabling Watchdog before fast-reboot"
-    /usr/local/bin/platform_watchdog_enable.sh
+    /usr/bin/watchdog -e
 fi
 
 # Reboot: explicity call Linux native reboot under sbin

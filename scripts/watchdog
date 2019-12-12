@@ -1,0 +1,72 @@
+#!/bin/bash
+
+VERBOSE=no
+
+function debug()
+{
+    if [[ x"${VERBOSE}" == x"yes" ]]; then
+        echo "$date $@"
+    fi
+    logger "$@"
+}
+
+function disable_watchdog()
+{
+    if [[ -x /usr/local/bin/platform_watchdog_disable.sh ]]; then
+        debug "Disabling Watchdog..."
+	/usr/local/bin/platform_watchdog_disable.sh
+    fi
+}
+
+function enable_watchdog()
+{
+    if [[ -x /usr/local/bin/platform_watchdog_enable.sh ]]; then
+        debug "Enabling Watchdog..."
+	/usr/local/bin/platform_watchdog_enable.sh
+    fi
+}
+
+SCRIPT=$0
+
+function show_help_and_exit()
+{
+    echo "Usage ${SCRIPT} [options]"
+    echo "    Request Enabling/Disabling Watchdog. Invoke platform-specific tool when available."
+    echo " "
+    echo "    Available options:"
+    echo "        -h, -? : getting this help"
+    echo "        -e     : enabling platform hw watchdog"
+    echo "        -d     : disabling platform hw watchdog"
+
+    exit 0
+}
+
+function parse_options()
+{
+    while getopts "h?ved" opt; do
+        case ${opt} in
+            h|\? )
+                show_help_and_exit
+                ;;
+            v )
+                VERBOSE=yes
+                ;;
+            e )
+                enable_watchdog
+                ;;
+            d )
+                disable_watchdog
+                ;;
+        esac
+    done
+}
+
+parse_options $@
+
+# Exit if not superuser
+if [[ "$EUID" -ne 0 ]]; then
+    echo "This command must be run as root" >&2
+    exit 1
+fi
+
+exit 1
