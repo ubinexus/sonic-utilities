@@ -2,6 +2,9 @@
 
 VERBOSE=no
 ARISTA_WD_TIMER=180
+ACTION=none
+ENABLE=enable
+DISABLE=disable
 
 function debug()
 {
@@ -116,14 +119,16 @@ function parse_options()
                 VERBOSE=yes
                 ;;
             e )
-                enable_watchdog
+                ACTION=$ENABLE
                 ;;
             d )
-                disable_watchdog
+                ACTION=$DISABLE
                 ;;
         esac
     done
 }
+
+parseMachineConf
 
 parse_options $@
 
@@ -131,6 +136,14 @@ parse_options $@
 if [[ "$EUID" -ne 0 ]]; then
     echo "This command must be run as root" >&2
     exit 1
+fi
+
+if [[ x"${ACTION}" == x"${ENABLE}" ]]; then
+    enable_watchdog
+fi
+
+if [[ x"${ACTION}" == x"${DISABLE}" ]]; then
+    disable_watchdog
 fi
 
 exit 1
