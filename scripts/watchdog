@@ -1,6 +1,7 @@
 #!/bin/bash
 
 VERBOSE=no
+ARISTA_WD_TIMER=180
 
 function debug()
 {
@@ -10,19 +11,82 @@ function debug()
     logger "$@"
 }
 
+function parseMachineConf() {
+    ONIE_PLATFORM="$(cat /host/machine.conf | grep 'onie_platform=' | cut -f2 -d'=')"
+    ABOOT_PLATFORM="$(cat /host/machine.conf | grep 'aboot_platform=' | cut -f2 -d'=')"
+    ONIE_SWITCH_ASIC="$(cat /host/machine.conf | grep 'onie_switch_asic=' | cut -f2 -d'=')"
+}
+
+function isDellS6100() {
+    local -r _DELLEMC_S6100_PLATFORM="x86_64-dell_s6100*"
+
+    if [[ $ONIE_PLATFORM =~ $_DELLEMC_S6100_PLATFORM ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+function isMLNX() {
+    local -r _MELLANOX_PLATFORM="mlnx"
+
+    if [[ "${ONIE_SWITCH_ASIC}" =~ "${_MELLANOX_PLATFORM}" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+
+function isArista() {
+    local -r _ARISTA_PLATFORM="x86_64-arista*"
+
+    if [[ "${ONIE_SWITCH_ASIC}" =~ "${_ARISTA_PLATFORM}" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+
+
 function disable_watchdog()
 {
-    if [[ -x /usr/local/bin/platform_watchdog_disable.sh ]]; then
+    if isDellS6100; then
+        if [[ -x /usr/local/bin/platform_watchdog_disable.sh ]]; then
+            debug "Disabling Watchdog..."
+            /usr/local/bin/platform_watchdog_disable.sh
+        fi
+    fi
+    if isMLNX; then
         debug "Disabling Watchdog..."
-	/usr/local/bin/platform_watchdog_disable.sh
+        # call watchdog api for mlnx
+    fi
+    if isArista; then
+	if [[ -x /usr/bin/arista ]]; then
+            debug "Disabling Watchdog..."
+            /usr/bin/arista --stop
+        fi
     fi
 }
 
 function enable_watchdog()
 {
-    if [[ -x /usr/local/bin/platform_watchdog_enable.sh ]]; then
+    if isDellS6100; then
+        if [[ -x /usr/local/bin/platform_watchdog_enable.sh ]]; then
+            debug "Enabling Watchdog..."
+	    /usr/local/bin/platform_watchdog_enable.sh
+        fi
+    fi
+    if isMLNX; then
         debug "Enabling Watchdog..."
-	/usr/local/bin/platform_watchdog_enable.sh
+        # call watchdog api for mlnx
+    fi
+    if isArista; then
+	if [[ -x /usr/bin/arista ]]; then
+            debug "Enabling Watchdog..."
+            /usr/bin/arista --arm $ARISTA_WD_TIMER
+        fi
     fi
 }
 
