@@ -21,7 +21,7 @@ function parseMachineConf() {
 }
 
 function isDellS6100() {
-    local -r _DELLEMC_S6100_PLATFORM="x86_64-dell_s6100*"
+    local -r _DELLEMC_S6100_PLATFORM="x86_64-dell_s6100"
 
     if [[ $ONIE_PLATFORM =~ $_DELLEMC_S6100_PLATFORM ]]; then
         return 0
@@ -33,7 +33,7 @@ function isDellS6100() {
 function isMLNX() {
     local -r _MELLANOX_PLATFORM="mlnx"
 
-    if [[ "${ONIE_SWITCH_ASIC}" =~ "${_MELLANOX_PLATFORM}" ]]; then
+    if [[ "${ONIE_SWITCH_ASIC}" = "${_MELLANOX_PLATFORM}" ]]; then
         return 0
     fi
 
@@ -42,9 +42,9 @@ function isMLNX() {
 
 
 function isArista() {
-    local -r _ARISTA_PLATFORM="x86_64-arista*"
+    local -r _ARISTA_PLATFORM="x86_64-arista"
 
-    if [[ "${ONIE_SWITCH_ASIC}" =~ "${_ARISTA_PLATFORM}" ]]; then
+    if [[ "${ABOOT_PLATFORM}" =~ "${_ARISTA_PLATFORM}" ]]; then
         return 0
     fi
 
@@ -68,7 +68,7 @@ function disable_watchdog()
     if isArista; then
 	if [[ -x /usr/bin/arista ]]; then
             debug "Disabling Watchdog..."
-            /usr/bin/arista --stop
+            /usr/bin/arista watchdog --stop
         fi
     fi
 }
@@ -88,7 +88,7 @@ function enable_watchdog()
     if isArista; then
 	if [[ -x /usr/bin/arista ]]; then
             debug "Enabling Watchdog..."
-            /usr/bin/arista --arm $ARISTA_WD_TIMER
+            /usr/bin/arista watchdog --arm $ARISTA_WD_TIMER
         fi
     fi
 }
