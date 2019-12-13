@@ -44,7 +44,7 @@ function isMLNX() {
 function isArista() {
     local -r _ARISTA_PLATFORM="x86_64-arista"
 
-    if [[ "${ABOOT_PLATFORM}" =~ "${_ARISTA_PLATFORM}" ]]; then
+    if [[ ${ABOOT_PLATFORM} =~ ${_ARISTA_PLATFORM} ]]; then
         return 0
     fi
 
@@ -55,40 +55,42 @@ function isArista() {
 
 function disable_watchdog()
 {
+    debug "Disabling Watchdog..."
     if isDellS6100; then
+        debug "Calling Dell S6100 WD disable"
         if [[ -x /usr/local/bin/platform_watchdog_disable.sh ]]; then
-            debug "Disabling Watchdog..."
             /usr/local/bin/platform_watchdog_disable.sh
         fi
-    fi
-    if isMLNX; then
-        debug "Disabling Watchdog..."
+    elif isMLNX; then
+        debug "Calling MLNX WD disable"
         # call watchdog api for mlnx
-    fi
-    if isArista; then
-	if [[ -x /usr/bin/arista ]]; then
-            debug "Disabling Watchdog..."
-            /usr/bin/arista watchdog --stop
+    else
+        if isArista; then
+            debug "Calling Arista WD disable"
+            if [[ -x /usr/bin/arista ]]; then
+                /usr/bin/arista watchdog --stop
+            fi
         fi
     fi
 }
 
 function enable_watchdog()
 {
+    debug "Enabling Watchdog..."
     if isDellS6100; then
+        debug "Calling Dell S6100 WD enable"
         if [[ -x /usr/local/bin/platform_watchdog_enable.sh ]]; then
-            debug "Enabling Watchdog..."
-	    /usr/local/bin/platform_watchdog_enable.sh
+            /usr/local/bin/platform_watchdog_enable.sh
         fi
-    fi
-    if isMLNX; then
-        debug "Enabling Watchdog..."
+    elif isMLNX; then
+        debug "Calling MLNX WD enable"
         # call watchdog api for mlnx
-    fi
-    if isArista; then
-	if [[ -x /usr/bin/arista ]]; then
-            debug "Enabling Watchdog..."
-            /usr/bin/arista watchdog --arm $ARISTA_WD_TIMER
+    else
+        if isArista; then
+            debug "Calling Arista WD enable"
+            if [[ -x /usr/bin/arista ]]; then
+                /usr/bin/arista watchdog --arm $ARISTA_WD_TIMER
+            fi
         fi
     fi
 }
@@ -140,10 +142,8 @@ fi
 
 if [[ x"${ACTION}" == x"${ENABLE}" ]]; then
     enable_watchdog
-fi
-
-if [[ x"${ACTION}" == x"${DISABLE}" ]]; then
+elif [[ x"${ACTION}" == x"${DISABLE}" ]]; then
     disable_watchdog
 fi
 
-exit 1
+exit 0

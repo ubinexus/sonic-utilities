@@ -68,7 +68,6 @@ setup(
         'scripts/mmuconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
-        'scripts/watchdog',
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/generate_dump',
@@ -86,6 +85,7 @@ setup(
         'scripts/teamshow',
         'scripts/nbrshow',
         'scripts/warm-reboot',
+        'scripts/watchdog',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
     ],
