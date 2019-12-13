@@ -38,7 +38,17 @@ class FanShow(object):
 
             name = key_list[1]
             data_dict = self.db.get_all(self.db.STATE_DB, key)
-            table.append((name, data_dict[SPEED_FIELD_NAME] + '%', data_dict[DIRECTION_FIELD_NAME], data_dict[TIMESTAMP_FIELD_NAME]))
+            try:
+                speed = float(data_dict[SPEED_FIELD_NAME])
+                if speed > 100:
+                    speed = '{} RPM'.format(int(speed))
+                else:
+                    speed = '{}%'.format(data_dict[SPEED_FIELD_NAME])
+            except ValueError as e:
+                print('Warn: cannot convert speed value from {}'.format(data_dict[SPEED_FIELD_NAME]))
+                speed = data_dict[SPEED_FIELD_NAME]
+
+            table.append((name, speed, data_dict[DIRECTION_FIELD_NAME], data_dict[TIMESTAMP_FIELD_NAME]))
         
         if table:
             table.sort()
