@@ -101,6 +101,7 @@ def get_platform_and_hwsku():
 # Loads platform specific psuutil module from source
 def load_platform_pcieutil():
     global platform_pcieutil
+    global hwsku_plugins_path
     # Get platform and hwsku
     (platform, hwsku) = get_platform_and_hwsku()
 
@@ -181,6 +182,7 @@ def pcie_check():
             err+=1
     if err:
         print "PCIe Device Checking All Test ----------->>> FAILED"
+        print "please check config file pcie.yaml in path: %s" %hwsku_plugins_path
     else:
         print "PCIe Device Checking All Test ----------->>> PASSED"
         
