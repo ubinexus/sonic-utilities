@@ -182,7 +182,6 @@ def pcie_check():
             err+=1
     if err:
         print "PCIe Device Checking All Test ----------->>> FAILED"
-        print "please check config file pcie.yaml in path: %s" %hwsku_plugins_path
     else:
         print "PCIe Device Checking All Test ----------->>> PASSED"
         
@@ -194,7 +193,7 @@ def pcie_check():
 def pcie_generate():
     '''generate config file with current pcie device'''
     platform_pcieutil.dump_conf_yaml()
-
+    print "generate config file in path %s" %hwsku_plugins_path
 
 if __name__ == '__main__':
     cli()
