@@ -39,15 +39,15 @@ def do_update(rcf, patchf):
 
 
 def main():
-    parser=argparse.ArgumentParser(description="Update JSON based file")
-    parser.add_argument("-r", "--rc", help="JSON file to be updated")
+    parser = argparse.ArgumentParser(description="Update JSON based file")
+    parser.add_argument("-u", "--update", help="JSON file to be updated")
     parser.add_argument("-p", "--patch", help="JSON file holding patch")
     args = parser.parse_args()
 
-    if not args.rc or not args.patch:
+    if not args.update or not args.patch:
         raise Exception("check usage")
 
-    do_update(args.rc, args.patch)
+    do_update(args.update, args.patch)
 
 if __name__ == '__main__':
     main()
