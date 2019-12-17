@@ -1944,19 +1944,17 @@ def config(redis_unix_socket_path):
     config_db.connect(wait_for_init=False)
     data = config_db.get_table('VLAN')
     keys = data.keys()
+    member_data = config_db.get_table('VLAN_MEMBER')
 
     def tablelize(keys, data):
         table = []
 
         for k in natsorted(keys):
-            if 'members' not in data[k] :
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                table.append(r)
-                continue
-
-            for m in data[k].get('members', []):
+            members = set(data[k].get('members', []))
+            for (vlan, interface_name) in member_data:
+                if vlan == k:
+                    members.add(interface_name)
+            for m in members:
                 r = []
                 r.append(k)
                 r.append(data[k]['vlanid'])

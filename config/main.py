@@ -938,7 +938,8 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
     members = vlan.get('members', [])
-    if interface_name in members:
+    vlan_member_data = db.get_entry('VLAN_MEMBER', (vlan_name, interface_name))
+    if interface_name in members or len(vlan_member_data) !=0:
         if get_interface_naming_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
@@ -948,9 +949,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
         else:
             ctx.fail("{} is already a member of {}".format(interface_name,
                                                         vlan_name))
-    members.append(interface_name)
-    vlan['members'] = members
-    db.set_entry('VLAN', vlan_name, vlan)
+
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), {'tagging_mode': "untagged" if untagged else "tagged" })
 
 
@@ -971,7 +970,8 @@ def del_vlan_member(ctx, vid, interface_name):
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
     members = vlan.get('members', [])
-    if interface_name not in members:
+    vlan_member_data = db.get_entry('VLAN_MEMBER', (vlan_name, interface_name))
+    if interface_name not in members and len(vlan_member_data) == 0:
         if get_interface_naming_mode() == "alias":
             interface_name = interface_name_to_alias(interface_name)
             if interface_name is None:
@@ -979,11 +979,12 @@ def del_vlan_member(ctx, vid, interface_name):
             ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
         else:
             ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
-    members.remove(interface_name)
-    if len(members) == 0:
-        del vlan['members']
-    else:
-        vlan['members'] = members
+    if interface_name in members:
+        members.remove(interface_name)
+        if len(members) == 0:
+            del vlan['members']
+        else:
+            vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
