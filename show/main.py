@@ -1526,6 +1526,18 @@ def ssdhealth(device, verbose, vendor):
     options += " -e" if vendor else ""
     run_command(cmd + options, display_cmd=verbose)
 
+
+@platform.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
+def pcieinfo(check, verbose):
+    """Show Device PCIe Info"""
+    cmd = "pcieutil pcie_show"
+    if check:
+        cmd = "pcieutil pcie_check"
+    run_command(cmd, display_cmd=verbose)
+
+
 #
 # 'logging' command ("show logging")
 #
