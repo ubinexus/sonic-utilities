@@ -458,9 +458,9 @@ def is_ipv4_address(ipaddress):
     :return: bool
     """
     try:
-        ipaddr.IPv4Address(ipaddress)
+        ipaddress.IPv4Address(ipaddress)
         return True
-    except ipaddr.AddressValueError as err:
+    except ipaddress.AddressValueError as err:
         return False
 
 
@@ -471,9 +471,9 @@ def is_ipv6_address(ipaddress):
     :return: bool
     """
     try:
-        ipaddr.IPv6Address(ipaddress)
+        ipaddress.IPv6Address(ipaddress)
         return True
-    except ipaddr.AddressValueError as err:
+    except ipaddress.AddressValueError as err:
         return False
 
 
@@ -527,11 +527,11 @@ def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
         return static_neighbors[ip]
     elif is_ipv4_address(unicode(ip)):
         for subnet in dynamic_neighbors["v4"].keys():
-            if ipaddr.IPv4Address(unicode(ip)) in ipaddr.IPv4Network(unicode(subnet)):
+            if ipaddress.IPv4Address(unicode(ip)) in ipaddress.IPv4Network(unicode(subnet)):
                 return dynamic_neighbors["v4"][subnet]
     elif is_ipv6_address(unicode(ip)):
         for subnet in dynamic_neighbors["v6"].keys():
-            if ipaddr.IPv6Address(unicode(ip)) in ipaddr.IPv6Network(unicode(subnet)):
+            if ipaddress.IPv6Address(unicode(ip)) in ipaddress.IPv6Network(unicode(subnet)):
                 return dynamic_neighbors["v6"][subnet]
     else:
         return "NotAvailable"
