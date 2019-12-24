@@ -10,11 +10,12 @@ from tabulate import tabulate
 from swsssdk import SonicV2Connector
 
 
-header = ['FAN', 'Speed', 'Direction', 'Timestamp']
+header = ['FAN', 'Speed', 'Direction', 'Status', 'Timestamp']
 
 FAN_TABLE_NAME = 'FAN_INFO'
 SPEED_FIELD_NAME = 'speed'
 DIRECTION_FIELD_NAME = 'direction'
+PRESENCE_FIELD_NAME = 'presence'
 TIMESTAMP_FIELD_NAME = 'timestamp'
 
 
@@ -41,14 +42,17 @@ class FanShow(object):
             try:
                 speed = float(data_dict[SPEED_FIELD_NAME])
                 if speed > 100:
-                    speed = '{} RPM'.format(int(speed))
+                    speed = '{}RPM'.format(int(speed))
                 else:
                     speed = '{}%'.format(data_dict[SPEED_FIELD_NAME])
             except ValueError as e:
                 print('Warn: cannot convert speed value from {}'.format(data_dict[SPEED_FIELD_NAME]))
                 speed = data_dict[SPEED_FIELD_NAME]
 
-            table.append((name, speed, data_dict[DIRECTION_FIELD_NAME], data_dict[TIMESTAMP_FIELD_NAME]))
+            presence = data_dict[PRESENCE_FIELD_NAME].lower()
+            presence = 'Present' if presence == 'true' else 'Not Present'
+
+            table.append((name, speed, data_dict[DIRECTION_FIELD_NAME], presence, data_dict[TIMESTAMP_FIELD_NAME]))
         
         if table:
             table.sort()
