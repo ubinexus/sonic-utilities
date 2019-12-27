@@ -10,7 +10,7 @@ from tabulate import tabulate
 from swsssdk import SonicV2Connector
 
 
-header = ['NAME', 'Temperature', 'Timestamp', 'High Threshold', 'Low Threshold', 'Critical High Threshold', 'Critical Low Threshold', 'Warning Status']
+header = ['NAME', 'Temperature', 'High Threshold', 'Low Threshold', 'Critical High Threshold', 'Critical Low Threshold', 'Warning Status', 'Timestamp']
 
 TEMPER_TABLE_NAME = 'TEMPERATURE_INFO'
 TEMPER_FIELD_NAME = 'temperature'
@@ -44,12 +44,12 @@ class TemperShow(object):
             data_dict = self.db.get_all(self.db.STATE_DB, key)
             table.append((name, 
                           data_dict[TEMPER_FIELD_NAME], 
-                          data_dict[TIMESTAMP_FIELD_NAME], 
                           data_dict[HIGH_THRESH_FIELD_NAME],
                           data_dict[LOW_THRESH_FIELD_NAME],
                           data_dict[CRIT_HIGH_THRESH_FIELD_NAME],
                           data_dict[CRIT_LOW_THRESH_FIELD_NAME],
-                          data_dict[WARNING_STATUS_FIELD_NAME]
+                          data_dict[WARNING_STATUS_FIELD_NAME],
+                          data_dict[TIMESTAMP_FIELD_NAME]
                           ))
         
         if table:
