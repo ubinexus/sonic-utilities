@@ -312,8 +312,10 @@ def cli():
         expose_value=False, prompt='New image will be installed, continue?')
 @click.option('-f', '--force', is_flag=True,
         help="Force installation of an image of a type which differs from that of the current running image")
+@click.option('--skip_migration', is_flag=True,
+        help="Do not migrate current configuration to the newly installed image")
 @click.argument('url')
-def install(url, force):
+def install(url, force, skip_migration=False):
     """ Install image from local binary or URL"""
     cleanup_image = False
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
@@ -361,9 +363,11 @@ def install(url, force):
         else:
             run_command("bash " + image_path)
             run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
-        run_command("rm -rf /host/old_config")
-        # copy directories and preserve original file structure, attributes and associated metadata
-        run_command("cp -ar /etc/sonic /host/old_config")
+        # Take a backup of current configuration
+        if skip_migration:
+            click.echo("Skipping configuration migration as requested in the command option.")
+        else:
+            run_command('config-setup backup')
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
@@ -469,7 +473,7 @@ def cleanup():
 @click.option('--tag', type=str, help="Tag for the new docker image")
 @click.option('--warm', is_flag=True, help="Perform warm upgrade")
 @click.argument('container_name', metavar='<container_name>', required=True,
-    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon"]))
+    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
 @click.argument('url')
 def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
@@ -632,7 +636,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='Docker image will be rolled back, continue?')
 @click.argument('container_name', metavar='<container_name>', required=True,
-    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon"]))
+    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
 def rollback_docker(container_name):
     """ Rollback docker image to previous version"""
     image_name = get_container_image_name(container_name)
