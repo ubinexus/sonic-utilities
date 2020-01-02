@@ -49,7 +49,8 @@ class URL(object):
 
     def __init__(self, url):
         self.__url = url
-        self.__pb_reset()
+        self.__pb = None
+        self.__bytes_num = 0
 
     def __str__(self):
         return self.__url
@@ -69,7 +70,10 @@ class URL(object):
         self.__bytes_num = count * block_size
 
     def __pb_reset(self):
-        self.__pb = None
+        if self.__pb:
+            self.__pb.render_finish()
+            self.__pb = None
+
         self.__bytes_num = 0
 
     def __validate(self):
