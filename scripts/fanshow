@@ -16,7 +16,7 @@ FAN_TABLE_NAME = 'FAN_INFO'
 SPEED_FIELD_NAME = 'speed'
 DIRECTION_FIELD_NAME = 'direction'
 PRESENCE_FIELD_NAME = 'presence'
-STATUS_FIELD_NAME = 'presence'
+STATUS_FIELD_NAME = 'status'
 TIMESTAMP_FIELD_NAME = 'timestamp'
 
 
