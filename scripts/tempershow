@@ -62,7 +62,3 @@ class TemperShow(object):
 if __name__ == "__main__":
     temperShow = TemperShow()
     temperShow.show()
-    
-
-    
-

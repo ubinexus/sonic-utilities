@@ -1469,9 +1469,9 @@ def ssdhealth(device, verbose, vendor):
     options += " -e" if vendor else ""
     run_command(cmd + options, display_cmd=verbose)
 
-# 'fanstatus' subcommand ("show platform fanstatus")
+# 'fan' subcommand ("show platform fan")
 @platform.command()
-def fanstatus():
+def fan():
     """Show fan status information"""
     cmd = 'fanshow'
     run_command(cmd)
