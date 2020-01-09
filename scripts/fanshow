@@ -67,7 +67,3 @@ class FanShow(object):
 if __name__ == "__main__":
     fanShow = FanShow()
     fanShow.show()
-    
-
-    
-
