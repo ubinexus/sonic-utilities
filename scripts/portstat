@@ -208,7 +208,7 @@ class Portstat(object):
                                   STATUS_NA,
                                   cntr.tx_err,
                                   cntr.tx_drop,
-                                  cntr.tx_err))
+                                  cntr.tx_ovr))
             else:
                 if old_cntr is not None:
                     table.append((key, self.get_port_state(key),
@@ -237,7 +237,7 @@ class Portstat(object):
                                   STATUS_NA,
                                   cntr.tx_err,
                                   cntr.tx_drop,
-                                  cntr.tx_err))
+                                  cntr.tx_ovr))
 
         if use_json:
             print table_as_json(table, header)
