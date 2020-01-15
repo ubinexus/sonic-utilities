@@ -4123,12 +4123,12 @@ Besides device level warm reboot, SONiC also provides docker based warm restart.
 
 To achieve uninterrupted packet forwarding during the restarting stage and database reconciliation at the post restarting stage, warm restart enabled dockers with adjacency state machine facilitate standardized protocols. For example, a BGP restarting switch must have BGP "Graceful Restart" enabled, and its BGP neighbors must be "Graceful Restart Helper Capable", as specified in [IETF RFC4724](https://tools.ietf.org/html/rfc4724). 
 
-Before warm restart BGP docker, the following BGP commands should be enabled, which is the default behavior in SONiC
-
+Before warm restart BGP docker, the following BGP commands should be enabled: 
   ```
   bgp graceful-restart
   bgp graceful-restart preserve-fw-state
   ```
+In current SONiC release, the above two commands are enabled by default.
 
 It should be aware that during a warm restart, certain BGP fast convergence feature and black hole avoidance feature should either be disabled or be set to a lower preference to avoid conflicts with BGP graceful restart.  
 
@@ -4147,10 +4147,6 @@ Another commonly deployed blackhole avoidance feature: dynamic route priority ad
   ```
 
 to avoid large routes churn during BGP restart.
-
-
-
-In the current release, only planned warm restart is supported. The unplanned one is still under development.
 
 
 ### Warm Restart show commands
