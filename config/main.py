@@ -2427,6 +2427,44 @@ def delete(ctx):
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
+# 'ztp' command ('config ztp <enable|disable|run>')
+# 
+@config.group()
+def ztp():
+    """ Configure Zero Touch Provisioning """
+    if os.path.isfile('/usr/bin/ztp') is False:
+        exit("ZTP feature unavailable in this image version")
+
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+    pass
+
+@ztp.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
+                expose_value=False, prompt='ZTP will be restarted. You may lose switch data and connectivity, continue?')
+@click.argument('run', required=False, type=click.Choice(["run"]))
+def run(run):
+    """Restart ZTP of the device."""
+    command = "ztp run -y"
+    run_command(command, display_cmd=True)
+
+@ztp.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
+                expose_value=False, prompt='Active ZTP session will be stopped and disabled, continue?')
+@click.argument('disable', required=False, type=click.Choice(["disable"]))
+def disable(disable):
+    """Administratively Disable ZTP."""
+    command = "ztp disable -y"
+    run_command(command, display_cmd=True)
+
+@ztp.command()
+@click.argument('enable', required=False, type=click.Choice(["enable"]))
+def enable(enable):
+    """Administratively Enable ZTP."""
+    command = "ztp enable"
+    run_command(command, display_cmd=True)
+
+#
 # 'feature' command ('config feature name state')
 # 
 @config.command('feature')

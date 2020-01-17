@@ -2591,6 +2591,26 @@ def config(redis_unix_socket_path):
     state_db.close(state_db.STATE_DB)
 
 #
+# 'ztp status' command ("show ztp status")
+#
+@cli.command()
+@click.argument('status', required=False, type=click.Choice(["status"]))
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ztp(status, verbose):
+    """Show Zero Touch Provisioning status"""
+    if os.path.isfile('/usr/bin/ztp') is False:
+        exit("ZTP feature unavailable in this image version")
+
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+    pass
+
+    cmd = "ztp status"
+    if verbose:
+       cmd = cmd + " --verbose"
+    run_command(cmd, display_cmd=verbose)
+
+#
 # show features
 #
 
