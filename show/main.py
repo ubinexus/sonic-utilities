@@ -1803,6 +1803,64 @@ def techsupport(since, verbose):
         cmd += " -s {}".format(since)
     run_command(cmd, display_cmd=verbose)
 
+#
+# 'debug' group ("show debug")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def debug():
+    """Collect debugging information from components"""
+    pass
+
+# 'all' subcommand ("show debug all")
+@debug.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def all(verbose):
+    """Collect debugging information from all components"""
+    cmd = "sudo generate_debugdump"
+    run_command(cmd, display_cmd=verbose)
+
+# 'component' subcommand ("show debug component <component name>")
+@debug.command()
+@click.argument('componentname', required=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def component(componentname, verbose):
+    """Collect debugging information from component"""
+    cmd = "sudo generate_debugdump -c "
+
+    if componentname is not None:
+        cmd += format(componentname)
+
+    run_command(cmd, display_cmd=verbose)
+
+#
+# 'tosyslog' group ###
+#
+@debug.group(cls=AliasedGroup, default_if_no_args=False)
+def tosyslog():
+    """Write the logs to syslog"""
+    pass
+
+# 'all' subcommand ("show debug tosyslog all")
+@tosyslog.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def all(verbose):
+    """Collect debugging information from all components and write in syslog"""
+    cmd = "sudo generate_debugdump -l "
+    run_command(cmd, display_cmd=verbose)
+
+# 'component' subcommand ("show debug tosyslog component <component name>")
+@tosyslog.command()
+@click.argument('componentname', required=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def component(componentname, verbose):
+    """Collect debugging information from component and write in syslog"""
+    cmd = "sudo generate_debugdump -l -c "
+
+    if componentname is not None:
+        cmd += format(componentname)
+
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'runningconfiguration' group ("show runningconfiguration")

@@ -1,0 +1,136 @@
+#!/usr/bin/python
+from swsscommon import swsscommon
+import argparse
+"""
+using debugdump to display internal debug information of SONiC components
+
+usage: debugdump [-h] [-u] [-c] [-s] [-l] [-o]
+
+Dump Debug Information of SONiC components
+
+optional arguments:
+  -h,  --help                 show this help message and exit
+  -u,  --action               post action upload default is compress
+  -c,  --component            dump info for specified component
+  -s,  --detail               short summary default is full 
+  -l,  --location             target location syslog 
+  -o,  --optargs              optional additional arguments to components
+  
+"""
+
+class DebugDump(object):
+
+    def __init__(self):
+        self.target = "file"
+        self.component = "all"
+        self.detail = "full"
+        self.post_action = "compress"
+        self.argList = ""
+
+    def set_dump_target(self, location):
+        """
+        Set the target location for the dump syslog|file file is /var/log/<compName>_dump.log
+        :param location: target
+        :return:
+        """
+        self.target = location
+
+    def set_dump_component(self, component_name):
+        """
+        Set the component_name which need to dump the debug info 
+        :param component_name: component
+        :return:
+        """
+        self.component = component_name
+
+    def set_detail_level(self, level):
+        """
+        Set the level of detail to dump short or full 
+        :param level: detail
+        :return:
+        """
+        self.detail = level
+
+    def set_post_action(self, action):
+        """
+        Set the action after collecting the dump
+        :param action: post_action
+        :return:
+        """
+        self.post_action = action
+
+    def add_args_for_component(self, field, value):
+        """
+        append to the list of the arguments for the component interpretation
+        :param field: argType
+        :param value: argVal
+        :return:
+        """
+        if len(self.argList):
+            self.argList += ";"
+
+        self.argList += "{}:{}".format(field, value)
+
+    def invoke_dump_trigger(self, componentName, optargList):
+        """
+        invoke the trigger to framework and components to collect debug info
+        """
+        args = "";
+        if (self.target == "file"):
+             args += "TARGET:SWSS_FILE"
+        else:
+             args += "TARGET:SWSS_SYSLOG"
+
+        if (self.detail == "full"):
+             args += ";DETAIL:FULL"
+        else:
+             args += ";DETAIL:SHORT"
+
+        if (self.post_action == "compress"):
+             args += ";ACTION:COMPRESS;"
+        else:
+             args += ";ACTION:UPLOAD;"
+
+        args += self.argList
+        args += optargList
+
+        if (self.component == "all"):
+             swsscommon.Debugframework_invokeTrigger("all", args)
+        else:
+             swsscommon.Debugframework_invokeTrigger(self.component, args)
+
+        return
+
+def main():
+    parser = argparse.ArgumentParser(description='Dump internal debug information of SONiC components', 
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-u', '--upload', action='store_true', help='specify action as upload')
+    parser.add_argument('-c', '--component', type=str, help='specified component')
+    parser.add_argument('-s', '--detail', action='store_true', help='dump only short detail')
+    parser.add_argument('-l', '--location', action='store_true', help='dump to syslog')
+    parser.add_argument('-o', '--optargs', type=str, help='comma seperated args')
+    args = parser.parse_args()
+
+    try:
+        dump = DebugDump()
+        if args.upload:
+          dump.set_post_action("upload")
+        if args.component:
+          dump.set_dump_component(args.component)
+        if args.detail:
+          dump.set_detail_level("short")
+        if args.location:
+          dump.set_dump_target("syslog")
+
+        if args.optargs:
+          dump.invoke_dump_trigger(dump.component, args.optargs)
+        else:
+          dump.invoke_dump_trigger(dump.component, "")
+
+    except Exception as e:
+        print(e.message)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+

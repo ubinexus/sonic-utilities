@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# Generate debugging information
+#
+
+set -u
+
+#Copy the python dumpinfo script to swss container
+sudo docker cp /usr/bin/dumpinfo swss:/usr/bin/dumpinfo 
+
+#execute the dumpinfo python script in docker
+sudo docker exec -i swss python /usr/bin/dumpinfo $@ 
+
+#Copy the log files to host system /var/log/
+#sudo docker exec -i swss touch /var/log/fdborch_debug.log
+#sudo docker cp swss:/var/log/fdborch_debug.log /var/log/fdborch_debug.log
+
