@@ -67,6 +67,8 @@ setup(
         'scripts/dropconfig',
         'scripts/dropstat',
         'scripts/ecnconfig',
+        'scripts/errordbclear',
+        'scripts/errordbshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',

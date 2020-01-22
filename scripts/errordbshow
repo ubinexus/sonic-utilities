@@ -1,0 +1,121 @@
+#!/usr/bin/python
+"""
+    Script to show table entries in ERROR DB
+
+    usage: errordbshow [-t tablename]
+    optional arguments:
+      -t,  --tablename              Error DB table name: ERROR_ROUTE_TABLE
+
+    Example of the output:
+    admin@sonic# show error_database ERROR_ROUTE_TABLE
+    Prefix         Nexthop    Interface    Error Code      Operation
+    -------------  ---------  -----------  --------------  -----------
+    55.55.55.0/24  2.2.2.2    Ethernet32   SWSS_RC_EXISTS  create
+
+"""
+import argparse
+import json
+import sys
+import re
+
+from natsort import natsorted
+from swsssdk import SonicV2Connector, port_util
+from tabulate import tabulate
+
+class ErrorDbShow(object):
+
+    def __init__(self):
+        super(ErrorDbShow,self).__init__()
+        self.error_db = SonicV2Connector(host="127.0.0.1")
+        self.error_db.connect(self.error_db.ERROR_DB)
+        return
+
+    def errorDbShow(self, tablename):
+        if tablename is None or tablename == "ERROR_ROUTE_TABLE":
+            self.showRouteTable(tablename);
+
+        if tablename is None or tablename == "ERROR_NEIGH_TABLE":
+            self.showNeighTable(tablename);
+
+    def getRouteTableInfo(self, key):
+        route_data = {}
+        route_data['ifname'] = route_data['prefix'] = route_data['rc'] = ""
+        route_data['operation'] = route_data['nexthop'] = ""
+
+        entry = self.error_db.get_all(self.error_db.ERROR_DB, key)
+        if not entry:
+            return
+
+        if entry is not None:
+            route_data['prefix']    = re.split(':', key, maxsplit=1)[-1].strip()
+            route_data['rc']        = entry['rc']
+            route_data['operation'] = entry['operation']
+            if 'nexthop' in entry.keys():
+                route_data['nexthop']   = entry['nexthop']
+            if 'ifname' in entry.keys():
+                route_data['ifname']    = entry['ifname']
+        return route_data
+
+    def showRouteTable(self, tablename):
+        """
+            Fetch Route table entries from ERROR DB.
+        """
+        header = ['Prefix', 'Nexthop', 'Interface', 'Error Code', 'Operation']
+        table = []
+        table_keys = self.error_db.keys(self.error_db.ERROR_DB, "ERROR_ROUTE_TABLE:*")
+        if table_keys == None:
+            return
+        for key in natsorted(table_keys, reverse=True):
+            data = self.getRouteTableInfo(key)
+            if data:
+                table.append((data['prefix'], data['nexthop'], data['ifname'], data['rc'], data['operation']))
+        print tabulate(table, header, tablefmt='simple', stralign='left')
+
+    def getNeighTableInfo(self, key):
+        neigh_data = {}
+        entry = self.error_db.get_all(self.error_db.ERROR_DB, key)
+        if not entry:
+            return
+
+        neigh_data['ip'] = neigh_data['ifname']  = neigh_data['neigh'] = "";
+        neigh_data['rc'] = neigh_data['operation']  = "";
+
+        if entry is not None:
+            neigh_data['ip']        = re.split(':', key, maxsplit=2)[-1].strip()
+            neigh_data['ifname']    = re.split(':', key, maxsplit=2)[1].strip()
+            neigh_data['rc']        = entry['rc']
+            neigh_data['operation'] = entry['operation']
+            if 'neigh' in entry.keys():
+                neigh_data['neigh'] = entry['neigh']
+        return neigh_data
+
+    def showNeighTable(self, tablename):
+        """
+            Fetch Neighbor table entries from ERROR DB.
+        """
+        header = ['IP address', 'MAC address', 'Interface', 'Error Code', 'Operation']
+        table = []
+        table_keys = self.error_db.keys(self.error_db.ERROR_DB, "ERROR_NEIGH_TABLE:*")
+        if table_keys == None:
+            return
+        for key in natsorted(table_keys, reverse=True):
+            data = self.getNeighTableInfo(key)
+            table.append((data['ip'], data['neigh'], data['ifname'], data['rc'], data['operation']))
+        print tabulate(table, header, tablefmt='simple', stralign='left')
+
+def main():
+
+    parser = argparse.ArgumentParser(description='Display ERROR DB entries',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-t', '--tablename', type=str, help='ERROR DB entries on specific table: ERROR_ROUTE_TABLE', default=None)
+    args = parser.parse_args()
+
+    try:
+        edb = ErrorDbShow()
+        edb.errorDbShow(args.tablename)
+    except Exception as e:
+        print e.message
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

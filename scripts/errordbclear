@@ -1,0 +1,61 @@
+#!/usr/bin/python
+"""
+    Script to clear ERROR DB entries
+
+    usage: errordbclear [-t tablename]
+    optional arguments:
+      -t,  --tablename         ERROR DB table name: ERROR_ROUTE_TABLE
+
+    Example of the output:
+
+    root@sonic:# errordbclear -t ERROR_ROUTE_TABLE
+    ('ERROR DB entries are cleared from Table.', 'ERROR_ROUTE_TABLE')
+
+"""
+
+import argparse
+import json
+import sys
+
+from natsort import natsorted
+from swsssdk import SonicV2Connector, port_util
+from tabulate import tabulate
+
+class ErrorDbClear(object):
+
+    def __init__(self):
+        super(ErrorDbClear,self).__init__()
+        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db.connect(self.db.ERROR_DB)
+        return
+
+    def send_notification(self, op, data):
+        opdata = [op,data]
+        msg = json.dumps(opdata,separators=(',',':'))
+        self.db.publish('ERROR_DB','FLUSH_ERROR_DB', msg)
+        return
+
+def main():
+
+    parser = argparse.ArgumentParser(description='Clear ERROR DB entries', formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-t', '--tablename', type=str, help='Clear failure entries on a specific table: ERROR_ROUTE_TABLE', default=None)
+    args = parser.parse_args()
+
+    try:
+        errorDb = ErrorDbClear()
+        if args.tablename is not None:
+            if (args.tablename.find("ERROR_",0,6) == -1):
+                print ("Error: Tablename is not in 'ERROR_...' format")
+                return
+            else:
+                errorDb.send_notification("TABLE", args.tablename)
+                print("ERROR DB entries are cleared from Table.", args.tablename)
+        else:
+            errorDb.send_notification("ALL", "ALL")
+            print("ERROR DB entries are cleared.")
+    except Exception as e:
+        print e.message
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

@@ -1232,6 +1232,19 @@ def mac(vlan, port, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+# 'error_database' command ("show error_database ...")
+@cli.command('error_database')
+@click.argument('tablename', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def error_database_show(tablename, verbose):
+    """Show ERROR DB entries"""
+
+    cmd = "errordbshow"
+    if tablename is not None:
+        cmd += " -t {}".format(tablename)
+
+    run_command(cmd, display_cmd=verbose)
+
 #
 # 'show route-map' command ("show route-map")
 #
