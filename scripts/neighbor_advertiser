@@ -341,10 +341,6 @@ def construct_neighbor_advertiser_slice():
 
 
 def wrapped_ferret_request(request_slice, https_endpoint):
-    """
-        Attempts to reach ferret by first trying HTTPS, failing over to HTTP in
-        case of failure (e.g. timeout, endpoint not found, etc.).
-    """
     response = None
 
     # NOTE: While we transition to HTTPS we're disabling the verify field. We
