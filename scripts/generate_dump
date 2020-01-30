@@ -379,8 +379,6 @@ main() {
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
 
-    save_cmd "docker exec -it syncd saidump" "saidump"
-
     local platform="$(/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)"
     if [[ $platform == *"mlnx"* ]]; then
         local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
