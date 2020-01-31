@@ -1991,7 +1991,7 @@ def pfc(ctx):
 
 
 #
-# 'pfc asymmetric' command
+# 'pfc config asymmetric' command
 #
 
 @pfc.command()
@@ -2007,6 +2007,24 @@ def asymmetric(ctx, interface_name, status):
 
     run_command("pfc config asymmetric {0} {1}".format(status, interface_name))
 
+#
+# 'pfc config priority' command
+#
+
+@pfc.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('priority', type=click.Choice(['3', '4']))
+@click.argument('status', type=click.Choice(['on', 'off']))
+@click.pass_context
+def priority(ctx, interface_name, priority, status):
+    """Set PFC priority configuration."""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+    
+    run_command("pfc config priority {0} {1} {2}".format(status, interface_name, priority))
+    
 #
 # 'platform' group ('config platform ...')
 #
