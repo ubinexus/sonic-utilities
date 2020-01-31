@@ -1043,6 +1043,26 @@ def counters(verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def priority(interface):
+    """Show pfc priority"""
+    cmd = 'pfc show priority'
+    if interface:
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def asymmetric(interface):
+    """Show asymmetric pfc"""
+    cmd = 'pfc show asymmetric'
+    if interface:
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+    
 # 'naming_mode' subcommand ("show interfaces naming_mode")
 @interfaces.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
