@@ -2013,7 +2013,7 @@ def asymmetric(ctx, interface_name, status):
 
 @pfc.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('priority', type=click.Choice(['3', '4']))
+@click.argument('priority', type=click.Choice([str(x) for x in range(8)]))
 @click.argument('status', type=click.Choice(['on', 'off']))
 @click.pass_context
 def priority(ctx, interface_name, priority, status):

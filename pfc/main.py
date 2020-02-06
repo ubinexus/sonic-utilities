@@ -6,7 +6,7 @@ import swsssdk
 from tabulate import tabulate
 from natsort import natsorted
 
-LOSSLESS_PRIORITIES = ['3', '4']
+ALL_PRIORITIES = [str(x) for x in range(8)]
 PRIORITY_STATUS = ['on', 'off']
 
 def configPfcAsym(interface, pfc_asym):
@@ -140,7 +140,7 @@ def configAsym(status, interface):
 @click.command()
 @click.argument('status', type=click.Choice(PRIORITY_STATUS))
 @click.argument('interface', type=click.STRING)
-@click.argument('priority', type=click.Choice(LOSSLESS_PRIORITIES))
+@click.argument('priority', type=click.Choice(ALL_PRIORITIES))
 def configPrio(status, interface, priority):
     """Configure PFC on a given priority."""
     configPfcPrio(status, interface, priority)
