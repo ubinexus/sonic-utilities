@@ -2392,12 +2392,12 @@ This command is used to set PFC on a given priority of a given interface to eith
   -----------  ---------------------
   Ethernet0                        4
 
-  admin@sonic:~$ sudo pfc config priority off Ethernet0 2
+  admin@sonic:~$ sudo pfc config priority off Ethernet0 8
   Usage: pfc config priority [OPTIONS] STATUS INTERFACE PRIORITY
 
-  Error: Invalid value for "priority": invalid choice: 2. (choose from 3, 4)
+  Error: Invalid value for "priority": invalid choice: 8. (choose from 0, 1, 2, 3, 4, 5, 6, 7)
 
-  admin@sonic:~$ sudo pfc config priority off Ethernet101 2
+  admin@sonic:~$ sudo pfc config priority off Ethernet101 3
   Cannot find interface Ethernet101
 
   admin@sonic:~$ sudo pfc config priority on Ethernet0 3
