@@ -50,6 +50,13 @@ def cli_abort(ctx, msg):
     click.echo("Error: " + msg + ". Aborting...")
     ctx.abort()
 
+
+def cli_init(ctx):
+    if os.geteuid() != ROOT_UID:
+        cli_abort(ctx, "Root privileges are required")
+
+    ctx.ensure_object(dict)
+
 # ========================= CLI commands and groups ============================
 
 # 'fwutil' command main entrypoint
@@ -58,10 +65,7 @@ def cli_abort(ctx, msg):
 def cli(ctx):
     """fwutil - Command-line utility for interacting with platform components"""
 
-    if os.geteuid() != ROOT_UID:
-        cli_abort(ctx, "Root privileges are required")
-
-    ctx.ensure_object(dict)
+    cli_init(ctx)
 
 
 # 'install' group
