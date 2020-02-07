@@ -19,7 +19,6 @@ import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 
-import fwutil
 import mlnx
 
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
@@ -1687,11 +1686,10 @@ def temperature():
 
 # 'firmware' subcommand ("show platform firmware")
 @platform.command()
-@click.pass_context
-def firmware(ctx):
+def firmware():
     """Show firmware status information"""
-    fwutil.main.cli_init(ctx)
-    ctx.invoke(fwutil.main.status)
+    cmd = "fwutil show status"
+    run_command(cmd)
 
 #
 # 'logging' command ("show logging")
