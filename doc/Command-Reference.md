@@ -3593,8 +3593,7 @@ This command displays the status of asymmetric PFC for all interfaces or a given
 
 - Usage:
   ```
-  show pfc asymmetric
-  show pfc asymmetric <interface>
+  show pfc asymmetric [<interface>]
   ```
 
 - Example:
@@ -3625,8 +3624,7 @@ This command displays the lossless priorities for all interfaces or a given inte
 
 - Usage:
   ```
-  show pfc priority
-  show pfc priority <interface>
+  show pfc priority [<interface>]
   ```
 
 - Example:
