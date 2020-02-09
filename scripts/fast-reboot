@@ -10,6 +10,7 @@ REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
 STRICT=no
+EXECUTE=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
@@ -50,6 +51,7 @@ function showHelpAndExit()
     echo "    -h,-? : get this help"
     echo "    -v    : turn on verbose"
     echo "    -f    : force execution"
+    echo "    -y    : skip the user confirmation"
     echo "    -r    : reboot with /sbin/reboot"
     echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
@@ -62,7 +64,7 @@ function showHelpAndExit()
 
 function parseOptions()
 {
-    while getopts "vfh?rkxc:s" opt; do
+    while getopts "yvfh?rkxc:s" opt; do
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -72,6 +74,9 @@ function parseOptions()
                 ;;
             f )
                 FORCE=yes
+                ;;
+            y )
+                EXECUTE=yes
                 ;;
             r )
                 REBOOT_METHOD="/sbin/reboot"
@@ -90,6 +95,14 @@ function parseOptions()
                 ;;
         esac
     done
+
+	shift  `expr  $OPTIND - 1 `
+
+	if [ $# -ge 1 ] ; then
+		echo "Unsupported reboot option"
+		showHelpAndExit
+		exit -1;
+	fi
 }
 
 function clear_fast_boot()
@@ -290,6 +303,25 @@ function unload_kernel()
     fi
 }
 
+function confirm_reboot()
+{
+
+	if [ ${EXECUTE} == 'yes'  ]; then 
+		return
+	fi
+
+	read -r -p "Are you sure you want to reboot? [y/N] " response
+	case $response in
+		[yY][eE][sS]|[yY])
+			true
+			;;
+		*)
+			exit 0
+			;;
+	esac
+
+}
+
 # main starts here
 parseOptions $@
 
@@ -299,6 +331,9 @@ then
     echo "This command must be run as root" >&2
     exit "${EXIT_FAILURE}"
 fi
+
+#Confirm the device reboot 
+confirm_reboot
 
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 

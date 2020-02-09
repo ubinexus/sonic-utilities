@@ -15,6 +15,8 @@ DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 VERBOSE=no
+EXECUTE=no
+FORCE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 
 function debug()
@@ -57,6 +59,8 @@ function show_help_and_exit()
     echo " "
     echo "    Available options:"
     echo "        -h, -? : getting this help"
+    echo "        -y     : skip the user confirmation"
+    echo "        -f     : force reboot"
 
     exit 0
 }
@@ -86,18 +90,61 @@ function reboot_pre_check()
     fi
 }
 
+ARGS=""
 function parse_options()
 {
-    while getopts "h?v" opt; do
+    while getopts "h?vfy" opt; do
         case ${opt} in
             h|\? )
                 show_help_and_exit
                 ;;
+            y )
+				EXECUTE=yes
+                ;;
+            f )
+				FORCE=yes
+				ARGS=$(printf "%s -%s" "${ARGS}"  "${opt}" )
+                ;;
             v )
                 VERBOSE=yes
+				ARGS=$(printf "%s -%s" "${ARGS}"  "${opt}" )
                 ;;
         esac
     done
+	shift  `expr  $OPTIND - 1 `
+
+
+	for arg in $@; do
+		ARGS=$(printf "%s %s" "${ARGS}"  "${arg}" )
+	done
+
+
+	if [ $# -ge 1 ] ; then
+		echo "Unsupported reboot option"
+		show_help_and_exit
+		exit -1;
+	fi
+}
+
+function confirm_reboot()
+{
+	if [ ${EXECUTE} == 'yes'  ]; then 
+		return
+	fi
+
+	echo -e "Warning: This command would cause the switch to reboot"
+	echo -e "and result in traffic disruption."
+
+	read -r -p "Are you sure you want to reboot? [y/N] " response
+	case $response in
+		[yY][eE][sS]|[yY])
+			true
+			;;
+		*)
+			exit 0
+			;;
+	esac
+
 }
 
 parse_options $@
@@ -107,6 +154,9 @@ if [[ "$EUID" -ne 0 ]]; then
     echo "This command must be run as root" >&2
     exit 1
 fi
+
+#Confirm the device reboot 
+confirm_reboot 
 
 debug "User requested rebooting device ..."
 
@@ -133,10 +183,10 @@ fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
-    exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} $@
+    exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ${ARGS}
 else
     # If no platform-specific reboot tool, just run /sbin/reboot
-    exec /sbin/reboot $@
+    exec /sbin/reboot ${ARGS}
 fi
 
 # Should never reach here
