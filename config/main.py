@@ -472,6 +472,30 @@ def _restart_services():
             log_error("Restart {} failed with error {}".format(service, e))
             raise
 
+def get_frontpanel_port_list():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
+    front_panel_port_list = []
+    for port in port_dict.iterkeys():
+        front_panel_port_list.append(port)
+    return front_panel_port_list
+
+# Global front_panel_port_list variable
+front_panel_port_list = get_frontpanel_port_list()
+
+def get_portchannel_list():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    portchannel_dict = config_db.get_table('PORTCHANNEL')
+    portchannel_list = []
+    for po in portchannel_dict.iterkeys():
+        portchannel_list.append(po)
+    return portchannel_list
+
+# Global portchannel_list variable
+portchannel_list = get_portchannel_list()
+
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
     if not val:
@@ -1417,6 +1441,34 @@ def mgmt_ip_restart_services():
     os.system (cmd)
     cmd="systemctl restart ntp-config"
     os.system (cmd)
+
+#
+# 'mtu' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_mtu', metavar='<interface_mtu>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def mtu(ctx, interface_name, interface_mtu, verbose):
+    """Set interface mtu"""
+    config_db = ctx.obj['config_db']
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    if interface_name in front_panel_port_list:
+        command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+        if verbose:
+            command += " -vv"
+        run_command(command, display_cmd=verbose)
+    elif interface_name in portchannel_list:
+        config_db.mod_entry("PORTCHANNEL", interface_name, {"mtu": interface_mtu})
 
 #
 # 'ip' subgroup ('config interface ip ...')
