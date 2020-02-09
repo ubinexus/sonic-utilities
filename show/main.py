@@ -1095,6 +1095,9 @@ def counters(interfacename, verbose):
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
+    if clear:
+        cmd += " -c"
+
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
 
