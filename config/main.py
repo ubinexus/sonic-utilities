@@ -915,6 +915,9 @@ def del_vlan(ctx, vid):
     for k in keys:
         db.set_entry('VLAN_MEMBER', k, None)
     db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
+    keys = [ (k, v) for k, v in db.get_table('VLAN_INTERFACE') if k == 'Vlan{}'.format(vid)]
+    for k in keys:
+        db.set_entry('VLAN_INTERFACE',k,None)
 
 
 #
