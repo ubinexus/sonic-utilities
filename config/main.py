@@ -1980,7 +1980,7 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
 
 
 #
-# 'pfc' group ('config pfc ...')
+# 'pfc' group ('config interface pfc ...')
 #
 
 @interface.group()
@@ -1991,7 +1991,7 @@ def pfc(ctx):
 
 
 #
-# 'pfc config asymmetric' command
+# 'pfc asymmetric' ('config interface pfc asymmetric ...')
 #
 
 @pfc.command()
@@ -2008,7 +2008,7 @@ def asymmetric(ctx, interface_name, status):
     run_command("pfc config asymmetric {0} {1}".format(status, interface_name))
 
 #
-# 'pfc config priority' command
+# 'pfc priority' command ('config interface pfc priority ...')
 #
 
 @pfc.command()
