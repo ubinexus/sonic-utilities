@@ -2386,21 +2386,21 @@ This command is used to set PFC on a given priority of a given interface to eith
 - Example: 
   *Versions >= 201904*
   ```
-  admin@sonic:~$ sudo pfc config priority off Ethernet0 3
+  admin@sonic:~$ sudo config interface pfc priority Ethernet0 3 off
 
   Interface      Lossless priorities
   -----------  ---------------------
   Ethernet0                        4
 
-  admin@sonic:~$ sudo pfc config priority off Ethernet0 8
+  admin@sonic:~$ sudo config interface pfc priority Ethernet0 8 off
   Usage: pfc config priority [OPTIONS] STATUS INTERFACE PRIORITY
 
   Error: Invalid value for "priority": invalid choice: 8. (choose from 0, 1, 2, 3, 4, 5, 6, 7)
 
-  admin@sonic:~$ sudo pfc config priority off Ethernet101 3
+  admin@sonic:~$ sudo config interface pfc priority Ethernet101 3 off
   Cannot find interface Ethernet101
 
-  admin@sonic:~$ sudo pfc config priority on Ethernet0 3
+  admin@sonic:~$ sudo config interface pfc priority Ethernet0 3 on
   
   Interface    Lossless priorities
   -----------  ---------------------
