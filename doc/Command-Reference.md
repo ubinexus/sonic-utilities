@@ -2379,7 +2379,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
   admin@sonic:~$ sudo config interface vlan100 ip remove 10.11.12.13/24
   ```
 
-**config interface pfc priority <interface_name> <priority> (on | off) (Versions >= 201904)**
+**config interface pfc priority <interface_name> <priority> (on | off)**
 
 This command is used to set PFC on a given priority of a given interface to either "on" or "off". Once it is successfully configured, it will show current losses priorities on the given interface. Otherwise, it will show error information 
 
