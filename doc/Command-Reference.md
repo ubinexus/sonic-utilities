@@ -31,6 +31,9 @@
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
+* [Container Auto-restart](#container-auto-restart)
+  * [Container Auto-restart show commands](#container-auto-restart-show-commands)
+  * [Container Auto-restart config command](#container-auto-restart-config-command)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
@@ -57,9 +60,16 @@
   * [Reloading Configuration](#reloading-configuration)
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
+* [Management VRF](#Management-VRF)
+  * [Management VRF Show commands](#management-vrf-show-commands)
+  * [Management VRF Config commands](#management-vrf-config-commands)
 * [Mirroring](#mirroring)
   * [Mirroring Show commands](#mirroring-show-commands)
   * [Mirroring Config commands](#mirroring-config-commands)
+* [NAT](#nat)
+  * [NAT Show commands](#nat-show-commands)
+  * [NAT Config commands](#nat-config-commands)
+  * [NAT Clear commands](#nat-clear-commands)
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
@@ -98,7 +108,6 @@
 * [Troubleshooting Commands](#troubleshooting-commands)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
-
 
 ## Document History
 
@@ -183,16 +192,16 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-
 The management interface (eth0) in SONiC is configured (by default) to use DHCP client to get the IP address from the DHCP server. Connect the management interface to the same network in which your DHCP server is connected and get the IP address from DHCP server.
 The IP address received from DHCP server can be verified using the `/sbin/ifconfig eth0` Linux command.
 
-SONiC does not provide a CLI to configure the static IP for the management interface. There are few alternate ways by which a static IP address can be configured for the management interface.
-  1. Use the `/sbin/ifconfig eth0 ...` Linux command. NOTE: This configuration **will not** be preserved across reboots.
+SONiC provides a CLI to configure the static IP for the management interface. There are few ways by which a static IP address can be configured for the management interface.
+  1. Use the `config interface ip add eth0` command.
   - Example:
   ```
-  admin@sonic:~$ /sbin/ifconfig eth0 10.11.12.13/24
+  admin@sonic:~$ sudo config interface ip add eth0 20.11.12.13/24 20.11.12.254
   ```
   2. Use config_db.json and configure the MGMT_INTERFACE key with the appropriate values. Refer [here](https://github.com/Azure/SONiC/wiki/Configuration#Management-Interface)
   3. Use minigraph.xml and configure "ManagementIPInterfaces" tag inside "DpgDesc" tag as given at the [page](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
-Once the IP address is configured, the same can be verified using "/sbin/ifconfig eth0" linux command.
+Once the IP address is configured, the same can be verified using either `show management_interface address` command or the `/sbin/ifconfig eth0` linux command.
 Users can SSH login to this management interface IP address from their management network.
 
 - Example:
@@ -247,6 +256,7 @@ This command lists all the possible configuration commands at the top level.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
     mirror_session
+    nat                    NAT-related configuration tasks
     platform               Platform-related configuration tasks
     portchannel
     qos
@@ -256,6 +266,7 @@ This command lists all the possible configuration commands at the top level.
     vlan                   VLAN-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
+    container              Modify configuration of containers
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#getting-help)
 
@@ -295,6 +306,7 @@ This command displays the full list of show commands available in the software; 
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
     mmu                   Show mmu configuration
+    nat                   Show details of the nat
     ndp                   Show IPv6 Neighbour table
     ntp                   Show NTP information
     pfc                   Show details of the priority-flow-control...
@@ -316,6 +328,7 @@ This command displays the full list of show commands available in the software; 
     vlan                  Show VLAN information
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
+    container             Show details of container
   ```
 
 The same syntax applies to all subgroups of `show` which themselves contain subcommands, and subcommands which accept options/arguments.
@@ -376,6 +389,8 @@ This command displays relevant information as the SONiC and Linux kernel version
   docker-syncd-brcm          latest              434240daff6e        362MB
   docker-orchagent-brcm      HEAD.32-21ea29a     e4f9c4631025        287MB
   docker-orchagent-brcm      latest              e4f9c4631025        287MB
+  docker-nat                 HEAD.32-21ea29a     46075edc1c69        305MB
+  docker-nat                 latest              46075edc1c69        305MB
   docker-lldp-sv2            HEAD.32-21ea29a     9681bbfea3ac        275MB
   docker-lldp-sv2            latest              9681bbfea3ac        275MB
   docker-dhcp-relay          HEAD.32-21ea29a     2db34c7bc6f4        257MB
@@ -1353,6 +1368,26 @@ This command displays the summary of all IPv4 & IPv6 bgp neighbors that are conf
 
 - Example:
   ```
+  admin@sonic-z9264f-9251:~# show ip bgp summary
+
+  IPv4 Unicast Summary:
+  BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+  BGP table version 6465
+  RIB entries 12807, using 2001 KiB of memory
+  Peers 4, using 83 KiB of memory
+  Peer groups 2, using 128 bytes of memory
+
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd NeighborName
+  10.0.0.57       4      64600    3995    4001        0    0    0 00:39:32         6400 Lab-T1-01
+  10.0.0.59       4      64600    3995    3998        0    0    0 00:39:32         6400 Lab-T1-02
+  10.0.0.61       4      64600    3995    4001        0    0    0 00:39:32         6400 Lab-T1-03
+  10.0.0.63       4      64600    3995    3998        0    0    0 00:39:32         6400 NotAvailable
+
+  Total number of neighbors 4
+  ```
+
+- Example:
+  ```
   admin@sonic-z9264f-9251:~# show bgp summary
 
   IPv4 Unicast Summary:
@@ -1512,11 +1547,11 @@ This command displays the summary of all IPv6 bgp neighbors that are configured 
   Peers 4, using 83 KiB of memory
   Peer groups 2, using 128 bytes of memory
 
-  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
-  fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400
-  fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400
-  fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400
-  fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd NeighborName
+  fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400 Lab-T1-01
+  fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400 Lab-T1-02
+  fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400 Lab-T1-03
+  fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400 Lab-T1-04
 
   Total number of neighbors 4
   ```
@@ -1698,6 +1733,65 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
+
+## Container Auto-restart
+
+SONiC includes a feature in which Docker containers can be automatically shut
+down and restarted if one of critical processes running in the container exits
+unexpectedly. Restarting the entire container ensures that configuration is 
+reloaded and all processes in the container get restarted, thus increasing the
+likelihood of entering a healthy state.
+
+### Container Auto-restart show commands
+
+**show container feature autorestart**
+
+This command will display the status of auto-restart feature for containers.
+
+- Usage:
+  ```
+  show container feature autorestart [<container_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show container feature autorestart
+  Container Name    Status
+  --------------    --------
+  database          enabled
+  syncd             enabled
+  teamd             disabled
+  dhcp_relay        enabled
+  lldp              enabled
+  pmon              enabled
+  bgp               enabled
+  swss              disabled
+  telemetry         enabled
+  sflow             enabled
+  snmp              enabled
+  radv              disabled
+  ```
+
+Optionally, you can specify a container name in order to display the auto-restart
+feature status for that container only.
+
+### Container Auto-restart config command
+
+**config container feature autorestart <container_name> <autorestart_status>**
+
+This command will configure the status of auto-restart feature for a specific container.
+
+- Usage:
+  ```
+  sudo config container feature autorestart <container_name> (enabled | disabled)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config container feature autorestart database disabled
+  ``` 
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#container-auto-restart)
 
 ## DHCP Relay
 
@@ -2270,12 +2364,13 @@ The syntax for all such interface_subcommands are given below under each command
 NOTE: In older versions of SONiC until 201811 release, the command syntax was `config interface <interface_name> interface_subcommand`
 
 
-**config interface ip add <interface_name> <ip_addr> (Versions >= 201904)**
+**config interface ip add <interface_name> <ip_addr> [default_gw] (Versions >= 201904)**
 
 **config interface <interface_name> ip add <ip_addr> (Versions <= 201811)**
 
 This command is used for adding the IP address for an interface.
-IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command.
+IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command. 
+While configuring the IP address for the management interface "eth0", users can provide the default gateway IP address as an optional parameter from release 201911. 
 
 
 - Usage:
@@ -2294,6 +2389,7 @@ IP address for either physical interface or for portchannel or for VLAN interfac
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip add Ethernet63 10.11.12.13/24
+  admin@sonic:~$ sudo config interface ip add eth0 20.11.12.13/24 20.11.12.254
   ```
   *Versions <= 201811*
   ```
@@ -2334,6 +2430,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
   *Versions >= 201904*
   ```
   admin@sonic:~$ sudo config interface ip remove Ethernet63 10.11.12.13/24
+  admin@sonic:~$ sudo config interface ip remove eth0 20.11.12.13/24
   ```
   *Versions <= 201811*
   ```
@@ -3027,6 +3124,213 @@ Saved file can be transferred to remote machines for debugging. If users wants t
 Go Back To [Beginning of the document](#) or [Beginning of this section](#loading-reloading-and-saving-configuration)
 
 
+## Management VRF
+
+### Management VRF Show commands
+
+**show mgmt-vrf**
+
+This command displays whether the management VRF is enabled or disabled. It also displays the details about the the links (eth0, mgmt, lo-m) that are related to management VRF. 
+
+- Usage:
+  ```
+  show mgmt-vrf
+  ```
+
+- Example:
+  ```
+    root@sonic:/etc/init.d# show mgmt-vrf 
+
+    ManagementVRF : Enabled
+
+    Management VRF interfaces in Linux:
+    348: mgmt: <NOARP,MASTER,UP,LOWER_UP> mtu 65536 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+        link/ether f2:2a:d9:bc:e8:f0 brd ff:ff:ff:ff:ff:ff
+    2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq master mgmt state UP mode DEFAULT group default qlen 1000
+        link/ether 4c:76:25:f4:f9:f3 brd ff:ff:ff:ff:ff:ff
+    350: lo-m: <BROADCAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue master mgmt state UNKNOWN mode DEFAULT group default qlen 1000
+        link/ether b2:4c:c6:f3:e9:92 brd ff:ff:ff:ff:ff:ff
+
+    NOTE: The management interface "eth0" shows the "master" as "mgmt" since it is part of management VRF.
+  ```
+
+**show mgmt-vrf routes**
+
+This command displays the routes that are present in the routing table 5000 that is meant for management VRF.
+
+- Usage:
+  ```
+  show mgmt-vrf routes
+  ```
+
+- Example:
+  ```
+    root@sonic:/etc/init.d# show mgmt-vrf routes
+    
+    Routes in Management VRF Routing Table:
+    default via 10.16.210.254 dev eth0 metric 201 
+    broadcast 10.16.210.0 dev eth0 proto kernel scope link src 10.16.210.75 
+    10.16.210.0/24 dev eth0 proto kernel scope link src 10.16.210.75 
+    local 10.16.210.75 dev eth0 proto kernel scope host src 10.16.210.75 
+    broadcast 10.16.210.255 dev eth0 proto kernel scope link src 10.16.210.75 
+    broadcast 127.0.0.0 dev lo-m proto kernel scope link src 127.0.0.1 
+    127.0.0.0/8 dev lo-m proto kernel scope link src 127.0.0.1 
+    local 127.0.0.1 dev lo-m proto kernel scope host src 127.0.0.1 
+    broadcast 127.255.255.255 dev lo-m proto kernel scope link src 127.0.0.1 
+  ```
+
+**show management_interface address**
+
+This command displays the IP address(es) configured for the management interface "eth0" and the management network default gateway.
+
+- Usage:
+  ```
+  show management_interface address
+  ```
+
+- Example:
+  ```
+    root@sonic:/etc/init.d# show management_interface address 
+    Management IP address = 10.16.210.75/24
+    Management NetWork Default Gateway = 10.16.210.254
+    Management IP address = FC00:2::32/64
+    Management Network Default Gateway = fc00:2::1
+  ```
+
+**show snmpagentaddress**
+
+This command displays the configured SNMP agent IP addresses.
+
+- Usage:
+  ```
+  show snmpagentaddress
+  ```
+
+- Example:
+  ```
+    root@sonic-s6100-07:~# show snmpagentaddress 
+    ListenIP      ListenPort  ListenVrf
+    ----------  ------------  -----------
+    1.2.3.4              787  mgmt
+  ```
+
+**show snmptrap**
+
+This command displays the configured SNMP Trap server IP addresses.
+
+- Usage:
+  ```
+  show snmptrap
+  ```
+
+- Example:
+  ```
+    root@sonic-s6100-07:~# show snmptrap 
+      Version  TrapReceiverIP      Port  VRF    Community
+    ---------  ----------------  ------  -----  -----------
+            2  31.31.31.31          456  mgmt   public
+  ```
+
+### Management VRF Config commands
+
+**config vrf add mgmt**
+
+This command enables the management VRF in the system. This command restarts the "interfaces-config" service which in turn regenerates the /etc/network/interfaces file and restarts the "networking" service. This creates a new interface and l3mdev CGROUP with the name as "mgmt" and enslaves the management interface "eth0" into this master interface "mgmt". Note that the VRFName "mgmt" (or "management") is reserved for management VRF. i.e. Data VRFs should not use these reserved VRF names.
+
+- Usage:
+  ```
+  config vrf add mgmt
+  ```
+
+- Example:
+  ```
+  root@sonic-s6100-07:~# config vrf add mgmt
+  ```
+
+**config vrf del mgmt**
+
+This command disables the management VRF in the system. This command restarts the "interfaces-config" service which in turn regenerates the /etc/network/interfaces file and restarts the "networking" service. This deletes the interface "mgmt" and deletes the l3mdev CGROUP named "mgmt" and puts back the management interface "eth0" into the default VRF. Note that the VRFName "mgmt" (or "management") is reserved for management VRF. i.e. Data VRFs should not use these reserved VRF names.
+
+- Usage:
+  ```
+  config vrf del mgmt
+  ```
+
+- Example:
+  ```
+  root@sonic-s6100-07:~# config vrf del mgmt
+  ```
+
+**config snmpagentaddress add**
+
+This command adds the SNMP agent IP address on which the SNMP agent is expected to listen. When SNMP agent is expected to work as part of management VRF, users should specify the optional vrf_name parameter as "mgmt". This configuration goes into snmpd.conf that is used by SNMP agent. SNMP service is restarted to make this configuration effective in SNMP agent.
+
+- Usage:
+  ```
+  config snmpagentaddress add [-p <port_num>] [-v <vrf_name>] agentip
+  ```
+
+- Example:
+  ```
+   root@sonic-s6100-07:~#config snmpagentaddress add -v mgmt -p 123 21.22.13.14
+
+   For this example, configuration goes into /etc/snmp/snmpd.conf inside snmp docker as follows. When "-v" parameter is not used, the additional "%" in the following line will not be present.
+
+   agentAddress 21.22.13.14:123%mgmt
+  ```
+
+**config snmpagentaddress del**
+
+This command deletes the SNMP agent IP address on which the SNMP agent is expected to listen. When users had added the agent IP as part of "mgmt" VRF, users should specify the optional vrf_name parameter as "mgmt" while deleting as well. This configuration is removed from snmpd.conf that is used by SNMP agent. SNMP service is restarted to make this configuration effective in SNMP agent.
+
+- Usage:
+  ```
+  config snmpagentaddress del [-p <port_num>] [-v <vrf_name>] agentip
+  ```
+
+- Example:
+  ```
+   root@sonic-s6100-07:~#config snmpagentaddress del -v mgmt -p 123 21.22.13.14
+
+  ```
+
+**config snmptrap modify**
+
+This command modifies the SNMP trap server IP address to which the SNMP agent is expected to send the traps. Users can configure one server IP addrss for each SNMP version to send the traps. When SNMP agent is expected to send traps as part of management VRF, users should specify the optional vrf_name parameter as "mgmt". This configuration goes into snmpd.conf that is used by SNMP agent. SNMP service is restarted to make this configuration effective in SNMP agent.
+
+- Usage:
+  ```
+  config snmptrap modify <snmp_version> [-p <port_num>] [-v <vrf_name>] [-c <community>] trapserverip
+  ```
+
+- Example:
+  ```
+   root@sonic-s6100-07:~#config snmptrap modify 2 -p 456 -v mgmt 21.21.21.21
+
+   For this example, configuration goes into /etc/snmp/snmpd.conf inside snmp docker as follows. When "-v" parameter is not used, the additional "%" in the following line will not be present. In case of SNMPv1, "trapsink" will be updated, in case of v2, "trap2sink" will be updated and in case of v3, "informsink" will be updated.
+
+   trap2sink 31.31.31.31:456%mgmt public
+
+  ```
+
+**config snmptrap del**
+
+This command deletes the SNMP Trap server IP address to which SNMP agent is expected to send TRAPs. When users had added the trap server IP as part of "mgmt" VRF, users should specify the optional vrf_name parameter as "mgmt" while deleting as well. This configuration is removed from snmpd.conf that is used by SNMP agent. SNMP service is restarted to make this configuration effective in SNMP agent.
+
+- Usage:
+  ```
+  config snmptrap del [-p <port_num>] [-v <vrf_name>] [-c <community>] trapserverip
+  ```
+
+- Example:
+  ```
+   root@sonic-s6100-07:~#config snmptrap del -v mgmt -p 123 21.22.13.14
+
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#management-vrf)
+
+
 ## Mirroring
 
 ### Mirroring Show commands
@@ -3078,6 +3382,349 @@ While adding a new session, users need to configure the following fields that ar
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#mirroring)
+
+## NAT
+
+### NAT Show commands
+
+**show nat config**
+
+This command displays the NAT configuration. 
+
+- Usage:
+  ```
+  show nat config [static | pool | bindings | globalvalues | zones]
+  ```
+
+With no optional arguments, the whole NAT configuration is displayed.
+
+- Example:
+  ```
+  root@sonic:/# show nat config static
+
+  Nat Type  IP Protocol Global IP      Global L4 Port  Local IP       Local L4 Port  Twice-Nat Id
+  --------  ----------- ------------   --------------  -------------  -------------  ------------
+  dnat      all         65.55.45.5     ---             10.0.0.1       ---            ---
+  dnat      all         65.55.45.6     ---             10.0.0.2       ---            ---
+  dnat      tcp         65.55.45.7     2000            20.0.0.1       4500           1
+  snat      tcp         20.0.0.2       4000            65.55.45.8     1030           1
+
+  root@sonic:/# show nat config pool
+
+  Pool Name      Global IP Range             Global L4 Port Range
+  ------------   -------------------------   --------------------
+  Pool1          65.55.45.5                  1024-65535
+  Pool2          65.55.45.6-65.55.45.8       ---
+  Pool3          65.55.45.10-65.55.45.15     500-1000
+
+  root@sonic:/# show nat config bindings
+
+  Binding Name   Pool Name      Access-List    Nat Type  Twice-Nat Id
+  ------------   ------------   ------------   --------  ------------
+  Bind1          Pool1          ---            snat      ---
+  Bind2          Pool2          1              snat      1
+  Bind3          Pool3          2              snat      --
+
+  root@sonic:/# show nat config globalvalues
+
+  Admin Mode     : enabled
+  Global Timeout : 600 secs
+  TCP Timeout    : 86400 secs
+  UDP Timeout    : 300 secs
+
+  root@sonic:/# show nat config zones
+
+  Port       Zone
+  ----       ----
+  Ethernet2  0
+  Vlan100    1
+  ```
+
+**show nat statistics**
+
+This command displays the NAT translation statistics for each entry. 
+
+- Usage:
+  ```
+  show nat statistics
+  ```
+
+- Example:
+  ```
+  root@sonic:/# show nat statistics
+
+  Protocol Source           Destination          Packets          Bytes
+  -------- ---------        --------------       -------------    -------------
+  all      10.0.0.1         ---                            802          1009280     
+  all      10.0.0.2         ---                             23             5590            
+  tcp      20.0.0.1:4500    ---                            110            12460         
+  udp      20.0.0.1:4000    ---                           1156           789028            
+  tcp      20.0.0.1:6000    ---                             30            34800         
+  tcp      20.0.0.1:5000    65.55.42.1:2000                128           110204     
+  tcp      20.0.0.1:5500    65.55.42.1:2000                  8             3806
+  ```
+
+**show nat translations**
+
+This command displays the NAT translation entries. 
+
+- Usage:
+  ```
+  show nat translations [count]
+  ```
+Giving the optional count argument displays only the details about the number of translation entries. 
+- Example:
+  ```
+  root@sonic:/# show nat translations
+
+  Static NAT Entries        ................. 4
+  Static NAPT Entries       ................. 2
+  Dynamic NAT Entries       ................. 0
+  Dynamic NAPT Entries      ................. 4
+  Static Twice NAT Entries  ................. 0
+  Static Twice NAPT Entries ................. 4
+  Dynamic Twice NAT Entries  ................ 0
+  Dynamic Twice NAPT Entries ................ 0
+  Total SNAT/SNAPT Entries   ................ 9
+  Total DNAT/DNAPT Entries   ................ 9
+  Total Entries              ................ 14
+
+  Protocol Source           Destination       Translated Source  Translated Destination
+  -------- ---------        --------------    -----------------  ----------------------
+  all      10.0.0.1         ---               65.55.42.2         ---
+  all      ---              65.55.42.2        ---                10.0.0.1
+  all      10.0.0.2         ---               65.55.42.3         ---
+  all      ---              65.55.42.3        ---                10.0.0.2
+  tcp      20.0.0.1:4500    ---               65.55.42.1:2000    ---
+  tcp      ---              65.55.42.1:2000   ---                20.0.0.1:4500
+  udp      20.0.0.1:4000    ---               65.55.42.1:1030    ---
+  udp      ---              65.55.42.1:1030   ---                20.0.0.1:4000
+  tcp      20.0.0.1:6000    ---               65.55.42.1:1024    ---
+  tcp      ---              65.55.42.1:1024   ---                20.0.0.1:6000
+  tcp      20.0.0.1:5000    65.55.42.1:2000   65.55.42.1:1025    20.0.0.1:4500
+  tcp      20.0.0.1:4500    65.55.42.1:1025   65.55.42.1:2000    20.0.0.1:5000
+  tcp      20.0.0.1:5500    65.55.42.1:2000   65.55.42.1:1026    20.0.0.1:4500
+  tcp      20.0.0.1:4500    65.55.42.1:1026   65.55.42.1:2000    20.0.0.1:5500
+
+  root@sonic:/# show nat translations count
+
+  Static NAT Entries        ................. 4
+  Static NAPT Entries       ................. 2
+  Dynamic NAT Entries       ................. 0
+  Dynamic NAPT Entries      ................. 4
+  Static Twice NAT Entries  ................. 0
+  Static Twice NAPT Entries ................. 4
+  Dynamic Twice NAT Entries  ................ 0
+  Dynamic Twice NAPT Entries ................ 0
+  Total SNAT/SNAPT Entries   ................ 9
+  Total DNAT/DNAPT Entries   ................ 9
+  Total Entries              ................ 14
+  ```
+
+### NAT Config commands
+
+**config nat add static**
+
+This command is used to add a static NAT or NAPT entry.
+When configuring the Static NAT entry, user has to specify the following fields with 'basic' keyword.
+
+1. Global IP address,
+2. Local IP address,
+3. NAT type (snat / dnat) to be applied on the Global IP address. Default value is dnat. This is optinoal argument.
+4. Twice NAT Id. This is optional argument used in case of twice nat configuration.
+
+When configuring the Static NAPT entry, user has to specify the following fields.
+
+1. IP protocol type (tcp / udp)
+2. Global IP address + Port
+3. Local IP address + Port
+4. NAT type (snat / dnat) to be applied on the Global IP address + Port. Default value is dnat. This is optional argument.
+5. Twicw NAT Id. This is optional argument used in case of twice nat configuration.
+
+- Usage:
+  ```
+  config nat add static {{basic (global-ip) (local-ip)} | {{tcp | udp} (global-ip) (global-port) (local-ip) (local-port)}} [-nat_type {snat | dnat}] [-twice_nat_id (value)]
+  ```
+
+To delete a static NAT or NAPT entry, use the command below. Giving the all argument deletes all the configured static NAT and NAPT entries.
+```
+config nat remove static {{basic (global-ip) (local-ip)} | {{tcp | udp} (global-ip) (global-port) (local-ip) (local-port)} | all}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add static basic 65.55.45.1 12.12.12.14 -nat_type dnat
+  root@sonic:/# config nat add static tcp 65.55.45.2 100 12.12.12.15 200 -nat_type dnat
+
+  root@sonic:/# show nat translations
+
+  Static NAT Entries        ................. 2
+  Static NAPT Entries       ................. 2
+  Dynamic NAT Entries       ................. 0
+  Dynamic NAPT Entries      ................. 0
+  Static Twice NAT Entries  ................. 0
+  Static Twice NAPT Entries ................. 0
+  Dynamic Twice NAT Entries  ................ 0
+  Dynamic Twice NAPT Entries ................ 0
+  Total SNAT/SNAPT Entries   ................ 2
+  Total DNAT/DNAPT Entries   ................ 2
+  Total Entries              ................ 4
+
+  Protocol Source           Destination       Translated Source  Translated Destination
+  -------- ---------        --------------    -----------------  ----------------------
+  all      12.12.12.14      ---               65.55.42.1         ---
+  all      ---              65.55.42.1        ---                12.12.12.14
+  tcp      12.12.12.15:200  ---               65.55.42.2:100     ---
+  tcp      ---              65.55.42.2:100    ---                12.12.12.15:200
+  ```
+
+**config nat add pool**
+
+This command is used to create a NAT pool used for dynamic Source NAT or NAPT translations.
+Pool can be configured in one of the following combinations.
+
+1. Global IP address range (or)
+2. Global IP address + L4 port range (or)
+3. Global IP address range + L4 port range.
+
+- Usage:
+  ```
+  config nat add pool (pool-name) (global-ip-range) (global-port-range)
+  ```
+To delete a NAT pool, use the command. Pool cannot be removed if it is referenced by a NAT binding. Giving the pools argument removes all the configured pools.
+```
+config nat remove {pool (pool-name) | pools}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add pool pool1 65.55.45.2-65.55.45.10
+  root@sonic:/# config nat add pool pool2 65.55.45.3 100-1024
+
+  root@sonic:/# show nat config pool
+
+  Pool Name    Global IP Range         Global Port Range
+  -----------  ----------------------  -------------------
+  pool1        65.55.45.2-65.55.45.10  ---
+  pool2        65.55.45.3              100-1024
+  ```
+
+**config nat add binding**
+
+This command is used to create a NAT binding between a pool and an ACL. The following fields are needed for configuring the binding.
+
+  1. ACL is an optional argument. If ACL argument is not given, the NAT binding is applicable to match all traffic.
+  2. NAT type is an optional argument. Only DNAT type is supoprted for binding.
+  3. Twice NAT Id is an optional argument. This Id is used to form a twice nat grouping with the static NAT/NAPT entry configured with the same Id.
+
+- Usage:
+  ```
+  config nat add binding (binding-name) [(pool-name)] [(acl-name)] [-nat_type {snat | dnat}] [-twice_nat_id (value)]
+  ```
+To delete a NAT binding, use the command below. Giving the bindings argument removes all the configured bindings.
+```
+config nat remove {binding (binding-name) | bindings}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add binding bind1 pool1 acl1
+  root@sonic:/# config nat add binding bind2 pool2
+
+  root@sonic:/# show nat config bindings
+
+  Binding Name    Pool Name    Access-List    Nat Type    Twice-NAT Id
+  --------------  -----------  -------------  ----------  --------------
+  bind1           pool1        acl1           snat        ---
+  bind2           pool2                       snat        ---
+  ```  
+
+**config nat add interface**
+
+This command is used to configure NAT zone on an L3 interface. Default value of NAT zone on an L3 interface is 0. Valid range of zone values is 0-3.
+
+- Usage:
+  ```
+  config nat add interface (interface-name) -nat_zone (value)
+  ```
+To reset the NAT zone on an interface, use the command below. Giving the interfaces argument resets the NAT zone on all the L3 interfaces to 0.
+```
+config nat remove {interface (interface-name) | interfaces}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add interface Ethernet28 -nat_zone 1
+
+  root@sonic:/# show nat config zones
+
+  Port          Zone
+  ----------  ------
+  Ethernet0        0
+  Ethernet28       1
+  Ethernet22       0
+  Vlan2091         0
+  ```  
+
+**config nat set**
+
+This command is used to set the NAT timeout values. Different timeout values can be configured for the NAT entry timeout, NAPT TCP entry timeout, NAPT UDP entry timeout.
+Range for Global NAT entry timeout is 300 sec to 432000 sec, default value is 600 sec.
+Range for TCP NAT/NAPT entry timeout is 300 sec to 432000 sec, default value is 86400 sec.
+Range for UDP NAT/NAPT entry timeout is 120 sec to 600 sec, default value is 300 sec.
+
+- Usage:
+  ```
+  config nat set {tcp-timeout (value) | timeout (value) | udp-timeout (value)}
+  ```
+To reset the timeout values to the default values, use the command
+```
+config nat reset {tcp-timeout | timeout | udp-timeout}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add set tcp-timeout 3600
+
+  root@sonic:/# show nat config globalvalues 
+
+  Admin Mode     : enabled
+  Global Timeout : 600 secs
+  TCP Timeout    : 600 secs
+  UDP Timeout    : 300 secs
+  ```
+
+**config nat feature**
+
+This command is used to enable or disable the NAT feature.
+
+- Usage:
+  ```
+  config nat feature {enable | disable}
+  ```
+
+- Example:
+  ```
+  root@sonic:/# config nat feature enable
+  root@sonic:/# config nat feature disable
+  ```
+
+### NAT Clear commands
+
+**sonic-clear nat translations**
+
+This command is used to clear the dynamic NAT and NAPT translation entries.
+
+- Usage:
+  ```
+  sonic-clear nat translations
+  ```
+
+**sonic-clear nat statistics**
+
+This command is used to clear the statistics of all the NAT and NAPT entries.
+
+- Usage:
+  ```
+  sonic-clear nat statistics
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#nat)
 
 
 ## NTP
@@ -3944,6 +4591,14 @@ This command displays the state of all the SONiC processes running inside a dock
   root         1     0  0 05:26 ?        00:00:12 /usr/bin/python /usr/bin/supervi
   root        24     1  0 05:26 ?        00:00:00 /usr/sbin/rsyslogd -n
 
+  nat     docker
+  ---------------------------
+  USER       PID PPID  C STIME TTY          TIME CMD
+  root         1    0  0 05:26 ?        00:00:12 /usr/bin/python /usr/bin/supervisord
+  root        18    1  0 05:26 ?        00:00:00 /usr/sbin/rsyslogd -n               
+  root        23    1  0 05:26 ?        00:00:01 /usr/bin/natmgrd                    
+  root        34    1  0 05:26 ?        00:00:00 /usr/bin/natsyncd 
+
   snmp    docker
   ---------------------------
   UID        PID  PPID  C STIME TTY          TIME CMD
@@ -4354,6 +5009,36 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#Warm-R
 
 ## Warm Restart
 
+Besides device level warm reboot, SONiC also provides docker based warm restart. This feature is currently supported by following dockers: BGP, teamD,  and SWSS. A user can manage to restart a particular docker, with no interruption on packet forwarding and no effect on other services. This helps to reduce operational costs as well as development efforts. For example, to fix a bug in BGP routing stack, only the BGP docker image needs to be built, tested and upgraded.
+
+To achieve uninterrupted packet forwarding during the restarting stage and database reconciliation at the post restarting stage, warm restart enabled dockers with adjacency state machine facilitate standardized protocols. For example, a BGP restarting switch must have BGP "Graceful Restart" enabled, and its BGP neighbors must be "Graceful Restart Helper Capable", as specified in [IETF RFC4724](https://tools.ietf.org/html/rfc4724). 
+
+Before warm restart BGP docker, the following BGP commands should be enabled: 
+  ```
+  bgp graceful-restart
+  bgp graceful-restart preserve-fw-state
+  ```
+In current SONiC release, the above two commands are enabled by default.
+
+It should be aware that during a warm restart, certain BGP fast convergence feature and black hole avoidance feature should either be disabled or be set to a lower preference to avoid conflicts with BGP graceful restart.  
+
+For example, BGP BFD could be disabled via:
+
+  ```
+  no neighbor <A.B.C.D|X:X::X:X|WORD> bfd
+  ```
+  
+otherwise, the fast failure detection would cause packet drop during warm reboot.
+
+Another commonly deployed blackhole avoidance feature: dynamic route priority adjustment, could be disabled via:
+
+  ```
+  no bgp max-med on-peerup
+  ```
+
+to avoid large routes churn during BGP restart.
+
+
 ### Warm Restart show commands
 
 **show warm_restart config**
@@ -4397,6 +5082,7 @@ This command displays the warm_restart state.
   neighsyncd                0
   teamsyncd                 1
   syncd                     0
+  natsyncd                  0
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#warm-restart)
@@ -4980,5 +5666,4 @@ This command displays the routing policy that takes precedence over the other ro
     Action:
       Exit routemap
   ```
-
 Go Back To [Beginning of the document](#) or [Beginning of this section](#quagga-bgp-show-commands)
