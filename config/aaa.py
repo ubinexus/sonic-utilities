@@ -8,10 +8,11 @@ import re
 from swsssdk import ConfigDBConnector
 
 TAC_PLUS_MAXSERVERS = 8
-TAC_PLUS_PASSKEY_MAX_LEN = 32
+TAC_PLUS_PASSKEY_MAX_LEN = 65
 
 RADIUS_MAXSERVERS = 8
-RADIUS_PASSKEY_MAX_LEN = 32
+RADIUS_PASSKEY_MAX_LEN = 65
+VALID_CHARS_MSG = "Valid chars are ASCII printable except SPACE, '#', and ','"
 
 def is_ipaddress(val):
     if not val:
@@ -23,7 +24,7 @@ def is_ipaddress(val):
     return True
 
 def is_secret(secret):
-    return bool(re.match('^' + '[0-9A-Za-z]*' + '$', secret))
+    return bool(re.match('^' + '[^ #,]*' + '$', secret))
 
 def add_table_kv(table, entry, key, val):
     config_db = ConfigDBConnector()
@@ -178,7 +179,7 @@ def passkey(ctx, secret):
             click.echo('Maximum of %d chars can be configured' % TAC_PLUS_PASSKEY_MAX_LEN)
             return
         elif not is_secret(secret):
-            click.echo('Valid chars are [0-9A-Za-z]')
+            click.echo(VALID_CHARS_MSG)
             return
         add_table_kv('TACPLUS', 'global', 'passkey', secret)
     else:
@@ -217,7 +218,7 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
             click.echo('--key: Maximum of %d chars can be configured' % TAC_PLUS_PASSKEY_MAX_LEN)
             return
         elif not is_secret(key):
-            click.echo('--key: Valid chars are [0-9A-Za-z]')
+            click.echo('--key: ' + VALID_CHARS_MSG)
             return
 
     config_db = ConfigDBConnector()
@@ -332,7 +333,7 @@ def passkey(ctx, secret):
             click.echo('Maximum of %d chars can be configured' % RADIUS_PASSKEY_MAX_LEN)
             return
         elif not is_secret(secret):
-            click.echo('Valid chars are [0-9A-Za-z]')
+            click.echo(VALID_CHARS_MSG)
             return
         add_table_kv('RADIUS', 'global', 'passkey', secret)
     else:
@@ -426,7 +427,7 @@ def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_v
             click.echo('--key: Maximum of %d chars can be configured' % RADIUS_PASSKEY_MAX_LEN)
             return
         elif not is_secret(key):
-            click.echo('--key: Valid chars are [0-9A-Za-z]')
+            click.echo('--key: ' + VALID_CHARS_MSG)
             return
 
     config_db = ConfigDBConnector()
