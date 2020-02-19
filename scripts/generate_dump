@@ -196,8 +196,7 @@ save_proc() {
 ###############################################################################
 save_redis() {
     local db_name=$1
-    db_name=${db_name//[^[:upper:]_]/}
-    save_cmd "sonic-db-dump -n $db_name -y" "$db_name.json"
+    save_cmd "sonic-db-dump -n '$db_name' -y" "$db_name.json"
 }
 
 ###############################################################################
