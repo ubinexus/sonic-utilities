@@ -1425,6 +1425,27 @@ def mgmt_ip_restart_services():
     os.system (cmd)
 
 #
+# 'mtu' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_mtu', metavar='<interface_mtu>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def mtu(ctx, interface_name, interface_mtu, verbose):
+    """Set interface mtu"""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    if verbose:
+        command += " -vv"
+    run_command(command, display_cmd=verbose)
+
+#
 # 'ip' subgroup ('config interface ip ...')
 #
 
@@ -2029,6 +2050,48 @@ def platform():
 
 if asic_type == 'mellanox':
     platform.add_command(mlnx.mlnx)
+
+# 'firmware' subgroup ("config platform firmware ...")
+@platform.group()
+def firmware():
+    """Firmware configuration tasks"""
+    pass
+
+# 'install' subcommand ("config platform firmware install")
+@firmware.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def install(args):
+    """Install platform firmware"""
+    cmd = "fwutil install {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
+# 'update' subcommand ("config platform firmware update")
+@firmware.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def update(args):
+    """Update platform firmware"""
+    cmd = "fwutil update {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
 
 #
 # 'watermark' group ("show watermark telemetry interval")

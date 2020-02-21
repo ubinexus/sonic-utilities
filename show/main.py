@@ -1680,6 +1680,13 @@ def pcieinfo(check, verbose):
         cmd = "pcieutil pcie_check"
     run_command(cmd, display_cmd=verbose)
 
+# 'firmware' subcommand ("show platform firmware")
+@platform.command()
+def firmware():
+    """Show firmware status information"""
+    cmd = "fwutil show status"
+    run_command(cmd)
+
 #
 # 'logging' command ("show logging")
 #
