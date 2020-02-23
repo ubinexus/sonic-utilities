@@ -145,8 +145,7 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     # Sleep 1 second before calling /sbin/reboot to accommodate situation #1 above.
     sleep 1
 
-    VERBOSE=yes debug "Reboot failed!" >&2
+    VERBOSE=yes debug "Platform specific reboot failed! Issuing OS-level reboot ..." >&2
 fi
 
 exec /sbin/reboot $@
-
