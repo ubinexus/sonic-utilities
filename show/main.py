@@ -1687,6 +1687,20 @@ def firmware():
     cmd = "fwutil show status"
     run_command(cmd)
 
+# 'fan' subcommand ("show platform fan")
+@platform.command()
+def fan():
+    """Show fan status information"""
+    cmd = 'fanshow'
+    run_command(cmd)
+
+# 'temperature' subcommand ("show platform temperature")
+@platform.command()
+def temperature():
+    """Show device temperature information"""
+    cmd = 'tempershow'
+    run_command(cmd)
+    
 #
 # 'logging' command ("show logging")
 #
