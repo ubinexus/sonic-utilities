@@ -8,6 +8,7 @@ import subprocess
 import netaddr
 import re
 import syslog
+import time
 import netifaces
 
 import sonic_device_util
@@ -18,12 +19,16 @@ from minigraph import parse_device_desc_xml
 
 import aaa
 import mlnx
+import nat
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
+SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
+
+INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
 # ========================== Syslog wrappers ==========================
 
@@ -156,6 +161,61 @@ def interface_name_to_alias(interface_name):
 
     return None
 
+def get_interface_table_name(interface_name):
+    """Get table name by interface_name prefix
+    """
+    if interface_name.startswith("Ethernet"):
+        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
+            return "VLAN_SUB_INTERFACE"
+        return "INTERFACE"
+    elif interface_name.startswith("PortChannel"):
+        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
+            return "VLAN_SUB_INTERFACE"
+        return "PORTCHANNEL_INTERFACE"
+    elif interface_name.startswith("Vlan"):
+        return "VLAN_INTERFACE"
+    elif interface_name.startswith("Loopback"):
+        return "LOOPBACK_INTERFACE"
+    else:
+        return ""
+
+def interface_ipaddr_dependent_on_interface(config_db, interface_name):
+    """Get table keys including ipaddress
+    """
+    data = []
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        return data
+    keys = config_db.get_keys(table_name)
+    for key in keys:
+        if interface_name in key and len(key) == 2:
+            data.append(key)
+    return data
+
+def is_interface_bind_to_vrf(config_db, interface_name):
+    """Get interface if bind to vrf or not
+    """
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        return False
+    entry = config_db.get_entry(table_name, interface_name)
+    if entry and entry.get("vrf_name"):
+        return True
+    return False
+
+def del_interface_bind_to_vrf(config_db, vrf_name):
+    """del interface bind to vrf
+    """
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    for table_name in tables:
+        interface_dict = config_db.get_table(table_name)
+        if interface_dict:
+            for interface_name in interface_dict.keys():
+                if interface_dict[interface_name].has_key('vrf_name') and vrf_name == interface_dict[interface_name]['vrf_name']:
+                    interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+                    for interface_del in interface_dependent:
+                        config_db.set_entry(table_name, interface_del, None)
+                    config_db.set_entry(table_name, interface_name, None)
 
 def set_interface_naming_mode(mode):
     """Modify SONIC_CLI_IFACE_MODE env variable in user .bashrc
@@ -335,10 +395,27 @@ def _get_platform():
                 return tokens[1].strip()
     return ''
 
+def _get_sonic_generated_services():
+    if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
+        return None
+    generated_services_list = []
+    with open(SONIC_GENERATED_SERVICE_PATH) as generated_service_file:
+        for line in generated_service_file:
+            generated_services_list.append(line.rstrip('\n'))
+    return None if not generated_services_list else generated_services_list
+
 # Callback for confirmation prompt. Aborts if user enters "n"
 def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
+
+def _get_optional_services():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    optional_services_dict = config_db.get_table('FEATURE')
+    if not optional_services_dict:
+        return None
+    return optional_services_dict.keys()
 
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
@@ -348,11 +425,20 @@ def _stop_services():
         'pmon',
         'bgp',
         'hostcfgd',
+        'nat'
     ]
+    generated_services_list = _get_sonic_generated_services()
+
+    if generated_services_list is None:
+        log_error("Failed to get generated services")
+        return
+
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
 
     for service in services_to_stop:
+        if service + '.service' not in generated_services_list:
+            continue
         try:
             click.echo("Stopping service {} ...".format(service))
             run_command("systemctl stop {}".format(service))
@@ -360,6 +446,17 @@ def _stop_services():
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
             raise
+
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl status {}".format(service), return_output = True)
+        if not err and 'Active: active (running)' in out:
+            try:
+                click.echo("Stopping service {} ...".format(service))
+                run_command("systemctl stop {}".format(service))
+            except SystemExit as e:
+                log_error("Stopping {} failed with error {}".format(service, e))
+                raise
 
 def _reset_failed_services():
     services_to_reset = [
@@ -376,16 +473,36 @@ def _reset_failed_services():
         'snmp',
         'swss',
         'syncd',
-        'teamd'
+        'teamd',
+        'nat'
     ]
 
+    generated_services_list = _get_sonic_generated_services()
+
+    if generated_services_list is None:
+        log_error("Failed to get generated services")
+        return
+
     for service in services_to_reset:
+        if service + '.service' not in generated_services_list:
+            continue
         try:
             click.echo("Resetting failed status for service {} ...".format(service))
             run_command("systemctl reset-failed {}".format(service))
         except SystemExit as e:
             log_error("Failed to reset failed status for service {}".format(service))
             raise
+
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
+        if not err and 'enabled' in out:
+            try:
+                click.echo("Resetting failed status for service {} ...".format(service))
+                run_command("systemctl reset-failed {}".format(service))
+            except SystemExit as e:
+                log_error("Failed to reset failed status for service {}".format(service))
+                raise
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
@@ -399,18 +516,38 @@ def _restart_services():
         'pmon',
         'lldp',
         'hostcfgd',
+        'nat',
         'sflow',
     ]
+    generated_services_list = _get_sonic_generated_services()
+
+    if generated_services_list is None:
+        log_error("Failed to get generated services")
+        return
+
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
 
     for service in services_to_restart:
+        if service + '.service' not in generated_services_list:
+            continue
         try:
             click.echo("Restarting service {} ...".format(service))
             run_command("systemctl restart {}".format(service))
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
+
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
+        if not err and 'enabled' in out:
+            try:
+                click.echo("Restarting service {} ...".format(service))
+                run_command("systemctl restart {}".format(service))
+            except SystemExit as e:
+                log_error("Restart {} failed with error {}".format(service, e))
+                raise
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
@@ -431,6 +568,8 @@ def config():
         exit("Root privileges are required for this operation")
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+# === Add NAT Configuration ==========
+config.add_command(nat.nat)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -476,13 +615,17 @@ def reload(filename, yes, load_sysinfo):
     _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
-    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
     if load_sysinfo:
         command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
         run_command(command, display_cmd=True)
 
-    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+    if os.path.isfile(INIT_CFG_FILE):
+        command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename)
+    else:
+        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
 
@@ -542,7 +685,7 @@ def load_minigraph():
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
     if os.path.isfile('/etc/sonic/init_cfg.json'):
         command = "{} -H -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
@@ -920,11 +1063,14 @@ def vlan(ctx, redis_unix_socket_path):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def add_vlan(ctx, vid):
-    db = ctx.obj['db']
-    vlan = 'Vlan{}'.format(vid)
-    if len(db.get_entry('VLAN', vlan)) != 0:
-        ctx.fail("{} already exists".format(vlan))
-    db.set_entry('VLAN', vlan, {'vlanid': vid})
+    if vid >= 1 and vid <= 4094:
+        db = ctx.obj['db']
+        vlan = 'Vlan{}'.format(vid)
+        if len(db.get_entry('VLAN', vlan)) != 0:
+            ctx.fail("{} already exists".format(vlan))
+        db.set_entry('VLAN', vlan, {'vlanid': vid})
+    else :
+        ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -1030,11 +1176,9 @@ def mvrf_restart_services():
     cmd="service ntp start"
     os.system (cmd)
 
-def vrf_add_management_vrf():
+def vrf_add_management_vrf(config_db):
     """Enable management vrf in config DB"""
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
     entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
     if entry and entry['mgmtVrfEnabled'] == 'true' :
         click.echo("ManagementVRF is already Enabled.")
@@ -1042,46 +1186,15 @@ def vrf_add_management_vrf():
     config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "true"})
     mvrf_restart_services()
 
-def vrf_delete_management_vrf():
+def vrf_delete_management_vrf(config_db):
     """Disable management vrf in config DB"""
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
     entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
     if not entry or entry['mgmtVrfEnabled'] == 'false' :
         click.echo("ManagementVRF is already Disabled.")
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
     mvrf_restart_services()
-
-#
-# 'vrf' group ('config vrf ...')
-#
-
-@config.group('vrf')
-def vrf():
-    """VRF-related configuration tasks"""
-    pass
-
-@vrf.command('add')
-@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=True)
-@click.pass_context
-def vrf_add (ctx, vrfname):
-    """Create management VRF and move eth0 into it"""
-    if vrfname == 'mgmt' or vrfname == 'management':
-        vrf_add_management_vrf()
-    else:
-        click.echo("Creation of data vrf={} is not yet supported".format(vrfname))
-
-@vrf.command('del')
-@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=False)
-@click.pass_context
-def vrf_del (ctx, vrfname):
-    """Delete management VRF and move back eth0 to default VRF"""
-    if vrfname == 'mgmt' or vrfname == 'management':
-        vrf_delete_management_vrf()
-    else:
-        click.echo("Deletion of data vrf={} is not yet supported".format(vrfname))
 
 @config.group()
 @click.pass_context
@@ -1206,7 +1319,8 @@ def add_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
         return
     else:
         dhcp_relay_dests.append(dhcp_relay_destination_ip)
-        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        vlan['dhcp_servers'] = dhcp_relay_dests
+        db.set_entry('VLAN', vlan_name, vlan)
         click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
@@ -1231,7 +1345,11 @@ def del_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
     dhcp_relay_dests = vlan.get('dhcp_servers', [])
     if dhcp_relay_destination_ip in dhcp_relay_dests:
         dhcp_relay_dests.remove(dhcp_relay_destination_ip)
-        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        if len(dhcp_relay_dests) == 0:
+            del vlan['dhcp_servers']
+        else:
+            vlan['dhcp_servers'] = dhcp_relay_dests
+        db.set_entry('VLAN', vlan_name, vlan)
         click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
@@ -1258,6 +1376,51 @@ def bgp():
 def shutdown():
     """Shut down BGP session(s)"""
     pass
+
+@config.group()
+def kdump():
+    """ Configure kdump """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+    pass
+
+@kdump.command()
+def disable():
+    """Disable kdump operation"""
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        config_db.mod_entry("KDUMP", "config", {"enabled": "false"})
+        run_command("sonic-kdump-config --disable")
+
+@kdump.command()
+def enable():
+    """Enable kdump operation"""
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        config_db.mod_entry("KDUMP", "config", {"enabled": "true"})
+        run_command("sonic-kdump-config --enable")
+
+@kdump.command()
+@click.argument('kdump_memory', metavar='<kdump_memory>', required=True)
+def memory(kdump_memory):
+    """Set memory allocated for kdump capture kernel"""
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
+        run_command("sonic-kdump-config --memory %s" % kdump_memory)
+
+@kdump.command()
+@click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
+def num_dumps(kdump_num_dumps):
+    """Set max number of dump files for kdump"""
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        config_db.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
+        run_command("sonic-kdump-config --num_dumps %d" % kdump_num_dumps)
 
 # 'all' subcommand
 @shutdown.command()
@@ -1427,6 +1590,27 @@ def mgmt_ip_restart_services():
     os.system (cmd)
 
 #
+# 'mtu' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_mtu', metavar='<interface_mtu>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def mtu(ctx, interface_name, interface_mtu, verbose):
+    """Set interface mtu"""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    if verbose:
+        command += " -vv"
+    run_command(command, display_cmd=verbose)
+
+#
 # 'ip' subgroup ('config interface ip ...')
 #
 
@@ -1455,14 +1639,8 @@ def add(ctx, interface_name, ip_addr, gw):
 
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
-        if interface_name.startswith("Ethernet"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-            else:
-                config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-                config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
-        elif interface_name == 'eth0':
+
+        if interface_name == 'eth0':
 
             # Configuring more than 1 IPv4 or more than 1 IPv6 address fails.
             # Allow only one IPv4 and only one IPv6 address to be configured for IPv6.
@@ -1485,20 +1663,18 @@ def add(ctx, interface_name, ip_addr, gw):
                 config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw})
             mgmt_ip_restart_services()
 
-        elif interface_name.startswith("PortChannel"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-            else:
-                config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-                config_db.set_entry("PORTCHANNEL_INTERFACE", interface_name, {"NULL": "NULL"})
-        elif interface_name.startswith("Vlan"):
-            config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-            config_db.set_entry("VLAN_INTERFACE", interface_name, {"NULL": "NULL"})
-        elif interface_name.startswith("Loopback"):
-            config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-        else:
+            return
+
+        table_name = get_interface_table_name(interface_name)
+        if table_name == "":
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        interface_entry = config_db.get_entry(table_name, interface_name)
+        if len(interface_entry) == 0:
+            if table_name == "VLAN_SUB_INTERFACE":
+                config_db.set_entry(table_name, interface_name, {"admin_status": "up"})
+            else:
+                config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
+        config_db.set_entry(table_name, (interface_name, ip_addr), {"NULL": "NULL"})
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
@@ -1518,51 +1694,258 @@ def remove(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if_table = ""
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
-        if interface_name.startswith("Ethernet"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), None)
-                if_table = "VLAN_SUB_INTERFACE"
-            else:
-                config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
-                if_table = "INTERFACE"
-        elif interface_name == 'eth0':
+
+        if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
             mgmt_ip_restart_services()
-        elif interface_name.startswith("PortChannel"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), None)
-                if_table = "VLAN_SUB_INTERFACE"
-            else:
-                config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
-                if_table = "PORTCHANNEL_INTERFACE"
-        elif interface_name.startswith("Vlan"):
-            config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
-            if_table = "VLAN_INTERFACE"
-        elif interface_name.startswith("Loopback"):
-            config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
-        else:
-            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+            return
 
-        command = "ip neigh flush {}".format(ip_addr)
+        table_name = get_interface_table_name(interface_name)
+        if table_name == "":
+            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        config_db.set_entry(table_name, (interface_name, ip_addr), None)
+        interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+        if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
+            config_db.set_entry(table_name, interface_name, None)
+
+        command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
         run_command(command)
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
-    exists = False
-    if if_table:
-        interfaces = config_db.get_table(if_table)
-        for key in interfaces.keys():
-            if not isinstance(key, tuple):
-                continue
-            if interface_name in key:
-                exists = True
-                break
+#
+# 'vrf' subgroup ('config interface vrf ...')
+#
 
-    if not exists:
-        config_db.set_entry(if_table, interface_name, None)
+
+@interface.group()
+@click.pass_context
+def vrf(ctx):
+    """Bind or unbind VRF"""
+    pass
+
+#
+# 'bind' subcommand
+#
+@vrf.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('vrf_name', metavar='<vrf_name>', required=True)
+@click.pass_context
+def bind(ctx, interface_name, vrf_name):
+    """Bind the interface to VRF"""
+    config_db = ctx.obj["config_db"]
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    if is_interface_bind_to_vrf(config_db, interface_name) is True and \
+        config_db.get_entry(table_name, interface_name).get('vrf_name') == vrf_name:
+        return
+    # Clean ip addresses if interface configured
+    interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+    for interface_del in interface_dependent:
+        config_db.set_entry(table_name, interface_del, None)
+    config_db.set_entry(table_name, interface_name, None)
+    # When config_db del entry and then add entry with same key, the DEL will lost.
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
+    while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
+        time.sleep(0.01)
+    state_db.close(state_db.STATE_DB)
+    config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
+
+#
+# 'unbind' subcommand
+#
+
+@vrf.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def unbind(ctx, interface_name):
+    """Unbind the interface to VRF"""
+    config_db = ctx.obj["config_db"]
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("interface is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    if is_interface_bind_to_vrf(config_db, interface_name) is False:
+        return
+    interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+    for interface_del in interface_dependent:
+        config_db.set_entry(table_name, interface_del, None)
+    config_db.set_entry(table_name, interface_name, None)
+
+
+#
+# 'vrf' group ('config vrf ...')
+#
+
+@config.group('vrf')
+@click.pass_context
+def vrf(ctx):
+    """VRF-related configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
+    pass
+
+@vrf.command('add')
+@click.argument('vrf_name', metavar='<vrf_name>', required=True)
+@click.pass_context
+def add_vrf(ctx, vrf_name):
+    """Add vrf"""
+    config_db = ctx.obj['config_db']
+    if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
+        ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
+    if len(vrf_name) > 15:
+        ctx.fail("'vrf_name' is too long!")
+    if (vrf_name == 'mgmt' or vrf_name == 'management'):
+        vrf_add_management_vrf(config_db)
+    else:
+        config_db.set_entry('VRF', vrf_name, {"NULL": "NULL"})
+
+@vrf.command('del')
+@click.argument('vrf_name', metavar='<vrf_name>', required=True)
+@click.pass_context
+def del_vrf(ctx, vrf_name):
+    """Del vrf"""
+    config_db = ctx.obj['config_db']
+    if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
+        ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
+    if len(vrf_name) > 15:
+        ctx.fail("'vrf_name' is too long!")
+    if (vrf_name == 'mgmt' or vrf_name == 'management'):
+        vrf_delete_management_vrf(config_db)
+    else:
+        del_interface_bind_to_vrf(config_db, vrf_name)
+        config_db.set_entry('VRF', vrf_name, None)
+
+
+#
+# 'route' group ('config route ...')
+#
+
+@config.group()
+@click.pass_context
+def route(ctx):
+    """route-related configuration tasks"""
+    pass
+
+@route.command('add',context_settings={"ignore_unknown_options":True})
+@click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
+@click.pass_context
+def add_route(ctx, command_str):
+    """Add route command"""
+    if len(command_str) < 4 or len(command_str) > 9:
+        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
+    if "prefix" not in command_str:
+        ctx.fail("argument is incomplete, prefix not found!")
+    if "nexthop" not in command_str:
+        ctx.fail("argument is incomplete, nexthop not found!")
+    for i in range(0,len(command_str)):
+        if "nexthop" == command_str[i]:
+            prefix_str = command_str[:i]
+            nexthop_str = command_str[i:]
+    vrf_name = ""
+    cmd = 'sudo vtysh -c "configure terminal" -c "ip route'
+    if prefix_str:
+        if len(prefix_str) == 2:
+            prefix_mask = prefix_str[1]
+            cmd += ' {}'.format(prefix_mask)
+        elif len(prefix_str) == 4:
+            vrf_name = prefix_str[2]
+            prefix_mask = prefix_str[3]
+            cmd += ' {}'.format(prefix_mask)
+        else:
+            ctx.fail("prefix is not in pattern!")
+    if nexthop_str:
+        if len(nexthop_str) == 2:
+            ip = nexthop_str[1]
+            if vrf_name == "":
+                cmd += ' {}'.format(ip)
+            else:
+                cmd += ' {} vrf {}'.format(ip, vrf_name)
+        elif len(nexthop_str) == 3:
+            dev_name = nexthop_str[2]
+            if vrf_name == "":
+                cmd += ' {}'.format(dev_name)
+            else:
+                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
+        elif len(nexthop_str) == 4:
+            vrf_name_dst = nexthop_str[2]
+            ip = nexthop_str[3]
+            if vrf_name == "":
+                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
+            else:
+                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
+        else:
+            ctx.fail("nexthop is not in pattern!")
+    cmd += '"'
+    run_command(cmd)
+
+@route.command('del',context_settings={"ignore_unknown_options":True})
+@click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
+@click.pass_context
+def del_route(ctx, command_str):
+    """Del route command"""
+    if len(command_str) < 4 or len(command_str) > 9:
+        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
+    if "prefix" not in command_str:
+        ctx.fail("argument is incomplete, prefix not found!")
+    if "nexthop" not in command_str:
+        ctx.fail("argument is incomplete, nexthop not found!")
+    for i in range(0,len(command_str)):
+        if "nexthop" == command_str[i]:
+            prefix_str = command_str[:i]
+            nexthop_str = command_str[i:]
+    vrf_name = ""
+    cmd = 'sudo vtysh -c "configure terminal" -c "no ip route'
+    if prefix_str:
+        if len(prefix_str) == 2:
+            prefix_mask = prefix_str[1]
+            cmd += ' {}'.format(prefix_mask)
+        elif len(prefix_str) == 4:
+            vrf_name = prefix_str[2]
+            prefix_mask = prefix_str[3]
+            cmd += ' {}'.format(prefix_mask)
+        else:
+            ctx.fail("prefix is not in pattern!")
+    if nexthop_str:
+        if len(nexthop_str) == 2:
+            ip = nexthop_str[1]
+            if vrf_name == "":
+                cmd += ' {}'.format(ip)
+            else:
+                cmd += ' {} vrf {}'.format(ip, vrf_name)
+        elif len(nexthop_str) == 3:
+            dev_name = nexthop_str[2]
+            if vrf_name == "":
+                cmd += ' {}'.format(dev_name)
+            else:
+                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
+        elif len(nexthop_str) == 4:
+            vrf_name_dst = nexthop_str[2]
+            ip = nexthop_str[3]
+            if vrf_name == "":
+                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
+            else:
+                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
+        else:
+            ctx.fail("nexthop is not in pattern!")
+    cmd += '"'
+    run_command(cmd)
 
 #
 # 'acl' group ('config acl ...')
@@ -1696,6 +2079,79 @@ def incremental(file_name):
     command = "acl-loader update incremental {}".format(file_name)
     run_command(command)
 
+
+#
+# 'dropcounters' group ('config dropcounters ...')
+#
+
+@config.group()
+def dropcounters():
+    """Drop counter related configuration tasks"""
+    pass
+
+
+#
+# 'install' subcommand ('config dropcounters install')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("counter_type", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option("-a", "--alias", type=str, help="Alias for this counter")
+@click.option("-g", "--group", type=str, help="Group for this counter")
+@click.option("-d", "--desc",  type=str, help="Description for this counter")
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def install(counter_name, alias, group, counter_type, desc, reasons, verbose):
+    """Install a new drop counter"""
+    command = "dropconfig -c install -n '{}' -t '{}' -r '{}'".format(counter_name, counter_type, reasons)
+    if alias:
+        command += " -a '{}'".format(alias)
+    if group:
+        command += " -g '{}'".format(group)
+    if desc:
+        command += " -d '{}'".format(desc)
+
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'delete' subcommand ('config dropcounters delete')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def delete(counter_name, verbose):
+    """Delete an existing drop counter"""
+    command = "dropconfig -c uninstall -n {}".format(counter_name)
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'add_reasons' subcommand ('config dropcounters add_reasons')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def add_reasons(counter_name, reasons, verbose):
+    """Add reasons to an existing drop counter"""
+    command = "dropconfig -c add -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
+
+#
+# 'remove_reasons' subcommand ('config dropcounters remove_reasons')
+#
+@dropcounters.command()
+@click.argument("counter_name", type=str, required=True)
+@click.argument("reasons",      type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def remove_reasons(counter_name, reasons, verbose):
+    """Remove reasons from an existing drop counter"""
+    command = "dropconfig -c remove -n {} -r {}".format(counter_name, reasons)
+    run_command(command, display_cmd=verbose)
+
+
 #
 # 'ecn' command ('config ecn ...')
 #
@@ -1760,6 +2216,48 @@ def platform():
 if asic_type == 'mellanox':
     platform.add_command(mlnx.mlnx)
 
+# 'firmware' subgroup ("config platform firmware ...")
+@platform.group()
+def firmware():
+    """Firmware configuration tasks"""
+    pass
+
+# 'install' subcommand ("config platform firmware install")
+@firmware.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def install(args):
+    """Install platform firmware"""
+    cmd = "fwutil install {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
+# 'update' subcommand ("config platform firmware update")
+@firmware.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def update(args):
+    """Update platform firmware"""
+    cmd = "fwutil update {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
 #
 # 'watermark' group ("show watermark telemetry interval")
 #
@@ -1800,6 +2298,41 @@ def naming_mode_default():
 def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
+
+@config.group()
+def ztp():
+    """ Configure Zero Touch Provisioning """
+    if os.path.isfile('/usr/bin/ztp') is False:
+        exit("ZTP feature unavailable in this image version")
+
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+    pass
+
+@ztp.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
+                expose_value=False, prompt='ZTP will be restarted. You may lose switch data and connectivity, continue?')
+@click.argument('run', required=False, type=click.Choice(["run"]))
+def run(run):
+    """Restart ZTP of the device."""
+    command = "ztp run -y"
+    run_command(command, display_cmd=True)
+
+@ztp.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
+                expose_value=False, prompt='Active ZTP session will be stopped and disabled, continue?')
+@click.argument('disable', required=False, type=click.Choice(["disable"]))
+def disable(disable):
+    """Administratively Disable ZTP."""
+    command = "ztp disable -y"
+    run_command(command, display_cmd=True)
+
+@ztp.command()
+@click.argument('enable', required=False, type=click.Choice(["enable"]))
+def enable(enable):
+    """Administratively Enable ZTP."""
+    command = "ztp enable"
+    run_command(command, display_cmd=True)
 
 #
 # 'syslog' group ('config syslog ...')
@@ -1935,6 +2468,17 @@ def enable(ctx):
         sflow_tbl['global']['admin_state'] = 'up'
 
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
+
+    try:
+        proc = subprocess.Popen("systemctl is-active sflow", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+    except SystemExit as e:
+        ctx.fail("Unable to check sflow status {}".format(e))
+
+    if out != "active":
+        log_info("sflow service is not enabled. Starting sflow docker...")
+        run_command("sudo systemctl enable sflow")
+        run_command("sudo systemctl start sflow")
 
 #
 # 'sflow' command ('config sflow disable')
@@ -2175,6 +2719,59 @@ def delete(ctx):
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
+#
+# 'feature' command ('config feature name state')
+# 
+@config.command('feature')
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('state', metavar='<feature-state>', required=True, type=click.Choice(["enabled", "disabled"]))
+def feature_status(name, state):
+    """ Configure status of feature"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    status_data = config_db.get_entry('FEATURE', name)
+
+    if not status_data:
+        click.echo(" Feature '{}' doesn't exist".format(name))
+        return
+
+    config_db.mod_entry('FEATURE', name, {'status': state})
+
+#
+# 'container' group ('config container ...')
+#
+@config.group(name='container', invoke_without_command=False)
+def container():
+    """Modify configuration of containers"""
+    pass
+
+#
+# 'feature' group ('config container feature ...')
+#
+@container.group(name='feature', invoke_without_command=False)
+def feature():
+    """Modify configuration of container features"""
+    pass
+
+#
+# 'autorestart' subcommand ('config container feature autorestart ...')
+#
+@feature.command(name='autorestart', short_help="Configure the status of autorestart feature for specific container")
+@click.argument('container_name', metavar='<container_name>', required=True)
+@click.argument('autorestart_status', metavar='<autorestart_status>', required=True, type=click.Choice(["enabled", "disabled"]))
+def autorestart(container_name, autorestart_status):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
+    if not container_feature_table:
+        click.echo("Unable to retrieve container feature table from Config DB.")
+        return
+
+    if not container_feature_table.has_key(container_name):
+        click.echo("Unable to retrieve features for container '{}'".format(container_name))
+        return
+
+    config_db.mod_entry('CONTAINER_FEATURE', container_name, {'auto_restart': autorestart_status})
 
 if __name__ == '__main__':
     config()
