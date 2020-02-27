@@ -13,6 +13,7 @@ import subprocess
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 import collections
+import platform
 
 HOST_PATH = '/host'
 IMAGE_PREFIX = 'SONiC-OS-'
@@ -22,6 +23,10 @@ ABOOT_DEFAULT_IMAGE_PATH = '/tmp/sonic_image.swi'
 IMAGE_TYPE_ABOOT = 'aboot'
 IMAGE_TYPE_ONIE = 'onie'
 ABOOT_BOOT_CONFIG = '/boot-config'
+BOOTLOADER_TYPE_GRUB = 'grub'
+BOOTLOADER_TYPE_UBOOT = 'uboot'
+ARCH = platform.machine()
+BOOTLOADER = BOOTLOADER_TYPE_UBOOT if "arm" in ARCH else BOOTLOADER_TYPE_GRUB
 
 #
 # Helper functions
@@ -106,9 +111,15 @@ def set_default_image(image):
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
         image_path = aboot_image_path(image)
         aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
         run_command(command)
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        if image in images[0]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_1"')
+        elif image in images[1]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_2"')
+
     return True
 
 def aboot_read_boot_config(path):
@@ -156,7 +167,7 @@ def get_installed_images():
         for filename in os.listdir(HOST_PATH):
             if filename.startswith(IMAGE_DIR_PREFIX):
                 images.append(filename.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX))
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         config = open(HOST_PATH + '/grub/grub.cfg', 'r')
         for line in config:
             if line.startswith('menuentry'):
@@ -164,6 +175,17 @@ def get_installed_images():
                 if IMAGE_PREFIX in image:
                     images.append(image)
         config.close()
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_1", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+        image = out.rstrip()
+        if IMAGE_PREFIX in image:
+            images.append(image)
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_2", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+        image = out.rstrip()
+        if IMAGE_PREFIX in image:
+            images.append(image)
     return images
 
 # Returns name of current image
@@ -179,7 +201,7 @@ def get_next_image():
         config = open(HOST_PATH + ABOOT_BOOT_CONFIG, 'r')
         next_image = re.search("SWI=flash:(\S+)/", config.read()).group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
         config.close()
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         images = get_installed_images()
         grubenv = subprocess.check_output(["/usr/bin/grub-editenv", HOST_PATH + "/grub/grubenv", "list"])
         m = re.search("next_entry=(\d+)", grubenv)
@@ -191,6 +213,16 @@ def get_next_image():
                 next_image_index = int(m.group(1))
             else:
                 next_image_index = 0
+        next_image = images[next_image_index]
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        images = get_installed_images()
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n boot_next", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+        image = out.rstrip()
+        if "sonic_image_2" in image:
+            next_image_index = 1
+        else:
+            next_image_index = 0
         next_image = images[next_image_index]
     return next_image
 
@@ -207,7 +239,7 @@ def remove_image(image):
         click.echo('Removing image root filesystem...')
         subprocess.call(['rm','-rf', os.path.join(HOST_PATH, image_dir)])
         click.echo('Image removed')
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         click.echo('Updating GRUB...')
         config = open(HOST_PATH + '/grub/grub.cfg', 'r')
         old_config = config.read()
@@ -226,6 +258,19 @@ def remove_image(image):
 
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         click.echo('Image removed')
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        click.echo('Updating next boot ...')
+        images = get_installed_images()
+        if image in images[0]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_2"')
+            run_command('/usr/bin/fw_setenv sonic_version_1 "NONE"')
+        elif image in images[1]:
+            run_command('/usr/bin/fw_setenv boot_next "run sonic_image_1"')
+            run_command('/usr/bin/fw_setenv sonic_version_2 "NONE"')
+        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        click.echo('Removing image root filesystem...')
+        subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
+        click.echo('Done')
 
 # TODO: Embed tag name info into docker image meta data at build time,
 # and extract tag name from docker image file.
@@ -298,6 +343,20 @@ def get_container_image_id_all(image_name):
     image_id_all = set(image_id_all)
     return image_id_all
 
+def hget_warm_restart_table(db_name, table_name, warm_app_name, key):
+    db = SonicV2Connector()
+    db.connect(db_name, False)
+    _hash = table_name + db.get_db_separator(db_name) + warm_app_name
+    client = db.get_redis_client(db_name)
+    return client.hget(_hash, key)
+
+def hdel_warm_restart_table(db_name, table_name, warm_app_name, key):
+    db = SonicV2Connector()
+    db.connect(db_name, False)
+    _hash = table_name + db.get_db_separator(db_name) + warm_app_name
+    client = db.get_redis_client(db_name)
+    return  client.hdel(_hash, key)
+
 # Main entrypoint
 @click.group()
 def cli():
@@ -312,8 +371,10 @@ def cli():
         expose_value=False, prompt='New image will be installed, continue?')
 @click.option('-f', '--force', is_flag=True,
         help="Force installation of an image of a type which differs from that of the current running image")
+@click.option('--skip_migration', is_flag=True,
+        help="Do not migrate current configuration to the newly installed image")
 @click.argument('url')
-def install(url, force):
+def install(url, force, skip_migration=False):
     """ Install image from local binary or URL"""
     cleanup_image = False
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
@@ -360,10 +421,13 @@ def install(url, force):
             run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
         else:
             run_command("bash " + image_path)
-            run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
-        run_command("rm -rf /host/old_config")
-        # copy directories and preserve original file structure, attributes and associated metadata
-        run_command("cp -ar /etc/sonic /host/old_config")
+            if BOOTLOADER == BOOTLOADER_TYPE_GRUB:
+                run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+        # Take a backup of current configuration
+        if skip_migration:
+            click.echo("Skipping configuration migration as requested in the command option.")
+        else:
+            run_command('config-setup backup')
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
@@ -406,9 +470,14 @@ def set_next_boot(image):
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
         image_path = aboot_image_path(image)
         aboot_boot_config_set(SWI=image_path)
-    else:
+    elif BOOTLOADER == BOOTLOADER_TYPE_GRUB:
         command = 'grub-reboot --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
         run_command(command)
+    elif BOOTLOADER == BOOTLOADER_TYPE_UBOOT:
+        if image in images[0]:
+            run_command('/usr/bin/fw_setenv boot_once "run sonic_image_1"')
+        elif image in images[1]:
+            run_command('/usr/bin/fw_setenv boot_once "run sonic_image_2"')
 
 
 # Uninstall image
@@ -469,7 +538,7 @@ def cleanup():
 @click.option('--tag', type=str, help="Tag for the new docker image")
 @click.option('--warm', is_flag=True, help="Perform warm upgrade")
 @click.argument('container_name', metavar='<container_name>', required=True,
-    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon"]))
+    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
 @click.argument('url')
 def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
@@ -567,8 +636,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
         # clean app reconcilation state from last warm start if exists
         for warm_app_name in warm_app_names:
-            cmd = "docker exec -i database redis-cli -n 6 hdel 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
-            run_command(cmd)
+            hdel_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
 
     run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
@@ -598,7 +666,6 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         count = 0
         for warm_app_name in warm_app_names:
             state = ""
-            cmd = "docker exec -i database redis-cli -n 6 hget 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
             # Wait up to 180 seconds for reconciled state
             while state != exp_state and count < 90:
                 sys.stdout.write("\r  {}: ".format(warm_app_name))
@@ -606,8 +673,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 sys.stdout.flush()
                 count += 1
                 time.sleep(2)
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                state = proc.stdout.read().rstrip()
+                state = hget_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
                 syslog.syslog("%s reached %s state"%(warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:
@@ -632,7 +698,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='Docker image will be rolled back, continue?')
 @click.argument('container_name', metavar='<container_name>', required=True,
-    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon"]))
+    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
 def rollback_docker(container_name):
     """ Rollback docker image to previous version"""
     image_name = get_container_image_name(container_name)
