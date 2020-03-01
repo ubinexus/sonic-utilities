@@ -3,6 +3,7 @@
 import click
 import swsssdk
 import os
+import random
 from tabulate import tabulate
 from natsort import natsorted
 
@@ -194,8 +195,24 @@ def interval(poll_interval):
     configdb.connect()
     pfcwd_info = {}
     if poll_interval is not None:
+        pfcwd_table = configdb.get_table(CONFIG_DB_PFC_WD_TABLE_NAME)
+        entry_min = 3000
+        for entry in pfcwd_table:
+            if("Ethernet" not in entry):
+                continue
+            detection_time_entry_value = int(configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, entry).get('detection_time'))
+            restoration_time_entry_value = int(configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, entry).get('restoration_time'))
+            if ((detection_time_entry_value != None) and (detection_time_entry_value < min)):
+                entry_min = detection_time_entry_value
+                res_str = "detection_time"
+            if ((restoration_time_entry_value != None) and (restoration_time_entry_value < min)):
+                entry_min = restoration_time_entry_value
+                res_str = "restoration_time"
+        if entry_min < poll_interval:
+            poll_interval = random.randint(1,entry_min-1)
+            print "polling_interval is greater than {}, using polling_interval = {}ms".format(res_str,poll_interval)
+        
         pfcwd_info['POLL_INTERVAL'] = poll_interval
-
     configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
 
 # Stop WD
