@@ -1479,6 +1479,221 @@ def prefix_list(prefix_list_name, verbose):
     cmd += '"'
     run_command(cmd, display_cmd=verbose)
 
+@igmp_snooping.command('vlan')
+@click.argument('vlan-id', required=True)
+def igmp_snooping_vlan(vlan_id):
+    """ IGMP snooping vlan <vlan-id>"""
+
+    app_mrouter_dict = {}
+    igmp_snooping_fvs = {
+            'enabled' : 'true',
+            'querier' : 'false',
+            'version' : '2',
+            'fast-leave': 'false',
+            'query-interval':'125',
+            'query-max-response-time': '10',
+            'last-member-query-interval': '1000',
+            }
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    cfg_l2mc_table = config_db.get_table('CFG_L2MC_TABLE')
+    if not cfg_l2mc_table:
+        return
+
+    app_db = SonicV2Connector(host='127.0.0.1')
+    app_db.connect(app_db.APPL_DB) 
+    app_l2mc_mrouter_keys = app_db.keys(app_db.APPL_DB, 'APP_L2MC_MROUTER_TABLE:*')
+
+    if app_l2mc_mrouter_keys:
+
+        for key in app_l2mc_mrouter_keys:
+            list_items = key.split(':')
+
+            mrouter_vlan_id = str(list_items[1].strip("Vlan"))
+            mrouter_interface = list_items[2]
+
+            if mrouter_vlan_id in app_mrouter_dict:
+                app_mrouter_dict [str(mrouter_vlan_id)].append(mrouter_interface)
+            else:
+                app_mrouter_dict [str(mrouter_vlan_id)] = [mrouter_interface]
+
+        #click.echo ("APP_DB: {}".format(app_mrouter_dict))
+
+    cfg_l2mc_sorted_table = natsorted(cfg_l2mc_table)
+
+    key = "Vlan"+str(vlan_id)
+    data = config_db.get_entry('CFG_L2MC_TABLE', key)
+
+    if not data:
+        return
+
+    querier_status = data.get('querier')
+    if not querier_status:
+        querier_status = igmp_snooping_fvs['querier']
+
+    operation_mode = data.get('version')
+    if not operation_mode:
+        operation_mode = igmp_snooping_fvs['version']
+
+    fast_leave = data.get('fast-leave')
+    if not fast_leave:
+        fast_leave = igmp_snooping_fvs['fast-leave']
+
+    if fast_leave == 'false':
+        fast_leave_status = 'Disabled'
+    else:
+        fast_leave_status = 'Enabled'
+
+    max_response_time = data.get('query-max-response-time')
+    if not max_response_time:
+        max_response_time = igmp_snooping_fvs['query-max-response-time']
+
+    last_member_query_interval = data.get('last-member-query-interval')
+    if not last_member_query_interval:
+        last_member_query_interval = igmp_snooping_fvs['last-member-query-interval']
+
+    query_interval = data.get('query-interval')
+    if not query_interval:
+        query_interval = igmp_snooping_fvs['query-interval']
+
+    click.echo("\nVlan ID: " + vlan_id)
+    app_memb_intf_string = ""
+    if len(app_mrouter_dict) != 0:
+        if vlan_id in app_mrouter_dict:
+            for memb_intf in app_mrouter_dict[str(vlan_id)]:
+                #print comma in between
+                if app_memb_intf_string == "":
+                    app_memb_intf_string = memb_intf
+                else:
+                    app_memb_intf_string = app_memb_intf_string + ", " + memb_intf
+    click.echo("Multicast Router ports: " + app_memb_intf_string)
+    click.echo("Querier - " + querier_status)
+    click.echo("IGMP Operation mode: IGMPv" + operation_mode)
+    click.echo("Is Fast-Leave Enabled: " + fast_leave_status)
+    click.echo("Max Response time = " + max_response_time)
+    click.echo("Last Member Query Interval = " + last_member_query_interval + "\n")
+
+    return
+
+#
+# 'groups' group ("show ip igmp snooping groups")
+#
+@igmp_snooping.group(name='groups', cls=AliasedGroup, default_if_no_args=False)
+@click.pass_context
+def igmp_snooping_groups(ctx):
+    """Show IP IGMP snooping information"""
+    pass
+
+@igmp_snooping_groups.command('all')
+def igmp_snooping_groups_all():
+    """ IGMP snooping groups all """
+    app_db = SonicV2Connector(host='127.0.0.1')
+    app_db.connect(app_db.APPL_DB) 
+
+    vlan_dict = {}
+    member_table_dict = {}
+
+    vlan_table_keys = app_db.keys(app_db.APPL_DB, 'APP_L2MC_VLAN_TABLE:*')
+
+    member_table_keys = app_db.keys(app_db.APPL_DB, 'APP_L2MC_MEMBER_TABLE:*')
+
+    if not member_table_keys:
+        return
+    
+    for key in member_table_keys:
+        list_items = key.split(':')
+
+        vlan_id = str(list_items[1].strip("Vlan"))
+        source = list_items[2]
+        group = list_items[3]
+        member = list_items[4]
+
+        if vlan_id in vlan_dict:
+            vlan_dict[vlan_id].append((source,group))
+        else:
+            vlan_dict[vlan_id] = [(source,group)]
+
+        if (vlan_id,source,group) in member_table_dict:
+            member_table_dict[(vlan_id,source,group)].append(member)
+        else:
+            member_table_dict[(vlan_id,source,group)] = [member]
+
+    for vlan_iter in natsorted(vlan_dict):
+        click.echo("\nVlan ID : " + vlan_iter)
+        click.echo("--------------")
+        count = 0
+        for v,s,g in natsorted(member_table_dict):
+
+            if v == vlan_iter:
+                count += 1
+                s_entry = s
+                if s == "0.0.0.0":
+                    s_entry = "*"
+                click.echo(str(count) + " " + "(" + s_entry + ", " + g + ")")
+                memb_intf_string = ""
+                for memb_intf in member_table_dict[(v,s,g)]:
+                    if memb_intf_string == "":
+                        memb_intf_string = memb_intf
+                    else:
+                        memb_intf_string = memb_intf_string + ", " + memb_intf
+                click.echo("  Outgoing Ports: " + memb_intf_string)
+        click.echo("Total number of entries: "+str(count)+"\n")
+
+    return
+
+@igmp_snooping_groups.command('vlan')
+@click.argument('vlan-id', required=True)
+def igmp_snooping_groups_vlan(vlan_id):
+    """ IGMP snooping groups vlan <vlan-id>"""
+    app_db = SonicV2Connector(host='127.0.0.1')
+    app_db.connect(app_db.APPL_DB) 
+
+    member_table_dict = {}
+
+    vlan_table_keys = app_db.keys(app_db.APPL_DB, 'APP_L2MC_VLAN_TABLE:*')
+
+    member_table_keys = app_db.keys(app_db.APPL_DB, 'APP_L2MC_MEMBER_TABLE:*')
+
+    if not member_table_keys:
+        return
+    
+    for key in member_table_keys:
+        list_items = key.split(':')
+
+        vlan_id_val = str(list_items[1].strip("Vlan"))
+        if vlan_id_val != vlan_id:
+            continue
+
+        source = list_items[2]
+        group = list_items[3]
+        member = list_items[4]
+
+        if (vlan_id,source,group) in member_table_dict:
+            member_table_dict[(vlan_id,source,group)].append(member)
+        else:
+            member_table_dict[(vlan_id,source,group)] = [member]
+
+    click.echo("\nVlan ID : " + vlan_id)
+    click.echo("--------------")
+    count = 0
+    for v,s,g in natsorted(member_table_dict):
+        count += 1
+        s_entry = s
+        if s == "0.0.0.0":
+            s_entry = "*"
+        click.echo(str(count) + " " + "(" + s_entry + ", " + g + ")")
+        memb_intf_string = ""
+        for memb_intf in member_table_dict[(v,s,g)]:
+            if memb_intf_string == "":
+                memb_intf_string = memb_intf
+            else:
+                memb_intf_string = memb_intf_string + ", " + memb_intf
+        click.echo("  Outgoing Ports: " + memb_intf_string)
+    click.echo("Total number of entries: "+str(count)+"\n")
+
+    return
 
 
 #
@@ -1961,6 +2176,96 @@ def syslog(verbose):
             syslog_servers.append(server)
     syslog_dict['Syslog Servers'] = syslog_servers
     print tabulate(syslog_dict, headers=syslog_dict.keys(), tablefmt="simple", stralign='left', missingval="")
+# 'l2mcd' subcommand ("show debug l2mcd")
+#@debug.group(invoke_without_command=True)
+#@debug.group(cls=AliasedGroup, default_if_no_args=False)
+#@click.option('-h', '--help', '?', is_flag=True)
+@debug.group(cls=AliasedGroup)
+def l2mcd_debug():
+    """Active debugging for L2MCD """
+    pass
+@l2mcd_debug.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('-v', '--vid', metavar='<name>', is_flag=False, help="Vlan Id")
+def vdb(vid, verbose):
+    """Dump vdb """
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:vdb;"
+    if vid is not None:
+        opt += "vid:{};".format(vid)
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
+@l2mcd_debug.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('-v', '--vid', metavar='<name>', is_flag=False, help="Vlan Id")
+def vdb_stats(vid, verbose):
+    """Dump vdb Stats"""
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:vdb_stats;"
+    if vid is not None:
+        opt += "vid:{};".format(vid)
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
+@l2mcd_debug.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('-v', '--vid', metavar='<name>', is_flag=False, help="Vlan Id")
+def igmp_groups(vid, verbose):
+    """Dump IGMP Groups"""
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:igmp_groups;"
+    if vid is not None:
+        opt += "vid:{};".format(vid)
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
+@l2mcd_debug.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def portlist(verbose):
+    """Ports"""
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:ports;"
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
+@l2mcd_debug.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def globalvars(verbose):
+    """Global"""
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:global;"
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
+@l2mcd_debug.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def all(verbose):
+    """Dump All L2MCD"""
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:dumpall;"
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
+@l2mcd_debug.command()
+@click.option('-v', '--vid', metavar='<name>', is_flag=False, help="Vlan Id")
+@click.option('-l', '--level', metavar='<name>', is_flag=False, help="Level")
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def setvlanlog(verbose, level, vid):
+    """Set L2MCD Vlan Debug Logging : Level Mask <0:None, 1:Info,2:Pkt:4:Debug>"""
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:vlanLog;"
+    if vid is not None:
+        opt += "vid:{};".format(vid)
+    if level is not None:
+        opt += "level:{};".format(level)
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
+@l2mcd_debug.command()
+@click.option('-l', '--level', metavar='<name>', is_flag=False, help="Level")
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def setdebuglevel(verbose, level):
+    """Set L2MCD Debug Level <5:Notice 6:Info>"""
+    cmd = "sudo generate_debugdump -c l2mcd_debug "
+    opt = "group:dbgLevel;"
+    if level is not None:
+        opt += "level:{};".format(level)
+    cmd = cmd + " -o '" + opt + "'"
+    debugdump_run_command("l2mcd", "l2mcd_debug", cmd, verbose, True)
 
 
 #

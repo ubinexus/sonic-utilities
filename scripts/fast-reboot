@@ -448,6 +448,12 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     fi
 fi
 
+# Kill l2mcd docker
+if [ -e /usr/bin/l2mcd.sh ]; then
+    debug "Stopping l2mcd ..."
+    docker kill l2mcd > /dev/null || true
+    debug "Stopped l2mcd ..."
+fi
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Kill teamd processes inside of teamd container with SIGUSR2 to allow them to send last LACP frames
     # We call `docker kill teamd` to ensure the container stops as quickly as possible,

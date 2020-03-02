@@ -425,7 +425,8 @@ def _stop_services():
         'pmon',
         'bgp',
         'hostcfgd',
-        'nat'
+        'nat',
+        'l2mcd',
     ]
     generated_services_list = _get_sonic_generated_services()
 
@@ -517,6 +518,7 @@ def _restart_services():
         'lldp',
         'hostcfgd',
         'nat',
+        'l2mcd',
         'sflow',
     ]
     generated_services_list = _get_sonic_generated_services()
@@ -1377,6 +1379,383 @@ def shutdown():
     """Shut down BGP session(s)"""
     pass
 
+#
+# 'igmp-snooping' group ('config igmp-snooping ...')
+#
+@config.group()
+@click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def igmp_snooping(ctx, redis_unix_socket_path):
+    """igmp-snooping configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db}
+    pass
+
+@igmp_snooping.command("enable")
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.pass_context
+def igmp_snooping_enable(ctx, vid):
+    """Enable for a VLAN"""
+    db = ctx.obj['db']
+    igmp_snooping_fvs = {
+        'enabled' : 'true',
+        'querier' : 'false',
+        'version' : '2',
+        'fast-leave': 'false',
+        'query-interval':'125',
+        'query-max-response-time': '10',
+        'last-member-query-interval': '1000',
+    }
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    db.set_entry('CFG_L2MC_TABLE', vlan_name, igmp_snooping_fvs)
+
+def _get_all_mgmtinterface_keys():
+    """Returns list of strings containing mgmt interface keys 
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    return config_db.get_table('MGMT_INTERFACE').keys()
+
+def mgmt_ip_restart_services():
+    """Restart the required services when mgmt inteface IP address is changed"""
+    """
+    Whenever the eth0 IP address is changed, restart the "interfaces-config"
+    service which regenerates the /etc/network/interfaces file and restarts
+    the networking service to make the new/null IP address effective for eth0.
+    "ntp-config" service should also be restarted based on the new
+    eth0 IP address since the ntp.conf (generated from ntp.conf.j2) is
+    made to listen on that particular eth0 IP address or reset it back.
+    """
+    cmd="systemctl restart interfaces-config"
+    os.system (cmd)
+    cmd="systemctl restart ntp-config"
+    os.system (cmd)
+
+@igmp_snooping.command('disable')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.pass_context
+def igmp_snooping_disable(ctx, vid):
+    """Disable for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    db.set_entry('CFG_L2MC_TABLE', vlan_name, None)
+
+@igmp_snooping.command('last-member-query-interval')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('lm_query', metavar='<seconds>', required=True, type=click.IntRange(100,25500))
+@click.pass_context
+def igmp_snooping_lmq_interval(ctx, vid, lm_query):
+    """Last Member Query Interval for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    lmq_name = format(lm_query)
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'last-member-query-interval': lmq_name})
+def _get_all_mgmtinterface_keys():
+    """Returns list of strings containing mgmt interface keys 
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    return config_db.get_table('MGMT_INTERFACE').keys()
+
+def mgmt_ip_restart_services():
+    """Restart the required services when mgmt inteface IP address is changed"""
+    """
+    Whenever the eth0 IP address is changed, restart the "interfaces-config"
+    service which regenerates the /etc/network/interfaces file and restarts
+    the networking service to make the new/null IP address effective for eth0.
+    "ntp-config" service should also be restarted based on the new
+    eth0 IP address since the ntp.conf (generated from ntp.conf.j2) is
+    made to listen on that particular eth0 IP address or reset it back.
+    """
+    cmd="systemctl restart interfaces-config"
+    os.system (cmd)
+    cmd="systemctl restart ntp-config"
+    os.system (cmd)
+
+#
+# 'ip' subgroup ('config interface ip ...')
+#
+
+@igmp_snooping.command('query-max-response-time')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('qmr_time', metavar='<seconds>', required=True, type=click.IntRange(1,25))
+@click.pass_context
+def igmp_snooping_qmr_interval(ctx, vid, qmr_time):
+    """Query Max Response Time  for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    qmr_time_name = format(qmr_time)
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'query-max-response-time': qmr_time_name})
+
+@igmp_snooping.command('query-interval')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('q_time', metavar='<seconds>', required=True, type=click.IntRange(1,18000))
+@click.pass_context
+def igmp_snooping_q_interval(ctx, vid, q_time):
+    """IGMP Query Interval for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    q_time_name = format(q_time)
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'query-interval': q_time_name})
+
+@igmp_snooping.command('version')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('version', metavar='<ver>', required=True, type=click.IntRange(1,3))
+@click.pass_context
+def igmp_snooping_version(ctx, vid, version):
+    """IGMP Version"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    ver_name = format(version)
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'version': ver_name})
+
+@igmp_snooping.command('querier-enable')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.pass_context
+def igmp_snooping_querier_enable(ctx, vid):
+    """Enable IGMP Querier for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'querier': 'true'})
+
+@igmp_snooping.command('querier-disable')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.pass_context
+def igmp_snooping_querier_disable(ctx, vid):
+    """Disable IGMP Querier for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'querier': 'false'})
+
+@igmp_snooping.command('fast-leave-enable')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.pass_context
+def igmp_snooping_fast_leave_enable(ctx, vid):
+    """Enable IGMP fast-leave for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'fast-leave': 'true'})
+
+@igmp_snooping.command('fast-leave-disable')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.pass_context
+def igmp_snooping_fast_leave_disable(ctx, vid):
+    """Disable IGMP fast-leave for a VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    db.mod_entry('CFG_L2MC_TABLE', vlan_name, {'fast-leave': 'false'})
+
+@igmp_snooping.command('static-group-add')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.pass_context
+
+def igmp_snooping_static_add(ctx, vid, interface_name, ip_addr):
+    """Add static-group for VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+    static_group_key = vlan_name+'|'+ip_addr
+    l2mc_name = db.get_entry('CFG_L2MC_STATIC_GROUP_TABLE', static_group_key)
+    members = l2mc_name.get('static-members', [])
+    if interface_name in members:
+        if get_interface_naming_mode() == "alias":
+           interface_name = interface_name_to_alias(interface_name)
+           if interface_name is None:
+               ctx.fail("'interface_name' is None!")
+           ctx.fail("{} is already a member of {}".format(interface_name,members))
+        else:
+           ctx.fail("{} is already a member of {}".format(interface_name,members))
+    members.append(interface_name)
+    l2mc_name['static-members'] = members
+    db.set_entry('CFG_L2MC_STATIC_GROUP_TABLE', static_group_key, l2mc_name)
+    static_group_mem_key = vlan_name+'|'+ip_addr+'|'+interface_name
+    db.set_entry('CFG_L2MC_STATIC_MEMBER_TABLE', static_group_mem_key, {'port':interface_name})
+
+@igmp_snooping.command('static-group-del')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.pass_context
+def igmp_snooping_static_del(ctx, vid, interface_name, ip_addr):
+    """Del static-group for VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+    static_group_key = vlan_name+'|'+ip_addr
+    l2mc_name = db.get_entry('CFG_L2MC_STATIC_GROUP_TABLE', static_group_key)
+    members = l2mc_name.get('static-members', [])
+    if interface_name not in members:
+        if get_interface_naming_mode() == "alias":
+            interface_name = interface_name_to_alias(interface_name)
+            if interface_name is None:
+                ctx.fail("'interface_name' is None!")
+            ctx.fail("{} is not a member of {}".format(interface_name, members))
+        else:
+            ctx.fail("{} is not a member of {}".format(interface_name, members))
+    members.remove(interface_name)
+    if len(members) == 0:
+        del l2mc_name['static-members']
+        db.set_entry('CFG_L2MC_STATIC_GROUP_TABLE', static_group_key, None)
+    else:
+        l2mc_name['static-members'] = members
+        db.set_entry('CFG_L2MC_STATIC_GROUP_TABLE', static_group_key, l2mc_name)
+    static_group_mem_key = vlan_name+'|'+ip_addr+'|'+interface_name
+    db.set_entry('CFG_L2MC_STATIC_MEMBER_TABLE', static_group_mem_key, None)
+
+@igmp_snooping.command('mrouter-add')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def igmp_snooping_mrouter_add(ctx, vid, interface_name):
+    """Add router interface for VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+    l2mc_name = db.get_entry('CFG_L2MC_TABLE', vlan_name)
+    members = l2mc_name.get('members', [])
+    if interface_name in members:
+        if get_interface_naming_mode() == "alias":
+           interface_name = interface_name_to_alias(interface_name)
+           if interface_name is None:
+               ctx.fail("'interface_name' is None!")
+           ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
+        else:
+           ctx.fail("{} is already a member of {}".format(interface_name,vlan_name))
+    members.append(interface_name)
+    l2mc_name['members'] = members
+    db.set_entry('CFG_L2MC_TABLE', vlan_name, l2mc_name)
+    mrouter_mem_key = vlan_name+'|'+interface_name
+    db.set_entry('CFG_L2MC_MROUTER_TABLE', mrouter_mem_key, {'mrouter_port':interface_name})
+
+@igmp_snooping.command('mrouter-del')
+@click.argument('vid', metavar='<vlan>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def igmp_snooping_mrouter_del(ctx, vid, interface_name):
+    """Remove router interface from VLAN"""
+    db = ctx.obj['db']
+    vlan_valid = bool(vlan_id_is_valid(vid))
+    if vlan_valid == False:
+        ctx.fail("Invalid VlanId!!")
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+    l2mc_name = db.get_entry('CFG_L2MC_TABLE', vlan_name)
+    members = l2mc_name.get('members', [])
+    if interface_name not in members:
+        if get_interface_naming_mode() == "alias":
+            interface_name = interface_name_to_alias(interface_name)
+            if interface_name is None:
+                ctx.fail("'interface_name' is None!")
+            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
+        else:
+            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
+    members.remove(interface_name)
+    if len(members) == 0:
+        del l2mc_name['members']
+    else:
+        l2mc_name['members'] = members
+    db.set_entry('CFG_L2MC_TABLE', vlan_name, l2mc_name)
+    mrouter_mem_key = vlan_name+'|'+interface_name
+    db.set_entry('CFG_L2MC_MROUTER_TABLE', mrouter_mem_key, None)
 @config.group()
 def kdump():
     """ Configure kdump """
