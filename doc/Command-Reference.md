@@ -734,7 +734,7 @@ This command displays the status of the device's fans
 
 **show platform temperature**
 
-This command displays the status of the device's thermal zones
+This command displays the status of the device's thermal sensors
 
 - Usage:
   ```
