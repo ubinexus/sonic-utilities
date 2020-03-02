@@ -358,7 +358,12 @@ main() {
     save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
 
     save_cmd "lldpctl" "lldpctl"
-
+    # Collect debugging information from components
+    save_cmd "show debug all" "debug_all"
+    if [ -e /usr/bin/l2mcd.sh ]; then
+        save_cmd "show debug l2mcd_debug all" "l2mcd.dbg"
+        save_cmd "show debug l2mcorch all" "l2mcorch.dbg"
+    fi
     save_cmd "ps aux" "ps.aux"
     save_cmd "free" "free"
     save_cmd "vmstat 1 5" "vmstat"
