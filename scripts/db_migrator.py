@@ -5,6 +5,10 @@ import sys
 import argparse
 import syslog
 from swsssdk import ConfigDBConnector
+import sonic_device_util
+import os
+import subprocess
+import json
 
 
 SYSLOG_IDENTIFIER = 'db_migrator'
@@ -35,7 +39,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_1_0_2'
+        self.CURRENT_VERSION = 'version_1_0_3'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -96,6 +100,86 @@ class DBMigrator():
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
 
+    def mlnx_migrate_buffer_pool_size(self):
+        """
+        On Mellanox platform the buffer pool size changed since 
+        version with new SDK 4.3.3052, SONiC to SONiC update 
+        from version with old SDK will be broken without migration.
+        This migration is specifically for Mellanox platform. 
+        """
+        # Buffer pools defined in version 1_0_2
+        buffer_pools = ['ingress_lossless_pool', 'egress_lossless_pool', 'ingress_lossy_pool', 'egress_lossy_pool']
+
+        # Old default buffer pool values on Mellanox platform 
+        spc1_t0_default_value = [{'ingress_lossless_pool': '4194304'}, {'egress_lossless_pool': '16777152'}, {'ingress_lossy_pool': '7340032'}, {'egress_lossy_pool': '7340032'}]
+        spc1_t1_default_value = [{'ingress_lossless_pool': '2097152'}, {'egress_lossless_pool': '16777152'}, {'ingress_lossy_pool': '5242880'}, {'egress_lossy_pool': '5242880'}]
+        spc2_t0_default_value = [{'ingress_lossless_pool': '8224768'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '8224768'}, {'egress_lossy_pool': '8224768'}]
+        spc2_t1_default_value = [{'ingress_lossless_pool': '12042240'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '12042240'}, {'egress_lossy_pool': '12042240'}]
+
+        # Check ASIC type make sure it's Mellanox platform
+        version_info = sonic_device_util.get_sonic_version_info()
+        if version_info['asic_type'] != "mellanox":
+            return
+        
+        # Get platform info and hwsku from config_db.json
+        config_db_file_path = "/etc/sonic/config_db.json"
+        if not os.path.exists(config_db_file_path):
+            log_info("config_db.json not exist, skip")
+            return
+        try:
+            with open(config_db_file_path) as config_db_file:
+                config_db = json.load(config_db_file)
+                device_data = config_db['DEVICE_METADATA']
+                hwsku = device_data['localhost']['hwsku']
+                platform = device_data['localhost']['platform']
+        except IOError:
+            log_error("failed to open config_db.json file, skip migration")
+            return
+        
+        # Get current buffer pool configuration, only migrate configration which 
+        # with default values, if it's not default, leave it as is.
+        pool_size_in_db_list = []
+        data = config_db['BUFFER_POOL']
+        pools_in_db = data.keys()
+
+        # Buffer pool numbers is different with default, skip
+        if len(pools_in_db) != len(buffer_pools):
+            return
+
+        # If some buffer pool is not default ones, skip
+        for buffer_pool in buffer_pools:
+            if buffer_pool not in pools_in_db:
+                return
+            pool_size_in_db_list.append({buffer_pool: data[buffer_pool]['size']})
+        
+        # To check is the buffer pool size is equal to default values
+        migration_needed = False
+
+        if pool_size_in_db_list == spc1_t0_default_value or pool_size_in_db_list == spc1_t1_default_value \
+            or pool_size_in_db_list == spc2_t0_default_value or pool_size_in_db_list == spc2_t1_default_value:
+            migration_needed = True
+
+        if migration_needed:
+            # Generate buffer configuration from latest template
+            tmp_json_file = "/tmp/mlnx_buffers_all.json"
+            device_buffer_template_path = os.path.join("/usr/share/sonic/device/", platform, hwsku, 'buffers.json.j2')
+            command = "sonic-cfggen -d -t " + device_buffer_template_path + " >" + tmp_json_file
+            proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+            (stdout, err) = proc.communicate()
+            if proc.returncode != 0:
+                log_error("failed to generate new mlnx buffer configuration")
+                return
+
+            # Extract the new buffer pool size configuration from above tmp file and update DB
+            try:
+                with open(tmp_json_file) as tmp_buffer_file:
+                    buffer_json = json.load(tmp_buffer_file)
+                    for pool in buffer_pools:
+                        self.configDB.set_entry('BUFFER_POOL', pool, buffer_json['BUFFER_POOL'][pool])
+                    log_info("Successfully migrate buffer pool size to the latest.")
+            except IOError:
+                log_error("failed to open tmp mlnx buffer json configuration file, skip migration")
+                return
 
     def version_unknown(self):
         """
@@ -127,13 +211,22 @@ class DBMigrator():
 
         self.migrate_interface_table()
         self.set_version('version_1_0_2')
-        return None
+        return 'version_1_0_2'
 
     def version_1_0_2(self):
         """
-        Current latest version. Nothing to do here.
+        Version 1_0_2.
         """
         log_info('Handling version_1_0_2')
+        self.mlnx_migrate_buffer_pool_size()
+        self.set_version('version_1_0_3')
+        return None
+
+    def version_1_0_3(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log_info('Handling version_1_0_3')
 
         return None
 
