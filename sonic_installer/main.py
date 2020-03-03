@@ -27,6 +27,11 @@ BOOTLOADER_TYPE_GRUB = 'grub'
 BOOTLOADER_TYPE_UBOOT = 'uboot'
 ARCH = platform.machine()
 BOOTLOADER = BOOTLOADER_TYPE_UBOOT if "arm" in ARCH else BOOTLOADER_TYPE_GRUB
+DEVPATH = '/usr/share/sonic/device/'
+PLATFORM_FSTRIM_PLUGIN = 'platform_fstrim_plugin'
+PLATFORM_POST_SONIC_INSTALL = 'platform_post_sonic_install'
+
+PLATFORM = subprocess.check_output(["sonic-cfggen", "-H", "-v", "DEVICE_METADATA.localhost.platform"]).strip()
 
 #
 # Helper functions
@@ -272,6 +277,10 @@ def remove_image(image):
         subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
         click.echo('Done')
 
+    if os.path.exists(DEVPATH + PLATFORM + '/' + PLATFORM_FSTRIM_PLUGIN):
+        subprocess.call([DEVPATH + PLATFORM + '/' + PLATFORM_FSTRIM_PLUGIN])
+
+
 # TODO: Embed tag name info into docker image meta data at build time,
 # and extract tag name from docker image file.
 def get_docker_tag_name(image):
@@ -416,6 +425,10 @@ def install(url, force, skip_migration=False):
             raise click.Abort()
 
         click.echo("Installing image {} and setting it as default...".format(binary_image_version))
+
+        if os.path.exists(DEVPATH + PLATFORM + '/' + PLATFORM_FSTRIM_PLUGIN):
+             subprocess.call([DEVPATH + PLATFORM + '/' + PLATFORM_FSTRIM_PLUGIN])
+
         if running_image_type == IMAGE_TYPE_ABOOT:
             run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
             run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
@@ -432,6 +445,8 @@ def install(url, force, skip_migration=False):
     # Finally, sync filesystem
     run_command("sync;sync;sync")
     run_command("sleep 3") # wait 3 seconds after sync
+    if os.path.exists(DEVPATH + PLATFORM + '/' + PLATFORM_POST_SONIC_INSTALL):
+        subprocess.call([DEVPATH + PLATFORM + '/' + PLATFORM_POST_SONIC_INSTALL])
     click.echo('Done')
 
 

@@ -16,6 +16,8 @@ ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
+PLATFORM_LOG_SSD_HEALTH="platform_log_ssd_health"
+PLATFORM_ALLOW_FAST_REBOOT="platform_allow_fast_reboot"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -251,6 +253,16 @@ function reboot_pre_check()
     fi
     rm ${filename}
 
+    if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_ALLOW_FAST_REBOOT} ];then
+	debug "Checking if fast reboot is allowed."
+	PLAT_FAST_REBOOT_ALLOW_CHECK_SUCCESS=0
+	PLAT_FAST_REBOOT_ALLOW_EXIT_CODE=0
+	${DEVPATH}/${PLATFORM}/${PLATFORM_ALLOW_FAST_REBOOT} || PLAT_FAST_REBOOT_ALLOW_EXIT_CODE=$?
+	if [[ "${PLAT_FAST_REBOOT_ALLOW_EXIT_CODE}" != "${PLAT_FAST_REBOOT_ALLOW_CHECK_SUCCESS}" ]];then
+	    exit "${EXIT_FAILURE}"
+	fi
+    fi
+
     # Make sure /host has enough space for warm reboot temp files
     avail=$(df -k /host | tail -1 | awk '{ print $4 }')
     if [[ ${avail} -lt ${MIN_HD_SPACE_NEEDED} ]]; then
@@ -404,6 +416,12 @@ fi
 # We are fully committed to reboot from this point on becasue critical
 # service will go down and we cannot recover from it.
 set +e
+
+if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_LOG_SSD_HEALTH} ]; then
+    debug "Collecting logs to check ssd health before fast-reboot..."
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_LOG_SSD_HEALTH}
+fi
+
 
 # Kill nat docker after saving the conntrack table
 debug "Stopping nat ..."

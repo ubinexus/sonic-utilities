@@ -102,6 +102,7 @@ setup(
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
+        'scripts/sonic-fstrim',
         'scripts/sonic-kdump-config'
     ],
     data_files=[
