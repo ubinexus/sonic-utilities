@@ -115,27 +115,35 @@ class DBMigrator():
         spc1_t1_default_value = [{'ingress_lossless_pool': '2097152'}, {'egress_lossless_pool': '16777152'}, {'ingress_lossy_pool': '5242880'}, {'egress_lossy_pool': '5242880'}]
         spc2_t0_default_value = [{'ingress_lossless_pool': '8224768'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '8224768'}, {'egress_lossy_pool': '8224768'}]
         spc2_t1_default_value = [{'ingress_lossless_pool': '12042240'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '12042240'}, {'egress_lossy_pool': '12042240'}]
- 
+
         # Get platform info and hwsku from config_db.json
         config_db_file_path = "/etc/sonic/config_db.json"
-        if not os.path.exists(config_db_file_path):
-            log_info("config_db.json not exist, skip")
-            return False
-        try:
-            with open(config_db_file_path) as config_db_file:
-                config_db = json.load(config_db_file)
-                device_data = config_db['DEVICE_METADATA']
+        if os.path.exists(config_db_file_path):
+            try:
+                with open(config_db_file_path) as config_db_file:
+                    config_db = json.load(config_db_file)
+                    device_data = config_db['DEVICE_METADATA']
+                    hwsku = device_data['localhost']['hwsku']
+                    platform = device_data['localhost']['platform']
+                    buffer_pool_conf = config_db['BUFFER_POOL']
+            except IOError:
+                log_error("failed to open config_db.json file, skip migration")
+                return False
+        else:
+            # Try to get related info from DB(in warm reboot case DB will be retored)
+            buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
+            device_data = self.configDB.get_table('DEVICE_METADATA')
+            if 'localhost' in device_data.keys():
                 hwsku = device_data['localhost']['hwsku']
                 platform = device_data['localhost']['platform']
-        except IOError:
-            log_error("failed to open config_db.json file, skip migration")
-            return False
-        
+            else:
+                log_error("Trying to get data from DB but it's empty, skip migration")
+                return False
+
         # Get current buffer pool configuration, only migrate configration which 
         # with default values, if it's not default, leave it as is.
         pool_size_in_db_list = []
-        data = config_db['BUFFER_POOL']
-        pools_in_db = data.keys()
+        pools_in_db = buffer_pool_conf.keys()
 
         # Buffer pool numbers is different with default, don't need migrate
         if len(pools_in_db) != len(buffer_pools):
@@ -145,9 +153,9 @@ class DBMigrator():
         for buffer_pool in buffer_pools:
             if buffer_pool not in pools_in_db:
                 return True
-            pool_size_in_db_list.append({buffer_pool: data[buffer_pool]['size']})
+            pool_size_in_db_list.append({buffer_pool: buffer_pool_conf[buffer_pool]['size']})
         
-        # To check if the buffer pool size is equal to default values
+        # To check if the buffer pool size is equal to old default values
         if pool_size_in_db_list == spc1_t0_default_value or pool_size_in_db_list == spc1_t1_default_value \
             or pool_size_in_db_list == spc2_t0_default_value or pool_size_in_db_list == spc2_t1_default_value:
             # Generate buffer configuration from latest template
@@ -173,6 +181,7 @@ class DBMigrator():
                 return False
         else:
             # It's not using default buffer pool configuration, no migraton needed.
+            log_info("buffer pool size is not old default value, skip migration")
             return True
 
     def version_unknown(self):
