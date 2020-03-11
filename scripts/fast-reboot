@@ -17,7 +17,6 @@ DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 PLATFORM_LOG_SSD_HEALTH="platform_log_ssd_health"
-PLATFORM_ALLOW_FAST_REBOOT="platform_allow_fast_reboot"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -252,16 +251,6 @@ function reboot_pre_check()
         touch ${filename}
     fi
     rm ${filename}
-
-    if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_ALLOW_FAST_REBOOT} ];then
-	debug "Checking if fast reboot is allowed."
-	PLAT_FAST_REBOOT_ALLOW_CHECK_SUCCESS=0
-	PLAT_FAST_REBOOT_ALLOW_EXIT_CODE=0
-	${DEVPATH}/${PLATFORM}/${PLATFORM_ALLOW_FAST_REBOOT} || PLAT_FAST_REBOOT_ALLOW_EXIT_CODE=$?
-	if [[ "${PLAT_FAST_REBOOT_ALLOW_EXIT_CODE}" != "${PLAT_FAST_REBOOT_ALLOW_CHECK_SUCCESS}" ]];then
-	    exit "${EXIT_FAILURE}"
-	fi
-    fi
 
     # Make sure /host has enough space for warm reboot temp files
     avail=$(df -k /host | tail -1 | awk '{ print $4 }')
