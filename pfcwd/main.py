@@ -202,14 +202,14 @@ def interval(poll_interval):
                 continue
             detection_time_entry_value = int(configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, entry).get('detection_time'))
             restoration_time_entry_value = int(configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, entry).get('restoration_time'))
-            if ((detection_time_entry_value != None) and (detection_time_entry_value < min)):
+            if ((detection_time_entry_value != None) and (detection_time_entry_value < entry_min)):
                 entry_min = detection_time_entry_value
                 res_str = "detection_time"
-            if ((restoration_time_entry_value != None) and (restoration_time_entry_value < min)):
+            if ((restoration_time_entry_value != None) and (restoration_time_entry_value < entry_min)):
                 entry_min = restoration_time_entry_value
                 res_str = "restoration_time"
         if entry_min < poll_interval:
-            poll_interval = random.randint(1,entry_min-1)
+            poll_interval = entry_min - 1
             print "polling_interval is greater than {}, using polling_interval = {}ms".format(res_str,poll_interval)
         
         pfcwd_info['POLL_INTERVAL'] = poll_interval
