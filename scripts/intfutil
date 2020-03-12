@@ -271,17 +271,25 @@ def po_speed_dict(po_int_dict, appl_db):
             po_list.append(key)
             if len(value) == 1:
                 interface_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + value[0], "speed")
-                interface_speed = '{}G'.format(interface_speed[:-3])
-                po_list.append(interface_speed)
+                if interface_speed:
+                    interface_speed = '{}G'.format(interface_speed[:-3])
+                    po_list.append(interface_speed)
+                else:
+                    po_list.append("N/A")
             elif len(value) > 1:
+                interface_speed = 0
                 for intf in value:
                     temp_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + intf, "speed")
-                    temp_speed = int(temp_speed)
-                    agg_speed_list.append(temp_speed)
-                    interface_speed = sum(agg_speed_list)
-                    interface_speed = str(interface_speed)
-                    interface_speed = '{}G'.format(interface_speed[:-3])
-                po_list.append(interface_speed)
+                    if temp_speed:
+                        temp_speed = int(temp_speed)
+                        agg_speed_list.append(temp_speed)
+                        interface_speed = sum(agg_speed_list)
+                        interface_speed = str(interface_speed)
+                        interface_speed = '{}G'.format(interface_speed[:-3])
+                if interface_speed == 0:
+                    po_list.append("N/A")
+                else:
+                    po_list.append(interface_speed)
             po_speed_dict = dict(po_list[i:i+2] for i in range(0, len(po_list), 2))
         return po_speed_dict
     else:
