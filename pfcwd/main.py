@@ -3,7 +3,6 @@
 import click
 import swsssdk
 import os
-import random
 from tabulate import tabulate
 from natsort import natsorted
 
@@ -213,7 +212,10 @@ def interval(poll_interval):
             print "polling_interval is greater than {}, using polling_interval = {}ms".format(res_str,poll_interval)
         
         pfcwd_info['POLL_INTERVAL'] = poll_interval
-    configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
+        if(poll_interval < 100):
+            print "unable to use polling_interval = {}ms, value is less than 100".format(poll_interval)
+        else:
+            configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
 
 # Stop WD
 @cli.command()
