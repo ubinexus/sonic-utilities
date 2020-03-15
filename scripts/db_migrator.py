@@ -116,29 +116,57 @@ class DBMigrator():
         spc2_t0_default_value = [{'ingress_lossless_pool': '8224768'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '8224768'}, {'egress_lossy_pool': '8224768'}]
         spc2_t1_default_value = [{'ingress_lossless_pool': '12042240'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '12042240'}, {'egress_lossy_pool': '12042240'}]
 
+        # New default buffer pool configuration on Mellanox platform
+        spc1_t0_default_config = {"ingress_lossless_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "5029836", "type": "egress", "mode": "dynamic" } }
+        spc1_t1_default_config = {"ingress_lossless_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "2097100", "type": "egress", "mode": "dynamic" } }
+        spc2_t0_default_config = {"ingress_lossless_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "14983147", "type": "egress", "mode": "dynamic" } }
+        spc2_t1_default_config = {"ingress_lossless_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "9158635", "type": "egress", "mode": "dynamic" } }
+
         # Get platform info and hwsku from config_db.json
+        buffer_pool_conf = {}
         config_db_file_path = "/etc/sonic/config_db.json"
-        if os.path.exists(config_db_file_path):
+        if os.path.exists(config_db_file_path) and os.path.getsize(config_db_file_path) > 0:
             try:
                 with open(config_db_file_path) as config_db_file:
                     config_db = json.load(config_db_file)
-                    device_data = config_db['DEVICE_METADATA']
-                    hwsku = device_data['localhost']['hwsku']
-                    platform = device_data['localhost']['platform']
-                    buffer_pool_conf = config_db['BUFFER_POOL']
+                    if 'DEVICE_METADATA' in config_db.keys():
+                        device_data = config_db['DEVICE_METADATA']
+                        hwsku = device_data['localhost']['hwsku']
+                        platform = device_data['localhost']['platform']
+                    else:
+                        log_error("No DEVICE_METADATA exist in config_db.json file, skip migration")
+                        return False
+                    if 'BUFFER_POOL' in config_db.keys():
+                        buffer_pool_conf = config_db['BUFFER_POOL']
+                    else:
+                        # No buffer pool size configuration exist, no need to migration
+                        log_info("No buffer pool configuration, no need to migrate")
+                        return True
             except IOError:
                 log_error("failed to open config_db.json file, skip migration")
                 return False
         else:
             # Try to get related info from DB(in warm reboot case DB will be retored)
-            buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
             device_data = self.configDB.get_table('DEVICE_METADATA')
             if 'localhost' in device_data.keys():
                 hwsku = device_data['localhost']['hwsku']
                 platform = device_data['localhost']['platform']
             else:
-                log_error("Trying to get data from DB but it's empty, skip migration")
+                log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
                 return False
+            buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
 
         # Get current buffer pool configuration, only migrate configration which 
         # with default values, if it's not default, leave it as is.
@@ -156,33 +184,24 @@ class DBMigrator():
             pool_size_in_db_list.append({buffer_pool: buffer_pool_conf[buffer_pool]['size']})
         
         # To check if the buffer pool size is equal to old default values
-        if pool_size_in_db_list == spc1_t0_default_value or pool_size_in_db_list == spc1_t1_default_value \
-            or pool_size_in_db_list == spc2_t0_default_value or pool_size_in_db_list == spc2_t1_default_value:
-            # Generate buffer configuration from latest template
-            tmp_json_file = "/tmp/mlnx_buffers_all.json"
-            device_buffer_template_path = os.path.join("/usr/share/sonic/device/", platform, hwsku, 'buffers.json.j2')
-            command = "sonic-cfggen -d -t {} >{}".format(device_buffer_template_path, tmp_json_file)
-            try:
-                subprocess.check_call(command, shell=True)
-            except:
-                log_error("failed to generate new mlnx buffer configuration, skip migration")
-                return False
-
-            # Extract the new buffer pool size configuration from above tmp file and update DB
-            try:
-                with open(tmp_json_file) as tmp_buffer_file:
-                    buffer_json = json.load(tmp_buffer_file)
-                    for pool in buffer_pools:
-                        self.configDB.set_entry('BUFFER_POOL', pool, buffer_json['BUFFER_POOL'][pool])
-                    log_info("Successfully migrate mlnx buffer pool size to the latest.")
-                    return True
-            except IOError:
-                log_error("failed to open tmp mlnx buffer json configuration file, skip migration")
-                return False
+        new_buffer_pool_conf = None
+        if pool_size_in_db_list == spc1_t0_default_value:
+            new_buffer_pool_conf = spc1_t0_default_config
+        elif pool_size_in_db_list == spc1_t1_default_value:
+            new_buffer_pool_conf = spc1_t1_default_config
+        elif pool_size_in_db_list == spc2_t0_default_value:
+            new_buffer_pool_conf = spc2_t0_default_config
+        elif pool_size_in_db_list == spc2_t1_default_value:
+            new_buffer_pool_conf = spc2_t1_default_config
         else:
             # It's not using default buffer pool configuration, no migraton needed.
-            log_info("buffer pool size is not old default value, skip migration")
+            log_info("buffer pool size is not old default value, no need to migrate")
             return True
+        # Migrate old buffer conf to latest.
+        for pool in buffer_pools:
+            self.configDB.set_entry('BUFFER_POOL', pool, new_buffer_pool_conf[pool])
+        log_info("Successfully migrate mlnx buffer pool size to the latest.")
+        return True
 
     def version_unknown(self):
         """
