@@ -1216,7 +1216,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -1237,7 +1237,7 @@ def del_snmp_agent_address(ctx, agentip, port, vrf):
 
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -1568,7 +1568,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
     run_command(command, display_cmd=verbose)
 
 def _get_all_mgmtinterface_keys():
-    """Returns list of strings containing mgmt interface keys 
+    """Returns list of strings containing mgmt interface keys
     """
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -2411,7 +2411,7 @@ def add_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         click.echo("NTP server {} is already configured".format(ntp_ip_address))
         return
-    else: 
+    else:
         db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
         click.echo("NTP server {} added to configuration".format(ntp_ip_address))
         try:
@@ -2432,7 +2432,7 @@ def del_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
         click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
-    else: 
+    else:
         ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
     try:
         click.echo("Restarting ntp-config service...")
@@ -2519,7 +2519,7 @@ def polling_int(ctx, interval):
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 def is_valid_sample_rate(rate):
-    return rate in range(256, 8388608 + 1)
+    return rate.isdigit() and int(rate) in range(256, 8388608 + 1)
 
 
 #
@@ -2577,24 +2577,31 @@ def disable(ctx, ifname):
 #
 @interface.command('sample-rate')
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
-@click.argument('rate', metavar='<sample_rate>', required=True, type=int)
+@click.argument('rate', metavar='<sample_rate>', required=True, type=str)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
     if not interface_name_is_valid(ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
-    if not is_valid_sample_rate(rate):
-        click.echo('Error: Sample rate must be between 256 and 8388608')
+    if not is_valid_sample_rate(rate) and rate != 'default':
+        click.echo('Error: Sample rate must be between 256 and 8388608 or default')
         return
 
     config_db = ctx.obj['db']
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
     if sess_dict and ifname in sess_dict.keys():
+        if rate == 'default':
+            if 'sample_rate' not in sess_dict[ifname]:
+                return
+            del sess_dict[ifname]['sample_rate']
+            config_db.set_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
+            return
         sess_dict[ifname]['sample_rate'] = rate
         config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
     else:
-        config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
+        if rate != 'default':
+            config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
 
 
 #
@@ -2721,7 +2728,7 @@ def delete(ctx):
 
 #
 # 'feature' command ('config feature name state')
-# 
+#
 @config.command('feature')
 @click.argument('name', metavar='<feature-name>', required=True)
 @click.argument('state', metavar='<feature-state>', required=True, type=click.Choice(["enabled", "disabled"]))
