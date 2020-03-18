@@ -11,7 +11,7 @@ from swsssdk import SonicV2Connector
 from natsort import natsorted
 
 
-header = ['NAME', 'Temperature', 'High Th', 'Low Th', 'Crit High Th', 'Crit Low Th', 'Warning', 'Timestamp']
+header = ['Sensor', 'Temperature', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
 
 TEMPER_TABLE_NAME = 'TEMPERATURE_INFO'
 TEMPER_FIELD_NAME = 'temperature'
