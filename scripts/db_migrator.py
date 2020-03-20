@@ -133,42 +133,28 @@ class DBMigrator():
                                   "ingress_lossy_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
                                   "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
                                   "egress_lossy_pool": {"size": "9158635", "type": "egress", "mode": "dynamic" } }
-
-        # Get platform info and hwsku from config_db.json
+        # 3800 platform has gearbox installed so the buffer pool size is different with other Spectrum2 platform
+        spc2_3800_t0_default_config = {"ingress_lossless_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "28196784", "type": "egress", "mode": "dynamic" } }
+        spc2_3800_t1_default_config = {"ingress_lossless_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "17891280", "type": "egress", "mode": "dynamic" } }
+ 
+        # Try to get related info from DB
         buffer_pool_conf = {}
-        config_db_file_path = "/etc/sonic/config_db.json"
-        if os.path.exists(config_db_file_path) and os.path.getsize(config_db_file_path) > 0:
-            try:
-                with open(config_db_file_path) as config_db_file:
-                    config_db = json.load(config_db_file)
-                    if 'DEVICE_METADATA' in config_db.keys():
-                        device_data = config_db['DEVICE_METADATA']
-                        hwsku = device_data['localhost']['hwsku']
-                        platform = device_data['localhost']['platform']
-                    else:
-                        log_error("No DEVICE_METADATA exist in config_db.json file, skip migration")
-                        return False
-                    if 'BUFFER_POOL' in config_db.keys():
-                        buffer_pool_conf = config_db['BUFFER_POOL']
-                    else:
-                        # No buffer pool size configuration exist, no need to migration
-                        log_info("No buffer pool configuration, no need to migrate")
-                        return True
-            except IOError:
-                log_error("failed to open config_db.json file, skip migration")
-                return False
+        device_data = self.configDB.get_table('DEVICE_METADATA')
+        if 'localhost' in device_data.keys():
+            hwsku = device_data['localhost']['hwsku']
+            platform = device_data['localhost']['platform']
         else:
-            # Try to get related info from DB(in warm reboot case DB will be retored)
-            device_data = self.configDB.get_table('DEVICE_METADATA')
-            if 'localhost' in device_data.keys():
-                hwsku = device_data['localhost']['hwsku']
-                platform = device_data['localhost']['platform']
-            else:
-                log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
-                return False
-            buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
+            log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            return False
+        buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
 
-        # Get current buffer pool configuration, only migrate configration which 
+        # Get current buffer pool configuration, only migrate configuration which 
         # with default values, if it's not default, leave it as is.
         pool_size_in_db_list = []
         pools_in_db = buffer_pool_conf.keys()
@@ -190,11 +176,17 @@ class DBMigrator():
         elif pool_size_in_db_list == spc1_t1_default_value:
             new_buffer_pool_conf = spc1_t1_default_config
         elif pool_size_in_db_list == spc2_t0_default_value:
-            new_buffer_pool_conf = spc2_t0_default_config
+            if platform == 'x86_64-mlnx_msn3800-r0':
+                new_buffer_pool_conf = spc2_3800_t0_default_config
+            else:
+                new_buffer_pool_conf = spc2_t0_default_config
         elif pool_size_in_db_list == spc2_t1_default_value:
-            new_buffer_pool_conf = spc2_t1_default_config
+            if platform == 'x86_64-mlnx_msn3800-r0':
+                new_buffer_pool_conf = spc2_3800_t1_default_config
+            else:
+                new_buffer_pool_conf = spc2_t1_default_config
         else:
-            # It's not using default buffer pool configuration, no migraton needed.
+            # It's not using default buffer pool configuration, no migration needed.
             log_info("buffer pool size is not old default value, no need to migrate")
             return True
         # Migrate old buffer conf to latest.
