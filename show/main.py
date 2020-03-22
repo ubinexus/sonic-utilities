@@ -1068,7 +1068,31 @@ def asymmetric(interface):
         cmd += ' {0}'.format(interface)
 
     run_command(cmd)
-    
+
+# 'pfcwd' subcommand ("show pfcwd...")
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def pfcwd():
+    """Show details of the pfc watchdog """
+    pass
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def config(verbose):
+    """Show pfc watchdog config"""
+
+    cmd = "pfcwd show config"
+
+    run_command(cmd, display_cmd=verbose)
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def stats(verbose):
+    """Show pfc watchdog stats"""
+
+    cmd = "pfcwd show stats"
+
+    run_command(cmd, display_cmd=verbose)
+
 # 'naming_mode' subcommand ("show interfaces naming_mode")
 @interfaces.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1708,6 +1732,13 @@ def fan():
 def temperature():
     """Show device temperature information"""
     cmd = 'tempershow'
+    run_command(cmd)
+
+# 'firmware' subcommand ("show platform firmware")
+@platform.command()
+def firmware():
+    """Show firmware status information"""
+    cmd = "fwutil show status"
     run_command(cmd)
 
 #
@@ -2712,9 +2743,134 @@ def config(redis_unix_socket_path):
     state_db.close(state_db.STATE_DB)
 
 #
-# show features
+# 'nat' group ("show nat ...")
 #
 
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def nat():
+    """Show details of the nat """
+    pass
+
+# 'statistics' subcommand ("show nat statistics")
+@nat.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def statistics(verbose):
+    """ Show NAT statistics """
+
+    cmd = "sudo natshow -s"
+    run_command(cmd, display_cmd=verbose)
+
+# 'translations' subcommand ("show nat translations")
+@nat.group(invoke_without_command=True)
+@click.pass_context
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def translations(ctx, verbose):
+    """ Show NAT translations """
+
+    if ctx.invoked_subcommand is None:
+        cmd = "sudo natshow -t"
+        run_command(cmd, display_cmd=verbose)
+
+# 'count' subcommand ("show nat translations count")
+@translations.command()
+def count():
+    """ Show NAT translations count """
+
+    cmd = "sudo natshow -c"
+    run_command(cmd)
+
+# 'config' subcommand ("show nat config")
+@nat.group(invoke_without_command=True)
+@click.pass_context
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def config(ctx, verbose):
+    """Show NAT config related information"""
+    if ctx.invoked_subcommand is None:
+        click.echo("\nGlobal Values")
+        cmd = "sudo natconfig -g"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("Static Entries")
+        cmd = "sudo natconfig -s"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("Pool Entries")
+        cmd = "sudo natconfig -p"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("NAT Bindings")
+        cmd = "sudo natconfig -b"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("NAT Zones")
+        cmd = "sudo natconfig -z"
+        run_command(cmd, display_cmd=verbose)
+
+# 'static' subcommand  ("show nat config static")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def static(verbose):
+    """Show static NAT configuration"""
+
+    cmd = "sudo natconfig -s"
+    run_command(cmd, display_cmd=verbose)
+
+# 'pool' subcommand  ("show nat config pool")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def pool(verbose):
+    """Show NAT Pool configuration"""
+
+    cmd = "sudo natconfig -p"
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'bindings' subcommand  ("show nat config bindings")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def bindings(verbose):
+    """Show NAT binding configuration"""
+
+    cmd = "sudo natconfig -b"
+    run_command(cmd, display_cmd=verbose)
+
+# 'globalvalues' subcommand  ("show nat config globalvalues")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def globalvalues(verbose):
+    """Show NAT Global configuration"""
+
+    cmd = "sudo natconfig -g"
+    run_command(cmd, display_cmd=verbose)
+
+# 'zones' subcommand  ("show nat config zones")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def zones(verbose):
+    """Show NAT Zone configuration"""
+
+    cmd = "sudo natconfig -z"
+    run_command(cmd, display_cmd=verbose)
+
+#
+# 'ztp status' command ("show ztp status")
+#
+@cli.command()
+@click.argument('status', required=False, type=click.Choice(["status"]))
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ztp(status, verbose):
+    """Show Zero Touch Provisioning status"""
+    if os.path.isfile('/usr/bin/ztp') is False:
+        exit("ZTP feature unavailable in this image version")
+
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+    pass
+
+    cmd = "ztp status"
+    if verbose:
+       cmd = cmd + " --verbose"
+    run_command(cmd, display_cmd=verbose)
+
+#
+# show features
+#
 @cli.command('features')
 def features():
     """Show status of optional features"""
@@ -2725,6 +2881,41 @@ def features():
     status_data = config_db.get_table('FEATURE')
     for key in status_data.keys():
         body.append([key, status_data[key]['status']])
+    click.echo(tabulate(body, header))
+
+#
+# 'container' group (show container ...)
+#
+@cli.group(name='container', invoke_without_command=False)
+def container():
+    """Show container"""
+    pass
+
+#
+# 'feature' group (show container feature ...)
+#
+@container.group(name='feature', invoke_without_command=False)
+def feature():
+    """Show container feature"""
+    pass
+
+#
+# 'autorestart' subcommand (show container feature autorestart)
+#
+@feature.command('autorestart', short_help="Show whether the auto-restart feature for container(s) is enabled or disabled")
+@click.argument('container_name', required=False)
+def autorestart(container_name):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Container Name', 'Status']
+    body = []
+    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
+    if container_name:
+        if container_feature_table and container_feature_table.has_key(container_name):
+            body.append([container_name, container_feature_table[container_name]['auto_restart']])
+    else:
+        for name in container_feature_table.keys():
+            body.append([name, container_feature_table[name]['auto_restart']])
     click.echo(tabulate(body, header))
 
 if __name__ == '__main__':
