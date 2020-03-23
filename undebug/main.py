@@ -38,7 +38,7 @@ if 'FRRouting' in p:
         """debug bgp group """
         pass
 
-    @bgp.command()
+    @bgp.command('allow_martians')
     def allow_martians():
         """BGP allow martian next hops"""
         command = 'sudo vtysh -c "no debug bgp allow-martians"'
@@ -71,7 +71,7 @@ if 'FRRouting' in p:
         command += '"'
         run_command(command)
 
-    @bgp.command()
+    @bgp.command('neighbor_events')
     @click.argument('prefix_or_iface', required=False)
     def neighbor_events(prefix_or_iface):
         """BGP Neighbor Events"""
@@ -97,7 +97,7 @@ if 'FRRouting' in p:
         command += '"'
         run_command(command)
 
-    @bgp.command()
+    @bgp.command('update_groups')
     def update_groups():
         """BGP update-groups"""
         command = 'sudo vtysh -c "no debug bgp update-groups"'
