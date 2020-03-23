@@ -85,7 +85,6 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
@@ -413,7 +412,7 @@ def _get_optional_services():
     config_db = ConfigDBConnector()
     config_db.connect()
     optional_services_dict = config_db.get_table('FEATURE')
-    return optional_services_dict.keys()
+    return optional_services_dict
 
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
@@ -446,9 +445,8 @@ def _stop_services():
             raise
 
     # For optional services they don't start by default
-    for service in _get_optional_services():
-        (out, err) = run_command("systemctl status {}".format(service), return_output = True)
-        if not err and 'Active: active (running)' in out:
+    for service, fv in _get_optional_services().items():
+        if fv['status'] == 'enabled':
             try:
                 click.echo("Stopping service {} ...".format(service))
                 run_command("systemctl stop {}".format(service))
@@ -492,9 +490,8 @@ def _reset_failed_services():
             raise
 
     # For optional services they don't start by default
-    for service in _get_optional_services():
-        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
-        if not err and 'enabled' in out:
+    for service, fv in _get_optional_services().items():
+        if fv['status'] == 'enabled':
             try:
                 click.echo("Resetting failed status for service {} ...".format(service))
                 run_command("systemctl reset-failed {}".format(service))
@@ -537,9 +534,8 @@ def _restart_services():
             raise
 
     # For optional services they don't start by default
-    for service in _get_optional_services():
-        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
-        if not err and 'enabled' in out:
+    for service, fv in _get_optional_services().items():
+        if fv['status'] == 'enabled':
             try:
                 click.echo("Restarting service {} ...".format(service))
                 run_command("systemctl restart {}".format(service))
