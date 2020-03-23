@@ -73,6 +73,7 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [PFC Watchdog Commands](#pfc-watchdog-commands)
 * [Platform Component Firmware](#platform-component-firmware)
   * [Platform Component Firmware show commands](#platform-component-firmware-show-commands)
   * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
@@ -85,6 +86,9 @@
     * [PFC](#pfc)
     * [Queue And Priority-Group](#queue-and-priority-group)
   * [QoS config commands](#qos-config-commands)
+* [sFlow](#sflow)
+  * [sFlow Show commands](#sflow-show-commands)
+  * [sFlow Config commands](#sflow-config-commands)
 * [Startup & Running Configuration](#startup--running-configuration)
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
@@ -705,6 +709,86 @@ This command displays the status of the device's power supply units
   -----  --------
   PSU 1  OK
   PSU 2  OK
+  ```
+
+**show platform fan**
+
+This command displays the status of the device's fans
+
+- Usage:
+  ```
+  show platform fan
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show platform fan
+          FAN     Speed    Direction    Presence    Status          Timestamp
+  -----------  --------  -----------  ----------  --------  -----------------
+         fan1       34%       intake     Present        OK  20200302 06:58:56
+         fan2       43%       intake     Present        OK  20200302 06:58:56
+         fan3       38%       intake     Present        OK  20200302 06:58:56
+         fan4       49%       intake     Present        OK  20200302 06:58:57
+         fan5       38%      exhaust     Present        OK  20200302 06:58:57
+         fan6       48%      exhaust     Present        OK  20200302 06:58:57
+         fan7       39%      exhaust     Present        OK  20200302 06:58:57
+         fan8       48%      exhaust     Present        OK  20200302 06:58:57
+  ```
+
+**show platform temperature**
+
+This command displays the status of the device's thermal sensors
+
+- Usage:
+  ```
+  show platform temperature
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show platform temperature
+                    NAME    Temperature    High Th    Low Th    Crit High Th    Crit Low Th    Warning          Timestamp
+  ----------------------  -------------  ---------  --------  --------------  -------------  ---------  -----------------
+       Ambient ASIC Temp           37.0      100.0       N/A           120.0            N/A      False  20200302 06:58:57
+   Ambient Fan Side Temp           28.5      100.0       N/A           120.0            N/A      False  20200302 06:58:57
+  Ambient Port Side Temp           31.0      100.0       N/A           120.0            N/A      False  20200302 06:58:57
+         CPU Core 0 Temp           36.0       87.0       N/A           105.0            N/A      False  20200302 06:59:57
+         CPU Core 1 Temp           38.0       87.0       N/A           105.0            N/A      False  20200302 06:59:57
+           CPU Pack Temp           38.0       87.0       N/A           105.0            N/A      False  20200302 06:59:57
+              PSU-1 Temp           28.0      100.0       N/A           120.0            N/A      False  20200302 06:59:58
+              PSU-2 Temp           28.0      100.0       N/A           120.0            N/A      False  20200302 06:59:58
+      xSFP module 1 Temp           31.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 2 Temp           35.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 3 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 4 Temp           33.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 5 Temp           34.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 6 Temp           36.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 7 Temp           33.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 8 Temp           33.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 9 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 10 Temp           38.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 11 Temp           38.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 12 Temp           39.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 13 Temp           35.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 14 Temp           37.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 15 Temp           36.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 16 Temp           36.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 17 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 18 Temp           34.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 19 Temp           30.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 20 Temp           31.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 21 Temp           34.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 22 Temp           34.4       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 23 Temp           34.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 24 Temp           35.6       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 25 Temp           38.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 26 Temp           32.2       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 27 Temp           39.0       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 28 Temp           30.1       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 29 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 30 Temp           35.3       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 31 Temp           31.0       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 32 Temp           39.5       70.0       N/A            90.0            N/A      False  20200302 06:59:58
   ```
 
 #### Transceivers
@@ -3784,6 +3868,93 @@ This command is used to delete a configured NTP server IP address.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#NTP)
 
+# PFC Watchdog Commands
+Detailed description of the PFC Watchdog could be fount on the [this wiki page](https://github.com/Azure/SONiC/wiki/PFC-Watchdog)
+
+**config pfcwd start \<arguments\>**
+
+This command starts PFC Watchdog
+
+- Usage:
+  ```
+  config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
+  config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+  ```
+
+**config pfcwd stop**
+
+This command stops PFC Watchdog
+
+- Usage:
+  ```
+  config pfcwd stop
+  ```
+
+**config pfcwd interval \<interval_in_ms\>**
+
+This command sets PFC Watchdog counter polling interval (in ms)
+
+- Usage:
+  ```
+  config pfcwd interval 200
+  ```
+
+**config pfcwd counter_poll \<enable/disable\>**
+
+This command enables or disables PFCWD related counters polling
+
+- Usage:
+  ```
+  config pfcwd counter_poll disable
+  ```
+
+**config pfcwd big_red_switch \<enable/disable\>**
+
+This command enables or disables PFCWD's "BIG RED SWITCH"(BRS). After enabling BRS PFC Watchdog will be activated on all ports/queues it is configured for no matter whether the storm was detected or not
+
+- Usage:
+  ```
+  config pfcwd big_red_switch enable
+  ```
+
+**config pfcwd start_default**
+
+This command starts PFC Watchdog with the default settings.
+
+- Usage:
+  ```
+  config pfcwd start_default
+  ```
+
+Default values are the following:  
+
+   - detection time - 200ms
+   - restoration time - 200ms
+   - polling interval - 200ms
+   - action - 'drop'
+
+Additionally if number of ports in the system exceeds 32, all times will be multiplied by roughly <num_ports\>/32.
+
+
+**show pfcwd config**
+
+This command shows current PFC Watchdog configuration
+
+- Usage:
+  ```
+  show pfcwd config
+  ```
+
+**show pfcwd stats**
+
+This command shows current PFC Watchdog statistics (storms detected, packets dropped, etc)
+
+- Usage:
+  ```
+  show pfcwd stats
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#pfc-watchdog-commands)
 
 ## Platform Component Firmware
 
@@ -4400,6 +4571,196 @@ Some of the example QOS configurations that users can modify are given below.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#qos)
 
+## sFlow
+
+### sFlow Show commands
+
+**show sflow**
+
+This command displays the global sFlow configuration that includes the admin state, collectors, the Agent ID and counter polling interval.
+
+- Usage:
+  ```
+  show sflow
+  ```
+
+- Example:
+  ```
+  admin@sonic:~# show sflow
+  sFlow Global Information:
+  sFlow Admin State:          up
+  sFlow Polling Interval:     default
+  sFlow AgentID:              lo
+
+  2 Collectors configured:
+    Name: collector_A         IP addr: 10.11.46.2 UDP port: 6343
+    Name: collector_lo        IP addr: 127.0.0.1  UDP port: 6343
+  ```
+
+
+**show sflow interface**
+
+This command displays the per-interface sflow admin status and the sampling rate.
+
+- Usage:
+  ```
+  show sflow interface
+  ```
+
+- Example:
+  ```
+  admin@sonic:~# show sflow interface
+
+  sFlow interface configurations
+  +-------------+---------------+-----------------+
+  | Interface   | Admin State   |   Sampling Rate |
+  +=============+===============+=================+
+  | Ethernet0   | up            |            4000 |
+  +-------------+---------------+-----------------+
+  | Ethernet1   | up            |            4000 |
+  +-------------+---------------+-----------------+
+  ...
+  +-------------+---------------+-----------------+
+  | Ethernet61  | up            |            4000 |
+  +-------------+---------------+-----------------+
+  | Ethernet62  | up            |            4000 |
+  +-------------+---------------+-----------------+
+  | Ethernet63  | up            |            4000 |
+  +-------------+---------------+-----------------+
+
+  ```
+
+### sFlow Config commands
+
+**config sflow collector add**
+
+This command is used to add a sFlow collector. Note that a maximum of 2 collectors is allowed.
+
+- Usage:
+  ```
+  config sflow collector add <collector-name> <ipv4-address | ipv6-address> [port <number>]
+  ```
+
+  - Parameters:
+    - collector-name: unique name of the sFlow collector
+    - ipv4-address : IP address of the collector in dotted decimal format for IPv4
+    - ipv6-address : x: x: x: x::x format for IPv6 address of the collector (where :: notation specifies successive hexadecimal fields of zeros)
+    - port (OPTIONAL): specifies the UDP port of the collector (the range is from 0 to 65535. The default is 6343.)
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow collector add collector_A 10.11.46.2
+  ```
+
+**config sflow collector del**
+
+This command is used to delete a sFlow collector with the given name.
+
+- Usage:
+  ```
+  config sflow collector del <collector-name>
+  ```
+
+  - Parameters:
+    - collector-name: unique name of the sFlow collector
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow collector del collector_A
+  ```
+
+**config sflow agent-id**
+
+This command is used to add/delete the sFlow agent-id. This setting is global (applicable to both collectors) and optional. Only a single agent-id is allowed. If agent-id is not specified (with this CLI), an appropriate IP that belongs to the switch is used as the agent-id based on some simple heuristics.
+
+- Usage:
+  ```
+  config sflow agent-id <add|del> <interface-name>
+  ```
+
+  - Parameters:
+    - interface-name: specify the interface name whose ipv4 or ipv6 address will be used as the agent-id in sFlow datagrams.
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow agent-id add lo
+  ```
+
+**config sflow**
+
+Globally, sFlow is disabled by default. When sFlow is enabled globally, the sflow deamon is started and sampling will start on all interfaces which have sFlow enabled at the interface level (see “config sflow interface…”). When sflow is disabled globally, sampling is stopped on all relevant interfaces and sflow daemon is stopped.
+
+- Usage:
+  ```
+  config sflow <enable|disable>
+  ```
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow enable
+  ```  
+**config sflow interface**
+
+Enable/disable sflow at an interface level. By default, sflow is enabled on all interfaces at the interface level. Use this command to explicitly disable sFlow for a specific interface. An interface is sampled if sflow is enabled globally as well as at the interface level. Note that this configuration deals only with sFlow flow samples and not counter samples.
+
+- Usage:
+  ```
+  config sflow interface <enable|disable> <interface-name|all>
+  ```
+
+  - Parameters:
+    - interface-name: specify the interface for which sFlow flow samples have to be enabled/disabled. The “all” keyword is used as a convenience to enable/disable sflow at the interface level for all the interfaces.
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow interface disable Ethernet40
+  ```
+
+**config sflow interface sample-rate**
+
+Configure the sample-rate for a specific interface.
+
+The default sample rate for any interface is (ifSpeed / 1e6) where ifSpeed is in bits/sec. So, the default sample rate based on interface speed is:
+
+    1-in-1000 for a 1G link
+    1-in-10,000 for a 10G link
+    1-in-40,000 for a 40G link
+    1-in-50,000 for a 50G link
+    1-in-100,000 for a 100G link
+
+It is recommended not to change the defaults. This CLI is to be used only in case of exceptions (e.g., to set the sample-rate to the nearest power-of-2 if there are hardware restrictions in using the defaults)
+
+- Usage:
+  ```
+  config sflow interface sample-rate <interface-name> <value>
+  ```
+
+  - Parameters:
+    - interface-name: specify the interface for which the sampling rate value is to be set
+    - value: value is the average number of packets skipped before the sample is taken. "The sampling rate specifies random sampling probability as the ratio of packets observed to samples generated. For example a sampling rate of 256 specifies that, on average, 1 sample will be generated for every 256 packets observed." Valid range 256:8388608.
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow interface sample-rate Ethernet32 1000
+  ```
+**config sflow polling-interval**
+
+This command is used to set the counter polling interval. Default is 20 seconds.
+
+- Usage:
+  ```
+  config sflow polling-interval <value>
+  ```
+
+  - Parameters:
+    - value: 0-300 seconds. Set polling-interval to 0 to disable counter polling
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow polling-interval 30
+  ```
+
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#sflow)
 
 ## Startup & Running Configuration
 
