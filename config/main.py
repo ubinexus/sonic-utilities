@@ -27,6 +27,7 @@ SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
+ASIC_CONF_FILENAME = 'asic.conf'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -395,14 +396,33 @@ def _get_platform():
                 return tokens[1].strip()
     return ''
 
+def _get_num_asic():
+    platform = _get_platform()
+    asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
+    if not os.path.isfile(asic_conf_file):
+        num_asic=1
+    else:
+        with open(asic_conf_file) as conf_file:
+            for line in conf_file:
+                line_info=line.split('=')
+                if line_info[0] == "NUM_ASIC":
+                     print line_info[1]
+                     num_asic=int(line_info[1])
+    return num_asic
+
 def _get_sonic_generated_services():
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
         return None
     generated_services_list = []
+    generated_multi_instance_services = []
     with open(SONIC_GENERATED_SERVICE_PATH) as generated_service_file:
         for line in generated_service_file:
-            generated_services_list.append(line.rstrip('\n'))
-    return None if not generated_services_list else generated_services_list
+            if '@' in line:
+                 line=line.replace('@', '')
+                 generated_multi_instance_services.append(line.rstrip('\n'))
+            else:
+                generated_services_list.append(line.rstrip('\n'))
+    return generated_services_list, generated_multi_instance_services
 
 # Callback for confirmation prompt. Aborts if user enters "n"
 def _abort_if_false(ctx, param, value):
@@ -419,9 +439,12 @@ def _stop_services():
         'hostcfgd',
         'nat'
     ]
-    generated_services_list = _get_sonic_generated_services()
 
-    if generated_services_list is None:
+    num_asic =  _get_num_asic()
+    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services()
+
+    if ((generated_services_list == []) and
+        (generated_multi_instance_services == [])):
         log_error("Failed to get generated services")
         return
 
@@ -429,15 +452,24 @@ def _stop_services():
         services_to_stop.remove('pmon')
 
     for service in services_to_stop:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Stopping service {} ...".format(service))
-            run_command("systemctl stop {}".format(service))
-
-        except SystemExit as e:
-            log_error("Stopping {} failed with error {}".format(service, e))
-            raise
+        if ((service + '.service' in generated_services_list) or
+           ((service + '.service' in generated_multi_instance_services) and
+            (num_asic == 1))):
+            try:
+                click.echo("Stopping service {}...".format(service))
+                run_command("systemctl stop {}".format(service))
+            except SystemExit as e:
+                log_error("Stopping {} failed with error {}".format(service, e))
+                raise
+        if ((service + '.service' in generated_multi_instance_services) and
+             (num_asic > 1)):
+            for inst in range(num_asic):
+                try:
+                    click.echo("Stopping service {}@{}.service...".format(service, inst))
+                    run_command("systemctl stop {}@{}.service".format(service, inst))
+                except SystemExit as e:
+                    log_error("Stopping {}@{}.service failed with error {}".format(service, inst, e))
+                    raise
 
 def _reset_failed_services():
     services_to_reset = [
@@ -459,21 +491,33 @@ def _reset_failed_services():
         'sflow'
     ]
 
-    generated_services_list = _get_sonic_generated_services()
-
-    if generated_services_list is None:
+    num_asic =  _get_num_asic()
+    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services()
+    if ((generated_services_list == []) and
+        (generated_multi_instance_services == [])):
         log_error("Failed to get generated services")
         return
 
     for service in services_to_reset:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Resetting failed status for service {} ...".format(service))
-            run_command("systemctl reset-failed {}".format(service))
-        except SystemExit as e:
-            log_error("Failed to reset failed status for service {}".format(service))
-            raise
+        if ((service + '.service' in generated_services_list) or
+           ((service + '.service' in generated_multi_instance_services) and
+            (num_asic == 1))):
+            try:
+                click.echo("Resetting failed status for service {}...".format(service))
+                run_command("systemctl reset-failed {}".format(service))
+            except SystemExit as e:
+                log_error("Failed to reset failed status for service {}".format(service))
+                raise
+        if ((service + '.service' in generated_multi_instance_services) and
+             (num_asic > 1)):
+            for inst in range(num_asic):
+                try:
+                    click.echo("Resetting failed status for service {}@{}.service...".format(service, inst))
+                    run_command("systemctl reset-failed {}@{}.service".format(service, inst))
+                except SystemExit as e:
+                    log_error("Failed to reset failed status for service {}@{}.service".format(service, inst))
+                    raise
+
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
@@ -490,9 +534,12 @@ def _restart_services():
         'nat',
         'sflow',
     ]
-    generated_services_list = _get_sonic_generated_services()
 
-    if generated_services_list is None:
+    num_asic =  _get_num_asic()
+    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services()
+
+    if ((generated_services_list == []) and
+        (generated_multi_instance_services == [])):
         log_error("Failed to get generated services")
         return
 
@@ -500,14 +547,24 @@ def _restart_services():
         services_to_restart.remove('pmon')
 
     for service in services_to_restart:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Restarting service {} ...".format(service))
-            run_command("systemctl restart {}".format(service))
-        except SystemExit as e:
-            log_error("Restart {} failed with error {}".format(service, e))
-            raise
+        if ((service + '.service' in generated_services_list) or
+           ((service + '.service' in generated_multi_instance_services) and
+            (num_asic == 1))):
+            try:
+                click.echo("Restarting service {}...".format(service))
+                run_command("systemctl restart {}".format(service))
+            except SystemExit as e:
+                log_error("Restart {} failed with error {}".format(service, e))
+                raise
+        if ((service + '.service' in generated_multi_instance_services) and
+             (num_asic > 1)):
+            for inst in range(num_asic):
+                try:
+                    click.echo("Restarting service {}@{}.service...".format(service, inst))
+                    run_command("systemctl restart {}@{}.service".format(service, inst))
+                except SystemExit as e:
+                    log_error("Restart {}@{}.service failed with error {}".format(service, inst,e))
+                    raise
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
