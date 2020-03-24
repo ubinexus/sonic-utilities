@@ -27,7 +27,7 @@ def log_error(msg):
 
 
 class DBMigrator():
-    def __init__(self, socket=None):
+    def __init__(self, socket=None, namespace=''):
         """
         Version string format:
            version_<major>_<minor>_<build>
@@ -50,7 +50,7 @@ class DBMigrator():
             db_kwargs['unix_socket_path'] = socket
 
         self.configDB        = ConfigDBConnector(**db_kwargs)
-        self.configDB.db_connect('CONFIG_DB')
+        self.configDB.db_connect('CONFIG_DB', namespaces=[namespace])
 
 
     def migrate_pfc_wd_table(self):
@@ -294,14 +294,23 @@ def main():
                         required = False,
                         help = 'the unix socket that the desired database listens on',
                         default = None )
+        parser.add_argument('-n',
+                        dest='namespace',
+                        metavar='namespace details',
+                        type = str,
+                        required = False,
+                        help = 'The namespace whose DB instance we need to connect',
+                        default = '' )
+
         args = parser.parse_args()
         operation = args.operation
         socket_path = args.socket
+        namespace = args.namespace
 
         if socket_path:
-            dbmgtr = DBMigrator(socket=socket_path)
+            dbmgtr = DBMigrator(socket=socket_path, namespace=namespace)
         else:
-            dbmgtr = DBMigrator()
+            dbmgtr = DBMigrator(namespace=namespace)
 
         result = getattr(dbmgtr, operation)()
         if result:
