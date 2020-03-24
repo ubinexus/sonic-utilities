@@ -1375,7 +1375,7 @@ def memory(kdump_memory):
         config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
         run_command("sonic-kdump-config --memory %s" % kdump_memory)
 
-@kdump.command('num_dumps')
+@kdump.command('num-dumps')
 @click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
 def num_dumps(kdump_num_dumps):
     """Set max number of dump files for kdump"""
@@ -2092,7 +2092,7 @@ def delete(counter_name, verbose):
 #
 # 'add_reasons' subcommand ('config dropcounters add_reasons')
 #
-@dropcounters.command('add_reasons')
+@dropcounters.command('add-reasons')
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
@@ -2105,7 +2105,7 @@ def add_reasons(counter_name, reasons, verbose):
 #
 # 'remove_reasons' subcommand ('config dropcounters remove_reasons')
 #
-@dropcounters.command('remove_reasons')
+@dropcounters.command('remove-reasons')
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
