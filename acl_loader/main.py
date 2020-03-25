@@ -676,7 +676,7 @@ class AclLoader(object):
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
         def pop_priority(val):
-            priority = 0
+            priority = None
             for key in dict(val):
                 if (key.upper() == "PRIORITY"):
                     priority  = val.pop(key)
@@ -720,6 +720,8 @@ class AclLoader(object):
                 continue
 
             priority = pop_priority(val)
+            if priority == None:
+                priority = "N/A"
             action = pop_action(val)
             matches = pop_matches(val)
 
