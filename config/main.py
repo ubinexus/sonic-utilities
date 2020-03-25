@@ -97,7 +97,7 @@ def execute_systemctl(list_of_services, action):
                     click.echo("Executing {} of service {}@{}...".format(action, service, inst))
                     run_command("systemctl {} {}@{}.service".format(action, service, inst))
                 except SystemExit as e:
-                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, e))
+                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
                     raise
 
 def run_command(command, display_cmd=False, ignore_error=False):
