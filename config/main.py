@@ -77,38 +77,28 @@ except KeyError, TypeError:
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
     num_asic = _get_num_asic()
-    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services()
+    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
     if ((generated_services_list == []) and
         (generated_multi_instance_services == [])):
         log_error("Failed to get generated services")
         return
 
     for service in list_of_services:
-        if (service + '.service' in generated_services_list): 
+        if (service + '.service' in generated_services_list):
             try:
-                click.echo("Executing {} action on service {}...".format(action, service))
+                click.echo("Executing {} of service {}...".format(action, service))
                 run_command("systemctl {} {}".format(action, service))
             except SystemExit as e:
-                log_error("Failed to execute {} for service {} with error {}".format(action, service, e))
+                log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
                 raise
-        elif (service + '.service' in generated_multi_instance_services):
-            if num_asic == 1:
+        if (service + '.service' in generated_multi_instance_services):
+            for inst in range(num_asic):
                 try:
-                    click.echo("Executing {} action on service {}...".format(action, service))
-                    run_command("systemctl {} {}".format(action, service))
+                    click.echo("Executing {} of service {}@{}...".format(action, service, inst))
+                    run_command("systemctl {} {}@{}.service".format(action, service, inst))
                 except SystemExit as e:
-                    log_error("Failed to execute {} for service {} with error {}".format(action, service, e))
+                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, e))
                     raise
-            else:
-                for inst in range(num_asic):
-                    try:
-                        click.echo("Executing {} action on service {}@{}...".format(action, service, inst))
-                        run_command("systemctl {} {}@{}.service".format(action, service, inst))
-                    except SystemExit as e:
-                        log_error("Failed to execute {} for service {}@{} with error {}".format(action, service, e))
-                        raise
-        else:
-            log_warning("Service {} not in generated services list".format(service)) 
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
@@ -437,10 +427,9 @@ def _get_platform():
 
 def _get_num_asic():
     platform = _get_platform()
+    num_asic = 1
     asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
-    if not os.path.isfile(asic_conf_file):
-        num_asic = 1
-    else:
+    if os.path.isfile(asic_conf_file):
         with open(asic_conf_file) as conf_file:
             for line in conf_file:
                 line_info = line.split('=')
@@ -448,7 +437,7 @@ def _get_num_asic():
                     num_asic = int(line_info[1])
     return num_asic
 
-def _get_sonic_generated_services():
+def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
         return None
     generated_services_list = []
@@ -457,7 +446,10 @@ def _get_sonic_generated_services():
         for line in generated_service_file:
             if '@' in line:
                 line = line.replace('@', '')
-                generated_multi_instance_services.append(line.rstrip('\n'))
+                if num_asic > 1:
+                    generated_multi_instance_services.append(line.rstrip('\n'))
+                else:
+                    generated_services_list.append(line.rstrip('\n'))
             else:
                 generated_services_list.append(line.rstrip('\n'))
     return generated_services_list, generated_multi_instance_services
