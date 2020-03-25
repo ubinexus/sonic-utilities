@@ -445,7 +445,7 @@ def _get_num_asic():
             for line in conf_file:
                 line_info = line.split('=')
                 if line_info[0].lower() == "num_asic":
-                     num_asic = int(line_info[1])
+                    num_asic = int(line_info[1])
     return num_asic
 
 def _get_sonic_generated_services():
