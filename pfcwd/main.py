@@ -3,6 +3,7 @@
 import click
 import swsssdk
 import os
+import sys
 from tabulate import tabulate
 from natsort import natsorted
 
@@ -203,19 +204,14 @@ def interval(poll_interval):
             restoration_time_entry_value = int(configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, entry).get('restoration_time'))
             if ((detection_time_entry_value != None) and (detection_time_entry_value < entry_min)):
                 entry_min = detection_time_entry_value
-                res_str = "detection_time"
             if ((restoration_time_entry_value != None) and (restoration_time_entry_value < entry_min)):
                 entry_min = restoration_time_entry_value
-                res_str = "restoration_time"
-        if entry_min < poll_interval:
-            poll_interval = entry_min - 1
-            print "polling_interval is greater than {}, using polling_interval = {}ms".format(res_str,poll_interval)
+        if entry_min <= poll_interval:
+            print >> sys.stderr, "unable to use polling_interval = {}ms, value is bigger or equal to the minimum in PFCWD table".format(poll_interval)
+            exit(1)
         
         pfcwd_info['POLL_INTERVAL'] = poll_interval
-        if(poll_interval < 100):
-            print "unable to use polling_interval = {}ms, value is less than 100".format(poll_interval)
-        else:
-            configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
+        configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
 
 # Stop WD
 @cli.command()
