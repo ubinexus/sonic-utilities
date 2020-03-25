@@ -456,7 +456,7 @@ def _get_sonic_generated_services():
     with open(SONIC_GENERATED_SERVICE_PATH) as generated_service_file:
         for line in generated_service_file:
             if '@' in line:
-                line=line.replace('@', '')
+                line = line.replace('@', '')
                 generated_multi_instance_services.append(line.rstrip('\n'))
             else:
                 generated_services_list.append(line.rstrip('\n'))
