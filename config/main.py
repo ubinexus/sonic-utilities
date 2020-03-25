@@ -439,13 +439,13 @@ def _get_num_asic():
     platform = _get_platform()
     asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
     if not os.path.isfile(asic_conf_file):
-        num_asic=1
+        num_asic = 1
     else:
         with open(asic_conf_file) as conf_file:
             for line in conf_file:
-                line_info=line.split('=')
+                line_info = line.split('=')
                 if line_info[0].lower() == "num_asic":
-                     num_asic=int(line_info[1])
+                     num_asic = int(line_info[1])
     return num_asic
 
 def _get_sonic_generated_services():
