@@ -2002,8 +2002,8 @@ def ntp(ctx, verbose):
     """Show NTP information"""
     ntpcmd = "ntpq -p -n"
     if is_mgmt_vrf_enabled(ctx) is True:
-        #ManagementVRF is enabled. Call ntpq using cgexec
-        ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+        #ManagementVRF is enabled. Call ntpq using ip vrf exec mgmt 
+        ntpcmd = "ip vrf exec mgmt ntpq -p -n"
     run_command(ntpcmd, display_cmd=verbose)
 
 
