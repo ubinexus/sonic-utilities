@@ -27,8 +27,13 @@ SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
+ASIC_CONF_FILENAME = 'asic.conf'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+
+SYSTEMCTL_ACTION_STOP="stop"
+SYSTEMCTL_ACTION_RESTART="restart"
+SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
 # ========================== Syslog wrappers ==========================
 
@@ -69,6 +74,31 @@ except KeyError, TypeError:
 # Helper functions
 #
 
+# Execute action on list of systemd services
+def execute_systemctl(list_of_services, action):
+    num_asic = _get_num_asic()
+    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
+    if ((generated_services_list == []) and
+        (generated_multi_instance_services == [])):
+        log_error("Failed to get generated services")
+        return
+
+    for service in list_of_services:
+        if (service + '.service' in generated_services_list):
+            try:
+                click.echo("Executing {} of service {}...".format(action, service))
+                run_command("systemctl {} {}".format(action, service))
+            except SystemExit as e:
+                log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
+                raise
+        if (service + '.service' in generated_multi_instance_services):
+            for inst in range(num_asic):
+                try:
+                    click.echo("Executing {} of service {}@{}...".format(action, service, inst))
+                    run_command("systemctl {} {}@{}.service".format(action, service, inst))
+                except SystemExit as e:
+                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
+                    raise
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
@@ -395,27 +425,39 @@ def _get_platform():
                 return tokens[1].strip()
     return ''
 
-def _get_sonic_generated_services():
+def _get_num_asic():
+    platform = _get_platform()
+    num_asic = 1
+    asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
+    if os.path.isfile(asic_conf_file):
+        with open(asic_conf_file) as conf_file:
+            for line in conf_file:
+                line_info = line.split('=')
+                if line_info[0].lower() == "num_asic":
+                    num_asic = int(line_info[1])
+    return num_asic
+
+def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
         return None
     generated_services_list = []
+    generated_multi_instance_services = []
     with open(SONIC_GENERATED_SERVICE_PATH) as generated_service_file:
         for line in generated_service_file:
-            generated_services_list.append(line.rstrip('\n'))
-    return None if not generated_services_list else generated_services_list
+            if '@' in line:
+                line = line.replace('@', '')
+                if num_asic > 1:
+                    generated_multi_instance_services.append(line.rstrip('\n'))
+                else:
+                    generated_services_list.append(line.rstrip('\n'))
+            else:
+                generated_services_list.append(line.rstrip('\n'))
+    return generated_services_list, generated_multi_instance_services
 
 # Callback for confirmation prompt. Aborts if user enters "n"
 def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
-
-def _get_optional_services():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    optional_services_dict = config_db.get_table('FEATURE')
-    if not optional_services_dict:
-        return None
-    return optional_services_dict.keys()
 
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
@@ -427,36 +469,11 @@ def _stop_services():
         'hostcfgd',
         'nat'
     ]
-    generated_services_list = _get_sonic_generated_services()
-
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
 
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
 
-    for service in services_to_stop:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Stopping service {} ...".format(service))
-            run_command("systemctl stop {}".format(service))
-
-        except SystemExit as e:
-            log_error("Stopping {} failed with error {}".format(service, e))
-            raise
-
-    # For optional services they don't start by default
-    for service in _get_optional_services():
-        (out, err) = run_command("systemctl status {}".format(service), return_output = True)
-        if not err and 'Active: active (running)' in out:
-            try:
-                click.echo("Stopping service {} ...".format(service))
-                run_command("systemctl stop {}".format(service))
-            except SystemExit as e:
-                log_error("Stopping {} failed with error {}".format(service, e))
-                raise
+    execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
 
 def _reset_failed_services():
     services_to_reset = [
@@ -474,35 +491,12 @@ def _reset_failed_services():
         'swss',
         'syncd',
         'teamd',
-        'nat'
+        'nat',
+        'sflow'
     ]
+    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
-    generated_services_list = _get_sonic_generated_services()
 
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
-
-    for service in services_to_reset:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Resetting failed status for service {} ...".format(service))
-            run_command("systemctl reset-failed {}".format(service))
-        except SystemExit as e:
-            log_error("Failed to reset failed status for service {}".format(service))
-            raise
-
-    # For optional services they don't start by default
-    for service in _get_optional_services():
-        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
-        if not err and 'enabled' in out:
-            try:
-                click.echo("Resetting failed status for service {} ...".format(service))
-                run_command("systemctl reset-failed {}".format(service))
-            except SystemExit as e:
-                log_error("Failed to reset failed status for service {}".format(service))
-                raise
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
@@ -519,35 +513,12 @@ def _restart_services():
         'nat',
         'sflow',
     ]
-    generated_services_list = _get_sonic_generated_services()
-
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
 
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
 
-    for service in services_to_restart:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Restarting service {} ...".format(service))
-            run_command("systemctl restart {}".format(service))
-        except SystemExit as e:
-            log_error("Restart {} failed with error {}".format(service, e))
-            raise
+    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
 
-    # For optional services they don't start by default
-    for service in _get_optional_services():
-        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
-        if not err and 'enabled' in out:
-            try:
-                click.echo("Restarting service {} ...".format(service))
-                run_command("systemctl restart {}".format(service))
-            except SystemExit as e:
-                log_error("Restart {} failed with error {}".format(service, e))
-                raise
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
@@ -612,6 +583,7 @@ def reload(filename, yes, load_sysinfo):
             cfg_hwsku = cfg_hwsku.strip()
 
     #Stop services before config push
+    log_info("'reload' stopping services...")
     _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -637,9 +609,10 @@ def reload(filename, yes, load_sysinfo):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     _reset_failed_services()
+    log_info("'reload' restarting services...")
     _restart_services()
 
-@config.command()
+@config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload mgmt config?')
 @click.argument('filename', default='/etc/sonic/device_desc.xml', type=click.Path(exists=True))
@@ -663,7 +636,7 @@ def load_mgmt_config(filename):
     run_command(command, display_cmd=True, ignore_error=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
-@config.command()
+@config.command("load_minigraph")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 def load_minigraph():
@@ -681,6 +654,7 @@ def load_minigraph():
         device_type = device_type.strip()
 
     #Stop services before config push
+    log_info("'load_minigraph' stopping services...")
     _stop_services()
 
     config_db = ConfigDBConnector()
@@ -708,6 +682,7 @@ def load_minigraph():
     # status from all services before we attempt to restart them
     _reset_failed_services()
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
+    log_info("'load_minigraph' restarting services...")
     _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
@@ -1101,6 +1076,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
+    interface_table = db.get_table('INTERFACE')
 
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
@@ -1120,6 +1096,10 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
         else:
             ctx.fail("{} is already a member of {}".format(interface_name,
                                                         vlan_name))
+    for entry in interface_table:
+        if (interface_name == entry[0]):
+            ctx.fail("{} is a L3 interface!".format(interface_name))
+            
     members.append(interface_name)
     vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
