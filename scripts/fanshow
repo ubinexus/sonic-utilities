@@ -10,9 +10,10 @@ from tabulate import tabulate
 from swsssdk import SonicV2Connector
 
 
-header = ['FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
+header = ['Drawer', 'FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
 
 FAN_TABLE_NAME = 'FAN_INFO'
+DRAWER_FIELD_NAME = 'drawer_name'
 SPEED_FIELD_NAME = 'speed'
 DIRECTION_FIELD_NAME = 'direction'
 PRESENCE_FIELD_NAME = 'presence'
@@ -55,7 +56,7 @@ class FanShow(object):
             status = data_dict[STATUS_FIELD_NAME].lower()
             status = 'OK' if status == 'true' else 'Not OK'
 
-            table.append((name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, data_dict[TIMESTAMP_FIELD_NAME]))
+            table.append((data_dict[DRAWER_FIELD_NAME], name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, data_dict[TIMESTAMP_FIELD_NAME]))
         
         if table:
             table.sort()
