@@ -196,6 +196,12 @@ def pfccounters():
     command = "pfcstat -c"
     run_command(command)
 
+@cli.command()
+def dropcounters():
+    """Clear drop counters"""
+    command = "dropstat -c clear"
+    run_command(command)
+
 #
 # 'clear watermarks
 #
@@ -471,6 +477,7 @@ def line(linenum):
     cmd = "consutil clear " + str(linenum)
     run_command(cmd)
 
+
 @cli.group('threshold')
 def threshold():
     """Clear threshold breach entries"""
@@ -484,7 +491,31 @@ def breach(id):
         cmd = "thresholdbreach -c -cnt {}".format(id)
     else:
         cmd = 'thresholdbreach -c'
+    run_command(cmd)
 
+#
+# 'nat' group ("clear nat ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def nat():
+    """Clear the nat info"""
+    pass
+
+# 'statistics' subcommand ("clear nat statistics")
+@nat.command()
+def statistics():
+    """ Clear all NAT statistics """
+
+    cmd = "natclear -s"
+    run_command(cmd)
+
+# 'translations' subcommand ("clear nat translations")
+@nat.command()
+def translations():
+    """ Clear all NAT translations """
+
+    cmd = "natclear -t"
     run_command(cmd)
 
 if __name__ == '__main__':
