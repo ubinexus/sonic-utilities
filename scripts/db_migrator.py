@@ -50,7 +50,7 @@ class DBMigrator():
             db_kwargs['unix_socket_path'] = socket
 
         self.configDB        = ConfigDBConnector(**db_kwargs)
-        self.configDB.db_connect('CONFIG_DB', namespaces=[namespace])
+        self.configDB.db_connect('CONFIG_DB', namespace=namespace)
 
 
     def migrate_pfc_wd_table(self):
