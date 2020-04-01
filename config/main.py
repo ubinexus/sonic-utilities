@@ -425,16 +425,6 @@ def _get_neighbor_ipaddress_list_by_hostname(config_db, hostname):
         if session.has_key('name') and session['name'] == hostname:
             addrs.append(addr)
     return addrs
-def _get_neighbor_ipaddress_list_by_hostname(config_db, hostname):
-    """Returns list of strings, each containing an IP address of neighbor with
-       hostname <hostname>. Returns empty list if <hostname> not a neighbor
-    """
-    addrs = []
-    bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
-    for addr, session in bgp_sessions.iteritems():
-        if session.has_key('name') and session['name'] == hostname:
-            addrs.append(addr)
-    return addrs
 
 def _change_bgp_session_status_by_addr(config_db, ipaddress, status, verbose):
     """Start up or shut down BGP session by IP address
@@ -463,6 +453,8 @@ def _change_bgp_session_status(config_db, ipaddr_or_hostname, status, verbose):
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(config_db, ip_addr, status, verbose)
 
+    return True
+
 def _validate_bgp_neighbor(config_db, neighbor_ip_or_hostname):
     """validates whether the given ip or host name is a BGP neighbor
     """
@@ -485,6 +477,8 @@ def _remove_bgp_neighbor_config(config_db, neighbor_ip_or_hostname):
     for ip_addr in ip_addrs:
         config_db.mod_entry('bgp_neighbor', ip_addr, None)
         click.echo("Removed configuration of BGP neighbor {}".format(ip_addr))
+
+    return True
 
 def _change_hostname(hostname):
     current_hostname = os.uname()[1]
@@ -669,6 +663,7 @@ def save(namespace, filename):
         command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, filename)
         run_command(command, display_cmd=True)
     else:
+        # Save config for the database service running on linux host
         command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
         run_command(command, display_cmd=True)
 
@@ -687,7 +682,7 @@ def save(namespace, filename):
 @config.command()
 @click.option('-n', '--namespace', help='Namespace name')
 @click.option('-y', '--yes', is_flag=True)
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
 def load(filename, yes, namespace):
     """Import a previous saved config DB dump file."""
     if not yes:
@@ -709,6 +704,7 @@ def load(filename, yes, namespace):
         command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, filename)
         run_command(command, display_cmd=True)
     else:
+        # Load config for the database service running on linux host
         command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
         run_command(command, display_cmd=True)
 
@@ -730,11 +726,11 @@ def load(filename, yes, namespace):
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
 def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file."""
     if not yes:
-        click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+        click.confirm('Clear current config and reload config ?', abort=True)
 
     log_info("'reload' executing...")
 
@@ -936,8 +932,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
         db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
                 {'NULL': 'NULL'})
     else:
-        click.echo("The member interface is not in the same namespace as of the PortChannel")
-        return None
+        ctx.fail("The member interface is not in the same namespace as of the PortChannel")
 
 @portchannel_member.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -951,8 +946,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
         db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
         db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
     else:
-        click.echo("The member interface is not in the same namespace as of the PortChannel")
-        return None
+        ctx.fail("The member interface is not in the same namespace as of the PortChannel")
 
 #
 # 'mirror_session' group ('config mirror_session ...')
@@ -1266,8 +1260,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     db = ctx.obj['db']
     namespace = get_intf_namespace(interface_name)
     if namespace != ctx.obj['namespace']:
-        click.echo("The interface is not in the namespace where this VLAN is present")
-        return None
+        ctx.fail("The interface is not in the namespace where this VLAN is present")
 
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1309,8 +1302,7 @@ def del_vlan_member(ctx, vid, interface_name):
     db = ctx.obj['db']
     namespace = get_intf_namespace(interface_name)
     if namespace != ctx.obj['namespace']:
-        click.echo("The interface is not in the namespace where this VLAN is present")
-        return None
+        ctx.fail("The interface is not in the namespace where this VLAN is present")
 
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1616,6 +1608,9 @@ def all(verbose):
         namespaces = ns_list['front_ns']
         int_hosts = get_all_internal_hosts()
 
+    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    """
     for namespace in namespaces:
         config_db = ConfigDBConnector()
         config_db.connect(namespace=namespace)
@@ -1632,10 +1627,14 @@ def neighbor(ipaddr_or_hostname, verbose):
        User can specify either internal or external BGP neighbor to shutdown
     """
     namespaces = ['']
+    found_neighbor = False
     if is_multi_asic:
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
+    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    """
     for namespace in namespaces:
         config_db = ConfigDBConnector()
         config_db.connect(namespace=namespace)
@@ -1665,6 +1664,9 @@ def all(verbose):
         namespaces = ns_list['front_ns']
         int_hosts = get_all_internal_hosts()
 
+    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    """
     for namespace in namespaces:
         config_db = ConfigDBConnector()
         config_db.connect(namespace=namespace)
@@ -1687,6 +1689,9 @@ def neighbor(ipaddr_or_hostname, verbose):
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
+    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    """
     for namespace in namespaces:
         config_db = ConfigDBConnector()
         config_db.connect(namespace=namespace)
@@ -1709,23 +1714,23 @@ def remove():
 @click.argument('neighbor_ip_or_hostname', metavar='<neighbor_ip_or_hostname>', required=True)
 def remove_neighbor(neighbor_ip_or_hostname):
     """Deletes BGP neighbor configuration of given hostname or ip from devices
-       In the case of Multi ASIC devices, we can remove only the EBGP sessions with external neighbors.
+       User can specify either internal or external BGP neighbor to remove
     """
     namespaces = ['']
-    int_hosts = []
     removed_neighbor = False
 
     if is_multi_asic:
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns']
-        int_hosts = get_all_internal_hosts()
 
+    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    """
     for namespace in namespaces:
         config_db = ConfigDBConnector()
         config_db.connect(namespace=namespace)
-        if ipaddress not in int_hosts:
-            if _remove_bgp_neighbor_config(config_db, neighbor_ip_or_hostname):
-                removed_neighbor = True
+        if _remove_bgp_neighbor_config(config_db, neighbor_ip_or_hostname):
+            removed_neighbor = True
 
     if not removed_neighbor:
         click.get_current_context().fail("Could not locate neighbor '{}'".format(neighbor_ip_or_hostname))
