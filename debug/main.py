@@ -97,7 +97,7 @@ if 'FRRouting' in p:
         command += '"'
         run_command(command)
 
-    @bgp.command('update_groups')
+    @bgp.command('update-groups')
     def update_groups():
         """BGP update-groups"""
         command = 'sudo vtysh -c "debug bgp update-groups"'
