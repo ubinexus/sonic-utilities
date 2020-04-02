@@ -197,6 +197,7 @@ class Watermarkstat(object):
             Get the counters from specific table.
         """
 
+        # header list contains the port name followed by the queues/pgs. fields is used to populate the queue/pg values
         fields = ["0"]* (len(self.header_list) - 1)
 
         for name, obj_id in port_obj.items():
