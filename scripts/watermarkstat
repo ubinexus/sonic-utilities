@@ -179,6 +179,7 @@ class Watermarkstat(object):
             print >> sys.stderr, "Header info is not available!"
             sys.exit(1)
 
+        self.header_list = ['Port']
         header_map = wm_type["obj_map"]
         single_key = header_map.keys()[0]
         header_len = len(header_map[single_key])
@@ -189,14 +190,14 @@ class Watermarkstat(object):
             min_idx = min(min_idx, curr_idx)
 
         self.min_idx = int(min_idx)
-        self.header_list = ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, self.min_idx + header_len)]
+        self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, self.min_idx + header_len)]
 
     def get_counters(self, table_prefix, port_obj, idx_func, watermark):
         """
             Get the counters from specific table.
         """
 
-        fields = ["0"]* len(self.header_list)
+        fields = ["0"]* (len(self.header_list) - 1)
 
         for name, obj_id in port_obj.items():
             full_table_id = table_prefix + obj_id
