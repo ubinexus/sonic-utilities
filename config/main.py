@@ -127,7 +127,10 @@ def is_multi_asic():
     else:
         return False
 
-# In case of Multi ASIC device, returns list of front-end and back-end namespaces as a dict.
+"""In case of Multi ASIC device, Each ASIC will have a linux network namespace created.
+   So we loop through the databases in different namesapces and depending on the sub_role
+   decide whether this is a front end ASIC/namespace or a back end one.
+"""
 def get_all_namespaces():
     front_ns = []
     back_ns = []
@@ -147,7 +150,9 @@ def get_all_namespaces():
 
     return {'front_ns':front_ns, 'back_ns':back_ns}
 
-# In case of Multi ASIC device, returns list of internal host names.
+"""In case of Multi ASIC device, Each ASIC will have a host name and we call it internal hosts.
+   So we loop through the databases in different namesapces and get the hostname
+"""
 def get_all_internal_hosts():
     internal_hosts = []
     num_asics = _get_num_asic()
@@ -176,7 +181,7 @@ def validate_namespace(namespace):
 # Return the namespace where an interface belongs
 def get_intf_namespace(port):
     """If it is a non multi-asic device, or if the interface is management interface
-       return '' ( empty string ) which maps to host namespace.
+       return '' ( empty string ) which maps to linux host.
     """
     if is_multi_asic() == False or port == 'eth0':
         return ''
@@ -209,8 +214,9 @@ def get_intf_namespace(port):
 
     if returncode == 0:
         instance = output[0].rstrip('\n')
-
-    return NS_PREFIX+instance
+        return NS_PREFIX+instance
+    else:
+        return None
 
 def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
@@ -884,10 +890,10 @@ def hostname(new_hostname):
 @click.option('-n', '--namespace', help='Namespace name', default=None)
 @click.pass_context
 def portchannel(ctx, namespace):
-    if is_multi_asic() and namespace is None:
-        ctx.fail("Multi ASIC mode, need to pass namespace where portchannel to be created.")
     config_db = ConfigDBConnector()
-    config_db.connect(namespace=namespace)
+    #Check if the namespace entered by user is valid
+    if is_multi_asic() and namespace not None and not validate_namespace(namespace):
+        ctx.fail("Invalid Namespace entered {}".format(namespace))
     ctx.obj = {'db': config_db, 'namespace': namespace}
     pass
 
@@ -898,7 +904,13 @@ def portchannel(ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']
+        if namespace is None:
+            ctx.fail("Multi ASIC mode, need to pass namespace where portchannel to be created.")
     db = ctx.obj['db']
+    db.connect(namespace=namespace)
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
     if min_links != 0:
@@ -912,7 +924,13 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']
+        if namespace is None:
+            ctx.fail("Multi ASIC mode, need to pass namespace where portchannel to be deleted.")
     db = ctx.obj['db']
+    db.connect(namespace=namespace)
     db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group('member')
@@ -927,12 +945,19 @@ def portchannel_member(ctx):
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
-    intf_ns = get_intf_namespace(port_name)
-    if intf_ns == ctx.obj['namespace']:
-        db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
-                {'NULL': 'NULL'})
-    else:
-        ctx.fail("The member interface is not in the same namespace as of the PortChannel")
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']:
+        if namespace is None:
+            # Get the namespace based on the member interface given by user.
+            intf_ns = get_intf_namespace(port_name)
+            if intf_ns is None:
+                ctx.fail("Multi ASIC mode, Member interface {} is invalid".format(port_name))
+            namespace = intf_ns
+
+    db.connect(namespace=namespace)
+    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
+            {'NULL': 'NULL'})
 
 @portchannel_member.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -941,12 +966,19 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
-    intf_ns = get_intf_namespace(port_name)
-    if intf_ns == ctx.obj['namespace']:
-        db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
-        db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
-    else:
-        ctx.fail("The member interface is not in the same namespace as of the PortChannel")
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']:
+        if namespace is None:
+            # Get the namespace based on the member interface given by user.
+            intf_ns = get_intf_namespace(port_name)
+            if intf_ns is None:
+                ctx.fail("Multi ASIC mode, Member interface {} is invalid".format(port_name))
+            namespace = intf_ns
+
+    db.connect(namespace=namespace)
+    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
+    db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
 
 #
 # 'mirror_session' group ('config mirror_session ...')
@@ -1208,13 +1240,13 @@ def warm_restart_bgp_eoiu(ctx, enable):
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def vlan(ctx, redis_unix_socket_path, namespace):
     """VLAN-related configuration tasks"""
-    if is_multi_asic() and namespace is None:
-        ctx.fail("Multi ASIC mode, need to pass namespace where vlan to be created.")
     kwargs = {}
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
     config_db = ConfigDBConnector(**kwargs)
-    config_db.connect(wait_for_init=False, namespace=namespace)
+    #Check if the namespace entered by user is valid
+    if is_multi_asic() and namespace not None and not validate_namespace(namespace):
+        ctx.fail("Invalid Namespace entered {}".format(namespace))
     ctx.obj = {'db': config_db, 'namespace': namespace}
     pass
 
@@ -1223,7 +1255,15 @@ def vlan(ctx, redis_unix_socket_path, namespace):
 @click.pass_context
 def add_vlan(ctx, vid):
     if vid >= 1 and vid <= 4094:
+        namespace = ''
+        if is_multi_asic():
+            namespace = ctx.obj['namespace']
+            if namespace is None:
+                ctx.fail("Multi ASIC mode, need to pass namespace where vlan to be created.")
+
         db = ctx.obj['db']
+        db.connect(wait_for_init=False, namespace=namespace)
+
         vlan = 'Vlan{}'.format(vid)
         if len(db.get_entry('VLAN', vlan)) != 0:
             ctx.fail("{} already exists".format(vlan))
@@ -1235,7 +1275,15 @@ def add_vlan(ctx, vid):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def del_vlan(ctx, vid):
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']
+        if namespace is None:
+            ctx.fail("Multi ASIC mode, need to pass namespace where vlan to be removed.")
+
     db = ctx.obj['db']
+    db.connect(wait_for_init=False, namespace=namespace)
+
     keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
     for k in keys:
         db.set_entry('VLAN_MEMBER', k, None)
@@ -1257,10 +1305,18 @@ def vlan_member(ctx):
 @click.option('-u', '--untagged', is_flag=True)
 @click.pass_context
 def add_vlan_member(ctx, vid, interface_name, untagged):
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']:
+        if namespace is None:
+            # Get the namespace based on the member interface given by user.
+            intf_ns = get_intf_namespace(interface_name)
+            if intf_ns is None:
+                ctx.fail("Multi ASIC mode, Member interface {} is invalid".format(interface_name))
+            namespace = intf_ns
+
     db = ctx.obj['db']
-    namespace = get_intf_namespace(interface_name)
-    if namespace != ctx.obj['namespace']:
-        ctx.fail("The interface is not in the namespace where this VLAN is present")
+    db.connect(wait_for_init=False, namespace=namespace)
 
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1299,10 +1355,18 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.pass_context
 def del_vlan_member(ctx, vid, interface_name):
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']:
+        if namespace is None:
+            # Get the namespace based on the member interface given by user.
+            intf_ns = get_intf_namespace(interface_name)
+            if intf_ns is None:
+                ctx.fail("Multi ASIC mode, Member interface {} is invalid".format(interface_name))
+            namespace = intf_ns
+
     db = ctx.obj['db']
-    namespace = get_intf_namespace(interface_name)
-    if namespace != ctx.obj['namespace']:
-        ctx.fail("The interface is not in the namespace where this VLAN is present")
+    db.connect(wait_for_init=False, namespace=namespace)
 
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1745,6 +1809,9 @@ def remove_neighbor(neighbor_ip_or_hostname):
 def interface(ctx, namespace):
     """Interface-related configuration tasks"""
     config_db = ConfigDBConnector()
+    #Check if the namespace entered by user is valid
+    if is_multi_asic() and namespace not None and not validate_namespace(namespace):
+        ctx.fail("Invalid Namespace entered {}".format(namespace))
     ctx.obj = {'config_db': config_db, 'namespace': namespace}
 
 #
