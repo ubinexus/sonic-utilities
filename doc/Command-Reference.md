@@ -2429,7 +2429,7 @@ From 201911 release onwards, an additional option of namespace is added as follo
 Options:
   -n, --namespace TEXT  Namespace name
 
-The namespace is optional for Single ASIC devices, so the commands are backward compatible.
+The namespace parameter is not significant for Single ASIC devices, so the commands are backward compatible.
 In Multi-ASIC platforms, namespace is mandatory for PortChannel and Vlan interfaces. 
 It tells which ASIC/namespace this interface was created earlier.
 
@@ -3089,7 +3089,7 @@ From 201911 release onwards, an additional option of namespace is added as follo
 Options:
   -n, --namespace TEXT  Namespace name
 
-The namespace is optional and is not significant for for Single ASIC devices.
+The namespace is not significant for for Single ASIC devices.
 In Multi-ASIC platforms, namespace if specified will load the config for the namespace specific config file 
 which is /etc/sonic/config_db<namespaceID>.json by default or from a file user inputs.
 
@@ -3214,7 +3214,7 @@ From 201911 release onwards, an additional option of namespace is added as follo
 Options:
   -n, --namespace TEXT  Namespace name
 
-The namespace is optional and is not significant for for Single ASIC devices.
+The namespace is not significant for for Single ASIC devices.
 In Multi-ASIC platforms, namespace if specified will save the config for the namespace to specific config file 
 which is /etc/sonic/config_db<namespaceID>.json by default or to a file user inputs.
 
@@ -4273,7 +4273,7 @@ From 201911 release onwards, an additional option of namespace is added as follo
 Options:
   -n, --namespace TEXT  Namespace name
 
-The namespace is optional for Single ASIC devices, so the commands are backward compatible. 
+The namespace is not significant for Single ASIC devices, so the commands are backward compatible.
 In Multi-ASIC platforms, it is mandatory for (add/del) of Port channel, optional parameter for member (add/del).
 
 - Example (Create the portchannel with name "PortChannel0011"):
@@ -5377,7 +5377,7 @@ From 201911 release onwards, an additional option of namespace is added as follo
 Options:
   -n, --namespace TEXT  Namespace name
 
-The namespace is optional for Single ASIC devices, so the commands are backward compatible. 
+The namespace is not significant for Single ASIC devices, so the commands are backward compatible.
 In Multi-ASIC platforms, it is mandatory for (add/del) of vlan, optional parameter for member (add/del).
 
 - Example (Create the VLAN "Vlan100" if it does not already exist):

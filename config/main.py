@@ -181,7 +181,8 @@ def validate_namespace(namespace):
 # Return the namespace where an interface belongs
 def get_intf_namespace(port):
     """If it is a non multi-asic device, or if the interface is management interface
-       return '' ( empty string ) which maps to linux host.
+       return '' ( empty string ) which maps to current namespace ( in case of config commands
+       it is linux host namespace, as we call config commands from linux host )
     """
     if is_multi_asic() == False or port == 'eth0':
         return ''
@@ -755,8 +756,8 @@ def reload(filename, yes, load_sysinfo):
     _stop_services()
 
     """ This logic is common to the Single ASIC And multiple ASIC devices.  We get all the namespaces
-        present in the system. An empty string is added to the list for the linux host global DB.
-        We use '' string as there is no namespace, it is actually linux host network namespace.
+        present in the system. An empty string is added to the list to denote the local namespace we 
+        are currently in from where we execute this command ( which is the linux host namespace )
     """
     ns_list = get_all_namespaces()
     namespaces = [''] + ns_list['front_ns'] + ns_list['back_ns']
@@ -892,7 +893,7 @@ def hostname(new_hostname):
 def portchannel(ctx, namespace):
     config_db = ConfigDBConnector()
     #Check if the namespace entered by user is valid
-    if is_multi_asic() and namespace not None and not validate_namespace(namespace):
+    if is_multi_asic() and namespace is not None and not validate_namespace(namespace):
         ctx.fail("Invalid Namespace entered {}".format(namespace))
     ctx.obj = {'db': config_db, 'namespace': namespace}
     pass
@@ -947,7 +948,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     db = ctx.obj['db']
     namespace = ''
     if is_multi_asic():
-        namespace = ctx.obj['namespace']:
+        namespace = ctx.obj['namespace']
         if namespace is None:
             # Get the namespace based on the member interface given by user.
             intf_ns = get_intf_namespace(port_name)
@@ -968,7 +969,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     db = ctx.obj['db']
     namespace = ''
     if is_multi_asic():
-        namespace = ctx.obj['namespace']:
+        namespace = ctx.obj['namespace']
         if namespace is None:
             # Get the namespace based on the member interface given by user.
             intf_ns = get_intf_namespace(port_name)
@@ -1245,7 +1246,7 @@ def vlan(ctx, redis_unix_socket_path, namespace):
         kwargs['unix_socket_path'] = redis_unix_socket_path
     config_db = ConfigDBConnector(**kwargs)
     #Check if the namespace entered by user is valid
-    if is_multi_asic() and namespace not None and not validate_namespace(namespace):
+    if is_multi_asic() and namespace is not None and not validate_namespace(namespace):
         ctx.fail("Invalid Namespace entered {}".format(namespace))
     ctx.obj = {'db': config_db, 'namespace': namespace}
     pass
@@ -1307,7 +1308,7 @@ def vlan_member(ctx):
 def add_vlan_member(ctx, vid, interface_name, untagged):
     namespace = ''
     if is_multi_asic():
-        namespace = ctx.obj['namespace']:
+        namespace = ctx.obj['namespace']
         if namespace is None:
             # Get the namespace based on the member interface given by user.
             intf_ns = get_intf_namespace(interface_name)
@@ -1357,7 +1358,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 def del_vlan_member(ctx, vid, interface_name):
     namespace = ''
     if is_multi_asic():
-        namespace = ctx.obj['namespace']:
+        namespace = ctx.obj['namespace']
         if namespace is None:
             # Get the namespace based on the member interface given by user.
             intf_ns = get_intf_namespace(interface_name)
@@ -1810,7 +1811,7 @@ def interface(ctx, namespace):
     """Interface-related configuration tasks"""
     config_db = ConfigDBConnector()
     #Check if the namespace entered by user is valid
-    if is_multi_asic() and namespace not None and not validate_namespace(namespace):
+    if is_multi_asic() and namespace is not None and not validate_namespace(namespace):
         ctx.fail("Invalid Namespace entered {}".format(namespace))
     ctx.obj = {'config_db': config_db, 'namespace': namespace}
 
