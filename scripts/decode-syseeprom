@@ -63,6 +63,8 @@ def main():
     #
     run(t, opts, args, support_eeprom_db)
 
+    return 0
+
 #-------------------------------------------------------------------------------
 #
 # sets global variable "optcfg"
