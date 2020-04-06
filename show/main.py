@@ -2183,7 +2183,6 @@ def brief(verbose):
                 vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
         except KeyError:
             vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
-            pass
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
@@ -2868,7 +2867,6 @@ def ztp(status, verbose):
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
-    pass
 
     cmd = "ztp status"
     if verbose:
