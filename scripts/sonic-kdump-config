@@ -337,6 +337,7 @@ def cmd_kdump_config_next(verbose):
 ## Disable kdump
 #
 #  @param verbose If True, the function will display a few additional information
+#  @return        True if the grub/cmdline cfg has changed, and False if it has not
 def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file):
     write_use_kdump(0)
 
@@ -357,6 +358,8 @@ def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file
 
     if changed:
         rewrite_cfg(lines, cmdline_file)
+
+    return changed
 
 ## Command: Disable kdump
 #
