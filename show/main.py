@@ -180,7 +180,7 @@ def get_routing_stack():
         proc.wait()
         result = stdout.rstrip('\n')
 
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect routing-stack")
 
     return (result)
@@ -448,7 +448,7 @@ def get_neighbor_dict_from_table(db,table_name):
             neighbor_dict[entry] = neighbor_data[entry].get(
                 'name') if 'name' in neighbor_data[entry].keys() else 'NotAvailable'
         return neighbor_dict
-    except:
+    except Exception:
         return neighbor_dict
 
 
@@ -498,7 +498,7 @@ def get_dynamic_neighbor_subnet(db):
         dynamic_neighbor["v4"] = v4_subnet
         dynamic_neighbor["v6"] = v6_subnet
         return dynamic_neighbor
-    except:
+    except Exception:
         return neighbor_data
 
 
@@ -1398,7 +1398,7 @@ def interfaces():
                 try:
                     neighbor_name = bgp_peer[local_ip][0]
                     neighbor_ip = bgp_peer[local_ip][1]
-                except:
+                except Exception:
                     pass
 
             if len(ifaddresses) > 0:
@@ -1538,7 +1538,7 @@ def interfaces():
                 try:
                     neighbor_name = bgp_peer[local_ip][0]
                     neighbor_ip = bgp_peer[local_ip][1]
-                except:
+                except Exception:
                     pass
 
             if len(ifaddresses) > 0:

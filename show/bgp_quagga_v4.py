@@ -22,7 +22,7 @@ def summary():
     try:
         device_output = run_command('sudo vtysh -c "show ip bgp summary"', return_cmd=True)
         get_bgp_summary_extended(device_output)
-    except:
+    except Exception:
         run_command('sudo vtysh -c "show ip bgp summary"')
 
 
