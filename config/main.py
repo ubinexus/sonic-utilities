@@ -622,7 +622,7 @@ class ConfigDbLock():
         return
 # end of class configdblock
 
-cdblock = ConfigDbLock()
+configdb_lock = ConfigDbLock()
 # This is our main entrypoint - the main 'config' command
 @click.group(context_settings=CONTEXT_SETTINGS)
 def config():
@@ -641,7 +641,7 @@ config.add_command(nat.nat)
 def save(filename):
     """Export current config DB to a file on disk."""
     # reacquire lock after prompt
-    cdblock.reacquireLock()
+    configdb_lock.reacquireLock()
     command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
 
@@ -653,7 +653,7 @@ def load(filename, yes):
     if not yes:
         click.confirm('Load config from the file %s?' % filename, abort=True)
         # reacquire lock after prompt
-        cdblock.reacquireLock()
+        configdb_lock.reacquireLock()
 
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
@@ -667,7 +667,7 @@ def reload(filename, yes, load_sysinfo):
     if not yes:
         click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
         # reacquire lock after prompt
-        cdblock.reacquireLock()
+        configdb_lock.reacquireLock()
 
     log_info("'reload' executing...")
 
@@ -718,7 +718,7 @@ def reload(filename, yes, load_sysinfo):
 def load_mgmt_config(filename):
     """Reconfigure hostname and mgmt interface based on device description file."""
     # reacquire lock after prompt
-    cdblock.reacquireLock()
+    configdb_lock.reacquireLock()
     command = "{} -M {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     #FIXME: After config DB daemon for hostname and mgmt interface is implemented, we'll no longer need to do manual configuration here
@@ -744,7 +744,7 @@ def load_minigraph():
 
     """Reconfigure based on minigraph."""
     # reacquire lock after prompt
-    cdblock.reacquireLock()
+    configdb_lock.reacquireLock()
     log_info("'load_minigraph' executing...")
 
     # get the device type
@@ -2418,7 +2418,7 @@ def ztp():
 def run(run):
     """Restart ZTP of the device."""
     # reacquire lock after prompt
-    cdblock.reacquireLock()
+    configdb_lock.reacquireLock()
     command = "ztp run -y"
     run_command(command, display_cmd=True)
 
@@ -2429,7 +2429,7 @@ def run(run):
 def disable(disable):
     """Administratively Disable ZTP."""
     # reacquire lock after prompt
-    cdblock.reacquireLock()
+    configdb_lock.reacquireLock()
     command = "ztp disable -y"
     run_command(command, display_cmd=True)
 
