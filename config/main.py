@@ -556,11 +556,11 @@ class ConfigDbLock():
             # if lock exists but expire timer not running, run expire time and
             # abort.
             elif not self.client.ttl(self.lockName):
+                click.echo(":::Unable to acquire lock. Resetting timer and aborting:::");
                 self.client.expire(self.lockName, self.timeout)
-                click.echo(":::Can not acquire lock, Reset Timer & Abort:::");
                 sys.exit(1)
             else:
-                click.echo(":::Can not acquire lock, Abort:::");
+                click.echo(":::Unable to acquire lock. Aborting:::");
                 sys.exit(1)
         except Exception as e:
             click.echo(":::Exception: {}:::".format(e))
@@ -584,7 +584,7 @@ class ConfigDbLock():
                     return
                 else:
                     # some other process is holding the lock.
-                    click.echo(":::Can not acquire lock LOCK PID: {} and self.pid:{}:::".\
+                    click.echo(":::Unable to reacquire lock (lock PID: {}, self.pid: {}):::".\
                         format(p.hget(self.lockName, "PID"), self.pid))
                     p.unwatch()
                     sys.exit(1)
@@ -605,13 +605,16 @@ class ConfigDbLock():
                 p.delete(self.lockName)
                 p.execute()
                 return
+            # lock may be None, if timer has expired before releasing lock.
+            elif not self.lockName:
+                return
             else:
-                # some other process s holding the lock.
-                click.echo(":::Lock PID: {} and self.pid:{}:::".\
+                # some other process is holding the lock.
+                click.echo(":::Unable to release lock (lock PID: {}, self.pid: {}):::".\
                     format(p.hget(self.lockName, "PID"), self.pid))
             p.unwatch()
         except Exception as e:
-            click.echo("Exception: {}".format(e))
+            click.echo(":::Exception: {}:::".format(e))
         return
 
     def __del__(self):
