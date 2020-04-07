@@ -78,6 +78,7 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/log_ssd_health',
         'scripts/mmuconfig',
         'scripts/natclear',
         'scripts/natconfig',
@@ -102,7 +103,6 @@ setup(
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
-        'scripts/sonic-fstrim',
         'scripts/sonic-kdump-config'
     ],
     data_files=[
