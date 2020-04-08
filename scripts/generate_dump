@@ -143,6 +143,26 @@ save_bgp_neighbor() {
 }
 
 ###############################################################################
+# Dump the nat config, iptables rules and conntrack nat entries
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_nat_info() {
+    save_cmd "iptables -t nat -nv -L" "nat.iptables"
+    save_cmd "conntrack -j -L" "nat.conntrack"
+    save_cmd "conntrack -j -L | wc" "nat.conntrackcount"
+    save_cmd "conntrack -L" "nat.conntrackall"
+    save_cmd "conntrack -L | wc" "nat.conntrackallcount"
+    save_cmd "show nat config" "nat.config"
+}
+
+###############################################################################
+
+###############################################################################
 # Given list of proc files, saves proc files to tar.
 # Globals:
 #  V
@@ -170,15 +190,13 @@ save_proc() {
 ###############################################################################
 # Dumps all fields and values from given Redis DB.
 # Arguments:
-#  DB id: id of DB for redis-cli
 #  DB name: filename to which output will be saved
 # Returns:
 #  None
 ###############################################################################
 save_redis() {
-    local db=$1
-    local db_name=$2
-    save_cmd "redis-dump -d $db -s /var/run/redis/redis.sock -y" "$db_name.json"
+    local db_name=$1
+    save_cmd "sonic-db-dump -n '$db_name' -y" "$db_name.json"
 }
 
 ###############################################################################
@@ -328,10 +346,10 @@ main() {
 
     save_vtysh "show ip bgp summary" "bgp.summary"
     save_vtysh "show ip bgp neighbors" "bgp.neighbors"
-    save_vtysh "show ip bgp" "bgp.table" true
+    save_vtysh "show ip bgp" "bgp.table"
     save_vtysh "show bgp ipv6 summary" "bgp.ipv6.summary"
     save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
-    save_vtysh "show bgp ipv6" "bgp.ipv6.table" true
+    save_vtysh "show bgp ipv6" "bgp.ipv6.table"
     save_bgp_neighbor
 
     save_cmd "show interface status" "interface.status"
@@ -350,17 +368,22 @@ main() {
     save_cmd "df" "df"
     save_cmd "dmesg" "dmesg"
 
-    save_redis "0" "APP_DB"
-    save_redis "1" "ASIC_DB"
-    save_redis "2" "COUNTERS_DB"
+    save_nat_info
+
+    save_redis "APPL_DB"
+    save_redis "ASIC_DB"
+    save_redis "COUNTERS_DB"
+    save_redis "CONFIG_DB"
+    save_redis "FLEX_COUNTER_DB"
+    save_redis "STATE_DB"
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
 
     save_cmd "docker exec -it syncd saidump" "saidump"
 
-    local platform="$(/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)"
-    if [[ $platform == *"mlnx"* ]]; then
+    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    if [[ "$asic" = "mellanox" ]]; then
         local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
         ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
         ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
@@ -374,11 +397,12 @@ main() {
         done
     fi
 
-    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     if [ "$asic" = "broadcom" ]; then
         save_cmd "bcmcmd -t5 version" "broadcom.version"
         save_cmd "bcmcmd -t5 soc" "broadcom.soc"
         save_cmd "bcmcmd -t5 ps" "broadcom.ps"
+        save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
+        save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
     fi
 
     if $GREP -qi "aboot_platform=.*arista" /host/machine.conf; then
@@ -433,6 +457,18 @@ main() {
             save_file $file core false
         else
             save_file $file core true
+        fi
+    done
+
+    # archive kernel dump files
+    for file in $(find_files "/var/crash/"); do
+        # don't gzip already-gzipped dmesg files :)
+        if [ ! ${file} = "/var/crash/kexec_cmd" -a ! ${file} = "/var/crash/export" ]; then
+            if [[ ${file} == *"kdump."* ]]; then
+                save_file $file kdump false
+            else
+                save_file $file kdump true
+            fi
         fi
     done
 

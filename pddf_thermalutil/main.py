@@ -8,15 +8,8 @@
 try:
     import sys
     import os
-    import subprocess
     import click
-    import imp
-    import syslog
-    import types
-    import traceback
     from tabulate import tabulate
-    from utilities_common import util_base
-    from utilities_common.util_base import UtilLogger
     from utilities_common.util_base import UtilHelper
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -105,7 +98,7 @@ def debug():
     """pddf_thermalutil debug commands"""
     pass
 
-@debug.command()
+@debug.command('dump-sysfs')
 def dump_sysfs():
     """Dump all Temp Sensor related SysFS paths"""
     status = platform_thermalutil.dump_sysfs()

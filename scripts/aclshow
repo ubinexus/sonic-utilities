@@ -21,13 +21,10 @@ from __future__ import print_function
 import argparse
 import json
 import os
-import re
-import subprocess
 import swsssdk
 import sys
 
 from tabulate import tabulate
-from natsort import natsorted
 
 ### temp file to save counter positions when doing clear counter action.
 ### if we could have a SAI command to clear counters will be better, so no need to maintain
@@ -131,7 +128,6 @@ class AclStat(object):
             """
             Get ACL counters from the DB
             """
-            acl_counters_cmd = "docker exec -it database redis-cli --csv -n 2 hgetall COUNTERS:"
             counters_cnt = len(self.acl_rules) # num of counters should be the same as rules
             for table, rule in self.acl_rules.keys():
                 cnt_props = lowercase_keys(self.db.get_all(self.db.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
