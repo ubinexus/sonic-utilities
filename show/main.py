@@ -1660,9 +1660,9 @@ def remote_vni(remote_vtep_ip, count):
     db.connect(db.APPL_DB) 
 
     if(remote_vtep_ip == 'all'):
-      vxlan_keys = db.keys(db.APPL_DB, 'EVPN_REMOTE_VNI_TABLE:*')
+      vxlan_keys = db.keys(db.APPL_DB, 'VXLAN_REMOTE_VNI_TABLE:*')
     else:
-      vxlan_keys = db.keys(db.APPL_DB, 'EVPN_REMOTE_VNI_TABLE:*' + remote_vtep_ip + '*')
+      vxlan_keys = db.keys(db.APPL_DB, 'VXLAN_REMOTE_VNI_TABLE:*' + remote_vtep_ip + '*')
 
     if count is not None:
       if not vxlan_keys:
