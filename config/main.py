@@ -3696,7 +3696,6 @@ def vxlan(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @vxlan.command('add')
 @click.argument('vxlan_name', metavar='<vxlan_name>', required=True)
@@ -3960,8 +3959,6 @@ def del_vxlan_map_range(ctx, vxlan_name, vlan_start, vlan_end, vni_start):
            print "Skipping Vlan {} VNI {} mapped delete. ".format(vlan_name, vni_name)
            continue
 
-       fvs = {'vni': vni_name,
-              'vlan' : vlan_name}
        mapname = vxlan_name + '|' + 'map_' + vni_name + '_' + vlan_name
        db.set_entry('VXLAN_TUNNEL_MAP', mapname, None)
 
