@@ -1,6 +1,5 @@
 #! /usr/bin/python -u
 
-import errno
 import json
 import netaddr
 import netifaces

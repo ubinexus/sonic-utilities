@@ -21,7 +21,6 @@ import argparse
 import shlex
 import os
 import subprocess
-import errno
 from swsssdk import ConfigDBConnector
 
 aboot_cfg_template ="/host/image-%s/kernel-cmdline"
