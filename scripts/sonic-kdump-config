@@ -19,7 +19,6 @@ limitations under the License.
 import sys
 import argparse
 import shlex
-from argparse import RawTextHelpFormatter
 import os
 import subprocess
 import errno
@@ -500,7 +499,7 @@ def main():
 
     # Add allowed arguments
     parser = argparse.ArgumentParser(description="kdump configuration and status tool",
-                                     formatter_class=RawTextHelpFormatter)
+                                     formatter_class=argparse.RawTextHelpFormatter)
 
     # Enable kdump on Current image
     parser.add_argument('--enable', action='store_true',
