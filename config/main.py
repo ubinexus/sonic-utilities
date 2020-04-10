@@ -694,11 +694,10 @@ def reload(filename, yes, load_sysinfo):
     log_info("'reload' stopping services...")
     _stop_services()
 
-    """ This logic is common to the Single ASIC And multiple ASIC platforms. In the case of Single AISC
-        platforms we have single database service. In multi-ASIC platforms we have a global database
-        service running in the host + database services running in namespace created per ASIC.
-        Here we get all namespaces in the system. For single asic the ns_list will be empty.
-        By default we add the current namespace which we are in '' 
+    """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+        service running in the host + DB services running in the namespace created per ASIC.
+        In the below logic, we get all namespaces in this platform and add an empty namespace ''
+        denoting the current namespace which we are in ( the linux host )
     """
     ns_list = get_all_namespaces()
     namespaces = [''] + ns_list['front_ns'] + ns_list['back_ns']
@@ -711,10 +710,19 @@ def reload(filename, yes, load_sysinfo):
             command = "{} -H -k {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku, namespace)
             run_command(command, display_cmd=True)
 
-        if os.path.isfile(INIT_CFG_FILE):
-            command = "{} -j {} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename, namespace)
+        # For the database service running in linux host we use the file user gives as input
+        # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace, 
+        # the default config_db<namespaceID>.json format is used.
+        if namespace == '':
+            cfg_file = filename
         else:
-            command = "{} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, filename, namespace)
+            inst = namespace[len(NS_PREFIX)]
+            cfg_file = "/etc/sonic/config_db{}.json".format(inst)
+
+        if os.path.isfile(INIT_CFG_FILE):
+            command = "{} -j {} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, cfg_file, namespace)
+        else:
+            command = "{} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, cfg_file, namespace)
 
         run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
