@@ -27,6 +27,9 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
+PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
+DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
+NS_PREFIX = 'asic'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -114,6 +117,48 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
+# API to check if this is a multi-asic device or not.
+def is_multi_asic():
+    num_asics = _get_num_asic()
+
+    if num_asics > 1:
+        return True
+    else:
+        return False
+
+"""In case of Multi-Asic platform, Each ASIC will have a linux network namespace created.
+   So we loop through the databases in different namespaces and depending on the sub_role
+   decide whether this is a front end ASIC/namespace or a back end one.
+"""
+def get_all_namespaces():
+    front_ns = []
+    back_ns = []
+    num_asics = _get_num_asic()
+
+    if is_multi_asic():
+        for asic in range(num_asics):
+            namespace = "{}{}".format(NS_PREFIX, asic)
+            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            config_db.connect()
+
+            metadata = config_db.get_table('DEVICE_METADATA')
+            if metadata['localhost']['sub_role'] == 'FrontEnd':
+                front_ns.append(namespace)
+            elif metadata['localhost']['sub_role'] == 'BackEnd':
+                back_ns.append(namespace)
+
+    return {'front_ns':front_ns, 'back_ns':back_ns}
+
+# Validate whether a given namespace name is valid in the device.
+def validate_namespace(namespace):
+    if not is_multi_asic():
+        return True
+
+    namespaces = get_all_namespaces()
+    if namespace in namespaces['front_ns'] + namespaces['back_ns']:
+        return True
+    else:
+        return False
 
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
@@ -542,32 +587,96 @@ config.add_command(aaa.tacacs)
 config.add_command(nat.nat)
 
 @config.command()
+@click.option('-n', '--namespace', help='Namespace name')
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
-                expose_value=False, prompt='Existing file will be overwritten, continue?')
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path())
-def save(filename):
+                expose_value=False, prompt='Existing files will be overwritten, continue?')
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path())
+def save(namespace, filename):
     """Export current config DB to a file on disk."""
-    command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
-    run_command(command, display_cmd=True)
+    if namespace:
+        if not is_multi_asic():
+            click.echo("namespace is not significant in a Single ASIC platform")
+            return None
+        if not validate_namespace(namespace):
+            click.echo("invalid Namespace entered {}".format(namespace))
+            return None
+        if filename == DEFAULT_CONFIG_DB_FILE:
+            inst = namespace[len(NS_PREFIX)]
+            filename = "/etc/sonic/config_db{}.json".format(inst)
+            click.echo("valid config_db file for namespace {} would be {}".format(namespace, filename))
+            return None
+
+        command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, filename)
+        run_command(command, display_cmd=True)
+    else:
+        # Save config for the database service running on linux host
+        command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
+        run_command(command, display_cmd=True)
+
+        """In case of multi-asic mode we have additional config_db{NS}.json files for
+           various namespaces created per ASIC. {NS} is the namespace index.
+        """
+        if is_multi_asic():
+            ns_list = get_all_namespaces()
+            namespaces = ns_list['front_ns'] + ns_list['back_ns']
+            for namespace in namespaces:
+                inst = namespace[len(NS_PREFIX)]
+                filename = "/etc/sonic/config_db{}.json".format(inst)
+                command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, filename)
+                run_command(command, display_cmd=True)
 
 @config.command()
+@click.option('-n', '--namespace', help='Namespace name')
 @click.option('-y', '--yes', is_flag=True)
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
-def load(filename, yes):
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
+def load(filename, yes, namespace):
     """Import a previous saved config DB dump file."""
     if not yes:
         click.confirm('Load config from the file %s?' % filename, abort=True)
-    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
-    run_command(command, display_cmd=True)
+
+    if namespace:
+        if not is_multi_asic():
+            click.echo("namespace is not significant in a Single ASIC device")
+            return None
+        if not validate_namespace(namespace):
+            click.echo("invalid Namespace entered {}".format(namespace))
+            return None
+        if filename == DEFAULT_CONFIG_DB_FILE:
+            inst = namespace[len(NS_PREFIX)]
+            filename = "/etc/sonic/config_db{}.json".format(inst)
+            click.echo("valid config_db file for namespace {} would be {}".format(namespace, filename))
+            return None
+
+        command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, filename)
+        run_command(command, display_cmd=True)
+    else:
+        # Load config for the database service running on linux host
+        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+        run_command(command, display_cmd=True)
+
+        """In case of multi-asic mode we have additional config_db{NS}.json files for
+           various namespaces created per ASIC. {NS} is the namespace index.
+        """
+        if is_multi_asic():
+            ns_list = get_all_namespaces()
+            namespaces = ns_list['front_ns'] + ns_list['back_ns']
+            for namespace in namespaces:
+                inst = namespace[len(NS_PREFIX)]
+                filename = "/etc/sonic/config_db{}.json".format(inst)
+                if os.path.isfile(filename):
+                    command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, filename)
+                    run_command(command, display_cmd=True)
+                else:
+                    click.echo("The config_db file {} doesn't exist".format(filename))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
 def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file."""
     if not yes:
-        click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+        click.confirm('Clear current config and reload config ?', abort=True)
 
     log_info("'reload' executing...")
 
@@ -584,26 +693,37 @@ def reload(filename, yes, load_sysinfo):
     #Stop services before config push
     log_info("'reload' stopping services...")
     _stop_services()
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    client = config_db.get_redis_client(config_db.CONFIG_DB)
-    client.flushdb()
-    if load_sysinfo:
-        command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
+
+    """ This logic is common to the Single ASIC And multiple ASIC platforms. In the case of Single AISC
+        platforms we have single database service. In multi-ASIC platforms we have a global database
+        service running in the host + database services running in namespace created per ASIC.
+        Here we get all namespaces in the system. For single asic the ns_list will be empty.
+        By default we add the current namespace which we are in '' 
+    """
+    ns_list = get_all_namespaces()
+    namespaces = [''] + ns_list['front_ns'] + ns_list['back_ns']
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+        client = config_db.get_redis_client(config_db.CONFIG_DB)
+        client.flushdb()
+        if load_sysinfo:
+            command = "{} -H -k {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku, namespace)
+            run_command(command, display_cmd=True)
+
+        if os.path.isfile(INIT_CFG_FILE):
+            command = "{} -j {} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename, namespace)
+        else:
+            command = "{} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, filename, namespace)
+
         run_command(command, display_cmd=True)
+        client.set(config_db.INIT_INDICATOR, 1)
 
-    if os.path.isfile(INIT_CFG_FILE):
-        command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename)
-    else:
-        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
-
-    run_command(command, display_cmd=True)
-    client.set(config_db.INIT_INDICATOR, 1)
-
-    # Migrate DB contents to latest version
-    db_migrator='/usr/bin/db_migrator.py'
-    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-        run_command(db_migrator + ' -o migrate')
+        # Migrate DB contents to latest version
+        db_migrator='/usr/bin/db_migrator.py'
+        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+            command = "{} -o migrate -n \"{}\"".format(db_migrator, namespace)
+            run_command(command, display_cmd=True)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
