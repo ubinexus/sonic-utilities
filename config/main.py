@@ -588,7 +588,6 @@ class ConfigDbLock():
                         format(p.hget(self.lockName, "PID"), self.pid))
                     p.unwatch()
                     sys.exit(1)
-
         except Exception as e:
             click.echo(":::Exception: {}:::".format(e))
             sys.exit(1)
