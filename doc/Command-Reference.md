@@ -1725,7 +1725,8 @@ This sub-section explains the list of configuration options available for BGP mo
 
 **config bgp shutdown all**
 
-This command is used to shutdown all the BGP IPv4 & IPv6 sessions.
+This command is used to shutdown all the BGP IPv4 & IPv6 sessions. In the Multi-Asic platform this command shuts down the 
+external BGP neighbor sessions while the internal BGP sesssions between the ASIC's are untouched.
 When the session is shutdown using this command, BGP state in "show ip bgp summary" is displayed as "Idle (Admin)"
 
 - Usage:
@@ -1758,7 +1759,8 @@ This command is to shut down a BGP session with a neighbor by that neighbor's IP
 
 **config bgp startup all**
 
-This command is used to start up all the IPv4 & IPv6 BGP neighbors
+This command is used to start up all the IPv4 & IPv6 BGP neighbors.In the Multi-Asic platform this command starts up the
+external BGP neighbor sessions while the internal BGP sesssions between the ASIC's are untouched.
 
 - Usage:
   ```
@@ -2422,6 +2424,14 @@ This sub-section explains the following list of configuration on the interfaces.
 3) shutdown - to administratively shut down the interface
 4) speed - to set the interface speed
 5) startup - to bring up the administratively shutdown interface
+
+From 201911 release onwards, an additional option of namespace is added as follows 
+Options:
+  -n, --namespace TEXT  Namespace name
+
+The namespace parameter is not significant for Single ASIC devices, so the commands are backward compatible.
+In Multi-ASIC platforms, namespace is mandatory for PortChannel and Vlan interfaces. 
+It tells which ASIC/namespace this interface was created earlier.
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -3100,8 +3110,16 @@ If the argument is not specified, it prompts the user to confirm whether user re
 
 - Usage:
   ```
-  config load [-y|--yes] [<filename>]
+  config load [-y|--yes] [-n|--namespace] [<filename>]
   ```
+
+From 201911 release onwards, an additional option of namespace is added as follows 
+Options:
+  -n, --namespace TEXT  Namespace name
+
+The namespace is not significant for for Single ASIC devices.
+In Multi-ASIC platforms, namespace if specified will load the config for the namespace specific config file 
+which is /etc/sonic/config_db<namespaceID>.json by default or from a file user inputs.
 
 - Example:
   ```
@@ -3218,8 +3236,15 @@ Saved file can be transferred to remote machines for debugging. If users wants t
 
 - Usage:
   ```
-  config save [-y|--yes] [<filename>]
+  config save [-y|--yes] [-n|--namespace] [<filename>]
   ```
+From 201911 release onwards, an additional option of namespace is added as follows 
+Options:
+  -n, --namespace TEXT  Namespace name
+
+The namespace is not significant for for Single ASIC devices.
+In Multi-ASIC platforms, namespace if specified will save the config for the namespace to specific config file 
+which is /etc/sonic/config_db<namespaceID>.json by default or to a file user inputs.
 
 - Example (Save configuration to /etc/sonic/config_db.json):
   ```
@@ -4272,6 +4297,12 @@ Command takes two optional arguements given below.
   ```
   config portchannel (add | del) <portchannel_name> [min-links <num_min_links>] [fallback (true | false)]
   ```
+From 201911 release onwards, an additional option of namespace is added as follows 
+Options:
+  -n, --namespace TEXT  Namespace name
+
+The namespace is not significant for Single ASIC devices, so the commands are backward compatible.
+In Multi-ASIC platforms, it is mandatory for (add/del) of Port channel, optional parameter for member (add/del).
 
 - Example (Create the portchannel with name "PortChannel0011"):
   ```
@@ -5428,6 +5459,13 @@ This command is used to add or delete the vlan.
   ```
   config vlan (add | del) <vlan_id>
   ```
+
+From 201911 release onwards, an additional option of namespace is added as follows 
+Options:
+  -n, --namespace TEXT  Namespace name
+
+The namespace is not significant for Single ASIC devices, so the commands are backward compatible.
+In Multi-ASIC platforms, it is mandatory for (add/del) of vlan, optional parameter for member (add/del).
 
 - Example (Create the VLAN "Vlan100" if it does not already exist):
   ```

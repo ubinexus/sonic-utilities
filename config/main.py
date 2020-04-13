@@ -639,32 +639,96 @@ config.add_command(aaa.tacacs)
 config.add_command(nat.nat)
 
 @config.command()
+@click.option('-n', '--namespace', help='Namespace name')
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
-                expose_value=False, prompt='Existing file will be overwritten, continue?')
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path())
-def save(filename):
+                expose_value=False, prompt='Existing files will be overwritten, continue?')
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path())
+def save(namespace, filename):
     """Export current config DB to a file on disk."""
-    command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
-    run_command(command, display_cmd=True)
+    if namespace:
+        if not is_multi_asic():
+            click.echo("Namespace is not significant in a Single ASIC device")
+            return None
+        if not validate_namespace(namespace):
+            click.echo("Invalid Namespace entered {}".format(namespace))
+            return None
+        if filename == DEFAULT_CONFIG_DB_FILE:
+            inst = namespace[len(NS_PREFIX)]
+            filename = "/etc/sonic/config_db{}.json".format(inst)
+            click.echo("A Valid config_db file for namespace {} would be {}".format(namespace, filename))
+            return None
+
+        command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, filename)
+        run_command(command, display_cmd=True)
+    else:
+        # Save config for the database service running on linux host
+        command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
+        run_command(command, display_cmd=True)
+
+        """In case of multi-asic mode we have additional config_db{NS}.json files for
+           various namespaces created per ASIC. {NS} is the namespace index.
+        """
+        if is_multi_asic():
+            ns_list = get_all_namespaces()
+            namespaces = ns_list['front_ns'] + ns_list['back_ns']
+            for namespace in namespaces:
+                inst = namespace[len(NS_PREFIX)]
+                filename = "/etc/sonic/config_db{}.json".format(inst)
+                command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, filename)
+                run_command(command, display_cmd=True)
 
 @config.command()
+@click.option('-n', '--namespace', help='Namespace name')
 @click.option('-y', '--yes', is_flag=True)
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
-def load(filename, yes):
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
+def load(filename, yes, namespace):
     """Import a previous saved config DB dump file."""
     if not yes:
         click.confirm('Load config from the file %s?' % filename, abort=True)
-    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
-    run_command(command, display_cmd=True)
+
+    if namespace:
+        if not is_multi_asic():
+            click.echo("Namespace is not significant in a Single ASIC device")
+            return None
+        if not validate_namespace(namespace):
+            click.echo("Invalid Namespace entered {}".format(namespace))
+            return None
+        if filename == DEFAULT_CONFIG_DB_FILE:
+            inst = namespace[len(NS_PREFIX)]
+            filename = "/etc/sonic/config_db{}.json".format(inst)
+            click.echo("A Valid config_db file for namespace {} would be {}".format(namespace, filename))
+            return None
+
+        command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, filename)
+        run_command(command, display_cmd=True)
+    else:
+        # Load config for the database service running on linux host
+        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+        run_command(command, display_cmd=True)
+
+        """In case of multi-asic mode we have additional config_db{NS}.json files for
+           various namespaces created per ASIC. {NS} is the namespace index.
+        """
+        if is_multi_asic():
+            ns_list = get_all_namespaces()
+            namespaces = ns_list['front_ns'] + ns_list['back_ns']
+            for namespace in namespaces:
+                inst = namespace[len(NS_PREFIX)]
+                filename = "/etc/sonic/config_db{}.json".format(inst)
+                if os.path.isfile(filename):
+                    command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, filename)
+                    run_command(command, display_cmd=True)
+                else:
+                    click.echo("The config_db file {} doesn't exist".format(filename))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
 def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file."""
     if not yes:
-        click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+        click.confirm('Clear current config and reload config ?', abort=True)
 
     log_info("'reload' executing...")
 
@@ -681,26 +745,35 @@ def reload(filename, yes, load_sysinfo):
     #Stop services before config push
     log_info("'reload' stopping services...")
     _stop_services()
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    client = config_db.get_redis_client(config_db.CONFIG_DB)
-    client.flushdb()
-    if load_sysinfo:
-        command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
+
+    """ This logic is common to the Single ASIC And multiple ASIC devices.  We get all the namespaces
+        present in the system. An empty string is added to the list to denote the local namespace we 
+        are currently in from where we execute this command ( which is the linux host namespace )
+    """
+    ns_list = get_all_namespaces()
+    namespaces = [''] + ns_list['front_ns'] + ns_list['back_ns']
+    for namespace in namespaces:
+        config_db = ConfigDBConnector()
+        config_db.connect(namespace=namespace)
+        client = config_db.get_redis_client(config_db.CONFIG_DB)
+        client.flushdb()
+        if load_sysinfo:
+            command = "{} -H -k {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku, namespace)
+            run_command(command, display_cmd=True)
+
+        if os.path.isfile(INIT_CFG_FILE):
+            command = "{} -j {} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename, namespace)
+        else:
+            command = "{} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, filename, namespace)
+
         run_command(command, display_cmd=True)
+        client.set(config_db.INIT_INDICATOR, 1)
 
-    if os.path.isfile(INIT_CFG_FILE):
-        command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename)
-    else:
-        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
-
-    run_command(command, display_cmd=True)
-    client.set(config_db.INIT_INDICATOR, 1)
-
-    # Migrate DB contents to latest version
-    db_migrator='/usr/bin/db_migrator.py'
-    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-        run_command(db_migrator + ' -o migrate')
+        # Migrate DB contents to latest version
+        db_migrator='/usr/bin/db_migrator.py'
+        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+            command = "{} -o migrate -n \"{}\"".format(db_migrator, namespace)
+            run_command(command, display_cmd=True)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
@@ -830,7 +903,13 @@ def portchannel(ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']
+        if namespace is None:
+            ctx.fail("Multi ASIC mode, need to pass namespace where portchannel to be created.")
     db = ctx.obj['db']
+    db.connect(namespace=namespace)
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
     if min_links != 0:
@@ -844,7 +923,13 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']
+        if namespace is None:
+            ctx.fail("Multi ASIC mode, need to pass namespace where portchannel to be deleted.")
     db = ctx.obj['db']
+    db.connect(namespace=namespace)
     db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group('member')
@@ -887,7 +972,6 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
     db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
-
 
 #
 # 'mirror_session' group ('config mirror_session ...')
@@ -1171,7 +1255,15 @@ def vlan(ctx, redis_unix_socket_path, namespace):
 @click.pass_context
 def add_vlan(ctx, vid):
     if vid >= 1 and vid <= 4094:
+        namespace = ''
+        if is_multi_asic():
+            namespace = ctx.obj['namespace']
+            if namespace is None:
+                ctx.fail("Multi ASIC mode, need to pass namespace where vlan to be created.")
+
         db = ctx.obj['db']
+        db.connect(wait_for_init=False, namespace=namespace)
+
         vlan = 'Vlan{}'.format(vid)
         if len(db.get_entry('VLAN', vlan)) != 0:
             ctx.fail("{} already exists".format(vlan))
@@ -1183,7 +1275,15 @@ def add_vlan(ctx, vid):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def del_vlan(ctx, vid):
+    namespace = ''
+    if is_multi_asic():
+        namespace = ctx.obj['namespace']
+        if namespace is None:
+            ctx.fail("Multi ASIC mode, need to pass namespace where vlan to be removed.")
+
     db = ctx.obj['db']
+    db.connect(wait_for_init=False, namespace=namespace)
+
     keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
     for k in keys:
         db.set_entry('VLAN_MEMBER', k, None)
@@ -1931,6 +2031,13 @@ def add(ctx, interface_name, ip_addr, gw):
         table_name = get_interface_table_name(interface_name)
         if table_name == "":
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+
+        """In case of multi-ASIC mode, and if we are creating a VLAN interface, check first if the
+           Vlan is aleady present in this namespace.
+        """
+        if table_name == "VLAN_INTERFACE" and len(config_db.get_entry('VLAN', interface_name)) == 0:
+            ctx.fail("{} doesn't exist in this namesapce {}".format(interface_name, namespace))
+
         interface_entry = config_db.get_entry(table_name, interface_name)
         if len(interface_entry) == 0:
             if table_name == "VLAN_SUB_INTERFACE":
