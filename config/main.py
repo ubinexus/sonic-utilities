@@ -2709,6 +2709,77 @@ def del_loopback(ctx, loopback_name):
 
     config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, None)
 
+@config.group()
+def is_loopback_name_valid(loopback_name):
+    """Loopback name validation
+    """
+    
+    if loopback_name[:CFG_LOOPBACK_PREFIX_LEN] != CFG_LOOPBACK_PREFIX :
+        return False
+    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or 
+          int(loopback_name[CFG_LOOPBACK_PREFIX_LEN:]) > CFG_LOOPBACK_ID_MAX_VAL) :
+        return False
+    if len(loopback_name) > CFG_LOOPBACK_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
+
+#
+# 'loopback' group ('config loopback ...')
+#
+@config.group()
+@click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def loopback(ctx, redis_unix_socket_path):
+    """Loopback-related configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db}
+    pass
+
+@loopback.command('add')
+@click.argument('loopback_name', metavar='<loopback_name>', required=True)
+@click.argument("vrfname", metavar="<vrf-name>", required=False, type=str)
+@click.pass_context
+def add_loopback(ctx, loopback_name, vrfname):
+    config_db = ctx.obj['db']
+    if is_loopback_name_valid(loopback_name) is False:
+        ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
+                .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
+
+    lo_intfs = [k for k,v in config_db.get_table('LOOPBACK_INTERFACE').iteritems() if type(k) != tuple]
+    if loopback_name in lo_intfs:
+        ctx.fail("{} already exists".format(loopback_name))
+
+    if vrfname is None:
+        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
+    elif vrfname not in config_db.get_table('VRF').keys():
+        ctx.fail("vrf {} doesnt exists".format(vrfname))
+    else:
+        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"vrf_name": vrfname})
+
+@loopback.command('del')
+@click.argument('loopback_name', metavar='<loopback_name>', required=True)
+@click.pass_context
+def del_loopback(ctx, loopback_name):
+    config_db = ctx.obj['db']
+    if is_loopback_name_valid(loopback_name) is False:
+        ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
+                .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
+
+    lo_config_db = config_db.get_table('LOOPBACK_INTERFACE')
+    lo_intfs = [k for k,v in lo_config_db.iteritems() if type(k) != tuple]
+    if loopback_name not in lo_intfs:
+        ctx.fail("{} does not exists".format(loopback_name))
+
+    ips = [ k[1] for k in lo_config_db if type(k) == tuple and k[0] == loopback_name ]
+    for ip in ips:
+        config_db.set_entry('LOOPBACK_INTERFACE', (loopback_name, ip), None)
+
+    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, None)
+
 @config.group(cls=AbbreviationGroup)
 def ztp():
     """ Configure Zero Touch Provisioning """
