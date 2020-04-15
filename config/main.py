@@ -36,13 +36,11 @@ SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
 DEFAULT_NAMESPACE = ''
-
 CFG_LOOPBACK_PREFIX = "Loopback"
 CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
-
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -2648,6 +2646,7 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
+@config.group()
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation
     """
@@ -2675,11 +2674,13 @@ def loopback(ctx, redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     ctx.obj = {'db': config_db}
+    pass
 
 @loopback.command('add')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
+@click.argument("vrfname", metavar="<vrf-name>", required=False, type=str)
 @click.pass_context
-def add_loopback(ctx, loopback_name):
+def add_loopback(ctx, loopback_name, vrfname):
     config_db = ctx.obj['db']
     if is_loopback_name_valid(loopback_name) is False:
         ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
@@ -2689,7 +2690,12 @@ def add_loopback(ctx, loopback_name):
     if loopback_name in lo_intfs:
         ctx.fail("{} already exists".format(loopback_name))
 
-    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
+    if vrfname is None:
+        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
+    elif vrfname not in config_db.get_table('VRF').keys():
+        ctx.fail("vrf {} doesnt exists".format(vrfname))
+    else:
+        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"vrf_name": vrfname})
 
 @loopback.command('del')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
