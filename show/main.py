@@ -3190,5 +3190,53 @@ def tunnel():
 
     click.echo(tabulate(table, header))
 
+# 'show interfaces loopback' group command
+#
+#
+@interfaces.command()
+@click.argument('loopback_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def loopback(loopback_name, verbose):
+    """Show interfaces loopback"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    if verbose == False:
+        header = ['Name', 'VRF']
+    else:
+        header = ['Name', 'VRF', 'IP Address']
+    data = []
+    intf_ip = {}
+    lo_dict = config_db.get_table('LOOPBACK_INTERFACE')
+    if lo_dict:
+        loopbacks = []
+        if loopback_name is None:
+            loopbacks = lo_dict.keys()
+        elif loopback_name in lo_dict.keys():
+            loopbacks = [loopback_name]
+
+        if verbose == True:
+            for lo in loopbacks:
+                if type(lo) == tuple:
+                    if lo[0] not in intf_ip:
+                        intf_ip[lo[0]] = []
+                    intf_ip[lo[0]].append(str(lo[1]))
+
+        for lo in natsorted(loopbacks):
+            if type(lo) == tuple:
+                continue
+            intf_vrf = get_intf_master(lo)
+            if verbose == True:
+                if lo in intf_ip:
+                    data.append([lo, intf_vrf, intf_ip[lo][0]])
+                    for ifaddr in intf_ip[lo][1:]:
+                        data.append(["", "", ifaddr[1]])
+                else:
+                    data.append([lo, intf_vrf, ""])
+            else:
+                data.append([lo, intf_vrf])
+
+    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
+
+
 if __name__ == '__main__':
     cli()
