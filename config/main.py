@@ -2325,9 +2325,8 @@ def loopback(ctx, redis_unix_socket_path):
 
 @loopback.command('add')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
-@click.argument("vrfname", metavar="<vrf-name>", required=False, type=str)
 @click.pass_context
-def add_loopback(ctx, loopback_name, vrfname):
+def add_loopback(ctx, loopback_name):
     config_db = ctx.obj['db']
     if is_loopback_name_valid(loopback_name) is False:
         ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
@@ -2337,12 +2336,7 @@ def add_loopback(ctx, loopback_name, vrfname):
     if loopback_name in lo_intfs:
         ctx.fail("{} already exists".format(loopback_name))
 
-    if vrfname is None:
-        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
-    elif vrfname not in config_db.get_table('VRF').keys():
-        ctx.fail("vrf {} doesnt exists".format(vrfname))
-    else:
-        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"vrf_name": vrfname})
+    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
 
 @loopback.command('del')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
