@@ -10,12 +10,8 @@ try:
     import os
     import subprocess
     import click
-    import imp
     import syslog
-    import types
-    import traceback
     import time
-    from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -169,7 +165,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
 def restart_swss():
     try:
         run_command(COMMAND_RESTART_SWSS)
-    except OSError, e:
+    except OSError as e:
         log_error("Not able to restart swss service, %s" % str(e), SNIFFER_SYSLOG_IDENTIFIER, True)
         return 1
     return 0
