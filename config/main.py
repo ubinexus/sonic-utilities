@@ -341,7 +341,45 @@ def interface_name_is_valid(config_db, interface_name):
                     return True
     return False
 
-def interface_name_to_alias(config_db, interface_name):
+def vlan_id_is_valid(vid):
+    """Check if the vlan id is in acceptable range (between 1 and 4094)
+    """
+
+    if vid<1 or vid>4094:
+        return False
+
+    return True
+
+def vni_id_is_valid(vni):
+    """Check if the vni id is in acceptable range (between 1 and 2^24)
+    """
+
+    if (vni < 1) or (vni > 16777215):
+        return False
+
+    return True
+
+def is_vni_vrf_mapped(ctx, vni):
+    """Check if the vni is mapped to vrf
+    """
+
+    found = 0
+    db = ctx.obj['db']
+    vrf_table = db.get_table('VRF')
+    vrf_keys = vrf_table.keys()
+    if vrf_keys is not None:
+      for vrf_key in vrf_keys:
+        if ('vni' in vrf_table[vrf_key] and vrf_table[vrf_key]['vni'] == vni):
+           found = 1
+           break
+
+    if (found == 1):
+        print "VNI {} mapped to Vrf {}, Please remove VRF VNI mapping".format(vni, vrf_key)
+        return False
+
+    return True
+
+def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
     """
     # If the input parameter config_db is None, derive it from interface.
@@ -2656,6 +2694,56 @@ def del_vrf(ctx, vrf_name):
         config_db.set_entry('VRF', vrf_name, None)
 
 
+@vrf.command('add_vrf_vni_map')
+@click.argument('vrfname', metavar='<vrf-name>', required=True, type=str)
+@click.argument('vni', metavar='<vni>', required=True)
+@click.pass_context
+def add_vrf_vni_map(ctx, vrfname, vni):
+    db = ctx.obj['db']
+    found = 0
+    if vrfname not in db.get_table('VRF').keys():
+        ctx.fail("vrf {} doesnt exists".format(vrfname))
+    if not vni.isdigit():
+        ctx.fail("Invalid VNI {}. Only valid VNI is accepted".format(vni))
+
+    if (int(vni) < 1) or (int(vni) > 16777215):
+        ctx.fail("Invalid VNI {}. Valid range [1 to 16777215].".format(vni))
+
+    vxlan_table = db.get_table('VXLAN_TUNNEL_MAP')
+    vxlan_keys = vxlan_table.keys()
+    if vxlan_keys is not None:
+        for key in vxlan_keys:
+            if (vxlan_table[key]['vni'] == vni):
+                found = 1
+                break
+
+    if (found == 0):
+        ctx.fail(" VLAN VNI not mapped. Please create VLAN VNI map entry first ")
+
+    found = 0
+    vrf_table = db.get_table('VRF')
+    vrf_keys = vrf_table.keys()
+    if vrf_keys is not None:
+        for vrf_key in vrf_keys:
+            if ('vni' in vrf_table[vrf_key] and vrf_table[vrf_key]['vni'] == vni):
+                found = 1
+                break
+
+    if (found == 1):
+        ctx.fail("VNI already mapped to vrf {}".format(vrf_key))
+
+    db.mod_entry('VRF', vrfname, {"vni": vni})
+
+@vrf.command('del_vrf_vni_map')
+@click.argument('vrfname', metavar='<vrf-name>', required=True, type=str)
+@click.pass_context
+def del_vrf_vni_map(ctx, vrfname):
+    db = ctx.obj['db']
+    if vrfname not in db.get_table('VRF').keys():
+        ctx.fail("vrf {} doesnt exists".format(vrfname))
+
+    db.mod_entry('VRF', vrfname, {"vni": 0})
+
 #
 # 'route' group ('config route ...')
 #
@@ -3961,6 +4049,43 @@ def del_vxlan_map_range(ctx, vxlan_name, vlan_start, vlan_end, vni_start):
 
        mapname = vxlan_name + '|' + 'map_' + vni_name + '_' + vlan_name
        db.set_entry('VXLAN_TUNNEL_MAP', mapname, None)
+
+#######
+#
+# 'neigh_suppress' group ('config neigh_suppress...')
+#
+@config.group()
+@click.pass_context
+def neigh_suppress(ctx):
+    """ Neighbour Suppress VLAN-related configuration """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@neigh_suppress.command('enable')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def enable_neigh_suppress(ctx, vid):
+    db = ctx.obj['db']
+    if vlan_id_is_valid(vid) is False:
+        ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
+    vlan = 'Vlan{}'.format(vid)
+    if len(db.get_entry('VLAN', vlan)) == 0:
+        click.echo("{} doesn't exist".format(vlan))
+        return
+    fvs = {'suppress': "on"}
+    db.set_entry('SUPPRESS_VLAN_NEIGH', vlan, fvs)
+
+@neigh_suppress.command('disable')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def disable_neigh_suppress(ctx, vid):
+    db = ctx.obj['db']
+    if vlan_id_is_valid(vid) is False:
+        ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
+    vlan = 'Vlan{}'.format(vid)
+    db.set_entry('SUPPRESS_VLAN_NEIGH', vlan, None)
 
 if __name__ == '__main__':
     config()
