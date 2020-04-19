@@ -27,9 +27,8 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
-NS_PREFIX = 'asic'
+NAMESPACE_PREFIX = 'asic'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -137,7 +136,7 @@ def get_all_namespaces():
 
     if is_multi_asic():
         for asic in range(num_asics):
-            namespace = "{}{}".format(NS_PREFIX, asic)
+            namespace = "{}{}".format(NAMESPACE_PREFIX, asic)
             config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
             config_db.connect()
 
@@ -590,93 +589,129 @@ config.add_command(nat.nat)
 @click.option('-n', '--namespace', help='Namespace name')
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Existing files will be overwritten, continue?')
-@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path())
+@click.argument('filename',nargs=-1)
 def save(namespace, filename):
     """Export current config DB to a file on disk."""
     if namespace:
         if not is_multi_asic():
-            click.echo("namespace is not significant in a Single ASIC platform")
+            click.echo("Namespace is not significant in a Single ASIC platform")
             return None
         if not validate_namespace(namespace):
-            click.echo("invalid Namespace entered {}".format(namespace))
+            click.echo("Invalid Namespace entered {}".format(namespace))
             return None
-        if filename == DEFAULT_CONFIG_DB_FILE:
-            inst = namespace[len(NS_PREFIX)]
-            filename = "/etc/sonic/config_db{}.json".format(inst)
-            click.echo("valid config_db file for namespace {} would be {}".format(namespace, filename))
-            return None
+        if not len(filename):
+            inst = namespace[len(NAMESPACE_PREFIX)]
+            cfg_file = "/etc/sonic/config_db{}.json".format(inst)
+        else:
+            cfg_file = filename[0]
 
-        command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, filename)
+        command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, cfg_file)
         run_command(command, display_cmd=True)
     else:
-        # Save config for the database service running on linux host
-        command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
+        if not len(filename):
+            host_cfg_file = DEFAULT_CONFIG_DB_FILE
+        else:
+            host_cfg_file = filename[0]
+
+        command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, host_cfg_file)
         run_command(command, display_cmd=True)
 
         """In case of multi-asic mode we have additional config_db{NS}.json files for
            various namespaces created per ASIC. {NS} is the namespace index.
         """
         if is_multi_asic():
-            ns_list = get_all_namespaces()
-            namespaces = ns_list['front_ns'] + ns_list['back_ns']
-            for namespace in namespaces:
-                inst = namespace[len(NS_PREFIX)]
-                filename = "/etc/sonic/config_db{}.json".format(inst)
-                command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, filename)
+            num_asic = _get_num_asic()
+            for inst in range(num_asic):
+                namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+                # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+                if len(filename) > inst+1:
+                    cfg_file = filename[inst+1]
+                else:
+                    cfg_file = "/etc/sonic/config_db{}.json".format(inst)
+
+                command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, cfg_file)
                 run_command(command, display_cmd=True)
 
 @config.command()
 @click.option('-n', '--namespace', help='Namespace name')
 @click.option('-y', '--yes', is_flag=True)
-@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
+@click.argument('filename',nargs=-1)
 def load(filename, yes, namespace):
     """Import a previous saved config DB dump file."""
-    if not yes:
-        click.confirm('Load config from the file %s?' % filename, abort=True)
-
     if namespace:
         if not is_multi_asic():
-            click.echo("namespace is not significant in a Single ASIC device")
+            click.echo("Namespace is not significant in a Single ASIC platform")
             return None
         if not validate_namespace(namespace):
-            click.echo("invalid Namespace entered {}".format(namespace))
+            click.echo("Invalid Namespace entered {}".format(namespace))
             return None
-        if filename == DEFAULT_CONFIG_DB_FILE:
-            inst = namespace[len(NS_PREFIX)]
-            filename = "/etc/sonic/config_db{}.json".format(inst)
-            click.echo("valid config_db file for namespace {} would be {}".format(namespace, filename))
-            return None
+        if not len(filename):
+            inst = namespace[len(NAMESPACE_PREFIX)]
+            cfg_file = "/etc/sonic/config_db{}.json".format(inst)
+        else:
+            cfg_file = filename[0]
 
-        command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, filename)
+        if not os.path.isfile(cfg_file):
+            click.echo("The config_db file {} doesn't exist".format(cfg_file))
+            return
+
+        if not yes:
+            click.confirm('Load config from the file %s ?' % cfg_file, abort=True)
+
+        command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, cfg_file)
         run_command(command, display_cmd=True)
     else:
+        if not len(filename):
+            message = 'Load config from the default config file[s] ?'
+            host_cfg_file = DEFAULT_CONFIG_DB_FILE
+        else:
+            message = 'Load config from the file[s] {} ?'.format(tuple(str(i) for i in filename))
+            host_cfg_file = filename[0]
+
+        if not yes:
+            click.confirm(message, abort=True)
+
         # Load config for the database service running on linux host
-        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
-        run_command(command, display_cmd=True)
+        if os.path.isfile(host_cfg_file):
+            command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, host_cfg_file)
+            run_command(command, display_cmd=True)
+        else:
+            click.echo("The config_db file {} doesn't exist".format(host_cfg_file))
+            return
 
         """In case of multi-asic mode we have additional config_db{NS}.json files for
            various namespaces created per ASIC. {NS} is the namespace index.
         """
         if is_multi_asic():
-            ns_list = get_all_namespaces()
-            namespaces = ns_list['front_ns'] + ns_list['back_ns']
-            for namespace in namespaces:
-                inst = namespace[len(NS_PREFIX)]
-                filename = "/etc/sonic/config_db{}.json".format(inst)
-                if os.path.isfile(filename):
-                    command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, filename)
+            num_asic = _get_num_asic()
+            for inst in range(num_asic):
+                namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+                # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+                if len(filename) > inst+1:
+                    cfg_file = filename[inst+1]
+                else:
+                    cfg_file = "/etc/sonic/config_db{}.json".format(inst)
+
+                if os.path.isfile(cfg_file):
+                    command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, cfg_file)
                     run_command(command, display_cmd=True)
                 else:
-                    click.echo("The config_db file {} doesn't exist".format(filename))
+                    click.echo("The config_db file {} doesn't exist".format(cfg_file))
+                    return
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
-@click.argument('filename', default=DEFAULT_CONFIG_DB_FILE, type=click.Path(exists=True))
+@click.argument('filename', nargs=-1)
 def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file."""
+    if not len(filename):
+        message = 'Clear current config and reload config from the default config file[s] ?'
+    else:
+        message = 'Clear current config and reload config from the file[s] {} ?'.format(tuple(str(i) for i in filename))
+
     if not yes:
-        click.confirm('Clear current config and reload config ?', abort=True)
+        click.confirm(message, abort=True)
 
     log_info("'reload' executing...")
 
@@ -699,9 +734,28 @@ def reload(filename, yes, load_sysinfo):
         In the below logic, we get all namespaces in this platform and add an empty namespace ''
         denoting the current namespace which we are in ( the linux host )
     """
-    ns_list = get_all_namespaces()
-    namespaces = [''] + ns_list['front_ns'] + ns_list['back_ns']
-    for namespace in namespaces:
+    num_asic = _get_num_asic()
+    for inst in range(-1, num_asic-1):
+        # Get the namespace name, for linux host it is '' empty namespace string.
+        if inst is -1:
+            namespace = ''
+        else:
+            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+
+        # Get the config file, based on user input 
+        if len(filename) > inst+1:
+            cfg_file = filename[inst+1]
+        else:
+            if namespace is '':
+                cfg_file = DEFAULT_CONFIG_DB_FILE
+            else:
+                cfg_file = "/etc/sonic/config_db{}.json".format(inst)
+
+        #Check the file exists before proceeding.
+        if not os.path.isfile(cfg_file):
+            click.echo("The config_db file {} doesn't exist".format(cfg_file))
+            continue
+
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
         client = config_db.get_redis_client(config_db.CONFIG_DB)
@@ -711,13 +765,8 @@ def reload(filename, yes, load_sysinfo):
             run_command(command, display_cmd=True)
 
         # For the database service running in linux host we use the file user gives as input
-        # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace, 
+        # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
-        if namespace == '':
-            cfg_file = filename
-        else:
-            inst = namespace[len(NS_PREFIX)]
-            cfg_file = "/etc/sonic/config_db{}.json".format(inst)
 
         if os.path.isfile(INIT_CFG_FILE):
             command = "{} -j {} -j {} -n \"{}\" --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, cfg_file, namespace)
