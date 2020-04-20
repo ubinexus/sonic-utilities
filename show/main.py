@@ -3016,7 +3016,7 @@ def neighbors():
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    header = ['<vnet_name>', 'neighbor', 'interfaces']
+    header = ['<vnet_name>', 'neighbor', 'mac_address', 'interfaces']
 
     # Fetching data from config_db for interfaces
     intfs_data = config_db.get_table("INTERFACE")
@@ -3047,10 +3047,11 @@ def neighbors():
     nbrs_data = {}
     for nbr in nbrs if nbrs else []:
         tbl, intf, ip = nbr.split(":", 2)
+        mac = appl_db.get(appl_db.APPL_DB, nbr, 'neigh')
         if intf in nbrs_data:
-            nbrs_data[intf].append(ip)
+            nbrs_data[intf].append((ip, mac))
         else:
-            nbrs_data[intf] = [ip]
+            nbrs_data[intf] = [(ip, mac)]
 
     table = []
     for k, v in vnet_intfs.items():
@@ -3059,8 +3060,8 @@ def neighbors():
         table = []
         for intf in v:
             if intf in nbrs_data:
-                for ip in nbrs_data[intf]:
-                    r = ["", ip, intf]
+                for ip, mac in nbrs_data[intf]:
+                    r = ["", ip, mac, intf]
                     table.append(r)
         click.echo(tabulate(table, header))
         click.echo("\n")
