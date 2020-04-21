@@ -1,5 +1,5 @@
 import click
-from show.main import *
+from show.main import ip, run_command, get_bgp_summary_extended
 
 
 ###############################################################################
@@ -9,7 +9,7 @@ from show.main import *
 ###############################################################################
 
 
-@ip.group(cls=AliasedGroup, default_if_no_args=False)
+@ip.group()
 def bgp():
     """Show IPv4 BGP (Border Gateway Protocol) information"""
     pass
@@ -19,7 +19,11 @@ def bgp():
 @bgp.command()
 def summary():
     """Show summarized information of IPv4 BGP state"""
-    run_command('sudo vtysh -c "show ip bgp summary"')
+    try:
+        device_output = run_command('sudo vtysh -c "show ip bgp summary"', return_cmd=True)
+        get_bgp_summary_extended(device_output)
+    except Exception:
+        run_command('sudo vtysh -c "show ip bgp summary"')
 
 
 # 'neighbors' subcommand ("show ip bgp neighbors")
