@@ -2321,7 +2321,6 @@ def loopback(ctx, redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     ctx.obj = {'db': config_db}
-    pass
 
 @loopback.command('add')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
