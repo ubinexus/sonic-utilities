@@ -2231,40 +2231,42 @@ def config(redis_unix_socket_path):
     data = config_db.get_table('VLAN')
     keys = data.keys()
 
-    def tablelize(keys, data):
-        table = []
+    clients = config_db.redis_clients["CONFIG_DB"]
+    pipe = clients.pipeline()
+    vlan_members = []
+    port_list = []
+    vlan_member_keys = config_db.keys('CONFIG_DB', "*VLAN_MEMBER*")
+    if vlan_member_keys is not None:
+        for v in vlan_member_keys:
+            pipe.hgetall(v)
+        vlan_members = pipe.execute()
+        for x in range(len(vlan_member_keys)):
+            r = []
+            member_list = vlan_member_keys[x].split('|',2)
+            r.append(member_list[1])
+            r.append(int(re.search(r'\d+', member_list[1]).group()))
+            r.append(member_list[2])
+            r.append(vlan_members[x].get('tagging_mode'))
+            port_list.append(r)
+            continue
 
-        for k in natsorted(keys):
-            if 'members' not in data[k] :
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                table.append(r)
-                continue
+    def vlan_id_sort(vlan):
+       return vlan[1]
 
-            for m in data[k].get('members', []):
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                if get_interface_mode() == "alias":
-                    alias = iface_alias_converter.name_to_alias(m)
-                    r.append(alias)
-                else:
-                    r.append(m)
+    vlan_list = []
+    for k in keys:
+        if 'members' not in data[k] :
+            r = []
+            r.append(k)
+            r.append(int(data[k]['vlanid']))
+            vlan_list.append(r)
+            continue
 
-                entry = config_db.get_entry('VLAN_MEMBER', (k, m))
-                mode = entry.get('tagging_mode')
-                if mode is None:
-                    r.append('?')
-                else:
-                    r.append(mode)
-
-                table.append(r)
-
-        return table
+    vlan_list.extend(port_list)
+    vlan_list.sort(key=vlan_id_sort)
 
     header = ['Name', 'VID', 'Member', 'Mode']
-    click.echo(tabulate(tablelize(keys, data), header))
+    click.echo(tabulate(vlan_list, header))
 
 @cli.command('services')
 def services():

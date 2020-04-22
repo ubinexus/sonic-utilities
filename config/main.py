@@ -1135,6 +1135,285 @@ def del_vlan_member(ctx, vid, interface_name):
     db.set_entry('VLAN', vlan_name, vlan)
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
+ Validate VLAN range.
+#
+def vlan_range_validate(ctx, vid1, vid2):
+    vlan1 = 'Vlan{}'.format(vid1)
+    vlan2 = 'Vlan{}'.format(vid2)
+
+    if vlan_id_is_valid(vid1) is False:
+        ctx.fail("{} is not within allowed range of 1 through 4094".format(vlan1))
+    if vlan_id_is_valid(vid2) is False:
+        ctx.fail("{} is not within allowed range of 1 through 4094".format(vlan2))
+
+    if vid2 <= vid1:
+        ctx.fail(" vid2 should be greater than vid1")
+
+#
+# 'range' group ('config vlan range ...')
+#
+@vlan.group('range')
+@click.pass_context
+def vlan_range(ctx):
+    """VLAN-range related configuration tasks"""
+    pass
+
+@vlan_range.command('add')
+@click.argument('vid1', metavar='<vid1>', required=True, type=int)
+@click.argument('vid2', metavar='<vid2>', required=True, type=int)
+@click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
+@click.pass_context
+def add_vlan_range(ctx, vid1, vid2, warning):
+    db = ctx.obj['db']
+
+    vlan_range_validate(ctx, vid1, vid2)
+
+    vid2 = vid2+1
+
+    warning_vlans_list = []
+    clients = db.redis_clients["CONFIG_DB"]
+    pipe = clients.pipeline()
+    for vid in range (vid1, vid2):
+        vlan = 'Vlan{}'.format(vid)
+
+        if len(db.get_entry('VLAN', vlan)) != 0:
+            if warning is True:
+                warning_vlans_list.append(vid)
+            continue
+
+        pipe.hmset('VLAN|{}'.format(vlan),  {'vlanid': vid})
+    pipe.execute()
+    # Log warning messages if 'warning' option is enabled
+    if warning is True and len(warning_vlans_list) != 0:
+        logging.warning('VLANs already existing: {}'.format(warning_vlans_list))
+
+@vlan_range.command('del')
+@click.argument('vid1', metavar='<vid1>', required=True, type=int)
+@click.argument('vid2', metavar='<vid2>', required=True, type=int)
+@click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
+@click.pass_context
+def del_vlan_range(ctx, vid1, vid2, warning):
+    db = ctx.obj['db']
+
+    vlan_range_validate(ctx, vid1, vid2)
+
+    vid2 = vid2+1
+
+    clients = db.redis_clients["CONFIG_DB"]
+    pipe = clients.pipeline()
+    warning_vlans_list = []
+    warning_membership_list = []
+    warning_ip_list = []
+    for vid in range(vid1, vid2):
+        ip_configured = False
+        vlan_member_configured = False
+        vlan = 'Vlan{}'.format(vid)
+
+        if len(db.get_entry('VLAN', vlan)) == 0:
+            if warning is True:
+                warning_vlans_list.append(vid)
+            continue
+
+        #If IP is configured or have ports/POs configured as member dont allow removal of vlan
+        for k,v in db.get_table('VLAN_INTERFACE'):
+            if k == 'Vlan{}'.format(vid):
+                member_port = str(v)
+                if warning is True:
+                    warning_string = member_port + ' is configured with IP ' + vlan
+                    warning_ip_list.append(warning_string)
+                ip_configured = True
+                break
+
+        for k, v in db.get_table('VLAN_MEMBER'):
+            if k == 'Vlan{}'.format(vid):
+                member_port = str(v)
+                if warning is True:
+                    warning_string = member_port + ' is member of ' + vlan
+                    warning_membership_list.append(warning_string)
+                vlan_member_configured = True
+                break
+
+        if ip_configured is True or vlan_member_configured is True:
+            continue
+
+        pipe.delete('VLAN|{}'.format(vlan))
+    pipe.execute()
+    # Log warning messages if 'warning' option is enabled
+    if warning is True and len(warning_vlans_list) != 0:
+        logging.warning('Non-existent VLANs: {}'.format(warning_vlans_list))
+    if warning is True and len(warning_membership_list) != 0:
+        logging.warning('Remove VLAN membership before removing VLAN: {}'.format(warning_membership_list))
+    if warning is True and len(warning_ip_list) != 0:
+        logging.warning('Remove IP configuration before removing VLAN: {}'.format(warning_ip_list))
+
+#
+# 'member range' group ('config vlan member range ...')
+#
+@vlan_member.group('range')
+@click.pass_context
+def vlan_member_range(ctx):
+    """VLAN member range related configuration tasks"""
+    pass
+
+#
+# Returns VLAN data in a format required to perform redisDB operations.
+#
+def vlan_member_data(member_list):
+    vlan_data = {}
+    for key in member_list:
+        value = member_list[key]
+        if type(value) is list:
+            vlan_data[key+'@'] = ','.join(value)
+        else:
+            vlan_data[key] = str(value)
+    return vlan_data
+
+@vlan_member_range.command('add')
+@click.argument('vid1', metavar='<vid1>', required=True, type=int)
+@click.argument('vid2', metavar='<vid2>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.option('-u', '--untagged', is_flag=True)
+@click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
+@click.pass_context
+def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
+    db = ctx.obj['db']
+
+    vlan_range_validate(ctx, vid1, vid2)
+
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid!!")
+
+    vid2 = vid2+1
+    vlan_count = vid2-vid1
+    if untagged is True and (vlan_count >= 2):
+        ctx.fail("Same interface {} cannot be untagged member of more than one VLAN".format(interface_name))
+
+    warning_vlans_list = []
+    warning_membership_list = []
+    clients = db.redis_clients["CONFIG_DB"]
+    pipe = clients.pipeline()
+
+    # Validate if interface has IP configured
+    # in physical and port channel tables
+    for k,v in db.get_table('INTERFACE'):
+        if k == interface_name:
+            ctx.fail(" {} has ip address configured".format(interface_name))
+
+    for k,v in db.get_table('PORTCHANNEL_INTERFACE'):
+        if k == interface_name:
+            ctx.fail(" {} has ip address configured".format(interface_name))
+
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if v == interface_name:
+            ctx.fail(" {} is configured as a port channel member".format(interface_name))
+
+    for vid in range(vid1, vid2):
+        vlan_name = 'Vlan{}'.format(vid)
+        vlan = db.get_entry('VLAN', vlan_name)
+
+        if len(vlan) == 0:
+            if warning is True:
+                warning_vlans_list.append(vid)
+            continue
+
+        members = vlan.get('members', [])
+        if interface_name in members:
+            if get_interface_naming_mode() == "alias":
+                interface_name = interface_name_to_alias(interface_name)
+                if interface_name is None:
+                    ctx.fail("'interface_name' is None!")
+                if warning is True:
+                    warning_string = str(interface_name) + ' is already a member of ' + str(vlan_name)
+                    warning_membership_list.append(warning_string)
+                continue
+            else:
+                if warning is True:
+                    warning_string = str(interface_name) + ' is already a member of ' + str(vlan_name)
+                    warning_membership_list.append(warning_string)
+                continue
+
+        members.append(interface_name)
+        vlan['members'] = members
+        pipe.hmset('VLAN|{}'.format(vlan_name), vlan_member_data(vlan))
+        pipe.hmset('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name), {'tagging_mode': "untagged" if untagged else "tagged" })
+    pipe.execute()
+    # Log warning messages if 'warning' option is enabled
+    if warning is True and len(warning_vlans_list) != 0:
+        logging.warning('Non-existent VLANs: {}'.format(warning_vlans_list))
+    if warning is True and len(warning_membership_list) != 0:
+        logging.warning('Membership exists already: {}'.format(warning_membership_list))
+
+@vlan_member_range.command('del')
+@click.argument('vid1', metavar='<vid1>', required=True, type=int)
+@click.argument('vid2', metavar='<vid2>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
+@click.pass_context
+def del_vlan_member_range(ctx, vid1, vid2, interface_name, warning):
+    db = ctx.obj['db']
+
+    vlan_range_validate(ctx, vid1, vid2)
+
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid!!")
+
+    vid2 = vid2+1
+
+    warning_vlans_list = []
+    warning_membership_list = []
+    clients = db.redis_clients["CONFIG_DB"]
+    pipe = clients.pipeline()
+
+    for vid in range(vid1, vid2):
+        vlan_name = 'Vlan{}'.format(vid)
+        vlan = db.get_entry('VLAN', vlan_name)
+
+        if len(vlan) == 0:
+            if warning is True:
+                warning_vlans_list.append(vid)
+            continue
+
+        members = vlan.get('members', [])
+        if interface_name not in members:
+            if get_interface_naming_mode() == "alias":
+                interface_name = interface_name_to_alias(interface_name)
+                if interface_name is None:
+                    ctx.fail("'interface_name' is None!")
+                if warning is True:
+                    warning_string = str(interface_name) + ' is not a member of ' + str(vlan_name)
+                    warning_membership_list.append(warning_string)
+                continue
+            else:
+                if warning is True:
+                    warning_string = str(interface_name) + ' is not a member of ' + str(vlan_name)
+                    warning_membership_list.append(warning_string)
+                continue
+
+        members.remove(interface_name)
+        if len(members) == 0:
+            pipe.hdel('VLAN|{}'.format(vlan_name), 'members@')
+        else:
+            vlan['members'] = members
+            pipe.hmset('VLAN|{}'.format(vlan_name), vlan_member_data(vlan))
+
+        pipe.delete('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name))
+    pipe.execute()
+    # Log warning messages if 'warning' option is enabled
+    if warning is True and len(warning_vlans_list) != 0:
+        logging.warning('Non-existent VLANs: {}'.format(warning_vlans_list))
+    if warning is True and len(warning_membership_list) != 0:
+        logging.warning('Non-existent membership: {}'.format(warning_membership_list))
+
 def mvrf_restart_services():
     """Restart interfaces-config service and NTP service when mvrf is changed"""
     """
