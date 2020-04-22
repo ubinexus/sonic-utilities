@@ -646,7 +646,7 @@ def is_mgmt_vrf_enabled(ctx):
         try :
             mvrf_dict = json.loads(p.stdout.read())
         except ValueError:
-            print("vrf_global is not present.")
+            print("MGMT_VRF_CONFIG is not present.")
             return False
 
         # if the mgmtVrfEnabled attribute is configured, check the value
