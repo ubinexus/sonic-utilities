@@ -3,14 +3,12 @@
 import os
 import re
 import signal
-import stat
 import sys
 import time
 import click
 import urllib
 import syslog
 import subprocess
-from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 import collections
 import platform
@@ -376,7 +374,6 @@ def cli():
 @click.argument('url')
 def install(url, force, skip_migration=False):
     """ Install image from local binary or URL"""
-    cleanup_image = False
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
         DEFAULT_IMAGE_PATH = ABOOT_DEFAULT_IMAGE_PATH
     else:
@@ -387,7 +384,7 @@ def install(url, force, skip_migration=False):
         validate_url_or_abort(url)
         try:
             urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
-        except Exception, e:
+        except Exception as e:
             click.echo("Download error", e)
             raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH
@@ -445,11 +442,11 @@ def list():
     click.echo("Current: " + curimage)
     click.echo("Next: " + nextimage)
     click.echo("Available: ")
-    for image in get_installed_images():
+    for image in images:
         click.echo(image)
 
 # Set default image for boot
-@cli.command()
+@cli.command('set_default')
 @click.argument('image')
 def set_default(image):
     """ Choose image to boot from by default """
@@ -459,7 +456,7 @@ def set_default(image):
 
 
 # Set image for next boot
-@cli.command()
+@cli.command('set_next_boot')
 @click.argument('image')
 def set_next_boot(image):
     """ Choose image for next reboot (one time action) """
@@ -499,7 +496,7 @@ def remove(image):
     remove_image(image)
 
 # Retrieve version from binary image file and print to screen
-@cli.command()
+@cli.command('binary_version')
 @click.argument('binary_image_path')
 def binary_version(binary_image_path):
     """ Get version from local binary image file """
@@ -520,7 +517,7 @@ def cleanup():
     curimage = get_current_image()
     nextimage = get_next_image()
     image_removed = 0
-    for image in get_installed_images():
+    for image in images:
         if image != curimage and image != nextimage:
             click.echo("Removing image %s" % image)
             remove_image(image)
@@ -530,7 +527,7 @@ def cleanup():
         click.echo("No image(s) to remove")
 
 # Upgrade docker image
-@cli.command()
+@cli.command('upgrade_docker')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='New docker image will be installed, continue?')
 @click.option('--cleanup_image', is_flag=True, help="Clean up old docker image")
@@ -553,7 +550,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         validate_url_or_abort(url)
         try:
             urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
-        except Exception, e:
+        except Exception as e:
             click.echo("Download error", e)
             raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH
@@ -640,7 +637,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
     run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
-    if tag == None:
+    if tag is None:
         # example image: docker-lldp-sv2:latest
         tag = get_docker_tag_name(image_latest)
     run_command("docker tag %s:latest %s:%s" % (image_name, image_name, tag))
@@ -694,7 +691,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         sys.exit(1)
 
 # rollback docker image
-@cli.command()
+@cli.command('rollback_docker')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='Docker image will be rolled back, continue?')
 @click.argument('container_name', metavar='<container_name>', required=True,

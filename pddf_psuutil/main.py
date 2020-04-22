@@ -8,15 +8,8 @@
 try:
     import sys
     import os
-    import subprocess
     import click
-    import imp
-    import syslog
-    import types
-    import traceback
     from tabulate import tabulate
-    from utilities_common import util_base
-    from utilities_common.util_base import UtilLogger
     from utilities_common.util_base import UtilHelper
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -111,14 +104,12 @@ def mfrinfo(index):
     """Display PSU manufacturer info"""
     supported_psu = range(1, platform_psuutil.get_num_psus() + 1)
     psu_ids = []
-    info = ""
     if (index < 0):
         psu_ids = supported_psu
     else:
         psu_ids = [index]
 
     for psu in psu_ids:
-        msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
             click.echo("Error! The {} is not available on the platform.\n" \
@@ -152,7 +143,6 @@ def seninfo(index):
         psu_ids = [index]
 
     for psu in psu_ids:
-        msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
             click.echo("Error! The {} is not available on the platform.\n" \
@@ -180,7 +170,7 @@ def debug():
     """pddf_psuutil debug commands"""
     pass
 
-@debug.command()
+@debug.command('dump-sysfs')
 def dump_sysfs():
     """Dump all PSU related SysFS paths"""
     status = platform_psuutil.dump_sysfs()

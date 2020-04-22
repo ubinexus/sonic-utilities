@@ -1,6 +1,5 @@
 #! /usr/bin/python -u
 
-import errno
 import json
 import netaddr
 import netifaces
@@ -180,7 +179,7 @@ def get_routing_stack():
         proc.wait()
         result = stdout.rstrip('\n')
 
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect routing-stack")
 
     return (result)
@@ -448,7 +447,7 @@ def get_neighbor_dict_from_table(db,table_name):
             neighbor_dict[entry] = neighbor_data[entry].get(
                 'name') if 'name' in neighbor_data[entry].keys() else 'NotAvailable'
         return neighbor_dict
-    except:
+    except Exception:
         return neighbor_dict
 
 
@@ -498,7 +497,7 @@ def get_dynamic_neighbor_subnet(db):
         dynamic_neighbor["v4"] = v4_subnet
         dynamic_neighbor["v6"] = v6_subnet
         return dynamic_neighbor
-    except:
+    except Exception:
         return neighbor_data
 
 
@@ -647,7 +646,7 @@ def is_mgmt_vrf_enabled(ctx):
         try :
             mvrf_dict = json.loads(p.stdout.read())
         except ValueError:
-            print("MGMT_VRF_CONFIG is not present.")
+            print("vrf_global is not present.")
             return False
 
         # if the mgmtVrfEnabled attribute is configured, check the value
@@ -656,6 +655,7 @@ def is_mgmt_vrf_enabled(ctx):
             if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
                 #ManagementVRF is enabled. Return True.
                 return True
+
     return False
 
 #
@@ -688,7 +688,7 @@ def mgmt_vrf(ctx,routes):
 # 'management_interface' group ("show management_interface ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='management_interface', cls=AliasedGroup, default_if_no_args=False)
 def management_interface():
     """Show management interface parameters"""
     pass
@@ -700,8 +700,6 @@ def address ():
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    header = ['IFNAME', 'IP Address', 'PrefixLen',]
-    body = []
 
     # Fetching data from config_db for MGMT_INTERFACE
     mgmt_ip_data = config_db.get_table('MGMT_INTERFACE')
@@ -1045,6 +1043,32 @@ def counters(verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def priority(interface):
+    """Show pfc priority"""
+    cmd = 'pfc show priority'
+    if interface is not None and get_interface_mode() == "alias":
+        interface = iface_alias_converter.alias_to_name(interface)
+                
+    if interface is not None:    
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def asymmetric(interface):
+    """Show asymmetric pfc"""
+    cmd = 'pfc show asymmetric'
+    if interface is not None and get_interface_mode() == "alias":
+        interface = iface_alias_converter.alias_to_name(interface)
+                
+    if interface is not None:    
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+
 # 'pfcwd' subcommand ("show pfcwd...")
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def pfcwd():
@@ -1070,7 +1094,7 @@ def stats(verbose):
     run_command(cmd, display_cmd=verbose)
 
 # 'naming_mode' subcommand ("show interfaces naming_mode")
-@interfaces.command()
+@interfaces.command('naming_mode')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def naming_mode(verbose):
     """Show interface naming_mode status"""
@@ -1373,7 +1397,7 @@ def interfaces():
                 try:
                     neighbor_name = bgp_peer[local_ip][0]
                     neighbor_ip = bgp_peer[local_ip][1]
-                except:
+                except Exception:
                     pass
 
             if len(ifaddresses) > 0:
@@ -1513,7 +1537,7 @@ def interfaces():
                 try:
                     neighbor_name = bgp_peer[local_ip][0]
                     neighbor_ip = bgp_peer[local_ip][1]
-                except:
+                except Exception:
                     pass
 
             if len(ifaddresses) > 0:
@@ -1564,26 +1588,16 @@ def protocol(verbose):
 # Inserting BGP functionality into cli's show parse-chain.
 # BGP commands are determined by the routing-stack being elected.
 #
-from .bgp_quagga_v4 import bgp
-ip.add_command(bgp)
-
 if routing_stack == "quagga":
+    from .bgp_quagga_v4 import bgp
+    ip.add_command(bgp)
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
+    from .bgp_frr_v4 import bgp 
+    ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
-    @cli.command()
-    @click.argument('bgp_args', nargs = -1, required = False)
-    @click.option('--verbose', is_flag=True, help="Enable verbose output")
-    def bgp(bgp_args, verbose):
-        """Show BGP information"""
-        bgp_cmd = "show bgp"
-        for arg in bgp_args:
-            bgp_cmd += " " + str(arg)
-        cmd = 'sudo vtysh -c "{}"'.format(bgp_cmd)
-        run_command(cmd, display_cmd=verbose)
-
 
 #
 # 'lldp' group ("show lldp ...")
@@ -2122,7 +2136,7 @@ def files():
 @click.argument('lines', metavar='<lines>', required=False)
 def log(record, lines):
     """Show kdump kernel core dump file kernel log"""
-    if lines == None:
+    if lines is None:
         run_command("sonic-kdump-config --file %s" % record)
     else:
         run_command("sonic-kdump-config --file %s --lines %s" % (record, lines))
@@ -2142,8 +2156,6 @@ def brief(verbose):
     vlan_ip_data = config_db.get_table('VLAN_INTERFACE')
     vlan_ports_data = config_db.get_table('VLAN_MEMBER')
 
-    vlan_keys = natsorted(vlan_dhcp_helper_data.keys())
-
     # Defining dictionaries for DHCP Helper address, Interface Gateway IP,
     # VLAN ports and port tagging
     vlan_dhcp_helper_dict = {}
@@ -2158,7 +2170,6 @@ def brief(verbose):
                 vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
         except KeyError:
             vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
-            pass
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
@@ -2246,7 +2257,7 @@ def config(redis_unix_socket_path):
 
                 entry = config_db.get_entry('VLAN_MEMBER', (k, m))
                 mode = entry.get('tagging_mode')
-                if mode == None:
+                if mode is None:
                     r.append('?')
                 else:
                     r.append(mode)
@@ -2329,7 +2340,7 @@ def tacacs():
 #
 # 'mirror_session' command  ("show mirror_session ...")
 #
-@cli.command()
+@cli.command('mirror_session')
 @click.argument('session_name', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def mirror_session(session_name, verbose):
@@ -2601,7 +2612,7 @@ def line():
     return
 
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='warm_restart', cls=AliasedGroup, default_if_no_args=False)
 def warm_restart():
     """Show warm restart configuration and state"""
     pass
@@ -2614,7 +2625,6 @@ def state(redis_unix_socket_path):
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
 
-    data = {}
     db = SonicV2Connector(host='127.0.0.1')
     db.connect(db.STATE_DB, False)   # Make one attempt only
 
@@ -2843,7 +2853,6 @@ def ztp(status, verbose):
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
-    pass
 
     cmd = "ztp status"
     if verbose:

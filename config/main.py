@@ -3,7 +3,6 @@
 import sys
 import os
 import click
-import json
 import subprocess
 import netaddr
 import re
@@ -27,8 +26,13 @@ SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
+ASIC_CONF_FILENAME = 'asic.conf'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+
+SYSTEMCTL_ACTION_STOP="stop"
+SYSTEMCTL_ACTION_RESTART="restart"
+SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
 # ========================== Syslog wrappers ==========================
 
@@ -69,6 +73,31 @@ except KeyError, TypeError:
 # Helper functions
 #
 
+# Execute action on list of systemd services
+def execute_systemctl(list_of_services, action):
+    num_asic = _get_num_asic()
+    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
+    if ((generated_services_list == []) and
+        (generated_multi_instance_services == [])):
+        log_error("Failed to get generated services")
+        return
+
+    for service in list_of_services:
+        if (service + '.service' in generated_services_list):
+            try:
+                click.echo("Executing {} of service {}...".format(action, service))
+                run_command("systemctl {} {}".format(action, service))
+            except SystemExit as e:
+                log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
+                raise
+        if (service + '.service' in generated_multi_instance_services):
+            for inst in range(num_asic):
+                try:
+                    click.echo("Executing {} of service {}@{}...".format(action, service, inst))
+                    run_command("systemctl {} {}@{}.service".format(action, service, inst))
+                except SystemExit as e:
+                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
+                    raise
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
@@ -395,14 +424,34 @@ def _get_platform():
                 return tokens[1].strip()
     return ''
 
-def _get_sonic_generated_services():
+def _get_num_asic():
+    platform = _get_platform()
+    num_asic = 1
+    asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
+    if os.path.isfile(asic_conf_file):
+        with open(asic_conf_file) as conf_file:
+            for line in conf_file:
+                line_info = line.split('=')
+                if line_info[0].lower() == "num_asic":
+                    num_asic = int(line_info[1])
+    return num_asic
+
+def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
         return None
     generated_services_list = []
+    generated_multi_instance_services = []
     with open(SONIC_GENERATED_SERVICE_PATH) as generated_service_file:
         for line in generated_service_file:
-            generated_services_list.append(line.rstrip('\n'))
-    return None if not generated_services_list else generated_services_list
+            if '@' in line:
+                line = line.replace('@', '')
+                if num_asic > 1:
+                    generated_multi_instance_services.append(line.rstrip('\n'))
+                else:
+                    generated_services_list.append(line.rstrip('\n'))
+            else:
+                generated_services_list.append(line.rstrip('\n'))
+    return generated_services_list, generated_multi_instance_services
 
 # Callback for confirmation prompt. Aborts if user enters "n"
 def _abort_if_false(ctx, param, value):
@@ -419,25 +468,11 @@ def _stop_services():
         'hostcfgd',
         'nat'
     ]
-    generated_services_list = _get_sonic_generated_services()
-
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
 
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
 
-    for service in services_to_stop:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Stopping service {} ...".format(service))
-            run_command("systemctl stop {}".format(service))
-
-        except SystemExit as e:
-            log_error("Stopping {} failed with error {}".format(service, e))
-            raise
+    execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
 
 def _reset_failed_services():
     services_to_reset = [
@@ -458,22 +493,9 @@ def _reset_failed_services():
         'nat',
         'sflow'
     ]
+    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
-    generated_services_list = _get_sonic_generated_services()
 
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
-
-    for service in services_to_reset:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Resetting failed status for service {} ...".format(service))
-            run_command("systemctl reset-failed {}".format(service))
-        except SystemExit as e:
-            log_error("Failed to reset failed status for service {}".format(service))
-            raise
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
@@ -490,24 +512,12 @@ def _restart_services():
         'nat',
         'sflow',
     ]
-    generated_services_list = _get_sonic_generated_services()
-
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
 
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
 
-    for service in services_to_restart:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Restarting service {} ...".format(service))
-            run_command("systemctl restart {}".format(service))
-        except SystemExit as e:
-            log_error("Restart {} failed with error {}".format(service, e))
-            raise
+    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
+
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
@@ -515,7 +525,7 @@ def is_ipaddress(val):
         return False
     try:
         netaddr.IPAddress(str(val))
-    except:
+    except ValueError:
         return False
     return True
 
@@ -704,7 +714,6 @@ def portchannel(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -759,7 +768,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
 #
 # 'mirror_session' group ('config mirror_session ...')
 #
-@config.group()
+@config.group('mirror_session')
 def mirror_session():
     pass
 
@@ -864,7 +873,7 @@ def interval(poll_interval, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-@pfcwd.command()
+@pfcwd.command('counter_poll')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
 def counter_poll(counter_poll, verbose):
@@ -874,7 +883,7 @@ def counter_poll(counter_poll, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-@pfcwd.command()
+@pfcwd.command('big_red_switch')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
 def big_red_switch(big_red_switch, verbose):
@@ -884,7 +893,7 @@ def big_red_switch(big_red_switch, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-@pfcwd.command()
+@pfcwd.command('start_default')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def start_default(verbose):
     """ Start PFC WD by default configurations  """
@@ -934,7 +943,7 @@ def reload():
 #
 # 'warm_restart' group ('config warm_restart ...')
 #
-@config.group()
+@config.group('warm_restart')
 @click.pass_context
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
@@ -951,7 +960,6 @@ def warm_restart(ctx, redis_unix_socket_path):
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
     ctx.obj = {'db': config_db, 'state_db': state_db, 'prefix': prefix}
-    pass
 
 @warm_restart.command('enable')
 @click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
@@ -1021,7 +1029,6 @@ def vlan(ctx, redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     ctx.obj = {'db': config_db}
-    pass
 
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -1172,7 +1179,6 @@ def snmpagentaddress(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @snmpagentaddress.command('add')
 @click.argument('agentip', metavar='<SNMP AGENT LISTENING IP Address>', required=True)
@@ -1222,7 +1228,6 @@ def snmptrap(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @snmptrap.command('modify')
 @click.argument('ver', metavar='<SNMP Version>', type=click.Choice(['1', '2', '3']), required=True)
@@ -1351,7 +1356,6 @@ def kdump():
     """ Configure kdump """
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
-    pass
 
 @kdump.command()
 def disable():
@@ -1381,7 +1385,7 @@ def memory(kdump_memory):
         config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
         run_command("sonic-kdump-config --memory %s" % kdump_memory)
 
-@kdump.command()
+@kdump.command('num-dumps')
 @click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
 def num_dumps(kdump_num_dumps):
     """Set max number of dump files for kdump"""
@@ -1768,7 +1772,6 @@ def vrf(ctx):
     config_db.connect()
     ctx.obj = {}
     ctx.obj['config_db'] = config_db
-    pass
 
 @vrf.command('add')
 @click.argument('vrf_name', metavar='<vrf_name>', required=True)
@@ -2098,7 +2101,7 @@ def delete(counter_name, verbose):
 #
 # 'add_reasons' subcommand ('config dropcounters add_reasons')
 #
-@dropcounters.command()
+@dropcounters.command('add-reasons')
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
@@ -2111,7 +2114,7 @@ def add_reasons(counter_name, reasons, verbose):
 #
 # 'remove_reasons' subcommand ('config dropcounters remove_reasons')
 #
-@dropcounters.command()
+@dropcounters.command('remove-reasons')
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
@@ -2147,7 +2150,7 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
 
 
 #
-# 'pfc' group ('config pfc ...')
+# 'pfc' group ('config interface pfc ...')
 #
 
 @interface.group()
@@ -2158,7 +2161,7 @@ def pfc(ctx):
 
 
 #
-# 'pfc asymmetric' command
+# 'pfc asymmetric' ('config interface pfc asymmetric ...')
 #
 
 @pfc.command()
@@ -2174,6 +2177,24 @@ def asymmetric(ctx, interface_name, status):
 
     run_command("pfc config asymmetric {0} {1}".format(status, interface_name))
 
+#
+# 'pfc priority' command ('config interface pfc priority ...')
+#
+
+@pfc.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('priority', type=click.Choice([str(x) for x in range(8)]))
+@click.argument('status', type=click.Choice(['on', 'off']))
+@click.pass_context
+def priority(ctx, interface_name, priority, status):
+    """Set PFC priority configuration."""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+    
+    run_command("pfc config priority {0} {1} {2}".format(status, interface_name, priority))
+    
 #
 # 'platform' group ('config platform ...')
 #
@@ -2276,7 +2297,6 @@ def ztp():
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
-    pass
 
 @ztp.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -2313,7 +2333,6 @@ def syslog_group(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @syslog_group.command('add')
 @click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
@@ -2366,7 +2385,6 @@ def ntp(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @ntp.command('add')
 @click.argument('ntp_ip_address', metavar='<ntp_ip_address>', required=True)
@@ -2419,7 +2437,6 @@ def sflow(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 #
 # 'sflow' command ('config sflow enable')

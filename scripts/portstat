@@ -9,10 +9,7 @@
 import argparse
 import cPickle as pickle
 import datetime
-import getopt
 import os.path
-import re
-import subprocess
 import swsssdk
 import sys
 import time
@@ -109,7 +106,7 @@ class Portstat(object):
         if speed is None:
             speed = PORT_RATE
         else:
-            speed = int(speed)/1000
+            speed = int(speed)//1000
         return speed
 
     def get_port_state(self, port_name):
