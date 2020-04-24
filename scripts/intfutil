@@ -9,6 +9,11 @@ from natsort import natsorted
 from swsssdk import ConfigDBConnector
 from pprint import pprint
 import os
+import argparse
+import sonic_device_util
+from show.multi_npu import multi_npu_process_options
+from show.multi_npu import skip_intf_display
+from show.multi_npu import DISPLAY_ALL_INTFS as display_all
 
 # mock the redis for unit test purposes #
 try:
@@ -41,20 +46,29 @@ VLAN_SUB_INTERFACE_TYPE = "802.1q-encapsulation"
 
 SUB_PORT = "subport"
 
-def db_connect_configdb():
+
+def db_config_unload():
+    swsssdk.SonicDBConfig._sonic_db_global_config_init = False
+
+def db_config_load(namespace):
+    swsssdk.SonicDBConfig.load_sonic_global_db_config(namespace=namespace)
+
+def db_connect_configdb(namespace=''):
     """
     Connect to configdb
     """
-    config_db = ConfigDBConnector()
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
     if config_db is None: 
         return None 
     config_db.connect()
     return config_db 
 
-def get_frontpanel_port_list(config_db):
+def get_frontpanel_port_list(config_db, display_opt):
     ports_dict = config_db.get_table('PORT')
     front_panel_ports_list = []
     for port in ports_dict.iterkeys():
+        if skip_intf_display(port, display_opt):
+            continue
         front_panel_ports_list.append(port)
     return front_panel_ports_list
 
@@ -97,13 +111,13 @@ def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list, intf_
     return vlan
 
 
-def db_connect_appl():
-    appl_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+def db_connect_appl(namespace=None):
+
+    appl_db = swsssdk.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
     if appl_db is None:
         return None
     appl_db.connect(appl_db.APPL_DB)
     return appl_db
-
 
 def appl_db_keys_get(appl_db, front_panel_ports_list, intf_name):
     """
@@ -149,11 +163,11 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
     return status
 
 
-def db_connect_state():
+def db_connect_state(namespace=None):
     """
     Connect to REDIS STATE DB and get optics info
     """
-    state_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    state_db = swsssdk.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
     if state_db is None:
         return None
     state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
@@ -192,7 +206,7 @@ def tuple_to_dict(tup, new_dict):
     return new_dict
 
 
-def get_raw_portchannel_info(config_db):
+def get_raw_portchannel_info(config_db,display_opt):
     """
     This function uses the redis config_db as input and gets the "PORTCHANNEL_MEMBER" table
     create
@@ -205,7 +219,13 @@ def get_raw_portchannel_info(config_db):
      ('PortChannel0004', 'Ethernet124'): {}}
     This function returns a dictionary with the key being portchannels and interface tuple.
     """
-    get_raw_po_int_configdb_info = config_db.get_table('PORTCHANNEL_MEMBER')
+    get_raw_po_int_configdb_info = {}
+    po_mem_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    for k,v in po_mem_table.iteritems():
+        po_mem = k[1]
+        if skip_intf_display(po_mem, display_opt):
+            continue
+        get_raw_po_int_configdb_info[k] = v
     return get_raw_po_int_configdb_info     # Return a dictionary with the key being the portchannel and interface
 
 def get_portchannel_list(get_raw_po_int_configdb_info):
@@ -336,7 +356,7 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
                 return "N/A"
 
     return "N/A"
-
+    
 # ========================== interface-status logic ==========================
 
 header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
@@ -344,7 +364,7 @@ header_stat_sub_intf = ['Sub port interface', 'Speed', 'MTU', 'Vlan', 'Admin', '
 
 class IntfStatus(object):
 
-    def display_intf_status(self, appl_db_keys, front_panel_ports_list, portchannel_speed_dict, appl_db_sub_intf_keys, sub_intf_list, sub_intf_only):
+    def get_intf_status(self, appl_db_keys, front_panel_ports_list, portchannel_speed_dict, appl_db_sub_intf_keys, sub_intf_list, sub_intf_only):
         """
             Generate interface-status output
         """
@@ -352,7 +372,6 @@ class IntfStatus(object):
         i = {}
         table = []
         key = []
-
         #
         # Iterate through all the keys and append port's associated state to
         # the result table.
@@ -395,30 +414,24 @@ class IntfStatus(object):
                                 appl_db_sub_intf_status_get(self.appl_db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_ADMIN_STATUS),
                                 appl_db_sub_intf_status_get(self.appl_db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_OPTICS_TYPE)))
 
-        # Sorting and tabulating the result table.
+        return table
+
+    def display_intf_status(self, table, sub_intf_only):
         sorted_table = natsorted(table)
         print tabulate(sorted_table, header_stat if not sub_intf_only else header_stat_sub_intf, tablefmt="simple", stralign='right')
 
 
-    def __init__(self, intf_name):
+    def __init__(self, intf_name,display_opt, namespace=None):
         """
         Class constructor method
         :param self: 
         :param intf_name: string of interface
+        :param display_opt: 
+            if equal to DISPLAY_ALL_INTFS, all frontend and backend interfaces will be displayed
+            if equal to DISPLAY_FRONTEND_INTFS, only fronend interfaces will be displayed
         :return: 
         """
-        self.appl_db = db_connect_appl()
-        self.state_db = db_connect_state()
-        self.config_db = db_connect_configdb()
-        if self.appl_db is None:
-            return
-        if self.state_db is None: 
-            return
-        if self.config_db is None:
-            return
-
-        sub_intf_only = False
-        sub_intf_name = intf_name
+        output_table = []
         if intf_name is not None:
             if intf_name == SUB_PORT:
                 intf_name = None
@@ -429,25 +442,43 @@ class IntfStatus(object):
                 if sub_intf_sep_idx != -1:
                     sub_intf_only = True
                     intf_name = intf_name[:sub_intf_sep_idx]
+        
+        ns_list =  multi_npu_process_options(display_opt, namespace)
+        for ns in ns_list:
+            db_config_load(ns)
+            self.appl_db = db_connect_appl(ns)
+            self.state_db = db_connect_state(ns)
+            self.config_db = db_connect_configdb(ns)
+            if self.appl_db is None:
+                return
+            if self.state_db is None: 
+                return
+            if self.config_db is None:
+                return
 
-        self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, intf_name)
-        self.int_to_vlan_dict = get_interface_vlan_dict(self.config_db)
-        self.get_raw_po_int_configdb_info = get_raw_portchannel_info(self.config_db)
-        self.portchannel_list = get_portchannel_list(self.get_raw_po_int_configdb_info)
-        self.po_int_tuple_list = create_po_int_tuple_list(self.get_raw_po_int_configdb_info)
-        self.po_int_dict = create_po_int_dict(self.po_int_tuple_list)
-        self.int_po_dict = create_int_to_portchannel_dict(self.po_int_tuple_list)
-        self.combined_int_to_vlan_po_dict = merge_dicts(self.int_to_vlan_dict, self.int_po_dict)
-        self.portchannel_speed_dict = po_speed_dict(self.po_int_dict, self.appl_db)
-        self.portchannel_keys = self.portchannel_speed_dict.keys()
+            sub_intf_only = False
+            sub_intf_name = intf_name
 
-        self.sub_intf_list = get_sub_port_intf_list(self.config_db)
-        appl_db_sub_intf_keys = appl_db_sub_intf_keys_get(self.appl_db, self.sub_intf_list, sub_intf_name)
-        if appl_db_keys is None:
-            return
-        self.display_intf_status(appl_db_keys, self.front_panel_ports_list, self.portchannel_speed_dict, appl_db_sub_intf_keys, self.sub_intf_list, sub_intf_only)
+            self.front_panel_ports_list = get_frontpanel_port_list(self.config_db,display_opt)
+            appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, intf_name)
+            self.int_to_vlan_dict = get_interface_vlan_dict(self.config_db)
+            self.get_raw_po_int_configdb_info = get_raw_portchannel_info(self.config_db,display_opt)
+            self.portchannel_list = get_portchannel_list(self.get_raw_po_int_configdb_info)
+            self.po_int_tuple_list = create_po_int_tuple_list(self.get_raw_po_int_configdb_info)
+            self.po_int_dict = create_po_int_dict(self.po_int_tuple_list)
+            self.int_po_dict = create_int_to_portchannel_dict(self.po_int_tuple_list)
+            self.combined_int_to_vlan_po_dict = merge_dicts(self.int_to_vlan_dict, self.int_po_dict)
+            self.portchannel_speed_dict = po_speed_dict(self.po_int_dict, self.appl_db)
+            self.portchannel_keys = self.portchannel_speed_dict.keys()
 
+            self.sub_intf_list = get_sub_port_intf_list(self.config_db)
+            appl_db_sub_intf_keys = appl_db_sub_intf_keys_get(self.appl_db, self.sub_intf_list, sub_intf_name)
+            if appl_db_keys is None:
+                continue
+            output_table += self.get_intf_status(appl_db_keys, self.front_panel_ports_list, self.portchannel_speed_dict, appl_db_sub_intf_keys, self.sub_intf_list, sub_intf_only)
+            db_config_unload()
+
+        self.display_intf_status(output_table, sub_intf_only)
 
 
 # ========================== interface-description logic ==========================
@@ -458,7 +489,7 @@ header_desc = ['Interface', 'Oper', 'Admin', 'Alias', 'Description']
 
 class IntfDescription(object):
 
-    def display_intf_description(self, appl_db_keys, front_panel_ports_list):
+    def get_intf_description(self, appl_db_keys, front_panel_ports_list):
         """
             Generate interface-description output
         """
@@ -481,48 +512,60 @@ class IntfDescription(object):
                               appl_db_port_status_get(self.appl_db, key, PORT_DESCRIPTION)))
 
         # Sorting and tabulating the result table.
+        return table
+
+    def display_intf_description(self, table):
         sorted_table = natsorted(table)
         print tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right')
 
-    def __init__(self, intf_name):
+    def __init__(self, intf_name, display_opt, namespace):
+        output_table = []
+        ns_list =  multi_npu_process_options(display_opt, namespace)
+        for ns in ns_list:
 
-        self.config_db = db_connect_configdb()
-        self.appl_db = db_connect_appl()
-        if self.appl_db is None:
-            return
-        if self.config_db is None:
-            return
+            db_config_load(ns)
+            self.config_db = db_connect_configdb(ns)
+            self.appl_db = db_connect_appl(ns)
+            if self.appl_db is None:
+                return
+            if self.config_db is None:
+                return
+            if intf_name is not None and intf_name == SUB_PORT:
+                intf_name = None
 
-        if intf_name is not None and intf_name == SUB_PORT:
-            intf_name = None
+            self.front_panel_ports_list = get_frontpanel_port_list(self.config_db,display_opt)
+            appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, intf_name)
+            if appl_db_keys is None:
+                return
+        
+            output_table += self.get_intf_description(appl_db_keys, self.front_panel_ports_list)
+            
+            db_config_unload()
+        self.display_intf_description(output_table)
 
-        self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, intf_name)
-        if appl_db_keys is None:
-            return
 
-        self.display_intf_description(appl_db_keys, self.front_panel_ports_list)
+#def main(args):
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--command', help='Command "status" or "description"')
+    parser.add_argument('-i','--interface', default=None, help='Display for specific interface')
+    parser.add_argument('-d','--display',   default=display_all, help='Display all interfaces or only frontend interfaces')
+    parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
+    args = parser.parse_args()
 
-
-
-def main(args):
-    if len(args) == 0:
-        print "No valid arguments provided"
-        return
-
-    command = args[0]
+    command = args.command
     if command != "status" and command != "description":
-        print "No valid command provided"
+        print "No Valid command provided"
         return
-
-    intf_name = args[1] if len(args) == 2 else None
-
+    intf_name = args.interface
+    display_opt = args.display
+    namespace = args.namespace
     if command == "status":
-        interface_stat = IntfStatus(intf_name)
+        interface_stat = IntfStatus(intf_name, display_opt, namespace)
     elif command == "description":
-        interface_desc = IntfDescription(intf_name)
+        interface_desc = IntfDescription(intf_name, display_opt, namespace)
 
-    sys.exit(0)
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    #main(sys.argv[1:])
+    main()

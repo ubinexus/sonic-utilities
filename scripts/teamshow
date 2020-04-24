@@ -26,6 +26,10 @@ import subprocess
 import sys
 from tabulate import tabulate
 from natsort import natsorted
+import argparse
+from show.multi_npu import multi_npu_process_options
+from show.multi_npu import DISPLAY_ALL_INTFS as display_all
+from show.multi_npu import  BACKPLANE_INTERFACE_PREFIX 
 
 PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
@@ -33,15 +37,19 @@ PORT_CHANNEL_STATUS_FIELD = "oper_status"
 
 PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX = "LAG_MEMBER_TABLE:"
 PORT_CHANNEL_MEMBER_STATUS_FIELD = "status"
+PORT_CHANNEL_MEMBER_CFG_TABLE_PREFIX = "PORTCHANNEL_MEMBER|"
 
 class Teamshow(object):
-    def __init__(self):
+    def __init__(self, namespace=None, display_opt=display_all):
         self.teams = []
         self.teamsraw = {}
         self.summary = {}
         self.err = None
         # setup db connection
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        #self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        self.namespace = namespace
+        self.display_opt = display_opt
+        self.db = swsssdk.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
         self.db.connect(self.db.APPL_DB)
         self.db.connect(self.db.CONFIG_DB)
 
@@ -52,7 +60,17 @@ class Teamshow(object):
         team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
         if team_keys is None:
             return
-        self.teams = [key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):] for key in team_keys]
+        for key in team_keys:
+            team_name = key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):]
+            """
+            For multi asic plaform skip internal port channels when display option is not all
+            """
+            if  self.display_opt is not display_all:
+                backplane_team_members = self.db.keys(self.db.CONFIG_DB, "{}{}|{}*"\
+                    .format(PORT_CHANNEL_MEMBER_CFG_TABLE_PREFIX,team_name,BACKPLANE_INTERFACE_PREFIX))
+                if backplane_team_members is not None:
+                    continue
+            self.teams.append(team_name)
 
     def get_portchannel_status(self, port_channel_name):
         """
@@ -77,7 +95,8 @@ class Teamshow(object):
             Command: 'teamdctl <teamdevname> state dump'.
         """
         for team in self.teams:
-            teamdctl_cmd = 'teamdctl ' + team + ' state dump'
+            #teamdctl_cmd = 'teamdctl ' + team + ' state dump'
+            teamdctl_cmd = "teamdctl {} {} state dump".format(self.namespace[-1] if self.namespace is not None else "", team)
             p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (output, err) = p.communicate()
             rc = p.wait()
@@ -126,30 +145,48 @@ class Teamshow(object):
                     info["ports"] += ") "
 
             self.summary[team_id] = info
+        return self.summary
 
-    def display_summary(self):
-        """
-            Display the portchannel (team) summary.
-        """
-        print("Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,\n"
-              "       S - selected, D - deselected, * - not synced")
+def display_summary(summary):
+    """
+        Display the portchannel (team) summary.
+    """
+    print("Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,\n"
+            "       S - selected, D - deselected, * - not synced")
 
-        header = ['No.', 'Team Dev', 'Protocol', 'Ports']
-        output = []
-        for team_id in natsorted(self.summary):
-            output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
-        print tabulate(output, header)
+    header = ['No.', 'Team Dev', 'Protocol', 'Ports']
+    output = []
+    for team_id in natsorted(summary):
+        output.append([team_id, 'PortChannel'+team_id, summary[team_id]['protocol'], summary[team_id]['ports']])
+    print tabulate(output, header)
+
+def db_config_unload():
+    swsssdk.SonicDBConfig._sonic_db_global_config_init = False
+
+def db_config_load(namespace=None):
+    swsssdk.SonicDBConfig.load_sonic_global_db_config(namespace=namespace)
 
 def main():
     if os.geteuid() != 0:
         exit("This utility must be run as root")
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d','--display_all',   default=display_all, help='Display all interfaces or only frontend interfaces')
+    parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
+    args = parser.parse_args()
+    output = {}
+    namespace = args.namespace
+    display_opt = args.display_all
     try:
-        team = Teamshow()
-        team.get_portchannel_names()
-        team.get_teamdctl()
-        team.get_teamshow_result()
-        team.display_summary()
+        ns_list = multi_npu_process_options(display_opt,namespace)
+        for ns in ns_list:
+            db_config_load()
+            team = Teamshow(ns, display_opt)
+            team.get_portchannel_names()
+            team.get_teamdctl()
+            output.update(team.get_teamshow_result())
+            db_config_unload()
+        display_summary(output)
     except Exception as e:
         sys.exit(e.message)
 
