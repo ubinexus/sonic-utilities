@@ -1611,7 +1611,7 @@ This command displays all the details of IPv4 Border Gateway Protocol (BGP) pref
 
 
   ```
-  show ip bgp network [[<NONE>|<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+  show ip bgp network [[<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
   ```
 
 - Example:
@@ -1711,7 +1711,7 @@ This command displays all the details of IPv6 Border Gateway Protocol (BGP) pref
 
   
   ```
-  show ipv6 bgp network [[<NONE>|<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]   
+  show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]   
   ```
 
 - Example:
