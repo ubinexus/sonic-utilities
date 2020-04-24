@@ -48,7 +48,7 @@ def neighbors(ipaddress, info_type):
 
 # 'network' subcommand ("show ip bgp network")
 @bgp.command()
-@click.argument('ipaddress', metavar='[IPADDRESS|PREFIX]', required=False)
+@click.argument('ipaddress', metavar='[<ipv4-address>|<ipv4-prefix>]', required=False)
 @click.argument('info_type', metavar='[bestpath|json|longer-prefixes|multipath]',
                 type=click.Choice(['bestpath', 'json', 'longer-prefixes', 'multipath']), required=False)
 def network(ipaddress, info_type):
