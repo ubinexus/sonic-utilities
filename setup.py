@@ -54,7 +54,7 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*.json']
+        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
