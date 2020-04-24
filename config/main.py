@@ -7,6 +7,7 @@ import subprocess
 import netaddr
 import re
 import syslog
+import logging
 import time
 import netifaces
 
@@ -15,6 +16,7 @@ import ipaddress
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from minigraph import parse_device_desc_xml
+from itertools import count, groupby
 
 import aaa
 import mlnx
@@ -173,6 +175,15 @@ def interface_name_is_valid(interface_name):
                     return True
     return False
 
+def vlan_id_is_valid(vid):
+    """Check if the vlan id is in acceptable range (between 1 and 4094)
+    """
+
+    if vid<1 or vid>4094:
+        return False
+
+    return True
+    
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
     """
