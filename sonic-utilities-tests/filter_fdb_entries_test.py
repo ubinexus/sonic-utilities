@@ -4,7 +4,6 @@ import os
 import pytest
 import shutil
 import subprocess
-import sys
 
 from collections import defaultdict
 from filter_fdb_input.test_vectors import filterFdbEntriesTestVector
