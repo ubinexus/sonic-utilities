@@ -7,8 +7,8 @@ from sonic_device_util import get_num_npus, get_namespaces
 
 
 BACKPLANE_INTERFACE_PREFIX = "Ethernet-BP"
-DISPLAY_ALL_INTFS = 'all'
-DISPLAY_EXTERNAL_INTFS = 'frontend'
+DISPLAY_ALL = 'all'
+DISPLAY_EXTERNAL = 'frontend'
 
 
 def multi_npu_platform():
@@ -30,7 +30,7 @@ def is_backplane_interface(intf_name):
         return False
 
 def skip_intf_display(intf, display_opt):
-    if display_opt == DISPLAY_ALL_INTFS:
+    if display_opt == DISPLAY_ALL:
         return False
     else:
         if is_backplane_interface(intf):
@@ -58,15 +58,15 @@ def multi_npu_ns_choices():
 
 def multi_npu_display_choices():
     if not multi_npu_platform():
-        return [DISPLAY_ALL_INTFS]
+        return [DISPLAY_ALL]
     else:
-        return [DISPLAY_ALL_INTFS, DISPLAY_EXTERNAL_INTFS]
+        return [DISPLAY_ALL, DISPLAY_EXTERNAL]
 
 def multi_npu_display_default_option():
     if not multi_npu_platform():
-        return DISPLAY_ALL_INTFS
+        return DISPLAY_ALL
     else:
-        return  DISPLAY_EXTERNAL_INTFS
+        return  DISPLAY_EXTERNAL
 
 def multi_npu_process_options(display,namespace):
     ns_list = []
@@ -74,7 +74,7 @@ def multi_npu_process_options(display,namespace):
         return [None]
     else:
         if namespace is None:
-            if display ==  DISPLAY_ALL_INTFS:
+            if display ==  DISPLAY_ALL:
                 ns_list += get_namespaces()
             else:
                 ns_list += get_frontend_namespaces()
@@ -83,7 +83,7 @@ def multi_npu_process_options(display,namespace):
     return ns_list
 
 _multi_npu_options = [
-    click.option('--display', '-d', 'display', default=multi_npu_display_default_option(), show_default=True, type=click.Choice([DISPLAY_ALL_INTFS, DISPLAY_EXTERNAL_INTFS]), help='Show internal interfaces'),
+    click.option('--display', '-d', 'display', default=multi_npu_display_default_option(), show_default=True, type=click.Choice([DISPLAY_ALL, DISPLAY_EXTERNAL]), help='Show internal interfaces'),
     click.option('--namespace', '-n', 'namespace', default=None, type=click.Choice(multi_npu_ns_choices()), show_default=True, help='Namespace name or all'),
     #click.option('--namespace', '-n', 'namespace',  callback=multi_npu_ns_callback, show_default=True, help='Namespace name or all'),
 ]

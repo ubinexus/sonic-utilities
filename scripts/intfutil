@@ -13,7 +13,7 @@ import argparse
 import sonic_device_util
 from show.multi_npu import multi_npu_process_options
 from show.multi_npu import skip_intf_display
-from show.multi_npu import DISPLAY_ALL_INTFS as display_all
+from show.multi_npu import DISPLAY_ALL as DISPLAY_ALL
 
 # mock the redis for unit test purposes #
 try:
@@ -549,7 +549,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--command', help='Command "status" or "description"')
     parser.add_argument('-i','--interface', default=None, help='Display for specific interface')
-    parser.add_argument('-d','--display',   default=display_all, help='Display all interfaces or only frontend interfaces')
+    parser.add_argument('-d','--display',   default=DISPLAY_ALL, help='Display all interfaces or only frontend interfaces')
     parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
     args = parser.parse_args()
 

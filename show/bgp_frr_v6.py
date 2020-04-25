@@ -1,6 +1,6 @@
 import click
-from show.main import ipv6, run_command, get_bgp_summary_extended
-
+from show.main import ipv6, run_command, get_bgp_summary_extended, multi_instance_bgp_summary
+from show.multi_npu import multi_npu_process_options, multi_npu_platform, multi_npu_options
 
 ###############################################################################
 #
@@ -17,8 +17,12 @@ def bgp():
 
 # 'summary' subcommand ("show ipv6 bgp summary")
 @bgp.command()
-def summary():
+@multi_npu_options
+def summary(namespace, display):
     """Show summarized information of IPv6 BGP state"""
+    if multi_npu_platform():
+        multi_instance_bgp_summary(namespace, display, 'v6')
+        return
     try:
         device_output = run_command('sudo vtysh -c "show bgp ipv6 summary"', return_cmd=True)
         get_bgp_summary_extended(device_output)
