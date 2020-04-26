@@ -4,7 +4,7 @@ import traceback
 import sys
 import argparse
 import syslog
-from swsssdk import ConfigDBConnector
+from swsssdk import ConfigDBConnector, SonicDBConfig
 import sonic_device_util
 
 
@@ -295,15 +295,18 @@ def main():
                         default = None )
         parser.add_argument('-n',
                         dest='namespace',
-                        metavar='namespace details',
+                        metavar='asic namespace',
                         type = str,
                         required = False,
-                        help = 'The namespace whose DB instance we need to connect',
+                        help = 'The asic namespace whose DB instance we need to connect',
                         default = None )
         args = parser.parse_args()
         operation = args.operation
         socket_path = args.socket
         namespace = args.namespace
+
+        if args.namespace is not None:
+            SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)
