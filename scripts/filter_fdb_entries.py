@@ -59,6 +59,9 @@ def filter_fdb_entries(fdb_filename, arp_filename, backup_file):
             if 'FDB_TABLE' in key:
                 return key.split(':')[-1] in arp_map
 
+        # malformed entry, default to False so it will be deleted
+        return False
+
     new_fdb_entries = list(filter(filter_fdb_entry, fdb_entries))
 
     if len(new_fdb_entries) < len(fdb_entries):
@@ -70,7 +73,7 @@ def filter_fdb_entries(fdb_filename, arp_filename, backup_file):
 
 def file_exists_or_raise(filename):
     """
-        Check if file exist on the file system
+        Check if file exists on the file system
 
         Args:
             filename(str): File name
