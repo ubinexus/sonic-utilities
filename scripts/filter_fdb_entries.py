@@ -68,7 +68,7 @@ def filter_fdb_entries(fdb_filename, arp_filename, backup_file):
         with open(fdb_filename, 'w') as fp:
             json.dump(new_fdb_entries, fp, indent=2, separators=(',', ': '))
 
-def file_exits_or_raise(filename):
+def file_exists_or_raise(filename):
     """
         Check if file exist on the file system
 
@@ -96,8 +96,8 @@ def main():
     backup_file = args.backup_file
 
     try:
-        file_exits_or_raise(fdb_filename)
-        file_exits_or_raise(arp_filename)
+        file_exists_or_raise(fdb_filename)
+        file_exists_or_raise(arp_filename)
     except Exception as e:
         syslog.syslog(syslog.LOG_ERR, "Got an exception %s: Traceback: %s" % (str(e), traceback.format_exc()))
     else:
