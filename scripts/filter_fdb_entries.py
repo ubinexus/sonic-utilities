@@ -92,13 +92,16 @@ def main():
     args = parser.parse_args()
 
     fdb_filename = args.fdb
-    file_exits_or_raise(fdb_filename)
-
     arp_filename = args.arp
-    file_exits_or_raise(arp_filename)
-
     backup_file = args.backup_file
-    filter_fdb_entries(fdb_filename, arp_filename, backup_file)
+
+    try:
+        file_exits_or_raise(fdb_filename)
+        file_exits_or_raise(arp_filename)
+    except Exception as e:
+        syslog.syslog(syslog.LOG_ERR, "Got an exception %s: Traceback: %s" % (str(e), traceback.format_exc()))
+    else:
+        filter_fdb_entries(fdb_filename, arp_filename, backup_file)
 
     return 0
 
