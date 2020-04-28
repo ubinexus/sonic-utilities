@@ -87,7 +87,7 @@ function enable_watchdog()
     elif isMLNX; then
         debug "Calling MLNX WD enable"
         if [[ -x /usr/bin/hw-management-wd.sh  ]]; then
-            /usr/bin/hw-management-wd.sh start
+            /usr/bin/hw-management-wd.sh start 180
         fi
     else
         if isArista; then
