@@ -134,8 +134,8 @@ def get_interfaces():
     intf = []
     keys = db.get_keys('INTF_TABLE')
 
-    for e in keys:
-        lst = re.split(':', e.lower(), maxsplit=1)
+    for k in keys:
+        lst = re.split(':', k.lower(), maxsplit=1)
         if len(lst) == 1:
             # No IP address in key; ignore
             continue
