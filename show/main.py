@@ -947,6 +947,47 @@ def status(interfacename, verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+# 'tx_drop' subcommand ("show interface tx_drop")
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def tx_drop(interfacename):
+    """Show Interface tx_drop information"""
+
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
+    prefix_statedb = "TX_DROP_STATE|"
+    _hash = '{}{}'.format(prefix_statedb, '*')   # DBInterface keys() method
+    txdrop_keys = state_db.keys(state_db.STATE_DB, _hash)
+
+    appl_db = SonicV2Connector(host='127.0.0.1')
+    appl_db.connect(appl_db.APPL_DB, False)
+    prefix_appldb = "TX_DROP_APPL:"
+
+    table = []
+    tx_status     = "tx_status"
+    tx_drop_stati = "tx_drop_stati"
+    empty_string  = ""
+
+    if txdrop_keys is not None:
+        for k in txdrop_keys:
+            k = k.replace(prefix_statedb, empty_string) 
+            r = []
+            r.append(k)
+
+            r.append(state_db.get(state_db.STATE_DB, prefix_statedb + k, tx_status))
+            entry = appl_db.get_all(appl_db.APPL_DB, prefix_appldb + k)
+            if entry is not None:
+                if tx_drop_stati not in entry:
+                    r.append(empty_string)
+                else:
+                    r.append(entry[tx_drop_stati])
+
+            table.append(r)
+
+    header = ['Port', 'status', 'statistics']
+    click.echo(tabulate(table, header))
+
+
 # 'counters' subcommand ("show interfaces counters")
 @interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)

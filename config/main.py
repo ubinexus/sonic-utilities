@@ -1570,6 +1570,71 @@ def shutdown(ctx, interface_name):
             config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "down"})
 
 #
+# 'tx_drop_threshold' subgroup
+#
+
+@interface.group()
+@click.pass_context
+def tx_drop_threshold(ctx):
+    """Set or del threshold of tx drop statistics"""
+    pass
+
+#
+# 'set' subcommand
+#
+@tx_drop_threshold.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_tx_drop_threshold', metavar='<interface_tx_drop_threshold>', required=True, type=int)
+def set(ctx, interface_name, interface_tx_drop_threshold):
+    """Set threshold of tx drop statistics"""
+    if interface_name is None:
+        ctx.fail("'interface_name' is None!")
+
+    config_db = ctx.obj['config_db']
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    if interface_name.startswith("Ethernet"):
+        config_db.set_entry("TX_DROP_CFG", (interface_name), {"tx_drop_threshold": interface_tx_drop_threshold})
+    else:
+        ctx.fail("Only Ethernet interfaces are supported")
+
+#
+# 'clear' subcommand
+#
+@tx_drop_threshold.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+def clear(ctx, interface_name):
+    """Clear threshold of tx drop statistics"""
+    if interface_name is None:
+        ctx.fail("'interface_name' is None!")
+
+    config_db = ctx.obj["config_db"]
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    if config_db.get_entry('TX_DROP_CFG', interface_name):
+        if interface_name.startswith("Ethernet"):
+            config_db.set_entry("TX_DROP_CFG", (interface_name), None)
+        else:
+            ctx.fail("Only Ethernet interfaces are supported")
+    else:
+        ctx.fail("Tx Error threshold hasn't been configured on the interface")
+
+
+#
 # 'speed' subcommand
 #
 
@@ -1660,6 +1725,13 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
+    if interface_name.startswith("Ethernet"):
+        config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+    elif interface_name.startswith("PortChannel"):
+        config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+    elif interface_name.startswith("Vlan"):
+        config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
 
@@ -1716,6 +1788,13 @@ def remove(ctx, interface_name, ip_addr):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    if interface_name.startswith("Ethernet"):
+        config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
+    elif interface_name.startswith("PortChannel"):
+        config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
+    elif interface_name.startswith("Vlan"):
+        config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
 
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
@@ -2808,6 +2887,18 @@ def autorestart(container_name, autorestart_status):
         return
 
     config_db.mod_entry('CONTAINER_FEATURE', container_name, {'auto_restart': autorestart_status})
+
+#
+# 'tx_drop_stat_poll_period' subcommand ('config tx_drop_stat_poll_period')
+#
+@config.command()
+@click.argument('period', metavar='<period>', required=True, type=int)
+def tx_drop_stat_poll_period(period):
+    """Set polling period of tx drop statistics, 0 for disable, xxx for default"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.set_entry("TX_DROP_CFG", ("GLOBAL_PERIOD"), {"tx_drop_check_period": period})
+
 
 if __name__ == '__main__':
     config()
