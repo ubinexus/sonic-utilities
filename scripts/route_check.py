@@ -147,13 +147,19 @@ def get_interfaces():
     print_message(syslog.LOG_DEBUG, json.dumps({"APPL_DB_INTF": sorted(intf)}, indent=4))
     return sorted(intf)
 
-def filter_out_rt(ifname, keys):
+def filter_out_local_interfaces(keys):
     rt = []
+    local_if = set(['eth0', 'lo', 'docker0'])
+
     db = ConfigDBConnector()
     db.db_connect('APPL_DB')
-
+    
     for k in keys:
-        if (db.get_entry('ROUTE_TABLE', k)['ifname'] != ifname):
+        e = db.get_entry('ROUTE_TABLE', k)
+        if not e:
+            # Prefix might have been added. So try w/o it.
+            e = db.get_entry('ROUTE_TABLE', k.split("/")[0])
+        if not e or (e['ifname'] not in local_if):
             rt.append(k)
 
     return rt
@@ -180,7 +186,7 @@ def check_routes():
     intf_appl_miss, _ = do_diff(intf_appl, rt_asic)
 
     if (len(rt_appl_miss) != 0):
-        rt_appl_miss = filter_out_rt('eth0', rt_appl_miss)
+        rt_appl_miss = filter_out_local_interfaces(rt_appl_miss)
 
     if (len(rt_appl_miss) != 0):
         results["missed_ROUTE_TABLE_routes"] = rt_appl_miss
