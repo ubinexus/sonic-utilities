@@ -594,7 +594,7 @@ config.add_command(nat.nat)
 @click.argument('filename', required=False)
 def save(filename):
     """Export current config DB to a file on disk.\n
-       <filename> : Names of configuration file(s) to use, separated by comma with no spaces in between
+       <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
     """
     num_asic = _get_num_asic()
     cfg_files = []
@@ -642,7 +642,7 @@ def save(filename):
 @click.argument('filename', required=False)
 def load(filename, yes):
     """Import a previous saved config DB dump file.
-       <filename> : Names of configuration file(s) to use, separated by comma with no spaces in between
+       <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
     if filename is None:
         message = 'Load config from the default config file(s) ?'
@@ -705,7 +705,7 @@ def load(filename, yes):
 @click.argument('filename', required=False)
 def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file.
-       <filename> : Names of configuration file(s) to use, separated by comma with no spaces in between
+       <filename> : Names of configuration file(s) to reload, separated by comma with no spaces in between
     """
     if filename is None:
         message = 'Clear current config and reload config from the default config file(s) ?'
