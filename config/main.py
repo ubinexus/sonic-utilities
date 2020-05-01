@@ -594,7 +594,7 @@ config.add_command(nat.nat)
 @click.argument('filename', required=False)
 def save(filename):
     """Export current config DB to a file on disk.\n
-       [FILENAME] : Filenames separated by comma with no spaces in between.
+       <filename> : Names of configuration file(s) to use, separated by comma with no spaces in between
     """
     num_asic = _get_num_asic()
     cfg_files = []
@@ -608,7 +608,7 @@ def save(filename):
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
-            click.echo("Input {} config file[s] separated by comma for multiple files ".format(num_cfg_file))
+            click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
     """In case of multi-asic mode we have additional config_db{NS}.json files for
@@ -642,12 +642,12 @@ def save(filename):
 @click.argument('filename', required=False)
 def load(filename, yes):
     """Import a previous saved config DB dump file.
-       [FILENAME] : Filenames separated by comma with no spaces in between.
+       <filename> : Names of configuration file(s) to use, separated by comma with no spaces in between
     """
     if filename is None:
-        message = 'Load config from the default config file[s] ?'
+        message = 'Load config from the default config file(s) ?'
     else:
-        message = 'Load config from the file[s] {} ?'.format(filename)
+        message = 'Load config from the file(s) {} ?'.format(filename)
 
     if not yes:
         click.confirm(message, abort=True)
@@ -664,7 +664,7 @@ def load(filename, yes):
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
-            click.echo("Input {} config file[s] separated by comma for multiple files ".format(num_cfg_file))
+            click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
     """In case of multi-asic mode we have additional config_db{NS}.json files for
@@ -705,12 +705,12 @@ def load(filename, yes):
 @click.argument('filename', required=False)
 def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file.
-       [FILENAME] : Filenames separated by comma with no spaces in between.
+       <filename> : Names of configuration file(s) to use, separated by comma with no spaces in between
     """
     if filename is None:
-        message = 'Clear current config and reload config from the default config file[s] ?'
+        message = 'Clear current config and reload config from the default config file(s) ?'
     else:
-        message = 'Clear current config and reload config from the file[s] {} ?'.format(filename)
+        message = 'Clear current config and reload config from the file(s) {} ?'.format(filename)
 
     if not yes:
         click.confirm(message, abort=True)
@@ -729,7 +729,7 @@ def reload(filename, yes, load_sysinfo):
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
-            click.echo("Input {} config file[s] separated by comma for multiple files ".format(num_cfg_file))
+            click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
     if load_sysinfo:
