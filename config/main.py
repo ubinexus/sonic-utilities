@@ -659,6 +659,9 @@ def load_minigraph():
     log_info("'load_minigraph' stopping services...")
     _stop_services()
 
+    # For Single Asic platform the namespace list has the empty string
+    # for mulit Asic platform the empty string to generate the config
+    # for host
     namespace_list = ['']
     if sonic_device_util.get_num_npus() > 1:
         namespace_list += sonic_device_util.get_namespaces()
