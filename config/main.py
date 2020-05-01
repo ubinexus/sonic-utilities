@@ -705,7 +705,7 @@ def load(filename, yes):
 @click.argument('filename', required=False)
 def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file.
-       <filename> : Names of configuration file(s) to reload, separated by comma with no spaces in between
+       <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
     if filename is None:
         message = 'Clear current config and reload config from the default config file(s) ?'
