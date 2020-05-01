@@ -12,9 +12,7 @@ import netifaces
 
 import sonic_device_util
 import ipaddress
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-from swsssdk import SonicDBConfig
+from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
 
 import aaa
@@ -147,7 +145,7 @@ def get_all_namespaces():
             elif metadata['localhost']['sub_role'] == 'BackEnd':
                 back_ns.append(namespace)
 
-    return {'front_ns':front_ns, 'back_ns':back_ns}
+    return {'front_ns': front_ns, 'back_ns': back_ns}
 
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
@@ -595,7 +593,9 @@ config.add_command(nat.nat)
                 expose_value=False, prompt='Existing files will be overwritten, continue?')
 @click.argument('filename', required=False)
 def save(filename):
-    """Export current config DB to a file on disk."""
+    """Export current config DB to a file on disk.\n
+       [FILENAME] : Filenames separated by comma with no spaces in between.
+    """
     num_asic = _get_num_asic()
     cfg_files = []
 
@@ -608,7 +608,7 @@ def save(filename):
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
-            click.echo("Input {} config file[s] separated by comma if needed".format(num_cfg_file))
+            click.echo("Input {} config file[s] separated by comma for multiple files ".format(num_cfg_file))
             return
 
     """In case of multi-asic mode we have additional config_db{NS}.json files for
@@ -633,7 +633,6 @@ def save(filename):
         if namespace is None:
             command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, file)
         else:
-            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
             command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, file)
 
         run_command(command, display_cmd=True)
@@ -642,7 +641,9 @@ def save(filename):
 @click.option('-y', '--yes', is_flag=True)
 @click.argument('filename', required=False)
 def load(filename, yes):
-    """Import a previous saved config DB dump file."""
+    """Import a previous saved config DB dump file.
+       [FILENAME] : Filenames separated by comma with no spaces in between.
+    """
     if filename is None:
         message = 'Load config from the default config file[s] ?'
     else:
@@ -663,7 +664,7 @@ def load(filename, yes):
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
-            click.echo("Input {} config file[s] separated by comma if needed".format(num_cfg_file))
+            click.echo("Input {} config file[s] separated by comma for multiple files ".format(num_cfg_file))
             return
 
     """In case of multi-asic mode we have additional config_db{NS}.json files for
@@ -693,7 +694,6 @@ def load(filename, yes):
         if namespace is None:
             command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
         else:
-            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
             command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, file)
 
         run_command(command, display_cmd=True)
@@ -704,7 +704,9 @@ def load(filename, yes):
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.argument('filename', required=False)
 def reload(filename, yes, load_sysinfo):
-    """Clear current configuration and import a previous saved config DB dump file."""
+    """Clear current configuration and import a previous saved config DB dump file.
+       [FILENAME] : Filenames separated by comma with no spaces in between.
+    """
     if filename is None:
         message = 'Clear current config and reload config from the default config file[s] ?'
     else:
@@ -727,7 +729,7 @@ def reload(filename, yes, load_sysinfo):
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
-            click.echo("Input {} config file[s] separated by comma if needed".format(num_cfg_file))
+            click.echo("Input {} config file[s] separated by comma for multiple files ".format(num_cfg_file))
             return
 
     if load_sysinfo:
