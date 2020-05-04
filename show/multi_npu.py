@@ -83,7 +83,7 @@ def multi_npu_process_options(display,namespace):
     return ns_list
 
 _multi_npu_options = [
-    click.option('--display', '-d', 'display', default=multi_npu_display_default_option(), show_default=True, type=click.Choice([DISPLAY_ALL, DISPLAY_EXTERNAL]), help='Show internal interfaces'),
+    click.option('--display', '-d', 'display', default=multi_npu_display_default_option(), show_default=True, type=click.Choice(multi_npu_display_choices()), help='Show internal interfaces'),
     click.option('--namespace', '-n', 'namespace', default=None, type=click.Choice(multi_npu_ns_choices()), show_default=True, help='Namespace name or all'),
     #click.option('--namespace', '-n', 'namespace',  callback=multi_npu_ns_callback, show_default=True, help='Namespace name or all'),
 ]
