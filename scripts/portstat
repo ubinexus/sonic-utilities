@@ -1,19 +1,23 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 #####################################################################
 #
-# portstat is a tool for summarizing network statistics. 
+# portstat is a tool for summarizing network statistics.
 #
 #####################################################################
 
 import argparse
 import cPickle as pickle
 import datetime
+import getopt
 import os.path
+import re
+import subprocess
 import swsssdk
 import sys
 import time
 
+from pprint import pprint
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
@@ -29,6 +33,14 @@ header_all = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'RX_ERR'
 header = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 
+
+ne_header_all = ['IFACE', 'STATE', 'RX_ERR', 'RX_DRP', 'RX_OVR', 'TX_ERR', 'TX_DRP', 'TX_OVR']
+ne_header = ['IFACE', 'STATE', 'RX_ERR', 'RX_DRP', 'RX_OVR', 'TX_ERR', 'TX_DRP', 'TX_OVR']
+
+nr_header_all = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL']
+nr_header = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL']
+
+
 counter_bucket_dict = {
     'SAI_PORT_STAT_IF_IN_UCAST_PKTS': 0,
     'SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS': 0,
@@ -43,6 +55,9 @@ counter_bucket_dict = {
     'SAI_PORT_STAT_IF_IN_OCTETS': 8,
     'SAI_PORT_STAT_IF_OUT_OCTETS': 9
 }
+
+
+
 
 STATUS_NA = 'N/A'
 
@@ -84,7 +99,6 @@ class Portstat(object):
                     fields[pos] = str(int(fields[pos]) + int(counter_data))
             cntr = NStats._make(fields)
             return cntr
-
         # Get the info from database
         counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP);
         # Build a dictionary of the stats
@@ -93,7 +107,7 @@ class Portstat(object):
         if counter_port_name_map is None:
             return cnstat_dict
         for port in natsorted(counter_port_name_map):
-            cnstat_dict[port] = get_counters(counter_port_name_map[port]) 
+            cnstat_dict[port] = get_counters(counter_port_name_map[port])
         return cnstat_dict
 
     def get_port_speed(self, port_name):
@@ -106,7 +120,7 @@ class Portstat(object):
         if speed is None:
             speed = PORT_RATE
         else:
-            speed = int(speed)//1000
+            speed = int(speed)/1000
         return speed
 
     def get_port_state(self, port_name):
@@ -132,11 +146,9 @@ class Portstat(object):
             Print the cnstat.
         """
         table = []
-
         for key, data in cnstat_dict.iteritems():
             if key == 'time':
                 continue
-
             if print_all:
                 table.append((key, self.get_port_state(key),
                               data.rx_ok, STATUS_NA, STATUS_NA, STATUS_NA, data.rx_err,
@@ -149,20 +161,57 @@ class Portstat(object):
                               data.rx_drop, data.rx_ovr,
                               data.tx_ok, STATUS_NA, STATUS_NA, data.tx_err,
                               data.tx_drop, data.tx_ovr))
-
-
         if use_json:
             print table_as_json(table, header_all if print_all else header)
         else:
             print tabulate(table, header_all if print_all else header, tablefmt='simple', stralign='right')
 
+    def ne_cnstat_print(self, cnstat_dict, use_json, print_all):
+        """
+            Print the network errors cnstat.
+        """
+        table = []
+        for key, data in cnstat_dict.iteritems():
+            if key == 'time':
+                continue
+            if print_all:
+                table.append((key, self.get_port_state(key),
+                              data.rx_err, data.rx_drop, data.rx_ovr,
+                              data.tx_err, data.tx_drop, data.tx_ovr))
+            else:
+                table.append((key, self.get_port_state(key),
+                              data.rx_err, data.rx_drop, data.rx_ovr,
+                              data.tx_err, data.tx_drop, data.tx_ovr))
+        if use_json:
+            print table_as_json(table, ne_header_all if print_all else ne_header)
+        else:
+            print tabulate(table, ne_header_all if print_all else ne_header, tablefmt='simple', stralign='right')
+    def nr_cnstat_print(self, cnstat_dict, use_json, print_all):
+        """
+            Print the network rate cnstat.
+        """
+        table = []
+        for key, data in cnstat_dict.iteritems():
+            if key == 'time':
+                continue
+            if print_all:
+                table.append((key, self.get_port_state(key),
+                              data.rx_ok, STATUS_NA, STATUS_NA, STATUS_NA,
+                              data.tx_ok, STATUS_NA, STATUS_NA, STATUS_NA))
+            else:
+                table.append((key, self.get_port_state(key),
+                              data.rx_ok, STATUS_NA, STATUS_NA, STATUS_NA,
+                              data.tx_ok, STATUS_NA, STATUS_NA, STATUS_NA))
+        if use_json:
+            print table_as_json(table, nr_header_all if print_all else nr_header)
+        else:
+            print tabulate(table, nr_header_all if print_all else nr_header, tablefmt='simple', stralign='right')
+
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json, print_all):
         """
             Print the difference between two cnstat results.
         """
-
         table = []
-
         for key, cntr in cnstat_new_dict.iteritems():
             if key == 'time':
                 time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
@@ -171,7 +220,6 @@ class Portstat(object):
             old_cntr = None
             if key in cnstat_old_dict:
                 old_cntr = cnstat_old_dict.get(key)
-
             port_speed = self.get_port_speed(key)
             if print_all:
                 if old_cntr is not None:
@@ -235,7 +283,6 @@ class Portstat(object):
                                   cntr.tx_err,
                                   cntr.tx_drop,
                                   cntr.tx_ovr))
-
         if use_json:
             print table_as_json(table, header)
         else:
@@ -243,7 +290,6 @@ class Portstat(object):
                 print tabulate(table, header_all, tablefmt='simple', stralign='right')
             else:
                 print tabulate(table, header, tablefmt='simple', stralign='right')
-
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the ports state and counters',
@@ -255,51 +301,50 @@ Examples:
   portstat -c -t test
   portstat -t test
   portstat -d -t test
+  portstat -e 
   portstat
   portstat -r
+  portstat -R
   portstat -a
   portstat -p 20
 """)
-
+    parser.add_argument('-a', '--all', action='store_true', help='Display all the stats counters')
     parser.add_argument('-c', '--clear', action='store_true', help='Copy & clear stats')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats, either the uid or the specified tag')
     parser.add_argument('-D', '--delete-all', action='store_true', help='Delete all saved stats')
+    parser.add_argument('-e', '--errors', action='store_true', help='Display interface errors')
     parser.add_argument('-j', '--json', action='store_true', help='Display in JSON format')
     parser.add_argument('-r', '--raw', action='store_true', help='Raw stats (unmodified output of netstat)')
-    parser.add_argument('-a', '--all', action='store_true', help='Display all the stats counters')
+    parser.add_argument('-R', '--rate', action='store_true', help='Display interface rates')
     parser.add_argument('-t', '--tag', type=str, help='Save stats with name TAG', default=None)
     parser.add_argument('-p', '--period', type=int, help='Display stats over a specified period (in seconds).', default=0)
     args = parser.parse_args()
-
     save_fresh_stats = args.clear
     delete_saved_stats = args.delete
     delete_all_stats = args.delete_all
+    errors = args.errors
+    rate = args.rate
     use_json = args.json
     raw_stats = args.raw
     tag_name = args.tag
     uid = str(os.getuid())
     wait_time_in_seconds = args.period
     print_all = args.all
-
     if tag_name is not None:
         cnstat_file = uid + "-" + tag_name
     else:
         cnstat_file = uid
-
     cnstat_dir = "/tmp/portstat-" + uid
     cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
-
     if delete_all_stats:
         for file in os.listdir(cnstat_dir):
             os.remove(cnstat_dir + "/" + file)
-
         try:
             os.rmdir(cnstat_dir)
             sys.exit(0)
         except IOError as e:
             print e.errno, e
             sys.exit(e)
-
     if delete_saved_stats:
         try:
             os.remove(cnstat_fqn_file)
@@ -311,15 +356,19 @@ Examples:
             if os.listdir(cnstat_dir) == []:
                 os.rmdir(cnstat_dir)
             sys.exit(0)
-
     portstat = Portstat()
+    # The cnstat_dict just give an ordered dict of all output. 
     cnstat_dict = portstat.get_cnstat()
-
     # Now decide what information to display
     if raw_stats:
         portstat.cnstat_print(cnstat_dict, use_json, print_all)
         sys.exit(0)
-
+    if errors: 
+        portstat.ne_cnstat_print(cnstat_dict, use_json, print_all)
+        sys.exit(0)
+    if rate:
+        portstat.nr_cnstat_print(cnstat_dict, use_json, print_all)
+        sys.exit(0)
     # At this point, either we'll create a file or open an existing one.
     if not os.path.exists(cnstat_dir):
         try:
@@ -327,8 +376,6 @@ Examples:
         except IOError as e:
             print e.errno, e
             sys.exit(1)
-
-
     if save_fresh_stats:
         try:
             pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'w'))
@@ -337,7 +384,6 @@ Examples:
         else:
             print "Cleared counters"
             sys.exit(0)
-
     if wait_time_in_seconds == 0:
         cnstat_cached_dict = OrderedDict()
         if os.path.isfile(cnstat_fqn_file):
@@ -358,7 +404,6 @@ Examples:
         time.sleep(wait_time_in_seconds)
         print "The rates are calculated within %s seconds period" % wait_time_in_seconds
         cnstat_new_dict = portstat.get_cnstat()
-        portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json, print_all)
 
 if __name__ == "__main__":
     main()
