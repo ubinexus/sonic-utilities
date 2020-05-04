@@ -3050,8 +3050,11 @@ def neighbors():
                 for ip, mac in nbrs_data[intf]:
                     r = ["", ip, mac, intf]
                     table.append(r)
-    click.echo(tabulate(table, header))
-    click.echo("\n")
+        click.echo(tabulate(table, header))
+        click.echo("\n")
+
+    if not bool(vnet_intfs):
+        click.echo(tabulate(table, header))
 
 @vnet.group()
 def routes():
