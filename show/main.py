@@ -2076,7 +2076,7 @@ def enabled():
     else:
         click.echo("kdump is disabled")
 
-@kdump.command('status', default=True)
+@kdump.command('status')
 def status():
     """Show kdump status"""
     run_command("sonic-kdump-config --status")
