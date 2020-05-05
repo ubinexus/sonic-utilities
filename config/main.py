@@ -1963,7 +1963,7 @@ def transceiver(ctx):
 
 @transceiver.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('state', type=click.Choice(['enable', 'disable']))
+@click.argument('state', metavar='(enable|disable)', type=click.Choice(['enable', 'disable']))
 @click.pass_context
 def lpmode(ctx, interface_name, state):
     """Enable/disable low-power mode for transceiver"""
