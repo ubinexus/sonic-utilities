@@ -1966,7 +1966,7 @@ def transceiver(ctx):
 @click.argument('state', metavar='(enable|disable)', type=click.Choice(['enable', 'disable']))
 @click.pass_context
 def lpmode(ctx, interface_name, state):
-    """Enable/disable low-power mode for transceiver"""
+    """Enable/disable low-power mode for SFP transceiver module"""
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
@@ -1986,7 +1986,7 @@ def lpmode(ctx, interface_name, state):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.pass_context
 def reset(ctx, interface_name):
-    """Reset transceiver"""
+    """Reset SFP transceiver module"""
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
