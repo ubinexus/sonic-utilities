@@ -974,16 +974,8 @@ def counters(ctx, verbose, period, printall):
 @click.pass_context
 def errors(ctx, verbose, period, printall):
     """Show interface counters errors"""
-
-    if ctx.invoked_subcommand is None:
-        cmd = "portstat -e"
-
-        if printall:
-            cmd += " -a"
-        if period is not None:
-            cmd += " -p {}".format(period)
-
-        run_command(cmd, display_cmd=verbose)
+    cmd = "portstat -e"
+    run_command(cmd, display_cmd=verbose)
 
 # 'rate' subcommand ("show interfaces counters rate")
 @counters.command()
@@ -993,16 +985,8 @@ def errors(ctx, verbose, period, printall):
 @click.pass_context
 def rate(ctx, verbose, period, printall):
     """Show interface counters rate"""
-
-    if ctx.invoked_subcommand is None:
-        cmd = "portstat -R"
-
-        if printall:
-            cmd += " -a"
-        if period is not None:
-            cmd += " -p {}".format(period)
-
-        run_command(cmd, display_cmd=verbose)
+    cmd = "portstat -R"
+    run_command(cmd, display_cmd=verbose)
 
 # 'counters' subcommand ("show interfaces counters rif")
 @counters.command()
