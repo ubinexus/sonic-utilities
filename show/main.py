@@ -968,22 +968,16 @@ def counters(ctx, verbose, period, printall):
 
 # 'errors' subcommand ("show interfaces counters errors")
 @counters.command()
-@click.option('-a', '--printall', is_flag=True)
-@click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.pass_context
-def errors(ctx, verbose, period, printall):
+def errors(verbose):
     """Show interface counters errors"""
     cmd = "portstat -e"
     run_command(cmd, display_cmd=verbose)
 
 # 'rate' subcommand ("show interfaces counters rate")
 @counters.command()
-@click.option('-a', '--printall', is_flag=True)
-@click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.pass_context
-def rate(ctx, verbose, period, printall):
+def rate(verbose):
     """Show interface counters rate"""
     cmd = "portstat -R"
     run_command(cmd, display_cmd=verbose)
