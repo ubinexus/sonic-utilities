@@ -957,7 +957,7 @@ def load_minigraph():
             run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
 
     if os.path.isfile('/etc/sonic/acl.json'):
-            run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
+        run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
