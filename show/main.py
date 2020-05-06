@@ -2052,6 +2052,64 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
+#
+# 'coredumpctl' group ("show cores")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def cores():
+    """Show core dump events encountered"""
+    pass
+
+# 'config' subcommand ("show cores config")
+@cores.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def config(verbose):
+    """ Show coredump configuration """
+    # Default admin mode
+    admin_mode = True
+    # Obtain config from Config DB
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('COREDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                admin_mode = config_data.get('enabled')
+                if admin_mode is not None and admin_mode.lower() == 'false':
+                    admin_mode = False
+
+    # Core dump administrative mode
+    if admin_mode:
+        print('Coredump : %s' % 'Enabled')
+    else:
+        print('Coredump : %s' % 'Disabled')
+
+# 'list' subcommand ("show cores list")
+@cores.command()
+@click.argument('pattern', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def list(verbose, pattern):
+    """ List available coredumps """
+
+    cmd = "coredumpctl list"
+    if pattern is not None:
+        cmd = cmd + " " + pattern
+    run_command(cmd, display_cmd=verbose)
+
+# 'info' subcommand ("show cores info")
+@cores.command()
+@click.argument('pattern', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def info(verbose, pattern):
+    """ Show information about one or more coredumps """
+
+    cmd = "coredumpctl info"
+    if pattern is not None:
+        cmd = cmd + " " + pattern
+    run_command(cmd, display_cmd=verbose)
+
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def vlan():
     """Show VLAN information"""

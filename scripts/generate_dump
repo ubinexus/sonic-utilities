@@ -480,7 +480,7 @@ main() {
             continue
         fi
         # don't gzip already-gzipped log files :)
-        if [ -z "${file##*.gz}" ]; then
+        if [ -z "${file##*.gz}" ] || [ -z "${file##*.lz4}" ]; then
             save_file $file log false
         else
             save_file $file log true

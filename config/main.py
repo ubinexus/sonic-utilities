@@ -570,6 +570,7 @@ def _reset_failed_services():
         'bgp',
         'dhcp_relay',
         'hostcfgd',
+        'coredump-config',
         'hostname-config',
         'interfaces-config',
         'lldp',
@@ -591,6 +592,7 @@ def _reset_failed_services():
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
     services_to_restart = [
+        'coredump-config',
         'hostname-config',
         'interfaces-config',
         'ntp-config',
@@ -3020,3 +3022,35 @@ def autorestart(container_name, autorestart_status):
 
 if __name__ == '__main__':
     config()
+
+#
+# 'core' group ('config core ...')
+#
+@config.group()
+def core():
+    """ Configure coredump """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+    pass
+
+@core.command()
+@click.argument('disable', required=False)
+def disable(disable):
+    """Administratively Disable coredump generation"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    table = "COREDUMP"
+    key = "config"
+    config_db.set_entry(table, key, {"enabled": "false"})
+    run_command("systemctl restart coredump-config")
+
+@core.command()
+@click.argument('enable', required=False)
+def enable(enable):
+    """Administratively Enable coredump generation"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    table = "COREDUMP"
+    key = "config"
+    config_db.set_entry(table, key, {"enabled": "true"})
+    run_command("systemctl restart coredump-config")
