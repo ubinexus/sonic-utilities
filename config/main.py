@@ -12,10 +12,9 @@ import netifaces
 
 import sonic_device_util
 import ipaddress
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-from swsssdk import SonicDBConfig
+from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
+from click_default_group import DefaultGroup
 
 import aaa
 import mlnx
@@ -28,6 +27,8 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
+DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
+NAMESPACE_PREFIX = 'asic'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -59,6 +60,53 @@ def log_error(msg):
     syslog.openlog(SYSLOG_IDENTIFIER)
     syslog.syslog(syslog.LOG_ERR, msg)
     syslog.closelog()
+
+
+# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
+# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
+# a help message if no subcommand is passed
+class AbbreviationGroup(DefaultGroup):
+    """This subclass of a DefaultGroup supports looking up aliases in a config
+    file and with a bit of magic.
+    """
+
+    def get_command(self, ctx, cmd_name):
+        # Try to get builtin commands as normal
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+
+        # Allow automatic abbreviation of the command.  "status" for
+        # instance will match "st".  We only allow that however if
+        # there is only one command.
+        # If there are multiple matches and the shortest one is the common prefix of all the matches, return
+        # the shortest one
+        matches = []
+        shortest = None
+        for x in self.list_commands(ctx):
+            if x.lower().startswith(cmd_name.lower()):
+                matches.append(x)
+                if not shortest:
+                    shortest = x
+                elif len(shortest) > len(x):
+                    shortest = x
+
+        if not matches:
+            # No command name matched. Issue Default command.
+            ctx.arg0 = cmd_name
+            cmd_name = self.default_cmd_name
+            return DefaultGroup.get_command(self, ctx, cmd_name)
+        elif len(matches) == 1:
+            return DefaultGroup.get_command(self, ctx, matches[0])
+        else:
+            for x in matches:
+                if not x.startswith(shortest):
+                    break
+            else:
+                return DefaultGroup.get_command(self, ctx, shortest)
+
+            ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
+
 
 #
 # Load asic_type for further use
@@ -115,6 +163,48 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
+# API to check if this is a multi-asic device or not.
+def is_multi_asic():
+    num_asics = _get_num_asic()
+
+    if num_asics > 1:
+        return True
+    else:
+        return False
+
+"""In case of Multi-Asic platform, Each ASIC will have a linux network namespace created.
+   So we loop through the databases in different namespaces and depending on the sub_role
+   decide whether this is a front end ASIC/namespace or a back end one.
+"""
+def get_all_namespaces():
+    front_ns = []
+    back_ns = []
+    num_asics = _get_num_asic()
+
+    if is_multi_asic():
+        for asic in range(num_asics):
+            namespace = "{}{}".format(NAMESPACE_PREFIX, asic)
+            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            config_db.connect()
+
+            metadata = config_db.get_table('DEVICE_METADATA')
+            if metadata['localhost']['sub_role'] == 'FrontEnd':
+                front_ns.append(namespace)
+            elif metadata['localhost']['sub_role'] == 'BackEnd':
+                back_ns.append(namespace)
+
+    return {'front_ns': front_ns, 'back_ns': back_ns}
+
+# Validate whether a given namespace name is valid in the device.
+def validate_namespace(namespace):
+    if not is_multi_asic():
+        return True
+
+    namespaces = get_all_namespaces()
+    if namespace in namespaces['front_ns'] + namespaces['back_ns']:
+        return True
+    else:
+        return False
 
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
@@ -532,12 +622,18 @@ def is_ipaddress(val):
 
 
 # This is our main entrypoint - the main 'config' command
-@click.group(context_settings=CONTEXT_SETTINGS)
+@click.group(cls=AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 def config():
     """SONiC command line - 'config' command"""
+
+    # Load the global config file database_global.json once.
+    SonicDBConfig.load_sonic_global_db_config()
+
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
+
     SonicDBConfig.load_sonic_global_db_config()
+
 
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
@@ -546,33 +642,147 @@ config.add_command(nat.nat)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
-                expose_value=False, prompt='Existing file will be overwritten, continue?')
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path())
+                expose_value=False, prompt='Existing files will be overwritten, continue?')
+@click.argument('filename', required=False)
 def save(filename):
-    """Export current config DB to a file on disk."""
-    command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
-    run_command(command, display_cmd=True)
+    """Export current config DB to a file on disk.\n
+       <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
+    """
+    num_asic = _get_num_asic()
+    cfg_files = []
+
+    num_cfg_file = 1
+    if is_multi_asic():
+        num_cfg_file += num_asic
+
+    # If the user give the filename[s], extract the file names.
+    if filename is not None:
+        cfg_files = filename.split(',')
+
+        if len(cfg_files) != num_cfg_file:
+            click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
+            return
+
+    """In case of multi-asic mode we have additional config_db{NS}.json files for
+       various namespaces created per ASIC. {NS} is the namespace index.
+    """
+    for inst in range(-1, num_cfg_file-1):
+        #inst = -1, refers to the linux host where there is no namespace.
+        if inst is -1:
+            namespace = None
+        else:
+            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+
+        # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+        if cfg_files:
+            file = cfg_files[inst+1]
+        else:
+            if namespace is None:
+                file = DEFAULT_CONFIG_DB_FILE
+            else:
+                file = "/etc/sonic/config_db{}.json".format(inst)
+
+        if namespace is None:
+            command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, file)
+        else:
+            command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, file)
+
+        run_command(command, display_cmd=True)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+@click.argument('filename', required=False)
 def load(filename, yes):
-    """Import a previous saved config DB dump file."""
+    """Import a previous saved config DB dump file.
+       <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
+    """
+    if filename is None:
+        message = 'Load config from the default config file(s) ?'
+    else:
+        message = 'Load config from the file(s) {} ?'.format(filename)
+
     if not yes:
-        click.confirm('Load config from the file %s?' % filename, abort=True)
-    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
-    run_command(command, display_cmd=True)
+        click.confirm(message, abort=True)
+
+    num_asic = _get_num_asic()
+    cfg_files = []
+
+    num_cfg_file = 1
+    if is_multi_asic():
+        num_cfg_file += num_asic
+
+    # If the user give the filename[s], extract the file names.
+    if filename is not None:
+        cfg_files = filename.split(',')
+
+        if len(cfg_files) != num_cfg_file:
+            click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
+            return
+
+    """In case of multi-asic mode we have additional config_db{NS}.json files for
+       various namespaces created per ASIC. {NS} is the namespace index.
+    """
+    for inst in range(-1, num_cfg_file-1):
+        #inst = -1, refers to the linux host where there is no namespace.
+        if inst is -1:
+            namespace = None
+        else:
+            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+
+        # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+        if cfg_files:
+            file = cfg_files[inst+1]
+        else:
+            if namespace is None:
+                file = DEFAULT_CONFIG_DB_FILE
+            else:
+                file = "/etc/sonic/config_db{}.json".format(inst)
+
+        # if any of the config files in linux host OR namespace is not present, return
+        if not os.path.isfile(file):
+            click.echo("The config_db file {} doesn't exist".format(file))
+            return 
+
+        if namespace is None:
+            command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
+        else:
+            command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, file)
+
+        run_command(command, display_cmd=True)
+
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
-@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+@click.argument('filename', required=False)
 def reload(filename, yes, load_sysinfo):
-    """Clear current configuration and import a previous saved config DB dump file."""
+    """Clear current configuration and import a previous saved config DB dump file.
+       <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
+    """
+    if filename is None:
+        message = 'Clear current config and reload config from the default config file(s) ?'
+    else:
+        message = 'Clear current config and reload config from the file(s) {} ?'.format(filename)
+
     if not yes:
-        click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+        click.confirm(message, abort=True)
 
     log_info("'reload' executing...")
+
+    num_asic = _get_num_asic()
+    cfg_files = []
+
+    num_cfg_file = 1
+    if is_multi_asic():
+        num_cfg_file += num_asic
+
+    # If the user give the filename[s], extract the file names.
+    if filename is not None:
+        cfg_files = filename.split(',')
+
+        if len(cfg_files) != num_cfg_file:
+            click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
+            return
 
     if load_sysinfo:
         command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
@@ -587,26 +797,74 @@ def reload(filename, yes, load_sysinfo):
     #Stop services before config push
     log_info("'reload' stopping services...")
     _stop_services()
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    client = config_db.get_redis_client(config_db.CONFIG_DB)
-    client.flushdb()
-    if load_sysinfo:
-        command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
+
+    """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+        service running in the host + DB services running in each ASIC namespace created per ASIC.
+        In the below logic, we get all namespaces in this platform and add an empty namespace ''
+        denoting the current namespace which we are in ( the linux host )
+    """
+    for inst in range(-1, num_cfg_file-1):
+        # Get the namespace name, for linux host it is None
+        if inst is -1:
+            namespace = None
+        else:
+            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+
+        # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+        if cfg_files:
+            file = cfg_files[inst+1]
+        else:
+            if namespace is None:
+                file = DEFAULT_CONFIG_DB_FILE
+            else:
+                file = "/etc/sonic/config_db{}.json".format(inst)
+
+        #Check the file exists before proceeding.
+        if not os.path.isfile(file):
+            click.echo("The config_db file {} doesn't exist".format(file))
+            continue
+
+        if namespace is None:
+            config_db = ConfigDBConnector()
+        else:
+            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
+        config_db.connect()
+        client = config_db.get_redis_client(config_db.CONFIG_DB)
+        client.flushdb()
+        if load_sysinfo:
+            if namespace is None:
+                command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
+            else:
+                command = "{} -H -k {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku, namespace)
+            run_command(command, display_cmd=True)
+
+        # For the database service running in linux host we use the file user gives as input
+        # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
+        # the default config_db<namespaceID>.json format is used.
+
+        if namespace is None:
+            if os.path.isfile(INIT_CFG_FILE):
+                command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file)
+            else:
+                command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
+        else:
+            if os.path.isfile(INIT_CFG_FILE):
+                command = "{} -j {} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file, namespace)
+            else:
+                command = "{} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, file, namespace)
+
         run_command(command, display_cmd=True)
+        client.set(config_db.INIT_INDICATOR, 1)
 
-    if os.path.isfile(INIT_CFG_FILE):
-        command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename)
-    else:
-        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
-
-    run_command(command, display_cmd=True)
-    client.set(config_db.INIT_INDICATOR, 1)
-
-    # Migrate DB contents to latest version
-    db_migrator='/usr/bin/db_migrator.py'
-    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-        run_command(db_migrator + ' -o migrate')
+        # Migrate DB contents to latest version
+        db_migrator='/usr/bin/db_migrator.py'
+        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+            if namespace is None:
+                command = "{} -o migrate".format(db_migrator)
+            else:
+                command = "{} -o migrate -n {}".format(db_migrator, namespace)
+            run_command(command, display_cmd=True)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
@@ -721,7 +979,7 @@ def hostname(new_hostname):
 #
 # 'portchannel' group ('config portchannel ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def portchannel(ctx):
     config_db = ConfigDBConnector()
@@ -752,7 +1010,7 @@ def remove_portchannel(ctx, portchannel_name):
     db = ctx.obj['db']
     db.set_entry('PORTCHANNEL', portchannel_name, None)
 
-@portchannel.group('member')
+@portchannel.group(cls=AbbreviationGroup, name='member')
 @click.pass_context
 def portchannel_member(ctx):
     pass
@@ -781,7 +1039,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
 #
 # 'mirror_session' group ('config mirror_session ...')
 #
-@config.group('mirror_session')
+@config.group(cls=AbbreviationGroup, name='mirror_session')
 def mirror_session():
     pass
 
@@ -832,7 +1090,7 @@ def remove(session_name):
 #
 # 'pfcwd' group ('config pfcwd ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def pfcwd():
     """Configure pfc watchdog """
     pass
@@ -918,7 +1176,7 @@ def start_default(verbose):
 #
 # 'qos' group ('config qos ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def qos(ctx):
     pass
@@ -956,7 +1214,7 @@ def reload():
 #
 # 'warm_restart' group ('config warm_restart ...')
 #
-@config.group('warm_restart')
+@config.group(cls=AbbreviationGroup, name='warm_restart')
 @click.pass_context
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
@@ -1031,7 +1289,7 @@ def warm_restart_bgp_eoiu(ctx, enable):
 #
 # 'vlan' group ('config vlan ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def vlan(ctx, redis_unix_socket_path):
@@ -1070,7 +1328,7 @@ def del_vlan(ctx, vid):
 #
 # 'member' group ('config vlan member ...')
 #
-@vlan.group('member')
+@vlan.group(cls=AbbreviationGroup, name='member')
 @click.pass_context
 def vlan_member(ctx):
     pass
@@ -1185,7 +1443,7 @@ def vrf_delete_management_vrf(config_db):
     config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
     mvrf_restart_services()
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def snmpagentaddress(ctx):
     """SNMP agent listening IP address, port, vrf configuration"""
@@ -1234,7 +1492,7 @@ def del_snmp_agent_address(ctx, agentip, port, vrf):
     cmd="systemctl restart snmp"
     os.system (cmd)
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def snmptrap(ctx):
     """SNMP Trap server configuration to send traps"""
@@ -1281,7 +1539,7 @@ def delete_snmptrap_server(ctx, ver):
     cmd="systemctl restart snmp"
     os.system (cmd)
 
-@vlan.group('dhcp_relay')
+@vlan.group(cls=AbbreviationGroup, name='dhcp_relay')
 @click.pass_context
 def vlan_dhcp_relay(ctx):
     pass
@@ -1350,7 +1608,7 @@ def del_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
 # 'bgp' group ('config bgp ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def bgp():
     """BGP-related configuration tasks"""
     pass
@@ -1359,12 +1617,12 @@ def bgp():
 # 'shutdown' subgroup ('config bgp shutdown ...')
 #
 
-@bgp.group()
+@bgp.group(cls=AbbreviationGroup)
 def shutdown():
     """Shut down BGP session(s)"""
     pass
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def kdump():
     """ Configure kdump """
     if os.geteuid() != 0:
@@ -1425,7 +1683,7 @@ def neighbor(ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname"""
     _change_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
 
-@bgp.group()
+@bgp.group(cls=AbbreviationGroup)
 def startup():
     """Start up BGP session(s)"""
     pass
@@ -1451,7 +1709,7 @@ def neighbor(ipaddr_or_hostname, verbose):
 # 'remove' subgroup ('config bgp remove ...')
 #
 
-@bgp.group()
+@bgp.group(cls=AbbreviationGroup)
 def remove():
     "Remove BGP neighbor configuration from the device"
     pass
@@ -1466,7 +1724,7 @@ def remove_neighbor(neighbor_ip_or_hostname):
 # 'interface' group ('config interface ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def interface(ctx):
     """Interface-related configuration tasks"""
@@ -1600,7 +1858,7 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
 # 'ip' subgroup ('config interface ip ...')
 #
 
-@interface.group()
+@interface.group(cls=AbbreviationGroup)
 @click.pass_context
 def ip(ctx):
     """Add or remove IP address"""
@@ -1706,7 +1964,7 @@ def remove(ctx, interface_name, ip_addr):
 #
 
 
-@interface.group()
+@interface.group(cls=AbbreviationGroup)
 @click.pass_context
 def vrf(ctx):
     """Bind or unbind VRF"""
@@ -1777,7 +2035,7 @@ def unbind(ctx, interface_name):
 # 'vrf' group ('config vrf ...')
 #
 
-@config.group('vrf')
+@config.group(cls=AbbreviationGroup, name='vrf')
 @click.pass_context
 def vrf(ctx):
     """VRF-related configuration tasks"""
@@ -1822,7 +2080,7 @@ def del_vrf(ctx, vrf_name):
 # 'route' group ('config route ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def route(ctx):
     """route-related configuration tasks"""
@@ -1936,7 +2194,7 @@ def del_route(ctx, command_str):
 # 'acl' group ('config acl ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def acl():
     """ACL-related configuration tasks"""
     pass
@@ -1945,7 +2203,7 @@ def acl():
 # 'add' subgroup ('config acl add ...')
 #
 
-@acl.group()
+@acl.group(cls=AbbreviationGroup)
 def add():
     """
     Add ACL configuration.
@@ -2009,7 +2267,7 @@ def table(table_name, table_type, description, ports, stage):
 # 'remove' subgroup ('config acl remove ...')
 #
 
-@acl.group()
+@acl.group(cls=AbbreviationGroup)
 def remove():
     """
     Remove ACL configuration.
@@ -2035,7 +2293,7 @@ def table(table_name):
 # 'acl update' group
 #
 
-@acl.group()
+@acl.group(cls=AbbreviationGroup)
 def update():
     """ACL-related configuration tasks"""
     pass
@@ -2069,7 +2327,7 @@ def incremental(file_name):
 # 'dropcounters' group ('config dropcounters ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def dropcounters():
     """Drop counter related configuration tasks"""
     pass
@@ -2166,7 +2424,7 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
 # 'pfc' group ('config interface pfc ...')
 #
 
-@interface.group()
+@interface.group(cls=AbbreviationGroup)
 @click.pass_context
 def pfc(ctx):
     """Set PFC configuration."""
@@ -2212,7 +2470,7 @@ def priority(ctx, interface_name, priority, status):
 # 'platform' group ('config platform ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def platform():
     """Platform-related configuration tasks"""
 
@@ -2220,7 +2478,7 @@ if asic_type == 'mellanox':
     platform.add_command(mlnx.mlnx)
 
 # 'firmware' subgroup ("config platform firmware ...")
-@platform.group()
+@platform.group(cls=AbbreviationGroup)
 def firmware():
     """Firmware configuration tasks"""
     pass
@@ -2265,12 +2523,12 @@ def update(args):
 # 'watermark' group ("show watermark telemetry interval")
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def watermark():
     """Configure watermark """
     pass
 
-@watermark.group()
+@watermark.group(cls=AbbreviationGroup)
 def telemetry():
     """Configure watermark telemetry"""
     pass
@@ -2287,7 +2545,7 @@ def interval(interval):
 # 'interface_naming_mode' subgroup ('config interface_naming_mode ...')
 #
 
-@config.group('interface_naming_mode')
+@config.group(cls=AbbreviationGroup, name='interface_naming_mode')
 def interface_naming_mode():
     """Modify interface naming mode for interacting with SONiC CLI"""
     pass
@@ -2302,7 +2560,7 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def ztp():
     """ Configure Zero Touch Provisioning """
     if os.path.isfile('/usr/bin/ztp') is False:
@@ -2339,7 +2597,7 @@ def enable(enable):
 #
 # 'syslog' group ('config syslog ...')
 #
-@config.group('syslog')
+@config.group(cls=AbbreviationGroup, name='syslog')
 @click.pass_context
 def syslog_group(ctx):
     """Syslog server configuration tasks"""
@@ -2391,7 +2649,7 @@ def del_syslog_server(ctx, syslog_ip_address):
 #
 # 'ntp' group ('config ntp ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def ntp(ctx):
     """NTP server configuration tasks"""
@@ -2443,7 +2701,7 @@ def del_ntp_server(ctx, ntp_ip_address):
 #
 # 'sflow' group ('config sflow ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def sflow(ctx):
     """sFlow-related configuration tasks"""
@@ -2524,7 +2782,7 @@ def is_valid_sample_rate(rate):
 #
 # 'sflow interface' group
 #
-@sflow.group()
+@sflow.group(cls=AbbreviationGroup)
 @click.pass_context
 def interface(ctx):
     """Configure sFlow settings for an interface"""
@@ -2599,7 +2857,7 @@ def sample_rate(ctx, ifname, rate):
 #
 # 'sflow collector' group
 #
-@sflow.group()
+@sflow.group(cls=AbbreviationGroup)
 @click.pass_context
 def collector(ctx):
     """Add/Delete a sFlow collector"""
@@ -2667,7 +2925,7 @@ def del_collector(ctx, name):
 #
 # 'sflow agent-id' group
 #
-@sflow.group('agent-id')
+@sflow.group(cls=AbbreviationGroup, name='agent-id')
 @click.pass_context
 def agent_id(ctx):
     """Add/Delete a sFlow agent"""
@@ -2739,7 +2997,7 @@ def feature_status(name, state):
 #
 # 'container' group ('config container ...')
 #
-@config.group(name='container', invoke_without_command=False)
+@config.group(cls=AbbreviationGroup, name='container', invoke_without_command=False)
 def container():
     """Modify configuration of containers"""
     pass
@@ -2747,7 +3005,7 @@ def container():
 #
 # 'feature' group ('config container feature ...')
 #
-@container.group(name='feature', invoke_without_command=False)
+@container.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
 def feature():
     """Modify configuration of container features"""
     pass

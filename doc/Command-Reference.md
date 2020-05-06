@@ -104,6 +104,11 @@
     * [VLAN Config commands](#vlan-config-commands)
   * [FDB](#fdb)
     * [FDB show commands](#fdb-show-commands)
+* [VxLAN & Vnet](#vxlan--vnet)
+  * [VxLAN](#vxlan)
+    * [VxLAN show commands](#vxlan-show-commands)
+  * [Vnet](#vnet)
+    * [Vnet show commands](#vnet-show-commands)
 * [Warm Reboot](#warm-reboot)
 * [Warm Restart](#warm-restart)
   * [Warm Restart show commands](#warm-restart-show-commands)
@@ -116,6 +121,9 @@
 * [Troubleshooting Commands](#troubleshooting-commands)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
+* [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
+  * [ ZTP show commands](#ztp-show-commands)
+  * [ZTP configuration commands](#ztp-configuration-commands)
 
 ## Document History
 
@@ -1598,6 +1606,38 @@ Optionally, you can specify an IP address in order to display only that particul
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp neighbors" for Quagga.
 
 
+**show ip bgp network [[<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+
+This command displays all the details of IPv4 Border Gateway Protocol (BGP) prefixes.
+
+- Usage:
+
+
+  ```
+  show ip bgp network [[<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+  ```
+
+- Example:
+
+  NOTE: The "longer-prefixes" option is only available when a network prefix with a "/" notation is used.
+
+  ```
+  admin@sonic:~$ show ip bgp network
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 bestpath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 multipath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 json
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 bestpath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 multipath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 json
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 longer-prefixes
+  ```
 
 **show bgp ipv6 summary (Versions >= 201904 using default FRR routing stack)**
 
@@ -1665,6 +1705,41 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
   ```
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga.
 
+
+**show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+
+This command displays all the details of IPv6 Border Gateway Protocol (BGP) prefixes.  
+
+- Usage: 
+
+  
+  ```
+  show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]   
+  ```
+
+- Example:
+
+  NOTE: The "longer-prefixes" option is only available when a network prefix with a "/" notation is used.
+ 
+  ```
+  admin@sonic:~$ show ipv6 bgp network
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 bestpath 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 multipath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 json 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 bestpath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 multipath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 json 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 longer-prefixes
+  ```
+ 
+  
 
 
 **show route-map**
@@ -5608,6 +5683,188 @@ Clear the FDB table
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)
 
+## VxLAN & Vnet
+
+### VxLAN
+
+#### VxLAN show commands
+
+**show vxlan tunnel**
+
+This command displays brief information about all the vxlans configured in the device. It displays the vxlan tunnel name, source IP address, destination IP address (if configured), tunnel map name and mapping.
+
+- Usage:
+
+  ```
+  show vxlan tunnel
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vxlan tunnel
+  vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
+  -------------------  -----------  ----------------  -----------------  ---------------------------------
+  tunnel1              10.10.10.10
+  tunnel2              10.10.10.10  20.10.10.10       tmap1              1234 -> 100
+  tunnel3              10.10.10.10  30.10.10.10       tmap2              1235 -> 200
+  ```
+
+**show vxlan name <vxlan_name>**
+
+This command displays <vlan_name> configuration.
+
+- Usage:
+
+  ```
+  show vxlan name <vxlan_name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vxlan name tunnel3
+  vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
+  -------------------  -----------  ----------------  -----------------  ---------------------------------
+  tunnel3              10.10.10.10  30.10.10.10       tmap2              1235 -> 200
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vxlan--vnet)
+
+### Vnet
+
+#### Vnet show commands
+
+**show vnet brief**
+
+This command displays brief information about all the vnets configured in the device. It displays the vnet name, vxlan tunnel name, vni and peer list (if configured).
+
+- Usage:
+
+  ```
+  show vnet brief
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet brief
+  vnet name    vxlan tunnel      vni  peer list
+  -----------  --------------  -----  ------------------
+  Vnet_2000    tunnel1          2000
+  Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
+  ```
+
+**show vnet name <vnet_name>**
+
+This command displays brief information about <vnet_name> configured in the device.
+
+- Usage:
+
+  ```
+  show vnet name <vnet_name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet name Vnet_3000
+  vnet name    vxlan tunnel      vni  peer list
+  -----------  --------------  -----  ------------------
+  Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
+  ```
+
+**show vnet interfaces**
+
+This command displays vnet interfaces information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet interfaces
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet interfaces
+  vnet name    interfaces
+  -----------  ------------
+  Vnet_2000    Ethernet1
+  Vnet_3000    Vlan2000
+  ```
+
+**show vnet neighbors**
+
+This command displays vnet neighbor information about all the vnets configured in the device. It displays the vnet name, neighbor IP address, neighbor mac address (if configured) and interface.
+
+- Usage:
+
+  ```
+  show vnet neighbors
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet neighbors
+  Vnet_2000    neighbor     mac_address    interfaces
+  -----------  -----------  -------------  ------------
+               11.11.11.11                 Ethernet1
+               11.11.11.12                 Ethernet1
+
+  Vnet_3000    neighbor     mac_address        interfaces
+  -----------  -----------  -----------------  ------------
+               20.20.20.20  aa:bb:cc:dd:ee:ff  Vlan2000
+  ```
+
+**show vnet routes all**
+
+This command displays all routes information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet routes all
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet routes all
+  vnet name    prefix          nexthop    interface
+  -----------  --------------  ---------  -----------
+  Vnet_2000    100.100.3.0/24             Ethernet52
+  Vnet_3000    100.100.4.0/24             Vlan2000
+
+  vnet name    prefix          endpoint    mac address        vni
+  -----------  --------------  ----------  -----------------  -----
+  Vnet_2000    100.100.1.1/32  10.10.10.1
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  ```
+
+**show vnet routes tunnel**
+
+This command displays tunnel routes information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet routes tunnel
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet routes tunnel
+  vnet name    prefix          endpoint    mac address        vni
+  -----------  --------------  ----------  -----------------  -----
+  Vnet_2000    100.100.1.1/32  10.10.10.1
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vxlan--vnet)
+
 ## Warm Reboot
 
 warm-reboot command initiates a warm reboot of the device.
@@ -6319,3 +6576,152 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#quagga-bgp-show-commands)
+
+# ZTP Configuration And Show Commands
+
+This section explains all the Zero Touch Provisioning commands that are supported in SONiC.
+
+## ZTP show commands
+
+
+This command displays the current ZTP configuration of the switch. It also displays detailed information about current state of a ZTP session. It displays information related to all configuration sections as defined in the switch provisioning information discovered in a particular ZTP session.
+
+- Usage:
+  show ztp status
+
+  show ztp status --verbose
+
+- Example:
+
+```
+root@B1-SP1-7712:/home/admin# show ztp status
+ZTP Admin Mode : True
+ZTP Service    : Inactive
+ZTP Status     : SUCCESS
+ZTP Source     : dhcp-opt67 (eth0)
+Runtime        : 05m 31s
+Timestamp      : 2019-09-11 19:12:24 UTC
+
+ZTP Service is not running
+
+01-configdb-json: SUCCESS
+02-connectivity-check: SUCCESS
+```
+Use the verbose option to display more detailed information.
+
+```
+root@B1-SP1-7712:/home/admin# show ztp status --verbose
+Command: ztp status --verbose
+========================================
+ZTP
+========================================
+ZTP Admin Mode : True
+ZTP Service    : Inactive
+ZTP Status     : SUCCESS
+ZTP Source     : dhcp-opt67 (eth0)
+Runtime        : 05m 31s
+Timestamp      : 2019-09-11 19:12:16 UTC
+ZTP JSON Version : 1.0
+
+ZTP Service is not running
+
+----------------------------------------
+01-configdb-json
+----------------------------------------
+Status          : SUCCESS
+Runtime         : 02m 48s
+Timestamp       : 2019-09-11 19:11:55 UTC
+Exit Code       : 0
+Ignore Result   : False
+
+----------------------------------------
+02-connectivity-check
+----------------------------------------
+Status          : SUCCESS
+Runtime         : 04s
+Timestamp       : 2019-09-11 19:12:16 UTC
+Exit Code       : 0
+Ignore Result   : False
+```
+
+- Description
+
+  - **ZTP Admin Mode** - Displays if the ZTP feature is administratively enabled or disabled. Possible values are True or False. This value is configurable using "config ztp enabled" and "config ztp disable" commands.
+  - **ZTP Service** - Displays the ZTP service status. The following are possible values this field can display:
+    - *Active Discovery*: ZTP service is operational and is performing DHCP discovery to learn switch provisioning information
+    - *Processing*: ZTP service has discovered switch provisioning information and is processing it
+  - **ZTP Status** - Displays the current state and result of ZTP session. The following are possible values this field can display:
+    - *IN-PROGRESS*: ZTP session is currently in progress. ZTP service is processing switch provisioning information.
+    - *SUCCESS*: ZTP service has successfully processed the switch provisioning information.
+    - *FAILED*:  ZTP service has failed to process the switch provisioning information.
+    - *Not Started*: ZTP service has not started processing the discovered switch provisioning information.
+  - **ZTP Source** - Displays the DHCP option and then interface name from which switch provisioning information has been discovered.
+  - **Runtime** - Displays the time taken for ZTP process to complete from start to finish. For individual configuration sections it indicates the time taken to process the associated configuration section.
+  - **Timestamp** - Displays the date/time stamp when the status field has last changed.
+  - **ZTP JSON Version** - Version of ZTP JSON file used for describing switch provisioning information.
+  - **Status** - Displays the current state and result of a configuration section. The following are possible values this field can display:
+    - *IN-PROGRESS*: Corresponding configuration section is currently being processed.
+    - *SUCCESS*: Corresponding configuration section was processed successfully.
+    - *FAILED*:  Corresponding configuration section failed to execute successfully.
+    - *Not Started*: ZTP service has not started processing the corresponding configuration section.
+    - *DISABLED*: Corresponding configuration section has been marked as disabled and will not be processed.
+  - **Exit Code** - Displays the program exit code of the configuration section executed. Non-zero exit code indicates that the configuration section has failed to execute successfully.
+  - **Ignore Result** - If this value is True, the result of the corresponding configuration section is ignored and not used to evaluate the overall ZTP result.
+  - **Activity String** - In addition to above information an activity string is displayed indicating the current action being performed by the ZTP service and how much time it has been performing the mentioned activity. Below is an example.
+    -    (04m 12s) Discovering provisioning data
+
+## ZTP configuration commands
+
+This sub-section explains the list of the configuration options available for ZTP.
+
+
+
+**config ztp enable**
+
+Use this command to enable ZTP administrative mode
+
+- Example:
+
+```
+root@sonic:/home/admin# config ztp enable
+Running command: ztp enable
+```
+
+
+
+**config ztp disable**
+
+Use this command to disable ZTP administrative mode.  This command can also be used to abort a current ZTP session and load the factory default switch configuration.
+
+- Usage:
+  config ztp disable
+
+  config ztp disable -y
+
+- Example:
+
+```
+root@sonic:/home/admin# config ztp disable
+Active ZTP session will be stopped and disabled, continue? [y/N]: y
+Running command: ztp disable -y
+```
+
+
+**config ztp run**
+
+Use this command to manually restart a new ZTP session.  This command deletes the existing */etc/sonic/config_db.json* file and stats ZTP service. It also erases the previous ZTP session data. ZTP configuration is loaded on to the switch and ZTP discovery is performed.
+
+- Usage:
+  config ztp run
+
+  config ztp run -y
+
+- Example:
+
+```
+root@sonic:/home/admin# config ztp run
+ZTP will be restarted. You may lose switch data and connectivity, continue? [y/N]: y
+Running command: ztp run -y
+```
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ztp-configuration-and-show-commands)
