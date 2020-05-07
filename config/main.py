@@ -638,6 +638,8 @@ def config():
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
+    SonicDBConfig.load_sonic_global_db_config()
+
 
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
