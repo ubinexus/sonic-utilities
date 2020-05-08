@@ -2330,7 +2330,7 @@ The "errors" subcommand is used to display the interface errors.
    Ethernet12        U         0         0         0         0         0         0
 ```
 
-The "rate" subcommand is used to disply only the interface rate. 
+The "rates" subcommand is used to disply only the interface rates. 
 
 - Exmaple: 
   ```
