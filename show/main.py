@@ -977,12 +977,12 @@ def errors(verbose, period):
         cmd += " -p {}".format(period)
     run_command(cmd, display_cmd=verbose)
 
-# 'rate' subcommand ("show interfaces counters rate")
+# 'rates' subcommand ("show interfaces counters rates")
 @counters.command()
 @click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def rate(verbose, period):
-    """Show interface counters rate"""
+def rates(verbose, period):
+    """Show interface counters rates"""
     cmd = "portstat -R"
     if period is not None:
         cmd += " -p {}".format(period)
