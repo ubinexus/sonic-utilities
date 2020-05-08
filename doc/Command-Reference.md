@@ -2299,7 +2299,7 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
   ```
   show interfaces counters [-a|--printall] [-p|--period <period>]
   show interfaces counters errors
-  show interfaces counters rate 
+  show interfaces counters rates 
   show interfaces counters rif [-p|--period <period>] <interface_name>
   ```
 
@@ -2334,7 +2334,7 @@ The "rate" subcommand is used to disply only the interface rate.
 
 - Exmaple: 
   ```
-  admin@str-s6000-acs-11:/usr/bin$ show int counters rate
+  admin@str-s6000-acs-11:/usr/bin$ show int counters rates
       IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    TX_OK    TX_BPS    TX_PPS    TX_UTIL
   -----------  -------  -------  --------  --------  ---------  -------  --------  --------  ---------
     Ethernet0        U   467510       N/A       N/A        N/A   466488       N/A       N/A        N/A
