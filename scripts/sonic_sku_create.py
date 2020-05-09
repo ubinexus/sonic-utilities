@@ -34,6 +34,8 @@ import swsssdk
 import traceback
 import sys
 import shutil
+import copy
+from collections import OrderedDict
 
 from tabulate import tabulate
 from lxml import etree as ET
@@ -41,20 +43,46 @@ from lxml.etree import QName
 
 minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
 minigraph_ns1 = "http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"
-platform = None
+INTERFACE_KEY = "Ethernet"
 
 test_envir = None
 try:
-	test_envir = os.environ.get('UTILITIES_UNIT_TESTING')
+	#test_envir = os.environ.get('UTILITIES_UNIT_TESTING')
+	test_envir = os.environ.get('USER')
 except KeyError:
 	print ("Not Runing on unit test envir", file=sys.stderr)
 
 ### port_config.ini header
 PORTCONFIG_HEADER = ["# name", "lanes", "alias", "index", "speed"]
+platform_4 = ['x86_64-mlnx_lssn2700-r0','x86_64-mlnx_msn2010-r0','x86_64-mlnx_msn2100-r0','x86_64-mlnx_msn2410-r0','x86_64-mlnx_msn2700-r0','x86_64-mlnx_msn2740-r0','x86_64-mlnx_msn3700c-r0','x86_64-mlnx_msn3700-r0','x86_64-mlnx_msn3800-r0']
+platform_8 = ['x86_64-mlnx_msn4600c-r0','x86_64-mlnx_msn4700-r0']
 
+bko_dict_4 = {
+        "1x100": { "lanes":4, "speed":100000, "step":4, "bko":0, "name": "etp" },
+        "1x40":  { "lanes":4, "speed":40000,  "step":4, "bko":0, "name": "etp" },
+        "1x50":  { "lanes":4, "speed":50000,  "step":4, "bko":0, "name": "etp" },
+        "1x25":  { "lanes":4, "speed":25000,  "step":4, "bko":0, "name": "etp" },
+        "1x10":  { "lanes":4, "speed":10000,  "step":4, "bko":0, "name": "etp" },
+        "1x1":   { "lanes":4, "speed":1000,   "step":4, "bko":0, "name": "etp" },
+        "4x10":  { "lanes":4, "speed":10000,  "step":1, "bko":1, "name": "etp" },
+        "4x25":  { "lanes":4, "speed":25000,  "step":1, "bko":1, "name": "etp" },
+        "2x50":  { "lanes":4, "speed":25000,  "step":2, "bko":1, "name": "etp" },
+}
+
+bko_dict_8 = {
+        "1x400": { "lanes":8, "speed":400000, "step":8, "bko":0, "name": "etp" },
+        "2x200": { "lanes":8, "speed":200000, "step":4, "bko":1, "name": "etp" },
+        "2x100": { "lanes":8, "speed":100000, "step":4, "bko":1, "name": "etp" },
+        "4x100": { "lanes":8, "speed":100000, "step":2, "bko":1, "name": "etp" },
+        "4x50":  { "lanes":8, "speed":50000,  "step":2, "bko":1, "name": "etp" },
+        "4x25":  { "lanes":4, "speed":25000,  "step":1, "bko":1, "name": "etp" },
+        "4x10":  { "lanes":4, "speed":10000,  "step":1, "bko":1, "name": "etp" },
+}
+
+bko_dict = bko_dict_4
 
 class SkuCreate(object):
-	"""
+        """
 	Process aclstat
 	"""
 
@@ -63,6 +91,8 @@ class SkuCreate(object):
 		self.portconfig_dict = {}
 		self.platform_specific_dict = {"x86_64-mlnx_msn2700-r0":self.msn2700_specific}
 		self.default_lanes_per_port = []
+                self.platform = None
+                self.base_lanes = None
 		self.fpp = []
 		self.fpp_split  =  {}
 		self.num_of_fpp = 0
@@ -73,6 +103,8 @@ class SkuCreate(object):
 		self.base_sku_dir = None
 		self.base_file_path = None		
 		self.new_sku_dir = None
+		self.print_mode = False
+		self.remove_mode = False
 		self.verbose = None
 
 	def read_metadata(self):
@@ -99,7 +131,6 @@ class SkuCreate(object):
 		if (self.verbose):
 			print ( "tag=%s, attrib=%s" % (root.tag, root.attrib))
 		self.sku_name = root.attrib["HwSku"]
-                print ("INSIDE SKU_DEF_PARSER() DEFAULT_SKU_PATH: ", self.default_sku_path, " sku_name: ", self.sku_name)
 		self.new_sku_dir = self.default_sku_path+"/"+self.sku_name+ '/'
 		idx = 1
 		for child in root:
@@ -128,7 +159,7 @@ class SkuCreate(object):
 					alias = interface.find(str(QName(minigraph_ns, "InterfaceName"))).text
 					speed = interface.find(str(QName(minigraph_ns, "Speed"))).text
 					port_name  = "Ethernet"+str(idx)					
-					self.portconfig_dict[idx] = [port_name,[1,2,3,4], speed, alias,  idx]
+					self.portconfig_dict[idx] = [port_name,[1,2,3,4], alias,  idx, speed]
 					if (self.verbose) :
 						print ("parse_device_info(minigraph)--> ",self.portconfig_dict[idx])
 					idx +=1
@@ -136,7 +167,7 @@ class SkuCreate(object):
 			raise ValueError("Couldn't find a SKU ",hwsku, "in minigraph file")
 			
 
-	def minigraph_parser(self,minigraph_file) :
+	def minigraph_parser(self,minigraph_file):
 		root = ET.parse(minigraph_file).getroot()
 		if (self.verbose):
 			print ( "tag=%s, attrib=%s" % (root.tag, root.attrib))
@@ -155,7 +186,336 @@ class SkuCreate(object):
 			if child.tag == str(QName(minigraph_ns, "DeviceInfos")):
 				self.parse_deviceinfo(child,hwsku)
 
-		
+        def check_json_lanes_with_bko(self,data,port_idx):
+            port_str = "Ethernet{:d}".format(port_idx)
+            port_dict = []
+            port_bmp = 1
+            port_dict = data['PORT'].get(port_str)
+            if "speed" in port_dict:
+                port_speed = port_dict.get("speed")
+                int_port_speed = int(port_speed)
+            else:
+                print (port_str, "does not contain speed key, Exiting...")
+                exit(1)
+            for i in range(1,self.base_lanes):
+                curr_port_str = "Ethernet{:d}".format(port_idx+i)
+                if curr_port_str in data['PORT']:
+                    curr_port_dict = data['PORT'].get(curr_port_str)
+                    if "speed" in curr_port_dict:
+                        curr_speed = curr_port_dict.get("speed")
+                    else:
+                        print (curr_port_str, "does not contain speed key, Exiting...")
+                        exit(1)
+                    if port_speed != curr_speed:
+                        print (curr_port_str, "speed is different from that of ",port_str,", Exiting...")
+                        exit(1)
+                    if "alias" in curr_port_dict:
+                        curr_alias = curr_port_dict.get("alias")
+                    else:
+                        print (curr_port_str, "does not contain alias key, Exiting...")
+                        exit(1)
+                    if "lanes" in curr_port_dict:
+                        curr_lanes = curr_port_dict.get("lanes")
+                    else:
+                        print (curr_port_str, "does not contain lanes key, Exiting...")
+                        exit(1)
+                    port_bmp |= (1<<i)
+                 
+            for entry in bko_dict:
+                bko_dict_entry = bko_dict[entry]
+	        pattern = '^([0-9]{1,})x([0-9]{1,})'
+	        m = re.match(pattern,entry)
+                bko_split = int(m.group(1))
+                bko_speed = int(m.group(2))
+                
+                if (bko_speed == (int_port_speed/1000)):
+                    bko_step = bko_dict_entry["step"]
+                    bko_bmp = 0
+                    for i in range(0,self.base_lanes,bko_step):
+                        bko_bmp |= (1<<i)
+                    if bko_bmp == port_bmp:
+                        return entry
+            return None
+
+        def write_json_lanes_to_ini_file(self,data,port_idx,port_split,f_out):
+            step = bko_dict[port_split]["step"]
+            for i in range(0,self.base_lanes,step):
+                curr_bko_entry = bko_dict[port_split]
+                curr_port_str = "Ethernet{:d}".format(port_idx+i)
+                curr_port_dict = data['PORT'].get(curr_port_str)
+                curr_speed = curr_port_dict.get("speed")
+                curr_alias = curr_port_dict.get("alias")
+                curr_lanes = curr_port_dict.get("lanes")
+                curr_index = port_idx/self.base_lanes
+                out_str = "{:15s} {:20s} {:11s} {:9s} {:10s}\n".format(curr_port_str,curr_lanes,curr_alias,str(curr_index),str(curr_speed))
+                if self.print_mode == True:
+                    print(out_str)
+                else:
+                    f_out.write(out_str)
+                if self.verbose and (self.print_mode == False):
+                    print(out_str)
+            return
+
+        def json_file_parser(self,json_file):
+            with open(json_file) as f:
+                data = json.load(f,object_pairs_hook=OrderedDict)
+            meta_dict = data['DEVICE_METADATA']['localhost']
+            self.sku_name = meta_dict.get("hwsku")
+	    self.new_sku_dir = self.default_sku_path+"/"+self.sku_name+ '/'
+	    if self.remove_mode == True:
+		self.remove_sku_dir()
+		return
+	    self.create_sku_dir()
+	    print ("Created a new sku (Location: " + self.new_sku_dir+")")
+            ini_file = self.new_sku_dir + "/" + "port_config.ini"  
+            new_file = ini_file + ".new"
+            f_out = open(new_file, 'w')
+            for key, value in data['PORT'].iteritems():
+                port_str = key
+	        pattern = '^Ethernet([0-9]{1,})'
+	        m = re.match(pattern,key)
+                if m == None:
+                    print("Port Name ",port_name, " is not valid, Exiting...") 
+	            exit(1)
+                port_idx = int(m.group(1))
+
+                if port_idx%self.base_lanes == 0:
+                    result = self.check_json_lanes_with_bko(data, port_idx)
+                    if result != None:
+                        self.write_json_lanes_to_ini_file(data,port_idx,result,f_out)
+                else:
+                    continue
+            self.port_config_split_analyze(self.ini_file)
+            self.form_port_config_dict_from_ini(self.ini_file)
+	    self.platform_specific()	
+            shutil.copy(new_file,self.ini_file)
+            return
+
+        def port_config_split_analyze(self, ini_file):
+            new_file = ini_file + ".new"
+            f_in = open(new_file, 'r')
+
+            idx = 1
+            for line in f_in.readlines():
+                line.strip()
+                if len(line.rstrip()) == 0:
+                    continue
+
+                if re.search("^#", line) is not None:
+                    continue
+ 
+                line = line.lstrip()
+                line_arr = line.split()
+	        pattern = '^etp([0-9]{1,})([a-d]?)'
+	        m = re.match(pattern,line_arr[2])
+	        if int(m.group(1)) not in self.fpp_split :
+		    self.fpp_split[int(m.group(1))] = [[line_arr[2]],[idx]] #1
+	        else:
+		    self.fpp_split[int(m.group(1))][0].append(line_arr[2]) #+= 1
+		    self.fpp_split[int(m.group(1))][1].append(str(idx))
+                idx += 1
+            f_in.close()
+
+        def form_port_config_dict_from_ini(self,ini_file):
+            new_file = ini_file + ".new"
+            f_in = open(new_file, 'r')
+
+            idx = 1
+            for line in f_in.readlines():
+                line.strip()
+                if len(line.rstrip()) == 0:
+                    continue
+
+                if re.search("^#", line) is not None:
+                    continue
+ 
+                line = line.lstrip()
+                line_arr = line.split()
+	        self.portconfig_dict[idx] = ["Ethernet"+str(idx),[1,2,3,4], line_arr[2],  str(idx), line_arr[4]]
+		#print ("sku_def_parser:portconfig_dict[",idx,"] -> ",self.portconfig_dict[idx])
+	        idx += 1
+
+            f_in.close()
+
+
+        def break_in_ini(self,ini_file,port_name,port_split):
+            lanes_str_result = ""
+	    pattern = '^([0-9]{1,})x([0-9]{1,})'
+	    m = re.match(pattern,port_split)
+            if m == None:
+                print("Port split format ",port_split, " is not valid, Exiting...") 
+                exit(1)
+            if port_split in bko_dict:
+                step = bko_dict[port_split]["step"]
+                speed = bko_dict[port_split]["speed"]
+                base_lanes = bko_dict[port_split]["lanes"]
+                bko = bko_dict[port_split]["bko"]
+            else:
+                print("Port split ",port_split, " is undefined for this platform, Exiting...") 
+                exit(1)
+
+            port_found = False
+	    pattern = '^Ethernet([0-9]{1,})'
+	    m = re.match(pattern,port_name)
+            if m == None:
+                print("Port Name ",port_name, " is not valid, Exiting...") 
+	        exit(1)
+            port_idx = int(m.group(1))
+            if port_idx % base_lanes != 0:
+                print(port_name, " is not base port, Exiting...")
+	        exit(1)
+            
+            bak_file = ini_file + ".bak"
+            shutil.copy(ini_file, bak_file)
+
+            new_file = ini_file + ".new"
+
+            f_in = open(bak_file, 'r')
+            f_out = open(new_file, 'w')
+
+            title = []
+            alias_arr = ['a','b','c','d']
+
+            for line in f_in.readlines():
+                line.strip()
+                if len(line.rstrip()) == 0:
+                    continue
+
+                if re.search("^#", line) is not None:
+                    # The current format is: # name lanes alias index speed
+                    # Where the ordering of the columns can vary
+                    if len(title) == 0:
+                        title = line.split()[1:]
+                        print(title)
+                    f_out.write(line)
+                    continue
+
+                orig_line = line
+                line = line.lstrip()
+                line_port = line.split()[0]
+                line_alias = line.split()[2]
+		pattern = '^etp([0-9]{1,})([a-d]?)'
+		m = re.match(pattern,line_alias)
+                alias_index = int(m.group(1))
+
+                if line_port == port_name:
+                    port_found = True
+                    matched_alias_index = alias_index
+		    pattern = '^Ethernet([0-9]{1,})'
+		    m = re.match(pattern,line_port)
+                    line_port_index = int(m.group(1))
+                    line_lanes = line.split()[1]
+                    lane_index = int(line_lanes.split(',')[0])
+
+                    #find split partition
+                    for i in range(0,base_lanes,step):
+                        port_str = "Ethernet{:d}".format(line_port_index + i/step)
+                        lanes_str = "{:d}".format(lane_index + i/step)
+                        if step > 1:
+                            for j in range(1,step):
+                                lanes_str += ",{:d}".format(lane_index + j)
+                        if bko == 0:
+                            alias_str = "etp{:d}".format(alias_index)
+                        else:
+                            alias_str = "etp{:d}{:s}".format(alias_index,alias_arr[i/step])
+                        index_str = "{:d}".format(alias_index-1)
+                        lanes_str_result = lanes_str_result + ":" + lanes_str
+                        out_str = "{:15s} {:20s} {:11s} {:9s} {:10s}\n".format(port_str,lanes_str,alias_str,index_str,str(speed))
+                        f_out.write(out_str)
+                else:
+                    if port_found == True:
+                        if alias_index == matched_alias_index:
+                            continue
+                        else:
+                            f_out.write(orig_line)
+
+                    else:
+                        f_out.write(orig_line)
+                            
+            f_in.close()
+            f_out.close()
+            return lanes_str_result
+
+        #
+        # breakout ports in json file
+        #
+        def break_in_cfg(self,cfg_file,port_name,port_split,lanes_str_result):
+            if not os.access(os.path.dirname(cfg_file), os.W_OK):
+                print("Skipping config_db.json updates for a write permission issue")
+                return
+
+            bak_file = cfg_file + ".bak"
+            shutil.copy(cfg_file, bak_file)
+
+            new_file = cfg_file + ".new"
+
+            with open(bak_file) as f:
+                data = json.load(f)
+
+	    pattern = '^Ethernet([0-9]{1,})'
+	    m = re.match(pattern,port_name)
+            port_idx = int(m.group(1))
+            mtu = 9100
+
+            for port_index in range (port_idx,port_idx+self.base_lanes):
+                port_str = "Ethernet" + str(port_index)
+                print ("Port String ",port_str)
+                
+                if data['PORT'].get(port_str) != None:
+                    port_instance = data['PORT'].get(port_str)
+                    if "mtu" in port_instance:
+                        mtu = port_instance.get("mtu")
+                    data['PORT'].pop(port_str)
+                    print ("Removed Port instance:  ", port_str, port_instance)
+                    print ("Please remove port ", port_str, " configurations that are part of other features")
+
+            port_inst = {}
+            j = 1
+            lanes_arr = lanes_str_result.split(':')
+            step = bko_dict[port_split]["step"]
+            alias_arr = ['a','b','c','d']
+	    pattern = '^([0-9]{1,})x([0-9]{1,})'
+	    m = re.match(pattern,port_split)
+            speed = int(m.group(2))
+            bko = bko_dict[port_split]["bko"]
+
+            for i in range(0,self.base_lanes,step):
+                port_str = "Ethernet{:d}".format(port_idx + i/step)
+                lanes_str = lanes_arr[j]
+                j += 1
+                 
+                if bko == 0:
+                    alias_str = "etp{:d}".format((port_idx/self.base_lanes)+1)
+                else:
+                    alias_str = "etp{:d}{:s}".format((port_idx/self.base_lanes)+1,alias_arr[i/step])
+                    print ("i= ",i," alias_str= ",alias_str)
+                port_inst["lanes"] = lanes_str
+                port_inst["alias"] = alias_str
+                port_inst["speed"] = speed*1000
+                port_inst["mtu"] = mtu
+
+                xxx = copy.deepcopy(port_inst)
+                data['PORT'][port_str] = xxx
+                print (port_str, data['PORT'][port_str])
+
+            with open(new_file, 'w') as outfile:
+                json.dump(data, outfile, indent=4, sort_keys=True)
+
+            print ("--------------------------------------------------------")
+
+        def break_a_port(self,port_name,port_split):
+            new_file = self.ini_file + ".new"
+            lanes_str_result = self.break_in_ini(self.ini_file,port_name,port_split)
+            self.port_config_split_analyze(self.ini_file)
+            self.form_port_config_dict_from_ini(self.ini_file)
+	    self.platform_specific()	
+            shutil.copy(new_file,self.ini_file)
+            if lanes_str_result == None:
+                print ("break_in_ini function returned empty lanes string, Exiting...")
+                exit(1)
+            print ("Before break_in_cfg")    
+            self.break_in_cfg(self.cfg_file,port_name,port_split,lanes_str_result)
+
 
 		
 	def split_analyze(self) :
@@ -316,11 +676,13 @@ class SkuCreate(object):
 			print(e.message, file=sys.stderr) 
 					
 	def platform_specific(self) :
-		func = self.platform_specific_dict.get(platform, lambda: "nothing")
+                print("MADHAN platform ", self.platform)
+		func = self.platform_specific_dict.get(self.platform, lambda: "nothing")
 		return func()
 		
 		
 	def msn2700_specific(self) :
+                print ("MADHAN inside MSN2700 specific ")
 		for fp, values in self.fpp_split.items():
 			splt_arr = sorted(values[0])
 			idx_arr = sorted(values[1])
@@ -367,9 +729,11 @@ def main():
 									version='1.0.0',
 									formatter_class=argparse.RawTextHelpFormatter)
 	group = parser.add_mutually_exclusive_group(required=True)
-	group.add_argument('-f', '--file', action='store', nargs=1, help='SKU definition from xml file. -f OR -m must be provided when creating a new SKU', default=None)
-	group.add_argument('-m', '--minigraph_file', action='store', nargs='?', help='SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU', const="/etc/sonic/minigraph.xml")
+	group.add_argument('-f', '--file', action='store', nargs=1, help='SKU definition from xml file. -f OR -m or -j must be provided when creating a new SKU', default=None)
+	group.add_argument('-m', '--minigraph_file', action='store', nargs='?', help='SKU definition from minigraph file. -f OR -m or -j must be provided when creating a new SKU', const="/etc/sonic/minigraph.xml")
+	group.add_argument('-j', '--json_file', action='store', nargs=1, help='SKU definition from config_db.json file. -f OR -m OR -j must be provided when creating a new SKU', default=None)
 	group.add_argument('-c', '--cmd', action='store', nargs='?', choices=['new_sku_only', 'l2_mode_only'], help='Choose action to preform (Generate a new SKU, Configure L2 mode, Both', default="new_sku_only",const="new_sku_only")
+	group.add_argument('-pp', '--port_split', action='store', nargs=2, help='port name and split', default=None)
 	parser.add_argument('-b', '--base', action='store', help='SKU base definition', default=None)
 	parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
 	parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
@@ -393,59 +757,91 @@ def main():
 			l2_mode = False
 			sku_mode = True
 			
-                if (test_envir == "1" and args.file):
-                    fp = args.file[0]
-                    print ("FilePathName: ", fp)
-                    sku.default_sku_path = os.path.dirname(args.file[0])
-                    print ("DirPathName: ", sku.default_sku_path)
-                elif (test_envir != "1"):
+                if (test_envir == "1"):
+                    sku.platform = "x86_64-mlnx_msn2700-r0"
+
+                    if args.file:
+                        sku.default_sku_path = os.path.dirname(args.file[0])
+                    elif args.minigraph_file:
+                        sku.default_sku_path = os.path.dirname(args.minigraph_file[0])
+                    elif args.json_file:
+                        sku.default_sku_path = os.path.dirname(args.json_file[0])
+                    elif args.port_split:
+                        path = os.path.dirname(os.path.realpath(sys.argv[0]))
+                        sku.default_sku_path = os.path.dirname(path) + "/sonic-utilities-tests/sku_create_input"
+                        print (sku.default_sku_path)
+                else:
                     try:
-	                platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
-	                platform = platform.rstrip()
+	                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
+	                sku.platform = sku.platform.rstrip()
 		
                     except KeyError:
 	                print ("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
 	                exit(1)
 		
-                    sku.default_sku_path = '/usr/share/sonic/device/' + platform
+                    sku.default_sku_path = '/usr/share/sonic/device/' + sku.platform
 
+                if sku.platform in platform_4:
+                    sku.base_lanes = 4
+                    bko_dict = bko_dict_4
+                else:
+                    sku.base_lanes = 8
+                    bko_dict = bko_dict_8
 
 		if args.base:
-			sku.base_sku_name = args.base
-		else :
-			f=open(sku.default_sku_path + '/' + "default_sku","r")
-			sku.base_sku_name=f.read().split()[0]
+	            sku.base_sku_name = args.base
+	        else:
+		    f=open(sku.default_sku_path + '/' + "default_sku","r")
+		    sku.base_sku_name=f.read().split()[0]
 		
 		sku.base_sku_dir = sku.default_sku_path + '/' + sku.base_sku_name + '/'
 		sku.base_file_path = sku.base_sku_dir + "port_config.ini"
 		
+                if (test_envir == "1"):
+                    sku.ini_file = sku.default_sku_path + "/Mellanox-SN2700-D48C8/port_config.ini"
+                    sku.cfg_file = sku.default_sku_path + "/config_db.json"
+                else:
+		    try:
+			sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
+		    except KeyError:
+		        print ("Couldn't find HwSku info in Platform summary", file=sys.stderr)
+			exit(1)
+                    sku.ini_file = sku.default_sku_path + "/" + sku_name + "/port_config.ini"
+                    sku.cfg_file = "/etc/sonic/config_db.json"
+
+
 		if args.file:
-			sku.sku_def_parser(args.file[0])
+		    sku.sku_def_parser(args.file[0])
 		elif args.minigraph_file :
-			sku.minigraph_parser(args.minigraph_file)
+		    sku.minigraph_parser(args.minigraph_file[0])
+                elif args.json_file:
+	            if args.remove:
+		        sku.remove_mode = True
+		    if args.print:
+                        sku.print_mode = True
+                    sku.json_file_parser(args.json_file[0])
+                    return
+                elif args.port_split:
+                    sku.break_a_port(args.port_split[0], args.port_split[1])
+                    return
 			
 		if sku_mode :
-			if args.remove:
-				sku.remove_sku_dir()
-				return
-			sku.get_default_lanes()
-			sku.split_analyze()
-			sku.set_lanes()
-			if args.print:
+                        if args.file or args.minigraph_file:
+			    if args.remove:
+			        sku.remove_sku_dir()
+		                return
+			    sku.get_default_lanes()
+			    sku.split_analyze()
+			    sku.set_lanes()
+			    if args.print:
 				sku.print_port_config()
-			else:
+			    else:
 				sku.create_sku_dir()
 				sku.create_port_config()
 				print ("Created a new sku (Location: " + sku.new_sku_dir+")")
 			
 		if l2_mode : 
-			if args.hwsku is None :
-				try:
-					sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
-				except KeyError:
-					print ("Couldn't find HwSku info in Platform summary", file=sys.stderr)
-					exit(1)
-			else: 
+			if args.hwsku:
 				sku_name = args.hwsku
 			sku.l2_mode(sku_name)
 		
