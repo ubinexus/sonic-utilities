@@ -11,7 +11,6 @@ import ipaddress
 from pkg_resources import parse_version
 
 import click
-from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
 
@@ -119,12 +118,9 @@ class InterfaceAliasConverter(object):
 _config = None
 
 
-# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
-# a help message if no subcommand is passed
-class AliasedGroup(DefaultGroup):
-    """This subclass of a DefaultGroup supports looking up aliases in a config
-    file and with a bit of magic.
+class AliasedGroup(click.Group):
+    """This subclass of click.Group supports abbreviations and
+       looking up aliases in a config file with a bit of magic.
     """
 
     def get_command(self, ctx, cmd_name):
@@ -155,12 +151,9 @@ class AliasedGroup(DefaultGroup):
         matches = [x for x in self.list_commands(ctx)
                    if x.lower().startswith(cmd_name.lower())]
         if not matches:
-            # No command name matched. Issue Default command.
-            ctx.arg0 = cmd_name
-            cmd_name = self.default_cmd_name
-            return DefaultGroup.get_command(self, ctx, cmd_name)
+            return None
         elif len(matches) == 1:
-            return DefaultGroup.get_command(self, ctx, matches[0])
+            return click.Group.get_command(self, ctx, matches[0])
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 
@@ -695,7 +688,7 @@ def mgmt_vrf(ctx,routes):
 # 'management_interface' group ("show management_interface ...")
 #
 
-@cli.group(name='management_interface', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='management_interface', cls=AliasedGroup)
 def management_interface():
     """Show management interface parameters"""
     pass
@@ -761,7 +754,7 @@ def snmptrap (ctx):
 # 'interfaces' group ("show interfaces ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def interfaces():
     """Show details of the network interfaces"""
     pass
@@ -806,7 +799,7 @@ def alias(interfacename):
 #
 # 'neighbor' group ###
 #
-@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+@interfaces.group(cls=AliasedGroup)
 def neighbor():
     """Show neighbor related information"""
     pass
@@ -863,7 +856,7 @@ def expected(interfacename):
 
     click.echo(tabulate(body, header))
 
-@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+@interfaces.group(cls=AliasedGroup)
 def transceiver():
     """Show SFP Transceiver information"""
     pass
@@ -1073,7 +1066,7 @@ def loopback(loopback_name, verbose):
 # 'subinterfaces' group ("show subinterfaces ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def subinterfaces():
     """Show details of the sub port interfaces"""
     pass
@@ -1104,7 +1097,7 @@ def status(subinterfacename, verbose):
 # 'pfc' group ("show pfc ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def pfc():
     """Show details of the priority-flow-control (pfc) """
     pass
@@ -1146,7 +1139,7 @@ def asymmetric(interface):
     run_command(cmd)
 
 # 'pfcwd' subcommand ("show pfcwd...")
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def pfcwd():
     """Show details of the pfc watchdog """
     pass
@@ -1182,7 +1175,7 @@ def naming_mode(verbose):
 # 'watermark' group ("show watermark telemetry interval")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def watermark():
     """Show details of watermark """
     pass
@@ -1203,7 +1196,7 @@ def show_tm_interval():
 # 'queue' group ("show queue ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def queue():
     """Show details of the queues """
     pass
@@ -1277,7 +1270,7 @@ def pwm_q_multi():
 # 'priority-group' group ("show priority-group ...")
 #
 
-@cli.group(name='priority-group', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='priority-group', cls=AliasedGroup)
 def priority_group():
     """Show details of the PGs """
 
@@ -1320,7 +1313,7 @@ def pwm_pg_shared():
 # 'buffer_pool' group ("show buffer_pool ...")
 #
 
-@cli.group(name='buffer_pool', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='buffer_pool', cls=AliasedGroup)
 def buffer_pool():
     """Show details of the buffer pools"""
 
@@ -1378,7 +1371,7 @@ def route_map(route_map_name, verbose):
 #
 
 # This group houses IP (i.e., IPv4) commands and subgroups
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def ip():
     """Show IP (IPv4) commands"""
     pass
@@ -1561,7 +1554,7 @@ def protocol(verbose):
 #
 
 # This group houses IPv6-related commands and subgroups
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def ipv6():
     """Show IPv6 commands"""
     pass
@@ -1679,7 +1672,7 @@ elif routing_stack == "frr":
 # 'lldp' group ("show lldp ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def lldp():
     """LLDP (Link Layer Discovery Protocol) information"""
     pass
@@ -1733,7 +1726,7 @@ def get_hw_info_dict():
     hw_info_dict['asic_type'] = asic_type
     return hw_info_dict
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def platform():
     """Show platform-specific hardware info"""
     pass
@@ -1882,7 +1875,7 @@ def environment(verbose):
 # 'processes' group ("show processes ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def processes():
     """Display process information"""
     pass
@@ -1945,7 +1938,7 @@ def techsupport(since, verbose):
 # 'runningconfiguration' group ("show runningconfiguration")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def runningconfiguration():
     """Show current running configuration information"""
     pass
@@ -2059,7 +2052,7 @@ def syslog(verbose):
 # 'startupconfiguration' group ("show startupconfiguration ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def startupconfiguration():
     """Show startup configuration information"""
     pass
@@ -2131,7 +2124,7 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def vlan():
     """Show VLAN information"""
     pass
@@ -2139,7 +2132,7 @@ def vlan():
 #
 # 'kdump command ("show kdump ...")
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=True, )
+@cli.group(cls=AliasedGroup)
 def kdump():
     """Show kdump configuration, status and information """
     pass
@@ -2162,7 +2155,7 @@ def enabled():
     else:
         click.echo("kdump is disabled")
 
-@kdump.command('status', default=True)
+@kdump.command('status')
 def status():
     """Show kdump status"""
     run_command("sonic-kdump-config --status")
@@ -2535,7 +2528,7 @@ def show_sflow_global(config_db):
 # 'acl' group ###
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def acl():
     """Show ACL related information"""
     pass
@@ -2577,7 +2570,7 @@ def table(table_name, verbose):
 # 'dropcounters' group ###
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def dropcounters():
     """Show drop counter related information"""
     pass
@@ -2688,7 +2681,7 @@ def line():
     return
 
 
-@cli.group(name='warm_restart', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='warm_restart', cls=AliasedGroup)
 def warm_restart():
     """Show warm restart configuration and state"""
     pass
@@ -2814,7 +2807,7 @@ def config(redis_unix_socket_path):
 # 'nat' group ("show nat ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def nat():
     """Show details of the nat """
     pass
@@ -2985,7 +2978,7 @@ def autorestart(container_name):
 #
 # 'vnet' command ("show vnet")
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def vnet():
     """Show vnet related information"""
     pass
@@ -3210,7 +3203,7 @@ def tunnel():
 #
 # 'vxlan' command ("show vxlan")
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def vxlan():
     """Show vxlan related information"""
     pass
