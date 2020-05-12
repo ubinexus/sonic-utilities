@@ -1242,7 +1242,7 @@ def hostname(new_hostname):
 @click.option('-n', '--namespace', help='Namespace name', default=None)
 @click.pass_context
 def portchannel(ctx, namespace):
-    #If multi ASIC platform, check if the namespace entered by user is valid
+    # If multi ASIC platform, check if the namespace entered by user is valid
     if is_multi_asic(): 
         if namespace is None:
             ctx.fail("namespace [-n] option required for portchannel/member (add/del)")
@@ -1766,7 +1766,7 @@ def vlan(ctx, redis_unix_socket_path, namespace):
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
 
-    #If multi ASIC platform, check if the namespace entered by user is valid
+    # If multi ASIC platform, check if the namespace entered by user is valid
     if is_multi_asic(): 
         if namespace is None:
             ctx.fail("namespace [-n] option required for vlan/member (add/del)")
