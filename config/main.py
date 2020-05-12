@@ -312,10 +312,10 @@ def get_intf_namespace(port):
         else:
             intf_name = port
 
-    """Currently the CONFIG_DB in each namespace is checked to see if the interface exists
-       This would be changed in future once we have the interface to ASIC mapping stored in global DB.
-       Global DB is the database docker service running in the linux host.
-    """
+    # Currently the CONFIG_DB in each namespace is checked to see if the interface exists
+    # This would be changed in future once we have the interface to ASIC mapping stored in global DB.
+    # Global DB is the database docker service running in the linux host.
+
     ns_list = get_all_namespaces()
     namespaces = ns_list['front_ns'] + ns_list['back_ns']
     for namespace in namespaces:
@@ -457,14 +457,14 @@ def set_interface_naming_mode(mode):
     user = os.getenv('SUDO_USER')
     bashrc_ifacemode_line = "export SONIC_CLI_IFACE_MODE={}".format(mode)
 
-    """In case of multi-asic, we can check for the alias mode support in any of
-       the namespaces as this setting of alias mode should be identical everywhere.
-       Here by default we set the namespaces to be a list just having '' which
-       represents the linux host. In case of multi-asic, we take the first namespace
-       created for the front facing ASIC.
-    """
+    # In case of multi-asic, we can check for the alias mode support in any of
+    # the namespaces as this setting of alias mode should be identical everywhere.
+    # Here by default we set the namespaces to be a list just having '' which
+    # represents the linux host. In case of multi-asic, we take the first namespace
+    # created for the front facing ASIC.
+
     namespaces = [DEFAULT_NAMESPACE]
-    if is_multi_asic:
+    if is_multi_asic():
         namespaces = get_all_namespaces()['front_ns']
 
     # Ensure all interfaces have an 'alias' key in PORT dict
@@ -906,9 +906,8 @@ def save(filename):
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    """In case of multi-asic mode we have additional config_db{NS}.json files for
-       various namespaces created per ASIC. {NS} is the namespace index.
-    """
+    # In case of multi-asic mode we have additional config_db{NS}.json files for
+    # various namespaces created per ASIC. {NS} is the namespace index.
     for inst in range(-1, num_cfg_file-1):
         #inst = -1, refers to the linux host where there is no namespace.
         if inst is -1:
@@ -963,9 +962,8 @@ def load(filename, yes):
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    """In case of multi-asic mode we have additional config_db{NS}.json files for
-       various namespaces created per ASIC. {NS} is the namespace index.
-    """
+    # In case of multi-asic mode we have additional config_db{NS}.json files for
+    # various namespaces created per ASIC. {NS} is the namespace index.
     for inst in range(-1, num_cfg_file-1):
         #inst = -1, refers to the linux host where there is no namespace.
         if inst is -1:
@@ -1046,11 +1044,10 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         log.log_info("'reload' stopping services...")
         _stop_services(db.cfgdb)
 
-    """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
-        service running in the host + DB services running in each ASIC namespace created per ASIC.
-        In the below logic, we get all namespaces in this platform and add an empty namespace ''
-        denoting the current namespace which we are in ( the linux host )
-    """
+    # In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+    # service running in the host + DB services running in each ASIC namespace created per ASIC.
+    # In the below logic, we get all namespaces in this platform and add an empty namespace ''
+    # denoting the current namespace which we are in ( the linux host )
     for inst in range(-1, num_cfg_file-1):
         # Get the namespace name, for linux host it is None
         if inst is -1:
@@ -1067,7 +1064,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             else:
                 file = "/etc/sonic/config_db{}.json".format(inst)
 
-        #Check the file exists before proceeding.
+        # Check the file exists before proceeding.
         if not os.path.isfile(file):
             click.echo("The config_db file {} doesn't exist".format(file))
             continue
@@ -1090,7 +1087,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         # For the database service running in linux host we use the file user gives as input
         # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
-
         if namespace is None:
             if os.path.isfile(INIT_CFG_FILE):
                 command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file)
@@ -2262,7 +2258,7 @@ def remove_neighbor(neighbor_ip_or_hostname):
 @click.pass_context
 def interface(ctx, namespace):
     """Interface-related configuration tasks"""
-    #Check if the namespace entered by user is valid
+    # Check if the namespace entered by user is valid
     if is_multi_asic():
         if namespace is not None and not validate_namespace(namespace):
             ctx.fail("Invalid Namespace entered {}".format(namespace))
