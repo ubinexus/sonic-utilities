@@ -167,9 +167,8 @@ def validate_namespace(namespace):
     else:
         return False
 
-"""In case of Multi-Asic platform, Each ASIC will have a host name and we call it internal hosts.
-   So we loop through the databases in different namespaces and get the hostname
-"""
+# In case of Multi-Asic platform, Each ASIC will have a host name and we call it internal hosts.
+# So we loop through the databases in different namespaces and get the hostname
 def get_all_internal_hosts():
     internal_hosts = []
     num_asics = _get_num_asic()
@@ -1676,14 +1675,14 @@ def all(verbose):
     log_info("'bgp shutdown all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
     int_hosts = []
-    if is_multi_asic:
+    if is_multi_asic():
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns']
         int_hosts = get_all_internal_hosts()
 
-    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
-       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-    """
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
@@ -1702,13 +1701,13 @@ def neighbor(ipaddr_or_hostname, verbose):
     log_info("'bgp shutdown neighbor {}' executing...".format(ipaddr_or_hostname))
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
-    if is_multi_asic:
+    if is_multi_asic():
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
-    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
-       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-    """
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
@@ -1734,14 +1733,14 @@ def all(verbose):
     namespaces = [DEFAULT_NAMESPACE]
     int_hosts = []
 
-    if is_multi_asic:
+    if is_multi_asic():
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns']
         int_hosts = get_all_internal_hosts()
 
-    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
-       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-    """
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
@@ -1761,13 +1760,13 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if is_multi_asic:
+    if is_multi_asic():
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
-    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
-       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-    """
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
@@ -1795,13 +1794,13 @@ def remove_neighbor(neighbor_ip_or_hostname):
     namespaces = [DEFAULT_NAMESPACE]
     removed_neighbor = False
 
-    if is_multi_asic:
+    if is_multi_asic():
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
-    """Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
-       namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-    """
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
