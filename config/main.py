@@ -167,22 +167,6 @@ def validate_namespace(namespace):
     else:
         return False
 
-# In case of Multi-Asic platform, Each ASIC will have a host name and we call it internal hosts.
-# So we loop through the databases in different namespaces and get the hostname
-def get_all_internal_hosts():
-    internal_hosts = []
-    num_asics = _get_num_asic()
-
-    if is_multi_asic():
-        for asic in range(num_asics):
-            namespace = "{}{}".format(NAMESPACE_PREFIX, asic)
-            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-            config_db.connect()
-            metadata = config_db.get_table('DEVICE_METADATA')
-            internal_hosts.append(metadata['localhost']['hostname'])
-
-    return internal_hosts
-
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
@@ -367,20 +351,27 @@ def get_interface_naming_mode():
         mode = "default"
     return mode
 
+# Get the local BGP ASN from DEVICE_METADATA
+def get_local_bgp_asn(config_db):
+    metadata = config_db.get_table('DEVICE_METADATA')
+    return metadata['localhost']['bgp_asn']
+
 def _is_neighbor_ipaddress(config_db, ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
     """
     entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress)
     return True if entry else False
 
-def _get_all_neighbor_ipaddresses(config_db, ignore_hosts):
+def _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=False):
     """Returns list of strings containing IP addresses of all BGP neighbors
-       Ignore the BGP neighbors whose host name matches one in ignore_hosts list
+       if the flag ignore_local_hosts is set to True, additional check to see if 
+       if the BGP neighbor AS number is same as local BGP AS number, if so ignore that neigbor.
     """
     addrs = []
     bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
+    local_as = get_local_bgp_asn(config_db)
     for addr, session in bgp_sessions.iteritems():
-        if session.has_key('name') and session['name'] not in ignore_hosts:
+        if session.has_key('name') and (ignore_local_hosts and local_as != session['asn']):
             addrs.append(addr)
     return addrs
 
@@ -1674,19 +1665,16 @@ def all(verbose):
     """
     log_info("'bgp shutdown all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
-    int_hosts = []
     if is_multi_asic():
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns']
-        int_hosts = get_all_internal_hosts()
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
-        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, int_hosts)
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=True)
         for ipaddress in bgp_neighbor_ip_list:
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'down', verbose)
 
@@ -1707,7 +1695,6 @@ def neighbor(ipaddr_or_hostname, verbose):
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
@@ -1731,20 +1718,17 @@ def all(verbose):
     """
     log_info("'bgp startup all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
-    int_hosts = []
 
     if is_multi_asic():
         ns_list = get_all_namespaces()
         namespaces = ns_list['front_ns']
-        int_hosts = get_all_internal_hosts()
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
-        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, int_hosts)
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=True)
         for ipaddress in bgp_neighbor_ip_list: 
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'up', verbose)
 
@@ -1766,7 +1750,6 @@ def neighbor(ipaddr_or_hostname, verbose):
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
@@ -1800,7 +1783,6 @@ def remove_neighbor(neighbor_ip_or_hostname):
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
-
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
