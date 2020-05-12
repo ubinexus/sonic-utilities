@@ -560,16 +560,6 @@ def get_interface_bind_to_vrf(config_db, vrf_name):
                     data.append(interface)
     return data
 
-def get_intf_master(interface_name):
-    cmd = '[ -e /sys/class/net/{}/master ] && basename $(readlink /sys/class/net/{}/master);'.format(interface_name, interface_name)
-    cmd = '{ ' + cmd + ' }'
-    vrf = os.popen(cmd).read()
-    #print("interface: {} vrf: {}".format(interface_name, vrf))
-    if len(vrf) <= 0:
-        return None
-    else:
-        return vrf
-
 @cli.command()
 @click.argument('vrf_name', required=False)
 def vrf(vrf_name):
@@ -1050,7 +1040,7 @@ def loopback(loopback_name, verbose):
         for lo in natsorted(loopbacks):
             if type(lo) == tuple:
                 continue
-            intf_vrf = get_intf_master(lo)
+            intf_vrf = get_if_master(lo)
             if verbose == True:
                 if lo in intf_ip:
                     data.append([lo, intf_vrf, intf_ip[lo][0]])
@@ -3263,7 +3253,6 @@ def tunnel():
         table.append(r)
 
     click.echo(tabulate(table, header))
-
 
 if __name__ == '__main__':
     cli()

@@ -3051,20 +3051,20 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ip interfaces
-  Interface      IPv4 address/mask    Master        Admin/Oper      BGP Neighbor     Neighbor IP     Flags
-  -------------  -------------------  ------------  --------------  -------------    -------------   -------
-  Loopback0      1.0.0.1/32                         up/up           N/A              N/A
-  Loopback11     11.1.1.1/32          Vrf-red       up/up           N/A              N/A
-  Loopback100    100.0.0.1/32         Vrf-blue      up/up           N/A              N/A
-  PortChannel01  10.0.0.56/31                       up/down         DEVICE1          10.0.0.57
-  PortChannel02  10.0.0.58/31                       up/down         DEVICE2          10.0.0.59
-  PortChannel03  10.0.0.60/31                       up/down         DEVICE3          10.0.0.61
-  PortChannel04  10.0.0.62/31                       up/down         DEVICE4          10.0.0.63
-  Vlan100        1001.1.1/24          Vrf-red       up/up           N/A              N/A
-  Vlan1000       192.168.0.1/27                     up/up           N/A              N/A
-  docker0        240.127.1.1/24                     up/down         N/A              N/A
-  eth0           10.3.147.252/23                    up/up           N/A              N/A
-  lo             127.0.0.1/8                        up/up           N/A              N/A
+  Interface       Master          IPv4 address/mask     Admin/Oper      BGP Neighbor     Neighbor IP     Flags
+  -------------   ------------    ------------------    --------------  -------------    -------------   -------
+  Loopback0                       1.0.0.1/32            up/up           N/A              N/A
+  Loopback11      Vrf-red         11.1.1.1/32           up/up           N/A              N/A
+  Loopback100     Vrf-blue        100.0.0.1/32          up/up           N/A              N/A
+  PortChannel01                   10.0.0.56/31          up/down         DEVICE1          10.0.0.57
+  PortChannel02                   10.0.0.58/31          up/down         DEVICE2          10.0.0.59
+  PortChannel03                   10.0.0.60/31          up/down         DEVICE3          10.0.0.61
+  PortChannel04                   10.0.0.62/31          up/down         DEVICE4          10.0.0.63
+  Vlan100         Vrf-red         1001.1.1/24           up/up           N/A              N/A
+  Vlan1000                        192.168.0.1/27        up/up           N/A              N/A
+  docker0                         240.127.1.1/24        up/down         N/A              N/A
+  eth0                            10.3.147.252/23       up/up           N/A              N/A
+  lo                              127.0.0.1/8           up/up           N/A              N/A
   ```
 
 **show ip protocol**
@@ -3188,18 +3188,18 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ipv6 interfaces
-  Interface      IPv6 address/mask                         Master    Admin/Oper    BGP Neighbor    Neighbor IP
-  -----------    ----------------------------------------  --------  ------------  --------------  -------------
-  Bridge         fe80::7c45:1dff:fe08:cdd%Bridge/64					 up/up         N/A             N/A
-  Loopback11     1100::1/128                               Vrf-red     up/up
-  PortChannel01  fc00::71/126										 up/down       DEVICE1         fc00::72
-  PortChannel02  fc00::75/126										 up/down       DEVICE2         fc00::76
-  PortChannel03  fc00::79/126										 up/down       DEVICE3         fc00::7a
-  PortChannel04  fc00::7d/126										 up/down       DEVICE4         fc00::7e
-  Vlan100        100::1/112                                Vrf-red     up/up         N/A             N/A
-                 fe80::eef4:bbff:fefe:880a%Vlan100/64
-  eth0           fe80::eef4:bbff:fefe:880a%eth0/64					 up/up         N/A             N/A
-  lo             fc00:1::32/128										 up/up         N/A             N/A
+  Interface        Master     IPv6 address/mask                          Admin/Oper    BGP Neighbor    Neighbor IP
+  -----------      --------   ----------------------------------------   ------------  --------------  -------------
+  Bridge                      fe80::7c45:1dff:fe08:cdd%Bridge/64         up/up         N/A             N/A
+  Loopback11       Vrf-red    1100::1/128                                up/up
+  PortChannel01               fc00::71/126                               up/down       DEVICE1         fc00::72
+  PortChannel02               fc00::75/126                               up/down       DEVICE2         fc00::76
+  PortChannel03               fc00::79/126                               up/down       DEVICE3         fc00::7a
+  PortChannel04               fc00::7d/126                               up/down       DEVICE4         fc00::7e
+  Vlan100          Vrf-red    100::1/112                                 up/up         N/A             N/A
+                              fe80::eef4:bbff:fefe:880a%Vlan100/64
+  eth0                        fe80::eef4:bbff:fefe:880a%eth0/64          up/up         N/A             N/A
+  lo                          fc00:1::32/128                             up/up         N/A             N/A
   ```
 
 **show ipv6 protocol**
