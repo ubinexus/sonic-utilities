@@ -20,13 +20,9 @@ import aaa
 import mlnx
 import nat
 
-from collections import OrderedDict
-import ast
-
-
 # import port config file path
 from sfputil.main import get_platform_and_hwsku
-from portconfig import get_port_config_file_name, parse_platform_json_file
+from portconfig import get_port_config_file_name
 from portconfig import get_child_ports
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
@@ -166,7 +162,7 @@ def shutdown_interfaces(ctx, del_intf_dict):
         config_db = ctx.obj['config_db']
         if get_interface_naming_mode() == "alias":
             interface_name = interface_alias_to_name(intf)
-            if intf is None:
+            if interface_name is None:
                 click.echo("[ERROR] interface name is None!")
                 return False
         if interface_name_is_valid(intf) is False:
@@ -2003,7 +1999,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     # Get current breakout mode
     cur_brkout_dict = config_db.get_table('BREAKOUT_CFG')
-    cur_brkout_mode = cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
+    cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
 
     # Validate Interface and Breakout mode
     if not _validate_interface_mode(ctx, BREAKOUT_CFG_FILE, interface_name, mode, cur_brkout_mode):
@@ -2012,7 +2008,6 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     """ Interface Deletion Logic """
     # Get list of interfaces to be deleted
     del_ports = get_child_ports(interface_name, cur_brkout_mode, BREAKOUT_CFG_FILE)
-    del_intf_dict = {intf: del_ports[intf]["speed"] for intf in del_ports}
     del_intf_dict = {intf: del_ports[intf]["speed"] for intf in del_ports}
 
     if del_intf_dict:
