@@ -8,15 +8,8 @@
 try:
     import sys
     import os
-    import subprocess
     import click
-    import imp
-    import syslog
-    import types
-    import traceback
     from tabulate import tabulate
-    from utilities_common import util_base
-    from utilities_common.util_base import UtilLogger
     from utilities_common.util_base import UtilHelper
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -117,7 +110,6 @@ def direction(index):
     status_table = []
 
     for fan in fan_ids:
-        msg = ""
         fan_name = "FAN {}".format(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
@@ -145,7 +137,6 @@ def getspeed(index):
     status_table = []
 
     for fan in fan_ids:
-        msg = ""
         fan_name = "FAN {}".format(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
@@ -178,7 +169,7 @@ def debug():
     """pddf_fanutil debug commands"""
     pass
 
-@debug.command()
+@debug.command('dump-sysfs')
 def dump_sysfs():
     """Dump all Fan related SysFS paths"""
     status = platform_fanutil.dump_sysfs()

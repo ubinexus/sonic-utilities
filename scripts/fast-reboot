@@ -16,6 +16,7 @@ ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
+LOG_SSD_HEALTH="/usr/bin/log_ssd_health"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -29,6 +30,7 @@ EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
+EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 
 function error()
@@ -92,7 +94,7 @@ function parseOptions()
     done
 }
 
-function clear_fast_boot()
+function common_clear()
 {
     debug "${REBOOT_TYPE} failure ($?) cleanup ..."
 
@@ -101,9 +103,16 @@ function clear_fast_boot()
     teardown_control_plane_assistant
 }
 
+function clear_fast_boot()
+{
+    common_clear
+
+    sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
+}
+
 function clear_warm_boot()
 {
-    clear_fast_boot
+    common_clear
 
     result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
     debug "Cancel warm-reboot: ${result}"
@@ -120,7 +129,7 @@ function init_warm_reboot_states()
     # the current DB contents will likely mark warm reboot is done.
     # Clear these states so that the next boot up image won't get confused.
     if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-        redis-cli -n 6 eval "
+        sonic-db-cli STATE_DB eval "
             for _, key in ipairs(redis.call('keys', 'WARM_RESTART_TABLE|*')) do
                 redis.call('hdel', key, 'state')
             end
@@ -132,11 +141,11 @@ function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
-    RESTORE_COUNT=`/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count`
+    RESTORE_COUNT=`sonic-db-cli STATE_DB hget "${TABLE}" restore_count`
     if [[ -z "$RESTORE_COUNT" ]]; then
-        /usr/bin/redis-cli -n 6 hset "${TABLE}" "restore_count" "0" > /dev/null
+        sonic-db-cli STATE_DB hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
-    /usr/bin/redis-cli -n 6 hset "${TABLE}" "state" "requesting" > /dev/null
+    sonic-db-cli STATE_DB hset "${TABLE}" "state" "requesting" > /dev/null
 }
 
 function request_pre_shutdown()
@@ -160,7 +169,7 @@ function wait_for_pre_shutdown_complete_or_fail()
     while [[ ${waitcount} -lt 600 ]]; do
         # timeout doesn't work with -i option of "docker exec". Therefore we have
         # to invoke docker exec directly below.
-        STATE=`timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
+        STATE=`timeout 5s sonic-db-cli STATE_DB hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
 
         if [[ x"${STATE}" == x"timed out" ]]; then
             waitcount+=50
@@ -190,7 +199,7 @@ function backup_database()
     # Dump redis content to a file 'dump.rdb' in warmboot directory
     mkdir -p $WARM_DIR
     # Delete keys in stateDB except FDB_TABLE|*, MIRROR_SESSION_TABLE|*, WARM_RESTART_ENABLE_TABLE|*
-    redis-cli -n 6 eval "
+    sonic-db-cli STATE_DB eval "
         for _, k in ipairs(redis.call('keys', '*')) do
             if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
                                           and not string.match(k, 'MIRROR_SESSION_TABLE|') \
@@ -199,7 +208,8 @@ function backup_database()
             end
         end
     " 0 > /dev/null
-    redis-cli save > /dev/null
+    sonic-db-cli SAVE > /dev/null
+    #TODO : need a script to copy all rdb files if there is multiple db instances config
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
@@ -308,6 +318,7 @@ case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
+        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
     "warm-reboot")
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
@@ -370,13 +381,23 @@ fi
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
-    mkdir -p /host/fast-reboot
+    DUMP_DIR=/host/fast-reboot
+    mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
-    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot || FAST_REBOOT_DUMP_RC=$?
+    /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
     if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
         error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
         unload_kernel
         exit "${EXIT_FAST_REBOOT_DUMP_FAILURE}"
+    fi
+
+    FILTER_FDB_ENTRIES_RC=0
+    # Filter FDB entries using MAC addresses from ARP table
+    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json || FILTER_FDB_ENTRIES_RC=$?
+    if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
+        error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
+        unload_kernel
+        exit "${EXIT_FILTER_FDB_ENTRIES_FAILURE}"
     fi
 fi
 
@@ -404,6 +425,19 @@ fi
 # We are fully committed to reboot from this point on becasue critical
 # service will go down and we cannot recover from it.
 set +e
+
+if [ -x ${LOG_SSD_HEALTH} ]; then
+    debug "Collecting logs to check ssd health before fast-reboot..."
+    ${LOG_SSD_HEALTH}
+fi
+
+
+# Kill nat docker after saving the conntrack table
+debug "Stopping nat ..."
+/usr/bin/dump_nat_entries.py
+docker kill nat > /dev/null || true
+systemctl stop nat
+debug "Stopped nat ..."
 
 # Kill radv before stopping BGP service to prevent annoucing our departure.
 debug "Stopping radv ..."
@@ -456,9 +490,9 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
 
     # Warm reboot: dump state to host disk
     if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-        redis-cli -n 1 FLUSHDB > /dev/null
-        redis-cli -n 2 FLUSHDB > /dev/null
-        redis-cli -n 5 FLUSHDB > /dev/null
+        sonic-db-cli ASIC_DB FLUSHDB > /dev/null
+        sonic-db-cli COUNTERS_DB FLUSHDB > /dev/null
+        sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
     fi
 
     # TODO: backup_database preserves FDB_TABLE
@@ -502,6 +536,13 @@ systemctl stop docker.service || debug "Ignore stopping docker service error $?"
 if [[ "$sonic_asic_type" = 'nephos' ]];
 then
   systemctl stop nps-modules-`uname -r`.service || debug "Ignore stopping nps service error $?"
+fi
+
+# Stop opennsl modules for Broadcom platform
+if [[ "$sonic_asic_type" = 'broadcom' ]];
+then
+  service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
+  systemctl stop "$service_name"
 fi
 
 # Update the reboot cause file to reflect that user issued this script

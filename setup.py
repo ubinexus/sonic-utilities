@@ -41,6 +41,7 @@ setup(
         'ssdutil',
         'pfc',
         'psuutil',
+        'fwutil',
         'pddf_fanutil',
         'pddf_psuutil',
         'pddf_thermalutil',
@@ -53,7 +54,7 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json']
+        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -66,16 +67,23 @@ setup(
         'scripts/dropcheck',
         'scripts/dropconfig',
         'scripts/dropstat',
+        'scripts/dump_nat_entries.py',
         'scripts/ecnconfig',
+        'scripts/fanshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
+        'scripts/filter_fdb_entries.py',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/log_ssd_health',
         'scripts/mmuconfig',
+        'scripts/natclear',
+        'scripts/natconfig',
+        'scripts/natshow',
         'scripts/nbrshow',
         'scripts/neighbor_advertiser',
         'scripts/pcmping',
@@ -89,10 +97,14 @@ setup(
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
+        'scripts/syseeprom-to-json',
         'scripts/teamshow',
+        'scripts/tempershow',
+        'scripts/update_json.py',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
-        'scripts/watermarkcfg'
+        'scripts/watermarkcfg',
+        'scripts/sonic-kdump-config'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
@@ -111,6 +123,7 @@ setup(
             'ssdutil = ssdutil.main:ssdutil',
             'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
+            'fwutil = fwutil.main:cli',
             'pddf_fanutil = pddf_fanutil.main:cli',
             'pddf_psuutil = pddf_psuutil.main:cli',
             'pddf_thermalutil = pddf_thermalutil.main:cli',
@@ -133,6 +146,9 @@ setup(
     # - click
     install_requires=[
         'click-default-group',
+
+        'click',
+
         'natsort'
     ],
     setup_requires= [
