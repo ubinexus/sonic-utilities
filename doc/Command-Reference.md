@@ -64,7 +64,6 @@
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
  * [Loopback Interfaces](#loopback-interfaces)
-    * [Loopback show commands](#loopback-show-commands)
     * [Loopback config commands](#loopback-config-commands)
 * [VRF Configuration](#vrf-configuration)
     * [VRF show commands](#vrf-show-commands)
@@ -2296,7 +2295,6 @@ Subsequent pages explain each of these commands in detail.
   Commands:
   counters     Show interface counters
   description  Show interface status, protocol and...
-  loopback     Show interfaces loopback
   naming_mode  Show interface naming_mode status
   neighbor     Show neighbor related information
   portchannel  Show PortChannel information
@@ -2453,29 +2451,6 @@ This command displays the key fields of the interfaces such as Operational Statu
   -----------  ------  -------  --------------  --------------------
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
-
-**show interfaces loopback**
-
-This command displays information regarding loopback interfaces.
-
-- Usage:
-  ```
-  show interfaces loopback
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ show interfaces loopback
-  Name         VRF
-  -----        -------
-  Loopback0           
-  Loopback11   Vrf-11 
-  Loopback100  Vrf-10 
-  Loopback101         
-  Loopback102  Vrf-10 
-  ```
-
-For more details please refer sub-section [Loopback Interfaces](#loopback-interfaces)
 
 **show interfaces naming_mode**
 
@@ -3492,28 +3467,6 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#loadin
 
 ## Loopback Interfaces
 
-### Loopback Show commands
-
-**show interfaces loopback**
-This command displays all the Loopback interfaces that are configured in the device and its VRF binding information.
-
-- Usage:
-  ```
-  show interfaces loopback
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ show interfaces loopback
-    Name         VRF
-  -----        -------
-  Loopback0           
-  Loopback11   Vrf-11 
-  Loopback100  Vrf-10 
-  Loopback101         
-  Loopback102  Vrf-10 
-  ```
-  
 ### Loopback Config commands
 
 This sub-section explains how to create and delete loopback interfaces.

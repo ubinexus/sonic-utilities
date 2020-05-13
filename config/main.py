@@ -14,7 +14,6 @@ import sonic_device_util
 import ipaddress
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
-from click_default_group import DefaultGroup
 
 import aaa
 import mlnx
@@ -68,12 +67,8 @@ def log_error(msg):
     syslog.closelog()
 
 
-# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
-# a help message if no subcommand is passed
-class AbbreviationGroup(DefaultGroup):
-    """This subclass of a DefaultGroup supports looking up aliases in a config
-    file and with a bit of magic.
+class AbbreviationGroup(click.Group):
+    """This subclass of click.Group supports abbreviated subgroup/subcommand names
     """
 
     def get_command(self, ctx, cmd_name):
@@ -98,18 +93,15 @@ class AbbreviationGroup(DefaultGroup):
                     shortest = x
 
         if not matches:
-            # No command name matched. Issue Default command.
-            ctx.arg0 = cmd_name
-            cmd_name = self.default_cmd_name
-            return DefaultGroup.get_command(self, ctx, cmd_name)
+            return None
         elif len(matches) == 1:
-            return DefaultGroup.get_command(self, ctx, matches[0])
+            return click.Group.get_command(self, ctx, matches[0])
         else:
             for x in matches:
                 if not x.startswith(shortest):
                     break
             else:
-                return DefaultGroup.get_command(self, ctx, shortest)
+                return click.Group.get_command(self, ctx, shortest)
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
@@ -2682,13 +2674,11 @@ def loopback(ctx, redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     ctx.obj = {'db': config_db}
-    pass
 
 @loopback.command('add')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
-@click.argument("vrfname", metavar="<vrf-name>", required=False, type=str)
 @click.pass_context
-def add_loopback(ctx, loopback_name, vrfname):
+def add_loopback(ctx, loopback_name):
     config_db = ctx.obj['db']
     if is_loopback_name_valid(loopback_name) is False:
         ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
@@ -2698,12 +2688,7 @@ def add_loopback(ctx, loopback_name, vrfname):
     if loopback_name in lo_intfs:
         ctx.fail("{} already exists".format(loopback_name))
 
-    if vrfname is None:
-        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
-    elif vrfname not in config_db.get_table('VRF').keys():
-        ctx.fail("vrf {} doesnt exists".format(vrfname))
-    else:
-        config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"vrf_name": vrfname})
+    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
 
 @loopback.command('del')
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
@@ -2724,6 +2709,7 @@ def del_loopback(ctx, loopback_name):
         config_db.set_entry('LOOPBACK_INTERFACE', (loopback_name, ip), None)
 
     config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, None)
+
 
 @config.group(cls=AbbreviationGroup)
 def ztp():
