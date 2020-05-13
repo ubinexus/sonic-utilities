@@ -10,12 +10,8 @@ try:
     load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
     from sonic_cfggen import deep_update, FormatConverter, sort_data
     from swsssdk import ConfigDBConnector, SonicV2Connector, port_util
-    from pprint import PrettyPrinter, pprint
-    from json import dump, load, dumps, loads
-    from sys import path as sysPath
-    from os import path as osPath
+    from json import load
     from os import system
-    from datetime import datetime
     from time import sleep as tsleep
 
     import sonic_yang
@@ -92,7 +88,7 @@ class ConfigMgmt():
 
         return
 
-        """
+    """
     Validate current Data Tree
     """
     def validateConfigData(self):
@@ -394,8 +390,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             self.sysLog(msg="addPorts Args portjson {}".format(portJson))
 
             print('\nStart Port Addition')
-            # get default config if forced
-            defConfig = dict()
+
             if loadDefConfig:
                 defConfig = self._getDefaultConfig(ports)
                 self.sysLog(msg='Default Config: {}'.format(defConfig))
@@ -563,7 +558,6 @@ class ConfigMgmtDPB(ConfigMgmt):
     def _updateDiffConfigDB(self):
 
         # main code starts here
-        configToLoad = dict()
         try:
             # Get the Diff
             print('Generate Final Config to write in DB')
