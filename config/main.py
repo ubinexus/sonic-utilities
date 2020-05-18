@@ -9,6 +9,7 @@ import re
 import syslog
 import time
 import netifaces
+import threading
 
 import sonic_device_util
 import ipaddress
@@ -115,6 +116,16 @@ except KeyError, TypeError:
 # Helper functions
 #
 
+# Execute action per NPU instance for multi instance services.
+def execute_asic_instance(inst, multi_inst_list, action):
+    for service in multi_inst_list:
+        try:
+            click.echo("Executing {} of service {}@{}...".format(action, service, inst))
+            run_command("systemctl {} {}@{}.service".format(action, service, inst))
+        except SystemExit as e:
+            log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
+            raise
+
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
     num_asic = sonic_device_util.get_num_npus()
@@ -124,6 +135,8 @@ def execute_systemctl(list_of_services, action):
         log_error("Failed to get generated services")
         return
 
+    # For Multi NPU, do the "action" on the global services which is single instance first.
+    multi_inst_service_list = []
     for service in list_of_services:
         if (service + '.service' in generated_services_list):
             try:
@@ -132,14 +145,22 @@ def execute_systemctl(list_of_services, action):
             except SystemExit as e:
                 log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
                 raise
+
         if (service + '.service' in generated_multi_instance_services):
-            for inst in range(num_asic):
-                try:
-                    click.echo("Executing {} of service {}@{}...".format(action, service, inst))
-                    run_command("systemctl {} {}@{}.service".format(action, service, inst))
-                except SystemExit as e:
-                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
-                    raise
+            multi_inst_service_list.append(service)
+
+    # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
+    if sonic_device_util.is_multi_npu():
+        threads = []
+        kwargs = {'multi_inst_list' : multi_inst_service_list, 'action' : action}
+        for inst in range(num_asic):
+            t = threading.Thread(target=execute_asic_instance, args=(inst,), kwargs=kwargs)
+            threads.append(t)
+            t.start()
+
+        # Wait for all the threads to finish.
+        for inst in range(num_asic):
+            threads[inst].join()
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
