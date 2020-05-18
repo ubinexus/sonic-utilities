@@ -184,6 +184,11 @@ def test_rule0():
     test = Aclshow(all = None, clear = None, rules = 'RULE_0', tables = None, verbose = None)
     assert test.result.getvalue() == rule0_output
 
+# aclshow -r RULE_4 -t DATAACL
+def test_rule4_lowercase_priority():
+    test = Aclshow(all = None, clear = None, rules = 'RULE_4', tables = 'DATAACL', verbose = None)
+    assert test.result.getvalue() == rule4_dataacl_output
+
 # aclshow -r RULE_4,RULE_6 -vv
 def test_rule4_rule6_verbose():
     test = Aclshow(all = None, clear = None, rules = 'RULE_4,RULE_6', tables = None, verbose = True)
