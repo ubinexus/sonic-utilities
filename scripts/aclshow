@@ -169,8 +169,13 @@ class AclStat(object):
                     self.get_counter_value(rule_key, 'packets') == 'N/A'):
                 continue
             rule = self.acl_rules[rule_key]
+            rule_priority = -1
+            if "PRIORITY" in rule:
+                rule_priority = rule['PRIORITY']
+            elif "priority" in rule:
+                rule_priority = rule['priority']
             line = [rule_key[1], rule_key[0],
-                    rule['PRIORITY'],
+                    rule_priority,
                     self.get_counter_value(rule_key, 'packets'),
                     self.get_counter_value(rule_key, 'bytes')]
             aclstat.append(line)

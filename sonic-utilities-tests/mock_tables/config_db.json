@@ -67,7 +67,7 @@
     "ACL_RULE|DATAACL|RULE_4": {
             "L4_SRC_PORT": "4661",
             "PACKET_ACTION": "FORWARD",
-            "PRIORITY": "9996"
+            "priority": "9996"
     },
     "ACL_RULE|DATAACL|RULE_05": {
             "IP_PROTOCOL": "126",
