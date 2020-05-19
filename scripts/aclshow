@@ -170,10 +170,9 @@ class AclStat(object):
                 continue
             rule = self.acl_rules[rule_key]
             rule_priority = -1
-            if "PRIORITY" in rule:
-                rule_priority = rule['PRIORITY']
-            elif "priority" in rule:
-                rule_priority = rule['priority']
+            for key,val in rule.items():
+                if key.upper() == "PRIORITY":
+                    rule_priority = val
             line = [rule_key[1], rule_key[0],
                     rule_priority,
                     self.get_counter_value(rule_key, 'packets'),

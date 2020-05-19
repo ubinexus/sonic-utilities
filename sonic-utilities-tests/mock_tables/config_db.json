@@ -67,7 +67,7 @@
     "ACL_RULE|DATAACL|RULE_4": {
             "L4_SRC_PORT": "4661",
             "PACKET_ACTION": "FORWARD",
-            "priority": "9996"
+            "PRIORITY": "9996"
     },
     "ACL_RULE|DATAACL|RULE_05": {
             "IP_PROTOCOL": "126",
@@ -93,6 +93,11 @@
             "L4_DST_PORT": "4661",
             "PACKET_ACTION": "FORWARD",
             "PRIORITY": "9991"
+    },
+    "ACL_RULE|DATAACL|RULE_10": {
+            "PACKET_ACTION": "DROP",
+            "priority": "9989",
+            "SRC_IP": "10.0.0.3/32"
     },
      "ACL_TABLE|DATAACL": {
             "policy_desc": "DATAACL",
