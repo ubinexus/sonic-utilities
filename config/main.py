@@ -296,10 +296,10 @@ def validate_namespace(namespace):
 # Return the namespace where an interface belongs
 def get_intf_namespace(port):
     """If it is a non multi-asic device, or if the interface is management interface
-       return '' ( empty string ) which maps to current namespace ( in case of config commands
+       return '' ( DEFAULT_NAMESPACE ) which maps to current namespace ( in case of config commands
        it is linux host )
     """
-    if is_multi_asic() == False or port == 'eth0':
+    if sonic_device_util.is_multi_npu() == False or port == 'eth0':
         return DEFAULT_NAMESPACE
 
     # If it is PortChannel or Vlan interface or Loopback, user needs to input the namespace.
@@ -315,7 +315,8 @@ def get_intf_namespace(port):
     # Currently the CONFIG_DB in each namespace is checked to see if the interface exists
     # TODO This logic of checking each DB will be updated once the interface to ASIC mapping is
     # stored in global DB. Global DB is the database docker service running in the linux host.
-    ns_list = get_all_namespaces()
+
+    ns_list = sonic_device_util.get_all_namespaces()
     namespaces = ns_list['front_ns'] + ns_list['back_ns']
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
@@ -463,8 +464,8 @@ def set_interface_naming_mode(mode):
     # created for the front facing ASIC.
 
     namespaces = [DEFAULT_NAMESPACE]
-    if is_multi_asic():
-        namespaces = get_all_namespaces()['front_ns']
+    if sonic_device_util.is_multi_npu():
+        namespaces = sonic_device_util.get_all_namespaces()['front_ns']
 
     # Ensure all interfaces have an 'alias' key in PORT dict
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespaces[0])
@@ -1243,7 +1244,7 @@ def hostname(new_hostname):
 @click.pass_context
 def portchannel(ctx, namespace):
     # If multi ASIC platform, check if the namespace entered by user is valid
-    if is_multi_asic(): 
+    if sonic_device_util.is_multi_npu(): 
         if namespace is None:
             ctx.fail("namespace [-n] option required for portchannel/member (add/del)")
         if not validate_namespace(str(namespace)):
@@ -1293,7 +1294,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     db = ctx.obj['db']
     if clicommon.is_port_mirror_dst_port(db, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         # Get the namespace based on the member interface given by user.
         intf_ns = get_intf_namespace(port_name)
         if intf_ns is None:
@@ -1311,7 +1312,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         # Get the namespace based on the member interface given by user.
         intf_ns = get_intf_namespace(port_name)
         if intf_ns is None:
@@ -1767,7 +1768,7 @@ def vlan(ctx, redis_unix_socket_path, namespace):
         kwargs['unix_socket_path'] = redis_unix_socket_path
 
     # If multi ASIC platform, check if the namespace entered by user is valid
-    if is_multi_asic(): 
+    if sonic_device_util.is_multi_npu(): 
         if namespace is None:
             ctx.fail("namespace [-n] option required for vlan/member (add/del)")
         if not validate_namespace(str(namespace)):
@@ -1822,7 +1823,7 @@ def vlan_member(ctx):
 def add_vlan_member(ctx, vid, interface_name, untagged):
     """Add VLAN member"""
     log.log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         # Get the namespace based on the member interface given by user.
         intf_ns = get_intf_namespace(interface_name)
         if intf_ns is None:
@@ -1873,7 +1874,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 def del_vlan_member(ctx, vid, interface_name):
     """Delete VLAN member"""
     log.log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         # Get the namespace based on the member interface given by user.
         intf_ns = get_intf_namespace(interface_name)
         if intf_ns is None:
@@ -2256,7 +2257,7 @@ def remove_neighbor(neighbor_ip_or_hostname):
 def interface(ctx, namespace):
     """Interface-related configuration tasks"""
     # Check if the namespace entered by user is valid
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         if namespace is not None and not validate_namespace(namespace):
             ctx.fail("Invalid Namespace entered {}".format(namespace))
     else:
@@ -2273,7 +2274,7 @@ def interface(ctx, namespace):
 def startup(ctx, interface_name):
     """Start up interface"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2318,7 +2319,7 @@ def shutdown(ctx, interface_name):
     """Shut down interface"""
     log.log_info("'interface shutdown {}' executing...".format(interface_name))
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2363,7 +2364,7 @@ def shutdown(ctx, interface_name):
 def speed(ctx, interface_name, interface_speed, verbose):
     """Set interface speed"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2538,7 +2539,7 @@ def mgmt_ip_restart_services():
 def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2598,7 +2599,7 @@ def ip(ctx):
 def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2666,7 +2667,7 @@ def add(ctx, interface_name, ip_addr, gw):
 def remove(ctx, interface_name, ip_addr):
     """Remove an IP address from the interface"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2724,7 +2725,7 @@ def transceiver(ctx):
 def lpmode(ctx, interface_name, state):
     """Enable/disable low-power mode for SFP transceiver module"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2754,7 +2755,7 @@ def lpmode(ctx, interface_name, state):
 def reset(ctx, interface_name):
     """Reset SFP transceiver module"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2795,7 +2796,7 @@ def vrf(ctx):
 def bind(ctx, interface_name, vrf_name):
     """Bind the interface to VRF"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -2839,7 +2840,7 @@ def bind(ctx, interface_name, vrf_name):
 def unbind(ctx, interface_name):
     """Unbind the interface to VRF"""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -3278,7 +3279,7 @@ def pfc(ctx):
 def asymmetric(ctx, interface_name, status):
     """Set asymmetric PFC configuration."""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
@@ -3305,7 +3306,7 @@ def asymmetric(ctx, interface_name, status):
 def priority(ctx, interface_name, priority, status):
     """Set PFC priority configuration."""
     namespace = ctx.obj['namespace']
-    if  is_multi_asic() and namespace is None:
+    if  sonic_device_util.is_multi_npu() and namespace is None:
         ns = get_intf_namespace(interface_name)
         if ns is None:
             ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
