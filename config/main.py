@@ -371,7 +371,7 @@ def _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=False):
     bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
     local_as = get_local_bgp_asn(config_db)
     for addr, session in bgp_sessions.iteritems():
-        if session.has_key('name') and (ignore_local_hosts and local_as != session['asn']):
+        if not ignore_local_hosts or (ignore_local_hosts and local_as != session['asn']):
             addrs.append(addr)
     return addrs
 
@@ -1665,16 +1665,19 @@ def all(verbose):
     """
     log_info("'bgp shutdown all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
-    if is_multi_asic():
-        ns_list = get_all_namespaces()
+    ignore_local_hosts = False
+
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
         namespaces = ns_list['front_ns']
+        ignore_local_hosts = True
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
-        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=True)
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
         for ipaddress in bgp_neighbor_ip_list:
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'down', verbose)
 
@@ -1689,8 +1692,9 @@ def neighbor(ipaddr_or_hostname, verbose):
     log_info("'bgp shutdown neighbor {}' executing...".format(ipaddr_or_hostname))
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
-    if is_multi_asic():
-        ns_list = get_all_namespaces()
+
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -1718,17 +1722,19 @@ def all(verbose):
     """
     log_info("'bgp startup all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
+    ignore_local_hosts = False
 
-    if is_multi_asic():
-        ns_list = get_all_namespaces()
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
         namespaces = ns_list['front_ns']
+        ignore_local_hosts = True
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
-        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=True)
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
         for ipaddress in bgp_neighbor_ip_list: 
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'up', verbose)
 
@@ -1744,8 +1750,8 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if is_multi_asic():
-        ns_list = get_all_namespaces()
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -1777,8 +1783,8 @@ def remove_neighbor(neighbor_ip_or_hostname):
     namespaces = [DEFAULT_NAMESPACE]
     removed_neighbor = False
 
-    if is_multi_asic():
-        ns_list = get_all_namespaces()
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
