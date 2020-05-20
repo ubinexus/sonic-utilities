@@ -3269,8 +3269,8 @@ NOTE: Management interface IP address and default route (or specific route) may 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
 
-When user specifies the optional argument "-n" or "--no-service-restart", this command loads the configuration without restarting various services
-running on the device. One of the use case for this option is during boot time when config-setup service loads minigraph configuration and there is no services
+When user specifies the optional argument "-n" or "--no-service-restart", this command loads the configuration without restarting dependent services
+running on the device. One use case for this option is during boot time when config-setup service loads minigraph configuration and there is no services
 running on the device.
 
 - Usage:
@@ -3308,8 +3308,8 @@ NOTE: Management interface IP address and default route (or specific route) may 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
 
-When user specifies the optional argument "-n" or "--no-service-restart", this command clear and loads the configuration without restarting various services
-running on the device. One of the use case for this option is during boot time when config-setup service loads exisitng old configuration and there is no services
+When user specifies the optional argument "-n" or "--no-service-restart", this command clear and loads the configuration without restarting dependent services
+running on the device. One use case for this option is during boot time when config-setup service loads existing old configuration and there is no services
 running on the device.
 
 - Usage:
