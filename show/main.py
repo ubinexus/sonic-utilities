@@ -1701,11 +1701,22 @@ def temperature():
     run_command(cmd)
 
 # 'firmware' subcommand ("show platform firmware")
-@platform.command()
-def firmware():
-    """Show firmware status information"""
-    cmd = "fwutil show status"
-    run_command(cmd)
+@platform.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def firmware(args):
+    """Show firmware information"""
+    cmd = "fwutil show {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
 
 #
 # 'logging' command ("show logging")
