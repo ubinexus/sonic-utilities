@@ -1788,7 +1788,7 @@ def startup(ctx, interface_name):
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
     for sp_name in subport_list.keys():
-        if ps_name in intf_fs:
+        if sp_name in intf_fs:
             config_db.mod_entry("VLAN_SUB_INTERFACE", po_name, {"admin_status": "up"})
 
 
@@ -1825,7 +1825,7 @@ def shutdown(ctx, interface_name):
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
     for sp_name in subport_list.keys():
-        if ps_name in intf_fs:
+        if sp_name in intf_fs:
             config_db.mod_entry("VLAN_SUB_INTERFACE", po_name, {"admin_status": "down"})
 
 
