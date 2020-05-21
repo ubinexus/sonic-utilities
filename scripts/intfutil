@@ -8,7 +8,7 @@ from tabulate import tabulate
 from natsort import natsorted
 from swsssdk import ConfigDBConnector
 from pprint import pprint
-from utilities_common.intf_filter import parse_interface_in_filter, interface_in_filter
+from utilities_common.intf_filter import parse_interface_in_filter
 
 import os
 
