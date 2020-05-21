@@ -1,7 +1,7 @@
 # Interface filtering functions
 
 SONIC_PORT_NAME_PREFIX = "Ethernet"
-SONIC_PO_NAME_PREFIX = "PortChannel"
+SONIC_LAG_NAME_PREFIX = "PortChannel"
 
 def parse_interface_in_filter(intf_filter):
     intf_fs = []
@@ -13,12 +13,12 @@ def parse_interface_in_filter(intf_filter):
     for x in fs:
         if '-' in x:
             # handle range
-            if not x.startswith(SONIC_PORT_NAME_PREFIX) and not x.startswith(SONIC_PO_NAME_PREFIX):
+            if not x.startswith(SONIC_PORT_NAME_PREFIX) and not x.startswith(SONIC_LAG_NAME_PREFIX):
                 continue
             if x.startswith(SONIC_PORT_NAME_PREFIX):
                 intf = SONIC_PORT_NAME_PREFIX
-            if x.startswith(SONIC_PO_NAME_PREFIX):
-                intf = SONIC_PO_NAME_PREFIX
+            if x.startswith(SONIC_LAG_NAME_PREFIX):
+                intf = SONIC_LAG_NAME_PREFIX
             start = x.split('-')[0].split(intf,1)[1]
             end = x.split('-')[1]
 
