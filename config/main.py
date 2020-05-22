@@ -14,7 +14,7 @@ import sonic_device_util
 import ipaddress
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
-from sonic_platform import get_system_routing_stack
+from sonic_device_util import get_system_routing_stack
 
 import aaa
 import mlnx
