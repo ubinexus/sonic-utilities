@@ -30,6 +30,11 @@ import sonic_device_util
 from swsssdk import ConfigDBConnector, SonicDBConfig
 BACKEND_ASIC_INTERFACE_NAME_PREFIX = 'Ethernet-BP'
 
+LLDP_INTERFACE_LIST_IN_HOST_NAMESPACE ''
+LLDP_INSTANCE_IN_HOST_NAMESPACE ''
+LLDP_DEFAULT_INTERFACE_LIST_IN_ASIC_NAMESPACE ''
+SPACE_TOKEN ' '
+
 class Lldpshow(object):
     def __init__(self):
         self.lldpraw = []
@@ -42,23 +47,23 @@ class Lldpshow(object):
         self.ctags = {'Router': 'R', 'Bridge': 'B'}
         SonicDBConfig.load_sonic_global_db_config()
 
-        # For multi-npu platforms we will get only front-panel interface to display
+        # For multi-asic platforms we will get only front-panel interface to display
         namespaces = sonic_device_util.get_all_namespaces()
-        per_npu_configdb = {}
+        per_asic_configdb = {}
         for instance_num, front_asic_namespaces in enumerate(namespaces['front_ns']):
-            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
-            per_npu_configdb[front_asic_namespaces].connect()
-            self.lldp_interface.append('')
+            per_asic_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_asic_configdb[front_asic_namespaces].connect()
+            self.lldp_interface.append(LLDP_DEFAULT_INTERFACE_LIST_IN_ASIC_NAMESPACE)
             self.lldp_instance.append(instance_num)
-            keys = per_npu_configdb[front_asic_namespaces].get_keys("PORT")
+            keys = per_asic_configdb[front_asic_namespaces].get_keys("PORT")
             for key in keys:
                 if key.startswith(BACKEND_ASIC_INTERFACE_NAME_PREFIX):
                     continue
-                self.lldp_interface[instance_num] += key + ' '
+                self.lldp_interface[instance_num] += key + SPACE_TOKEN
 
         # LLDP running in host namespace
-        self.lldp_instance.append('')
-        self.lldp_interface.append('')
+        self.lldp_instance.append(LLDP_INSTANCE_IN_HOST_NAMESPACE)
+        self.lldp_interface.append(LLDP_INTERFACE_LIST_IN_HOST_NAMESPACE)
 
     def get_info(self, lldp_detail_info, lldp_port):
         """
@@ -79,6 +84,8 @@ class Lldpshow(object):
                 if lldp_port is not None and lldp_port not in output:
                     continue
                 self.lldpraw.append(output)
+                if lldp_port is not None:
+                    break
             else:
                 self.err = err
         
