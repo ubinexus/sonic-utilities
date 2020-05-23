@@ -53,6 +53,7 @@ class Lldpshow(object):
         for instance_num, front_asic_namespaces in enumerate(namespaces['front_ns']):
             per_asic_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_asic_configdb[front_asic_namespaces].connect()
+            # Initalize Interface list to be ''. We will do string append of the interfaces below.
             self.lldp_interface.append(LLDP_DEFAULT_INTERFACE_LIST_IN_ASIC_NAMESPACE)
             self.lldp_instance.append(instance_num)
             keys = per_asic_configdb[front_asic_namespaces].get_keys("PORT")
