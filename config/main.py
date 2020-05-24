@@ -977,7 +977,13 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     db = ctx.obj['db']
-    db.set_entry('PORTCHANNEL', portchannel_name, None)
+    if len(db.get_entry('PORTCHANNEL', portchannel_name)) != 0:
+       keys = [(k,v) for k,v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]
+       for k in keys:
+           db.set_entry('PORTCHANNEL_MEMBER', k, None)
+       db.set_entry('PORTCHANNEL', portchannel_name, None)
+    else:
+        ctx.fail("{} is not configured".format(portchannel_name))
 
 @portchannel.group(cls=AbbreviationGroup, name='member')
 @click.pass_context
@@ -991,6 +997,22 @@ def portchannel_member(ctx):
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
+    port_channel = db.get_entry('PORTCHANNEL', portchannel_name)
+    if get_interface_naming_mode() == "alias":
+        port_name = interface_alias_to_name(port_name)
+        if port_name is None:
+            ctx.fail("'port_name' is None!")
+    
+    if len(port_channel) == 0:
+        ctx.fail("{} doesn't exists".format(portchannel_name))
+    
+    members = port_channel.get('members', [])
+    if port_name in members:
+        ctx.fail("{} is already a member of {}".format(port_name, portchannel_name))
+    
+    members.append(port_name)
+    port_channel['members'] = members
+    db.set_entry('PORTCHANNEL', portchannel_name, port_channel)
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1001,9 +1023,26 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
+    port_channel = db.get_entry('PORTCHANNEL', portchannel_name)
+    if get_interface_naming_mode() == "alias":
+        port_name = interface_alias_to_name(port_name)
+        if port_name is None:
+            ctx.fail("'port_name' is None!")
+    
+    if len(port_channel) == 0:
+        ctx.fail("{} doesn't exists".format(portchannel_name))
+    
+    members = port_channel.get('members', [])
+    if port_name not in members:
+        ctx.fail("{} is not a member of {}".format(port_name, portchannel_name))
+    
+    members.remove(port_name)
+    if len(members) == 0:
+        del port_channel['members']
+    else:
+        port_channel['members'] = members
+    db.set_entry('PORTCHANNEL', portchannel_name, port_channel)
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
-    db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
-
 
 #
 # 'mirror_session' group ('config mirror_session ...')
