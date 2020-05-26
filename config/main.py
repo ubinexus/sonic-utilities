@@ -14,7 +14,7 @@ import sonic_device_util
 import ipaddress
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
-from config_mgmt import ConfigMgmt, ConfigMgmtDPB
+from config_mgmt import ConfigMgmtDPB
 
 import aaa
 import mlnx
@@ -246,7 +246,7 @@ def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
     return
 
 def breakout_Ports(cm, delPorts=list(), addPorts=list(), portJson=dict(), \
-    force=False, loadDefConfig=True, verbose=False):
+    force=False, loadDefConfig=False, verbose=False):
 
     deps, ret = cm.breakOutPort(delPorts=delPorts, addPorts = addPorts, \
                     portJson=portJson, force=force, loadDefConfig=loadDefConfig)
