@@ -176,7 +176,7 @@ function check_issu_bank_file()
         exit "${MLNX_ISSU_BANK_BROKEN}"
     fi
 
-    issu_file_chars_count=`wc -m ${ISSU_BANK_FILE} | awk '{print $1}'`;
+    issu_file_chars_count=`stat -c %s ${ISSU_BANK_FILE}`;
     if [[ $issu_file_chars_count != 1 ]]; then
         error "(${ISSU_BANK_FILE}) characters count is NOT valid ..."
         recover_issu_bank_file_instruction
@@ -525,11 +525,11 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
 
     request_pre_shutdown
 
+    wait_for_pre_shutdown_complete_or_fail
+
     if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
         check_issu_bank_file
     fi
-
-    wait_for_pre_shutdown_complete_or_fail
 
     # Warm reboot: dump state to host disk
     if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
