@@ -155,9 +155,9 @@ def execute_systemctl(list_of_services, action):
         threads = []
         # Use this event object to co-ordinate if any threads raised exception
         e = threading.Event()
-        kwargs = {'multi_inst_list' : multi_inst_service_list, 'action' : action}
+        kwargs = {'multi_inst_list': multi_inst_service_list, 'action': action}
         for inst in range(num_asic):
-            t = threading.Thread(target=execute_asic_instance, args=(inst,e), kwargs=kwargs)
+            t = threading.Thread(target=execute_asic_instance, args=(inst, e), kwargs=kwargs)
             threads.append(t)
             t.start()
 
