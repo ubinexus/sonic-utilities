@@ -176,6 +176,7 @@ def main():
                                       lldpshow
                                       lldpshow -d
                                       lldpshow -d -p Ethernet0
+                                      lldpshow -p Ethernet0
                                       """)
 
     parser.add_argument('-d', '--detail', action='store_true', help='LLDP neighbors detail information', default=False)
@@ -186,7 +187,7 @@ def main():
     lldp_port = args.port
 
     if lldp_port and not lldp_detail_info:
-        parser.error('-d is required when -p is set.')
+        lldp_detail_info = True
 
     try:
         lldp = Lldpshow()
