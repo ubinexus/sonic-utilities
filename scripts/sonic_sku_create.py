@@ -26,11 +26,9 @@ optional arguments:
 from __future__ import print_function
 
 import argparse
-import json
 import os
 import re
 import subprocess
-import swsssdk
 import traceback
 import sys
 import shutil
@@ -324,9 +322,7 @@ class SkuCreate(object):
 	def msn2700_specific(self) :
 		for fp, values in self.fpp_split.items():
 			splt_arr = sorted(values[0])
-			idx_arr = sorted(values[1])
 			splt = len(splt_arr)
-			fp=fp
 			try :
 				if ((fp%2) == 1 and splt == 4) :
 					next_fp = fp+1
@@ -381,7 +377,6 @@ def main():
 	l2_mode = False
 	sku_mode = False
 	sku_name = None
-	base = None
 	try:
 		sku = SkuCreate()
 		sku.verbose = args.verbose
