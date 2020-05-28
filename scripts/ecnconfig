@@ -50,7 +50,6 @@ from __future__ import print_function
 
 import os
 import sys
-import json
 import argparse
 import swsssdk
 from tabulate import tabulate
@@ -266,7 +265,7 @@ def main():
 
                 # get current configuration data 
                 wred_profile_data = prof_cfg.get_profile_data(args.profile)
-                if wred_profile_data == None:
+                if wred_profile_data is None:
                     raise Exception("Input arguments error. Invalid WRED profile %s" % (args.profile))
 
                 if args.green_max:

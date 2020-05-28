@@ -12,8 +12,6 @@ try:
     import click
     import imp
     import syslog
-    import types
-    import traceback
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -144,8 +142,6 @@ def get_sfp_eeprom_status_string(port, port_sfp_eeprom_status):
 #   logical_port if logical and not ganged
 #
 def get_physical_port_name(logical_port, physical_port, ganged):
-    port_name = None
-
     if logical_port == physical_port:
         return logical_port
     elif ganged:
@@ -313,7 +309,7 @@ def get_platform_and_hwsku():
         stdout = proc.communicate()[0]
         proc.wait()
         hwsku = stdout.rstrip('\n')
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect platform")
 
     return (platform, hwsku)
@@ -346,19 +342,18 @@ def load_platform_sfputil():
 
     # Load platform module from source
     platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-    hwsku_path = "/".join([platform_path, hwsku])
 
     try:
         module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
-    except IOError, e:
+    except IOError as e:
         log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
     try:
         platform_sfputil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
         platform_sfputil = platform_sfputil_class()
-    except AttributeError, e:
+    except AttributeError as e:
         log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
         return -2
 
@@ -386,7 +381,7 @@ def cli():
     try:
         port_config_file_path = get_path_to_port_config_file()
         platform_sfputil.read_porttab_mappings(port_config_file_path)
-    except Exception, e:
+    except Exception as e:
         log_error("Error reading port info (%s)" % str(e), True)
         sys.exit(3)
 

@@ -227,12 +227,15 @@ def update(ctx, yes, force, image):
         squashfs = None
 
         try:
-            cup = None
-
             if image == IMAGE_NEXT:
                 squashfs = SquashFs()
-                fs_path = squashfs.mount_next_image_fs()
-                cup = ComponentUpdateProvider(fs_path)
+
+                if squashfs.is_next_boot_set():
+                    fs_path = squashfs.mount_next_image_fs()
+                    cup = ComponentUpdateProvider(fs_path)
+                else:
+                    log_helper.print_warning("Next boot is set to current: fallback to defaults")
+                    cup = ComponentUpdateProvider()
             else:
                 cup = ComponentUpdateProvider()
 

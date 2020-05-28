@@ -2,12 +2,10 @@
 
 try:
     import imp
-    import signal
     import subprocess
     import os
-    import sys
     import syslog
-except ImportError, e:
+except ImportError as e:
     raise ImportError (str(e) + " - required module not found")
 
 #
@@ -89,7 +87,7 @@ class UtilHelper(object):
             stdout = proc.communicate()[0]
             proc.wait()
             hwsku = stdout.rstrip('\n')
-        except OSError, e:
+        except OSError as e:
             raise OSError("Failed to detect platform: %s" % (str(e)))
 
         return (platform, hwsku)
@@ -130,7 +128,7 @@ class UtilHelper(object):
         try:
             module_file = "/".join([platform_path, "plugins", module_name + ".py"])
             module = imp.load_source(module_name, module_file)
-        except IOError, e:
+        except IOError as e:
             raise IOError("Failed to load platform module '%s': %s" % (module_name, str(e)))
 
         try:
@@ -140,7 +138,7 @@ class UtilHelper(object):
                 platform_util = platform_util_class('','','','')
             else:
                 platform_util = platform_util_class()
-        except AttributeError, e:
+        except AttributeError as e:
             raise AttributeError("Failed to instantiate '%s' class: %s" % (class_name, str(e)))
 
         return platform_util

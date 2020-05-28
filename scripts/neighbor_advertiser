@@ -17,9 +17,7 @@ import traceback
 import subprocess
 import time
 import warnings
-import sonic_device_util
 from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
 from netaddr import IPAddress, IPNetwork
 
 
@@ -266,7 +264,6 @@ def get_vlan_addresses(vlan_interface):
                 mac_addr = keys[1]
     except Exception:
         log_error('failed to get %s addresses from o.s.' % vlan_interface)
-        pass
 
     if not mac_addr:
         mac_addr = get_vlan_interface_mac_address(vlan_interface)
@@ -552,7 +549,7 @@ def main():
     ferret_service_vips = args.vips
     operation_mode = args.mode
 
-    if operation_mode == 'set' and ferret_service_vips == None:
+    if operation_mode == 'set' and ferret_service_vips is None:
         log_warning('ferret service vip is required in set mode')
         sys.exit(1)
 

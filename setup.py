@@ -42,6 +42,7 @@ setup(
         'pfc',
         'psuutil',
         'fwutil',
+        'pcieutil',
         'pddf_fanutil',
         'pddf_psuutil',
         'pddf_thermalutil',
@@ -54,7 +55,7 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json']
+        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -74,10 +75,12 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
+        'scripts/filter_fdb_entries.py',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/log_ssd_health',
         'scripts/mmuconfig',
         'scripts/natclear',
         'scripts/natconfig',
@@ -122,6 +125,7 @@ setup(
             'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
             'fwutil = fwutil.main:cli',
+            'pcieutil = pcieutil.main:cli',
             'pddf_fanutil = pddf_fanutil.main:cli',
             'pddf_psuutil = pddf_psuutil.main:cli',
             'pddf_thermalutil = pddf_thermalutil.main:cli',
@@ -142,7 +146,6 @@ setup(
     # - swsssdk
     # - tabulate
     install_requires=[
-        'click-default-group',
         'click',
         'natsort'
     ],

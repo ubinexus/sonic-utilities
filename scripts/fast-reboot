@@ -16,6 +16,7 @@ ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
+LOG_SSD_HEALTH="/usr/bin/log_ssd_health"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -29,6 +30,7 @@ EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
+EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 
 function error()
@@ -92,7 +94,7 @@ function parseOptions()
     done
 }
 
-function clear_fast_boot()
+function common_clear()
 {
     debug "${REBOOT_TYPE} failure ($?) cleanup ..."
 
@@ -101,9 +103,16 @@ function clear_fast_boot()
     teardown_control_plane_assistant
 }
 
+function clear_fast_boot()
+{
+    common_clear
+
+    sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
+}
+
 function clear_warm_boot()
 {
-    clear_fast_boot
+    common_clear
 
     result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
     debug "Cancel warm-reboot: ${result}"
@@ -199,7 +208,8 @@ function backup_database()
             end
         end
     " 0 > /dev/null
-    redis-cli save > /dev/null
+    sonic-db-cli SAVE > /dev/null
+    #TODO : need a script to copy all rdb files if there is multiple db instances config
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
@@ -308,6 +318,7 @@ case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
+        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
     "warm-reboot")
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
@@ -370,13 +381,23 @@ fi
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
-    mkdir -p /host/fast-reboot
+    DUMP_DIR=/host/fast-reboot
+    mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
-    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot || FAST_REBOOT_DUMP_RC=$?
+    /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
     if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
         error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
         unload_kernel
         exit "${EXIT_FAST_REBOOT_DUMP_FAILURE}"
+    fi
+
+    FILTER_FDB_ENTRIES_RC=0
+    # Filter FDB entries using MAC addresses from ARP table
+    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json || FILTER_FDB_ENTRIES_RC=$?
+    if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
+        error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
+        unload_kernel
+        exit "${EXIT_FILTER_FDB_ENTRIES_FAILURE}"
     fi
 fi
 
@@ -404,6 +425,12 @@ fi
 # We are fully committed to reboot from this point on becasue critical
 # service will go down and we cannot recover from it.
 set +e
+
+if [ -x ${LOG_SSD_HEALTH} ]; then
+    debug "Collecting logs to check ssd health before fast-reboot..."
+    ${LOG_SSD_HEALTH}
+fi
+
 
 # Kill nat docker after saving the conntrack table
 debug "Stopping nat ..."
