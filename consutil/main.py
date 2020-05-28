@@ -9,9 +9,9 @@ try:
     import click
     import os
     import pexpect
-    import re
-    import subprocess
+    import sys
     from tabulate import tabulate
+    from lib import *
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 

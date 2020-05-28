@@ -60,9 +60,27 @@ Ethernet200  Not present
                 TX2Bias: 6.7500mA
                 TX3Bias: 6.7500mA
                 TX4Bias: 6.7500mA
+        ChannelThresholdValues: 
+                RxPowerHighAlarm  : 3.4001dBm
+                RxPowerHighWarning: 2.4000dBm
+                RxPowerLowAlarm   : -13.5067dBm
+                RxPowerLowWarning : -9.5001dBm
+                TxBiasHighAlarm   : 10.0000mA
+                TxBiasHighWarning : 9.5000mA
+                TxBiasLowAlarm    : 0.5000mA
+                TxBiasLowWarning  : 1.0000mA
         ModuleMonitorValues: 
                 Temperature: 30.9258C
                 Vcc: 3.2824Volts
+        ModuleThresholdValues: 
+                TempHighAlarm  : 75.0000C
+                TempHighWarning: 70.0000C
+                TempLowAlarm   : -5.0000C
+                TempLowWarning : 0.0000C
+                VccHighAlarm   : 3.6300Volts
+                VccHighWarning : 3.4650Volts
+                VccLowAlarm    : 2.9700Volts
+                VccLowWarning  : 3.1349Volts
 
 """
         assert result.output == expected
@@ -95,9 +113,9 @@ Ethernet200  Not present
         expected = "Ethernet200: SFP EEPROM Not detected"
         assert result_lines == expected
 
+    @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
-        
