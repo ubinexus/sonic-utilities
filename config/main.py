@@ -4085,6 +4085,44 @@ def disable_neigh_suppress(ctx, vid):
         ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
     vlan = 'Vlan{}'.format(vid)
     db.set_entry('SUPPRESS_VLAN_NEIGH', vlan, None)
+#######
+#
+# 'neigh_suppress' group ('config neigh_suppress...')
+#
+@config.group()
+@click.pass_context
+def neigh_suppress(ctx):
+    """ Neighbour Suppress VLAN-related configuration """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@neigh_suppress.command('enable')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def enable_neigh_suppress(ctx, vid):
+    db = ctx.obj['db']
+    if vlan_id_is_valid(vid) is False:
+        ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
+    vlan = 'Vlan{}'.format(vid)
+    if len(db.get_entry('VLAN', vlan)) == 0:
+        click.echo("{} doesn't exist".format(vlan))
+        return
+    fvs = {'suppress': "on"}
+    db.set_entry('SUPPRESS_VLAN_NEIGH', vlan, fvs)
+
+@neigh_suppress.command('disable')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def disable_neigh_suppress(ctx, vid):
+    db = ctx.obj['db']
+    if vlan_id_is_valid(vid) is False:
+        ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
+    vlan = 'Vlan{}'.format(vid)
+    db.set_entry('SUPPRESS_VLAN_NEIGH', vlan, None)
+
+
 
 if __name__ == '__main__':
     config()

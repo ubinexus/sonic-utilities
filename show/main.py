@@ -1560,6 +1560,26 @@ def vlanvnimap(count):
 
     if count is not None:
       vxlan_keys = config_db.keys('CONFIG_DB', "VXLAN_TUNNEL_MAP|*")
+    vxlan_table = config_db.get_table('VXLAN_TUNNEL_MAP')
+    suppress_table = config_db.get_table('SUPPRESS_VLAN_NEIGH')
+    vlan = 'Vlan{}'.format(vid)
+    vxlan_keys = vxlan_table.keys()
+
+    if vxlan_keys is not None:
+      for key in natsorted(vxlan_keys):
+          key1 = vxlan_table[key]['vlan']
+          if(key1 == vlan):
+                netdev = vxlan_keys[0][0]+"-"+key1[4:]
+                if key1 not in suppress_table:
+                    supp_str = "Not Configured"
+                else:
+                    supp_str = "Configured"
+
+                body.append([vxlan_table[key]['vlan'], supp_str, netdev])
+                click.echo(tabulate(body, header, tablefmt="grid"))
+                return
+    print(vlan + " is not configured in vxlan tunnel map table")
+
 
       if not vxlan_keys:
         vxlan_count = 0
