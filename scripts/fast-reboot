@@ -168,26 +168,39 @@ function recover_issu_bank_file_instruction()
 function check_issu_bank_file()
 {
     ISSU_BANK_FILE=/host/warmboot/issu_bank.txt
-    MLNX_ISSU_BANK_BROKEN=102
+    MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN=102
+    MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN=103
 
     if [[ ! -s "$ISSU_BANK_FILE" ]]; then
         error "(${ISSU_BANK_FILE}) does NOT exist or empty ..."
         recover_issu_bank_file_instruction
-        exit "${MLNX_ISSU_BANK_BROKEN}"
+	if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
+	else
+            exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
+	fi
     fi
 
     issu_file_chars_count=`stat -c %s ${ISSU_BANK_FILE}`;
     if [[ $issu_file_chars_count != 1 ]]; then
         error "(${ISSU_BANK_FILE}) characters count is NOT valid ..."
         recover_issu_bank_file_instruction
-        exit "${MLNX_ISSU_BANK_BROKEN}"
+	if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
+	else
+            exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
+	fi
     fi
 
     issu_file_content=`awk '{print $0}' ${ISSU_BANK_FILE}`
     if [[ "$issu_file_content" != "0" && "$issu_file_content" != "1" ]]; then
         error "(${ISSU_BANK_FILE}) has invalid content ..."
         recover_issu_bank_file_instruction
-        exit "${MLNX_ISSU_BANK_BROKEN}"
+	if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
+	else
+            exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
+	fi
     fi
 }
 
@@ -519,8 +532,10 @@ systemctl stop swss
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     initialize_pre_shutdown
 
+    BEFORE_PRE_SHUTDOWN=true
+
     if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-        check_issu_bank_file
+        check_issu_bank_file "$BEFORE_PRE_SHUTDOWN"
     fi
 
     request_pre_shutdown
@@ -528,7 +543,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     wait_for_pre_shutdown_complete_or_fail
 
     if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-        check_issu_bank_file
+        check_issu_bank_file "!$BEFORE_PRE_SHUTDOWN"
     fi
 
     # Warm reboot: dump state to host disk
