@@ -174,33 +174,33 @@ function check_issu_bank_file()
     if [[ ! -s "$ISSU_BANK_FILE" ]]; then
         error "(${ISSU_BANK_FILE}) does NOT exist or empty ..."
         recover_issu_bank_file_instruction
-	if [[ "$1" = true ]]; then
-            exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
-	else
-            exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
-	fi
+    if [[ "$1" = true ]]; then
+        exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
+    else
+        exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
+    fi
     fi
 
     issu_file_chars_count=`stat -c %s ${ISSU_BANK_FILE}`;
     if [[ $issu_file_chars_count != 1 ]]; then
         error "(${ISSU_BANK_FILE}) characters count is NOT valid ..."
         recover_issu_bank_file_instruction
-	if [[ "$1" = true ]]; then
-            exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
-	else
-            exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
-	fi
+    if [[ "$1" = true ]]; then
+        exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
+    else
+        exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
+    fi
     fi
 
     issu_file_content=`awk '{print $0}' ${ISSU_BANK_FILE}`
     if [[ "$issu_file_content" != "0" && "$issu_file_content" != "1" ]]; then
         error "(${ISSU_BANK_FILE}) has invalid content ..."
         recover_issu_bank_file_instruction
-	if [[ "$1" = true ]]; then
-            exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
-	else
-            exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
-	fi
+    if [[ "$1" = true ]]; then
+        exit "${MLNX_ISSU_BANK_BROKEN_BEFORE_PRE_SHUTDOWN}"
+    else
+        exit "${MLNX_ISSU_BANK_BROKEN_AFTER_PRE_SHUTDOWN}"
+    fi
     fi
 }
 
