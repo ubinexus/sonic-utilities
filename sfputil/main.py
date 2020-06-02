@@ -34,7 +34,6 @@ PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 platform_sfputil = None
 PLATFORM_JSON = 'platform.json'
 PORT_CONFIG_INI = 'port_config.ini'
-PORTMAP_INI = 'portmap.ini'
 
 # ========================== Syslog wrappers ==========================
 
@@ -335,9 +334,6 @@ def get_path_to_port_config_file():
     if not os.path.isfile(port_config_file_path):
         # platform.json doesn't exist. Try loading the legacy 'port_config.ini' file
         port_config_file_path = "/".join([hwsku_path, PORT_CONFIG_INI])
-    if not os.path.isfile(port_config_file_path):
-        # port_config.ini doesn't exist. Try loading the legacy 'portmap.ini' file
-        port_config_file_path = "/".join([hwsku_path, PORTMAP_INI])
 
     return port_config_file_path
 
