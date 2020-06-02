@@ -31,6 +31,7 @@ PORT_ALIAS = "alias"
 PORT_OPER_STATUS = "oper_status"
 PORT_ADMIN_STATUS = "admin_status"
 PORT_SPEED = "speed"
+PORT_FEC_MODE = "fec"
 PORT_MTU_STATUS = "mtu"
 PORT_DESCRIPTION = "description"
 PORT_OPTICS_TYPE = "type"
@@ -339,7 +340,7 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
 
 # ========================== interface-status logic ==========================
 
-header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC', 'FEC']
 header_stat_sub_intf = ['Sub port interface', 'Speed', 'MTU', 'Vlan', 'Admin', 'Type']
 
 class IntfStatus(object):
@@ -370,7 +371,8 @@ class IntfStatus(object):
                                 appl_db_port_status_get(self.appl_db, key, PORT_OPER_STATUS),
                                 appl_db_port_status_get(self.appl_db, key, PORT_ADMIN_STATUS),
                                 state_db_port_optics_get(self.state_db, key, PORT_OPTICS_TYPE),
-                                appl_db_port_status_get(self.appl_db, key, PORT_PFC_ASYM_STATUS)))
+                                appl_db_port_status_get(self.appl_db, key, PORT_PFC_ASYM_STATUS),
+                                appl_db_port_status_get(self.appl_db, key, PORT_FEC_MODE)))
 
             for po, value in portchannel_speed_dict.iteritems():
                 if po:
