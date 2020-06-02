@@ -10,6 +10,7 @@ import subprocess
 import sys
 import ipaddress
 from pkg_resources import parse_version
+from collections import OrderedDict
 
 import click
 from click_default_group import DefaultGroup
@@ -19,10 +20,9 @@ from tabulate import tabulate
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from portconfig import get_child_ports
 
 import mlnx
-from collections import OrderedDict
-from portconfig import get_child_ports
 
 # Global Variable
 PLATFORM_ROOT_PATH = "/usr/share/sonic/device"
@@ -820,8 +820,7 @@ def alias(interfacename):
 @interfaces.group(invoke_without_command=True)
 @click.pass_context
 def breakout(ctx):
-    """Show interface breakout"""
-
+    """Show Breakout Mode information by interfaces"""
     # Reading data from Redis configDb
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -857,9 +856,9 @@ def breakout(ctx):
             platformDict[port_name]["Current Breakout Mode"] = curBrkout_mode
 
             # List all the child ports if present
-            child_portDict = get_child_ports(port_name,curBrkout_mode, platformFile)
+            child_portDict = get_child_ports(port_name, curBrkout_mode, platformFile)
             if not child_portDict:
-                click.echo("Can not find ports from {} file ".format(PLATFORM_JSON))
+                click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
                 raise click.Abort()
 
             child_ports = natsorted(child_portDict.keys())
@@ -884,7 +883,7 @@ def breakout(ctx):
 @click.argument('interface', metavar='<interface_name>', required=False, type=str)
 @click.pass_context
 def currrent_mode(ctx, interface):
-    """Show interface breakout current-mode"""
+    """Show current Breakout mode Info by interface(s)"""
 
     config_db = ctx.obj['db']
 

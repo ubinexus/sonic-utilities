@@ -2205,7 +2205,7 @@ Subsequent pages explain each of these commands in detail.
     -?, -h, --help  Show this message and exit.
 
   Commands:
-  breakout     Show interface breakout
+  breakout     Show Breakout Mode information by interfaces
   counters     Show interface counters
   description  Show interface status, protocol and...
   naming_mode  Show interface naming_mode status
@@ -2222,8 +2222,8 @@ This show command displays the port capability for all interfaces i.e. index, la
 - Usage:
   ```
   show interfaces breakout
-  show interfaces breakout cuurent-mode
-  show interfaces breakout cuurent-mode <interface_name>
+  show interfaces breakout current-mode
+  show interfaces breakout current-mode <interface_name>
   ```
 
 - Example:
@@ -2232,10 +2232,12 @@ This show command displays the port capability for all interfaces i.e. index, la
   {
       "Ethernet0": {
           "index": "1,1,1,1",
-          "default_brkout_mode": "4x25G[10G]",
-          "lanes": "65,66,67,68",
-          "brkout_mode": "4x25G[10G]",
+          "default_brkout_mode": "1x100G[40G]",
+          "child ports": "Ethernet0",
+          "child port speed": "100G",
           "breakout_modes": "1x100G[40G],2x50G,4x25G[10G]",
+          "Current Breakout Mode": "1x100G[40G]",
+          "lanes": "65,66,67,68",
           "alias_at_lanes": "Eth1/1, Eth1/2, Eth1/3, Eth1/4"
       },... continue
   }
