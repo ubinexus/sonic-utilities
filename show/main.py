@@ -2844,13 +2844,13 @@ app_db = SonicV2Connector(host='127.0.0.1')
 app_db.connect(app_db.APPL_DB) 
 if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
 
-    @cli.group(cls=AliasedGroup, default_if_no_args=False)
+    @cli.group(cls=AliasedGroup)
     def gearbox():
         """Show gearbox info"""
         pass
 
     # 'phys' subcommand ("show gearbox phys")
-    @gearbox.group(cls=AliasedGroup, default_if_no_args=False)
+    @gearbox.group(cls=AliasedGroup)
     def phys():
         """Show external PHY information"""
         pass
@@ -2864,7 +2864,7 @@ if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
         return
 
     # 'interfaces' subcommand ("show gearbox interfaces")
-    @gearbox.group(cls=AliasedGroup, default_if_no_args=False)
+    @gearbox.group(cls=AliasedGroup)
     def interfaces():
         """Show gearbox interfaces information"""
         pass
