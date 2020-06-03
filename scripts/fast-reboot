@@ -168,10 +168,14 @@ function recover_issu_bank_file_instruction()
 function check_issu_bank_file()
 {
     ISSU_BANK_FILE=/host/warmboot/issu_bank.txt
+    MLNX_ISSU_BANK_BROKEN=102
 
     if [[ ! -s "$ISSU_BANK_FILE" ]]; then
         error "(${ISSU_BANK_FILE}) does NOT exist or empty ..."
         recover_issu_bank_file_instruction
+        if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN}"
+        fi
         return
     fi
 
@@ -182,6 +186,9 @@ function check_issu_bank_file()
         [[ "$issu_file_content" != "0" && "$issu_file_content" != "1" ]]; then
         error "(${ISSU_BANK_FILE}) is broken ..."
         recover_issu_bank_file_instruction
+        if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN}"
+        fi
     fi
 }
 
@@ -512,8 +519,10 @@ systemctl stop swss
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     initialize_pre_shutdown
 
+    BEFORE_PRE_SHUTDOWN=true
+
     if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-        check_issu_bank_file
+        check_issu_bank_file "$BEFORE_PRE_SHUTDOWN"
     fi
 
     request_pre_shutdown
