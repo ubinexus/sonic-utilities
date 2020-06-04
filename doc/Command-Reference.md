@@ -2761,7 +2761,7 @@ This command is used for administratively bringing up the Physical interface or 
   admin@sonic:~$ sudo config interface Ethernet63 startup
   ```
 
-  shutdown multiple interfaces
+  startup multiple interfaces
   ```
   admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
