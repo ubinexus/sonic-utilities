@@ -28,7 +28,6 @@ PORT_TABLE_ETHERNET_PREFIX = "PORT_TABLE:{}"
 
 PHY_NAME = "name"
 PHY_ID = "phy_id"
-PHY_OID = "phy_oid"
 PHY_FIRMWARE_MAJOR_VERSION = "firmware_major_version"
 PHY_LINE_LANES = "line_lanes"
 PHY_SYSTEM_LANES = "system_lanes"
@@ -114,7 +113,6 @@ class PhyStatus(object):
                 continue
             list_items = key.split(':')
             phy_id = list_items[2]
-            phy_oid = get_appl_key_attr(self.appl_db, GEARBOX_TABLE_PHY_PREFIX.format(phy_id), PHY_OID)
             data_row = (
                 phy_id,
                 get_appl_key_attr(self.appl_db, GEARBOX_TABLE_PHY_PREFIX.format(phy_id), PHY_NAME),
