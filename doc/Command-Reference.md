@@ -2300,7 +2300,7 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
   show interfaces counters [-a|--printall] [-p|--period <period>]
   show interfaces counters errors
   show interfaces counters rates 
-  show interfaces counters rif [-p|--period <period>] <interface_name>
+  show interfaces counters rif [-p|--period <period>] [-i <interface_name>]
   ```
 
 - Example:
@@ -2315,6 +2315,13 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet16        U   16,679,692,972   13.83 MB/s      0.27%         0    17,605         0   18,206,586,265   17.51 MB/s      0.34%         0         0         0
    Ethernet20        U   47,983,339,172   35.89 MB/s      0.70%         0     2,174         0   58,986,354,359   51.83 MB/s      1.01%         0         0         0
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
+
+  admin@sonic:~$ show interfaces counters -i Ethernet4,Ethernet12-16
+        IFACE    STATE            RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR            TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+  -----------  -------  ---------------  -----------  ---------  --------  --------  --------  ---------------  -----------  ---------  --------  --------  --------
+    Ethernet4        U  453,838,006,636  632.97 MB/s     12.36%         0     1,636         0  388,299,875,056  529.34 MB/s     10.34%         0         0         0
+   Ethernet12        U  458,052,204,029  636.84 MB/s     12.44%         0    17,614         0  388,341,776,615  527.37 MB/s     10.30%         0         0         0
+   Ethernet16        U   16,679,692,972   13.83 MB/s      0.27%         0    17,605         0   18,206,586,265   17.51 MB/s      0.34%         0         0         0
   ```
 
 The "errors" subcommand is used to display the interface errors. 
@@ -2516,6 +2523,18 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   Ethernet0   101,102      40G   9100   fortyGigE1/1/1      up       up
   ```
 
+- Example (to only display the status for range of interfaces):
+  ```
+  admin@sonic:~$ show interfaces status Ethernet8,Ethernet168-180
+  Interface              Lanes    Speed    MTU            Alias     Oper    Admin    Type   Asym PFC
+  -----------  -----------------  -------  -----  ---------------  ------  -------  ------  ----------
+    Ethernet8      49,50,51,52     100G    9100    hundredGigE3     down     down     N/A         N/A
+  Ethernet168       9,10,11,12     100G    9100    hundredGigE43    down     down     N/A         N/A
+  Ethernet172      13,14,15,16     100G    9100    hundredGigE44    down     down     N/A         N/A
+  Ethernet176  109,110,111,112     100G    9100    hundredGigE45    down     down     N/A         N/A
+  Ethernet180  105,106,107,108     100G    9100    hundredGigE46    down     down     N/A         N/A
+  ```
+
 **show interfaces transceiver**
 
 This command is already explained [here](#Transceivers)
@@ -2709,6 +2728,11 @@ This command is used to administratively shut down either the Physical interface
   admin@sonic:~$ sudo config interface Ethernet63 shutdown
   ```
 
+  shutdown multiple interfaces
+  ```
+  admin@sonic:~$ sudo config interface shutdown Ethernet8,Ethernet16-20,Ethernet32
+  ```
+
 **config interface startup <interface_name> (Versions >= 201904)**
 
 **config interface <interface_name> startup (Versions <= 201811)**
@@ -2735,6 +2759,11 @@ This command is used for administratively bringing up the Physical interface or 
   *Versions <= 201811*
   ```
   admin@sonic:~$ sudo config interface Ethernet63 startup
+  ```
+
+  shutdown multiple interfaces
+  ```
+  admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
 
 **config interface speed <interface_name> (Versions >= 201904)**
@@ -3997,11 +4026,16 @@ This command displays a list of NTP peers known to the server as well as a summa
 - Example:
   ```
   admin@sonic:~$ show ntp
+  synchronised to NTP server (204.2.134.164) at stratum 3
+     time correct to within 326797 ms
+     polling server every 1024 s
+
        remote           refid      st t when poll reach   delay   offset  jitter
   ==============================================================================
    23.92.29.245    .XFAC.          16 u    - 1024    0    0.000    0.000   0.000
   *204.2.134.164   46.233.231.73    2 u  916 1024  377    3.079    0.394   0.128
   ```
+
 
 ### NTP Config Commands
 
