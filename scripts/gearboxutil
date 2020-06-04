@@ -26,14 +26,10 @@ GEARBOX_TABLE_PORT_PREFIX = "_GEARBOX_TABLE:phy:{}:ports:{}"
 
 PORT_TABLE_ETHERNET_PREFIX = "PORT_TABLE:{}"
 
-ASIC_STATE_TABLE_PORT_PREFIX = "ASIC_STATE:SAI_OBJECT_TYPE_PORT:oid:{}"
-ASIC_STATE_TABLE_SWITCH_PREFIX = "ASIC_STATE:SAI_OBJECT_TYPE_SWITCH:oid:{}"
-ASIC_GEARBOX_TABLE_SWITCH_PREFIX = "ASIC_GEARBOX|MISC_SAI_SWITCH_ATTR:{}"
-
 PHY_NAME = "name"
 PHY_ID = "phy_id"
 PHY_OID = "phy_oid"
-PHY_FIRMWARE_MAJOR_VERSION = "SAI_SWITCH_ATTR_FIRMWARE_MAJOR_VERSION"
+PHY_FIRMWARE_MAJOR_VERSION = "firmware_major_version"
 PHY_LINE_LANES = "line_lanes"
 PHY_SYSTEM_LANES = "system_lanes"
 
@@ -71,27 +67,6 @@ def get_appl_key_attr(db, key, attr, lane_count=1):
 
     return val
 
-def get_asic2_key_attr(asic_db, phy_oid, attr):
-    """
-    Get the phy attribute
-    """
-
-    full_table_id = ASIC_GEARBOX_TABLE_SWITCH_PREFIX.format(phy_oid)
-    # Replace needed for mock_table unit testing
-    full_table_id = full_table_id.replace("ATTR:0", "ATTR:oid:0")
-    val = asic_db.get(asic_db.ASIC_DB2, full_table_id, attr)
-    if val is None:
-        return "N/A"
-
-    return val
-
-def db_connect_asic2():
-    asic_db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    if asic_db is None:
-        return None
-    asic_db.connect(asic_db.ASIC_DB2)
-    return asic_db
-
 def db_connect_appl():
     appl_db = swsssdk.SonicV2Connector(host='127.0.0.1')
     if appl_db is None:
@@ -117,15 +92,9 @@ def appl_db_keys_get(appl_db):
 
 def appl_db_interface_keys_get(appl_db):
     """
-    Get ASIC_DB Keys
+    Get APPL_DB Keys
     """
     return appl_db.keys(appl_db.APPL_DB, GEARBOX_TABLE_INTERFACE_PREFIX.format("*"))
-
-def asic2_db_keys_get(asic_db):
-    """
-    Get ASIC_DB Keys
-    """
-    return asic_db.keys(asic_db.ASIC_DB2, ASIC_GEARBOX_TABLE_SWITCH_PREFIX.format("*"))
 
 # ========================== phy-status logic ==========================
 
@@ -133,7 +102,7 @@ phy_header_status = ['PHY Id', 'Name', 'Firmware']
 
 class PhyStatus(object):
 
-    def display_phy_status(self, appl_db_keys, asic_db_keys):
+    def display_phy_status(self, appl_db_keys):
         """
         Generate phy status output
         """
@@ -149,8 +118,7 @@ class PhyStatus(object):
             data_row = (
                 phy_id,
                 get_appl_key_attr(self.appl_db, GEARBOX_TABLE_PHY_PREFIX.format(phy_id), PHY_NAME),
-                get_asic2_key_attr(self.asic_db, phy_oid, PHY_FIRMWARE_MAJOR_VERSION))
-
+                get_appl_key_attr(self.appl_db, GEARBOX_TABLE_PHY_PREFIX.format(phy_id), PHY_FIRMWARE_MAJOR_VERSION))
             table.append(data_row)
 
         # Sorting and tabulating the result table.
@@ -159,11 +127,7 @@ class PhyStatus(object):
 
     def __init__(self):
 
-        self.asic_db = db_connect_asic2()
         self.appl_db = db_connect_appl()
-
-        if self.asic_db is None:
-            return
         if self.appl_db is None:
             return
 
@@ -171,11 +135,7 @@ class PhyStatus(object):
         if appl_db_keys is None:
             return
 
-        asic_db_keys = asic2_db_keys_get(self.asic_db)
-        if asic_db_keys is None:
-            return
-
-        self.display_phy_status(appl_db_keys, asic_db_keys)
+        self.display_phy_status(appl_db_keys)
 
 # ========================== interface-status logic ==========================
 
@@ -183,7 +143,7 @@ intf_header_status = ['PHY Id', 'Interface', 'MAC Lanes', 'MAC Lane Speed', 'PHY
 
 class InterfaceStatus(object):
 
-    def display_intf_status(self, appl_db_keys, asic_db_keys):
+    def display_intf_status(self, appl_db_keys):
         """
         Generate phy status output
         """
@@ -225,11 +185,7 @@ class InterfaceStatus(object):
 
     def __init__(self):
 
-        self.asic_db = db_connect_asic2()
         self.appl_db = db_connect_appl()
-
-        if self.asic_db is None:
-            return
         if self.appl_db is None:
             return
 
@@ -237,11 +193,7 @@ class InterfaceStatus(object):
         if appl_db_keys is None:
             return
 
-        asic_db_keys = asic2_db_keys_get(self.asic_db)
-        if asic_db_keys is None:
-            return
-
-        self.display_intf_status(appl_db_keys, asic_db_keys)
+        self.display_intf_status(appl_db_keys)
 
 def main(args):
     """

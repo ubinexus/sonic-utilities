@@ -29,12 +29,14 @@
     "_GEARBOX_TABLE:phy:1": {
         "name": "sesto-1",
         "phy_id": "1",
-        "phy_oid": "0x21000000000002"
+        "phy_oid": "0x21000000000002",
+        "firmware_major_version": "v0.2"
     },
     "_GEARBOX_TABLE:phy:2": {
         "name": "sesto-2",
         "phy_id": "2",
-        "phy_oid": "0x21000000000003"
+        "phy_oid": "0x21000000000003",
+        "firmware_major_version": "v0.3"
     },
     "_GEARBOX_TABLE:interface:200": {
         "name": "Ethernet200",
