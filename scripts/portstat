@@ -139,10 +139,8 @@ class Portstat(object):
         for key, data in cnstat_dict.iteritems():
             if key == 'time':
                 continue
-
             if intf_list and key not in intf_list:
                 continue
-
             if print_all:
                 header = header_all
                 table.append((key, self.get_port_state(key),
@@ -192,7 +190,6 @@ class Portstat(object):
 
             if intf_list and key not in intf_list:
                 continue
-
             port_speed = self.get_port_speed(key)
             if print_all:
                 header = header_all
@@ -328,7 +325,6 @@ Examples:
     wait_time_in_seconds = args.period
     print_all = args.all
     intf_fs = args.interface
-
 
     if tag_name is not None:
         cnstat_file = uid + "-" + tag_name
