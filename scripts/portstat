@@ -325,7 +325,6 @@ Examples:
     wait_time_in_seconds = args.period
     print_all = args.all
     intf_fs = args.interface
-
     if tag_name is not None:
         cnstat_file = uid + "-" + tag_name
     else:
