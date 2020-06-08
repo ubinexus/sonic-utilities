@@ -15,6 +15,7 @@ import ipaddress
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
 from config_mgmt import ConfigMgmtDPB
+from utilities_common.intf_filter import parse_interface_in_filter
 
 import aaa
 import mlnx
@@ -1057,14 +1058,19 @@ def load_minigraph(no_service_restart):
                 run_command('{} pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
             run_command("{} config qos reload".format(ns_cmd_prefix), display_cmd=True)
 
-        # Write latest db version string into db
-        db_migrator='/usr/bin/db_migrator.py'
-        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-            run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
-
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-
+    
+    # Write latest db version string into db
+    db_migrator='/usr/bin/db_migrator.py'
+    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+        for namespace in namespace_list:
+            if namespace is DEFAULT_NAMESPACE:
+                cfggen_namespace_option = " "
+            else:
+                cfggen_namespace_option = " -n {}".format(namespace)
+            run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+     
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
@@ -1987,21 +1993,26 @@ def startup(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+    intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
+         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     log_info("'interface startup {}' executing...".format(interface_name))
+    port_dict = config_db.get_table('PORT')
+    for port_name in port_dict.keys():
+        if port_name in intf_fs:
+            config_db.mod_entry("PORT", port_name, {"admin_status": "up"})
 
-    if interface_name.startswith("Ethernet"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-        else:
-            config_db.mod_entry("PORT", interface_name, {"admin_status": "up"})
-    elif interface_name.startswith("PortChannel"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-        else:
-            config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "up"})
+    portchannel_list = config_db.get_table("PORTCHANNEL")
+    for po_name in portchannel_list.keys():
+        if po_name in intf_fs:
+            config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
+
+    subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
+    for sp_name in subport_list.keys():
+        if sp_name in intf_fs:
+            config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "up"})
+
 #
 # 'shutdown' subcommand
 #
@@ -2018,19 +2029,24 @@ def shutdown(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    if interface_name.startswith("Ethernet"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "down"})
-        else:
-            config_db.mod_entry("PORT", interface_name, {"admin_status": "down"})
-    elif interface_name.startswith("PortChannel"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "down"})
-        else:
-            config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "down"})
+    port_dict = config_db.get_table('PORT')
+    for port_name in port_dict.keys():
+        if port_name in intf_fs:
+            config_db.mod_entry("PORT", port_name, {"admin_status": "down"})
+
+    portchannel_list = config_db.get_table("PORTCHANNEL")
+    for po_name in portchannel_list.keys():
+        if po_name in intf_fs:
+            config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
+
+    subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
+    for sp_name in subport_list.keys():
+        if sp_name in intf_fs:
+            config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "down"})
 
 #
 # 'speed' subcommand
@@ -2218,6 +2234,25 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
             ctx.fail("'interface_name' is None!")
 
     command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    if verbose:
+        command += " -vv"
+    run_command(command, display_cmd=verbose)
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_fec', metavar='<interface_fec>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def fec(ctx, interface_name, interface_fec, verbose):
+    """Set interface fec"""
+    if interface_fec not in ["rs", "fc", "none"]:
+        ctx.fail("'fec not in ['rs', 'fc', 'none']!")
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    command = "portconfig -p {} -f {}".format(interface_name, interface_fec)
     if verbose:
         command += " -vv"
     run_command(command, display_cmd=verbose)

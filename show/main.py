@@ -947,9 +947,10 @@ def status(interfacename, verbose):
 @interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-p', '--period')
+@click.option('-i', '--interface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, printall):
+def counters(ctx, verbose, period, interface, printall):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
@@ -959,6 +960,8 @@ def counters(ctx, verbose, period, printall):
             cmd += " -a"
         if period is not None:
             cmd += " -p {}".format(period)
+        if interface is not None:
+            cmd += " -i {}".format(interface)
 
         run_command(cmd, display_cmd=verbose)
 
@@ -1629,13 +1632,13 @@ def lldp():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def neighbors(interfacename, verbose):
     """Show LLDP neighbors"""
-    cmd = "sudo lldpctl"
+    cmd = "sudo lldpshow -d"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-        cmd += " {}".format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1725,6 +1728,23 @@ def ssdhealth(device, verbose, vendor):
     options += " -e" if vendor else ""
     run_command(cmd + options, display_cmd=verbose)
 
+@platform.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
+def pcieinfo(check, verbose):
+    """Show Device PCIe Info"""
+    cmd = "pcieutil pcie_show"
+    if check:
+        cmd = "pcieutil pcie_check"
+    run_command(cmd, display_cmd=verbose)
+
+# 'firmware' subcommand ("show platform firmware")
+@platform.command()
+def firmware():
+    """Show firmware status information"""
+    cmd = "fwutil show status"
+    run_command(cmd)
+
 # 'fan' subcommand ("show platform fan")
 @platform.command()
 def fan():
@@ -1738,14 +1758,7 @@ def temperature():
     """Show device temperature information"""
     cmd = 'tempershow'
     run_command(cmd)
-
-# 'firmware' subcommand ("show platform firmware")
-@platform.command()
-def firmware():
-    """Show firmware status information"""
-    cmd = "fwutil show status"
-    run_command(cmd)
-
+    
 #
 # 'logging' command ("show logging")
 #
@@ -2978,6 +2991,38 @@ def brief():
         return table
 
     click.echo(tabulate(tablelize(vnet_keys, vnet_data), header))
+
+@vnet.command()
+@click.argument('vnet_alias', required=False)
+def alias(vnet_alias):
+    """Show vnet alias to name information"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Alias', 'Name']
+
+    # Fetching data from config_db for VNET
+    vnet_data = config_db.get_table('VNET')
+    vnet_keys = natsorted(vnet_data.keys())
+
+    def tablelize(vnet_keys, vnet_data, vnet_alias):
+        table = []
+        for k in vnet_keys:
+            r = []
+            if vnet_alias is not None:
+                if vnet_data[k].get('guid') == vnet_alias:
+                    r.append(vnet_data[k].get('guid'))
+                    r.append(k)
+                    table.append(r)
+                    return table
+                else:
+                    continue
+
+            r.append(vnet_data[k].get('guid'))
+            r.append(k)
+            table.append(r)
+        return table
+
+    click.echo(tabulate(tablelize(vnet_keys, vnet_data, vnet_alias), header))
 
 @vnet.command()
 def interfaces():
