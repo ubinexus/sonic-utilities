@@ -868,7 +868,7 @@ def breakout(ctx):
             for port in child_ports:
                 speed = config_db.get_entry('PORT', port).get('speed')
                 if speed is not None:
-                    speeds.append(str(int(speed)/1000)+'G')
+                    speeds.append(str(int(speed)//1000)+'G')
                     children.append(port)
 
             platformDict[port_name]["child ports"] = ",".join(children)
