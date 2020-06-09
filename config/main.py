@@ -2578,14 +2578,16 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def fec(ctx, interface_name, interface_fec, verbose):
     """Set interface fec"""
+    config_db = get_interface_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+
     if interface_fec not in ["rs", "fc", "none"]:
         ctx.fail("'fec not in ['rs', 'fc', 'none']!")
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -f {}".format(interface_name, interface_fec)
+    command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, namespace)
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
