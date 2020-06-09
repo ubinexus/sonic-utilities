@@ -54,7 +54,6 @@ def get_appl_key_attr(db, key, attr, lane_count=1):
         return "N/A"
 
     if "speed" in attr:
-
         if val == "0":
             return "N/A"
 
@@ -185,7 +184,6 @@ class InterfaceStatus(object):
         print tabulate(sorted_table, intf_header_status, tablefmt="simple", stralign='right')
 
     def __init__(self):
-
         self.appl_db = db_connect_appl()
         if self.appl_db is None:
             return
