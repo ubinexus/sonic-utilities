@@ -1504,12 +1504,14 @@ def interfaces():
 
         if netifaces.AF_INET6 in ipaddresses:
             ifaddresses = []
+            neighbor_name = 'N/A'
+            neighbor_ip = 'N/A'
             for ipaddr in ipaddresses[netifaces.AF_INET6]:
-                neighbor_name = 'N/A'
-                neighbor_ip = 'N/A'
                 local_ip = str(ipaddr['addr'])
                 netmask = ipaddr['netmask'].split('/', 1)[-1]
                 ifaddresses.append(["", local_ip + "/" + str(netmask)])
+                if neighbor_ip != 'N/A' and neighbor_name != 'N/A':
+                    continue
                 try:
                     neighbor_name = bgp_peer[local_ip][0]
                     neighbor_ip = bgp_peer[local_ip][1]
