@@ -293,11 +293,42 @@ def validate_namespace(namespace):
     else:
         return False
 
-def interface_alias_to_name(interface_alias):
+# Return the namespace where an interface belongs
+def get_intf_namespace(port):
+    """If it is a non multi-asic device, or if the interface is management interface
+       return '' ( empty string ) which maps to current namespace ( in case of config commands
+       it is linux host )
+    """
+    if is_multi_asic() == False or port == 'eth0':
+        return DEFAULT_NAMESPACE
+
+    # If it is PortChannel or Vlan interface or Loopback, user needs to input the namespace.
+    if port.startswith("PortChannel") or port.startswith("Vlan") or port.startswith("Loopback"):
+        return None
+
+    if port.startswith("Ethernet"):
+        if VLAN_SUB_INTERFACE_SEPARATOR in port:
+            intf_name = port.split(VLAN_SUB_INTERFACE_SEPARATOR)[0]
+        else:
+            intf_name = port
+
+    """Currently the CONFIG_DB in each namespace is checked to see if the interface exists
+       This would be changed in future once we have the interface to ASIC mapping stored in global DB.
+       Global DB is the database docker service running in the linux host.
+    """
+    ns_list = get_all_namespaces()
+    namespaces = ns_list['front_ns'] + ns_list['back_ns']
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+        entry = config_db.get_entry('PORT', intf_name)
+        if entry:
+            return namespace
+    return None
+
+def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
     port_dict = config_db.get_table('PORT')
 
     vlan_id = ""
@@ -322,17 +353,15 @@ def interface_alias_to_name(interface_alias):
     return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
 
-def interface_name_is_valid(interface_name):
+def interface_name_is_valid(config_db, interface_name):
     """Check if the interface name is valid
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
     port_dict = config_db.get_table('PORT')
     port_channel_dict = config_db.get_table('PORTCHANNEL')
     sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
 
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
 
     if interface_name is not None:
         if not port_dict:
@@ -351,11 +380,9 @@ def interface_name_is_valid(interface_name):
                     return True
     return False
 
-def interface_name_to_alias(interface_name):
+def interface_name_to_alias(config_db, interface_name):
     """Return alias interface name if default name is given as argument
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
     port_dict = config_db.get_table('PORT')
 
     if interface_name is not None:
@@ -430,8 +457,18 @@ def set_interface_naming_mode(mode):
     user = os.getenv('SUDO_USER')
     bashrc_ifacemode_line = "export SONIC_CLI_IFACE_MODE={}".format(mode)
 
+    """In case of multi-asic, we can check for the alias mode support in any of
+       the namespaces as this setting of alias mode should be identical everywhere.
+       Here by default we set the namespaces to be a list just having '' which
+       represents the linux host. In case of multi-asic, we take the first namespace
+       created for the front facing ASIC.
+    """
+    namespaces = [DEFAULT_NAMESPACE]
+    if is_multi_asic:
+        namespaces = get_all_namespaces()['front_ns']
+
     # Ensure all interfaces have an 'alias' key in PORT dict
-    config_db = ConfigDBConnector()
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespaces[0])
     config_db.connect()
     port_dict = config_db.get_table('PORT')
 
@@ -1207,11 +1244,22 @@ def hostname(new_hostname):
 # 'portchannel' group ('config portchannel ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup)
+@click.option('-n', '--namespace', help='Namespace name', default=None)
 @click.pass_context
-def portchannel(ctx):
-    config_db = ConfigDBConnector()
+def portchannel(ctx, namespace):
+    #If multi ASIC platform, check if the namespace entered by user is valid
+    if is_multi_asic(): 
+        if namespace is None:
+            ctx.fail("namespace [-n] option required for portchannel/member (add/del)")
+        if not validate_namespace(str(namespace)):
+            ctx.fail("Invalid Namespace entered {}".format(namespace))
+    else:
+        namespace=DEFAULT_NAMESPACE
+
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
-    ctx.obj = {'db': config_db}
+    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
+    pass
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1251,6 +1299,14 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     db = ctx.obj['db']
     if clicommon.is_port_mirror_dst_port(db, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
+    if is_multi_asic():
+        # Get the namespace based on the member interface given by user.
+        intf_ns = get_intf_namespace(port_name)
+        if intf_ns is None:
+            ctx.fail("member interface {} is invalid".format(port_name))
+        elif intf_ns != ctx.obj['namespace']:
+            ctx.fail("member interface {} doesn't exist in namespace {}".format(port_name, ctx.obj['namespace']))
+
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1261,6 +1317,14 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
+    if is_multi_asic():
+        # Get the namespace based on the member interface given by user.
+        intf_ns = get_intf_namespace(port_name)
+        if intf_ns is None:
+            ctx.fail("member interface {} is invalid".format(port_name))
+        elif intf_ns != ctx.obj['namespace']:
+            ctx.fail("member interface {} doesn't exist in namespace {}".format(port_name, ctx.obj['namespace']))
+
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
     db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
 
@@ -1695,6 +1759,163 @@ def warm_restart_bgp_eoiu(ctx, enable):
     db = ctx.obj['db']
     db.mod_entry('WARM_RESTART', 'bgp', {'bgp_eoiu': enable})
 
+#
+# 'vlan' group ('config vlan ...')
+#
+@config.group(cls=AbbreviationGroup)
+@click.pass_context
+@click.option('-n', '--namespace', help='Namespace name', default=None)
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def vlan(ctx, redis_unix_socket_path, namespace):
+    """VLAN-related configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+
+    #If multi ASIC platform, check if the namespace entered by user is valid
+    if is_multi_asic(): 
+        if namespace is None:
+            ctx.fail("namespace [-n] option required for vlan/member (add/del)")
+        if not validate_namespace(str(namespace)):
+            ctx.fail("Invalid Namespace entered {}".format(namespace))
+    else:
+        namespace=DEFAULT_NAMESPACE
+
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace), **kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
+    pass
+
+@vlan.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def add_vlan(ctx, vid):
+    if vid >= 1 and vid <= 4094:
+        db = ctx.obj['db']
+        vlan = 'Vlan{}'.format(vid)
+        if len(db.get_entry('VLAN', vlan)) != 0:
+            ctx.fail("{} already exists".format(vlan))
+        db.set_entry('VLAN', vlan, {'vlanid': vid})
+    else :
+        ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
+
+@vlan.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def del_vlan(ctx, vid):
+    """Delete VLAN"""
+    log.log_info("'vlan del {}' executing...".format(vid))
+    db = ctx.obj['db']
+    keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
+    for k in keys:
+        db.set_entry('VLAN_MEMBER', k, None)
+    db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
+
+
+#
+# 'member' group ('config vlan member ...')
+#
+@vlan.group(cls=AbbreviationGroup, name='member')
+@click.pass_context
+def vlan_member(ctx):
+    pass
+
+
+@vlan_member.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.option('-u', '--untagged', is_flag=True)
+@click.pass_context
+def add_vlan_member(ctx, vid, interface_name, untagged):
+    """Add VLAN member"""
+    log.log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
+    if is_multi_asic():
+        # Get the namespace based on the member interface given by user.
+        intf_ns = get_intf_namespace(interface_name)
+        if intf_ns is None:
+            ctx.fail("member interface {} is invalid".format(interface_name))
+        elif intf_ns != ctx.obj['namespace']:
+            ctx.fail("member interface {} doesn't exist in namespace {}".format(interface_name, ctx.obj['namespace']))
+
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    interface_table = db.get_table('INTERFACE')
+
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    if interface_is_mirror_dst_port(db, interface_name):
+        ctx.fail("{} is configured as mirror destination port".format(interface_name))
+
+    members = vlan.get('members', [])
+    if interface_name in members:
+        if get_interface_naming_mode() == "alias":
+            interface_name = interface_name_to_alias(db, interface_name)
+            if interface_name is None:
+                ctx.fail("'interface_name' is None!")
+            ctx.fail("{} is already a member of {}".format(interface_name,
+                                                        vlan_name))
+        else:
+            ctx.fail("{} is already a member of {}".format(interface_name,
+                                                        vlan_name))
+    for entry in interface_table:
+        if (interface_name == entry[0]):
+            ctx.fail("{} is a L3 interface!".format(interface_name))
+
+    members.append(interface_name)
+    vlan['members'] = members
+    db.set_entry('VLAN', vlan_name, vlan)
+    db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), {'tagging_mode': "untagged" if untagged else "tagged" })
+
+
+@vlan_member.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def del_vlan_member(ctx, vid, interface_name):
+    """Delete VLAN member"""
+    log.log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
+    if is_multi_asic():
+        # Get the namespace based on the member interface given by user.
+        intf_ns = get_intf_namespace(interface_name)
+        if intf_ns is None:
+            ctx.fail("member interface {} is invalid".format(interface_name))
+        elif intf_ns != ctx.obj['namespace']:
+            ctx.fail("member interface {} doesn't exist in namespace {}".format(interface_name, ctx.obj['namespace']))
+
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if len(vlan) == 0:
+        ctx.fail("{} doesn't exist".format(vlan_name))
+    members = vlan.get('members', [])
+    if interface_name not in members:
+        if get_interface_naming_mode() == "alias":
+            interface_name = interface_name_to_alias(db, interface_name)
+            if interface_name is None:
+                ctx.fail("'interface_name' is None!")
+            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
+        else:
+            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
+    members.remove(interface_name)
+    if len(members) == 0:
+        del vlan['members']
+    else:
+        vlan['members'] = members
+    db.set_entry('VLAN', vlan_name, vlan)
+    db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
+
 def mvrf_restart_services():
     """Restart interfaces-config service and NTP service when mvrf is changed"""
     """
@@ -2037,13 +2258,17 @@ def remove_neighbor(neighbor_ip_or_hostname):
 #
 
 @config.group(cls=clicommon.AbbreviationGroup)
+@click.option('-n', '--namespace', help='Namespace name', default=None)
 @click.pass_context
-def interface(ctx):
+def interface(ctx, namespace):
     """Interface-related configuration tasks"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
+    #Check if the namespace entered by user is valid
+    if is_multi_asic():
+        if namespace is not None and not validate_namespace(namespace):
+            ctx.fail("Invalid Namespace entered {}".format(namespace))
+    else:
+        namespace=DEFAULT_NAMESPACE
+    ctx.obj = {'namespace': None if namespace is None else str(namespace)}
 
 #
 # 'startup' subcommand
@@ -2054,15 +2279,23 @@ def interface(ctx):
 @click.pass_context
 def startup(ctx, interface_name):
     """Start up interface"""
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
 
-    config_db = ctx.obj['config_db']
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
-    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
+    if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
          ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     log.log_info("'interface startup {}' executing...".format(interface_name))
@@ -2091,14 +2324,23 @@ def startup(ctx, interface_name):
 def shutdown(ctx, interface_name):
     """Shut down interface"""
     log.log_info("'interface shutdown {}' executing...".format(interface_name))
-    config_db = ctx.obj['config_db']
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
-    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
+    if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     port_dict = config_db.get_table('PORT')
@@ -2127,14 +2369,24 @@ def shutdown(ctx, interface_name):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def speed(ctx, interface_name, interface_speed, verbose):
     """Set interface speed"""
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
     log.log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
-    command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
+    command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, namespace)
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2292,12 +2544,22 @@ def mgmt_ip_restart_services():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, namespace)
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2342,9 +2604,18 @@ def ip(ctx):
 @click.pass_context
 def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
-    config_db = ctx.obj["config_db"]
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2401,9 +2672,18 @@ def add(ctx, interface_name, ip_addr, gw):
 @click.pass_context
 def remove(ctx, interface_name, ip_addr):
     """Remove an IP address from the interface"""
-    config_db = ctx.obj["config_db"]
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2501,9 +2781,18 @@ def vrf(ctx):
 @click.pass_context
 def bind(ctx, interface_name, vrf_name):
     """Bind the interface to VRF"""
-    config_db = ctx.obj["config_db"]
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2519,7 +2808,7 @@ def bind(ctx, interface_name, vrf_name):
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
-    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db = SonicV2Connector(host='127.0.0.1', use_unix_socket_path=True, namespace=namespace)
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
     while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
@@ -2536,9 +2825,18 @@ def bind(ctx, interface_name, vrf_name):
 @click.pass_context
 def unbind(ctx, interface_name):
     """Unbind the interface to VRF"""
-    config_db = ctx.obj["config_db"]
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("interface is None!")
 
@@ -2966,8 +3264,17 @@ def pfc(ctx):
 @click.pass_context
 def asymmetric(ctx, interface_name, status):
     """Set asymmetric PFC configuration."""
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2984,6 +3291,15 @@ def asymmetric(ctx, interface_name, status):
 @click.pass_context
 def priority(ctx, interface_name, priority, status):
     """Set PFC priority configuration."""
+    namespace = ctx.obj['namespace']
+    if  is_multi_asic() and namespace is None:
+        ns = get_intf_namespace(interface_name)
+        if ns is None:
+            ctx.fail("namespace [-n] option required to modify interface {}".format(interface_name))
+        else:
+            namespace = ns
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db.connect()
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
@@ -3382,11 +3698,11 @@ def interface(ctx):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def enable(ctx, ifname):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
 
-    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -3402,11 +3718,11 @@ def enable(ctx, ifname):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def disable(ctx, ifname):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
 
-    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -3424,14 +3740,14 @@ def disable(ctx, ifname):
 @click.argument('rate', metavar='<sample_rate>', required=True, type=int)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
     if not is_valid_sample_rate(rate):
         click.echo('Error: Sample rate must be between 256 and 8388608')
         return
 
-    config_db = ctx.obj['db']
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
     if sess_dict and ifname in sess_dict.keys():
