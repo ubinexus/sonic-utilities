@@ -1284,14 +1284,14 @@ def hostname(new_hostname):
 def portchannel(ctx, namespace):
     # If multi ASIC platform, check if the namespace entered by user is valid
     if sonic_device_util.is_multi_npu():
-        if namespace == DEFAULT_NAMESPACE:
+        if str(namespace) == DEFAULT_NAMESPACE:
             ctx.fail("namespace [-n] option required for portchannel/member (add/del)")
-        if not validate_namespace(namespace):
-            ctx.fail("Invalid Namespace entered {}".format(namespace))
+        if not validate_namespace(str(namespace)):
+            ctx.fail("Invalid Namespace entered {}".format(str(namespace)))
 
-    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
-    ctx.obj = {'db': config_db, 'namespace': namespace}
+    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1799,14 +1799,14 @@ def vlan(ctx, redis_unix_socket_path, namespace):
 
     # If multi ASIC platform, check if the namespace entered by user is valid
     if sonic_device_util.is_multi_npu(): 
-        if namespace == DEFAULT_NAMESPACE:
+        if str(namespace) == DEFAULT_NAMESPACE:
             ctx.fail("namespace [-n] option required for vlan/member (add/del)")
-        if not validate_namespace(namespace):
-            ctx.fail("Invalid Namespace entered {}".format(namespace))
+        if not validate_namespace(str(namespace)):
+            ctx.fail("Invalid Namespace entered {}".format(str(namespace)))
 
-    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **kwargs)
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace), **kwargs)
     config_db.connect(wait_for_init=False)
-    ctx.obj = {'db': config_db, 'namespace': namespace}
+    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
 
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -2296,10 +2296,10 @@ def interface(ctx, namespace):
     """Interface-related configuration tasks"""
     # Check if the namespace entered by user is valid
     if sonic_device_util.is_multi_npu():
-        if namespace != DEFAULT_NAMESPACE and not validate_namespace(namespace):
-            ctx.fail("Invalid Namespace entered {}".format(namespace))
+        if str(namespace) != DEFAULT_NAMESPACE and not validate_namespace(str(namespace)):
+            ctx.fail("Invalid Namespace entered {}".format(str(namespace)))
 
-    ctx.obj = {'namespace': namespace}
+    ctx.obj = {'namespace': str(namespace)}
 
 #
 # 'startup' subcommand
@@ -2401,7 +2401,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
 
     log.log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
-    command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, namespace)
+    command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, ctx.obj['namespace'])
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2566,7 +2566,7 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, namespace)
+    command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, ctx.obj['namespace'])
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2587,7 +2587,7 @@ def fec(ctx, interface_name, interface_fec, verbose):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, namespace)
+    command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, ctx.obj['namespace'])
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2797,7 +2797,7 @@ def bind(ctx, interface_name, vrf_name):
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
-    state_db = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+    state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
     while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
