@@ -2293,7 +2293,7 @@ This command displays basic information about the gearbox phys configured on the
 
 - Usage:
   ```
-  show gearbox phy status
+  show gearbox phys status
   ```
 
 - Example:
