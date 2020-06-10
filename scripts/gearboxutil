@@ -126,7 +126,6 @@ class PhyStatus(object):
         print tabulate(sorted_table, phy_header_status, tablefmt="simple", stralign='right')
 
     def __init__(self):
-
         self.appl_db = db_connect_appl()
         if self.appl_db is None:
             return
