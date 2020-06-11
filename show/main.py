@@ -908,6 +908,23 @@ def presence(interfacename, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+@transceiver.command()
+@click.argument('interfacename', required=False)
+@click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Show interface transceiver (DOM) data")
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def info(interfacename, dump_dom, verbose):
+    """Show interface transceiver information"""
+
+    cmd = "transceivershow info" if not dump_dom else "transceivershow dom"
+
+    if interfacename is not None:
+        if get_interface_mode() == "alias":
+            interfacename = iface_alias_converter.alias_to_name(interfacename)
+
+        cmd += " -p {}".format(interfacename)
+
+    run_command(cmd, display_cmd=verbose)
+
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
