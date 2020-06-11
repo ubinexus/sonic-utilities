@@ -2365,7 +2365,7 @@ def shutdown(ctx, interface_name):
     intf_fs = parse_interface_in_filter(interface_name)
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
--
+
     port_dict = config_db.get_table('PORT')
     for port_name in port_dict.keys():
         if port_name in intf_fs:
