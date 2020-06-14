@@ -52,6 +52,7 @@ setup(
         'sonic-utilities-tests',
         'undebug',
         'utilities_common',
+        'watchdogutil',
     ],
     package_data={
         'show': ['aliases.ini'],
@@ -135,6 +136,7 @@ setup(
             'sonic-clear = clear.main:cli',
             'sonic_installer = sonic_installer.main:cli',
             'undebug = undebug.main:cli',
+            'watchdogutil = watchdogutil.main:cli',
         ]
     },
     # NOTE: sonic-utilities also depends on other packages that are either only
