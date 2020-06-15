@@ -3303,5 +3303,127 @@ def tunnel():
 
     click.echo(tabulate(table, header))
 
+#
+# 'system-health' command ("show system-health")
+#
+@cli.group(cls=AliasedGroup)
+def system_health():
+    """SONiC command line - 'show system-health' command"""
+    return
+
+@system_health.command()
+def summary():
+    """Show system-health summary information"""
+    if os.geteuid():
+        click.echo("Root privileges are required for this operation")
+        return
+    from health_checker.manager import HealthCheckerManager
+    manager = HealthCheckerManager()
+    state, stat = manager.check()
+    if state == HealthCheckerManager.STATE_BOOTING:
+        click.echo("System is currently booting...")
+        return
+    if state == HealthCheckerManager.STATE_RUNNING:
+        from sonic_platform.chassis import Chassis
+        chassis = Chassis()
+        chassis.initizalize_system_led()
+        led = chassis.get_status_led()
+        fault_counter = 0
+        click.echo("System status summary\n---------------------\nSystem status LED  " + led + '\n')
+        for category, elements in stat.items():
+            for element in elements:
+                if elements[element]['status'] != "OK":
+                    fault_counter += 1
+                    if fault_counter == 1:
+                        click.echo(category + "\tFault")
+                    click.echo('\t' + elements[element]['message'])
+            if not fault_counter:
+                click.echo(category + "\tOK")
+            fault_counter = 0
+                
+@system_health.command()
+def detail():
+    """Show system-health detail information"""
+    if os.geteuid():
+        click.echo("Root privileges are required for this operation")
+        return
+    from health_checker.manager import HealthCheckerManager
+    manager = HealthCheckerManager()
+    state, stat = manager.check()
+    if state == HealthCheckerManager.STATE_BOOTING:
+        click.echo("System is currently booting...")
+        return
+    if state == HealthCheckerManager.STATE_RUNNING:
+        #summary output
+        from sonic_platform.chassis import Chassis
+        chassis = Chassis()
+        chassis.initizalize_system_led()
+        led = chassis.get_status_led()
+        fault_counter = 0
+        click.echo("System status summary\n---------------------\nSystem status LED  " + led + '\n')
+        for category, elements in stat.items():
+            for element in elements:
+                if elements[element]['status'] != "OK":
+                    fault_counter += 1
+                    if fault_counter == 1:
+                        click.echo(category + "\tFault")
+                    click.echo('\t' + elements[element]['message'])
+            if not fault_counter:
+                click.echo(category + "\tOK")
+            fault_counter = 0
+        click.echo('\nSystem services and devices monitor list\n----------------------------------------\n')
+        header = ['Name', 'Status', 'Type']
+        table = []
+        for category, elements in stat.items():
+            for element in elements:
+                entry = []
+                entry.append(element)
+                entry.append(elements[element]['status'])
+                entry.append(elements[element]['type'])
+                table.append(entry)
+        click.echo(tabulate(table, header))
+        click.echo('\nSystem services and devices ignore list\n---------------------------------------\n')
+        table = []
+        if manager.config.ignore_services:
+            for element in manager.config.ignore_services:
+                entry = []
+                entry.append(element)
+                entry.append("Ignore")
+                entry.append("Service")
+                table.append(entry)
+        if manager.config.ignore_devices:
+            for element in manager.config.ignore_devices:
+                entry = []
+                entry.append(element)
+                entry.append("Ignore")
+                entry.append("Device")
+                table.append(entry)
+        click.echo(tabulate(table, header))
+
+@system_health.command()
+def monitor_list():
+    """Show system-health monitored services and devices name list"""
+    if os.geteuid():
+        click.echo("Root privileges are required for this operation")
+        return
+    from health_checker.manager import HealthCheckerManager
+    manager = HealthCheckerManager()
+    state, stat = manager.check()
+    if state == HealthCheckerManager.STATE_BOOTING:
+        click.echo("System is currently booting...")
+        return
+    if state == HealthCheckerManager.STATE_RUNNING:
+        click.echo('\nSystem services and devices monitor list\n----------------------------------------\n')
+        header = ['Name', 'Status', 'Type']
+        table = []
+        for category, elements in stat.items():
+            for element in elements:
+                entry = []
+                entry.append(element)
+                entry.append(elements[element]['status'])
+                entry.append(elements[element]['type'])
+                table.append(entry)
+        click.echo(tabulate(table, header))
+
 if __name__ == '__main__':
     cli()
