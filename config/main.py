@@ -117,15 +117,14 @@ except KeyError, TypeError:
 #
 
 # Execute action per NPU instance for multi instance services.
-def execute_asic_instance(inst, event, multi_inst_list, action):
-    for service in multi_inst_list:
-        try:
-            click.echo("Executing {} of service {}@{}...".format(action, service, inst))
-            run_command("systemctl {} {}@{}.service".format(action, service, inst))
-        except SystemExit as e:
-            log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
-            # Set the event object if there is a failure and exception was raised.
-            event.set()
+def execute_asic_instance(inst, event, service, action):
+    try:
+        click.echo("Executing {} of service {}@{}...".format(action, service, inst))
+        run_command("systemctl {} {}@{}.service".format(action, service, inst))
+    except SystemExit as e:
+        log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
+        # Set the event object if there is a failure and exception was raised.
+        event.set()
 
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
@@ -148,26 +147,25 @@ def execute_systemctl(list_of_services, action):
                 raise
 
         if (service + '.service' in generated_multi_instance_services):
-            multi_inst_service_list.append(service)
+            # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
+            if sonic_device_util.is_multi_npu():
+                threads = []
+                # Use this event object to co-ordinate if any threads raised exception
+                e = threading.Event()
 
-    # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
-    if sonic_device_util.is_multi_npu():
-        threads = []
-        # Use this event object to co-ordinate if any threads raised exception
-        e = threading.Event()
-        kwargs = {'multi_inst_list': multi_inst_service_list, 'action': action}
-        for inst in range(num_asic):
-            t = threading.Thread(target=execute_asic_instance, args=(inst, e), kwargs=kwargs)
-            threads.append(t)
-            t.start()
+                kwargs = {'service': service, 'action': action}
+                for inst in range(num_asic):
+                    t = threading.Thread(target=execute_asic_instance, args=(inst, e), kwargs=kwargs)
+                    threads.append(t)
+                    t.start()
 
-        # Wait for all the threads to finish.
-        for inst in range(num_asic):
-            threads[inst].join()
+                # Wait for all the threads to finish.
+                for inst in range(num_asic):
+                    threads[inst].join()
 
-            # Check if any of the threads have raised exception, if so exit the process.
-            if e.is_set():
-              sys.exit(1)
+                    # Check if any of the threads have raised exception, if so exit the process.
+                    if e.is_set():
+                        sys.exit(1)
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
