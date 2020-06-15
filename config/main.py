@@ -135,8 +135,6 @@ def execute_systemctl(list_of_services, action):
         log_error("Failed to get generated services")
         return
 
-    # For Multi NPU, do the "action" on the global services which is single instance first.
-    multi_inst_service_list = []
     for service in list_of_services:
         if (service + '.service' in generated_services_list):
             try:
