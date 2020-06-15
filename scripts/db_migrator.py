@@ -109,41 +109,15 @@ class DBMigrator():
         # Buffer pools defined in version 1_0_2
         buffer_pools = ['ingress_lossless_pool', 'egress_lossless_pool', 'ingress_lossy_pool', 'egress_lossy_pool']
 
+        # SKUs that have single ingress buffer pool
+        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8']
+
         # Old default buffer pool values on Mellanox platform 
         spc1_t0_default_value = [{'ingress_lossless_pool': '4194304'}, {'egress_lossless_pool': '16777152'}, {'ingress_lossy_pool': '7340032'}, {'egress_lossy_pool': '7340032'}]
         spc1_t1_default_value = [{'ingress_lossless_pool': '2097152'}, {'egress_lossless_pool': '16777152'}, {'ingress_lossy_pool': '5242880'}, {'egress_lossy_pool': '5242880'}]
         spc2_t0_default_value = [{'ingress_lossless_pool': '8224768'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '8224768'}, {'egress_lossy_pool': '8224768'}]
         spc2_t1_default_value = [{'ingress_lossless_pool': '12042240'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '12042240'}, {'egress_lossy_pool': '12042240'}]
 
-        # New default buffer pool configuration on Mellanox platform
-        spc1_t0_default_config = {"ingress_lossless_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
-                                  "ingress_lossy_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
-                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
-                                  "egress_lossy_pool": {"size": "5029836", "type": "egress", "mode": "dynamic" } }
-        spc1_t1_default_config = {"ingress_lossless_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
-                                  "ingress_lossy_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
-                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
-                                  "egress_lossy_pool": {"size": "2097100", "type": "egress", "mode": "dynamic" } }
-        spc2_t0_default_config = {"ingress_lossless_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
-                                  "ingress_lossy_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
-                                  "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
-                                  "egress_lossy_pool": {"size": "14983147", "type": "egress", "mode": "dynamic" } }
-        spc2_t1_default_config = {"ingress_lossless_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
-                                  "ingress_lossy_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
-                                  "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
-                                  "egress_lossy_pool": {"size": "9158635", "type": "egress", "mode": "dynamic" } }
-        # 3800 platform has gearbox installed so the buffer pool size is different with other Spectrum2 platform
-        spc2_3800_t0_default_config = {"ingress_lossless_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
-                                  "ingress_lossy_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
-                                  "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
-                                  "egress_lossy_pool": {"size": "28196784", "type": "egress", "mode": "dynamic" } }
-        spc2_3800_t1_default_config = {"ingress_lossless_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
-                                  "ingress_lossy_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
-                                  "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
-                                  "egress_lossy_pool": {"size": "17891280", "type": "egress", "mode": "dynamic" } }
- 
-        # Try to get related info from DB
-        buffer_pool_conf = {}
         device_data = self.configDB.get_table('DEVICE_METADATA')
         if 'localhost' in device_data.keys():
             hwsku = device_data['localhost']['hwsku']
@@ -151,6 +125,54 @@ class DBMigrator():
         else:
             log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
             return False
+
+        if not hwsku in single_ingress_pool_skus:
+            # New default buffer pool configuration on Mellanox platform
+            spc1_t0_default_config = {"ingress_lossless_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
+                                      "ingress_lossy_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
+                                      "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                      "egress_lossy_pool": {"size": "5029836", "type": "egress", "mode": "dynamic" } }
+            spc1_t1_default_config = {"ingress_lossless_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
+                                      "ingress_lossy_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
+                                      "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                      "egress_lossy_pool": {"size": "2097100", "type": "egress", "mode": "dynamic" } }
+
+            spc2_t0_default_config = {"ingress_lossless_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
+                                      "ingress_lossy_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
+                                      "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
+                                      "egress_lossy_pool": {"size": "14983147", "type": "egress", "mode": "dynamic" } }
+            spc2_t1_default_config = {"ingress_lossless_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
+                                      "ingress_lossy_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
+                                      "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
+                                      "egress_lossy_pool": {"size": "9158635", "type": "egress", "mode": "dynamic" } }
+
+            # 3800 platform has gearbox installed so the buffer pool size is different with other Spectrum2 platform
+            spc2_3800_t0_default_config = {"ingress_lossless_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                                           "ingress_lossy_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                                           "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                           "egress_lossy_pool": {"size": "28196784", "type": "egress", "mode": "dynamic" } }
+            spc2_3800_t1_default_config = {"ingress_lossless_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                           "ingress_lossy_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                           "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                           "egress_lossy_pool": {"size": "17891280", "type": "egress", "mode": "dynamic" } }
+
+        else:
+            # new buffer pool configuration for single ingress pool SKUs
+            spc1_t0_default_cofnig = {"ingress_lossless_pool": { "size": "10706880", "type": "ingress", "mode": "dynamic" },
+                                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                                  "egress_lossy_pool": {"size": "10706880", "type": "egress", "mode": "dynamic" } }
+            spc1_t1_default_cofnig = {"ingress_lossless_pool": { "size": "5570496", "type": "ingress", "mode": "dynamic" },
+                                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                                  "egress_lossy_pool": {"size": "5570496", "type": "egress", "mode": "dynamic" } }
+
+            spc2_3800_t0_default_config = {"ingress_lossless_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                                                       "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                                       "egress_lossy_pool": {"size": "28196784", "type": "egress", "mode": "dynamic" } }
+            spc2_3800_t1_default_config = {"ingress_lossless_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                                       "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                                       "egress_lossy_pool": {"size": "17891280", "type": "egress", "mode": "dynamic" } }
+
+        # Try to get related info from DB
         buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
 
         # Get current buffer pool configuration, only migrate configuration which 
@@ -166,8 +188,10 @@ class DBMigrator():
         for buffer_pool in buffer_pools:
             if buffer_pool not in pools_in_db:
                 return True
+            if hwsku in single_ingress_pool_skus and buffer_pool == 'ingress_lossy_pool':
+                continue
             pool_size_in_db_list.append({buffer_pool: buffer_pool_conf[buffer_pool]['size']})
-        
+
         # To check if the buffer pool size is equal to old default values
         new_buffer_pool_conf = None
         if pool_size_in_db_list == spc1_t0_default_value:
@@ -192,7 +216,60 @@ class DBMigrator():
         for pool in buffer_pools:
             self.configDB.set_entry('BUFFER_POOL', pool, new_buffer_pool_conf[pool])
         log_info("Successfully migrate mlnx buffer pool size to the latest.")
+
         return True
+
+    def mlnx_migrate_buffer_profile(self):
+        """
+        This is to migrate BUFFER_PROFILE and BUFFER_PORT_INGRESS_PROFILE_LIST tables
+        to single ingress pool mode for Mellanox SKU.
+        """
+        device_data = self.configDB.get_table('DEVICE_METADATA')
+        if 'localhost' in device_data.keys():
+            hwsku = device_data['localhost']['hwsku']
+            platform = device_data['localhost']['platform']
+        else:
+            log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            return False
+
+        # old buffer profile configurations
+        buffer_profile_old_configure = {"ingress_lossless_profile": {"dynamic_th": "0", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
+                                        "ingress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|ingress_lossy_pool]", "size": "0"},
+                                        "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
+                                        "egress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "4096"},
+                                        "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
+        # old port ingress buffer list configurations
+        buffer_port_ingress_profile_list_old = "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
+
+        # new buffer profile configurations
+        buffer_profile_new_configure = {"ingress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
+                                        "ingress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
+                                        "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
+                                        "egress_lossy_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "9216"},
+                                        "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
+        # new port ingress buffer list configurations
+        buffer_port_ingress_profile_list_new = "[BUFFER_PROFILE|ingress_lossless_profile]"
+
+        buffer_profile_conf = self.configDB.get_table('BUFFER_PROFILE')
+        for name, profile in buffer_profile_old_configure.iteritems():
+            if name in buffer_profile_conf.keys() and profile == buffer_profile_old_configure[name]:
+                continue
+            # return if any default profile isn't in cofiguration
+            return True
+
+        buffer_port_ingress_profile_list_conf = self.configDB.get_table('BUFFER_PORT_INGRESS_PROFILE_LIST')
+        for profile_list, profiles in buffer_port_ingress_profile_list_conf.iteritems():
+            if profiles['profile_list'] == buffer_port_ingress_profile_list_old:
+                continue
+            # return if any port's profile list isn't default
+            return True
+
+        for name, profile in buffer_profile_new_configure.iteritems():
+            self.configDB.set_entry('BUFFER_PROFILE', name, profile)            
+
+        for name in buffer_port_ingress_profile_list_conf.keys():
+            self.configDB.set_entry('BUFFER_PORT_INGRESS_PROFILE_LIST', name,
+                                    {'profile_list': buffer_port_ingress_profile_list_new})
 
     def version_unknown(self):
         """
@@ -234,7 +311,7 @@ class DBMigrator():
         # Check ASIC type, if Mellanox platform then need DB migration
         version_info = sonic_device_util.get_sonic_version_info()
         if version_info['asic_type'] == "mellanox":
-            if self.mlnx_migrate_buffer_pool_size():
+            if self.mlnx_migrate_buffer_pool_size() and self.mlnx_migrate_buffer_profile():
                 self.set_version('version_1_0_3')
         else:
             self.set_version('version_1_0_3')
