@@ -8,11 +8,8 @@
 try:
     import sys
     import os
-    import subprocess
     import click
-    import imp
     import syslog
-    from tabulate import tabulate
     import sonic_platform
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
