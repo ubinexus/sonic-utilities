@@ -81,7 +81,7 @@ def load_platform_watchdog():
 
 # This is our main entrypoint - the main 'watchdogutil' command
 @click.group()
-def cli():
+def watchdogutil():
     """watchdogutil - Command line utility for providing HW watchdog interface"""
 
     if os.geteuid() != 0:
@@ -94,19 +94,31 @@ def cli():
         sys.exit(2)
 
 # 'version' subcommand
-@cli.command()
+@watchdogutil.command()
 def version():
     """Display version info"""
     click.echo("watchdogutil version {0}".format(VERSION))
 
+# 'is_armed' subcommand
+@watchdogutil.command()
+def is_armed():
+    """Check if watchdog is armed"""
+    click.echo(str(platform_watchdog.is_armed()))
+
+# 'get_remaining_time' subcommand
+@watchdogutil.command()
+def get_remaining_time():
+    """Check the remaining watchdog time"""
+    click.echo(str(platform_watchdog.get_remaining_time()))
+
 # 'disarm' subcommand
-@cli.command()
+@watchdogutil.command()
 def disarm():
     """Disarm HW watchdog"""
     click.echo(str(platform_watchdog.disarm()))
 
 # 'arm' subcommand
-@cli.command()
+@watchdogutil.command()
 @click.option('-s', '--seconds', default=180, type=int, help="the default timeout of HW watchdog")
 def arm(seconds):
     """Arm HW watchdog"""
