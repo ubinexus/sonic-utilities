@@ -194,7 +194,7 @@ class DBMigrator():
             return False
 
         # SKUs that have single ingress buffer pool
-        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8', 'ACS-MSN2410']
+        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8']
         if not hwsku in single_ingress_pool_skus:
             if new_version == "version_1_0_4":
                 return True
@@ -288,7 +288,7 @@ class DBMigrator():
             return False
 
         # SKUs that have single ingress buffer pool
-        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8', 'ACS-MSN2410']
+        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8']
 
         if not hwsku in single_ingress_pool_skus:
             return True
@@ -376,7 +376,7 @@ class DBMigrator():
                 self.set_version('version_1_0_3')
         else:
             self.set_version('version_1_0_3')
-        return None
+        return 'version_1_0_3'
 
     def version_1_0_3(self):
         """
@@ -387,13 +387,12 @@ class DBMigrator():
         # Check ASIC type, if Mellanox platform then need DB migration
         version_info = sonic_device_util.get_sonic_version_info()
         if version_info['asic_type'] == "mellanox":
-            if self.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4')
-               and self.mlnx_migrate_buffer_profile():
+            if self.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') and self.mlnx_migrate_buffer_profile():
                 self.set_version('version_1_0_4')
         else:
             self.set_version('version_1_0_4')
 
-        return None
+        return 'version_1_0_4'
 
     def version_1_0_4(self):
         """
