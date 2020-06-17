@@ -28,6 +28,17 @@ PORT_VOLTAGE = "voltage"
 PORT_CUR = "tx{}bias"
 PORT_TX_PWR = "tx{}power"
 PORT_RX_PWR = "rx{}power"
+
+TEMP_TH_HIGH_WARNING = 'temphighalarm'
+TEMP_TH_LOW_WARNING = 'templowwarning'
+VOLT_TH_HIGH_WARNING = 'vcchighwarning'
+VOLT_TH_LOW_WARNING = 'vcclowwarning'
+RX_TH_HIGH_WARNING = 'rxpowerhighwarning'
+RX_TH_LOW_WARNING = 'rxpowerlowwarning'
+TX_TH_HIGH_WARNING = 'txpowerhighwarning'
+TX_TH_LOW_WARNING = 'txpowerlowwarning'
+BIAS_HIGH_WARNING = 'txbiashighwarning'
+BIAS_TH_LOW_WARNING = 'txbiaslowwarning'
 NULL_VAL = "N/A"
 
 
@@ -112,14 +123,27 @@ def state_db_port_dom_get(state_db, port_name, key):
 
     return NULL_VAL if port_dom is None else port_dom
 
+
 def get_num_of_len(appl_db, port_name):
     port_lens = appl_db_port_status_get(appl_db, port_name, PORT_LANES_STATUS)
     return len(port_lens.split(","))
 
+
+def ret_float(value):
+    ret_val = value
+    try:
+        float_val = float(value)
+        ret_val = "%.3f" % round(float_val, 3)
+    except ValueError:
+        pass
+    return ret_val
+
+
 # ========================== transceiver-status logic ==========================
 
 
-header_info = ['Interface', 'Type', 'Number of lanes', 'Vendor Name', 'Model Name', 'Serial Number', 'Nominal bit rate[100Mbs]']
+header_info = ['Interface', 'Type', 'Number of lanes', 'Vendor Name',
+               'Model Name', 'Serial Number', 'Nominal bit rate[100Mbs]']
 
 
 class TransceiverInfo(object):
@@ -185,13 +209,14 @@ header_dom = ['Interface', 'Lane Number', 'Temp[C]', 'Voltage[V]',
 
 class TransceiverDOM(object):
 
-    def __init__(self, port_name):
+    def __init__(self, port_name, threshold):
         """
         Class constructor method
         :param self: 
         :param port_name: string of transceiver
         :return: 
         """
+        self.display_th = threshold
         self.appl_db = db_connect_appl()
         self.state_db = db_connect_state()
         self.config_db = db_connect_configdb()
@@ -206,6 +231,9 @@ class TransceiverDOM(object):
             return
         self.display_transceiver_dom(appl_db_keys, self.front_panel_ports_list)
 
+    def display_data_with_threshold(self, value, low_th, high_th):
+        return ret_float(value) if not self.display_th else '{} [low={}, high={}]'.format(ret_float(value), ret_float(low_th), ret_float(high_th))
+
     def display_transceiver_dom(self, appl_db_keys, front_panel_ports_list):
         """
             Generate transceiver dom output
@@ -216,6 +244,26 @@ class TransceiverDOM(object):
         for i in sorted_appl_db_keys:
             key = re.split(':', i, maxsplit=1)[-1].strip()
             num_of_lane = get_num_of_len(self.appl_db, key)
+            temp_low = state_db_port_dom_get(
+                self.state_db, key, TEMP_TH_LOW_WARNING)
+            temp_high = state_db_port_dom_get(
+                self.state_db, key, TEMP_TH_HIGH_WARNING)
+            curr_low = state_db_port_dom_get(
+                self.state_db, key, BIAS_TH_LOW_WARNING)
+            curr_high = state_db_port_dom_get(
+                self.state_db, key, BIAS_HIGH_WARNING)
+            volt_low = state_db_port_dom_get(
+                self.state_db, key, VOLT_TH_LOW_WARNING)
+            volt_high = state_db_port_dom_get(
+                self.state_db, key, VOLT_TH_HIGH_WARNING)
+            tx_low = state_db_port_dom_get(
+                self.state_db, key, TX_TH_LOW_WARNING)
+            tx_high = state_db_port_dom_get(
+                self.state_db, key, TX_TH_HIGH_WARNING)
+            rx_low = state_db_port_dom_get(
+                self.state_db, key, RX_TH_LOW_WARNING)
+            rx_high = state_db_port_dom_get(
+                self.state_db, key, RX_TH_HIGH_WARNING)
             port_temp = state_db_port_dom_get(self.state_db, key, PORT_TEMP)
             port_voltage = state_db_port_dom_get(
                 self.state_db, key, PORT_VOLTAGE)
@@ -223,14 +271,16 @@ class TransceiverDOM(object):
                 for lane in range(1, num_of_lane+1):
                     port = key if lane == 1 else ""
                     table.append((port, "Lane {}".format(lane),
-                                  port_temp,
-                                  port_voltage,
-                                  state_db_port_dom_get(
-                                      self.state_db, key, PORT_CUR.format(lane)),
-                                  state_db_port_dom_get(
-                                      self.state_db, key, PORT_TX_PWR.format(lane)),
-                                  state_db_port_dom_get(
-                                      self.state_db, key, PORT_RX_PWR.format(lane))
+                                  self.display_data_with_threshold(
+                                      port_temp, temp_low, temp_high),
+                                  self.display_data_with_threshold(
+                                      port_voltage, volt_low, volt_high),
+                                  self.display_data_with_threshold(state_db_port_dom_get(
+                                      self.state_db, key, PORT_CUR.format(lane)), curr_low, curr_high),
+                                  self.display_data_with_threshold(state_db_port_dom_get(
+                                      self.state_db, key, PORT_TX_PWR.format(lane)), tx_low, tx_high),
+                                  self.display_data_with_threshold(state_db_port_dom_get(
+                                      self.state_db, key, PORT_RX_PWR.format(lane)), rx_low, rx_high),
                                   ))
 
         print tabulate(table, header_dom, tablefmt="simple", stralign='left')
@@ -244,8 +294,9 @@ def cli():
 # 'dom' subcommand
 @cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display Digital Optical Monitoring (DOM) data of <port_name> only")
-def dom(port):
-    TransceiverDOM(port)
+@click.option('-t', '--threshold', is_flag=True, help="Display threshold value")
+def dom(port, threshold):
+    TransceiverDOM(port, threshold)
 
 
 # 'info' subcommand

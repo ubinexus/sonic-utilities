@@ -910,12 +910,12 @@ def presence(interfacename, verbose):
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
-@click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Show interface transceiver (DOM) data")
+@click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Show interface transceiver (DOM) info")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def info(interfacename, dump_dom, verbose):
     """Show interface transceiver information"""
 
-    cmd = "transceivershow info" if not dump_dom else "transceivershow dom"
+    cmd = "transceivershow info" if not dump_dom else "transceivershow dom -t"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
