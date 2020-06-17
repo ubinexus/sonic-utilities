@@ -879,7 +879,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Example (Display information stored on the EEPROM of SFP transceiver connected to Ethernet0 horizontally):
   ```
-  root@sonic:/home/admin# show interfaces transceiver info Ethernet0
+  admin@sonic:~$ show interfaces transceiver info Ethernet0
   Interface    Type               Number of lanes  Vendor Name    Model Name          Serial Number    Nominal bit rate[100Mbs]
   -----------  ---------------  -----------------  -------------  ----------------  ---------------  --------------------------
   Ethernet0    QSFP28 or later                  4  ColorChip ltd  C100QSFPCWDM400B         18130506                         255
@@ -888,7 +888,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Example (Display DOM information stored on the EEPROM of SFP transceiver connected to Ethernet0 horizontally):
   ```
-  root@sonic:/home/admin# show interfaces transceiver info --dom Ethernet0
+  admin@sonic:~$ show interfaces transceiver info --dom Ethernet0
   Interface    Lane Number    Temp[C]                         Voltage[V]                       Current[mA]                    Tx Power[dBm]                    Rx Power[dBm]
   -----------  -------------  ------------------------------  -------------------------------  -----------------------------  -------------------------------  --------------------------------
   Ethernet0    Lane 1         37.371 [low=0.000, high=75.000]  3.276 [low=3.134, high=3.465]  44.954 [low=28.392, high=49.000]  -1.018 [low=-9.5001, high=2.400]  -1.018 [low=-9.5001, high=2.400]
