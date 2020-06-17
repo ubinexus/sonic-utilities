@@ -75,6 +75,10 @@ def load_platform_watchdog():
 
     return 0
 
+def get_watchdog_status()
+    status = platform_watchdog.is_armed()
+    remaining_time = platform_watchdog.get_remaining_time()
+    return status, remaining_time
 
 # ==================== CLI commands and groups ====================
 
@@ -99,17 +103,11 @@ def version():
     """Display version info"""
     click.echo("watchdogutil version {0}".format(VERSION))
 
-# 'is_armed' subcommand
+# 'status' subcommand
 @watchdogutil.command()
-def is_armed():
-    """Check if watchdog is armed"""
-    click.echo(str(platform_watchdog.is_armed()))
-
-# 'get_remaining_time' subcommand
-@watchdogutil.command()
-def get_remaining_time():
-    """Check the remaining watchdog time"""
-    click.echo(str(platform_watchdog.get_remaining_time()))
+def status():
+    """Check the watchdog status with remaining_time if it's armed"""
+    click.echo(str(get_watchdog_status()))
 
 # 'disarm' subcommand
 @watchdogutil.command()
