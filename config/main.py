@@ -117,7 +117,7 @@ except KeyError, TypeError:
 #
 
 # Execute action per NPU instance for multi instance services.
-def execute_asic_instance(inst, event, service, action):
+def execute_systemctl_per_asic_instance(inst, event, service, action):
     try:
         click.echo("Executing {} of service {}@{}...".format(action, service, inst))
         run_command("systemctl {} {}@{}.service".format(action, service, inst))
@@ -153,7 +153,7 @@ def execute_systemctl(list_of_services, action):
 
                 kwargs = {'service': service, 'action': action}
                 for inst in range(num_asic):
-                    t = threading.Thread(target=execute_asic_instance, args=(inst, e), kwargs=kwargs)
+                    t = threading.Thread(target=execute_systemctl_per_asic_instance, args=(inst, e), kwargs=kwargs)
                     threads.append(t)
                     t.start()
 
