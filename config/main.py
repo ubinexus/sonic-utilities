@@ -341,6 +341,37 @@ def interface_name_is_valid(config_db, interface_name):
                     return True
     return False
 
+#
+# Use this method to validate unicast IPv4 address
+#
+def is_ip4_addr_valid(addr, display):
+    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
+    try:
+        ip = ipaddress.ip_address(unicode(addr))
+        if (ip.version == 4):
+            if (ip.is_reserved):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 reserved address range.".format(addr))
+                return False
+            elif (ip.is_multicast):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 Multicast address range.".format(addr))
+                return False
+            elif (ip in v4_invalid_list):
+                if display:
+                    click.echo ("{} Not Valid.".format(addr))
+                return False
+            else:
+                return True
+
+        else:
+            if display:
+                click.echo ("{} Not Valid, Reason: Not an IPv4 address".format(addr))
+            return False
+
+    except ValueError:
+        return False
+
 def vlan_id_is_valid(vid):
     """Check if the vlan id is in acceptable range (between 1 and 4094)
     """
@@ -3791,7 +3822,7 @@ def vxlan(ctx):
 @click.pass_context
 def add_vxlan(ctx, vxlan_name, src_ip):
     """Add VXLAN"""
-    if not is_ip_addr_valid(src_ip, True):
+    if not is_ip4_addr_valid(src_ip, True):
         ctx.fail("{} invalid src ip address".format(src_ip))  
     db = ctx.obj['db']
 
@@ -3814,7 +3845,7 @@ def del_vxlan(ctx, vxlan_name):
     """Del VXLAN"""
     db = ctx.obj['db']
 
-    vxlan_keys = db.keys('CONFIG_DB', "EVPN_NVO|*")
+    vxlan_keys = db.keys('CONFIG_DB', "VXLAN_EVPN_NVO|*")
     if not vxlan_keys:
       vxlan_count = 0
     else:
@@ -3846,7 +3877,7 @@ def vxlan_evpn_nvo(ctx):
 def add_vxlan_evpn_nvo(ctx, nvo_name, vxlan_name):
     """Add NVO"""
     db = ctx.obj['db']
-    vxlan_keys = db.keys('CONFIG_DB', "EVPN_NVO|*")
+    vxlan_keys = db.keys('CONFIG_DB', "VXLAN_EVPN_NVO|*")
     if not vxlan_keys:
       vxlan_count = 0
     else:
@@ -3859,7 +3890,7 @@ def add_vxlan_evpn_nvo(ctx, nvo_name, vxlan_name):
         ctx.fail("VTEP {} not configured".format(vxlan_name))
 
     fvs = {'source_vtep': vxlan_name}
-    db.set_entry('EVPN_NVO', nvo_name, fvs)
+    db.set_entry('VXLAN_EVPN_NVO', nvo_name, fvs)
 
 @vxlan_evpn_nvo.command('del')
 @click.argument('nvo_name', metavar='<nvo_name>', required=True)
@@ -3875,7 +3906,7 @@ def del_vxlan_evpn_nvo(ctx, nvo_name):
 
     if(vxlan_count > 0):
         ctx.fail("Please delete all VLAN VNI mappings.")  
-    db.set_entry('EVPN_NVO', nvo_name, None)
+    db.set_entry('VXLAN_EVPN_NVO', nvo_name, None)
 
 @vxlan.group('map')
 @click.pass_context

@@ -106,6 +106,53 @@ def run_command(command, display_cmd=False, return_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
+def get_interface_mode():
+    mode = os.getenv('SONIC_CLI_IFACE_MODE')
+    if mode is None:
+        mode = "default"
+    return mode
+
+
+#
+# Use this method to validate unicast IPv4 address
+#
+def is_ip4_addr_valid(addr, display):
+    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
+    try:
+        ip = ipaddress.ip_address(unicode(addr))
+        if (ip.version == 4):
+            if (ip.is_reserved):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 reserved address range.".format(addr))
+                return False
+            elif (ip.is_multicast):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 Multicast address range.".format(addr))
+                return False
+            elif (ip in v4_invalid_list):
+                if display:
+                    click.echo ("{} Not Valid.".format(addr))
+                return False
+            else:
+                return True
+
+        else:
+            if display:
+                click.echo ("{} Not Valid, Reason: Not an IPv4 address".format(addr))
+            return False
+
+    except ValueError:
+        return False
+
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
+
+
 # Global class instance for SONiC interface name to alias conversion
 iface_alias_converter = clicommon.InterfaceAliasConverter()
 
@@ -1490,16 +1537,6 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
-
-#
-# 'vxlan' group ("show vxlan ...")
-#
-
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def vxlan():
-    """Show VXLAN information"""
-    pass
-
 @vxlan.command()
 def interface():
     """Show VXLAN VTEP Information"""
@@ -1526,7 +1563,7 @@ def interface():
           click.echo(output)
 
     if vtep_sip is not '0.0.0.0':
-       vxlan_table = config_db.get_table('EVPN_NVO')
+       vxlan_table = config_db.get_table('VXLAN_EVPN_NVO')
        vxlan_keys = vxlan_table.keys()
        if vxlan_keys is not None:
          for key in natsorted(vxlan_keys):
@@ -1560,26 +1597,6 @@ def vlanvnimap(count):
 
     if count is not None:
       vxlan_keys = config_db.keys('CONFIG_DB', "VXLAN_TUNNEL_MAP|*")
-    vxlan_table = config_db.get_table('VXLAN_TUNNEL_MAP')
-    suppress_table = config_db.get_table('SUPPRESS_VLAN_NEIGH')
-    vlan = 'Vlan{}'.format(vid)
-    vxlan_keys = vxlan_table.keys()
-
-    if vxlan_keys is not None:
-      for key in natsorted(vxlan_keys):
-          key1 = vxlan_table[key]['vlan']
-          if(key1 == vlan):
-                netdev = vxlan_keys[0][0]+"-"+key1[4:]
-                if key1 not in suppress_table:
-                    supp_str = "Not Configured"
-                else:
-                    supp_str = "Configured"
-
-                body.append([vxlan_table[key]['vlan'], supp_str, netdev])
-                click.echo(tabulate(body, header, tablefmt="grid"))
-                return
-    print(vlan + " is not configured in vxlan tunnel map table")
-
 
       if not vxlan_keys:
         vxlan_count = 0
