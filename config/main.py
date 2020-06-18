@@ -31,7 +31,6 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
-PORT_STR = "Ethernet"
 INTF_KEY = "interfaces"
 
 (platform, hwsku) =  get_platform_and_hwsku()
@@ -172,10 +171,17 @@ def shutdown_interfaces(ctx, del_intf_dict):
             if interface_name is None:
                 click.echo("[ERROR] interface name is None!")
                 return False
+
         if interface_name_is_valid(intf) is False:
             click.echo("[ERROR] Interface name is invalid. Please enter a valid interface name!!")
             return False
-        if intf.startswith(PORT_STR):
+
+        port_dict = config_db.get_table('PORT')
+        if not port_dict:
+            click.echo("port_dict is None!")
+            return False
+
+        if intf in port_dict.keys():
             config_db.mod_entry("PORT", intf, {"admin_status": "down"})
         else:
             click.secho("[ERROR] Could not get the correct interface name, exiting", fg='red')
