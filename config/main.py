@@ -4127,7 +4127,6 @@ def neigh_suppress(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @neigh_suppress.command('enable')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
