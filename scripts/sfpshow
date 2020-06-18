@@ -141,16 +141,21 @@ class SFPShow(object):
         ident = '        '
         seperator = ": "
         for key in sorted_key_table:
-            if dom_info_dict is not None and dom_info_dict[key] != 'N/A':
-                current_val = (ident + ident +
-                        dom_value_map[key])
-                current_val = (current_val + seperator.rjust(len(seperator) +
-                               alignment - len(dom_value_map[key])))
-                if dom_info_dict[key] == 'Unknown':
-                    current_val = (current_val + dom_info_dict[key])
-                else:
-                    current_val = (current_val + dom_info_dict[key] +
-                               dom_unit_map[key])
+            if dom_info_dict is not None:
+                try:
+                    value = dom_info_dict[key]
+                except:
+                    continue
+                if value != 'N/A':
+                    current_val = (ident + ident +
+                            dom_value_map[key])
+                    current_val = (current_val + seperator.rjust(len(seperator) +
+                                   alignment - len(dom_value_map[key])))
+                    if dom_info_dict[key] == 'Unknown':
+                        current_val = (current_val + dom_info_dict[key])
+                    else:
+                        current_val = (current_val + dom_info_dict[key] +
+                                   dom_unit_map[key])
                 out_put  = out_put + current_val + '\n'
         return out_put
      
