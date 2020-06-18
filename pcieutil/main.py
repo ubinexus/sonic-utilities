@@ -181,8 +181,10 @@ def pcie_check():
             log_warning("PCIe Device: " +  item["name"] + " Not Found")
             err+=1
     if err:
+        os.system('redis-cli -n 6 SET "PCIE_STATE|system" "0"')
         print "PCIe Device Checking All Test ----------->>> FAILED"
     else:
+        os.system('redis-cli -n 6 SET "PCIE_STATE|system" "1"')
         print "PCIe Device Checking All Test ----------->>> PASSED"
         
 
