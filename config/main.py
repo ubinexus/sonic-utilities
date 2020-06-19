@@ -2730,9 +2730,9 @@ def del_vrf(ctx, vrf_name):
 @click.argument('vni', metavar='<vni>', required=True)
 @click.pass_context
 def add_vrf_vni_map(ctx, vrfname, vni):
-    db = ctx.obj['db']
+    config_db = ctx.obj['config_db']
     found = 0
-    if vrfname not in db.get_table('VRF').keys():
+    if vrfname not in config_db.get_table('VRF').keys():
         ctx.fail("vrf {} doesnt exists".format(vrfname))
     if not vni.isdigit():
         ctx.fail("Invalid VNI {}. Only valid VNI is accepted".format(vni))
@@ -2740,7 +2740,7 @@ def add_vrf_vni_map(ctx, vrfname, vni):
     if (int(vni) < 1) or (int(vni) > 16777215):
         ctx.fail("Invalid VNI {}. Valid range [1 to 16777215].".format(vni))
 
-    vxlan_table = db.get_table('VXLAN_TUNNEL_MAP')
+    vxlan_table = config_db.get_table('VXLAN_TUNNEL_MAP')
     vxlan_keys = vxlan_table.keys()
     if vxlan_keys is not None:
         for key in vxlan_keys:
@@ -2752,7 +2752,7 @@ def add_vrf_vni_map(ctx, vrfname, vni):
         ctx.fail(" VLAN VNI not mapped. Please create VLAN VNI map entry first ")
 
     found = 0
-    vrf_table = db.get_table('VRF')
+    vrf_table = config_db.get_table('VRF')
     vrf_keys = vrf_table.keys()
     if vrf_keys is not None:
         for vrf_key in vrf_keys:
@@ -2763,17 +2763,17 @@ def add_vrf_vni_map(ctx, vrfname, vni):
     if (found == 1):
         ctx.fail("VNI already mapped to vrf {}".format(vrf_key))
 
-    db.mod_entry('VRF', vrfname, {"vni": vni})
+    config_db.mod_entry('VRF', vrfname, {"vni": vni})
 
 @vrf.command('del_vrf_vni_map')
 @click.argument('vrfname', metavar='<vrf-name>', required=True, type=str)
 @click.pass_context
 def del_vrf_vni_map(ctx, vrfname):
-    db = ctx.obj['db']
+    config_db = ctx.obj['config_db']
     if vrfname not in db.get_table('VRF').keys():
         ctx.fail("vrf {} doesnt exists".format(vrfname))
 
-    db.mod_entry('VRF', vrfname, {"vni": 0})
+    config_db.mod_entry('VRF', vrfname, {"vni": 0})
 
 #
 # 'route' group ('config route ...')
