@@ -135,7 +135,7 @@ except KeyError, TypeError:
 try:
     (platform, hwsku) =  get_platform_and_hwsku()
     breakout_cfg_file = get_port_config_file_name(hwsku, platform)
-except Exception as e :
+except Exception as e:
     click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
     raise click.Abort()
 
