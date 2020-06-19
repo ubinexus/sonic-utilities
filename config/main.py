@@ -33,9 +33,6 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 INTF_KEY = "interfaces"
 
-(platform, hwsku) =  get_platform_and_hwsku()
-BREAKOUT_CFG_FILE = get_port_config_file_name(hwsku, platform)
-
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
@@ -132,6 +129,17 @@ except KeyError, TypeError:
     raise click.Abort()
 
 #
+# Load breakout config file for Dynamic breakout mode
+#
+
+try:
+    (platform, hwsku) =  get_platform_and_hwsku()
+    breakout_cfg_file = get_port_config_file_name(hwsku, platform)
+except Exception as e :
+    click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
+    raise click.Abort()
+
+#
 # Breakout Mode Helper functions
 #
 
@@ -149,10 +157,10 @@ def _get_option(ctx,args,incomplete):
     global all_mode_options
     interface_name = args[-1]
 
-    if not os.path.isfile(BREAKOUT_CFG_FILE) or not BREAKOUT_CFG_FILE.endswith('.json'):
+    if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         return []
     else:
-        breakout_file_input = readJsonFile(BREAKOUT_CFG_FILE)
+        breakout_file_input = readJsonFile(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
             breakout_mode_list = [v["breakout_modes"] for i ,v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
             breakout_mode_options = []
@@ -189,9 +197,9 @@ def shutdown_interfaces(ctx, del_intf_dict):
     return True
 
 
-def _validate_interface_mode(ctx, BREAKOUT_CFG_FILE, interface_name, target_brkout_mode, cur_brkout_mode):
+def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
     """ Validate Parent interface and user selected mode before starting deletetion or addition process """
-    breakout_file_input = readJsonFile(BREAKOUT_CFG_FILE)["interfaces"]
+    breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
 
     if interface_name not in breakout_file_input:
         click.secho("[ERROR] {} is not a Parent port. So, Breakout Mode is not available on this port".format(interface_name), fg='red')
@@ -2094,7 +2102,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     """ Set interface breakout mode """
 
-    if not os.path.isfile(BREAKOUT_CFG_FILE) or not BREAKOUT_CFG_FILE.endswith('.json'):
+    if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
         raise click.Abort()
 
@@ -2110,12 +2118,12 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
 
     # Validate Interface and Breakout mode
-    if not _validate_interface_mode(ctx, BREAKOUT_CFG_FILE, interface_name, mode, cur_brkout_mode):
+    if not _validate_interface_mode(ctx, breakout_cfg_file, interface_name, mode, cur_brkout_mode):
         raise click.Abort()
 
     """ Interface Deletion Logic """
     # Get list of interfaces to be deleted
-    del_ports = get_child_ports(interface_name, cur_brkout_mode, BREAKOUT_CFG_FILE)
+    del_ports = get_child_ports(interface_name, cur_brkout_mode, breakout_cfg_file)
     del_intf_dict = {intf: del_ports[intf]["speed"] for intf in del_ports}
 
     if del_intf_dict:
@@ -2132,7 +2140,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     """ Interface Addition Logic """
     # Get list of interfaces to be added
-    add_ports = get_child_ports(interface_name, target_brkout_mode, BREAKOUT_CFG_FILE)
+    add_ports = get_child_ports(interface_name, target_brkout_mode, breakout_cfg_file)
     add_intf_dict = {intf: add_ports[intf]["speed"] for intf in add_ports}
 
     if add_intf_dict:
