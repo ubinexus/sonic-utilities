@@ -2193,6 +2193,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
             {'brkout_mode': target_brkout_mode})
         click.secho("Breakout process got successfully completed.".\
             format(interface_name),  fg="cyan", underline=True)
+        click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
     except Exception as e:
         click.secho("Failed to break out Port. Error: {}".format(str(e)), \
