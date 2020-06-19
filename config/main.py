@@ -16,15 +16,12 @@ from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
 from config_mgmt import ConfigMgmtDPB
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common.util_base import UtilHelper
+from portconfig import get_child_ports, get_port_config_file_name
 
 import aaa
 import mlnx
 import nat
-
-# import port config file path
-from sfputil.main import get_platform_and_hwsku
-from portconfig import get_port_config_file_name
-from portconfig import get_child_ports
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -129,11 +126,18 @@ except KeyError, TypeError:
     raise click.Abort()
 
 #
-# Load breakout config file for Dynamic breakout mode
+# Load breakout config file for Dynamic Port Breakout
 #
 
 try:
-    (platform, hwsku) =  get_platform_and_hwsku()
+    # Load the helper class
+    helper = UtilHelper()
+    (platform, hwsku) = helper.get_platform_and_hwsku()
+except Exception as e:
+    click.secho("Failed to get platform and hwsku with error:{}".format(str(e)), fg='red')
+    raise click.Abort()
+
+try:
     breakout_cfg_file = get_port_config_file_name(hwsku, platform)
 except Exception as e:
     click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
