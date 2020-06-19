@@ -75,7 +75,7 @@ def load_platform_watchdog():
 
     return 0
 
-def get_watchdog_status()
+def get_watchdog_status():
     status = platform_watchdog.is_armed()
     remaining_time = platform_watchdog.get_remaining_time()
     return status, remaining_time
