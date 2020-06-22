@@ -8,26 +8,34 @@ import syslog
 import traceback
 import time
 
+from ipaddress import ip_address, ip_network, ip_interface
 from collections import defaultdict
 
-def get_vlan_entries_map(filename):
+def get_vlan_cidr_map(filename):
     """
-        Retreives Vlan information from Config DB file
+        Generate Vlan CIDR information from Config DB file
 
-        fdb entries could be contaminated with foreigh Vlan entries as seen in the cose of 
-        FTOS fast conversion. SONiC Vlan configuration will be used to filter those invalid
-        Vlan entries out.
+        fdb entries could be contaminated with foreigh Vlan entries as seen in the case of 
+        FTOS fast conversion. SONiC Vlan CIDR configuration will be used to filter out
+        those invalid Vlan entries out.
 
         Args:
             filename(str): Config DB data file
 
         Returns:
-            vlan_map(dict) map of Vlan configuration for SONiC device
+            vlan_cidr(dict) map of Vlan CIDR configuration for SONiC device
     """
     with open(filename, 'r') as fp:
         config_db_entries = json.load(fp)
 
-    return config_db_entries["VLAN"] if "VLAN" in config_db_entries.keys() else defaultdict()
+    vlan_cidr = defaultdict()
+    if "VLAN_INTERFACE" in config_db_entries.keys() and "VLAN" in config_db_entries.keys():
+        for vlan_key in config_db_entries["VLAN_INTERFACE"].keys():
+            vlan, cidr = tuple(vlan_key.split('|'))
+            if vlan in config_db_entries["VLAN"]:
+                vlan_cidr[vlan] = ip_interface(cidr).network
+
+    return vlan_cidr
 
 def get_arp_entries_map(arp_filename, config_db_filename):
     """
@@ -43,7 +51,7 @@ def get_arp_entries_map(arp_filename, config_db_filename):
         Returns:
             arp_map(dict) map of ARP entries using MAC as key.
     """
-    vlan_map = get_vlan_entries_map(config_db_filename)
+    vlan_cidr = get_vlan_cidr_map(config_db_filename)
 
     with open(arp_filename, 'r') as fp:
         arp_entries = json.load(fp)
@@ -51,9 +59,11 @@ def get_arp_entries_map(arp_filename, config_db_filename):
     arp_map = defaultdict()
     for arp in arp_entries:
         for key, config in arp.items():
-            entry_partial_keys = key.split(':')
-            if 'NEIGH_TABLE' in entry_partial_keys[0] and entry_partial_keys[1] in vlan_map.keys() \
-                and "neigh" in config.keys():
+            if "NEIGH_TABLE" not in key:
+                continue
+            table, vlan, ip = tuple(key.split(':'))
+            if "NEIGH_TABLE" in table and vlan in vlan_cidr.keys() \
+                and ip_address(ip) in ip_network(vlan_cidr[vlan]) and "neigh" in config.keys():
                 arp_map[config["neigh"].replace(':', '-')] = ""
 
     return arp_map
