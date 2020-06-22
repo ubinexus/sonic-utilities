@@ -10,7 +10,27 @@ import time
 
 from collections import defaultdict
 
-def get_arp_entries_map(filename):
+def get_vlan_entries_map(filename):
+    """
+        Retreives Vlan information from Config DB file
+
+        fdb entries could be contaminated with foreigh Vlan entries as seen in the cose of 
+        FTOS fast conversion. SONiC Vlan configuration will be used to filter those invalid
+        Vlan entries out.
+
+        Args:
+            filename(str): Config DB data file
+
+        Returns:
+            vlan_map(dict) map of Vlan configuration for SONiC device
+    """
+    config_db_entries = defaultdict()
+    with open(filename, 'r') as fp:
+        config_db_entries = json.load(fp)
+
+    return config_db_entries["VLAN"] if "VLAN" in config_db_entries else defaultdict()
+
+def get_arp_entries_map(arp_filename, config_db_filename):
     """
         Generate map for ARP entries
 
@@ -18,23 +38,28 @@ def get_arp_entries_map(filename):
         to match FDB table formatting
 
         Args:
-            filename(str): ARP entry file name
+            arp_filename(str): ARP entry file name
+            config_db_filename(str): Config DB file name
 
         Returns:
             arp_map(dict) map of ARP entries using MAC as key.
     """
-    with open(filename, 'r') as fp:
+    vlan_map = get_vlan_entries_map(config_db_filename)
+
+    with open(arp_filename, 'r') as fp:
         arp_entries = json.load(fp)
 
     arp_map = defaultdict()
     for arp in arp_entries:
         for key, config in arp.items():
-            if 'NEIGH_TABLE' in key:
+            entry_partial_keys = key.split(':')
+            if 'NEIGH_TABLE' in entry_partial_keys[0] and entry_partial_keys[1] in vlan_map.keys() \
+                and "neigh" in config.keys():
                 arp_map[config["neigh"].replace(':', '-')] = ""
 
     return arp_map
 
-def filter_fdb_entries(fdb_filename, arp_filename, backup_file):
+def filter_fdb_entries(fdb_filename, arp_filename, config_db_filename, backup_file):
     """
         Filter FDB entries based on MAC presence into ARP entries
 
@@ -44,12 +69,13 @@ def filter_fdb_entries(fdb_filename, arp_filename, backup_file):
         Args:
             fdb_filename(str): FDB entries file name
             arp_filename(str): ARP entry file name
+            config_db_filename(str): Config DB file name
             backup_file(bool): Create backup copy of FDB file before creating new one
 
         Returns:
             None
     """
-    arp_map = get_arp_entries_map(arp_filename)
+    arp_map = get_arp_entries_map(arp_filename, config_db_filename)
 
     with open(fdb_filename, 'r') as fp:
         fdb_entries = json.load(fp)
@@ -91,20 +117,23 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fdb', type=str, default='/tmp/fdb.json', help='fdb file name')
     parser.add_argument('-a', '--arp', type=str, default='/tmp/arp.json', help='arp file name')
+    parser.add_argument('-c', '--config_db', type=str, default='/tmp/config_db.json', help='config db file name')
     parser.add_argument('-b', '--backup_file', type=bool, default=True, help='Back up old fdb entries file')
     args = parser.parse_args()
 
     fdb_filename = args.fdb
     arp_filename = args.arp
+    config_db_filename = args.config_db
     backup_file = args.backup_file
 
     try:
         file_exists_or_raise(fdb_filename)
         file_exists_or_raise(arp_filename)
+        file_exists_or_raise(config_db_filename)
     except Exception as e:
         syslog.syslog(syslog.LOG_ERR, "Got an exception %s: Traceback: %s" % (str(e), traceback.format_exc()))
     else:
-        filter_fdb_entries(fdb_filename, arp_filename, backup_file)
+        filter_fdb_entries(fdb_filename, arp_filename, config_db_filename, backup_file)
 
     return 0
 
