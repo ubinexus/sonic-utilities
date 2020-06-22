@@ -158,7 +158,7 @@ def readJsonFile(fileName):
 
 def _get_option(ctx,args,incomplete):
     """ Provides dynamic mode option as per user argument i.e. interface name """
-    global all_mode_options
+    all_mode_options = []
     interface_name = args[-1]
 
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
@@ -172,7 +172,6 @@ def _get_option(ctx,args,incomplete):
                     breakout_mode_options.append(i)
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
             return all_mode_options
-
 
 def shutdown_interfaces(ctx, del_intf_dict):
     """ shut down all the interfaces before deletion """
