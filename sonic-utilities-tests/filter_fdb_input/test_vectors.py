@@ -100,4 +100,21 @@ filterFdbEntriesTestVector = [
         "config_db": "sonic-utilities-tests/filter_fdb_input/config_db.json",
         "expected_fdb": "sonic-utilities-tests/filter_fdb_input/expected_fdb.json"
     },
+    {
+        "arp": "sonic-utilities-tests/filter_fdb_input/arp.json",
+        "fdb": "sonic-utilities-tests/filter_fdb_input/fdb.json",
+        "config_db": {"VLAN": {
+            "Vlan1": {}
+        }},
+        "expected_fdb": [
+        ],
+    },
+    {
+        "arp": "sonic-utilities-tests/filter_fdb_input/arp.json",
+        "fdb": "sonic-utilities-tests/filter_fdb_input/fdb.json",
+        "config_db": {
+        },
+        "expected_fdb": [
+        ],
+    },
 ]

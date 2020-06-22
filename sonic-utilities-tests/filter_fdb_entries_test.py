@@ -69,7 +69,6 @@ class TestFilterFdbEntries(object):
             Returns:
                 None
         """
-        return
         os.remove(self.ARP_FILENAME)
         os.remove(self.EXPECTED_FDB_FILENAME)
         fdbFiles = glob.glob(self.FDB_FILENAME + '*')

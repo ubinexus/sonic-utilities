@@ -24,11 +24,10 @@ def get_vlan_entries_map(filename):
         Returns:
             vlan_map(dict) map of Vlan configuration for SONiC device
     """
-    config_db_entries = defaultdict()
     with open(filename, 'r') as fp:
         config_db_entries = json.load(fp)
 
-    return config_db_entries["VLAN"] if "VLAN" in config_db_entries else defaultdict()
+    return config_db_entries["VLAN"] if "VLAN" in config_db_entries.keys() else defaultdict()
 
 def get_arp_entries_map(arp_filename, config_db_filename):
     """
