@@ -1,6 +1,7 @@
-# config_mgmt.py
-# Provides a class for configuration validation and for Dynamic Port Breakout.
-
+'''
+config_mgmt.py provides classes for configuration validation and for Dynamic
+Port Breakout.
+'''
 try:
     import re
     import syslog
@@ -23,19 +24,30 @@ except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 # Globals
-# This class may not need to know about YANG_DIR ?, sonic_yang shd use
-# default dir.
 YANG_DIR = "/usr/local/yang-models"
 CONFIG_DB_JSON_FILE = '/etc/sonic/confib_db.json'
 # TODO: Find a place for it on sonic switch.
 DEFAULT_CONFIG_DB_JSON_FILE = '/etc/sonic/default_config_db.json'
 
-# Class to handle config managment for SONIC, this class will use PLY to verify
-# config for the commands which are capable of change in config DB.
-
 class ConfigMgmt():
+    '''
+    Class to handle config managment for SONIC, this class will use sonic_yang
+    to verify config for the commands which are capable of change in config DB.
+    '''
 
     def __init__(self, source="configDB", debug=False, allowTablesWithoutYang=True):
+        '''
+        Initialise the class, --read the config, --load in data tree.
+
+        Parameters:
+            source (str): source for input config, default configDb else file.
+            debug (bool): verbose mode.
+            allowTablesWithoutYang (bool): allow tables without yang model in
+                config or not.
+
+        Returns:
+            void
+        '''
         try:
             self.configdbJsonIn = None
             self.configdbJsonOut = None
@@ -70,16 +82,28 @@ class ConfigMgmt():
     def __del__(self):
         pass
 
-    """
-    Return tables loaded in config for which YANG model does not exist.
-    """
     def tablesWithoutYang(self):
+        '''
+        Return tables loaded in config for which YANG model does not exist.
+
+        Parameters:
+            void
+
+        Returns:
+            tablesWithoutYang (list): list of tables.
+        '''
         return self.sy.tablesWithOutYang
 
-    """
-    Explicit function to load config data in Yang Data Tree
-    """
     def loadData(self, configdbJson):
+        '''
+        Explicit function to load config data in Yang Data Tree.
+
+        Parameters:
+            configdbJson (dict): dict similar to configDb.
+
+        Returns:
+            void
+        '''
         self.sy.loadData(configdbJson)
         # Raise if tables without YANG models are not allowed but exist.
         if not self.allowTablesWithoutYang and len(self.sy.tablesWithOutYang):
@@ -87,10 +111,16 @@ class ConfigMgmt():
 
         return
 
-    """
-    Validate current Data Tree
-    """
     def validateConfigData(self):
+        '''
+        Validate current config data Tree.
+
+        Parameters:
+            void
+
+        Returns:
+            bool
+        '''
         try:
             self.sy.validate_data_tree()
         except Exception as e:
@@ -101,10 +131,17 @@ class ConfigMgmt():
         self.sysLog(msg='Data Validation successful')
         return True
 
-    """
-    syslog Support
-    """
     def sysLog(self, debug=syslog.LOG_INFO, msg=None):
+        '''
+        Log the msg in syslog file.
+
+        Parameters:
+            debug : syslog level
+            msg (str): msg to be logged.
+
+        Returns:
+            void
+        '''
         # log debug only if enabled
         if self.DEBUG == False and debug == syslog.LOG_DEBUG:
             return
@@ -115,6 +152,15 @@ class ConfigMgmt():
         return
 
     def readConfigDBJson(self, source=CONFIG_DB_JSON_FILE):
+        '''
+        Read the config from a Config File.
+
+        Parameters:
+            source(str): config file name.
+
+        Returns:
+            (void)
+        '''
         print('Reading data from {}'.format(source))
         self.configdbJsonIn = readJsonFile(source)
         #print(type(self.configdbJsonIn))
@@ -128,6 +174,15 @@ class ConfigMgmt():
         Get config from redis config DB
     """
     def readConfigDB(self):
+        '''
+        Read the config in Config DB. Assign it in self.configdbJsonIn.
+
+        Parameters:
+            (void)
+
+        Returns:
+            (void)
+        '''
         print('Reading data from Redis configDb')
         # Read from config DB on sonic switch
         db_kwargs = dict(); data = dict()
@@ -141,10 +196,16 @@ class ConfigMgmt():
         return
 
     def writeConfigDB(self, jDiff):
+        '''
+        Write the diff in Config DB.
+
+        Parameters:
+            jDiff (dict): config to push in config DB.
+
+        Returns:
+            void
+        '''
         print('Writing in Config DB')
-        """
-        On Sonic Switch
-        """
         db_kwargs = dict(); data = dict()
         configdb = ConfigDBConnector(**db_kwargs)
         configdb.connect(False)
@@ -157,13 +218,25 @@ class ConfigMgmt():
 
 # End of Class ConfigMgmt
 
-"""
-    Config MGMT class for Dynamic Port Breakout(DPB).
-    This is derived from ConfigMgmt.
-"""
 class ConfigMgmtDPB(ConfigMgmt):
+    '''
+        Config MGMT class for Dynamic Port Breakout(DPB). This is derived from
+        ConfigMgmt.
+    '''
 
     def __init__(self, source="configDB", debug=False, allowTablesWithoutYang=True):
+        '''
+        Initialise the class
+
+        Parameters:
+            source (str): source for input config, default configDb else file.
+            debug (bool): verbose mode.
+            allowTablesWithoutYang (bool): allow tables without yang model in
+                config or not.
+
+        Returns:
+            void
+        '''
         try:
             ConfigMgmt.__init__(self, source=source, debug=debug, \
                 allowTablesWithoutYang=allowTablesWithoutYang)
@@ -178,10 +251,17 @@ class ConfigMgmtDPB(ConfigMgmt):
     def __del__(self):
         pass
 
-    """
-      Check if a key exists in ASIC DB or not.
-    """
     def _checkKeyinAsicDB(self, key, db):
+        '''
+        Check if a key exists in ASIC DB or not.
+
+        Parameters:
+            db (SonicV2Connector): database.
+            key (str): key in config DB, with table Seperator if applicable.
+
+        Returns:
+            (bool): True, if given key is present.
+        '''
         self.sysLog(msg='Check Key in Asic DB: {}'.format(key))
         try:
             # chk key in ASIC DB
@@ -194,6 +274,17 @@ class ConfigMgmtDPB(ConfigMgmt):
         return False
 
     def _testRedisCli(self, key):
+        '''
+        Additional test funtion for _verifyAsicDB(). This funtions will fetch
+        ports information from Asic DB, using redis-cli. This is done only when
+        debugging is on.
+
+        Parameters:
+            key (str): key in config DB, with table Seperator if applicable.
+
+        Returns:
+            void
+        '''
         # To Debug
         if self.DEBUG:
             cmd = 'sudo redis-cli -n 1 hgetall "{}"'.format(key)
@@ -202,13 +293,18 @@ class ConfigMgmtDPB(ConfigMgmt):
             system(cmd)
         return
 
-    """
-     Check ASIC DB for PORTs in port List
-     ports: List of ports
-     portMap: port to OID map.
-     Return: True, if all ports are not present.
-    """
     def _checkNoPortsInAsicDb(self, db, ports, portMap):
+        '''
+        Check ASIC DB for PORTs in port List
+
+        Parameters:
+            db (SonicV2Connector): database.
+            ports (list): List of ports
+            portMap (dict): port to OID map.
+
+        Returns:
+            (bool): True, if all ports are not present.
+        '''
         try:
             # connect to ASIC DB,
             db.connect(db.ASIC_DB)
@@ -226,12 +322,20 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return True
 
-    """
-    Verify in the Asic DB that port are deleted,
-    Keep on trying till timeout period.
-    db = database, ports, portMap, timeout
-    """
     def _verifyAsicDB(self, db, ports, portMap, timeout):
+        '''
+        Verify in the Asic DB that port are deleted, Keep on trying till timeout
+        period.
+
+        Parameters:
+            db (SonicV2Connector): database.
+            ports (list): port list to check in ASIC DB.
+            portMap (dict): oid<->port map.
+            timeout (int): timeout period
+
+        Returns:
+            (bool)
+        '''
         print("Verify Port Deletion from Asic DB, Wait...")
         self.sysLog(msg="Verify Port Deletion from Asic DB, Wait...")
         try:
@@ -259,6 +363,20 @@ class ConfigMgmtDPB(ConfigMgmt):
 
     def breakOutPort(self, delPorts=list(), addPorts= list(), portJson=dict(), \
         force=False, loadDefConfig=True):
+        '''
+        This is the main function for port breakout. Exposed to caller.
+
+        Parameters:
+            delPorts (list): ports to be deleted.
+            addPorts (list): ports to be added.
+            portJson (dict): Config DB json Part of all Ports, generated from
+                platform.json.
+            force (bool): if false return dependecies, else delete dependencies.
+            loadDefConfig: If loadDefConfig, add default config for ports as well.
+
+        Returns:
+            (deps, ret) (tuple)[list, bool]: dependecies and success/failure.
+        '''
         MAX_WAIT = 60
         try:
             # delete Port and get the Config diff, deps and True/False
@@ -295,16 +413,19 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return None, True
 
-    """
-    Delete all ports.
-    delPorts: list of port names.
-    force: if false return dependecies, else delete dependencies.
-
-    Return:
-    WithOut Force: (xpath of dependecies, False) or (None, True)
-    With Force: (xpath of dependecies, False) or (None, True)
-    """
     def _deletePorts(self, ports=list(), force=False):
+        '''
+        Delete ports and dependecies from data tree, validate and return resultant
+        config.
+
+        Parameters:
+            ports (list): list of ports
+            force (bool): if false return dependecies, else delete dependencies.
+
+        Returns:
+            (configToLoad, deps, ret) (tuple)[dict, list, bool]: config, dependecies
+            and success/fail.
+        '''
         configToLoad = None; deps = None
         try:
             self.sysLog(msg="delPorts ports:{} force:{}".format(ports, force))
@@ -358,17 +479,20 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return configToLoad, deps, True
 
-    """
-    Add Ports and default config for ports to config DB, after validation of
-    data tree
-
-    PortJson: Config DB Json Part of all Ports same as PORT Table of Config DB.
-    ports = list of ports
-    loadDefConfig: If loadDefConfig add default config as well.
-
-    return: Sucess: True or Failure: False
-    """
     def _addPorts(self, ports=list(), portJson=dict(), loadDefConfig=True):
+        '''
+        Add ports and default confug in data tree, validate and return resultant
+        config.
+
+        Parameters:
+            ports (list): list of ports
+            portJson (dict): Config DB json Part of all Ports, generated from
+                platform.json.
+            loadDefConfig: If loadDefConfig, add default config for ports as well.
+
+        Returns:
+            (configToLoad, ret) (tuple)[dict, bool]
+        '''
         configToLoad = None
         try:
             self.sysLog(msg='Start Port Addition')
@@ -415,13 +539,23 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return configToLoad, True
 
-    """
-    Merge second dict in first, Note both first and second dict will be changed
-    First Dict will have merged part D1 + D2
-    Second dict will have D2 - D1 [unique keys in D2]
-    Unique keys in D2 will be merged in D1 only if uniqueKeys=True
-    """
     def _mergeConfigs(self, D1, D2, uniqueKeys=True):
+        '''
+        Merge D2 dict in D1 dict, Note both first and second dict will change.
+        First Dict will have merged part D1 + D2. Second dict will have D2 - D1
+        i.e [unique keys in D2]. Unique keys in D2 will be merged in D1 only
+        if uniqueKeys=True.
+        Usage: This function can be used with 'config load' command to merge
+        new config with old.
+
+        Parameters:
+            D1 (dict): Partial Config 1.
+            D2 (dict): Partial Config 2.
+            uniqueKeys (bool)
+
+        Returns:
+            bool
+        '''
         try:
             def _mergeItems(it1, it2):
                 if isinstance(it1, list) and isinstance(it2, list):
@@ -429,24 +563,19 @@ class ConfigMgmtDPB(ConfigMgmt):
                 elif isinstance(it1, dict) and isinstance(it2, dict):
                     self._mergeConfigs(it1, it2)
                 elif isinstance(it1, list) or isinstance(it2, list):
-                    raise ("Can not merge Configs, List problem")
+                    raise Exception("Can not merge Configs, List problem")
                 elif isinstance(it1, dict) or isinstance(it2, dict):
-                    raise ("Can not merge Configs, Dict problem")
+                    raise Exception("Can not merge Configs, Dict problem")
                 else:
-                    #print("Do nothing")
                     # First Dict takes priority
                     pass
                 return
 
             for it in D1.keys():
-                #print(it)
                 # D2 has the key
                 if D2.get(it):
                     _mergeItems(D1[it], D2[it])
                     del D2[it]
-                # D2  does not have the keys
-                else:
-                    pass
 
             # if uniqueKeys are needed, merge rest of the keys of D2 in D1
             if uniqueKeys:
@@ -458,29 +587,30 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return D1
 
-    """
-    search Relevant Keys in Config using DFS, This function is mainly
-    used to search port related config in Default ConfigDbJson file.
-    In: Config to be searched
-    skeys: Keys to be searched in In Config i.e. search Keys.
-    Out: Contains the search result
-    """
     def _searchKeysInConfig(self, In, Out, skeys):
+        '''
+        Search Relevant Keys in Input Config using DFS, This function is mainly
+        used to search ports related config in Default ConfigDbJson file.
+
+        Parameters:
+            In (dict): Input Config to be searched
+            skeys (list): Keys to be searched in Input Config i.e. search Keys.
+            Out (dict): Contains the search result, i.e. Output Config with skeys.
+
+        Returns:
+            found (bool): True if any of skeys is found else False.
+        '''
         found = False
         if isinstance(In, dict):
             for key in In.keys():
-                #print("key:" + key)
                 for skey in skeys:
                     # pattern is very specific to current primary keys in
                     # config DB, may need to be updated later.
                     pattern = '^' + skey + '\|' + '|' + skey + '$' + \
                         '|' + '^' + skey + '$'
-                    #print(pattern)
                     reg = re.compile(pattern)
-                    #print(reg)
                     if reg.search(key):
                         # In primary key, only 1 match can be found, so return
-                        # print("Added key:" + key)
                         Out[key] = In[key]
                         found = True
                         break
@@ -506,11 +636,18 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return found
 
-    """
-    This function returns the relavant keys in Input Config.
-    For Example: All Ports related Config in Config DB.
-    """
     def configWithKeys(self, configIn=dict(), keys=list()):
+        '''
+        This function returns the config with relavant keys in Input Config.
+        It calls _searchKeysInConfig.
+
+        Parameters:
+            configIn (dict): Input Config
+            keys (list): Key list.
+
+        Returns:
+            configOut (dict): Output Config containing only key related config.
+        '''
         configOut = dict()
         try:
             if len(configIn) and len(keys):
@@ -521,10 +658,17 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return configOut
 
-    """
-    Create a defConfig for given Ports from Default Config File.
-    """
     def _getDefaultConfig(self, ports=list()):
+        '''
+        Create a default Config for given Port list from Default Config File.
+        It calls _searchKeysInConfig.
+
+        Parameters:
+            ports (list): list of ports, for which default config must be fetched.
+
+        Returns:
+            defConfigOut (dict): default Config for given Ports.
+        '''
         # function code
         try:
             print("Generating default config for {}".format(ports))
@@ -539,6 +683,15 @@ class ConfigMgmtDPB(ConfigMgmt):
         return defConfigOut
 
     def _updateDiffConfigDB(self):
+        '''
+        Return ConfigDb format Diff b/w self.configdbJsonIn, self.configdbJsonOut
+
+        Parameters:
+            void
+
+        Returns:
+            configToLoad (dict): ConfigDb format Diff
+        '''
         try:
             # Get the Diff
             print('Generate Final Config to write in DB')
@@ -554,66 +707,76 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return configToLoad
 
-    """
-    Create the config to write in Config DB from json diff
-    diff: diff in input config and output config.
-    inp: input config before delete/add ports.
-    outp: output config after delete/add ports.
-    """
     def _createConfigToLoad(self, diff, inp, outp):
+        '''
+        Create the config to write in Config DB, i.e. compitible with mod_config()
+        This functions has 3 inner functions:
+        -- _deleteHandler: to handle delete in diff. See example below.
+        -- _insertHandler: to handle insert in diff. See example below.
+        -- _recurCreateConfig: recursively create this config.
+
+        Parameters:
+            diff: jsondiff b/w 2 configs.
+            Example:
+            {u'VLAN': {u'Vlan100': {'members': {delete: [(95, 'Ethernet1')]}},
+             u'Vlan777': {u'members': {insert: [(92, 'Ethernet2')]}}},
+            'PORT': {delete: {u'Ethernet1': {...}}}}
+
+            inp: input config before delete/add ports, i.e. current config Db.
+            outp: output config after delete/add ports. i.e. config DB once diff
+                is applied.
+
+        Returns:
+            configToLoad (dict): config in a format compitible with mod_Config().
+        '''
+
         ### Internal Functions ###
-        """
-        Handle deletes in diff dict
-        """
         def _deleteHandler(diff, inp, outp, config):
-            # if output is dict, delete keys from config
+            '''
+            Handle deletions in diff dict
+            '''
             if isinstance(inp, dict):
+                # Example Case: diff = PORT': {delete: {u'Ethernet1': {...}}}}
                 for key in diff:
-                    #print(key)
                     # make sure keys from diff are present in inp but not in outp
-                    # then delete it.
                     if key in inp and key not in outp:
                         # assign key to None(null), redis will delete entire key
                         config[key] = None
                     else:
-                        # log such keys
-                        print("Diff: Probably wrong key: {}".format(key))
+                        # should not happen
+                        raise Exception('Invalid deletion of {} in diff'.format(key))
 
             elif isinstance(inp, list):
-                # just take list from output
-                # print("Delete from List: {} {} {}".format(inp, outp, list))
-                #print(type(config))
+                # Example case: {u'VLAN': {u'Vlan100': {'members': {delete: [(95, 'Ethernet1')]}}
+                # just take list from outputs
                 config.extend(outp)
-
             return
 
-        """
-        Handle inserts in diff dict
-        """
         def _insertHandler(diff, inp, outp, config):
-            # if outp is a dict
+            '''
+            Handle inserts in diff dict
+            '''
             if isinstance(outp, dict):
+                # Example Case: diff = PORT': {insert: {u'Ethernet1': {...}}}}
                 for key in diff:
-                    #print(key)
                     # make sure keys are only in outp
                     if key not in inp and key in outp:
                         # assign key in config same as outp
                         config[key] = outp[key]
                     else:
-                        # log such keys
-                        print("Diff: Probably wrong key: {}".format(key))
+                        # should not happen
+                        raise Exception('Invalid insertion of {} in diff'.format(key))
 
             elif isinstance(outp, list):
                 # just take list from output
-                # print("Delete from List: {} {} {}".format(inp, outp, list))
+                # Example case: {u'VLAN': {u'Vlan100': {'members': {insert: [(95, 'Ethernet1')]}}
                 config.extend(outp)
-
             return
 
-        """
-        Recursively iterate diff to generate config to write in configDB
-        """
         def _recurCreateConfig(diff, inp, outp, config):
+            '''
+            Recursively iterate diff to generate config to write in configDB
+            '''
             changed = False
             # updates are represented by list in diff and as dict in outp\inp
             # we do not allow updates right now
@@ -622,7 +785,6 @@ class ConfigMgmtDPB(ConfigMgmt):
 
             idx = -1
             for key in diff:
-                #print(key)
                 idx = idx + 1
                 if str(key) == '$delete':
                     _deleteHandler(diff[key], inp, outp, config)
@@ -633,7 +795,7 @@ class ConfigMgmtDPB(ConfigMgmt):
                 else:
                     # insert in config by default, remove later if not needed
                     if isinstance(diff, dict):
-                        # config should match with outp
+                        # config should match type of outp
                         config[key] = type(outp[key])()
                         if _recurCreateConfig(diff[key], inp[key], outp[key], \
                             config[key]) == False:
@@ -664,6 +826,20 @@ class ConfigMgmtDPB(ConfigMgmt):
         return configToLoad
 
     def _diffJson(self):
+        '''
+        Return json diff between self.configdbJsonIn, self.configdbJsonOut dicts.
+
+        Parameters:
+            void
+
+        Returns:
+            (dict): json diff between self.configdbJsonIn, self.configdbJsonOut
+            dicts.
+            Example:
+            {u'VLAN': {u'Vlan100': {'members': {delete: [(95, 'Ethernet1')]}},
+             u'Vlan777': {u'members': {insert: [(92, 'Ethernet2')]}}},
+            'PORT': {delete: {u'Ethernet1': {...}}}}
+        '''
         from jsondiff import diff
         return diff(self.configdbJsonIn, self.configdbJsonOut, syntax='symmetric')
 
@@ -671,6 +847,15 @@ class ConfigMgmtDPB(ConfigMgmt):
 
 # Helper Functions
 def readJsonFile(fileName):
+    '''
+    Read Json file.
+
+    Parameters:
+        fileName (str): file
+
+    Returns:
+        result (dict): json --> dict
+    '''
     try:
         with open(fileName) as f:
             result = load(f)
