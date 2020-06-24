@@ -1,0 +1,360 @@
+#!/usr/bin/python
+
+import os
+import re
+import sys
+import syslog
+import commands
+import threading
+import traceback
+import redis
+import time
+import json
+import subprocess
+import swsssdk
+from optparse import OptionParser
+from swsssdk import SysmonDBConnector
+from swsssdk import _get_redis_dbid_port
+from time import gmtime, strftime
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+PID_FILE = "/var/run/crash-monitor"
+CRASH_MONITOR_TABLE = "CRASH_MONITOR"
+PROC_EVENT_TABLE = "PROC_EVENT"
+
+STATE_WARM_STARTED = 'started'
+STATE_WARM_DONE = 'done'
+
+# Delay 0 seconds before trying auto-restart
+RESTART_DELAY_TIME = 0
+# Limit 3 restart within 1200 seconds
+RESTART_MAX_RETRIES = 3
+RESTART_CHECK_INTERVAL = 1200
+
+# Syslog functions
+SYSLOG_IDENTIFIER = 'crash-monitor'
+def log_info(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_INFO, msg)
+    syslog.closelog()
+
+def log_warning(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_WARNING, msg)
+    syslog.closelog()
+
+def log_error(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    syslog.closelog()
+
+def kill_last_process():
+    try:
+        if os.path.exists(PID_FILE):
+            file_r = open(PID_FILE, 'r')
+            old_pid = file_r.readline().strip()
+            if old_pid:
+                log_info("kill old_pid %s " % old_pid)
+                os.kill(int(old_pid), 9)
+            file_r.close()
+    except Exception:
+        sys_log(LOG_DEBUG, "kill_last_process Exception: %s" % (traceback.format_exc()))
+    current_pid = os.getpid()
+    log_info("current_pid: %d" % current_pid)
+    file_w = open(PID_FILE, 'w+')
+    file_w.write(str(current_pid))
+    file_w.close()
+
+
+def args_parser():
+    usage = "\n\t%prog [--stop] -d [delay] -l [limit] -i [interval] -p [processes]"
+    parser = OptionParser(usage=usage)
+
+    parser.add_option("-d", "--delay", dest="delay",
+                      help="delay time(seconds) before auto-restart.")
+    parser.add_option("-l", "--limit", dest="limit",
+                      help="limit of restart retries within given interval.")
+    parser.add_option("-i", "--interval", dest="interval",
+                      help="interval(seconds) to check restart retries limit")
+    parser.add_option("-p", "--processes", dest="processes",
+                      help="list of processes to monitor for crash handling")
+    parser.add_option("-s", "--stop", action="store_true", dest="stop_crash_monitor",
+                      help="Stop crash monitor.")
+
+    options, args = parser.parse_args()
+
+    return options, parser
+
+
+def wait_docker_startup(docker, wait_seconds):
+    max_wait_time = 200
+    cmd = 'docker ps | grep %s' % docker
+
+    try:
+        while max_wait_time:
+            output = commands.getoutput(cmd)
+            lines = output.splitlines()
+            for line in lines:
+                items = line.strip().split()
+                if len(items) == 10 or len(items) == 11:
+                    if items[8] == 'seconds':
+                        if int(items[7]) > wait_seconds:
+                            return
+                    elif items[8] == 'minutes':
+                        if int(items[7] * 60) > wait_seconds:
+                            return
+                    elif items[8].startswith('hour') or items[9].startswith('hour'):
+                        return
+                    elif items[8].startswith('days'):
+                        return
+                    elif items[8].startswith('weeks'):
+                        return
+                    else:
+                        print "unknow str:%s" % items[8]
+                        return
+
+            max_wait_time -= 1
+            time.sleep(1)
+
+    except Exception:
+        print("*ERROR* wait_for_db_startup failed: %s" % (traceback.format_exc()))
+
+## Returns:
+##   None   - if the return code of the command is non-zero
+##   String - the standard output of the command, may be empty string
+def run_command(cmd):
+    log_info('runcmd: {0}'.format(cmd))
+    rc, out = commands.getstatusoutput(cmd)
+    if rc == 0:
+        return out
+    else:
+        log_err('Failed to run: {0}\n{1}'.format(cmd, out))
+        return None
+
+class CrashMonitor(object):
+    def __init__(self, critical_proc_str="", delay=RESTART_DELAY_TIME, max_retries=RESTART_MAX_RETRIES, check_interval=RESTART_CHECK_INTERVAL):
+        self.delay = delay
+        self.max_retries = max_retries
+        self.check_interval = check_interval
+        self.restart_timers = {}
+        self.sysmon_db = None
+        self.state_db = None
+        self.critical_proc = self.expand(critical_proc_str)
+        log_info("Monitoring critical_proc {}".format(self.critical_proc))
+
+    def expand(self, critical_proc_str):
+        processes = []
+        processes = critical_proc_str.split(',')
+        return processes
+
+    def check_process_alive(self, proc):
+        try:
+            cmd = "ps aux | grep '/usr/.*/%s' | grep -v 'grep'" % proc
+            output = commands.getoutput(cmd)
+            log_info("checking if process %s is alive." % proc)
+            if len(output):
+                return True
+            else:
+                return False
+        except Exception:
+            log_err("check_process_alive Exception: %s" % (traceback.format_exc()))
+            return False
+
+    def wait_container_startup(self, container_name, wait_seconds, warm_app_names, exp_state):
+        try:
+            count = 0
+            for warm_app_name in warm_app_names:
+                state = ""
+                cmd = "docker exec -i database redis-cli " + _get_redis_dbid_port("STATE_DB") + " hget 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
+                # Wait up to wait_seconds for reconciled state
+                while state != exp_state and count < wait_seconds/2:
+                    count += 1
+                    time.sleep(2)
+                    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                    state = proc.stdout.read().rstrip()
+                    log_info("%s reached %s state"%(warm_app_name, state))
+                if state != exp_state:
+                    log_err("%s failed to reach %s state"%(warm_app_name, exp_state))
+
+        except Exception:
+            print("*ERROR* wait_container_startup failed: %s" % (traceback.format_exc()))
+
+    def clean_bgp_eoiu_marker(self):
+        self.state_db.delete(self.state_db.STATE_DB, "BGP_STATE_TABLE|IPv4|eoiu")
+        self.state_db.delete(self.state_db.STATE_DB, "BGP_STATE_TABLE|IPv6|eoiu")
+        syslog.syslog('Cleaned ipv4 and ipv6 eoiu marker flags')
+
+    def clean_app_recon_state(self, warm_app_names):
+        # clean app reconcilation state from last warm start if exists
+        for warm_app_name in warm_app_names:
+            cmd = "docker exec -i database redis-cli " + _get_redis_dbid_port("STATE_DB") + " hdel 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
+            run_command(cmd)
+
+    # Set the statedb "BGP_STATE_TABLE|crash_warm_restart"
+    # state is 'started' or 'done'
+    def set_crash_restart_state(self, capital_container_name, state):
+        key = capital_container_name + "_STATE_TABLE|crash_warm_restart"
+        self.state_db.set(self.state_db.STATE_DB, key, 'state', state)
+        # only save the timestamps and retry count for started state
+        if state != 'started':
+            return
+        info = self.state_db.get_all(self.state_db.STATE_DB, key)
+        if 'timestamps' in info:
+            timestamps = eval(info['timestamps'])
+        else:
+            timestamps = []
+        timestamps.append(time.time())
+        count = len(timestamps)
+        self.state_db.set(self.state_db.STATE_DB, key, 'timestamps', timestamps)
+        self.state_db.set(self.state_db.STATE_DB, key, 'count', count)
+        return
+
+    # Get retry count for auto-restart in a certain time frame.
+    def get_retry_count(self, docker):
+        key = docker + "_STATE_TABLE|crash_warm_restart"
+        info = self.state_db.get_all(self.state_db.STATE_DB, key)
+        if info and 'timestamps' in info:
+            timestamps = eval(info['timestamps'])
+        else:
+            timestamps = []
+        count = 0
+        for t in timestamps:
+            if ( time.time() - t ) < self.check_interval:
+                count = count + 1
+        return count
+
+    def warm_restart(self, container_name):
+        if container_name == "bgp":
+            # Kill bgpd to restart the bgp graceful restart procedure
+            log_info("Restarting bgp container...")
+            self.clean_bgp_eoiu_marker()
+            run_command("config warm_restart enable %s" % container_name)
+            run_command("docker exec -i bgp pkill -9 zebra")
+            run_command("docker exec -i bgp pkill -9 bgpd")
+            warm_app_names = ["bgp"]
+        elif container_name == "teamd":
+            log_info("Restarting teamd container...")
+            run_command("config warm_restart enable %s" % container_name)
+            # Send USR1 signal to all teamd instances to stop them
+            # It will prepare teamd for warm-reboot
+            run_command("docker exec -i teamd pkill -USR1 teamd > /dev/null")
+            warm_app_names = ["teamsyncd"]
+        else:
+            return
+        self.clean_app_recon_state(warm_app_names)
+        run_command("systemctl restart %s" % container_name)
+
+        exp_state = "reconciled"
+        self.wait_container_startup(container_name, 180, warm_app_names, exp_state)
+        run_command("config warm_restart disable %s" % container_name)
+        self.set_crash_restart_state(container_name.upper(), STATE_WARM_DONE)
+
+    def warm_restart_call_back(self, *args):
+        for container_name in args:
+            self.warm_restart(container_name)
+            del self.restart_timers[container_name]
+            log_info("Completed warm_restart for %s" % (container_name))
+
+    def process_event_handler(self, key, data):
+        items = key.split('|')
+        if len(items) > 1:
+            docker = items[1].split(':')[0]
+            proc = items[1].split(':')[1]
+            if proc in self.critical_proc:
+                log_info("process_event_handler %s, data:%s" % (key, data))
+                if not self.check_process_alive(proc):
+                    log_warn("Process %s is not running" % (proc))
+                    if docker in self.restart_timers:
+                        log_warn("Process %s is not running, but auto-restart %s already scheduled" % (proc, docker))
+                    else:
+                        retry_count = self.get_retry_count(docker.upper())
+                        if retry_count >= self.max_retries:
+                            sys_log(LOG_CRIT, "%s exceed max_retries %d within %d seconds" % (docker, self.max_retries, self.check_interval))
+                            return
+                        if self.delay == 0:
+                            sys_log(LOG_CRIT, "Process %s is not running. auto-restart %s" % (proc, docker))
+                        else:
+                            sys_log(LOG_CRIT, "Process %s is not running. auto-restart %s in % seconds" % (proc, docker, self.delay))
+                        self.set_crash_restart_state(docker.upper(), STATE_WARM_STARTED)
+                        t = threading.Timer(self.delay, self.warm_restart_call_back, [docker])
+                        self.restart_timers[docker] = t
+                        t.start()
+
+    def init_db_connection(self):
+        self.sysmon_db = SysmonDBConnector()
+        self.sysmon_db.connect(retry_on=True)
+        self.state_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.state_db.connect(self.state_db.STATE_DB, False)
+
+    def main_loop(self):
+        try:
+            wait_docker_startup("database", 10)
+            self.init_db_connection()
+            #self.wait_port_InitDone()
+            self.start()
+
+        except redis.ConnectionError:
+            log_err("main_loop exit as redisDB connection lost.")
+        except Exception:
+            log_err("*ERROR* main_loop Exception: %s" % (traceback.format_exc()))
+
+    def start(self):
+        self.sysmon_db.subscribe(PROC_EVENT_TABLE, lambda table, key, data: self.process_event_handler(key, data))
+        self.sysmon_db.listen()
+
+
+def main():
+    sys_log(LOG_DEBUG, "Script crash-monitor.py start ")
+    sys_log(LOG_DEBUG, "========================================")
+    option, parser = args_parser()
+
+    if not option.delay:
+        option.delay = RESTART_DELAY_TIME
+
+    if not option.limit:
+        option.limit = RESTART_MAX_RETRIES
+
+    if not option.interval:
+        option.interval = RESTART_CHECK_INTERVAL
+
+    if option.stop_crash_monitor:
+        log_info("Stop crash monitor.")
+        kill_last_process()
+        return 0
+
+    log_info("delay:%s" % (option.delay))
+    try:
+        kill_last_process()
+        CrashMonitor(option.processes, int(option.delay)).main_loop()
+    except Exception:
+        log_err("crash monitor Exception: %s" % (traceback.format_exc()))
+
+
+if __name__ == "__main__":
+    # do the UNIX double-fork magic, see Stevens' "Advanced
+    # Programming in the UNIX Environment" for details (ISBN 0201563177)
+    try:
+        pid = os.fork()
+        if pid > 0:
+            # exit first parent
+            sys.exit(0)
+    except OSError, e:
+        print >> sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror)
+        sys.exit(1)
+    # decouple from parent environment
+    os.chdir("/")
+    os.setsid()
+    os.umask(0)
+    # do second fork
+    try:
+        pid = os.fork()
+        if pid > 0:
+            # exit from second parent, print eventual PID before
+            sys.exit(0)
+    except OSError, e:
+        print >> sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror)
+        sys.exit(1)
+    # start the daemon main loop
+    main()
