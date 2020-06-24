@@ -1,6 +1,5 @@
 import imp
 import os
-import mock_tables.dbconnector
 # import file under test i.e. config_mgmt.py
 imp.load_source('config_mgmt', \
     os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py'))
@@ -16,7 +15,7 @@ class TestConfigMgmt(TestCase):
     '''
 
     def setUp(self):
-        config_mgmt.YANG_DIR = "../../sonic-yang-models/yang-models/"
+        config_mgmt.YANG_DIR = "./../../../sonic-yang-models/yang-models/"
         config_mgmt.CONFIG_DB_JSON_FILE = "startConfigDb.json"
         config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "portBreakOutConfigDb.json"
         return
@@ -109,6 +108,7 @@ class TestConfigMgmt(TestCase):
         # mock funcs
         cmdpb.writeConfigDB = MagicMock(return_value=True)
         cmdpb._verifyAsicDB = MagicMock(return_value=True)
+        import mock_tables.dbconnector
         return cmdpb
 
     def generate_args(self, portIdx, laneIdx, curMode, newMode):

@@ -815,7 +815,6 @@ class ConfigMgmtDPB(ConfigMgmt):
         ### Function Code ###
         try:
             configToLoad = dict()
-            #import pdb; pdb.set_trace()
             _recurCreateConfig(diff, inp, outp, configToLoad)
 
         except Exception as e:
