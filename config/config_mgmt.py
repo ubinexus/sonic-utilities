@@ -10,6 +10,7 @@ try:
     from os import system
     from time import sleep as tsleep
     from imp import load_source
+    from jsondiff import diff
 
     # SONiC specific imports
     import sonic_yang
@@ -839,7 +840,6 @@ class ConfigMgmtDPB(ConfigMgmt):
              u'Vlan777': {u'members': {insert: [(92, 'Ethernet2')]}}},
             'PORT': {delete: {u'Ethernet1': {...}}}}
         '''
-        from jsondiff import diff
         return diff(self.configdbJsonIn, self.configdbJsonOut, syntax='symmetric')
 
 # end of class ConfigMgmtDPB
