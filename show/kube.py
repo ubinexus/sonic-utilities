@@ -1,12 +1,8 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
     
-import click
 from show.main import AliasedGroup, cli, run_command
 import os
-import sys
-import syslog
-import argparse
 from swsssdk import ConfigDBConnector
 
 KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf"

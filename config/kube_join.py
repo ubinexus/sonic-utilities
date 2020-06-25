@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-from kube import *
+import .kube
 
 
 def main():
@@ -17,9 +17,9 @@ def main():
     args = parser.parse_args()
 
     if args.command == "join":
-        kube_join(args.async, args.force)
+        kube.kube_join(args.async, args.force)
     elif args.command == "reset":
-        kube_reset()
+        kube.kube_reset()
     else:
         log_msg("Unknown command {}. Understand only 'join' and 'reset'".format(args.command))
         parser.print_help()

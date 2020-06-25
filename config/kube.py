@@ -4,13 +4,11 @@
 import click
 import os
 import sys
-import subprocess
 import syslog
 from crontab import CronTab
 import urllib3
 import tempfile
 import requests
-import argparse
 import fcntl
 import sonic_device_util
 import yaml
@@ -219,11 +217,6 @@ c)  In Master check if all system pods are running good.
 def _do_join(server,insecure):
 
     try:
-        lock_fd = _take_lock()
-        if not lock_fd:
-            log_err("Lock {} is active; Bail out".format(LOCK_FILE))
-            return
-
         _download_file(server, insecure)
 
         run_command("systemctl enable kubelet")
@@ -280,6 +273,11 @@ def kube_reset(drop_cron=True):
     run_command("systemctl disable kubelet")
 
 def kube_join(async_mode=False, force=False):
+    lock_fd = _take_lock()
+    if not lock_fd:
+        log_err("Lock {} is active; Bail out".format(LOCK_FILE))
+        return
+
     db_data = _get_db_data('KUBERNETES_MASTER', 'SERVER')
     if not db_data or 'IP' not in db_data or not db_data['IP']:
         _log_err("Kubernetes server is not configured")
