@@ -43,12 +43,17 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Gearbox](#gearbox)
+  * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
 * [Interface Naming Mode](#interface-naming-mode)
   * [Interface naming mode show commands](#interface-naming-mode-show-commands)
   * [Interface naming mode config commands](#interface-naming-mode-config-commands)
+ * [Interface Vrf binding](#interface-vrf-binding)
+      * [Interface vrf bind & unbind config commands](#interface-vrf-bind-&-unbind-config-commands)
+      * [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
@@ -60,6 +65,11 @@
   * [Reloading Configuration](#reloading-configuration)
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
+ * [Loopback Interfaces](#loopback-interfaces)
+    * [Loopback config commands](#loopback-config-commands)
+* [VRF Configuration](#vrf-configuration)
+    * [VRF show commands](#vrf-show-commands)
+    * [VRF config commands](#vrf-config-commands)
 * [Management VRF](#Management-VRF)
   * [Management VRF Show commands](#management-vrf-show-commands)
   * [Management VRF Config commands](#management-vrf-config-commands)
@@ -271,15 +281,18 @@ This command lists all the possible configuration commands at the top level.
     load                   Import a previous saved config DB dump file.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
+    loopback               Loopback-related configuration tasks.
     mirror_session
     nat                    NAT-related configuration tasks
     platform               Platform-related configuration tasks
     portchannel
     qos
     reload                 Clear current configuration and import a...
+    route                  route-related configuration tasks
     save                   Export current config DB to a file on disk.
     tacacs                 TACACS+ server configuration
     vlan                   VLAN-related configuration tasks
+    vrf                    VRF-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
     container              Modify configuration of containers
@@ -342,6 +355,7 @@ This command displays the full list of show commands available in the software; 
     users                 Show users
     version               Show version information
     vlan                  Show VLAN information
+    vrf                   Show vrf config
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
     container             Show details of container
@@ -2245,6 +2259,56 @@ The list of the WRED profile fields that are configurable is listed in the below
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
 
+## Gearbox
+
+This section explains all the Gearbox PHY show commands that are supported in SONiC.
+
+### Gearbox show commands
+This sub-section contains the show commands that are supported for gearbox phy.
+
+**show gearbox interfaces status**
+
+This command displays information about the gearbox phy interface lanes, speeds and status. Data is displayed for both MAC side and line side of the gearbox phy
+
+- Usage:
+  ```
+  show gearbox interfaces status
+  ```
+
+- Example:
+
+```
+home/admin# show gearbox interfaces status
+  PHY Id    Interface    MAC Lanes    MAC Lane Speed    PHY Lanes    PHY Lane Speed    Line Lanes    Line Lane Speed    Oper    Admin
+--------  -----------  -----------  ----------------  -----------  ----------------  ------------  -----------------  ------  -------
+       1    Ethernet0  25,26,27,28               10G      200,201               20G           206                40G      up       up
+       1    Ethernet4  29,30,31,32               10G      202,203               20G           207                40G      up       up
+       1    Ethernet8  33,34,35,36               10G      204,205               20G           208                40G      up       up
+
+  ```
+
+**show gearbox phys status**
+
+This command displays basic information about the gearbox phys configured on the switch. 
+
+- Usage:
+  ```
+  show gearbox phys status
+  ```
+
+- Example:
+
+```
+/home/admin# show gearbox phys status
+  PHY Id     Name    Firmware
+--------  -------  ----------
+       1  sesto-1        v0.1
+
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#gearbox)
+
+
 ## Update Device Hostname Configuration Commands
 
 This sub-section of commands is used to change device hostname without traffic being impacted.
@@ -2298,7 +2362,9 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
 - Usage:
   ```
   show interfaces counters [-a|--printall] [-p|--period <period>]
-  show interfaces counters rif [-p|--period <period>] <interface_name>
+  show interfaces counters errors
+  show interfaces counters rates 
+  show interfaces counters rif [-p|--period <period>] [-i <interface_name>]
   ```
 
 - Example:
@@ -2313,7 +2379,41 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet16        U   16,679,692,972   13.83 MB/s      0.27%         0    17,605         0   18,206,586,265   17.51 MB/s      0.34%         0         0         0
    Ethernet20        U   47,983,339,172   35.89 MB/s      0.70%         0     2,174         0   58,986,354,359   51.83 MB/s      1.01%         0         0         0
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
+
+  admin@sonic:~$ show interfaces counters -i Ethernet4,Ethernet12-16
+        IFACE    STATE            RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR            TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+  -----------  -------  ---------------  -----------  ---------  --------  --------  --------  ---------------  -----------  ---------  --------  --------  --------
+    Ethernet4        U  453,838,006,636  632.97 MB/s     12.36%         0     1,636         0  388,299,875,056  529.34 MB/s     10.34%         0         0         0
+   Ethernet12        U  458,052,204,029  636.84 MB/s     12.44%         0    17,614         0  388,341,776,615  527.37 MB/s     10.30%         0         0         0
+   Ethernet16        U   16,679,692,972   13.83 MB/s      0.27%         0    17,605         0   18,206,586,265   17.51 MB/s      0.34%         0         0         0
   ```
+
+The "errors" subcommand is used to display the interface errors. 
+
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ show interface counters errors
+      IFACE    STATE    RX_ERR    RX_DRP    RX_OVR    TX_ERR    TX_DRP    TX_OVR
+  -----------  -------  --------  --------  --------  --------  --------  --------
+    Ethernet0        U         0         4         0         0         0         0
+    Ethernet4        U         0         0         0         0         0         0
+    Ethernet8        U         0         1         0         0         0         0
+   Ethernet12        U         0         0         0         0         0         0
+```
+
+The "rates" subcommand is used to disply only the interface rates. 
+
+- Exmaple: 
+  ```
+  admin@str-s6000-acs-11:/usr/bin$ show int counters rates
+      IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    TX_OK    TX_BPS    TX_PPS    TX_UTIL
+  -----------  -------  -------  --------  --------  ---------  -------  --------  --------  ---------
+    Ethernet0        U   467510       N/A       N/A        N/A   466488       N/A       N/A        N/A
+    Ethernet4        U   469679       N/A       N/A        N/A   469245       N/A       N/A        N/A
+    Ethernet8        U   466660       N/A       N/A        N/A   465982       N/A       N/A        N/A
+   Ethernet12        U   466579       N/A       N/A        N/A   466318       N/A       N/A        N/A
+```
+
 
 The "rif" subcommand is used to display l3 interface counters. Layer 3 interfaces include router interfaces, portchannels and vlan interfaces.
 
@@ -2411,7 +2511,6 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
-
 **show interfaces naming_mode**
 
 Refer sub-section [Interface-Naming-Mode](#Interface-Naming-Mode)
@@ -2487,6 +2586,18 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   Ethernet0   101,102      40G   9100   fortyGigE1/1/1      up       up
   ```
 
+- Example (to only display the status for range of interfaces):
+  ```
+  admin@sonic:~$ show interfaces status Ethernet8,Ethernet168-180
+  Interface              Lanes    Speed    MTU            Alias     Oper    Admin    Type   Asym PFC
+  -----------  -----------------  -------  -----  ---------------  ------  -------  ------  ----------
+    Ethernet8      49,50,51,52     100G    9100    hundredGigE3     down     down     N/A         N/A
+  Ethernet168       9,10,11,12     100G    9100    hundredGigE43    down     down     N/A         N/A
+  Ethernet172      13,14,15,16     100G    9100    hundredGigE44    down     down     N/A         N/A
+  Ethernet176  109,110,111,112     100G    9100    hundredGigE45    down     down     N/A         N/A
+  Ethernet180  105,106,107,108     100G    9100    hundredGigE46    down     down     N/A         N/A
+  ```
+
 **show interfaces transceiver**
 
 This command is already explained [here](#Transceivers)
@@ -2501,7 +2612,7 @@ This sub-section explains the following list of configuration on the interfaces.
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
-- config interface  interface_subcommand <interface_name>
+- config interface interface_subcommand <interface_name>
 i.e Interface name comes after the subcommand
 - Ex: config interface startup Ethernet63
 
@@ -2515,7 +2626,7 @@ NOTE: In older versions of SONiC until 201811 release, the command syntax was `c
 **config interface <interface_name> ip add <ip_addr> (Versions <= 201811)**
 
 This command is used for adding the IP address for an interface.
-IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command. 
+IP address for either physical interface or for portchannel or for VLAN interface or for Loopback interface can be configured using this command. 
 While configuring the IP address for the management interface "eth0", users can provide the default gateway IP address as an optional parameter from release 201911. 
 
 
@@ -2667,6 +2778,7 @@ This command is used to administratively shut down either the Physical interface
   *Versions <= 201811*
   ```
   config interface <interface_name> shutdown (for 201811- version)
+  ```
 
 - Example:
 
@@ -2677,6 +2789,11 @@ This command is used to administratively shut down either the Physical interface
   *Versions <= 201811*
   ```
   admin@sonic:~$ sudo config interface Ethernet63 shutdown
+  ```
+
+  shutdown multiple interfaces
+  ```
+  admin@sonic:~$ sudo config interface shutdown Ethernet8,Ethernet16-20,Ethernet32
   ```
 
 **config interface startup <interface_name> (Versions >= 201904)**
@@ -2694,6 +2811,7 @@ This command is used for administratively bringing up the Physical interface or 
   *Versions <= 201811*
   ```
   config interface <interface_name> startup (for 201811- version)
+  ```
 
 - Example:
 
@@ -2704,6 +2822,11 @@ This command is used for administratively bringing up the Physical interface or 
   *Versions <= 201811*
   ```
   admin@sonic:~$ sudo config interface Ethernet63 startup
+  ```
+
+  startup multiple interfaces
+  ```
+  admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
 
 **config interface speed <interface_name> (Versions >= 201904)**
@@ -2732,6 +2855,44 @@ Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot c
 - Example (Versions <= 201811):
   ```
   admin@sonic:~$ sudo config interface Ethernet63 speed 40000
+
+  ```
+
+**config interface transceiver lpmode**
+
+This command is used to enable or disable low-power mode for an SFP transceiver
+
+- Usage:
+
+  ```
+  config interface transceiver lpmode <interface_name> (enable | disable)
+  ```
+
+- Examples:
+
+  ```
+  user@sonic~$ sudo config interface transceiver lpmode Ethernet0 enable
+  Enabling low-power mode for port Ethernet0...  OK
+
+  user@sonic~$ sudo config interface transceiver lpmode Ethernet0 disable
+  Disabling low-power mode for port Ethernet0...  OK
+  ```
+
+**config interface transceiver reset**
+
+This command is used to reset an SFP transceiver
+
+- Usage:
+
+  ```
+  config interface transceiver reset <interface_name>
+  ```
+
+- Examples:
+
+  ```
+  user@sonic~$ sudo config interface transceiver reset Ethernet0
+  Resetting port Ethernet0...  OK
   ```
 
 **config interface mtu <interface_name> (Versions >= 201904)**
@@ -2831,6 +2992,35 @@ The user must log out and log back in for changes to take effect. Note that the 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interface-naming-mode)
 
+## Interface Vrf binding
+
+### Interface vrf bind & unbind config commands
+
+**config interface vrf bind**
+
+This command is used to bind a interface to a vrf.
+By default, all L3 interfaces will be in default vrf. Above vrf bind command will let users bind interface to a vrf.
+
+- Usage:
+  ```
+  config interface vrf bind <interface_name> <vrf_name>
+  ```
+
+**config interface vrf unbind**
+
+This command is used to ubind a interface from a vrf.
+This will move the interface to default vrf.
+
+- Usage:
+  ```
+  config interface vrf unbind <interface_name> <vrf_name>
+  ```
+  
+  ### Interface vrf binding show commands
+  
+  To display interface vrf binding information, user can use show vrf command.  Please refer sub-section [Vrf-show-command](#vrf-show-commands).
+  
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interface-vrf-binding)
 
 ## IP / IPv6
 
@@ -2849,7 +3039,7 @@ This command displays either all the route entries from the routing table or a s
 
 - Usage:
   ```
-  show ip route [<ip_address>]
+  show ip route [<vrf-name>] [<ip_address>]
   ```
 
 - Example:
@@ -2860,12 +3050,9 @@ This command displays either all the route entries from the routing table or a s
          > - selected route, * - FIB route
   S>* 0.0.0.0/0 [200/0] via 10.11.162.254, eth0
   C>* 1.1.0.0/16 is directly connected, Vlan100
-  C>* 10.1.0.1/32 is directly connected, lo
-  C>* 10.1.0.32/32 is directly connected, lo
   C>* 10.1.1.0/31 is directly connected, Ethernet112
   C>* 10.1.1.2/31 is directly connected, Ethernet116
   C>* 10.11.162.0/24 is directly connected, eth0
-  C>* 10.12.0.102/32 is directly connected, lo
   C>* 127.0.0.0/8 is directly connected, lo
   C>* 240.127.1.0/24 is directly connected, docker0
   ```
@@ -2879,6 +3066,27 @@ This command displays either all the route entries from the routing table or a s
     Known via "connected", distance 0, metric 0, best
     * directly connected, Ethernet112
   ```
+
+  - Vrf-name can also be specified to get IPv4 routes programmed in the vrf.
+
+  - Example:
+     ```
+     admin@sonic:~$ show ip route vrf Vrf-red
+       Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route
+       VRF Vrf-red:
+       C>*  11.1.1.1/32 is directly connected, Loopback11, 21:50:47
+       C>*  100.1.1.0/24 is directly connected, Vlan100, 03w1d06h
+       
+     admin@sonic:~$ show ip route vrf Vrf-red 11.1.1.1/32
+       Routing entry for 11.1.1.1/32
+       Known via "connected", distance 0, metric 0, vrf Vrf-red, best
+       Last update 21:57:53 ago
+       * directly connected, Loopback11
+   ```
 
 **show ip interfaces**
 
@@ -2899,16 +3107,20 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ip interfaces
-  Interface      IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
-  -------------  -------------------  ------------  --------------  -------------
-  PortChannel01  10.0.0.56/31         up/down       DEVICE1         10.0.0.57
-  PortChannel02  10.0.0.58/31         up/down       DEVICE2         10.0.0.59
-  PortChannel03  10.0.0.60/31         up/down       DEVICE3         10.0.0.61
-  PortChannel04  10.0.0.62/31         up/down       DEVICE4         10.0.0.63
-  Vlan1000       192.168.0.1/27       up/up         N/A             N/A
-  docker0        240.127.1.1/24       up/down       N/A             N/A
-  eth0           10.3.147.252/23      up/up         N/A             N/A
-  lo             127.0.0.1/8          up/up         N/A             N/A
+  Interface       Master          IPv4 address/mask     Admin/Oper      BGP Neighbor     Neighbor IP     Flags
+  -------------   ------------    ------------------    --------------  -------------    -------------   -------
+  Loopback0                       1.0.0.1/32            up/up           N/A              N/A
+  Loopback11      Vrf-red         11.1.1.1/32           up/up           N/A              N/A
+  Loopback100     Vrf-blue        100.0.0.1/32          up/up           N/A              N/A
+  PortChannel01                   10.0.0.56/31          up/down         DEVICE1          10.0.0.57
+  PortChannel02                   10.0.0.58/31          up/down         DEVICE2          10.0.0.59
+  PortChannel03                   10.0.0.60/31          up/down         DEVICE3          10.0.0.61
+  PortChannel04                   10.0.0.62/31          up/down         DEVICE4          10.0.0.63
+  Vlan100         Vrf-red         1001.1.1/24           up/up           N/A              N/A
+  Vlan1000                        192.168.0.1/27        up/up           N/A              N/A
+  docker0                         240.127.1.1/24        up/down         N/A              N/A
+  eth0                            10.3.147.252/23       up/up           N/A              N/A
+  lo                              127.0.0.1/8           up/up           N/A              N/A
   ```
 
 **show ip protocol**
@@ -2957,7 +3169,7 @@ This command displays either all the IPv6 route entries from the routing table o
 
 - Usage:
   ```
-  show ipv6 route [<ipv6_address>]
+  show ipv6 route [<vrf-name>] [<ipv6_address>]
   ```
 
 - Example:
@@ -2991,6 +3203,29 @@ This command displays either all the IPv6 route entries from the routing table o
     * directly connected, lo
   ```
 
+ Vrf-name can also be specified to get IPv6 routes programmed in the vrf.
+
+  - Example:
+     ```
+     admin@sonic:~$ show ipv6 route vrf Vrf-red
+       Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route
+       VRF Vrf-red:
+            C>*  1100::1/128 is directly connected, Loopback11, 21:50:47           
+            C>*  100::/112 is directly connected, Vlan100, 03w1d06h
+            C>*  fe80::/64 is directly connected, Loopback11, 21:50:47
+            C>*  fe80::/64 is directly connected, Vlan100, 03w1d06h
+            
+      admin@sonic:~$ show ipv6 route vrf Vrf-red 1100::1/128
+        Routing entry for 1100::1/128
+        Known via "connected", distance 0, metric 0, vrf Vrf-red, best
+        Last update 21:57:53 ago
+        * directly connected, Loopback11
+     ```
+
 **show ipv6 interfaces**
 
 This command displays the details about all the Layer3 IPv6 interfaces in the device for which IPv6 address has been assigned.
@@ -3009,16 +3244,18 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ipv6 interfaces
-  Interface      IPv6 address/mask                         Admin/Oper    BGP Neighbor    Neighbor IP
-  -------------  ----------------------------------------  ------------  --------------  -------------
-  Bridge         fe80::7c45:1dff:fe08:cdd%Bridge/64        up/up         N/A             N/A
-  PortChannel01  fc00::71/126                              up/down       DEVICE1         fc00::72
-  PortChannel02  fc00::75/126                              up/down       DEVICE2         fc00::76
-  PortChannel03  fc00::79/126                              up/down       DEVICE3         fc00::7a
-  PortChannel04  fc00::7d/126                              up/down       DEVICE4         fc00::7e
-  Vlan100        fe80::eef4:bbff:fefe:880a%Vlan100/64      up/up         N/A             N/A
-  eth0           fe80::eef4:bbff:fefe:880a%eth0/64         up/up         N/A             N/A
-  lo             fc00:1::32/128                            up/up         N/A             N/A
+  Interface        Master     IPv6 address/mask                          Admin/Oper    BGP Neighbor    Neighbor IP
+  -----------      --------   ----------------------------------------   ------------  --------------  -------------
+  Bridge                      fe80::7c45:1dff:fe08:cdd%Bridge/64         up/up         N/A             N/A
+  Loopback11       Vrf-red    1100::1/128                                up/up
+  PortChannel01               fc00::71/126                               up/down       DEVICE1         fc00::72
+  PortChannel02               fc00::75/126                               up/down       DEVICE2         fc00::76
+  PortChannel03               fc00::79/126                               up/down       DEVICE3         fc00::7a
+  PortChannel04               fc00::7d/126                               up/down       DEVICE4         fc00::7e
+  Vlan100          Vrf-red    100::1/112                                 up/up         N/A             N/A
+                              fe80::eef4:bbff:fefe:880a%Vlan100/64
+  eth0                        fe80::eef4:bbff:fefe:880a%eth0/64          up/up         N/A             N/A
+  lo                          fc00:1::32/128                             up/up         N/A             N/A
   ```
 
 **show ipv6 protocol**
@@ -3200,9 +3437,13 @@ NOTE: Management interface IP address and default route (or specific route) may 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
 
+When user specifies the optional argument "-n" or "--no-service-restart", this command loads the configuration without restarting dependent services
+running on the device. One use case for this option is during boot time when config-setup service loads minigraph configuration and there is no services
+running on the device.
+
 - Usage:
   ```
-  config load_minigraph [-y|--yes]
+  config load_minigraph [-y|--yes] [-n|--no-service-restart]
   ```
 
 - Example:
@@ -3235,9 +3476,13 @@ NOTE: Management interface IP address and default route (or specific route) may 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
 
+When user specifies the optional argument "-n" or "--no-service-restart", this command clear and loads the configuration without restarting dependent services
+running on the device. One use case for this option is during boot time when config-setup service loads existing old configuration and there is no services
+running on the device.
+
 - Usage:
   ```
-  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>]
+  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart]
   ```
 
 - Example:
@@ -3309,6 +3554,73 @@ Saved file can be transferred to remote machines for debugging. If users wants t
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#loading-reloading-and-saving-configuration)
 
+## Loopback Interfaces
+
+### Loopback Config commands
+
+This sub-section explains how to create and delete loopback interfaces.
+
+**config interface loopback**
+
+This command is used to add or delete loopback interfaces.
+It is recommended to use loopback names in the format "Loopbackxxx", where "xxx" is number of 1 to 3 digits. Ex: "Loopback11".
+
+- Usage:
+  ```
+  config loopback (add | del) <loopback_name>
+  ```
+
+- Example (Create the loopback with name "Loopback11"):
+  ```
+  admin@sonic:~$ sudo config loopback add Loopback11
+  ```
+
+## VRF Configuration
+
+### VRF show commands
+
+**show vrf**
+
+This command displays all vrfs configured on the system along with interface binding to the vrf.
+If vrf-name is also provided as part of the command, if the vrf is created it will display all interfaces binding to the vrf, if vrf is not created nothing will be displayed.
+
+- Usage:
+  ```
+  show vrf [<vrf_name>]
+  ```
+
+- Example:
+  ````
+     admin@sonic:~$ show vrf
+     VRF        Interfaces
+     -------    ------------
+     default    Vlan20
+     Vrf-red    Vlan100
+                Loopback11
+     Vrf-blue   Loopback100
+                Loopback102
+  ````  
+
+### VRF config commands
+
+**config vrf add **
+
+This command creates vrf in SONiC system with provided vrf-name.
+
+- Usage:
+ ```
+config vrf add <vrf-name>
+```
+Note: vrf-name should always start with keyword "Vrf"
+
+**config vrf del <vrf-name>**
+
+This command deletes vrf with name vrf-name.
+
+- Usage:
+ ```
+config vrf del <vrf-name>
+```
 
 ## Management VRF
 
@@ -3928,11 +4240,16 @@ This command displays a list of NTP peers known to the server as well as a summa
 - Example:
   ```
   admin@sonic:~$ show ntp
+  synchronised to NTP server (204.2.134.164) at stratum 3
+     time correct to within 326797 ms
+     polling server every 1024 s
+
        remote           refid      st t when poll reach   delay   offset  jitter
   ==============================================================================
    23.92.29.245    .XFAC.          16 u    - 1024    0    0.000    0.000   0.000
   *204.2.134.164   46.233.231.73    2 u  916 1024  377    3.079    0.394   0.128
   ```
+
 
 ### NTP Config Commands
 

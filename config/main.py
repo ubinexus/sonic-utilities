@@ -17,6 +17,7 @@ from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
 from itertools import count, groupby
 from click_default_group import DefaultGroup
+from utilities_common.intf_filter import parse_interface_in_filter
 
 import aaa
 import mlnx
@@ -39,6 +40,11 @@ SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
 DEFAULT_NAMESPACE = ''
+CFG_LOOPBACK_PREFIX = "Loopback"
+CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
+CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
+CFG_LOOPBACK_ID_MAX_VAL = 999
+CFG_LOOPBACK_NO="<0-999>"
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -65,12 +71,8 @@ def log_error(msg):
     syslog.closelog()
 
 
-# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
-# a help message if no subcommand is passed
-class AbbreviationGroup(DefaultGroup):
-    """This subclass of a DefaultGroup supports looking up aliases in a config
-    file and with a bit of magic.
+class AbbreviationGroup(click.Group):
+    """This subclass of click.Group supports abbreviated subgroup/subcommand names
     """
 
     def get_command(self, ctx, cmd_name):
@@ -95,18 +97,15 @@ class AbbreviationGroup(DefaultGroup):
                     shortest = x
 
         if not matches:
-            # No command name matched. Issue Default command.
-            ctx.arg0 = cmd_name
-            cmd_name = self.default_cmd_name
-            return DefaultGroup.get_command(self, ctx, cmd_name)
+            return None
         elif len(matches) == 1:
-            return DefaultGroup.get_command(self, ctx, matches[0])
+            return click.Group.get_command(self, ctx, matches[0])
         else:
             for x in matches:
                 if not x.startswith(shortest):
                     break
             else:
-                return DefaultGroup.get_command(self, ctx, shortest)
+                return click.Group.get_command(self, ctx, shortest)
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
@@ -127,7 +126,7 @@ except KeyError, TypeError:
 
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
     if ((generated_services_list == []) and
         (generated_multi_instance_services == [])):
@@ -166,44 +165,12 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-# API to check if this is a multi-asic device or not.
-def is_multi_asic():
-    num_asics = _get_num_asic()
-
-    if num_asics > 1:
-        return True
-    else:
-        return False
-
-"""In case of Multi-Asic platform, Each ASIC will have a linux network namespace created.
-   So we loop through the databases in different namespaces and depending on the sub_role
-   decide whether this is a front end ASIC/namespace or a back end one.
-"""
-def get_all_namespaces():
-    front_ns = []
-    back_ns = []
-    num_asics = _get_num_asic()
-
-    if is_multi_asic():
-        for asic in range(num_asics):
-            namespace = "{}{}".format(NAMESPACE_PREFIX, asic)
-            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-            config_db.connect()
-
-            metadata = config_db.get_table('DEVICE_METADATA')
-            if metadata['localhost']['sub_role'] == 'FrontEnd':
-                front_ns.append(namespace)
-            elif metadata['localhost']['sub_role'] == 'BackEnd':
-                back_ns.append(namespace)
-
-    return {'front_ns': front_ns, 'back_ns': back_ns}
-
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
-    if not is_multi_asic():
+    if not sonic_device_util.is_multi_npu():
         return True
 
-    namespaces = get_all_namespaces()
+    namespaces = sonic_device_util.get_all_namespaces()
     if namespace in namespaces['front_ns'] + namespaces['back_ns']:
         return True
     else:
@@ -402,87 +369,94 @@ def get_interface_naming_mode():
         mode = "default"
     return mode
 
-def _is_neighbor_ipaddress(ipaddress):
+# Get the local BGP ASN from DEVICE_METADATA
+def get_local_bgp_asn(config_db):
+    metadata = config_db.get_table('DEVICE_METADATA')
+    return metadata['localhost']['bgp_asn']
+
+def _is_neighbor_ipaddress(config_db, ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
     entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress)
     return True if entry else False
 
-def _get_all_neighbor_ipaddresses():
+def _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=False):
     """Returns list of strings containing IP addresses of all BGP neighbors
+       if the flag ignore_local_hosts is set to True, additional check to see if 
+       if the BGP neighbor AS number is same as local BGP AS number, if so ignore that neigbor.
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    return config_db.get_table('BGP_NEIGHBOR').keys()
+    addrs = []
+    bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
+    local_as = get_local_bgp_asn(config_db)
+    for addr, session in bgp_sessions.iteritems():
+        if not ignore_local_hosts or (ignore_local_hosts and local_as != session['asn']):
+            addrs.append(addr)
+    return addrs
 
-def _get_neighbor_ipaddress_list_by_hostname(hostname):
+def _get_neighbor_ipaddress_list_by_hostname(config_db, hostname):
     """Returns list of strings, each containing an IP address of neighbor with
        hostname <hostname>. Returns empty list if <hostname> not a neighbor
     """
     addrs = []
-    config_db = ConfigDBConnector()
-    config_db.connect()
     bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
     for addr, session in bgp_sessions.iteritems():
         if session.has_key('name') and session['name'] == hostname:
             addrs.append(addr)
     return addrs
 
-def _change_bgp_session_status_by_addr(ipaddress, status, verbose):
+def _change_bgp_session_status_by_addr(config_db, ipaddress, status, verbose):
     """Start up or shut down BGP session by IP address
     """
     verb = 'Starting' if status == 'up' else 'Shutting'
     click.echo("{} {} BGP session with neighbor {}...".format(verb, status, ipaddress))
-    config_db = ConfigDBConnector()
-    config_db.connect()
 
     config_db.mod_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
-def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
+def _change_bgp_session_status(config_db, ipaddr_or_hostname, status, verbose):
     """Start up or shut down BGP session by IP address or hostname
     """
     ip_addrs = []
 
     # If we were passed an IP address, convert it to lowercase because IPv6 addresses were
     # stored in ConfigDB with all lowercase alphabet characters during minigraph parsing
-    if _is_neighbor_ipaddress(ipaddr_or_hostname.lower()):
+    if _is_neighbor_ipaddress(config_db, ipaddr_or_hostname.lower()):
         ip_addrs.append(ipaddr_or_hostname.lower())
     else:
         # If <ipaddr_or_hostname> is not the IP address of a neighbor, check to see if it's a hostname
-        ip_addrs = _get_neighbor_ipaddress_list_by_hostname(ipaddr_or_hostname)
+        ip_addrs = _get_neighbor_ipaddress_list_by_hostname(config_db, ipaddr_or_hostname)
 
     if not ip_addrs:
-        click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
+        return False
 
     for ip_addr in ip_addrs:
-        _change_bgp_session_status_by_addr(ip_addr, status, verbose)
+        _change_bgp_session_status_by_addr(config_db, ip_addr, status, verbose)
 
-def _validate_bgp_neighbor(neighbor_ip_or_hostname):
+    return True
+
+def _validate_bgp_neighbor(config_db, neighbor_ip_or_hostname):
     """validates whether the given ip or host name is a BGP neighbor
     """
     ip_addrs = []
-    if _is_neighbor_ipaddress(neighbor_ip_or_hostname.lower()):
+    if _is_neighbor_ipaddress(config_db, neighbor_ip_or_hostname.lower()):
         ip_addrs.append(neighbor_ip_or_hostname.lower())
     else:
-        ip_addrs = _get_neighbor_ipaddress_list_by_hostname(neighbor_ip_or_hostname.upper())
-
-    if not ip_addrs:
-        click.get_current_context().fail("Could not locate neighbor '{}'".format(neighbor_ip_or_hostname))
+        ip_addrs = _get_neighbor_ipaddress_list_by_hostname(config_db, neighbor_ip_or_hostname.upper())
 
     return ip_addrs
 
-def _remove_bgp_neighbor_config(neighbor_ip_or_hostname):
+def _remove_bgp_neighbor_config(config_db, neighbor_ip_or_hostname):
     """Removes BGP configuration of the given neighbor
     """
-    ip_addrs = _validate_bgp_neighbor(neighbor_ip_or_hostname)
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    ip_addrs = _validate_bgp_neighbor(config_db, neighbor_ip_or_hostname)
+
+    if not ip_addrs:
+        return False
 
     for ip_addr in ip_addrs:
         config_db.mod_entry('bgp_neighbor', ip_addr, None)
         click.echo("Removed configuration of BGP neighbor {}".format(ip_addr))
+
+    return True
 
 def _change_hostname(hostname):
     current_hostname = os.uname()[1]
@@ -513,32 +487,6 @@ def _clear_qos():
     for qos_table in QOS_TABLE_NAMES:
         config_db.delete_table(qos_table)
 
-def _get_hwsku():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    metadata = config_db.get_table('DEVICE_METADATA')
-    return metadata['localhost']['hwsku']
-
-def _get_platform():
-    with open('/host/machine.conf') as machine_conf:
-        for line in machine_conf:
-            tokens = line.split('=')
-            if tokens[0].strip() == 'onie_platform' or tokens[0].strip() == 'aboot_platform':
-                return tokens[1].strip()
-    return ''
-
-def _get_num_asic():
-    platform = _get_platform()
-    num_asic = 1
-    asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
-    if os.path.isfile(asic_conf_file):
-        with open(asic_conf_file) as conf_file:
-            for line in conf_file:
-                line_info = line.split('=')
-                if line_info[0].lower() == "num_asic":
-                    num_asic = int(line_info[1])
-    return num_asic
-
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
         return None
@@ -561,9 +509,36 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
 
+
+def _get_disabled_services_list():
+    disabled_services_list = []
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    feature_table = config_db.get_table('FEATURE')
+    if feature_table is not None:
+        for feature_name in feature_table.keys():
+            if not feature_name:
+                log_warning("Feature is None")
+                continue
+
+            status = feature_table[feature_name]['status']
+            if not status:
+                log_warning("Status of feature '{}' is None".format(feature_name))
+                continue
+
+        if status == "disabled":
+            disabled_services_list.append(feature_name)
+    else:
+        log_warning("Unable to retreive FEATURE table")
+
+    return disabled_services_list
+
+
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
     services_to_stop = [
+        'restapi',
         'swss',
         'lldp',
         'pmon',
@@ -576,6 +551,7 @@ def _stop_services():
         services_to_stop.remove('pmon')
 
     execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
+
 
 def _reset_failed_services():
     services_to_reset = [
@@ -594,10 +570,11 @@ def _reset_failed_services():
         'syncd',
         'teamd',
         'nat',
-        'sflow'
+        'sflow',
+        'restapi'
     ]
-    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
+    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
 
 def _restart_services():
@@ -614,7 +591,14 @@ def _restart_services():
         'hostcfgd',
         'nat',
         'sflow',
+        'restapi'
     ]
+
+    disable_services = _get_disabled_services_list()
+
+    for service in disable_services:
+        if service in services_to_restart:
+            services_to_restart.remove(service)
 
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
@@ -660,11 +644,11 @@ def save(filename):
     """Export current config DB to a file on disk.\n
        <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
     """
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -699,6 +683,7 @@ def save(filename):
         else:
             command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, file)
 
+        log_info("'save' executing...")
         run_command(command, display_cmd=True)
 
 @config.command()
@@ -716,11 +701,11 @@ def load(filename, yes):
     if not yes:
         click.confirm(message, abort=True)
 
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -760,14 +745,16 @@ def load(filename, yes):
         else:
             command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, file)
 
+        log_info("'load' executing...")
         run_command(command, display_cmd=True)
 
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
+@click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.argument('filename', required=False)
-def reload(filename, yes, load_sysinfo):
+def reload(filename, yes, load_sysinfo, no_service_restart):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -781,11 +768,11 @@ def reload(filename, yes, load_sysinfo):
 
     log_info("'reload' executing...")
 
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -807,8 +794,9 @@ def reload(filename, yes, load_sysinfo):
             cfg_hwsku = cfg_hwsku.strip()
 
     #Stop services before config push
-    log_info("'reload' stopping services...")
-    _stop_services()
+    if not no_service_restart:
+        log_info("'reload' stopping services...")
+        _stop_services()
 
     """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
         service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -880,9 +868,10 @@ def reload(filename, yes, load_sysinfo):
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
-    _reset_failed_services()
-    log_info("'reload' restarting services...")
-    _restart_services()
+    if not no_service_restart:
+        _reset_failed_services()
+        log_info("'reload' restarting services...")
+        _restart_services()
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -890,6 +879,7 @@ def reload(filename, yes, load_sysinfo):
 @click.argument('filename', default='/etc/sonic/device_desc.xml', type=click.Path(exists=True))
 def load_mgmt_config(filename):
     """Reconfigure hostname and mgmt interface based on device description file."""
+    log_info("'load_mgmt_config' executing...")
     command = "{} -M {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     #FIXME: After config DB daemon for hostname and mgmt interface is implemented, we'll no longer need to do manual configuration here
@@ -911,7 +901,8 @@ def load_mgmt_config(filename):
 @config.command("load_minigraph")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
-def load_minigraph():
+@click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
+def load_minigraph(no_service_restart):
     """Reconfigure based on minigraph."""
     log_info("'load_minigraph' executing...")
 
@@ -926,8 +917,9 @@ def load_minigraph():
         device_type = device_type.strip()
 
     #Stop services before config push
-    log_info("'load_minigraph' stopping services...")
-    _stop_services()
+    if not no_service_restart:
+        log_info("'load_minigraph' stopping services...")
+        _stop_services()
 
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
@@ -962,20 +954,26 @@ def load_minigraph():
                 run_command('{} pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
             run_command("{} config qos reload".format(ns_cmd_prefix), display_cmd=True)
 
-        # Write latest db version string into db
-        db_migrator='/usr/bin/db_migrator.py'
-        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-            run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
-
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-
+    
+    # Write latest db version string into db
+    db_migrator='/usr/bin/db_migrator.py'
+    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+        for namespace in namespace_list:
+            if namespace is DEFAULT_NAMESPACE:
+                cfggen_namespace_option = " "
+            else:
+                cfggen_namespace_option = " -n {}".format(namespace)
+            run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+     
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
-    _reset_failed_services()
-    #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
-    log_info("'load_minigraph' restarting services...")
-    _restart_services()
+    if not no_service_restart:
+        _reset_failed_services()
+        #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
+        log_info("'load_minigraph' restarting services...")
+        _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 
@@ -1078,9 +1076,6 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """
     Add mirror session
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     session_info = {
             "src_ip": src_ip,
             "dst_ip": dst_ip,
@@ -1096,8 +1091,21 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
 
     if queue is not None:
         session_info['queue'] = queue
-
-    config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+    
+    """
+    For multi-npu platforms we need to program all front asic namespaces
+    """
+    namespaces = sonic_device_util.get_all_namespaces()
+    if not namespaces['front_ns']:
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+    else:
+        per_npu_configdb = {}
+        for front_asic_namespaces in namespaces['front_ns']:
+            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces].connect()
+            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
 
 @mirror_session.command()
 @click.argument('session_name', metavar='<session_name>', required=True)
@@ -1105,10 +1113,21 @@ def remove(session_name):
     """
     Delete mirror session
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    config_db.set_entry("MIRROR_SESSION", session_name, None)
 
+    """
+    For multi-npu platforms we need to program all front asic namespaces
+    """
+    namespaces = sonic_device_util.get_all_namespaces()
+    if not namespaces['front_ns']:
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.set_entry("MIRROR_SESSION", session_name, None)
+    else:
+        per_npu_configdb = {}
+        for front_asic_namespaces in namespaces['front_ns']:
+            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces].connect()
+            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
 #
 # 'pfcwd' group ('config pfcwd ...')
 #
@@ -1201,17 +1220,22 @@ def start_default(verbose):
 @config.group(cls=AbbreviationGroup)
 @click.pass_context
 def qos(ctx):
+    """QoS-related configuration tasks"""
     pass
 
 @qos.command('clear')
 def clear():
+    """Clear QoS configuration"""
+    log_info("'qos clear' executing...")
     _clear_qos()
 
 @qos.command('reload')
 def reload():
+    """Reload QoS configuration"""
+    log_info("'qos reload' executing...")
     _clear_qos()
-    platform = _get_platform()
-    hwsku = _get_hwsku()
+    platform = sonic_device_util.get_platform()
+    hwsku = sonic_device_util.get_hwsku()
     buffer_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'buffers.json.j2')
     if os.path.isfile(buffer_template_file):
         command = "{} -d -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
@@ -1340,6 +1364,8 @@ def add_vlan(ctx, vid):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def del_vlan(ctx, vid):
+    """Delete VLAN"""
+    log_info("'vlan del {}' executing...".format(vid))
     db = ctx.obj['db']
     keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
     for k in keys:
@@ -1362,6 +1388,8 @@ def vlan_member(ctx):
 @click.option('-u', '--untagged', is_flag=True)
 @click.pass_context
 def add_vlan_member(ctx, vid, interface_name, untagged):
+    """Add VLAN member"""
+    log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1400,6 +1428,8 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.pass_context
 def del_vlan_member(ctx, vid, interface_name):
+    """Delete VLAN member"""
+    log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -2055,18 +2085,53 @@ def num_dumps(kdump_num_dumps):
 @shutdown.command()
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
-    """Shut down all BGP sessions"""
-    bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
-    for ipaddress in bgp_neighbor_ip_list:
-        _change_bgp_session_status_by_addr(ipaddress, 'down', verbose)
+    """Shut down all BGP sessions
+       In the case of Multi-Asic platform, we shut only the EBGP sessions with external neighbors.
+    """
+    log_info("'bgp shutdown all' executing...")
+    namespaces = [DEFAULT_NAMESPACE]
+    ignore_local_hosts = False
+
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
+        namespaces = ns_list['front_ns']
+        ignore_local_hosts = True
+
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
+        for ipaddress in bgp_neighbor_ip_list:
+            _change_bgp_session_status_by_addr(config_db, ipaddress, 'down', verbose)
 
 # 'neighbor' subcommand
 @shutdown.command()
 @click.argument('ipaddr_or_hostname', metavar='<ipaddr_or_hostname>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
-    """Shut down BGP session by neighbor IP address or hostname"""
-    _change_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
+    """Shut down BGP session by neighbor IP address or hostname.
+       User can specify either internal or external BGP neighbor to shutdown
+    """
+    log_info("'bgp shutdown neighbor {}' executing...".format(ipaddr_or_hostname))
+    namespaces = [DEFAULT_NAMESPACE]
+    found_neighbor = False
+
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
+        namespaces = ns_list['front_ns'] + ns_list['back_ns']
+
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+        if _change_bgp_session_status(config_db, ipaddr_or_hostname, 'down', verbose):
+            found_neighbor = True
+
+    if not found_neighbor:
+        click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
 
 @bgp.group(cls=AbbreviationGroup)
 def startup():
@@ -2077,18 +2142,53 @@ def startup():
 @startup.command()
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
-    """Start up all BGP sessions"""
-    bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
-    for ipaddress in bgp_neighbor_ip_list:
-        _change_bgp_session_status(ipaddress, 'up', verbose)
+    """Start up all BGP sessions
+       In the case of Multi-Asic platform, we startup only the EBGP sessions with external neighbors.
+    """
+    log_info("'bgp startup all' executing...")
+    namespaces = [DEFAULT_NAMESPACE]
+    ignore_local_hosts = False
+
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
+        namespaces = ns_list['front_ns']
+        ignore_local_hosts = True
+
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
+        for ipaddress in bgp_neighbor_ip_list: 
+            _change_bgp_session_status_by_addr(config_db, ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
 @startup.command()
 @click.argument('ipaddr_or_hostname', metavar='<ipaddr_or_hostname>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
-    """Start up BGP session by neighbor IP address or hostname"""
-    _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
+    log_info("'bgp startup neighbor {}' executing...".format(ipaddr_or_hostname))
+    """Start up BGP session by neighbor IP address or hostname.
+       User can specify either internal or external BGP neighbor to startup
+    """
+    namespaces = [DEFAULT_NAMESPACE]
+    found_neighbor = False
+
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
+        namespaces = ns_list['front_ns'] + ns_list['back_ns']
+
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+        if _change_bgp_session_status(config_db, ipaddr_or_hostname, 'up', verbose):
+            found_neighbor = True
+
+    if not found_neighbor:
+        click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
 
 #
 # 'remove' subgroup ('config bgp remove ...')
@@ -2102,8 +2202,26 @@ def remove():
 @remove.command('neighbor')
 @click.argument('neighbor_ip_or_hostname', metavar='<neighbor_ip_or_hostname>', required=True)
 def remove_neighbor(neighbor_ip_or_hostname):
-    """Deletes BGP neighbor configuration of given hostname or ip from devices"""
-    _remove_bgp_neighbor_config(neighbor_ip_or_hostname)
+    """Deletes BGP neighbor configuration of given hostname or ip from devices
+       User can specify either internal or external BGP neighbor to remove
+    """
+    namespaces = [DEFAULT_NAMESPACE]
+    removed_neighbor = False
+
+    if sonic_device_util.is_multi_npu():
+        ns_list = sonic_device_util.get_all_namespaces()
+        namespaces = ns_list['front_ns'] + ns_list['back_ns']
+
+    # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
+    # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+        if _remove_bgp_neighbor_config(config_db, neighbor_ip_or_hostname):
+            removed_neighbor = True
+
+    if not removed_neighbor:
+        click.get_current_context().fail("Could not locate neighbor '{}'".format(neighbor_ip_or_hostname))
 
 #
 # 'interface' group ('config interface ...')
@@ -2127,25 +2245,33 @@ def interface(ctx):
 @click.pass_context
 def startup(ctx, interface_name):
     """Start up interface"""
+
     config_db = ctx.obj['config_db']
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+    intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
+         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    if interface_name.startswith("Ethernet"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-        else:
-            config_db.mod_entry("PORT", interface_name, {"admin_status": "up"})
-    elif interface_name.startswith("PortChannel"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-        else:
-            config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "up"})
+    log_info("'interface startup {}' executing...".format(interface_name))
+    port_dict = config_db.get_table('PORT')
+    for port_name in port_dict.keys():
+        if port_name in intf_fs:
+            config_db.mod_entry("PORT", port_name, {"admin_status": "up"})
+
+    portchannel_list = config_db.get_table("PORTCHANNEL")
+    for po_name in portchannel_list.keys():
+        if po_name in intf_fs:
+            config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
+
+    subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
+    for sp_name in subport_list.keys():
+        if sp_name in intf_fs:
+            config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "up"})
+
 #
 # 'shutdown' subcommand
 #
@@ -2155,25 +2281,31 @@ def startup(ctx, interface_name):
 @click.pass_context
 def shutdown(ctx, interface_name):
     """Shut down interface"""
+    log_info("'interface shutdown {}' executing...".format(interface_name))
     config_db = ctx.obj['config_db']
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    if interface_name.startswith("Ethernet"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "down"})
-        else:
-            config_db.mod_entry("PORT", interface_name, {"admin_status": "down"})
-    elif interface_name.startswith("PortChannel"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "down"})
-        else:
-            config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "down"})
+    port_dict = config_db.get_table('PORT')
+    for port_name in port_dict.keys():
+        if port_name in intf_fs:
+            config_db.mod_entry("PORT", port_name, {"admin_status": "down"})
+
+    portchannel_list = config_db.get_table("PORTCHANNEL")
+    for po_name in portchannel_list.keys():
+        if po_name in intf_fs:
+            config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
+
+    subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
+    for sp_name in subport_list.keys():
+        if sp_name in intf_fs:
+            config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "down"})
 
 #
 # 'speed' subcommand
@@ -2190,6 +2322,8 @@ def speed(ctx, interface_name, interface_speed, verbose):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose:
@@ -2235,6 +2369,25 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
             ctx.fail("'interface_name' is None!")
 
     command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    if verbose:
+        command += " -vv"
+    run_command(command, display_cmd=verbose)
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_fec', metavar='<interface_fec>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def fec(ctx, interface_name, interface_fec, verbose):
+    """Set interface fec"""
+    if interface_fec not in ["rs", "fc", "none"]:
+        ctx.fail("'fec not in ['rs', 'fc', 'none']!")
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    command = "portconfig -p {} -f {}".format(interface_name, interface_fec)
     if verbose:
         command += " -vv"
     run_command(command, display_cmd=verbose)
@@ -2343,6 +2496,57 @@ def remove(ctx, interface_name, ip_addr):
         run_command(command)
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
+
+#
+# 'transceiver' subgroup ('config interface transceiver ...')
+#
+
+@interface.group(cls=AbbreviationGroup)
+@click.pass_context
+def transceiver(ctx):
+    """SFP transceiver configuration"""
+    pass
+
+#
+# 'lpmode' subcommand ('config interface transceiver lpmode ...')
+#
+
+@transceiver.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('state', metavar='(enable|disable)', type=click.Choice(['enable', 'disable']))
+@click.pass_context
+def lpmode(ctx, interface_name, state):
+    """Enable/disable low-power mode for SFP transceiver module"""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    cmd = "sudo sfputil lpmode {} {}".format("on" if state == "enable" else "off", interface_name)
+    run_command(cmd)
+
+#
+# 'reset' subcommand ('config interface reset ...')
+#
+
+@transceiver.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def reset(ctx, interface_name):
+    """Reset SFP transceiver module"""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    cmd = "sudo sfputil reset {}".format(interface_name)
+    run_command(cmd)
 
 #
 # 'vrf' subgroup ('config interface vrf ...')
@@ -2692,6 +2896,7 @@ def update():
 @click.argument('file_name', required=True)
 def full(file_name):
     """Full update of ACL rules configuration."""
+    log_info("'acl update full {}' executing...".format(file_name))
     command = "acl-loader update full {}".format(file_name)
     run_command(command)
 
@@ -2704,6 +2909,7 @@ def full(file_name):
 @click.argument('file_name', required=True)
 def incremental(file_name):
     """Incremental update of ACL rule configuration."""
+    log_info("'acl update incremental {}' executing...".format(file_name))
     command = "acl-loader update incremental {}".format(file_name)
     run_command(command)
 
@@ -2794,6 +3000,7 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     """ECN-related configuration tasks"""
+    log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
     if rmax is not None: command += " -rmax %d" % rmax
     if rmin is not None: command += " -rmin %d" % rmin
@@ -2944,6 +3151,71 @@ def naming_mode_default():
 def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
+
+@config.group()
+def is_loopback_name_valid(loopback_name):
+    """Loopback name validation
+    """
+    
+    if loopback_name[:CFG_LOOPBACK_PREFIX_LEN] != CFG_LOOPBACK_PREFIX :
+        return False
+    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or 
+          int(loopback_name[CFG_LOOPBACK_PREFIX_LEN:]) > CFG_LOOPBACK_ID_MAX_VAL) :
+        return False
+    if len(loopback_name) > CFG_LOOPBACK_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
+
+#
+# 'loopback' group ('config loopback ...')
+#
+@config.group()
+@click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def loopback(ctx, redis_unix_socket_path):
+    """Loopback-related configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db}
+
+@loopback.command('add')
+@click.argument('loopback_name', metavar='<loopback_name>', required=True)
+@click.pass_context
+def add_loopback(ctx, loopback_name):
+    config_db = ctx.obj['db']
+    if is_loopback_name_valid(loopback_name) is False:
+        ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
+                .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
+
+    lo_intfs = [k for k,v in config_db.get_table('LOOPBACK_INTERFACE').iteritems() if type(k) != tuple]
+    if loopback_name in lo_intfs:
+        ctx.fail("{} already exists".format(loopback_name))
+
+    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
+
+@loopback.command('del')
+@click.argument('loopback_name', metavar='<loopback_name>', required=True)
+@click.pass_context
+def del_loopback(ctx, loopback_name):
+    config_db = ctx.obj['db']
+    if is_loopback_name_valid(loopback_name) is False:
+        ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
+                .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
+
+    lo_config_db = config_db.get_table('LOOPBACK_INTERFACE')
+    lo_intfs = [k for k,v in lo_config_db.iteritems() if type(k) != tuple]
+    if loopback_name not in lo_intfs:
+        ctx.fail("{} does not exists".format(loopback_name))
+
+    ips = [ k[1] for k in lo_config_db if type(k) == tuple and k[0] == loopback_name ]
+    for ip in ips:
+        config_db.set_entry('LOOPBACK_INTERFACE', (loopback_name, ip), None)
+
+    config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, None)
+
 
 @config.group(cls=AbbreviationGroup)
 def ztp():

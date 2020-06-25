@@ -11,7 +11,6 @@ import ipaddress
 from pkg_resources import parse_version
 
 import click
-from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
 
@@ -119,12 +118,9 @@ class InterfaceAliasConverter(object):
 _config = None
 
 
-# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
-# a help message if no subcommand is passed
-class AliasedGroup(DefaultGroup):
-    """This subclass of a DefaultGroup supports looking up aliases in a config
-    file and with a bit of magic.
+class AliasedGroup(click.Group):
+    """This subclass of click.Group supports abbreviations and
+       looking up aliases in a config file with a bit of magic.
     """
 
     def get_command(self, ctx, cmd_name):
@@ -155,12 +151,9 @@ class AliasedGroup(DefaultGroup):
         matches = [x for x in self.list_commands(ctx)
                    if x.lower().startswith(cmd_name.lower())]
         if not matches:
-            # No command name matched. Issue Default command.
-            ctx.arg0 = cmd_name
-            cmd_name = self.default_cmd_name
-            return DefaultGroup.get_command(self, ctx, cmd_name)
+            return None
         elif len(matches) == 1:
-            return DefaultGroup.get_command(self, ctx, matches[0])
+            return click.Group.get_command(self, ctx, matches[0])
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 
@@ -643,16 +636,19 @@ def is_mgmt_vrf_enabled(ctx):
         cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
 
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout = p.communicate()[0]
-        if p.returncode == 0:
-            mvrf_dict = json.loads(stdout)
+        try :
+            mvrf_dict = json.loads(p.stdout.read())
+        except ValueError:
+            print("MGMT_VRF_CONFIG is not present.")
+            return False
 
-            # if the mgmtVrfEnabled attribute is configured, check the value
-            # and return True accordingly.
-            if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
-                if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
-                    #ManagementVRF is enabled. Return True.
-                    return True
+        # if the mgmtVrfEnabled attribute is configured, check the value
+        # and return True accordingly.
+        if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+            if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
+                #ManagementVRF is enabled. Return True.
+                return True
+
     return False
 
 #
@@ -685,7 +681,7 @@ def mgmt_vrf(ctx,routes):
 # 'management_interface' group ("show management_interface ...")
 #
 
-@cli.group(name='management_interface', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='management_interface', cls=AliasedGroup)
 def management_interface():
     """Show management interface parameters"""
     pass
@@ -751,7 +747,7 @@ def snmptrap (ctx):
 # 'interfaces' group ("show interfaces ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def interfaces():
     """Show details of the network interfaces"""
     pass
@@ -796,7 +792,7 @@ def alias(interfacename):
 #
 # 'neighbor' group ###
 #
-@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+@interfaces.group(cls=AliasedGroup)
 def neighbor():
     """Show neighbor related information"""
     pass
@@ -853,7 +849,7 @@ def expected(interfacename):
 
     click.echo(tabulate(body, header))
 
-@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+@interfaces.group(cls=AliasedGroup)
 def transceiver():
     """Show SFP Transceiver information"""
     pass
@@ -951,9 +947,10 @@ def status(interfacename, verbose):
 @interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-p', '--period')
+@click.option('-i', '--interface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, printall):
+def counters(ctx, verbose, period, interface, printall):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
@@ -963,8 +960,32 @@ def counters(ctx, verbose, period, printall):
             cmd += " -a"
         if period is not None:
             cmd += " -p {}".format(period)
+        if interface is not None:
+            cmd += " -i {}".format(interface)
 
         run_command(cmd, display_cmd=verbose)
+
+# 'errors' subcommand ("show interfaces counters errors")
+@counters.command()
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def errors(verbose, period):
+    """Show interface counters errors"""
+    cmd = "portstat -e"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    run_command(cmd, display_cmd=verbose)
+
+# 'rates' subcommand ("show interfaces counters rates")
+@counters.command()
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def rates(verbose, period):
+    """Show interface counters rates"""
+    cmd = "portstat -R"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    run_command(cmd, display_cmd=verbose)
 
 # 'counters' subcommand ("show interfaces counters rif")
 @counters.command()
@@ -994,7 +1015,7 @@ def portchannel(verbose):
 # 'subinterfaces' group ("show subinterfaces ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def subinterfaces():
     """Show details of the sub port interfaces"""
     pass
@@ -1025,7 +1046,7 @@ def status(subinterfacename, verbose):
 # 'pfc' group ("show pfc ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def pfc():
     """Show details of the priority-flow-control (pfc) """
     pass
@@ -1067,7 +1088,7 @@ def asymmetric(interface):
     run_command(cmd)
 
 # 'pfcwd' subcommand ("show pfcwd...")
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def pfcwd():
     """Show details of the pfc watchdog """
     pass
@@ -1103,7 +1124,7 @@ def naming_mode(verbose):
 # 'watermark' group ("show watermark telemetry interval")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def watermark():
     """Show details of watermark """
     pass
@@ -1124,7 +1145,7 @@ def show_tm_interval():
 # 'queue' group ("show queue ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def queue():
     """Show details of the queues """
     pass
@@ -1198,7 +1219,7 @@ def pwm_q_multi():
 # 'priority-group' group ("show priority-group ...")
 #
 
-@cli.group(name='priority-group', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='priority-group', cls=AliasedGroup)
 def priority_group():
     """Show details of the PGs """
 
@@ -1241,7 +1262,7 @@ def pwm_pg_shared():
 # 'buffer_pool' group ("show buffer_pool ...")
 #
 
-@cli.group(name='buffer_pool', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='buffer_pool', cls=AliasedGroup)
 def buffer_pool():
     """Show details of the buffer pools"""
 
@@ -1299,7 +1320,7 @@ def route_map(route_map_name, verbose):
 #
 
 # This group houses IP (i.e., IPv4) commands and subgroups
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def ip():
     """Show IP (IPv4) commands"""
     pass
@@ -1482,7 +1503,7 @@ def protocol(verbose):
 #
 
 # This group houses IPv6-related commands and subgroups
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def ipv6():
     """Show IPv6 commands"""
     pass
@@ -1525,6 +1546,7 @@ def interfaces():
 
         if netifaces.AF_INET6 in ipaddresses:
             ifaddresses = []
+            neighbor_info = []
             for ipaddr in ipaddresses[netifaces.AF_INET6]:
                 neighbor_name = 'N/A'
                 neighbor_ip = 'N/A'
@@ -1536,6 +1558,7 @@ def interfaces():
                     neighbor_ip = bgp_peer[local_ip][1]
                 except Exception:
                     pass
+                neighbor_info.append([neighbor_name, neighbor_ip])
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -1546,9 +1569,11 @@ def interfaces():
                 master = get_if_master(iface)
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
-            for ifaddr in ifaddresses[1:]:
-                data.append(["", "", ifaddr[1], ""])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                neighbor_info.pop(0)
+                for ifaddr in ifaddresses[1:]:
+                    data.append(["", "", ifaddr[1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                    neighbor_info.pop(0)
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
@@ -1600,7 +1625,7 @@ elif routing_stack == "frr":
 # 'lldp' group ("show lldp ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def lldp():
     """LLDP (Link Layer Discovery Protocol) information"""
     pass
@@ -1611,13 +1636,13 @@ def lldp():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def neighbors(interfacename, verbose):
     """Show LLDP neighbors"""
-    cmd = "sudo lldpctl"
+    cmd = "sudo lldpshow -d"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-        cmd += " {}".format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1654,7 +1679,7 @@ def get_hw_info_dict():
     hw_info_dict['asic_type'] = asic_type
     return hw_info_dict
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def platform():
     """Show platform-specific hardware info"""
     pass
@@ -1707,6 +1732,16 @@ def ssdhealth(device, verbose, vendor):
     options += " -e" if vendor else ""
     run_command(cmd + options, display_cmd=verbose)
 
+@platform.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
+def pcieinfo(check, verbose):
+    """Show Device PCIe Info"""
+    cmd = "pcieutil pcie_show"
+    if check:
+        cmd = "pcieutil pcie_check"
+    run_command(cmd, display_cmd=verbose)
+
 # 'fan' subcommand ("show platform fan")
 @platform.command()
 def fan():
@@ -1722,11 +1757,22 @@ def temperature():
     run_command(cmd)
 
 # 'firmware' subcommand ("show platform firmware")
-@platform.command()
-def firmware():
-    """Show firmware status information"""
-    cmd = "fwutil show status"
-    run_command(cmd)
+@platform.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def firmware(args):
+    """Show firmware information"""
+    cmd = "fwutil show {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
 
 #
 # 'logging' command ("show logging")
@@ -1803,7 +1849,7 @@ def environment(verbose):
 # 'processes' group ("show processes ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def processes():
     """Display process information"""
     pass
@@ -1866,7 +1912,7 @@ def techsupport(since, verbose):
 # 'runningconfiguration' group ("show runningconfiguration")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def runningconfiguration():
     """Show current running configuration information"""
     pass
@@ -1980,7 +2026,7 @@ def syslog(verbose):
 # 'startupconfiguration' group ("show startupconfiguration ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def startupconfiguration():
     """Show startup configuration information"""
     pass
@@ -2013,19 +2059,21 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ntp(ctx, verbose):
     """Show NTP information"""
+    ntpstat_cmd = "ntpstat"
     ntpcmd = "ntpq -p -n"
     if is_mgmt_vrf_enabled(ctx) is True:
         #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version 
         os_info =  os.uname()
         release = os_info[2].split('-')
         if parse_version(release[0]) > parse_version("4.9.0"):
-            ntpcmd = "ip vrf exec mgmt ntpq -p -n"
+            ntpstat_cmd = "sudo ip vrf exec mgmt ntpstat"
+            ntpcmd = "sudo ip vrf exec mgmt ntpq -p -n"
         else:
-            ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+            ntpstat_cmd = "sudo cgexec -g l3mdev:mgmt ntpstat"
+            ntpcmd = "sudo cgexec -g l3mdev:mgmt ntpq -p -n"
 
+    run_command(ntpstat_cmd, display_cmd=verbose)
     run_command(ntpcmd, display_cmd=verbose)
-
-
 
 #
 # 'uptime' command ("show uptime")
@@ -2052,7 +2100,7 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def vlan():
     """Show VLAN information"""
     pass
@@ -2060,7 +2108,7 @@ def vlan():
 #
 # 'kdump command ("show kdump ...")
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=True, )
+@cli.group(cls=AliasedGroup)
 def kdump():
     """Show kdump configuration, status and information """
     pass
@@ -2083,7 +2131,7 @@ def enabled():
     else:
         click.echo("kdump is disabled")
 
-@kdump.command('status', default=True)
+@kdump.command('status')
 def status():
     """Show kdump status"""
     run_command("sonic-kdump-config --status")
@@ -2456,7 +2504,7 @@ def show_sflow_global(config_db):
 # 'acl' group ###
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def acl():
     """Show ACL related information"""
     pass
@@ -2498,7 +2546,7 @@ def table(table_name, verbose):
 # 'dropcounters' group ###
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def dropcounters():
     """Show drop counter related information"""
     pass
@@ -2609,7 +2657,7 @@ def line():
     return
 
 
-@cli.group(name='warm_restart', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='warm_restart', cls=AliasedGroup)
 def warm_restart():
     """Show warm restart configuration and state"""
     pass
@@ -2735,7 +2783,7 @@ def config(redis_unix_socket_path):
 # 'nat' group ("show nat ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def nat():
     """Show details of the nat """
     pass
@@ -2809,6 +2857,43 @@ def pool(verbose):
     cmd = "sudo natconfig -p"
     run_command(cmd, display_cmd=verbose)
 
+# Define GEARBOX commands only if GEARBOX is configured
+app_db = SonicV2Connector(host='127.0.0.1')
+app_db.connect(app_db.APPL_DB) 
+if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
+
+    @cli.group(cls=AliasedGroup)
+    def gearbox():
+        """Show gearbox info"""
+        pass
+
+    # 'phys' subcommand ("show gearbox phys")
+    @gearbox.group(cls=AliasedGroup)
+    def phys():
+        """Show external PHY information"""
+        pass
+
+    # 'status' subcommand ("show gearbox phys status")
+    @phys.command()
+    @click.pass_context
+    def status(ctx):
+        """Show gearbox phys status"""
+        run_command("gearboxutil phys status")
+        return
+
+    # 'interfaces' subcommand ("show gearbox interfaces")
+    @gearbox.group(cls=AliasedGroup)
+    def interfaces():
+        """Show gearbox interfaces information"""
+        pass
+
+    # 'status' subcommand ("show gearbox interfaces status")
+    @interfaces.command()
+    @click.pass_context
+    def status(ctx):
+        """Show gearbox interfaces status"""
+        run_command("gearboxutil interfaces status")
+        return
 
 # 'bindings' subcommand  ("show nat config bindings")
 @config.command()
@@ -2906,7 +2991,7 @@ def autorestart(container_name):
 #
 # 'vnet' command ("show vnet")
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def vnet():
     """Show vnet related information"""
     pass
@@ -2958,6 +3043,38 @@ def brief():
         return table
 
     click.echo(tabulate(tablelize(vnet_keys, vnet_data), header))
+
+@vnet.command()
+@click.argument('vnet_alias', required=False)
+def alias(vnet_alias):
+    """Show vnet alias to name information"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Alias', 'Name']
+
+    # Fetching data from config_db for VNET
+    vnet_data = config_db.get_table('VNET')
+    vnet_keys = natsorted(vnet_data.keys())
+
+    def tablelize(vnet_keys, vnet_data, vnet_alias):
+        table = []
+        for k in vnet_keys:
+            r = []
+            if vnet_alias is not None:
+                if vnet_data[k].get('guid') == vnet_alias:
+                    r.append(vnet_data[k].get('guid'))
+                    r.append(k)
+                    table.append(r)
+                    return table
+                else:
+                    continue
+
+            r.append(vnet_data[k].get('guid'))
+            r.append(k)
+            table.append(r)
+        return table
+
+    click.echo(tabulate(tablelize(vnet_keys, vnet_data, vnet_alias), header))
 
 @vnet.command()
 def interfaces():
@@ -3131,7 +3248,7 @@ def tunnel():
 #
 # 'vxlan' command ("show vxlan")
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup)
 def vxlan():
     """Show vxlan related information"""
     pass

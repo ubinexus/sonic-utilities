@@ -107,7 +107,7 @@ function clear_fast_boot()
 {
     common_clear
 
-    redis-cli -n 6 DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
+    sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
 }
 
 function clear_warm_boot()
@@ -154,6 +154,42 @@ function request_pre_shutdown()
     /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null || {
         error "Failed to request pre-shutdown"
     }
+}
+
+function recover_issu_bank_file_instruction()
+{
+    debug "To recover (${ISSU_BANK_FILE}) file, do the following:"
+    debug "$ docker exec -it syncd sx_api_dbg_generate_dump.py"
+    debug "$ docker exec -it syncd cat /tmp/sdkdump | grep 'ISSU Bank'"
+    debug "Command above will print the VALUE of ISSU BANK - 0 or 1, use this VALUE in the next command"
+    debug "$ printf VALUE > /host/warmboot/issu_bank.txt"
+}
+
+function check_issu_bank_file()
+{
+    ISSU_BANK_FILE=/host/warmboot/issu_bank.txt
+    MLNX_ISSU_BANK_BROKEN=102
+
+    if [[ ! -s "$ISSU_BANK_FILE" ]]; then
+        error "(${ISSU_BANK_FILE}) does NOT exist or empty ..."
+        recover_issu_bank_file_instruction
+        if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN}"
+        fi
+        return
+    fi
+
+    issu_file_chars_count=`stat -c %s ${ISSU_BANK_FILE}`;
+    issu_file_content=`awk '{print $0}' ${ISSU_BANK_FILE}`
+
+    if [[ $issu_file_chars_count != 1 ]] ||
+        [[ "$issu_file_content" != "0" && "$issu_file_content" != "1" ]]; then
+        error "(${ISSU_BANK_FILE}) is broken ..."
+        recover_issu_bank_file_instruction
+        if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN}"
+        fi
+    fi
 }
 
 function wait_for_pre_shutdown_complete_or_fail()
@@ -208,7 +244,8 @@ function backup_database()
             end
         end
     " 0 > /dev/null
-    redis-cli save > /dev/null
+    sonic-db-cli SAVE > /dev/null
+    #TODO : need a script to copy all rdb files if there is multiple db instances config
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
@@ -317,7 +354,7 @@ case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        redis-cli -n 6 SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
+        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
     "warm-reboot")
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
@@ -326,9 +363,6 @@ case "$REBOOT_TYPE" in
             # source mlnx-ffb.sh file with
             # functions to check ISSU upgrade possibility
             source mlnx-ffb.sh
-        elif [[ "$sonic_asic_type" == "barefoot" ]]; then
-            REBOOT_TYPE="fastfast-reboot"
-            BOOT_TYPE_ARG="fastfast"
         else
             BOOT_TYPE_ARG="warm"
         fi
@@ -381,6 +415,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     DUMP_DIR=/host/fast-reboot
+    CONFIG_DB_FILE=/etc/sonic/config_db.json
     mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
     /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
@@ -392,7 +427,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json || FILTER_FDB_ENTRIES_RC=$?
+    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
@@ -483,9 +518,19 @@ systemctl stop swss
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     initialize_pre_shutdown
 
+    BEFORE_PRE_SHUTDOWN=true
+
+    if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
+        check_issu_bank_file "$BEFORE_PRE_SHUTDOWN"
+    fi
+
     request_pre_shutdown
 
     wait_for_pre_shutdown_complete_or_fail
+
+    if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
+        check_issu_bank_file
+    fi
 
     # Warm reboot: dump state to host disk
     if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then

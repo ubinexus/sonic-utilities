@@ -42,6 +42,7 @@ setup(
         'pfc',
         'psuutil',
         'fwutil',
+        'pcieutil',
         'pddf_fanutil',
         'pddf_psuutil',
         'pddf_thermalutil',
@@ -75,6 +76,7 @@ setup(
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/filter_fdb_entries.py',
+        'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',
@@ -124,6 +126,7 @@ setup(
             'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
             'fwutil = fwutil.main:cli',
+            'pcieutil = pcieutil.main:cli',
             'pddf_fanutil = pddf_fanutil.main:cli',
             'pddf_psuutil = pddf_psuutil.main:cli',
             'pddf_thermalutil = pddf_thermalutil.main:cli',
@@ -144,7 +147,6 @@ setup(
     # - swsssdk
     # - tabulate
     install_requires=[
-        'click-default-group',
         'click',
         'natsort'
     ],
