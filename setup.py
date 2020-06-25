@@ -149,8 +149,7 @@ setup(
     install_requires=[
         'click',
         'natsort',
-        'xmltodict==0.12.0',
-        'jsondiff==1.2.0'
+        'xmltodict==0.12.0'
     ],
     setup_requires= [
         'pytest-runner'
