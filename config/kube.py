@@ -17,7 +17,7 @@ import inspect
 import shutil
 from urlparse import urlparse
 from swsssdk import ConfigDBConnector
-from config.main import run_command, AbbreviationGroup
+from config.main import run_command, AbbreviationGroup, config
 
 logger_identity = "kube_config"
 log_level = syslog.LOG_DEBUG
@@ -97,9 +97,9 @@ def _take_lock():
         lock_fd = open(LOCK_FILE, "w")
         fcntl.lockf(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         _log_info("Lock taken {}".format(LOCK_FILE))
-    except:
+    except IOError as e:
         lock_fd = None
-        _log_err("Lock {} failed: {}".format(LOCK_FILE, str(sys.exc_info())))
+        _log_err("Lock {} failed: {}".format(LOCK_FILE, str(e)))
     return lock_fd
 
 def _drop_cron():
@@ -233,10 +233,7 @@ def _do_join(server,insecure):
         _do_exit("Download failed: {}".format(str(e)))
 
     except OSError as e:
-        _do_exit("Download failed: {}".format(str(sys.exc_info()[0])))
-
-    except:
-        _do_exit("kube join failed: {}".format(str(sys.exc_info()[0])))
+        _do_exit("Download failed: {}".format(str(e)))
 
     _troubleshoot_tips()
 
@@ -305,6 +302,8 @@ def kubernetes():
     """kubernetes command line"""
     pass
 
+config.add_command(kubernetes)
+
 # cmd kubernetes join [-a/--async] [-f/--force]
 @click.command()
 @click.option('-a', '--async', help='Join kubernetes cluster asynchronously', is_flag=True)
@@ -332,7 +331,7 @@ kubernetes.add_command(server)
 @click.command()
 @click.argument('vip')
 def ip(vip):
-    """Specify a kubernetes ckuster VIP"""
+    """Specify a kubernetes cluster VIP"""
     if not netaddr.IPAddress(vip):
         click.echo('Invalid IP address %s' % vip)
         return
@@ -341,18 +340,18 @@ server.add_command(ip)
 
 #cmd kubernetes server insecure
 @click.command()
-@click.argument('option', type=click.Choice(["True", "False"]))
+@click.argument('option', type=click.Choice(["on", "off"]))
 def insecure(option):
-    """Specify a kubernetes ckuster VIP access as insecure or not"""
-    _update_kube_server('insecure', option)
+    """Specify a kubernetes cluster VIP access as insecure or not"""
+    _update_kube_server('insecure', option == "on")
 server.add_command(insecure)
 
 #cmd kubernetes server disable
 @click.command()
-@click.argument('option', type=click.Choice(["True", "False"]))
+@click.argument('option', type=click.Choice(["on", "off"]))
 def disable(option):
-    """Specify a kubernetes ckuster VIP access is disabled or not"""
-    _update_kube_server('disable', option)
+    """Specify a kubernetes cluster VIP access is disabled or not"""
+    _update_kube_server('disable', option == "on")
 server.add_command(disable)
 
 # cmd kubernetes label
