@@ -61,5 +61,3 @@ def server():
     else:
         print("Kubernetes server is not configured")
 
-if __name__ == '__main__':
-    kubernetes()

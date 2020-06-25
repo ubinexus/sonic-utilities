@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import .kube
+import kube
 
 
 def main():
