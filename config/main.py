@@ -1704,8 +1704,7 @@ def add_vlan_range(ctx, vid1, vid2, warning):
     curr_vlan_count = 0
     config_db = ConfigDBConnector()
     config_db.connect()
-    clients = config_db.get_redis_client(config_db.CONFIG_DB)
-    pipe = clients.pipeline()
+    payload = []
     for vid in range (vid1, vid2):
         vlan = 'Vlan{}'.format(vid)
 
@@ -1714,9 +1713,9 @@ def add_vlan_range(ctx, vid1, vid2, warning):
                 warning_vlans_list.append(vid)
             continue
 
-        pipe.hmset('VLAN|{}'.format(vlan),  {'vlanid': vid})
+        payload.append(('VLAN|{}'.format(vlan),  {'vlanid': vid})
         curr_vlan_count += 1
-    pipe.execute()
+    db.set_bulk(payload)
     # Log warning messages if 'warning' option is enabled
     if warning is True:
         if len(warning_vlans_list) != 0:
@@ -1739,8 +1738,6 @@ def del_vlan_range(ctx, vid1, vid2, warning):
     warning_ip_list = []
     config_db = ConfigDBConnector()
     config_db.connect()
-    clients = config_db.get_redis_client(config_db.CONFIG_DB)
-    pipe = clients.pipeline()
     vlan_members = []
     vlan_member_keys = db.keys('CONFIG_DB', "*VLAN_MEMBER*")
     vlan_temp_member_keys = db.keys('CONFIG_DB', "*VLAN_MEMBER*")
@@ -1775,6 +1772,7 @@ def del_vlan_range(ctx, vid1, vid2, warning):
                 warning_membership_list.append(warning_string)
 
     if vlan_ip_keys is None and vlan_member_keys is None:
+        payload = []
         for vid in range(vid1, vid2):
             vlan = 'Vlan{}'.format(vid)
             if len(db.get_entry('VLAN', vlan)) == 0:
@@ -1782,17 +1780,20 @@ def del_vlan_range(ctx, vid1, vid2, warning):
                     warning_vlans_list.append(vid)
                 continue
 
-            pipe.delete('VLAN|{}'.format(vlan))
-        pipe.execute()
+            payload.append(('VLAN|{}'.format(vlan)))
+        db.del_bulk(payload
     else:
         if vlan_ip_keys is not None:
+            payload = []
             for v in vlan_ip_keys:
-                pipe.hgetall(v)
-            vlan_ip_members = pipe.execute()
+                payload.append(v)
+            vlan_ip_members = db.get_bulk(payload
         if vlan_member_keys is not None:
+            payload = []
             for v in vlan_member_keys:
-                pipe.hgetall(v)
-            vlan_members = pipe.execute()
+                payload.append(v)
+            vlan_members = db.get_bulk(payload)
+        payload = []    
         for vid in range(vid1, vid2):
             vlan_member_configured = False
             ip_configured = False
@@ -1831,8 +1832,8 @@ def del_vlan_range(ctx, vid1, vid2, warning):
                     continue
 
             vlan = 'Vlan{}'.format(vid)
-            pipe.delete('VLAN|{}'.format(vlan))
-        pipe.execute()
+            payload.append(('VLAN|{}'.format(vlan)))
+        db.del_bulk(payload)
 
     # Log warning messages if 'warning' option is enabled
     if warning is True and len(warning_vlans_list) != 0:
@@ -1894,8 +1895,7 @@ def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
     warning_membership_list = []
     config_db = ConfigDBConnector()
     config_db.connect()
-    clients = config_db.get_redis_client(config_db.CONFIG_DB)
-    pipe = clients.pipeline()
+    payload = []
 
     # Validate if interface has IP configured
     # in physical and port channel tables
@@ -1934,10 +1934,9 @@ def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
 
         members.append(interface_name)
         vlan['members'] = members
-        pipe.hmset('VLAN|{}'.format(vlan_name), vlan_member_data(vlan))
-        pipe.hmset('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name), {'tagging_mode': "untagged" if untagged else "tagged" })
-    # If port is being made L2 port, enable STP
-    pipe.execute()
+        payload.append(('VLAN|{}'.format(vlan_name), vlan_member_data(vlan)))
+        payload.append(('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name), {'tagging_mode': "untagged" if untagged else "tagged" }))
+    db.set_bulk(payload)
     # Log warning messages if 'warning' option is enabled
     if warning is True and len(warning_vlans_list) != 0:
         logging.warning('Non-existent VLANs: {}'.format(get_hyphenated_string(warning_vlans_list)))
@@ -1974,8 +1973,9 @@ def del_vlan_member_range(ctx, vid1, vid2, interface_name, warning):
     warning_membership_list = []
     config_db = ConfigDBConnector()
     config_db.connect()
-    clients = config_db.get_redis_client(config_db.CONFIG_DB)
-    pipe = clients.pipeline()
+    set_payload = []
+    hdel_payload = []
+    del_payload = []
 
     for vid in range(vid1, vid2):
         vlan_name = 'Vlan{}'.format(vid)
@@ -2000,14 +2000,16 @@ def del_vlan_member_range(ctx, vid1, vid2, interface_name, warning):
 
         members.remove(interface_name)
         if len(members) == 0:
-            pipe.hdel('VLAN|{}'.format(vlan_name), 'members@')
+            hdel_payload.append(('VLAN|{}'.format(vlan_name), 'members@')
         else:
             vlan['members'] = members
-            pipe.hmset('VLAN|{}'.format(vlan_name), vlan_member_data(vlan))
+            set_payload.append(('VLAN|{}'.format(vlan_name), vlan_member_data(vlan)))
 
-        pipe.delete('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name))
-        pipe.delete('STP_VLAN_INTF|{}'.format(vlan_name + '|' + interface_name))
-    pipe.execute()
+        del_payload.append(('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name)))
+    db.hdel_bulk(hdel_payload)
+    db.del_bulk(del_payload)
+    db.set_bulk(set_payload)
+
     # Log warning messages if 'warning' option is enabled
     if warning is True and len(warning_vlans_list) != 0:
         logging.warning('Non-existent VLANs: {}'.format(get_hyphenated_string(warning_vlans_list)))
