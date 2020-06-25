@@ -1622,7 +1622,7 @@ elif routing_stack == "frr":
     ipv6.add_command(bgp)
 
 # Import kube commands
-import kube
+from .kube import kubernetes
 
 #
 # 'lldp' group ("show lldp ...")
