@@ -1147,6 +1147,8 @@ def erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, sr
             src_port=",".join(src_port_list)
 
         session_info['src_port'] = src_port
+        if direction is None:
+            direction = "both"
 
     if direction is not None:
         session_info['direction'] = direction.upper()
@@ -1199,6 +1201,8 @@ def span(session_name, dst_port, src_port, direction, queue, policer):
 
     if src_port is not None:
         session_info['src_port'] = src_port
+        if direction is None:
+            direction = "both"
 
     if direction is not None:
         session_info['direction'] = direction.upper()

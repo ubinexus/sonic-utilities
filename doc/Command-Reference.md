@@ -3794,7 +3794,7 @@ While adding a new ERSPAN session, users need to configure the following fields 
 6) optional - Queue in which packets shall be sent out of the device. Valid values 0 to 7 for most of the devices. Users need to know their device and the number of queues supported in that device.
 7) optional - Policer which will be used to control the rate at which frames are mirrored.
 8) optional - List of source ports which can have both Ethernet and LAG ports.
-9) optional - Direction - Mirror session direction when configured along with Source port.
+9) optional - Direction - Mirror session direction when configured along with Source port. (Supported rx/tx/both. default direction is both)
 
 - Usage:
   ```
@@ -3821,7 +3821,7 @@ While adding a new ERSPAN session, users need to configure the following fields 
 While adding a new SPAN session, users need to configure the following fields that are used while forwarding the mirrored packets.
 1) destination port,
 2) optional - List of source ports- List of source ports which can have both Ethernet and LAG ports.
-3) optional - Direction - Mirror session direction when configured along with Source port.
+3) optional - Direction - Mirror session direction when configured along with Source port. (Supported rx/tx/both. default direction is both)
 4) optional - Queue in which packets shall be sent out of the device. Valid values 0 to 7 for most of the devices. Users need to know their device and the number of queues supported in that device.
 5) optional - Policer which will be used to control the rate at which frames are mirrored.
 
