@@ -1,12 +1,13 @@
 #!/usr/bin/python
 """
-    Script to show MAC/FDB entries learnt in Hardware
+    Script to show MAC/FDB entries learnt in Hardware and configured static MAC/FDB entries
     
-    usage: fdbshow [-p PORT] [-v VLAN]
+    usage: fdbshow [-p PORT] [-v VLAN] [-f]
     optional arguments:
       -p,  --port              FDB learned on specific port: Ethernet0
       -v,  --vlan              FDB learned on specific Vlan: 1000
-  
+      -f,  --fast              Display large number of FDB entries fast
+
     Example of the output:
     admin@str~$ fdbshow
       No.    Vlan  MacAddress         Port        Type
@@ -23,6 +24,12 @@
     Total number of entries 1
     admin@str:~$ fdbshow -v 1001
     1001 is not in list
+    admin@str:~$ fdbshow -f
+      No.    Vlan  MacAddress         Port        Type
+    -----  ------  -----------------  ---------   -------
+        1    1000  7C:FE:90:80:9F:01  Ethernet4   Dynamic
+        2    1000  7C:FE:90:80:9F:02  Ethernet8   Static
+    Total number of entries 2
 
 """
 import argparse
@@ -37,14 +44,19 @@ class FdbShow(object):
 
     HEADER = ['No.', 'Vlan', 'MacAddress', 'Port', 'Type']
     FDB_COUNT = 0
+    fast = False
 
-    def __init__(self):
+    def __init__(self, fast):
         super(FdbShow,self).__init__()
         self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, \
         self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
-        self.fetch_fdb_data()
+        self.fast = fast
+        if self.fast:
+            self.fast_fetch_fdb_data()
+        else:
+            self.fetch_fdb_data()
         return
 
     def fetch_fdb_data(self):
@@ -93,7 +105,38 @@ class FdbShow(object):
         self.bridge_mac_list.sort(key = lambda x: x[0])
         return
     
-    
+    def fast_fetch_fdb_data(self):
+        """
+            Fetch dynamic FDB entries from STATE DB.
+        """
+        self.db.connect(self.db.STATE_DB)
+        self.bridge_mac_list = []
+        fdb_keys = self.db.keys(self.db.STATE_DB, "FDB_TABLE*")
+        if fdb_keys:
+            for key in natsorted(fdb_keys):
+                keyStr = key.split("|", -1)
+                vlanmac = keyStr[1].split(":", 1)
+                vlan_id = vlanmac[0].split("n")[1]
+                mac = vlanmac[1]
+                port = self.db.get(self.db.STATE_DB, key, "port")
+                type = self.db.get(self.db.STATE_DB, key, "type")
+                self.bridge_mac_list.append((int(vlan_id),) + (mac,) + (port,) + (type,))
+        """
+            Fetch static FDB entries from APP DB.
+        """
+        self.db.connect(self.db.APPL_DB)
+        fdb_keys = self.db.keys(self.db.APPL_DB, "FDB_TABLE*")
+        if fdb_keys:
+            for key in natsorted(fdb_keys):
+                keyStr = key.split(":", 1)
+                vlanmac = keyStr[1].split(":", 1)
+                vlan_id = vlanmac[0].split("n")[1]
+                mac = vlanmac[1]
+                port = self.db.get(self.db.APPL_DB, key, "port")
+                type = self.db.get(self.db.APPL_DB, key, "type")
+                if type == "static":
+                    self.bridge_mac_list.append((int(vlan_id),) + (mac,) + (port,) + (type,))
+
     def get_iter_index(self, key_value=0, pos=0):
         """
             Get the starting index of matched entry
@@ -139,10 +182,11 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--port', type=str, help='FDB learned on specific port: Ethernet0', default=None)
     parser.add_argument('-v', '--vlan', type=str, help='FDB learned on specific Vlan: 1001', default=None)
+    parser.add_argument('-f', '--fast', action='store_true', help='Display large number of FDB entries fast')
     args = parser.parse_args()
 
     try:
-        fdb = FdbShow()
+        fdb = FdbShow(args.fast)
         fdb.display(args.vlan, args.port)
     except Exception as e:
         print e.message
