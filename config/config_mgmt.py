@@ -11,6 +11,7 @@ try:
     from time import sleep as tsleep
     from imp import load_source
     from jsondiff import diff
+    from sys import flags
 
     # SONiC specific imports
     import sonic_yang
@@ -28,7 +29,7 @@ except ImportError as e:
 YANG_DIR = "/usr/local/yang-models"
 CONFIG_DB_JSON_FILE = '/etc/sonic/confib_db.json'
 # TODO: Find a place for it on sonic switch.
-DEFAULT_CONFIG_DB_JSON_FILE = '/etc/sonic/default_config_db.json'
+DEFAULT_CONFIG_DB_JSON_FILE = '/etc/sonic/port_breakout_config_db.json'
 
 class ConfigMgmt():
     '''
@@ -75,7 +76,7 @@ class ConfigMgmt():
                 raise Exception('Config has tables without YANG models')
 
         except Exception as e:
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise(Exception('ConfigMgmt Class creation failed'))
 
         return
@@ -128,11 +129,10 @@ class ConfigMgmt():
             self.sysLog(msg='Data Validation Failed')
             return False
 
-        print('Data Validation successful')
-        self.sysLog(msg='Data Validation successful')
+        self.sysLog(msg='Data Validation successful', doPrint=True)
         return True
 
-    def sysLog(self, debug=syslog.LOG_INFO, msg=None):
+    def sysLog(self, logLevel=syslog.LOG_INFO, msg=None, doPrint=False):
         '''
         Log the msg in syslog file.
 
@@ -144,10 +144,12 @@ class ConfigMgmt():
             void
         '''
         # log debug only if enabled
-        if self.DEBUG == False and debug == syslog.LOG_DEBUG:
+        if self.DEBUG == False and logLevel == syslog.LOG_DEBUG:
             return
+        if flgas.interactive !=0 and doPrint == True:
+            print("{}".format(msg))
         syslog.openlog(self.SYSLOG_IDENTIFIER)
-        syslog.syslog(debug, msg)
+        syslog.syslog(logLevel, msg)
         syslog.closelog()
 
         return
@@ -162,9 +164,9 @@ class ConfigMgmt():
         Returns:
             (void)
         '''
-        print('Reading data from {}'.format(source))
+        self.sysLog(msg='Reading data from {}'.format(source))
         self.configdbJsonIn = readJsonFile(source)
-        #print(type(self.configdbJsonIn))
+        #self.sysLog(msg=type(self.configdbJsonIn))
         if not self.configdbJsonIn:
             raise(Exception("Can not load config from config DB json file"))
         self.sysLog(msg='Reading Input {}'.format(self.configdbJsonIn))
@@ -184,7 +186,7 @@ class ConfigMgmt():
         Returns:
             (void)
         '''
-        print('Reading data from Redis configDb')
+        self.sysLog(doPrint=True, msg='Reading data from Redis configDb')
         # Read from config DB on sonic switch
         db_kwargs = dict(); data = dict()
         configdb = ConfigDBConnector(**db_kwargs)
@@ -206,7 +208,7 @@ class ConfigMgmt():
         Returns:
             void
         '''
-        print('Writing in Config DB')
+        self.sysLog(doPrint=True, msg='Writing in Config DB')
         db_kwargs = dict(); data = dict()
         configdb = ConfigDBConnector(**db_kwargs)
         configdb.connect(False)
@@ -244,7 +246,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             self.oidKey = 'ASIC_STATE:SAI_OBJECT_TYPE_PORT:oid:0x'
 
         except Exception as e:
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise(Exception('ConfigMgmtDPB Class creation failed'))
 
         return
@@ -258,7 +260,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         Parameters:
             db (SonicV2Connector): database.
-            key (str): key in config DB, with table Seperator if applicable.
+            key (str): key in ASIC DB, with table Seperator if applicable.
 
         Returns:
             (bool): True, if given key is present.
@@ -269,30 +271,10 @@ class ConfigMgmtDPB(ConfigMgmt):
             if db.exists('ASIC_DB', key):
                 return True
         except Exception as e:
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise(e)
 
         return False
-
-    def _testRedisCli(self, key):
-        '''
-        Additional test funtion for _verifyAsicDB(). This funtions will fetch
-        ports information from Asic DB, using redis-cli. This is done only when
-        debugging is on.
-
-        Parameters:
-            key (str): key in config DB, with table Seperator if applicable.
-
-        Returns:
-            void
-        '''
-        # To Debug
-        if self.DEBUG:
-            cmd = 'sudo redis-cli -n 1 hgetall "{}"'.format(key)
-            self.sysLog(syslog.LOG_DEBUG, "Running {}".format(cmd))
-            print(cmd)
-            system(cmd)
-        return
 
     def _checkNoPortsInAsicDb(self, db, ports, portMap):
         '''
@@ -311,14 +293,11 @@ class ConfigMgmtDPB(ConfigMgmt):
             db.connect(db.ASIC_DB)
             for port in ports:
                 key = self.oidKey + portMap[port]
-                if self._checkKeyinAsicDB(key, db) == False:
-                    # Test again via redis-cli
-                    self._testRedisCli(key)
-                else:
+                if self._checkKeyinAsicDB(key, db) == True:
                     return False
 
         except Exception as e:
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             return False
 
         return True
@@ -337,11 +316,11 @@ class ConfigMgmtDPB(ConfigMgmt):
         Returns:
             (bool)
         '''
-        print("Verify Port Deletion from Asic DB, Wait...")
-        self.sysLog(msg="Verify Port Deletion from Asic DB, Wait...")
+        self.sysLog(doPrint=True, msg="Verify Port Deletion from Asic DB, Wait...")
         try:
             for waitTime in range(timeout):
-                self.sysLog(msg='Check Asic DB: {} try'.format(waitTime+1))
+                self.sysLog(logLevel=syslog.LOG_DEBUG, msg='Check Asic DB: {} \
+                    try'.format(waitTime+1))
                 # checkNoPortsInAsicDb will return True if all ports are not
                 # present in ASIC DB
                 if self._checkNoPortsInAsicDb(db, ports, portMap):
@@ -350,19 +329,18 @@ class ConfigMgmtDPB(ConfigMgmt):
 
             # raise if timer expired
             if waitTime + 1 == timeout:
-                print("!!!  Critical Failure, Ports are not Deleted from \
-                    ASIC DB, Bail Out  !!!")
                 self.sysLog(syslog.LOG_CRIT, "!!!  Critical Failure, Ports \
-                    are not Deleted from ASIC DB, Bail Out  !!!")
-                raise(Exception("Ports are present in ASIC DB after timeout"))
+                    are not Deleted from ASIC DB, Bail Out  !!!", doPrint=True)
+                raise(Exception("Ports are present in ASIC DB after {} secs".\
+                    format(timeout)))
 
         except Exception as e:
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise e
 
         return True
 
-    def breakOutPort(self, delPorts=list(), addPorts= list(), portJson=dict(), \
+    def breakOutPort(self, delPorts=list(), addPorts=list(), portJson=dict(), \
         force=False, loadDefConfig=True):
         '''
         This is the main function for port breakout. Exposed to caller.
@@ -409,7 +387,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             self.writeConfigDB(addConfigtoLoad)
 
         except Exception as e:
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             return None, False
 
         return None, True
@@ -431,15 +409,14 @@ class ConfigMgmtDPB(ConfigMgmt):
         try:
             self.sysLog(msg="delPorts ports:{} force:{}".format(ports, force))
 
-            print('\nStart Port Deletion')
+            self.sysLog(doPrint=True, msg='Start Port Deletion')
             deps = list()
 
             # Get all dependecies for ports
             for port in ports:
                 xPathPort = self.sy.findXpathPortLeaf(port)
-                print('Find dependecies for port {}'.format(port))
-                self.sysLog(msg='Find dependecies for port {}'.format(port))
-                # print("Generated Xpath:" + xPathPort)
+                self.sysLog(doPrint=True, msg='Find dependecies for port {}'.\
+                    format(port))
                 dep = self.sy.find_data_dependencies(str(xPathPort))
                 if dep:
                     deps.extend(dep)
@@ -450,7 +427,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
             # delets all deps, No topological sort is needed as of now, if deletion
             # of deps fails, return immediately
-            elif deps and force:
+            elif deps:
                 for dep in deps:
                     self.sysLog(msg='Deleting {}'.format(dep))
                     self.sy.deleteNode(str(dep))
@@ -460,8 +437,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             # all deps are deleted now, delete all ports now
             for port in ports:
                 xPathPort = self.sy.findXpathPort(port)
-                print("Deleting Port: " + port)
-                self.sysLog(msg='Deleting Port:{}'.format(port))
+                self.sysLog(doPrint=True, msg="Deleting Port: " + port)
                 self.sy.deleteNode(str(xPathPort))
 
             # Let`s Validate the tree now
@@ -474,19 +450,19 @@ class ConfigMgmtDPB(ConfigMgmt):
             configToLoad = self._updateDiffConfigDB()
 
         except Exception as e:
-            print(e)
-            print("Port Deletion Failed")
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="Port Deletion Failed")
             return configToLoad, deps, False
 
         return configToLoad, deps, True
 
-    def _addPorts(self, ports=list(), portJson=dict(), loadDefConfig=True):
+    def _addPorts(self, portJson=dict(), loadDefConfig=True):
         '''
         Add ports and default confug in data tree, validate and return resultant
         config.
 
         Parameters:
-            ports (list): list of ports
             portJson (dict): Config DB json Part of all Ports, generated from
                 platform.json.
             loadDefConfig: If loadDefConfig, add default config for ports as well.
@@ -495,13 +471,11 @@ class ConfigMgmtDPB(ConfigMgmt):
             (configToLoad, ret) (tuple)[dict, bool]
         '''
         configToLoad = None
+        ports = portJson['PORT'].keys()
         try:
-            self.sysLog(msg='Start Port Addition')
-            self.sysLog(msg="addPorts ports:{} loadDefConfig:{}".\
-                format(ports, loadDefConfig))
-            self.sysLog(msg="addPorts Args portjson {}".format(portJson))
-
-            print('\nStart Port Addition')
+            self.sysLog(doPrint=True, msg='Start Port Addition')
+            self.sysLog(msg="addPorts Args portjson: {} loadDefConfig: {}".\
+                format(portJson, loadDefConfig))
 
             if loadDefConfig:
                 defConfig = self._getDefaultConfig(ports)
@@ -520,8 +494,8 @@ class ConfigMgmtDPB(ConfigMgmt):
             # merge new config with data tree, this is json level merge.
             # We do not allow new table merge while adding default config.
             if loadDefConfig:
-                print("Merge Default Config for {}".format(ports))
-                self.sysLog(msg="Merge Default Config for {}".format(ports))
+                self.sysLog(doPrint=True, msg="Merge Default Config for {}".\
+                    format(ports))
                 self._mergeConfigs(self.configdbJsonOut, defConfig, True)
 
             # create a tree with merged config and validate, if validation is
@@ -534,8 +508,9 @@ class ConfigMgmtDPB(ConfigMgmt):
             configToLoad = self._updateDiffConfigDB()
 
         except Exception as e:
-            print(e)
-            print("Port Addition Failed")
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="Port Addition Failed")
             return configToLoad, False
 
         return configToLoad, True
@@ -582,8 +557,9 @@ class ConfigMgmtDPB(ConfigMgmt):
             if uniqueKeys:
                 D1.update(D2)
         except Exce as e:
-            print("Merge Config failed")
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="Merge Config failed")
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise e
 
         return D1
@@ -629,7 +605,6 @@ class ConfigMgmtDPB(ConfigMgmt):
                 if skey in In:
                     found = True
                     Out.append(skey)
-                    #print("Added in list:" + port)
 
         else:
             # nothing for other keys
@@ -654,7 +629,8 @@ class ConfigMgmtDPB(ConfigMgmt):
             if len(configIn) and len(keys):
                 self._searchKeysInConfig(configIn, configOut, skeys=keys)
         except Exception as e:
-            print("configWithKeys Failed, Error: {}".format(str(e)))
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="configWithKeys Failed, Error: {}".format(str(e)))
             raise e
 
         return configOut
@@ -672,13 +648,13 @@ class ConfigMgmtDPB(ConfigMgmt):
         '''
         # function code
         try:
-            print("Generating default config for {}".format(ports))
+            self.sysLog(doPrint=True, msg="Generating default config for {}".format(ports))
             defConfigIn = readJsonFile(DEFAULT_CONFIG_DB_JSON_FILE)
-            #print(defConfigIn)
             defConfigOut = dict()
             self._searchKeysInConfig(defConfigIn, defConfigOut, skeys=ports)
         except Exception as e:
-            print("getDefaultConfig Failed, Error: {}".format(str(e)))
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="getDefaultConfig Failed, Error: {}".format(str(e)))
             raise e
 
         return defConfigOut
@@ -695,15 +671,16 @@ class ConfigMgmtDPB(ConfigMgmt):
         '''
         try:
             # Get the Diff
-            print('Generate Final Config to write in DB')
+            self.sysLog(msg='Generate Final Config to write in DB')
             configDBdiff = self._diffJson()
             # Process diff and create Config which can be updated in Config DB
             configToLoad = self._createConfigToLoad(configDBdiff, \
                 self.configdbJsonIn, self.configdbJsonOut)
 
         except Exception as e:
-            print("Config Diff Generation failed")
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="Config Diff Generation failed")
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise e
 
         return configToLoad
@@ -819,8 +796,9 @@ class ConfigMgmtDPB(ConfigMgmt):
             _recurCreateConfig(diff, inp, outp, configToLoad)
 
         except Exception as e:
-            print("Create Config to load in DB, Failed")
-            print(e)
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, \
+                msg="Create Config to load in DB, Failed")
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise e
 
         return configToLoad
