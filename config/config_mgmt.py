@@ -7,7 +7,6 @@ try:
     import syslog
 
     from json import load
-    from os import system
     from time import sleep as tsleep
     from imp import load_source
     from jsondiff import diff
@@ -146,7 +145,7 @@ class ConfigMgmt():
         # log debug only if enabled
         if self.DEBUG == False and logLevel == syslog.LOG_DEBUG:
             return
-        if flgas.interactive !=0 and doPrint == True:
+        if flags.interactive !=0 and doPrint == True:
             print("{}".format(msg))
         syslog.openlog(self.SYSLOG_IDENTIFIER)
         syslog.syslog(logLevel, msg)
@@ -340,8 +339,8 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return True
 
-    def breakOutPort(self, delPorts=list(), addPorts=list(), portJson=dict(), \
-        force=False, loadDefConfig=True):
+    def breakOutPort(self, delPorts=list(), portJson=dict(), force=False, \
+            loadDefConfig=True):
         '''
         This is the main function for port breakout. Exposed to caller.
 
@@ -366,8 +365,8 @@ class ConfigMgmtDPB(ConfigMgmt):
                 return deps, ret
 
             # add Ports and get the config diff and True/False
-            addConfigtoLoad, ret = self._addPorts(ports=addPorts, \
-                portJson=portJson, loadDefConfig=loadDefConfig)
+            addConfigtoLoad, ret = self._addPorts(portJson=portJson, \
+                loadDefConfig=loadDefConfig)
             # return if ret is False, Great thing, no change is done in Config
             if ret == False:
                 return None, ret

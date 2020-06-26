@@ -131,7 +131,7 @@ class TestConfigMgmt(TestCase):
             newMode (str): new breakout mode of Port.
 
         Return:
-            dPorts, aPorts ,pJson (tuple)[list, list, dict]
+            dPorts, pJson (tuple)[list, dict]
         '''
         # default params
         pre = "Ethernet"
@@ -157,7 +157,7 @@ class TestConfigMgmt(TestCase):
             lanes = [str(li+j) for j in range(i)]; lanes = ','.join(lanes)
             pJson['PORT'][aPorts[pi]] = {"speed": str(speed), "lanes": str(lanes)}
             li = li+i; pi = pi + 1
-        return dPorts, aPorts ,pJson
+        return dPorts, pJson
 
     def updateConfig(self, conf, uconf):
         '''
@@ -248,9 +248,9 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, aPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
             curMode='1x100G', newMode='1x50G(2)+2x25G(2)')
-        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, addPorts= aPorts, portJson=pJson,
+        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=True, loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
@@ -314,9 +314,9 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, aPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
             curMode='4x25G', newMode='1x100G')
-        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, addPorts= aPorts, portJson=pJson,
+        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=False, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
@@ -344,9 +344,9 @@ class TestConfigMgmt(TestCase):
             assert for success and failure.
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
-        dPorts, aPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
             curMode='1x100G', newMode='4x25G')
-        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, addPorts= aPorts, portJson=pJson,
+        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=False, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
@@ -372,9 +372,9 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, aPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
             curMode='2x50G', newMode='1x100G')
-        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, addPorts= aPorts, portJson=pJson,
+        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=True, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
@@ -408,9 +408,9 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, aPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
             curMode='2x50G', newMode='1x100G')
-        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, addPorts= aPorts, portJson=pJson,
+        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=False, loadDefConfig=False)
         # Expected Result
         assert ret == False and len(deps) == 3
@@ -430,10 +430,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, aPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
             curMode='4x25G', newMode='2x50G')
-        cmdpb.breakOutPort(delPorts=dPorts, addPorts= aPorts, portJson=pJson,
-            force=True, loadDefConfig=True)
+        cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True, \
+            loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             u'ACL_TABLE': {
@@ -496,10 +496,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, aPorts, pJson = self.generate_args(portIdx=4, laneIdx=69, \
+        dPorts, pJson = self.generate_args(portIdx=4, laneIdx=69, \
             curMode='4x25G', newMode='2x50G')
-        cmdpb.breakOutPort(delPorts=dPorts, addPorts= aPorts, portJson=pJson,
-            force=True, loadDefConfig=True)
+        cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True, \
+            loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             u'ACL_TABLE': {
