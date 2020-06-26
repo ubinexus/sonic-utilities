@@ -148,8 +148,7 @@ setup(
     # - tabulate
     install_requires=[
         'click',
-        'natsort',
-        'xmltodict==0.12.0'
+        'natsort'
     ],
     setup_requires= [
         'pytest-runner'
