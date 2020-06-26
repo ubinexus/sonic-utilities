@@ -263,11 +263,11 @@ def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
 
     return
 
-def breakout_Ports(cm, delPorts=list(), addPorts=list(), portJson=dict(), \
-    force=False, loadDefConfig=False, verbose=False):
+def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
+    loadDefConfig=False, verbose=False):
 
-    deps, ret = cm.breakOutPort(delPorts=delPorts, addPorts = addPorts, \
-                    portJson=portJson, force=force, loadDefConfig=loadDefConfig)
+    deps, ret = cm.breakOutPort(delPorts=delPorts,  portJson=portJson, \
+                    force=force, loadDefConfig=loadDefConfig)
     # check if DPB failed
     if ret == False:
         if not force and deps:
@@ -2185,13 +2185,12 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         final_delPorts = [intf for intf in del_intf_dict.keys()]
         """ Warn user if tables without yang models exist and have final_delPorts """
         breakout_warnUser_extraTables(cm, final_delPorts, confirm=True)
-        # prompt
-        """ Add ports with its attributes using ConfigMgmt API """
-        final_addPorts = [intf for intf in port_dict.keys()]
+
+        # Create a dictionary containing all the added ports with its capabilities like alias, lanes, speed etc.
         portJson = dict(); portJson['PORT'] = port_dict
+
         # breakout_Ports will abort operation on failure, So no need to check return
-        breakout_Ports(cm, delPorts=final_delPorts, addPorts = final_addPorts, \
-            portJson=portJson, force=force_remove_dependencies, \
+        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, \
             loadDefConfig=load_predefined_config, verbose=verbose)
 
         # Set Current Breakout mode in config DB
