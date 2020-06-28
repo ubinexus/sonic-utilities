@@ -5,7 +5,8 @@ from show.main import AliasedGroup, cli, run_command
 import os
 from swsssdk import ConfigDBConnector
 
-KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf"
+KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
+KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"
 REDIS_KUBE_TABLE = 'KUBERNETES_MASTER'
 REDIS_KUBE_KEY = 'SERVER'
 
@@ -13,7 +14,7 @@ REDIS_KUBE_KEY = 'SERVER'
 def hostname():
     return os.uname()[1]
 
-def _get_db_data(table, key):
+def _get_configdb_data(table, key):
     config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table(table)
@@ -29,6 +30,11 @@ def _print_entry(d, prefix):
     else:
         print(prefix + str(d))
 
+def run_kube_command(cmd):
+    if os.path.exists(KUBE_ADMIN_CONF):
+        run_command(KUBECTL_CMD.format(cmd))
+    else:
+        print("System not connected to cluster yet")
 #
 # kubernetes group ("show kubernetes ...")
 #
@@ -40,22 +46,22 @@ def kubernetes():
 @kubernetes.command()
 def nodes():
     """List all nodes in this kubernetes cluster"""
-    run_command("{} get nodes".format(KUBECTL_CMD))
+    run_kube_command("get nodes")
 
 @kubernetes.command()
 def pods():
     """List all pods in this kubernetes cluster"""
-    run_command("{} get pods".format(KUBECTL_CMD))
+    run_kube_command("get pods")
 
 @kubernetes.command()
 def status():
     """Descibe this node"""
-    run_command("{} describe node {}".format(KUBECTL_CMD, hostname()))
+    run_kube_command("describe node {}".format(hostname()))
 
 @kubernetes.command()
 def server():
     """Show kube configuration"""
-    db_data = _get_db_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
+    db_data = _get_configdb_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
     if db_data:
         _print_entry(db_data, "{} {}".format(REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
     else:
