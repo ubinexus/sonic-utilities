@@ -622,7 +622,8 @@ def config():
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
 
-import kube
+# Import kube commands
+from . import kube
 
 # === Add NAT Configuration ==========
 config.add_command(nat.nat)
