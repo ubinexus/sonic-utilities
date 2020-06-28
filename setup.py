@@ -148,8 +148,7 @@ setup(
     # - tabulate
     install_requires=[
         'click',
-        'natsort',
-        'crontab'
+        'natsort'
     ],
     setup_requires= [
         'pytest-runner'
