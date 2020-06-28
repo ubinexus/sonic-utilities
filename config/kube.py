@@ -5,7 +5,6 @@ import click
 import os
 import sys
 import syslog
-from crontab import CronTab
 import urllib3
 import tempfile
 import requests
@@ -21,9 +20,6 @@ from config.main import run_command, AbbreviationGroup, config
 
 logger_identity = "kube_config"
 log_level = syslog.LOG_DEBUG
-
-CRON_JOB_COMMENT = "kube_join"
-CRON_JOB_FREQ_IN_MINS = 10
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBELET_YAML = "/var/lib/kubelet/config.yaml"
@@ -101,23 +97,6 @@ def _take_lock():
         lock_fd = None
         _log_err("Lock {} failed: {}".format(LOCK_FILE, str(e)))
     return lock_fd
-
-def _drop_cron():
-    cron = CronTab(user="root")
-    cron.remove_all(comment="{}".format(CRON_JOB_COMMENT))
-    cron.write()
-
-def _create_cron():
-    _drop_cron()
-    with CronTab(user='root') as cron:
-        cron.env['PATH'] = '/usr/sbin:/usr/bin:/sbin:/bin'
-        cmd = "python -u {} -c join".format(
-                os.path.join(
-                    os.path.dirname(os.path.abspath(__file__)),
-                    "kube_join.py"))
-        job = cron.new(command=cmd, comment=CRON_JOB_COMMENT)
-        job.minute.every(CRON_JOB_FREQ_IN_MINS)
-
 
 def _download_file(server, insecure):
     fname = ""
@@ -238,16 +217,11 @@ def _do_join(server,insecure):
     _troubleshoot_tips()
 
 
-def kube_reset(drop_cron=True):
+def kube_reset():
     lock_fd = _take_lock()
     if not lock_fd:
         log_err("Lock {} is active; Bail out".format(LOCK_FILE))
         return
-
-
-    # Drop any active Cron job for join.
-    if drop_cron:
-        _drop_cron()
 
     # Remove a key label and drain/delete self from cluster
     # If not, the next join would fail
@@ -269,7 +243,7 @@ def kube_reset(drop_cron=True):
     run_command("systemctl stop kubelet")
     run_command("systemctl disable kubelet")
 
-def kube_join(async_mode=False, force=False):
+def kube_join(force=False):
     lock_fd = _take_lock()
     if not lock_fd:
         log_err("Lock {} is active; Bail out".format(LOCK_FILE))
@@ -286,14 +260,10 @@ def kube_join(async_mode=False, force=False):
     if not force:
         if _is_connected(db_data['IP']):
             # Already connected. No-Op
-            _drop_cron()
             return
 
-    if async_mode:
-        _create_cron()
-    else:
-        kube_reset(drop_cron=False)
-        _do_join(db_data['IP'], db_data['insecure'])
+    kube_reset()
+    _do_join(db_data['IP'], db_data['insecure'])
 
 
 
@@ -304,12 +274,11 @@ def kubernetes():
 
 config.add_command(kubernetes)
 
-# cmd kubernetes join [-a/--async] [-f/--force]
+# cmd kubernetes join [-f/--force]
 @click.command()
-@click.option('-a', '--async', help='Join kubernetes cluster asynchronously', is_flag=True)
 @click.option('-f', '--force', help='Force a join', is_flag=True)
-def join(async, force):
-    kube_join(async_mode=async, force=force)
+def join(force):
+    kube_join(force=force)
 kubernetes.add_command(join)
 
 # cmd kubernetes reset
