@@ -7,6 +7,7 @@ import collections
 import os
 import re
 import subprocess
+import sys
 import zipfile
 
 import click
@@ -124,7 +125,7 @@ class AbootBootloader(Bootloader):
     def verify_binary_image(self, image_path):
         try:
             subprocess.check_call(['/usr/bin/unzip', '-tq', image_path])
-            return self._verify_secureboot_image(image_path):
+            return self._verify_secureboot_image(image_path)
         except subprocess.CalledProcessError:
             return False
 
@@ -138,25 +139,28 @@ class AbootBootloader(Bootloader):
                 return False
             # Verify the signing certificates are from the same issuer
             return str(cert.get_issuer()) == str(current_cert.get_issuer())
+        return True
 
     @classmethod
     def getCert(cls, swiFile):
-        try:
-            with zipfile.ZipFile(swiFile, 'r') as swi:
+        with zipfile.ZipFile(swiFile, 'r') as swi:
+            try:
                 sigInfo = swi.getinfo(cls.getSigFileName(swiFile))
-                with swi.open(sigInfo, 'r') as sigFile:
-                    for line in sigFile:
-                        data = line.split(':')
-                        if len(data) == 2:
-                            if data[0] == ISSUERCERT:
-                                cert = cls.base64Decode( data[1].strip() )
-                                signingCert = X509.load_cert_string(cert)
-                                return signingCert
-                        else:
-                            print( 'Unexpected format for line in swi[x]-signature file: %s' % line )
-            return None
-        except KeyError:
-            # Occurs if SIG_FILE_NAME is not in the swi (the SWI is not signed properly)
+            except KeyError:
+                # Occurs if SIG_FILE_NAME is not in the swi (the SWI is not signed properly)
+                return None
+            with swi.open(sigInfo, 'r') as sigFile:
+                for line in sigFile:
+                    data = line.split(':')
+                    if len(data) == 2:
+                        if data[0] == ISSUERCERT:
+                            try:
+                                base64_cert = cls.base64Decode(data[1].strip())
+                                return X509.load_cert_string(base64_cert)
+                            except TypeError:
+                                return None
+                    else:
+                        sys.stderr.write('Unexpected format for line in swi[x]-signature file: %s\n' % line)
             return None
 
     @classmethod
@@ -167,10 +171,7 @@ class AbootBootloader(Bootloader):
 
     @classmethod
     def base64Decode(cls, text):
-        try:
-            return base64.standard_b64decode(text)
-        except TypeError:
-            return ""
+        return base64.standard_b64decode(text)
 
     @classmethod
     def detect(cls):
