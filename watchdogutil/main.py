@@ -75,10 +75,6 @@ def load_platform_watchdog():
 
     return 0
 
-def get_watchdog_status():
-    status = platform_watchdog.is_armed()
-    remaining_time = platform_watchdog.get_remaining_time()
-    return status, remaining_time
 
 # ==================== CLI commands and groups ====================
 
@@ -107,20 +103,34 @@ def version():
 @watchdogutil.command()
 def status():
     """Check the watchdog status with remaining_time if it's armed"""
-    click.echo(str(get_watchdog_status()))
+    status = platform_watchdog.is_armed()
+    remaining_time = platform_watchdog.get_remaining_time()
+    if status is True:
+        click.echo("Watchdog armed with remaining {} seconds".format(remaining_time))
+    else:
+        click.echo("Watchdog unarmed")
+
 
 # 'disarm' subcommand
 @watchdogutil.command()
 def disarm():
     """Disarm HW watchdog"""
-    click.echo(str(platform_watchdog.disarm()))
+    result = platform_watchdog.disarm()
+    if result is True:
+        click.echo("Watchdog disarmed successfully")
+    else:
+        click.echo("Failed to disarm Watchdog")
 
 # 'arm' subcommand
 @watchdogutil.command()
 @click.option('-s', '--seconds', default=180, type=int, help="the default timeout of HW watchdog")
 def arm(seconds):
     """Arm HW watchdog"""
-    click.echo(str(platform_watchdog.arm(seconds)))
+    result = int(platform_watchdog.arm(seconds))
+    if result == seconds:
+        click.echo("Watchdog armed for {} seconds".format(seconds))
+    else:
+        click.echo("Failed to arm Watchdog for {} seconds".format(seconds))
 
 if __name__ == '__main__':
     cli()
