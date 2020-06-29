@@ -570,33 +570,42 @@ def is_ipaddress(val):
         return False
     return True
 
-#
-# Check if an interface_name is in a vlan
-#
 def  interface_is_in_vlan(vlan_member_table, interface_name):
-
-    for k,v in vlan_member_table:
+    """ Check if an interface  is in a vlan """
+    for _,v in vlan_member_table.keys():
         if v == interface_name:
             return True
 
     return False
 
+def  interface_is_in_portchannel(portchannel_member_table, interface_name):
+    """ Check if an interface is part of portchannel """
+    for _,v in portchannel_member_table.keys():
+        if v == interface_name:
+            return True
 
-#
-# Check if port is already configured as mirror destination port
-#
+    return False
+
+def interface_is_router_port(interface_table, interface_name):
+    """ Check if an interface has router config """
+    for entry in interface_table.keys():
+        if (interface_name == entry[0]):
+            return True
+
+    return False
+
 def interface_is_mirror_dst_port(config_db, interface_name):
+    """ Check if port is already configured as mirror destination port """
     mirror_table = config_db.get_table('MIRROR_SESSION')
-    for k,v in mirror_table.items():
+    for _,v in mirror_table.items():
         if 'dst_port' in v and v['dst_port'] == interface_name:
             return True
 
     return False
-#
-# Check if port is already configured with mirror config
-#
+
 def interface_has_mirror_config(mirror_table, interface_name):
-    for k,v in mirror_table.items():
+    """ Check if port is already configured with mirror config """
+    for _,v in mirror_table.items():
         if 'src_port' in v and v['src_port'] == interface_name:
             return True
         if 'dst_port' in v and v['dst_port'] == interface_name:
@@ -608,12 +617,15 @@ def interface_has_mirror_config(mirror_table, interface_name):
 # Check if SPAN mirror-session config is valid.
 #
 def validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction):
+    """ Check if SPAN mirror-session config is valid """
     if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
         click.echo("Error: {} already exists".format(session_name))
         return False
 
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     mirror_table = config_db.get_table('MIRROR_SESSION')
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    interface_table = config_db.get_table('INTERFACE')
 
     if dst_port is not None:
         if interface_name_is_valid(dst_port) is False:
@@ -626,6 +638,14 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
         if interface_has_mirror_config(mirror_table, dst_port):
             click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
+            return False
+
+        if interface_is_in_portchannel(portchannel_member_table, dst_port):
+            click.echo("Error: Destination Interface {} has portchannel config".format(dst_port))
+            return False
+
+        if interface_is_router_port(interface_table, dst_port):
+            click.echo("Error: Destination Interface {} is a L3 interface".format(dst_port))
             return False
 
     if src_port is not None:
@@ -1072,6 +1092,8 @@ def portchannel_member(ctx):
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
+    if interface_is_mirror_dst_port(db, port_name):
+        ctx.fail("{} is configured as mirror destination port".format(interface_name))
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1097,17 +1119,31 @@ def mirror_session():
 # 'add' subgroup ('config mirror_session add ...')
 #
 
-@mirror_session.group(cls=AbbreviationGroup, name='add')
+@mirror_session.command('add')
+@click.argument('session_name', metavar='<session_name>', required=True)
+@click.argument('src_ip', metavar='<src_ip>', required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', required=True)
+@click.argument('dscp', metavar='<dscp>', required=True)
+@click.argument('ttl', metavar='<ttl>', required=True)
+@click.argument('gre_type', metavar='[gre_type]', required=False)
+@click.argument('queue', metavar='[queue]', required=False)
+@click.option('--policer')
+def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
+    """ Add ERSPAN mirror session.(Legacy support) """
+    add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer)
+
+@mirror_session.group(cls=AbbreviationGroup, name='erspan')
 @click.pass_context
-def add(ctx):
-    """Add mirror_session"""
+def erspan(ctx):
+    """ ERSPAN mirror_session """
     pass
+
 
 #
 # 'add' subcommand
 #
 
-@add.command('erspan')
+@erspan.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True)
 @click.argument('src_ip', metavar='<src_ip>', required=True)
 @click.argument('dst_ip', metavar='<dst_ip>', required=True)
@@ -1118,23 +1154,13 @@ def add(ctx):
 @click.argument('src_port', metavar='[src_port]', required=False)
 @click.argument('direction', metavar='[direction]', required=False)
 @click.option('--policer')
-def erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction):
-    """
-    Add ERSPAN mirror session
-    """
-    session_info = {
-            "type" : "ERSPAN",
-            "src_ip": src_ip,
-            "dst_ip": dst_ip,
-            "dscp": dscp,
-            "ttl": ttl
-            }
+def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction):
+    """ Add ERSPAN mirror session """
+    add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
 
+def mirror_common_init(session_info, policer, queue, src_port, direction):
     if policer is not None:
         session_info['policer'] = policer
-
-    if gre_type is not None:
-        session_info['gre_type'] = gre_type
 
     if queue is not None:
         session_info['queue'] = queue
@@ -1152,6 +1178,21 @@ def erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, sr
 
     if direction is not None:
         session_info['direction'] = direction.upper()
+    return session_info
+
+def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port=None, direction=None):
+    session_info = {
+            "type" : "ERSPAN",
+            "src_ip": src_ip,
+            "dst_ip": dst_ip,
+            "dscp": dscp,
+            "ttl": ttl
+            }
+
+    if gre_type is not None:
+        session_info['gre_type'] = gre_type
+
+    session_info = mirror_common_init(session_info, policer, queue, src_port, direction)
 
     """
     For multi-npu platforms we need to program all front asic namespaces
@@ -1172,46 +1213,36 @@ def erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, sr
                 return
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
 
-@add.command('span')
+@mirror_session.group(cls=AbbreviationGroup, name='span')
+@click.pass_context
+def span(ctx):
+    """ SPAN mirror session """
+    pass
+
+@span.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True)
 @click.argument('dst_port', metavar='<dst_port>', required=True)
 @click.argument('src_port', metavar='[src_port]', required=False)
 @click.argument('direction', metavar='[direction]', required=False)
 @click.argument('queue', metavar='[queue]', required=False)
 @click.option('--policer')
-def span(session_name, dst_port, src_port, direction, queue, policer):
-    """
-    Add port mirror session
-    """
+def add(session_name, dst_port, src_port, direction, queue, policer):
+    """ Add SPAN mirror session """
+    add_span(session_name, dst_port, src_port, direction, queue, policer)
+
+def add_span(session_name, dst_port, src_port, direction, queue, policer):
     if get_interface_naming_mode() == "alias":
         dst_port = interface_alias_to_name(dst_port)
         if dst_port is None:
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
             return
-        if src_port is not None:
-            src_port_list = []
-            for port in src_port.split(","):
-                src_port_list.append(interface_alias_to_name(port))
-            src_port=",".join(src_port_list)
 
     session_info = {
             "type" : "SPAN",
             "dst_port": dst_port,
             }
 
-    if src_port is not None:
-        session_info['src_port'] = src_port
-        if direction is None:
-            direction = "both"
-
-    if direction is not None:
-        session_info['direction'] = direction.upper()
-
-    if policer is not None:
-        session_info['policer'] = policer
-
-    if queue is not None:
-        session_info['queue'] = queue
+    session_info = mirror_common_init(session_info, policer, queue, src_port, direction)
 
     """
     For multi-npu platforms we need to program all front asic namespaces
@@ -1232,12 +1263,11 @@ def span(session_name, dst_port, src_port, direction, queue, policer):
                 return
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
 
+
 @mirror_session.command()
 @click.argument('session_name', metavar='<session_name>', required=True)
 def remove(session_name):
-    """
-    Delete mirror session
-    """
+    """ Delete mirror session """
 
     """
     For multi-npu platforms we need to program all front asic namespaces
@@ -1253,6 +1283,7 @@ def remove(session_name):
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
+
 #
 # 'pfcwd' group ('config pfcwd ...')
 #

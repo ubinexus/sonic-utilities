@@ -3798,19 +3798,32 @@ While adding a new ERSPAN session, users need to configure the following fields 
 
 - Usage:
   ```
-  config mirror_session add erspan <session_name> <src_ip> <dst_ip> <dscp> <ttl> [gre_type] [queue] [policer <policer_name>] [source-port-list] [direction]
+  config mirror_session erspan add <session_name> <src_ip> <dst_ip> <dscp> <ttl> [gre_type] [queue] [policer <policer_name>] [source-port-list] [direction]
+  ```
+
+  The following command is also supported to be backward compatible.
+  This command will be deprecated in future releases.
+  ```
+  config mirror_session add <session_name> <src_ip> <dst_ip> <dscp> <ttl> [gre_type] [queue]
   ```
 
 - Example:
   ```
-  root@T1-2:~# config mirror_session add erspan mrr_abcd 1.2.3.4 20.21.22.23 8 100 0x6558 0
+  root@T1-2:~# config mirror_session add mrr_legacy 1.2.3.4 20.21.22.23 8 100 0x6558 0
+  root@T1-2:~# show mirror_session
+  Name         Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ---------    --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
+  mrr_legacy   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0
+
+
+  root@T1-2:~# config mirror_session erspan add mrr_abcd 1.2.3.4 20.21.22.23 8 100 0x6558 0
   root@T1-2:~# show mirror_session
   Name       Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
   ---------  --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
   mrr_abcd   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0
   root@T1-2:~#
 
-  root@T1-2:~# config mirror_session add erspan mrr_port 1.2.3.4 20.21.22.23 8 100 0x6558 0 Ethernet0 both
+  root@T1-2:~# config mirror_session erspan add mrr_port 1.2.3.4 20.21.22.23 8 100 0x6558 0 Ethernet0
   root@T1-2:~# show mirror_session
   Name       Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
   ---------  --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
@@ -3827,17 +3840,18 @@ While adding a new SPAN session, users need to configure the following fields th
 
 - Usage:
   ```
-  config mirror_session add span <session_name> <dst_port> [source-port-list] [direction] [queue] [policer <policer_name>]
+  config mirror_session span add <session_name> <dst_port> [source-port-list] [direction] [queue] [policer <policer_name>]
   ```
 
 - Example:
   ```
-  root@T1-2:~# config mirror_session add span port0 Ethernet0 Ethernet4,PortChannel001,Ethernet8 both
+  root@T1-2:~# config mirror_session span add port0 Ethernet0 Ethernet4,PortChannel001,Ethernet8
   root@T1-2:~# show mirror_session
   Name    Status    DST Port    SRC Port                           Direction
   ------  --------  ----------  ---------------------------------  -----------
   port0   active    Ethernet0   Ethernet4,PortChannel10,Ethernet8  both
   root@T1-2:~#
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#mirroring)
 

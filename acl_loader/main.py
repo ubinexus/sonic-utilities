@@ -730,16 +730,17 @@ class AclLoader(object):
 
             if val.get("type") == "SPAN":
                 span_data.append([key, val.get("status", ""), val.get("dst_port", ""),
-                         val.get("src_port", ""), val.get("direction", "").lower(),val.get("queue", ""), val.get("policer", "")])
+                                    val.get("src_port", ""), val.get("direction", "").lower(),
+                                    val.get("queue", ""), val.get("policer", "")])
             else:
                 erspan_data.append([key, val.get("status", ""), val.get("src_ip", ""),
-                         val.get("dst_ip", ""), val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
-                         val.get("monitor_port", ""), val.get("src_port", ""), val.get("direction", "").lower()])
+                                    val.get("dst_ip", ""), val.get("gre_type", ""), val.get("dscp", ""),
+                                    val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
+                                    val.get("monitor_port", ""), val.get("src_port", ""), val.get("direction", "").lower()])
 
-        print 'ERSPAN Sessions'
+        print("ERSPAN Sessions")
         print(tabulate.tabulate(erspan_data, headers=erspan_header, tablefmt="simple", missingval=""))
-        print '\nSPAN Sessions'
+        print("\nSPAN Sessions")
         print(tabulate.tabulate(span_data, headers=span_header, tablefmt="simple", missingval=""))
 
     def show_policer(self, policer_name):
