@@ -15,7 +15,6 @@ class TestConfigMgmt(TestCase):
     '''
 
     def setUp(self):
-        config_mgmt.YANG_DIR = "./../../../sonic-yang-models/yang-models/"
         config_mgmt.CONFIG_DB_JSON_FILE = "startConfigDb.json"
         config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "portBreakOutConfigDb.json"
         return
