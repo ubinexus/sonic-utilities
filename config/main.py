@@ -1156,13 +1156,13 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_p
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
 
 def gather_session_info(session_info, policer, queue, src_port, direction):
-    if policer is not None:
+    if policer:
         session_info['policer'] = policer
 
-    if queue is not None:
+    if queue:
         session_info['queue'] = queue
 
-    if src_port is not None:
+    if src_port:
         if get_interface_naming_mode() == "alias":
             src_port_list = []
             for port in src_port.split(","):
@@ -1170,7 +1170,7 @@ def gather_session_info(session_info, policer, queue, src_port, direction):
             src_port=",".join(src_port_list)
 
         session_info['src_port'] = src_port
-        if direction is None:
+        if not direction:
             direction = "both"
         session_info['direction'] = direction.upper()
 
@@ -1185,7 +1185,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
             "ttl": ttl
             }
 
-    if gre_type is not None:
+    if not gre_type:
         session_info['gre_type'] = gre_type
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)
