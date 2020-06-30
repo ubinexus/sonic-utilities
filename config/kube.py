@@ -5,7 +5,6 @@ import click
 import os
 import sys
 import syslog
-import urllib3
 import tempfile
 import requests
 import fcntl
@@ -100,9 +99,6 @@ def _take_lock():
 
 def _download_file(server, insecure):
     fname = ""
-    if insecure:
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
     r = requests.get(SERVER_ADMIN_URL.format(server), verify=not insecure)
     if r.status_code == 200:
         (h, fname) = tempfile.mkstemp(suffix="_kube_join")
