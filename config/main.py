@@ -658,7 +658,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
                 return False
 
     if direction:
-        if not any ( [direction == 'rx', direction == 'tx', direction == 'both'] ):
+        if direction not in ['rx', 'tx', 'both']:
             click.echo("Error: Direction {} is invalid".format(direction))
             return False
 
