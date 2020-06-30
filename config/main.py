@@ -2047,10 +2047,7 @@ def add(ctx, interface_name, ip_addr, gw):
     try:
         net = ipaddress.ip_network(unicode(ip_addr), strict=False)
         if '/' not in ip_addr:
-            if net.version == 4:
-                ip_addr = "%s/32" % ip_addr
-            else:
-                ip_addr = "%s/128" % ip_addr
+            ip_addr = str(net)
 
         if interface_name == 'eth0':
 
@@ -2109,10 +2106,7 @@ def remove(ctx, interface_name, ip_addr):
     try:
         net = ipaddress.ip_network(unicode(ip_addr), strict=False)
         if '/' not in ip_addr:
-            if net.version == 4:
-                ip_addr = "%s/32" % ip_addr
-            else:
-                ip_addr = "%s/128" % ip_addr
+            ip_addr = str(net)
 
         if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
