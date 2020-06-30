@@ -2045,7 +2045,12 @@ def add(ctx, interface_name, ip_addr, gw):
             ctx.fail("'interface_name' is None!")
 
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        net = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if '/' not in ip_addr:
+            if net.version == 4:
+                ip_addr = "%s/32" % ip_addr
+            else:
+                ip_addr = "%s/128" % ip_addr
 
         if interface_name == 'eth0':
 
@@ -2102,7 +2107,12 @@ def remove(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is None!")
 
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        net = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if '/' not in ip_addr:
+            if net.version == 4:
+                ip_addr = "%s/32" % ip_addr
+            else:
+                ip_addr = "%s/128" % ip_addr
 
         if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
