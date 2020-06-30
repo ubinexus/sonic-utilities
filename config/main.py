@@ -572,24 +572,24 @@ def is_ipaddress(val):
 
 def  interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
-    for _,v in vlan_member_table.keys():
-        if v == interface_name:
+    for _,intf in vlan_member_table.keys():
+        if intf == interface_name:
             return True
 
     return False
 
 def  interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _,v in portchannel_member_table.keys():
-        if v == interface_name:
+    for _,intf in portchannel_member_table.keys():
+        if intf == interface_name:
             return True
 
     return False
 
 def interface_is_router_port(interface_table, interface_name):
     """ Check if an interface has router config """
-    for entry in interface_table.keys():
-        if (interface_name == entry[0]):
+    for intf in interface_table.keys():
+        if (interface_name == intf[0]):
             return True
 
     return False
@@ -613,9 +613,6 @@ def interface_has_mirror_config(mirror_table, interface_name):
 
     return False
 
-#
-# Check if SPAN mirror-session config is valid.
-#
 def validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction):
     """ Check if SPAN mirror-session config is valid """
     if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
@@ -627,8 +624,8 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
     interface_table = config_db.get_table('INTERFACE')
 
-    if dst_port is not None:
-        if interface_name_is_valid(dst_port) is False:
+    if dst_port:
+        if not interface_name_is_valid(dst_port):
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
             return False
 
@@ -648,19 +645,19 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
             click.echo("Error: Destination Interface {} is a L3 interface".format(dst_port))
             return False
 
-    if src_port is not None:
+    if src_port:
         for port in src_port.split(","):
-            if interface_name_is_valid(port) is False:
+            if not interface_name_is_valid(port):
                 click.echo("Error: Source Interface {} is invalid".format(port))
                 return False
-            if dst_port is not None and dst_port == port:
+            if dst_port and dst_port == port:
                 click.echo("Error: Destination Interface cant be same as Source Interface")
                 return False
             if interface_has_mirror_config(mirror_table, port):
                 click.echo("Error: Source Interface {} already has mirror config".format(port))
                 return False
 
-    if direction is not None:
+    if direction:
         if not any ( [direction == 'rx', direction == 'tx', direction == 'both'] ):
             click.echo("Error: Direction {} is invalid".format(direction))
             return False
@@ -1093,7 +1090,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
     if interface_is_mirror_dst_port(db, port_name):
-        ctx.fail("{} is configured as mirror destination port".format(interface_name))
+        ctx.fail("{} is configured as mirror destination port".format(port_name))
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1158,7 +1155,7 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_p
     """ Add ERSPAN mirror session """
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
 
-def mirror_common_init(session_info, policer, queue, src_port, direction):
+def gather_session_info(session_info, policer, queue, src_port, direction):
     if policer is not None:
         session_info['policer'] = policer
 
@@ -1175,9 +1172,8 @@ def mirror_common_init(session_info, policer, queue, src_port, direction):
         session_info['src_port'] = src_port
         if direction is None:
             direction = "both"
-
-    if direction is not None:
         session_info['direction'] = direction.upper()
+
     return session_info
 
 def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port=None, direction=None):
@@ -1192,7 +1188,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     if gre_type is not None:
         session_info['gre_type'] = gre_type
 
-    session_info = mirror_common_init(session_info, policer, queue, src_port, direction)
+    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
 
     """
     For multi-npu platforms we need to program all front asic namespaces
@@ -1242,7 +1238,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
             "dst_port": dst_port,
             }
 
-    session_info = mirror_common_init(session_info, policer, queue, src_port, direction)
+    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
 
     """
     For multi-npu platforms we need to program all front asic namespaces
