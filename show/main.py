@@ -3314,18 +3314,30 @@ def system_health():
 @system_health.command()
 def summary():
     """Show system-health summary information"""
-    if os.geteuid():
-        click.echo("Root privileges are required for this operation")
-        return
-    from health_checker.manager import HealthCheckerManager
+    # Mock the redis for unit test purposes #
+    try:
+        if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+            modules_path = os.path.join(os.path.dirname(__file__), "..")
+            sys.path.insert(0, modules_path)
+            from system_health_test import MockerManager
+            from system_health_test import MockerChassis
+            HealthCheckerManager = MockerManager
+            Chassis = MockerChassis
+    except:
+        # Normal run... # 
+        if os.geteuid():
+            click.echo("Root privileges are required for this operation")
+            return
+        from health_checker.manager import HealthCheckerManager
+        from sonic_platform.chassis import Chassis
+
     manager = HealthCheckerManager()
-    state, stat = manager.check()
+    chassis = Chassis()
+    state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
         return
     if state == HealthCheckerManager.STATE_RUNNING:
-        from sonic_platform.chassis import Chassis
-        chassis = Chassis()
         chassis.initizalize_system_led()
         led = chassis.get_status_led()
         fault_counter = 0
@@ -3335,7 +3347,7 @@ def summary():
                 if elements[element]['status'] != "OK":
                     fault_counter += 1
                     if fault_counter == 1:
-                        click.echo(category + "\tFault")
+                        click.echo(category + "\tNot OK")
                     click.echo('\t' + elements[element]['message'])
             if not fault_counter:
                 click.echo(category + "\tOK")
@@ -3344,19 +3356,31 @@ def summary():
 @system_health.command()
 def detail():
     """Show system-health detail information"""
-    if os.geteuid():
-        click.echo("Root privileges are required for this operation")
-        return
-    from health_checker.manager import HealthCheckerManager
+    # Mock the redis for unit test purposes #
+    try:
+        if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+            modules_path = os.path.join(os.path.dirname(__file__), "..")
+            sys.path.insert(0, modules_path)
+            from system_health_test import MockerManager
+            from system_health_test import MockerChassis
+            HealthCheckerManager = MockerManager
+            Chassis = MockerChassis
+    except:
+        # Normal run... # 
+        if os.geteuid():
+            click.echo("Root privileges are required for this operation")
+            return
+        from health_checker.manager import HealthCheckerManager
+        from sonic_platform.chassis import Chassis
+
     manager = HealthCheckerManager()
-    state, stat = manager.check()
+    chassis = Chassis()
+    state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
         return
     if state == HealthCheckerManager.STATE_RUNNING:
         #summary output
-        from sonic_platform.chassis import Chassis
-        chassis = Chassis()
         chassis.initizalize_system_led()
         led = chassis.get_status_led()
         fault_counter = 0
@@ -3366,20 +3390,21 @@ def detail():
                 if elements[element]['status'] != "OK":
                     fault_counter += 1
                     if fault_counter == 1:
-                        click.echo(category + "\tFault")
+                        click.echo(category + "\tNot OK")
                     click.echo('\t' + elements[element]['message'])
             if not fault_counter:
                 click.echo(category + "\tOK")
             fault_counter = 0
+
         click.echo('\nSystem services and devices monitor list\n----------------------------------------\n')
         header = ['Name', 'Status', 'Type']
         table = []
         for category, elements in stat.items():
-            for element in elements:
+            for element in sorted(elements.items(), key=lambda (x, y): y['status']):
                 entry = []
-                entry.append(element)
-                entry.append(elements[element]['status'])
-                entry.append(elements[element]['type'])
+                entry.append(element[0])
+                entry.append(element[1]['status'])
+                entry.append(element[1]['type'])
                 table.append(entry)
         click.echo(tabulate(table, header))
         click.echo('\nSystem services and devices ignore list\n---------------------------------------\n')
@@ -3403,12 +3428,26 @@ def detail():
 @system_health.command()
 def monitor_list():
     """Show system-health monitored services and devices name list"""
-    if os.geteuid():
-        click.echo("Root privileges are required for this operation")
-        return
-    from health_checker.manager import HealthCheckerManager
+    # Mock the redis for unit test purposes #
+    try:
+        if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+            modules_path = os.path.join(os.path.dirname(__file__), "..")
+            sys.path.insert(0, modules_path)
+            from system_health_test import MockerManager
+            from system_health_test import MockerChassis
+            HealthCheckerManager = MockerManager
+            Chassis = MockerChassis
+    except:
+        # Normal run... # 
+        if os.geteuid():
+            click.echo("Root privileges are required for this operation")
+            return
+        from health_checker.manager import HealthCheckerManager
+        from sonic_platform.chassis import Chassis
+
     manager = HealthCheckerManager()
-    state, stat = manager.check()
+    chassis = Chassis()
+    state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
         return
@@ -3417,11 +3456,11 @@ def monitor_list():
         header = ['Name', 'Status', 'Type']
         table = []
         for category, elements in stat.items():
-            for element in elements:
+            for element in sorted(elements.items(), key=lambda (x, y): y['status']):
                 entry = []
-                entry.append(element)
-                entry.append(elements[element]['status'])
-                entry.append(elements[element]['type'])
+                entry.append(element[0])
+                entry.append(element[1]['status'])
+                entry.append(element[1]['type'])
                 table.append(entry)
         click.echo(tabulate(table, header))
 
