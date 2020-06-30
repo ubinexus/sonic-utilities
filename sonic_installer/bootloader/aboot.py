@@ -131,14 +131,8 @@ class AbootBootloader(Bootloader):
 
     def _verify_secureboot_image(self, image_path):
         if isSecureboot():
-            current_image_path = self.get_current_image()
-            current_swi_path = self._swi_image_path(current_image_path).replace('flash:', HOST_PATH + '/')
             cert = self.getCert(image_path)
-            current_cert = self.getCert(current_swi_path)
-            if not cert or not current_cert:
-                return False
-            # Verify the signing certificates are from the same issuer
-            return str(cert.get_issuer()) == str(current_cert.get_issuer())
+            return cert is not None
         return True
 
     @classmethod
