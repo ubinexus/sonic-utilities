@@ -194,10 +194,14 @@ class DBMigrator():
 
     def mlnx_migrate_buffer_pool_size(self, old_version, new_version):
         """
-        On Mellanox platform the buffer pool size changed since 
-        version with new SDK 4.3.3052, SONiC to SONiC update 
+        v1.0.3:
+        On Mellanox platform the buffer pool size changed since
+        version with new SDK 4.3.3052, SONiC to SONiC update
         from version with old SDK will be broken without migration.
-        This migration is specifically for Mellanox platform. 
+        This migration is specifically for Mellanox platform.
+        v1.0.4:
+        Single ingress buffer is supported, which also affects the
+        buffer pool settings on some SKUs
         """
         buffer_pool_conf = {}
         device_data = self.configDB.get_table('DEVICE_METADATA')
