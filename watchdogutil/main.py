@@ -131,7 +131,7 @@ def arm(seconds):
     if result < 0:
         click.echo("Failed to arm Watchdog for {} seconds".format(seconds))
     else:
-        click.echo("Watchdog armed for {} seconds".format(results))
+        click.echo("Watchdog armed for {} seconds".format(result))
 
 if __name__ == '__main__':
     cli()
