@@ -14,7 +14,7 @@ try:
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
-VERSION = '2.0'
+VERSION = '1.0'
 
 SYSLOG_IDENTIFIER = "watchdogutil"
 
