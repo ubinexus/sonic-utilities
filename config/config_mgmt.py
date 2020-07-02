@@ -346,7 +346,6 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         Parameters:
             delPorts (list): ports to be deleted.
-            addPorts (list): ports to be added.
             portJson (dict): Config DB json Part of all Ports, generated from
                 platform.json.
             force (bool): if false return dependecies, else delete dependencies.
