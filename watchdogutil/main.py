@@ -128,10 +128,10 @@ def disarm():
 def arm(seconds):
     """Arm HW watchdog"""
     result = int(platform_watchdog.arm(seconds))
-    if result == seconds:
-        click.echo("Watchdog armed for {} seconds".format(seconds))
-    else:
+    if result < 0:
         click.echo("Failed to arm Watchdog for {} seconds".format(seconds))
+    else:
+        click.echo("Watchdog armed for {} seconds".format(results))
 
 if __name__ == '__main__':
     cli()
