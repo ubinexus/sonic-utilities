@@ -14,7 +14,7 @@ try:
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
-VERSION = '1.0'
+VERSION = "1.0"
 
 SYSLOG_IDENTIFIER = "watchdogutil"
 
@@ -134,4 +134,4 @@ def arm(seconds):
         click.echo("Watchdog armed for {} seconds".format(result))
 
 if __name__ == '__main__':
-    cli()
+    watchdogutil()
