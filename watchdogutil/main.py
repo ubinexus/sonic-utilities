@@ -106,10 +106,10 @@ def status():
     status = platform_watchdog.is_armed()
     remaining_time = platform_watchdog.get_remaining_time()
     if status is True:
-        click.echo("Status : Armed")
-        click.echo("Time remaining : {} seconds".format(remaining_time))
+        click.echo("Status: Armed")
+        click.echo("Time remaining: {} seconds".format(remaining_time))
     else:
-        click.echo("Status : Unarmed")
+        click.echo("Status: Unarmed")
 
 
 # 'disarm' subcommand
