@@ -16,6 +16,10 @@ import inspect
 import shutil
 from urlparse import urlparse
 from swsssdk import ConfigDBConnector
+
+def hostname():
+    return os.uname()[1]
+
 from config.main import run_command, AbbreviationGroup, config
 
 logger_identity = "kube_config"
@@ -29,9 +33,6 @@ SERVER_ADMIN_URL = "https://{}/admin.conf"
 KUBEADM_JOIN_CMD = "kubeadm join --discovery-file /etc/sonic/kube_admin.conf --node-name {}"
 
 LOCK_FILE = "/var/lock/kube_join.lock"
-
-def hostname():
-    return os.uname()[1]
 
 def _log_msg(lvl, fname, ln, m):
     if lvl <= log_level:

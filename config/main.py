@@ -624,6 +624,7 @@ config.add_command(aaa.tacacs)
 
 # Import kube commands
 from . import kube
+kube.hostname()
 
 # === Add NAT Configuration ==========
 config.add_command(nat.nat)
