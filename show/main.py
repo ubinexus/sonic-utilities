@@ -1623,6 +1623,7 @@ elif routing_stack == "frr":
 
 # Import kube commands
 from . import kube
+kube.hostname()
 
 #
 # 'lldp' group ("show lldp ...")

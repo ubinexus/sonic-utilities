@@ -1,8 +1,12 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
     
-from show.main import AliasedGroup, cli, run_command
 import os
+
+def hostname():
+    return os.uname()[1]
+
+from show.main import AliasedGroup, cli, run_command
 from swsssdk import ConfigDBConnector
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
@@ -10,9 +14,6 @@ KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"
 REDIS_KUBE_TABLE = 'KUBERNETES_MASTER'
 REDIS_KUBE_KEY = 'SERVER'
 
-
-def hostname():
-    return os.uname()[1]
 
 def _get_configdb_data(table, key):
     config_db = ConfigDBConnector()
