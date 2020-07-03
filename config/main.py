@@ -624,6 +624,9 @@ config.add_command(aaa.tacacs)
 
 # Import kube commands
 from . import kube
+
+# A dummy call to denote that this kube is not unused
+# Else LGTM is unable to understand the indirect use through click.group class method
 kube.hostname()
 
 # === Add NAT Configuration ==========
