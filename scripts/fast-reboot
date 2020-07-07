@@ -17,7 +17,7 @@ DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/bin/log_ssd_health"
-SSD_FW_UPDATE="/usr/bin/ssd-fw-upgrade"
+SSD_FW_UPDATE="ssd-fw-upgrade"
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
 MIN_HD_SPACE_NEEDED=100000
@@ -560,9 +560,9 @@ if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
 fi
 
-if [ -x ${SSD_FW_UPDATE} ]; then
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
     debug "updating ssd fw for${REBOOT_TYPE}"
-    ${SSD_FW_UPDATE} ${REBOOT_TYPE}
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
