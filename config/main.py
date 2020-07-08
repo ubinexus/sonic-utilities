@@ -36,6 +36,9 @@ SYSTEMCTL_ACTION_STOP="stop"
 SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
+# matches 'asic' followed by 1 or 2 digits
+NETWORK_NAMESPACE_MATCH = "asic([0-9]{1}|[0-9]{2})$"
+
 DEFAULT_NAMESPACE = ''
 CFG_LOOPBACK_PREFIX = "Loopback"
 CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
@@ -370,7 +373,7 @@ def _is_neighbor_ipaddress(config_db, ipaddress):
 
 def _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=False):
     """Returns list of strings containing IP addresses of all BGP neighbors
-       if the flag ignore_local_hosts is set to True, additional check to see if 
+       if the flag ignore_local_hosts is set to True, additional check to see if
        if the BGP neighbor AS number is same as local BGP AS number, if so ignore that neigbor.
     """
     addrs = []
@@ -454,7 +457,7 @@ def _change_hostname(hostname):
         run_command('sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
 
-def _clear_qos():
+def _clear_qos(namespace):
     QOS_TABLE_NAMES = [
             'TC_TO_PRIORITY_GROUP_MAP',
             'MAP_PFC_PRIORITY_TO_QUEUE',
@@ -470,10 +473,33 @@ def _clear_qos():
             'BUFFER_PROFILE',
             'BUFFER_PG',
             'BUFFER_QUEUE']
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    for qos_table in QOS_TABLE_NAMES:
-        config_db.delete_table(qos_table)
+
+    num_npus = sonic_device_util.get_num_npus()
+    namespace_list = [DEFAULT_NAMESPACE]
+    if num_npus > 1:
+        namespace_list = sonic_device_util.get_namespaces()
+
+    if namespace:
+        if namespace not in namespace_list:
+            click.secho(
+                "Command {} failed with invalid namespace {}".format(
+                    "qos reload", namespace
+                ),
+                fg='yellow'
+            )
+            raise click.Abort()
+        namespace_list = [namespace]
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            config_db = ConfigDBConnector()
+        else:
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+        config_db.connect()
+        for qos_table in QOS_TABLE_NAMES:
+            config_db.delete_table(qos_table)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
@@ -819,7 +845,7 @@ def load(filename, yes):
         # if any of the config files in linux host OR namespace is not present, return
         if not os.path.isfile(file):
             click.echo("The config_db file {} doesn't exist".format(file))
-            return 
+            return
 
         if namespace is None:
             command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
@@ -1033,11 +1059,12 @@ def load_minigraph(no_service_restart):
         if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:
             if device_type != 'MgmtToRRouter':
                 run_command('{} pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
-            run_command("{} config qos reload".format(ns_cmd_prefix), display_cmd=True)
 
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-    
+    # generate QoS and Buffer configs
+    run_command("config qos reload", display_cmd=True)
+
     # Write latest db version string into db
     db_migrator='/usr/bin/db_migrator.py'
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
@@ -1047,7 +1074,7 @@ def load_minigraph(no_service_restart):
             else:
                 cfggen_namespace_option = " -n {}".format(namespace)
             run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
-     
+
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
@@ -1410,38 +1437,113 @@ def qos(ctx):
     pass
 
 @qos.command('clear')
-def clear():
+@click.option(
+    '-n', '--namespace', default=None, type=str, help="Network namespace"
+)
+def clear(namespace):
     """Clear QoS configuration"""
     log_info("'qos clear' executing...")
-    _clear_qos()
+    _clear_qos(namespace)
 
 @qos.command('reload')
-def reload():
+@click.option(
+    '-n', '--namespace', default=None, type=str, help="Network namespace"
+)
+def reload(namespace):
     """Reload QoS configuration"""
     log_info("'qos reload' executing...")
-    _clear_qos()
+    _clear_qos(namespace)
     platform = sonic_device_util.get_platform()
     hwsku = sonic_device_util.get_hwsku()
-    buffer_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'buffers.json.j2')
-    if os.path.isfile(buffer_template_file):
-        command = "{} -d -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
-        run_command(command, display_cmd=True)
+    num_npus = sonic_device_util.get_num_npus()
+    namespace_list = [DEFAULT_NAMESPACE]
+    if num_npus > 1:
+        namespace_list = sonic_device_util.get_namespaces()
 
-        qos_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'qos.json.j2')
-        sonic_version_file = os.path.join('/etc/sonic/', 'sonic_version.yml')
-        if os.path.isfile(qos_template_file):
-            command = "{} -d -t {} -y {} >/tmp/qos.json".format(SONIC_CFGGEN_PATH, qos_template_file, sonic_version_file)
-            run_command(command, display_cmd=True)
+    if namespace:
+        if namespace not in namespace_list:
+            click.secho(
+                "Command {} failed with invalid namespace {}".format(
+                    "qos reload", namespace
+                ),
+                fg='yellow'
+            )
+            raise click.Abort()
+        namespace_list = [namespace]
 
-            # Apply the configurations only when both buffer and qos configuration files are presented
-            command = "{} -j /tmp/buffers.json --write-to-db".format(SONIC_CFGGEN_PATH)
-            run_command(command, display_cmd=True)
-            command = "{} -j /tmp/qos.json --write-to-db".format(SONIC_CFGGEN_PATH)
-            run_command(command, display_cmd=True)
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            asic_id_suffix = ""
         else:
-            click.secho('QoS definition template not found at {}'.format(qos_template_file), fg='yellow')
-    else:
-        click.secho('Buffer definition template not found at {}'.format(buffer_template_file), fg='yellow')
+            match = re.match(NETWORK_NAMESPACE_MATCH, ns, re.IGNORECASE)
+            if match:
+                asic_id_suffix = str(match.group(1))
+            else:
+                # invalid namespace, abort immediately
+                click.secho(
+                    "Command {} failed with invalid namespace {}".format(
+                        "qos reload", ns
+                    ),
+                    fg='yellow'
+                )
+                raise click.Abort()
+
+        buffer_template_file = os.path.join(
+            '/usr/share/sonic/device/',
+            platform,
+            hwsku,
+            asic_id_suffix,
+            'buffers.json.j2'
+        )
+        buffer_output_file = "/tmp/buffers{}.json".format(asic_id_suffix)
+        qos_output_file = "/tmp/qos{}.json".format(asic_id_suffix)
+
+        cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+        if os.path.isfile(buffer_template_file):
+            command = "{} {} -d -t {} > {}".format(
+                SONIC_CFGGEN_PATH,
+                cmd_ns,
+                buffer_template_file,
+                buffer_output_file
+            )
+            run_command(command, display_cmd=True)
+            qos_template_file = os.path.join(
+                '/usr/share/sonic/device/',
+                platform,
+                hwsku,
+                asic_id_suffix,
+                'qos.json.j2'
+            )
+            sonic_version_file = os.path.join(
+                '/etc/sonic/', 'sonic_version.yml'
+            )
+            if os.path.isfile(qos_template_file):
+                command = "{} {} -d -t {} -y {} > {}".format(
+                    SONIC_CFGGEN_PATH,
+                    cmd_ns,
+                    qos_template_file,
+                    sonic_version_file,
+                    qos_output_file
+                )
+                run_command(command, display_cmd=True)
+                # Apply the configurations only when both buffer and qos
+                # configuration files are presented
+                command = "{} {} -j {} --write-to-db".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, buffer_output_file
+                )
+                run_command(command, display_cmd=True)
+                command = "{} {} -j {} --write-to-db".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, qos_output_file
+                )
+                run_command(command, display_cmd=True)
+            else:
+                click.secho('QoS definition template not found at {}'.format(
+                    qos_template_file
+                ), fg='yellow')
+        else:
+            click.secho('Buffer definition template not found at {}'.format(
+                buffer_template_file
+            ), fg='yellow')
 
 #
 # 'warm_restart' group ('config warm_restart ...')
@@ -1703,7 +1805,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -1724,7 +1826,7 @@ def del_snmp_agent_address(ctx, agentip, port, vrf):
 
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -1986,7 +2088,7 @@ def all(verbose):
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
         bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
-        for ipaddress in bgp_neighbor_ip_list: 
+        for ipaddress in bgp_neighbor_ip_list:
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
@@ -2157,7 +2259,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
     run_command(command, display_cmd=verbose)
 
 def _get_all_mgmtinterface_keys():
-    """Returns list of strings containing mgmt interface keys 
+    """Returns list of strings containing mgmt interface keys
     """
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -2885,9 +2987,9 @@ def priority(ctx, interface_name, priority, status):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
-    
+
     run_command("pfc config priority {0} {1} {2}".format(status, interface_name, priority))
-    
+
 #
 # 'platform' group ('config platform ...')
 #
@@ -2986,10 +3088,10 @@ def naming_mode_alias():
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation
     """
-    
+
     if loopback_name[:CFG_LOOPBACK_PREFIX_LEN] != CFG_LOOPBACK_PREFIX :
         return False
-    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or 
+    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or
           int(loopback_name[CFG_LOOPBACK_PREFIX_LEN:]) > CFG_LOOPBACK_ID_MAX_VAL) :
         return False
     if len(loopback_name) > CFG_LOOPBACK_NAME_TOTAL_LEN_MAX:
@@ -3156,7 +3258,7 @@ def add_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         click.echo("NTP server {} is already configured".format(ntp_ip_address))
         return
-    else: 
+    else:
         db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
         click.echo("NTP server {} added to configuration".format(ntp_ip_address))
         try:
@@ -3177,7 +3279,7 @@ def del_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
         click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
-    else: 
+    else:
         ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
     try:
         click.echo("Restarting ntp-config service...")
@@ -3465,7 +3567,7 @@ def delete(ctx):
 
 #
 # 'feature' command ('config feature name state')
-# 
+#
 @config.command('feature')
 @click.argument('name', metavar='<feature-name>', required=True)
 @click.argument('state', metavar='<feature-state>', required=True, type=click.Choice(["enabled", "disabled"]))
