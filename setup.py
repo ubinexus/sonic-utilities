@@ -49,6 +49,7 @@ setup(
         'pddf_ledutil',
         'show',
         'sonic_installer',
+        'sonic_installer.bootloader',
         'sonic-utilities-tests',
         'undebug',
         'utilities_common',
@@ -148,7 +149,8 @@ setup(
     # - tabulate
     install_requires=[
         'click',
-        'natsort'
+        'natsort',
+        'm2crypto'
     ],
     setup_requires= [
         'pytest-runner'
