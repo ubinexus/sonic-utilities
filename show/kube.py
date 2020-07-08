@@ -62,9 +62,9 @@ def status():
 @kubernetes.command()
 def server():
     """Show kube configuration"""
-    db_data = _get_configdb_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
-    if db_data:
-        _print_entry(db_data, "{} {}".format(REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
+    kube_fvs = _get_configdb_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
+    if kube_fvs:
+        _print_entry(kube_fvs, "{} {}".format(REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
     else:
         print("Kubernetes server is not configured")
 
