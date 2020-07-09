@@ -61,8 +61,6 @@ class Bootloader(object):
             return False
         return True
 
-    def get_image_path
-
     @classmethod
     def detect(cls):
         """returns True if the bootloader is in use"""
