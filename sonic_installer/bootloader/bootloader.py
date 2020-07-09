@@ -2,6 +2,15 @@
 Abstract Bootloader class
 """
 
+import sys
+from os import path
+
+from ..common import (
+   HOST_PATH,
+   IMAGE_DIR_PREFIX,
+   IMAGE_PREFIX,
+)
+
 class Bootloader(object):
 
     NAME = None
@@ -43,8 +52,25 @@ class Bootloader(object):
         """verify that the image is supported by the bootloader"""
         raise NotImplementedError
 
+    def verify_reboot(self):
+        """verify the image for reboot"""
+        image = self.get_next_image()
+        image_path = self.get_image_path(image)
+        if not path.exists(image_path):
+            sys.stderr.write('Next image {0} doesn\'t exist ...\n'.format(image))
+            return False
+        return True
+
+    def get_image_path
+
     @classmethod
     def detect(cls):
         """returns True if the bootloader is in use"""
         return False
+
+    @classmethod
+    def get_image_path(cls, image):
+        """returns the image path"""
+        prefix = Host_PATH + '/' + IMAGE_DIR_PREFIX
+        return image.replace(IMAGE_PREFIX, prefix)
 

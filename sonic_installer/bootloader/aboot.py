@@ -129,6 +129,13 @@ class AbootBootloader(Bootloader):
         except subprocess.CalledProcessError:
             return False
 
+    def verify_reboot(self):
+        if not super(AbootBootloader, self).verify_reboot():
+            return False
+        image = self.get_next_image()
+        image_path = self.get_image_path(image) + '/sonic.swi'
+        return self._verify_secureboot_image(image_path)
+
     def _verify_secureboot_image(self, image_path):
         if isSecureboot():
             cert = self.getCert(image_path)

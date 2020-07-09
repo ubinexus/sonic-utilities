@@ -476,5 +476,15 @@ def rollback_docker(container_name):
 
     click.echo('Done')
 
+# verify reboot
+@cli.command('verify_reboot')
+def verify_reboot():
+    """ Verify the image for reboot"""
+    bootloader = get_bootloader()
+    if not bootloader.verify_reboot():
+        click.echo('Failed')
+        sys.exit(1)
+    click.echo('Done')
+
 if __name__ == '__main__':
     cli()
