@@ -32,14 +32,18 @@ import sys
 from natsort import natsorted
 from swsssdk import SonicV2Connector, port_util
 from tabulate import tabulate
+from sonic_daemon_base.daemon_base import Logger
 
 class FdbShow(object):
 
     HEADER = ['No.', 'Vlan', 'MacAddress', 'Port', 'Type']
     FDB_COUNT = 0
+    DB_MISS_THRESHOLD = 10
 
     def __init__(self):
         super(FdbShow,self).__init__()
+        self.logger = Logger("FDB")
+        self.db_miss_counter = 0
         self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, \
         self.if_oid_map = port_util.get_interface_oid_map(self.db)
@@ -68,8 +72,14 @@ class FdbShow(object):
             fdb = json.loads(fdb_entry .split(":", 2)[-1])
             if not fdb:
                 continue
-
-            ent = self.db.get_all('ASIC_DB', s, blocking=True)
+            if self.db.exists('ASIC_DB',s):
+                try:
+                    ent = self.db.get_all('ASIC_DB', s, blocking=True)
+                except:
+                    if db_miss_counter < DB_MISS_THRESHOLD:
+                        db_miss_counter += 1
+                        self.logger.log_info("Entry {} flushed from DB".format(str(s)))
+                    continue
             br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
             ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
