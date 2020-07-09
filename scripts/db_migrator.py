@@ -153,37 +153,69 @@ class DBMigrator():
                                       "ingress_lossy_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
                                       "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
                                       "egress_lossy_pool": {"size": "17891280", "type": "egress", "mode": "dynamic" } },
-                "spc1_headroom": {"pg_lossless_10000_5m_profile": {"size": "34816"},
-                                  "pg_lossless_25000_5m_profile": {"size": "34816"},
-                                  "pg_lossless_40000_5m_profile": {"size": "34816"},
-                                  "pg_lossless_50000_5m_profile": {"size": "34816"},
-                                  "pg_lossless_100000_5m_profile": {"size": "36864"},
-                                  "pg_lossless_10000_40m_profile": {"size": "36864"},
-                                  "pg_lossless_25000_40m_profile": {"size": "39936"},
-                                  "pg_lossless_40000_40m_profile": {"size": "41984"},
-                                  "pg_lossless_50000_40m_profile": {"size": "41984"},
-                                  "pg_lossless_100000_40m_profile": {"size": "54272"},
-                                  "pg_lossless_10000_300m_profile": {"size": "49152"},
-                                  "pg_lossless_25000_300m_profile": {"size": "71680"},
-                                  "pg_lossless_40000_300m_profile": {"size": "94208"},
-                                  "pg_lossless_50000_300m_profile": {"size": "94208"},
-                                  "pg_lossless_100000_300m_profile": {"size": "184320"}}
+                "spc1_headroom": {"pg_lossless_10000_5m_profile": {"size": "34816", "xon": "18432"},
+                                  "pg_lossless_25000_5m_profile": {"size": "34816", "xon": "18432"},
+                                  "pg_lossless_40000_5m_profile": {"size": "34816", "xon": "18432"},
+                                  "pg_lossless_50000_5m_profile": {"size": "34816", "xon": "18432"},
+                                  "pg_lossless_100000_5m_profile": {"size": "36864", "xon": "18432"},
+                                  "pg_lossless_10000_40m_profile": {"size": "36864", "xon": "18432"},
+                                  "pg_lossless_25000_40m_profile": {"size": "39936", "xon": "18432"},
+                                  "pg_lossless_40000_40m_profile": {"size": "41984", "xon": "18432"},
+                                  "pg_lossless_50000_40m_profile": {"size": "41984", "xon": "18432"},
+                                  "pg_lossless_100000_40m_profile": {"size": "54272", "xon": "18432"},
+                                  "pg_lossless_10000_300m_profile": {"size": "49152", "xon": "18432"},
+                                  "pg_lossless_25000_300m_profile": {"size": "71680", "xon": "18432"},
+                                  "pg_lossless_40000_300m_profile": {"size": "94208", "xon": "18432"},
+                                  "pg_lossless_50000_300m_profile": {"size": "94208", "xon": "18432"},
+                                  "pg_lossless_100000_300m_profile": {"size": "184320", "xon": "18432"}},
+                "spc2_3800_headroom": {"pg_lossless_1000_5m_profile": {"size": "32768", "xon": "18432"},
+                                       "pg_lossless_10000_5m_profile": {"size": "34816", "xon": "18432"},
+                                       "pg_lossless_25000_5m_profile": {"size": "38912", "xon": "18432"},
+                                       "pg_lossless_40000_5m_profile": {"size": "41984", "xon": "18432"},
+                                       "pg_lossless_50000_5m_profile": {"size": "44032", "xon": "18432"},
+                                       "pg_lossless_100000_5m_profile": {"size": "55296", "xon": "18432"},
+                                       "pg_lossless_200000_5m_profile": {"size": "77824", "xon": "18432"},
+                                       "pg_lossless_1000_40m_profile": {"size": "33792", "xon": "18432"},
+                                       "pg_lossless_10000_40m_profile": {"size": "36864", "xon": "18432"},
+                                       "pg_lossless_25000_40m_profile": {"size": "43008", "xon": "18432"},
+                                       "pg_lossless_40000_40m_profile": {"size": "49152", "xon": "18432"},
+                                       "pg_lossless_50000_40m_profile": {"size": "53248", "xon": "18432"},
+                                       "pg_lossless_100000_40m_profile": {"size": "72704", "xon": "18432"},
+                                       "pg_lossless_200000_40m_profile": {"size": "112640", "xon": "18432"},
+                                       "pg_lossless_1000_300m_profile": {"size": "34816", "xon": "18432"},
+                                       "pg_lossless_10000_300m_profile": {"size": "50176", "xon": "18432"},
+                                       "pg_lossless_25000_300m_profile": {"size": "75776", "xon": "18432"},
+                                       "pg_lossless_40000_300m_profile": {"size": "101376", "xon": "18432"},
+                                       "pg_lossless_50000_300m_profile": {"size": "117760", "xon": "18432"},
+                                       "pg_lossless_100000_300m_profile": {"size": "202752", "xon": "18432"},
+                                       "pg_lossless_200000_300m_profile": {"size": "373760", "xon": "18432"}},
+                "buffer_profiles": {"ingress_lossless_profile": {"dynamic_th": "0", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
+                                    "ingress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|ingress_lossy_pool]", "size": "0"},
+                                    "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
+                                    "egress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "4096"},
+                                    "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
             },
             "version_1_0_4": {
                 "buffer_pool_list" : ['ingress_lossless_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
-                "spc1_t0_pool": {"ingress_lossless_pool": { "size": "10706880", "type": "ingress", "mode": "dynamic" },
-                                 "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
-                                 "egress_lossy_pool": {"size": "10706880", "type": "egress", "mode": "dynamic" } },
-                "spc1_t1_pool": {"ingress_lossless_pool": { "size": "5570496", "type": "ingress", "mode": "dynamic" },
-                                 "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
-                                 "egress_lossy_pool": {"size": "5570496", "type": "egress", "mode": "dynamic" } },
+                "spc1_t0_pool": {"ingress_lossless_pool": { "size": "10608640", "type": "ingress", "mode": "dynamic" },
+                                 "egress_lossless_pool": { "size": "14024640", "type": "egress", "mode": "dynamic" },
+                                 "egress_lossy_pool": {"size": "10608640", "type": "egress", "mode": "dynamic" } },
+                "spc1_t1_pool": {"ingress_lossless_pool": { "size": "7553024", "type": "ingress", "mode": "dynamic" },
+                                 "egress_lossless_pool": { "size": "14024640", "type": "egress", "mode": "dynamic" },
+                                 "egress_lossy_pool": {"size": "7553024", "type": "egress", "mode": "dynamic" } },
 
-                "spc2_3800_t0_pool": {"ingress_lossless_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                "spc2_3800_t0_pool": {"ingress_lossless_pool": { "size": "27598848", "type": "ingress", "mode": "dynamic" },
                                       "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
-                                      "egress_lossy_pool": {"size": "28196784", "type": "egress", "mode": "dynamic" } },
-                "spc2_3800_t1_pool": {"ingress_lossless_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                      "egress_lossy_pool": {"size": "27598848", "type": "egress", "mode": "dynamic" } },
+                "spc2_3800_t1_pool": {"ingress_lossless_pool": { "size": "20627456", "type": "ingress", "mode": "dynamic" },
                                       "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
-                                      "egress_lossy_pool": {"size": "17891280", "type": "egress", "mode": "dynamic" } }
+                                      "egress_lossy_pool": {"size": "20627456", "type": "egress", "mode": "dynamic" } },
+
+                "buffer_profiles": {"ingress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
+                                    "ingress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
+                                    "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
+                                    "egress_lossy_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "9216"},
+                                    "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
             }
         }
 
@@ -213,7 +245,7 @@ class DBMigrator():
             return False
 
         # SKUs that have single ingress buffer pool
-        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8']
+        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8', 'Mellanox-SN3800-C64', 'Mellanox-SN3800-D24C52', 'Mellanox-SN3800-D28C50']
         if not hwsku in single_ingress_pool_skus:
             if new_version == "version_1_0_4":
                 return True
@@ -307,44 +339,40 @@ class DBMigrator():
             return False
 
         # SKUs that have single ingress buffer pool
-        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8']
+        single_ingress_pool_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8', 'Mellanox-SN3800-D112C8', 'Mellanox-SN3800-C64', 'Mellanox-SN3800-D24C52', 'Mellanox-SN3800-D28C50']
         spc1_skus = ['Mellanox-SN2700-C28D8', 'Mellanox-SN2700-D48C8']
 
         if not hwsku in single_ingress_pool_skus:
             return True
 
         # old buffer profile configurations
-        buffer_profile_old_configure = {"ingress_lossless_profile": {"dynamic_th": "0", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
-                                        "ingress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|ingress_lossy_pool]", "size": "0"},
-                                        "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
-                                        "egress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "4096"},
-                                        "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
+        buffer_profile_old_configure = self.mlnx_default_buffer_parameters('version_1_0_3', 'buffer_profiles')
         # old port ingress buffer list configurations
         buffer_port_ingress_profile_list_old = "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
 
         # new buffer profile configurations
-        buffer_profile_new_configure = {"ingress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
-                                        "ingress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
-                                        "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
-                                        "egress_lossy_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "9216"},
-                                        "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
+        buffer_profile_new_configure = self.mlnx_default_buffer_parameters('version_1_0_4', 'buffer_profiles')
         # new port ingress buffer list configurations
         buffer_port_ingress_profile_list_new = "[BUFFER_PROFILE|ingress_lossless_profile]"
 
         buffer_profile_conf = self.configDB.get_table('BUFFER_PROFILE')
+
+        # we need to transform lossless pg profiles to new settings
+        # to achieve that, we just need to remove this kind of profiles, buffermgrd will generate them automatically
         if hwsku in spc1_skus:
-            # for spc1, we need to transform lossless pg profiles to new settings
-            # we just need to remove this kind of profiles, buffermgrd will generate them automatically
-            spc1_default_lossless_profiles = self.mlnx_default_buffer_parameters('version_1_0_3', 'spc1_headroom')
-            for name, profile in buffer_profile_conf.iteritems():
-                if name in spc1_default_lossless_profiles.keys():
-                    default_profile = spc1_default_lossless_profiles[name]
-                    default_profile['dynamic_th'] = '0'
-                    default_profile['xon'] = '18432'
-                    default_profile['xoff'] = str(int(default_profile['size']) - 18432)
-                    default_profile['pool'] = '[BUFFER_POOL|ingress_lossless_pool]'
-                    if profile == default_profile:
-                        self.configDB.set_entry('BUFFER_PROFILE', name, None)
+            default_lossless_profiles = self.mlnx_default_buffer_parameters('version_1_0_3', 'spc1_headroom')
+        else:
+            default_lossless_profiles = self.mlnx_default_buffer_parameters('version_1_0_3', 'spc2_3800_headroom')
+        for name, profile in buffer_profile_conf.iteritems():
+            if name in default_lossless_profiles.keys():
+                default_profile = default_lossless_profiles[name]
+                default_profile['dynamic_th'] = '0'
+                default_profile['xon'] = default_profile['xon']
+                default_profile['xoff'] = str(int(default_profile['size']) - 18432)
+                default_profile['pool'] = '[BUFFER_POOL|ingress_lossless_pool]'
+                if profile == default_profile:
+                    self.configDB.set_entry('BUFFER_PROFILE', name, None)
+
         for name, profile in buffer_profile_old_configure.iteritems():
             if name in buffer_profile_conf.keys() and profile == buffer_profile_old_configure[name]:
                 continue
