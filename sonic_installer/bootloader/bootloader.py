@@ -69,6 +69,6 @@ class Bootloader(object):
     @classmethod
     def get_image_path(cls, image):
         """returns the image path"""
-        prefix = Host_PATH + '/' + IMAGE_DIR_PREFIX
+        prefix = HOST_PATH + '/' + IMAGE_DIR_PREFIX
         return image.replace(IMAGE_PREFIX, prefix)
 
