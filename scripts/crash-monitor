@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import os
-import re
 import sys
 import syslog
 import commands
@@ -9,13 +8,11 @@ import threading
 import traceback
 import redis
 import time
-import json
 import subprocess
 import swsssdk
 from optparse import OptionParser
 from swsssdk import SysmonDBConnector
 from swsssdk import _get_redis_dbid_port
-from time import gmtime, strftime
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
