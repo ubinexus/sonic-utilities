@@ -52,8 +52,8 @@ class Bootloader(object):
         """verify that the image is supported by the bootloader"""
         raise NotImplementedError
 
-    def verify_reboot(self):
-        """verify the image for reboot"""
+    def verify-next-image(self):
+        """verify the next image for reboot"""
         image = self.get_next_image()
         image_path = self.get_image_path(image)
         if not path.exists(image_path):
@@ -69,6 +69,6 @@ class Bootloader(object):
     @classmethod
     def get_image_path(cls, image):
         """returns the image path"""
-        prefix = HOST_PATH + '/' + IMAGE_DIR_PREFIX
+        prefix = path.join(Host_PATH, IMAGE_DIR_PREFIX)
         return image.replace(IMAGE_PREFIX, prefix)
 
