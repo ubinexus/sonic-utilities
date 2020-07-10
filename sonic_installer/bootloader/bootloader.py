@@ -56,10 +56,7 @@ class Bootloader(object):
         """verify the next image for reboot"""
         image = self.get_next_image()
         image_path = self.get_image_path(image)
-        if not path.exists(image_path):
-            sys.stdout.write('Next image {0} doesn\'t exist ...\n'.format(image))
-            return False
-        return True
+        return path.exists(image_path)
 
     @classmethod
     def detect(cls):
