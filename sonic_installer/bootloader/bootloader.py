@@ -2,7 +2,6 @@
 Abstract Bootloader class
 """
 
-import sys
 from os import path
 
 from ..common import (
