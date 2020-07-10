@@ -57,7 +57,7 @@ class Bootloader(object):
         image = self.get_next_image()
         image_path = self.get_image_path(image)
         if not path.exists(image_path):
-            sys.stderr.write('Next image {0} doesn\'t exist ...\n'.format(image))
+            sys.stdout.write('Next image {0} doesn\'t exist ...\n'.format(image))
             return False
         return True
 
