@@ -130,8 +130,8 @@ class AbootBootloader(Bootloader):
         except subprocess.CalledProcessError:
             return False
 
-    def verify-next-image(self):
-        if not super(AbootBootloader, self).verify-next-image():
+    def verify_next_image(self):
+        if not super(AbootBootloader, self).verify_next_image():
             return False
         image = self.get_next_image()
         image_path = os.path.join(self.get_image_path(image), DEFAULT_SWI_IMAGE)

@@ -52,7 +52,7 @@ class Bootloader(object):
         """verify that the image is supported by the bootloader"""
         raise NotImplementedError
 
-    def verify-next-image(self):
+    def verify_next_image(self):
         """verify the next image for reboot"""
         image = self.get_next_image()
         image_path = self.get_image_path(image)
