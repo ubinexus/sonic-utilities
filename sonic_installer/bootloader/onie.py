@@ -10,6 +10,7 @@ import subprocess
 from ..common import (
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
+   TMP_PREFIX,
 )
 from .bootloader import Bootloader
 
@@ -20,7 +21,7 @@ def default_sigpipe():
 
 class OnieInstallerBootloader(Bootloader): # pylint: disable=abstract-method
 
-    DEFAULT_IMAGE_PATH = '/tmp/sonic_image'
+    DEFAULT_IMAGE_PATH = TMP_PREFIX+'/sonic_image'
 
     def get_current_image(self):
         cmdline = open('/proc/cmdline', 'r')
