@@ -391,7 +391,7 @@ DOCKER_CONTAINER_LIST = [
     "pmon",
     "radv",
     "restapi",
-    "sflow"
+    "sflow",
     "snmp",
     "swss",
     "syncd",
