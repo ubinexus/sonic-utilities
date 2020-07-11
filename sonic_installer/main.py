@@ -2,12 +2,13 @@
 
 import configparser
 import os
-import sys
-import time
-import click
-import urllib
-import syslog
 import subprocess
+import sys
+import syslog
+import time
+import urllib
+
+import click
 from swsssdk import SonicV2Connector
 
 from .bootloader import get_bootloader
