@@ -185,6 +185,11 @@ def sonic_installer():
     if os.geteuid() != 0:
         exit("Root privileges required for this operation")
 
+    # Warn the user if they are calling the deprecated version of the command (with an underscore instead of a hyphen)
+    if os.path.basename(sys.argv[0]) == "sonic_installer":
+        click.secho("Warning: 'sonic_installer' is deprecated and will be removed in the future", fg="red", err=True)
+        click.secho("Please use 'sonic-installer' instead", fg="red", err=True)
+
 
 # Install image
 @sonic_installer.command('install')
