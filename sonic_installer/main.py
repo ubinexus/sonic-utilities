@@ -12,6 +12,50 @@ from swsssdk import SonicV2Connector
 from .bootloader import get_bootloader
 from .common import run_command
 
+
+# Global Config object
+_config = None
+
+
+class AliasedGroup(click.Group):
+    """This subclass of click.Group supports abbreviations and
+       looking up aliases in a config file with a bit of magic.
+    """
+
+    def get_command(self, ctx, cmd_name):
+        global _config
+
+        # If we haven't instantiated our global config, do it now and load current config
+        if _config is None:
+            _config = Config()
+
+            # Load our config file
+            cfg_file = os.path.join(os.path.dirname(__file__), 'aliases.ini')
+            _config.read_config(cfg_file)
+
+        # Try to get builtin commands as normal
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+
+        # No builtin found. Look up an explicit command alias in the config
+        if cmd_name in _config.aliases:
+            actual_cmd = _config.aliases[cmd_name]
+            return click.Group.get_command(self, ctx, actual_cmd)
+
+        # Alternative option: if we did not find an explicit alias we
+        # allow automatic abbreviation of the command.  "status" for
+        # instance will match "st".  We only allow that however if
+        # there is only one command.
+        matches = [x for x in self.list_commands(ctx)
+                   if x.lower().startswith(cmd_name.lower())]
+        if not matches:
+            return None
+        elif len(matches) == 1:
+            return click.Group.get_command(self, ctx, matches[0])
+        ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
+
+
 #
 # Helper functions
 #
@@ -37,8 +81,9 @@ def reporthook(count, block_size, total_size):
     percent = int(count * block_size * 100 / total_size)
     time_left = (total_size - progress_size) / speed / 1024
     sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds left...   " %
-                                  (percent, progress_size / (1024 * 1024), speed, time_left))
+                     (percent, progress_size / (1024 * 1024), speed, time_left))
     sys.stdout.flush()
+
 
 # TODO: Embed tag name info into docker image meta data at build time,
 # and extract tag name from docker image file.
@@ -53,6 +98,7 @@ def get_docker_tag_name(image):
     if tag == "<no value>":
         return "unknown"
     return tag
+
 
 # Function which validates whether a given URL specifies an existent file
 # on a reachable remote machine. Will abort the current operation if not
@@ -74,10 +120,12 @@ def validate_url_or_abort(url):
             click.echo("Image file not found on remote machine. Aborting...")
             raise click.Abort()
 
+
 # Callback for confirmation prompt. Aborts if user enters "n"
 def abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
+
 
 def get_container_image_name(container_name):
     # example image: docker-lldp-sv2:latest
@@ -94,6 +142,7 @@ def get_container_image_name(container_name):
     image_name = proc.stdout.read().rstrip()
     return image_name
 
+
 def get_container_image_id(image_tag):
     # TODO: extract commond docker info fetching functions
     # this is image_id for image with tag, like 'docker-teamd:latest'
@@ -101,6 +150,7 @@ def get_container_image_id(image_tag):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     image_id = proc.stdout.read().rstrip()
     return image_id
+
 
 def get_container_image_id_all(image_name):
     # All images id under the image name like 'docker-teamd'
@@ -111,6 +161,7 @@ def get_container_image_id_all(image_name):
     image_id_all = set(image_id_all)
     return image_id_all
 
+
 def hget_warm_restart_table(db_name, table_name, warm_app_name, key):
     db = SonicV2Connector()
     db.connect(db_name, False)
@@ -118,29 +169,31 @@ def hget_warm_restart_table(db_name, table_name, warm_app_name, key):
     client = db.get_redis_client(db_name)
     return client.hget(_hash, key)
 
+
 def hdel_warm_restart_table(db_name, table_name, warm_app_name, key):
     db = SonicV2Connector()
     db.connect(db_name, False)
     _hash = table_name + db.get_db_separator(db_name) + warm_app_name
     client = db.get_redis_client(db_name)
-    return  client.hdel(_hash, key)
+    return client.hdel(_hash, key)
+
 
 # Main entrypoint
-@click.group()
-def cli():
+@click.group(cls=AliasedGroup)
+def sonic_installer():
     """ SONiC image installation manager """
     if os.geteuid() != 0:
         exit("Root privileges required for this operation")
 
 
 # Install image
-@cli.command()
+@sonic_installer.command('install')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
-        expose_value=False, prompt='New image will be installed, continue?')
+              expose_value=False, prompt='New image will be installed, continue?')
 @click.option('-f', '--force', is_flag=True,
-        help="Force installation of an image of a type which differs from that of the current running image")
+              help="Force installation of an image of a type which differs from that of the current running image")
 @click.option('--skip_migration', is_flag=True,
-        help="Do not migrate current configuration to the newly installed image")
+              help="Do not migrate current configuration to the newly installed image")
 @click.argument('url')
 def install(url, force, skip_migration=False):
     """ Install image from local binary or URL"""
@@ -188,12 +241,12 @@ def install(url, force, skip_migration=False):
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
-    run_command("sleep 3") # wait 3 seconds after sync
+    run_command("sleep 3")  # wait 3 seconds after sync
     click.echo('Done')
 
 
 # List installed images
-@cli.command('list')
+@sonic_installer.command('list')
 def list_command():
     """ Print installed images """
     bootloader = get_bootloader()
@@ -206,8 +259,9 @@ def list_command():
     for image in images:
         click.echo(image)
 
+
 # Set default image for boot
-@cli.command('set_default')
+@sonic_installer.command('set-default')
 @click.argument('image')
 def set_default(image):
     """ Choose image to boot from by default """
@@ -217,8 +271,9 @@ def set_default(image):
         raise click.Abort()
     bootloader.set_default_image(image)
 
+
 # Set image for next boot
-@cli.command('set_next_boot')
+@sonic_installer.command('set-next-boot')
 @click.argument('image')
 def set_next_boot(image):
     """ Choose image for next reboot (one time action) """
@@ -228,10 +283,11 @@ def set_next_boot(image):
         sys.exit(1)
     bootloader.set_next_image(image)
 
+
 # Uninstall image
-@cli.command()
+@sonic_installer.command('remove')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
-        expose_value=False, prompt='Image will be removed, continue?')
+              expose_value=False, prompt='Image will be removed, continue?')
 @click.argument('image')
 def remove(image):
     """ Uninstall image """
@@ -247,8 +303,9 @@ def remove(image):
     # TODO: check if image is next boot or default boot and fix these
     bootloader.remove_image(image)
 
+
 # Retrieve version from binary image file and print to screen
-@cli.command('binary_version')
+@sonic_installer.command('binary-version')
 @click.argument('binary_image_path')
 def binary_version(binary_image_path):
     """ Get version from local binary image file """
@@ -260,10 +317,11 @@ def binary_version(binary_image_path):
     else:
         click.echo(version)
 
+
 # Remove installed images which are not current and next
-@cli.command()
+@sonic_installer.command('cleanup')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
-        expose_value=False, prompt='Remove images which are not current and next, continue?')
+              expose_value=False, prompt='Remove images which are not current and next, continue?')
 def cleanup():
     """ Remove installed images which are not current and next """
     bootloader = get_bootloader()
@@ -280,16 +338,17 @@ def cleanup():
     if image_removed == 0:
         click.echo("No image(s) to remove")
 
+
 # Upgrade docker image
-@cli.command('upgrade_docker')
+@sonic_installer.command('upgrade-docker')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
-        expose_value=False, prompt='New docker image will be installed, continue?')
+              expose_value=False, prompt='New docker image will be installed, continue?')
 @click.option('--cleanup_image', is_flag=True, help="Clean up old docker image")
 @click.option('--skip_check', is_flag=True, help="Skip task check for docker upgrade")
 @click.option('--tag', type=str, help="Tag for the new docker image")
 @click.option('--warm', is_flag=True, help="Perform warm upgrade")
 @click.argument('container_name', metavar='<container_name>', required=True,
-    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
+                type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
 @click.argument('url')
 def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
@@ -329,8 +388,8 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     state_db.close(state_db.STATE_DB)
 
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
-        if warm_configured == False and warm:
-           run_command("config warm_restart enable %s" % container_name)
+        if warm_configured is False and warm:
+            run_command("config warm_restart enable %s" % container_name)
 
     # Fetch tag of current running image
     tag_previous = get_docker_tag_name(image_latest)
@@ -338,7 +397,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     run_command("docker load < %s" % image_path)
     warm_app_names = []
     # warm restart specific procssing for swss, bgp and teamd dockers.
-    if warm_configured == True or warm:
+    if warm_configured is True or warm:
         # make sure orchagent is in clean state if swss is to be upgraded
         if container_name == "swss":
             skipPendingTaskCheck = ""
@@ -353,7 +412,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 if not skip_check:
                     click.echo("Orchagent is not in clean state, RESTARTCHECK failed")
                     # Restore orignal config before exit
-                    if warm_configured == False and warm:
+                    if warm_configured is False and warm:
                         run_command("config warm_restart disable %s" % container_name)
                     # Clean the image loaded earlier
                     image_id_latest = get_container_image_id(image_latest)
@@ -413,7 +472,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     exp_state = "reconciled"
     state = ""
     # post warm restart specific procssing for swss, bgp and teamd dockers, wait for reconciliation state.
-    if warm_configured == True or warm:
+    if warm_configured is True or warm:
         count = 0
         for warm_app_name in warm_app_names:
             state = ""
@@ -425,16 +484,16 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 count += 1
                 time.sleep(2)
                 state = hget_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
-                syslog.syslog("%s reached %s state"%(warm_app_name, state))
+                syslog.syslog("%s reached %s state" % (warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:
-                click.echo("%s failed to reach %s state"%(warm_app_name, exp_state))
-                syslog.syslog(syslog.LOG_ERR, "%s failed to reach %s state"%(warm_app_name, exp_state))
+                click.echo("%s failed to reach %s state" % (warm_app_name, exp_state))
+                syslog.syslog(syslog.LOG_ERR, "%s failed to reach %s state" % (warm_app_name, exp_state))
     else:
         exp_state = ""  # this is cold upgrade
 
     # Restore to previous cold restart setting
-    if warm_configured == False and warm:
+    if warm_configured is False and warm:
         if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
             run_command("config warm_restart disable %s" % container_name)
 
@@ -444,12 +503,13 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         click.echo('Failed')
         sys.exit(1)
 
+
 # rollback docker image
-@cli.command('rollback_docker')
+@sonic_installer.command('rollback-docker')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
-        expose_value=False, prompt='Docker image will be rolled back, continue?')
+              expose_value=False, prompt='Docker image will be rolled back, continue?')
 @click.argument('container_name', metavar='<container_name>', required=True,
-    type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
+                type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
 def rollback_docker(container_name):
     """ Rollback docker image to previous version"""
     image_name = get_container_image_name(container_name)
@@ -477,4 +537,4 @@ def rollback_docker(container_name):
     click.echo('Done')
 
 if __name__ == '__main__':
-    cli()
+    sonic_installer()
