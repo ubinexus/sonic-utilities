@@ -477,8 +477,8 @@ def rollback_docker(container_name):
     click.echo('Done')
 
 # verify the next image
-@cli.command('verify_next_image')
-def verify_reboot():
+@cli.command('verify-next-image')
+def verify_next_image():
     """ Verify the next image for reboot"""
     bootloader = get_bootloader()
     if not bootloader.verify_next_image():
