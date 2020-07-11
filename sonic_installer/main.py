@@ -379,6 +379,22 @@ def cleanup():
         click.echo("No image(s) to remove")
 
 
+DOCKER_CONTAINER_LIST = [
+    "bgp",
+    "dhcp_relay",
+    "lldp",
+    "nat",
+    "pmon",
+    "radv",
+    "restapi",
+    "sflow"
+    "snmp",
+    "swss",
+    "syncd",
+    "teamd",
+    "telemetry"
+]
+
 # Upgrade docker image
 @sonic_installer.command('upgrade-docker')
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
@@ -388,7 +404,7 @@ def cleanup():
 @click.option('--tag', type=str, help="Tag for the new docker image")
 @click.option('--warm', is_flag=True, help="Perform warm upgrade")
 @click.argument('container_name', metavar='<container_name>', required=True,
-                type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
+                type=click.Choice(DOCKER_CONTAINER_LIST))
 @click.argument('url')
 def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
@@ -553,7 +569,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
               expose_value=False, prompt='Docker image will be rolled back, continue?')
 @click.argument('container_name', metavar='<container_name>', required=True,
-                type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
+                type=click.Choice(DOCKER_CONTAINER_LIST))
 def rollback_docker(container_name):
     """ Rollback docker image to previous version"""
     # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
