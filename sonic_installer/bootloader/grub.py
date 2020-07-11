@@ -12,6 +12,7 @@ from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
+   TMP_PREFIX,
    run_command,
 )
 from .onie import OnieInstallerBootloader
