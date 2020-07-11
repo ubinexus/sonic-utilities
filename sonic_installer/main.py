@@ -1,6 +1,10 @@
 #! /usr/bin/python -u
 
-import configparser
+try:
+    import ConfigParser as configparser
+except ImportError:
+    import configparser
+
 import os
 import subprocess
 import sys
