@@ -210,7 +210,7 @@ def sonic_installer():
 
     # Warn the user if they are calling the deprecated version of the command (with an underscore instead of a hyphen)
     if os.path.basename(sys.argv[0]) == "sonic_installer":
-        click.secho("Warning: 'sonic_installer' is deprecated and will be removed in the future", fg="red", err=True)
+        click.secho("Warning: 'sonic_installer' command is deprecated and will be removed in the future", fg="red", err=True)
         click.secho("Please use 'sonic-installer' instead", fg="red", err=True)
 
 
@@ -293,6 +293,11 @@ def list_command():
 @click.argument('image')
 def set_default(image):
     """ Choose image to boot from by default """
+    # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
+    if "set_default" in sys.argv:
+        click.secho("Warning: 'set_default' subcommand is deprecated and will be removed in the future", fg="red", err=True)
+        click.secho("Please use 'set-default' instead", fg="red", err=True)
+
     bootloader = get_bootloader()
     if image not in bootloader.get_installed_images():
         click.echo('Error: Image does not exist')
@@ -305,6 +310,11 @@ def set_default(image):
 @click.argument('image')
 def set_next_boot(image):
     """ Choose image for next reboot (one time action) """
+    # Warn the user if they are calling the deprecated version of the subcommand (with underscores instead of hyphens)
+    if "set_next_boot" in sys.argv:
+        click.secho("Warning: 'set_next_boot' subcommand is deprecated and will be removed in the future", fg="red", err=True)
+        click.secho("Please use 'set-next-boot' instead", fg="red", err=True)
+
     bootloader = get_bootloader()
     if image not in bootloader.get_installed_images():
         click.echo('Error: Image does not exist')
@@ -337,6 +347,11 @@ def remove(image):
 @click.argument('binary_image_path')
 def binary_version(binary_image_path):
     """ Get version from local binary image file """
+    # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
+    if "binary_version" in sys.argv:
+        click.secho("Warning: 'binary_version' subcommand is deprecated and will be removed in the future", fg="red", err=True)
+        click.secho("Please use 'binary-version' instead", fg="red", err=True)
+
     bootloader = get_bootloader()
     version = bootloader.get_binary_image_version(binary_image_path)
     if not version:
@@ -380,6 +395,10 @@ def cleanup():
 @click.argument('url')
 def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
+    # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
+    if "upgrade_docker" in sys.argv:
+        click.secho("Warning: 'upgrade_docker' subcommand is deprecated and will be removed in the future", fg="red", err=True)
+        click.secho("Please use 'upgrade-docker' instead", fg="red", err=True)
 
     image_name = get_container_image_name(container_name)
     image_latest = image_name + ":latest"
@@ -540,6 +559,11 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 type=click.Choice(["swss", "snmp", "lldp", "bgp", "pmon", "dhcp_relay", "telemetry", "teamd", "radv", "amon", "sflow"]))
 def rollback_docker(container_name):
     """ Rollback docker image to previous version"""
+    # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
+    if "rollback_docker" in sys.argv:
+        click.secho("Warning: 'rollback_docker' subcommand is deprecated and will be removed in the future", fg="red", err=True)
+        click.secho("Please use 'rollback-docker' instead", fg="red", err=True)
+
     image_name = get_container_image_name(container_name)
     # All images id under the image name
     image_id_all = get_container_image_id_all(image_name)
