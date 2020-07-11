@@ -12,9 +12,32 @@ from swsssdk import SonicV2Connector
 from .bootloader import get_bootloader
 from .common import run_command
 
+try:
+    import ConfigParser as configparser
+except ImportError:
+    import configparser
+
 
 # Global Config object
 _config = None
+
+
+# This is from the aliases example:
+# https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
+class Config(object):
+    """Object to hold CLI config"""
+
+    def __init__(self):
+        self.path = os.getcwd()
+        self.aliases = {}
+
+    def read_config(self, filename):
+        parser = configparser.RawConfigParser()
+        parser.read([filename])
+        try:
+            self.aliases.update(parser.items('aliases'))
+        except configparser.NoSectionError:
+            pass
 
 
 class AliasedGroup(click.Group):
