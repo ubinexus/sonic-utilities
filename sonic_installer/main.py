@@ -1,5 +1,6 @@
 #! /usr/bin/python -u
 
+import configparser
 import os
 import sys
 import time
@@ -11,11 +12,6 @@ from swsssdk import SonicV2Connector
 
 from .bootloader import get_bootloader
 from .common import run_command
-
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
 
 # Global Config object
