@@ -3464,7 +3464,7 @@ def summary():
                     fault_counter += 1
                     if fault_counter == 1:
                         click.echo(category + "\tNot OK")
-                    click.echo('\t' + elements[element]['message'])
+                    click.echo('\t\t' + elements[element]['message'])
             if not fault_counter:
                 click.echo(category + "\tOK")
             fault_counter = 0
@@ -3507,7 +3507,7 @@ def detail():
                     fault_counter += 1
                     if fault_counter == 1:
                         click.echo(category + "\tNot OK")
-                    click.echo('\t' + elements[element]['message'])
+                    click.echo('\t\t' + elements[element]['message'])
             if not fault_counter:
                 click.echo(category + "\tOK")
             fault_counter = 0
@@ -3536,7 +3536,7 @@ def detail():
             for element in manager.config.ignore_devices:
                 entry = []
                 entry.append(element)
-                entry.append("Ignore")
+                entry.append("Ignored")
                 entry.append("Device")
                 table.append(entry)
         click.echo(tabulate(table, header))
