@@ -202,6 +202,13 @@ def hdel_warm_restart_table(db_name, table_name, warm_app_name, key):
     return client.hdel(_hash, key)
 
 
+def print_deprecation_warning(deprecated_cmd_or_subcmd, new_cmd_or_subcmd):
+    click.secho("Warning: '{}' {}command is deprecated and will be removed in the future"
+                .format(deprecated_cmd_or_subcmd, "" if deprecated_cmd_or_subcmd == "sonic_installer" else "sub"),
+                fg="red", err=True)
+    click.secho("Please use '{}' instead".format(new_cmd_or_subcmd), fg="red", err=True)
+
+
 # Main entrypoint
 @click.group(cls=AliasedGroup)
 def sonic_installer():
@@ -211,8 +218,7 @@ def sonic_installer():
 
     # Warn the user if they are calling the deprecated version of the command (with an underscore instead of a hyphen)
     if os.path.basename(sys.argv[0]) == "sonic_installer":
-        click.secho("Warning: 'sonic_installer' command is deprecated and will be removed in the future", fg="red", err=True)
-        click.secho("Please use 'sonic-installer' instead", fg="red", err=True)
+        print_deprecation_warning("sonic_installer", "sonic-installer")
 
 
 # Install image
@@ -296,8 +302,7 @@ def set_default(image):
     """ Choose image to boot from by default """
     # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
     if "set_default" in sys.argv:
-        click.secho("Warning: 'set_default' subcommand is deprecated and will be removed in the future", fg="red", err=True)
-        click.secho("Please use 'set-default' instead", fg="red", err=True)
+        print_deprecation_warning("set_default", "set-default")
 
     bootloader = get_bootloader()
     if image not in bootloader.get_installed_images():
@@ -313,8 +318,7 @@ def set_next_boot(image):
     """ Choose image for next reboot (one time action) """
     # Warn the user if they are calling the deprecated version of the subcommand (with underscores instead of hyphens)
     if "set_next_boot" in sys.argv:
-        click.secho("Warning: 'set_next_boot' subcommand is deprecated and will be removed in the future", fg="red", err=True)
-        click.secho("Please use 'set-next-boot' instead", fg="red", err=True)
+        print_deprecation_warning("set_next_boot", "set-next-boot")
 
     bootloader = get_bootloader()
     if image not in bootloader.get_installed_images():
@@ -350,8 +354,7 @@ def binary_version(binary_image_path):
     """ Get version from local binary image file """
     # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
     if "binary_version" in sys.argv:
-        click.secho("Warning: 'binary_version' subcommand is deprecated and will be removed in the future", fg="red", err=True)
-        click.secho("Please use 'binary-version' instead", fg="red", err=True)
+        print_deprecation_warning("binary_version", "binary-version")
 
     bootloader = get_bootloader()
     version = bootloader.get_binary_image_version(binary_image_path)
@@ -414,8 +417,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
     # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
     if "upgrade_docker" in sys.argv:
-        click.secho("Warning: 'upgrade_docker' subcommand is deprecated and will be removed in the future", fg="red", err=True)
-        click.secho("Please use 'upgrade-docker' instead", fg="red", err=True)
+        print_deprecation_warning("upgrade_docker", "upgrade-docker")
 
     image_name = get_container_image_name(container_name)
     image_latest = image_name + ":latest"
@@ -578,8 +580,7 @@ def rollback_docker(container_name):
     """ Rollback docker image to previous version"""
     # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
     if "rollback_docker" in sys.argv:
-        click.secho("Warning: 'rollback_docker' subcommand is deprecated and will be removed in the future", fg="red", err=True)
-        click.secho("Please use 'rollback-docker' instead", fg="red", err=True)
+        print_deprecation_warning("rollback_docker", "rollback-docker")
 
     image_name = get_container_image_name(container_name)
     # All images id under the image name
