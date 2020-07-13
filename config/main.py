@@ -36,9 +36,6 @@ SYSTEMCTL_ACTION_STOP="stop"
 SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
-# matches 'asic' followed by 1 or 2 digits
-NETWORK_NAMESPACE_MATCH = "asic([0-9]{1}|[0-9]{2})$"
-
 DEFAULT_NAMESPACE = ''
 CFG_LOOPBACK_PREFIX = "Loopback"
 CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
@@ -474,9 +471,8 @@ def _clear_qos(namespace):
             'BUFFER_PG',
             'BUFFER_QUEUE']
 
-    num_npus = sonic_device_util.get_num_npus()
     namespace_list = [DEFAULT_NAMESPACE]
-    if num_npus > 1:
+    if sonic_device_util.get_num_npus() > 1:
         namespace_list = sonic_device_util.get_namespaces()
 
     if namespace:
@@ -1455,9 +1451,8 @@ def reload(namespace):
     _clear_qos(namespace)
     platform = sonic_device_util.get_platform()
     hwsku = sonic_device_util.get_hwsku()
-    num_npus = sonic_device_util.get_num_npus()
     namespace_list = [DEFAULT_NAMESPACE]
-    if num_npus > 1:
+    if sonic_device_util.get_num_npus() > 1:
         namespace_list = sonic_device_util.get_namespaces()
 
     if namespace:
@@ -1475,11 +1470,8 @@ def reload(namespace):
         if ns is DEFAULT_NAMESPACE:
             asic_id_suffix = ""
         else:
-            match = re.match(NETWORK_NAMESPACE_MATCH, ns, re.IGNORECASE)
-            if match:
-                asic_id_suffix = str(match.group(1))
-            else:
-                # invalid namespace, abort immediately
+            asic_id = sonic_device_util.get_npu_id_from_name(ns)
+            if asic_id is None:
                 click.secho(
                     "Command {} failed with invalid namespace {}".format(
                         "qos reload", ns
@@ -1487,6 +1479,7 @@ def reload(namespace):
                     fg='yellow'
                 )
                 raise click.Abort()
+            asic_id_suffix = str(asic_id)
 
         buffer_template_file = os.path.join(
             '/usr/share/sonic/device/',
