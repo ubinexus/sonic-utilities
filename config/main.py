@@ -9,6 +9,7 @@ import re
 import syslog
 import time
 import netifaces
+import threading
 
 import sonic_device_util
 import ipaddress
@@ -114,12 +115,22 @@ class AbbreviationGroup(click.Group):
 try:
     version_info = sonic_device_util.get_sonic_version_info()
     asic_type = version_info['asic_type']
-except KeyError, TypeError:
+except (KeyError, TypeError):
     raise click.Abort()
 
 #
 # Helper functions
 #
+
+# Execute action per NPU instance for multi instance services.
+def execute_systemctl_per_asic_instance(inst, event, service, action):
+    try:
+        click.echo("Executing {} of service {}@{}...".format(action, service, inst))
+        run_command("systemctl {} {}@{}.service".format(action, service, inst))
+    except SystemExit as e:
+        log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
+        # Set the event object if there is a failure and exception was raised.
+        event.set()
 
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
@@ -138,14 +149,27 @@ def execute_systemctl(list_of_services, action):
             except SystemExit as e:
                 log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
                 raise
+
         if (service + '.service' in generated_multi_instance_services):
-            for inst in range(num_asic):
-                try:
-                    click.echo("Executing {} of service {}@{}...".format(action, service, inst))
-                    run_command("systemctl {} {}@{}.service".format(action, service, inst))
-                except SystemExit as e:
-                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
-                    raise
+            # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
+            if sonic_device_util.is_multi_npu():
+                threads = []
+                # Use this event object to co-ordinate if any threads raised exception
+                e = threading.Event()
+
+                kwargs = {'service': service, 'action': action}
+                for inst in range(num_asic):
+                    t = threading.Thread(target=execute_systemctl_per_asic_instance, args=(inst, e), kwargs=kwargs)
+                    threads.append(t)
+                    t.start()
+
+                # Wait for all the threads to finish.
+                for inst in range(num_asic):
+                    threads[inst].join()
+
+                    # Check if any of the threads have raised exception, if so exit the process.
+                    if e.is_set():
+                        sys.exit(1)
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
@@ -515,8 +539,8 @@ def _get_disabled_services_list():
                 log_warning("Status of feature '{}' is None".format(feature_name))
                 continue
 
-        if status == "disabled":
-            disabled_services_list.append(feature_name)
+            if status == "disabled":
+                disabled_services_list.append(feature_name)
     else:
         log_warning("Unable to retreive FEATURE table")
 
@@ -604,6 +628,99 @@ def is_ipaddress(val):
         return False
     return True
 
+def  interface_is_in_vlan(vlan_member_table, interface_name):
+    """ Check if an interface  is in a vlan """
+    for _,intf in vlan_member_table.keys():
+        if intf == interface_name:
+            return True
+
+    return False
+
+def  interface_is_in_portchannel(portchannel_member_table, interface_name):
+    """ Check if an interface is part of portchannel """
+    for _,intf in portchannel_member_table.keys():
+        if intf == interface_name:
+            return True
+
+    return False
+
+def interface_is_router_port(interface_table, interface_name):
+    """ Check if an interface has router config """
+    for intf in interface_table.keys():
+        if (interface_name == intf[0]):
+            return True
+
+    return False
+
+def interface_is_mirror_dst_port(config_db, interface_name):
+    """ Check if port is already configured as mirror destination port """
+    mirror_table = config_db.get_table('MIRROR_SESSION')
+    for _,v in mirror_table.items():
+        if 'dst_port' in v and v['dst_port'] == interface_name:
+            return True
+
+    return False
+
+def interface_has_mirror_config(mirror_table, interface_name):
+    """ Check if port is already configured with mirror config """
+    for _,v in mirror_table.items():
+        if 'src_port' in v and v['src_port'] == interface_name:
+            return True
+        if 'dst_port' in v and v['dst_port'] == interface_name:
+            return True
+
+    return False
+
+def validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction):
+    """ Check if SPAN mirror-session config is valid """
+    if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
+        click.echo("Error: {} already exists".format(session_name))
+        return False
+
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+    mirror_table = config_db.get_table('MIRROR_SESSION')
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    interface_table = config_db.get_table('INTERFACE')
+
+    if dst_port:
+        if not interface_name_is_valid(dst_port):
+            click.echo("Error: Destination Interface {} is invalid".format(dst_port))
+            return False
+
+        if interface_is_in_vlan(vlan_member_table, dst_port):
+            click.echo("Error: Destination Interface {} has vlan config".format(dst_port))
+            return False
+
+        if interface_has_mirror_config(mirror_table, dst_port):
+            click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
+            return False
+
+        if interface_is_in_portchannel(portchannel_member_table, dst_port):
+            click.echo("Error: Destination Interface {} has portchannel config".format(dst_port))
+            return False
+
+        if interface_is_router_port(interface_table, dst_port):
+            click.echo("Error: Destination Interface {} is a L3 interface".format(dst_port))
+            return False
+
+    if src_port:
+        for port in src_port.split(","):
+            if not interface_name_is_valid(port):
+                click.echo("Error: Source Interface {} is invalid".format(port))
+                return False
+            if dst_port and dst_port == port:
+                click.echo("Error: Destination Interface cant be same as Source Interface")
+                return False
+            if interface_has_mirror_config(mirror_table, port):
+                click.echo("Error: Source Interface {} already has mirror config".format(port))
+                return False
+
+    if direction:
+        if direction not in ['rx', 'tx', 'both']:
+            click.echo("Error: Direction {} is invalid".format(direction))
+            return False
+
+    return True
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1030,6 +1147,8 @@ def portchannel_member(ctx):
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
+    if interface_is_mirror_dst_port(db, port_name):
+        ctx.fail("{} is configured as mirror destination port".format(port_name))
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1051,7 +1170,11 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
 def mirror_session():
     pass
 
-@mirror_session.command()
+#
+# 'add' subgroup ('config mirror_session add ...')
+#
+
+@mirror_session.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True)
 @click.argument('src_ip', metavar='<src_ip>', required=True)
 @click.argument('dst_ip', metavar='<dst_ip>', required=True)
@@ -1061,25 +1184,70 @@ def mirror_session():
 @click.argument('queue', metavar='[queue]', required=False)
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
-    """
-    Add mirror session
-    """
+    """ Add ERSPAN mirror session.(Legacy support) """
+    add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer)
+
+@mirror_session.group(cls=AbbreviationGroup, name='erspan')
+@click.pass_context
+def erspan(ctx):
+    """ ERSPAN mirror_session """
+    pass
+
+
+#
+# 'add' subcommand
+#
+
+@erspan.command('add')
+@click.argument('session_name', metavar='<session_name>', required=True)
+@click.argument('src_ip', metavar='<src_ip>', required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', required=True)
+@click.argument('dscp', metavar='<dscp>', required=True)
+@click.argument('ttl', metavar='<ttl>', required=True)
+@click.argument('gre_type', metavar='[gre_type]', required=False)
+@click.argument('queue', metavar='[queue]', required=False)
+@click.argument('src_port', metavar='[src_port]', required=False)
+@click.argument('direction', metavar='[direction]', required=False)
+@click.option('--policer')
+def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction):
+    """ Add ERSPAN mirror session """
+    add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
+
+def gather_session_info(session_info, policer, queue, src_port, direction):
+    if policer:
+        session_info['policer'] = policer
+
+    if queue:
+        session_info['queue'] = queue
+
+    if src_port:
+        if get_interface_naming_mode() == "alias":
+            src_port_list = []
+            for port in src_port.split(","):
+                src_port_list.append(interface_alias_to_name(port))
+            src_port=",".join(src_port_list)
+
+        session_info['src_port'] = src_port
+        if not direction:
+            direction = "both"
+        session_info['direction'] = direction.upper()
+
+    return session_info
+
+def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port=None, direction=None):
     session_info = {
+            "type" : "ERSPAN",
             "src_ip": src_ip,
             "dst_ip": dst_ip,
             "dscp": dscp,
             "ttl": ttl
             }
 
-    if policer is not None:
-        session_info['policer'] = policer
-
-    if gre_type is not None:
+    if gre_type:
         session_info['gre_type'] = gre_type
 
-    if queue is not None:
-        session_info['queue'] = queue
-    
+    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
@@ -1087,20 +1255,73 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
+        if validate_mirror_session_config(config_db, session_name, None, src_port, direction) is False:
+            return
         config_db.set_entry("MIRROR_SESSION", session_name, session_info)
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
+            if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, None, src_port, direction) is False:
+                return
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+
+@mirror_session.group(cls=AbbreviationGroup, name='span')
+@click.pass_context
+def span(ctx):
+    """ SPAN mirror session """
+    pass
+
+@span.command('add')
+@click.argument('session_name', metavar='<session_name>', required=True)
+@click.argument('dst_port', metavar='<dst_port>', required=True)
+@click.argument('src_port', metavar='[src_port]', required=False)
+@click.argument('direction', metavar='[direction]', required=False)
+@click.argument('queue', metavar='[queue]', required=False)
+@click.option('--policer')
+def add(session_name, dst_port, src_port, direction, queue, policer):
+    """ Add SPAN mirror session """
+    add_span(session_name, dst_port, src_port, direction, queue, policer)
+
+def add_span(session_name, dst_port, src_port, direction, queue, policer):
+    if get_interface_naming_mode() == "alias":
+        dst_port = interface_alias_to_name(dst_port)
+        if dst_port is None:
+            click.echo("Error: Destination Interface {} is invalid".format(dst_port))
+            return
+
+    session_info = {
+            "type" : "SPAN",
+            "dst_port": dst_port,
+            }
+
+    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+
+    """
+    For multi-npu platforms we need to program all front asic namespaces
+    """
+    namespaces = sonic_device_util.get_all_namespaces()
+    if not namespaces['front_ns']:
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
+            return
+        config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+    else:
+        per_npu_configdb = {}
+        for front_asic_namespaces in namespaces['front_ns']:
+            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces].connect()
+            if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
+                return
+            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+
 
 @mirror_session.command()
 @click.argument('session_name', metavar='<session_name>', required=True)
 def remove(session_name):
-    """
-    Delete mirror session
-    """
+    """ Delete mirror session """
 
     """
     For multi-npu platforms we need to program all front asic namespaces
@@ -1116,6 +1337,7 @@ def remove(session_name):
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
+
 #
 # 'pfcwd' group ('config pfcwd ...')
 #
@@ -1390,6 +1612,9 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
+    if interface_is_mirror_dst_port(db, interface_name):
+        ctx.fail("{} is configured as mirror destination port".format(interface_name))
+
     members = vlan.get('members', [])
     if interface_name in members:
         if get_interface_naming_mode() == "alias":
@@ -1404,7 +1629,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     for entry in interface_table:
         if (interface_name == entry[0]):
             ctx.fail("{} is a L3 interface!".format(interface_name))
-            
+
     members.append(interface_name)
     vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
@@ -2045,7 +2270,9 @@ def add(ctx, interface_name, ip_addr, gw):
             ctx.fail("'interface_name' is None!")
 
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        net = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if '/' not in ip_addr:
+            ip_addr = str(net)
 
         if interface_name == 'eth0':
 
@@ -2102,7 +2329,9 @@ def remove(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is None!")
 
     try:
-        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        net = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if '/' not in ip_addr:
+            ip_addr = str(net)
 
         if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
