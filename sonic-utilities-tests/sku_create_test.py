@@ -1,11 +1,8 @@
 import sys
 import os
 import pytest
-import swsssdk
 import subprocess
-import filecmp
 import re
-import time
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -52,15 +49,10 @@ class TestSkuCreate(object):
         return True
     
     def test_no_param(self):
-        my_env = os.environ.copy()
-        #my_command = "sudo "+ sku_create_script + " -f "  + sku_def_file
         my_command = sku_create_script + " -f "  + sku_def_file
-        print(my_command)
 
         #Test case execution without stdout
-        #proc = subprocess.Popen(my_command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=my_env,shell=True)
-        proc = subprocess.Popen(my_command,env=my_env,shell=True)
-        result = proc.communicate()[0]
+        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
         print result
 
         #Check if the Output file exists
@@ -74,3 +66,8 @@ class TestSkuCreate(object):
             print("Output file: ",output_file_path," and model file: ",model_file_path,"contents are same. SUCCESS!")
         else:
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_file_path,model_file_path))
+
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
