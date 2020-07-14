@@ -3422,7 +3422,7 @@ def tunnel():
 #
 # 'system-health' command ("show system-health")
 #
-@cli.group(cls=AliasedGroup)
+@cli.group(name='system-health', cls=AliasedGroup)
 def system_health():
     """SONiC command line - 'show system-health' command"""
     return
