@@ -3439,7 +3439,7 @@ def summary():
             from system_health_test import MockerChassis
             HealthCheckerManager = MockerManager
             Chassis = MockerChassis
-    except:
+    except Exception:
         # Normal run... # 
         if os.geteuid():
             click.echo("Root privileges are required for this operation")
@@ -3481,7 +3481,7 @@ def detail():
             from system_health_test import MockerChassis
             HealthCheckerManager = MockerManager
             Chassis = MockerChassis
-    except:
+    except Exception:
         # Normal run... # 
         if os.geteuid():
             click.echo("Root privileges are required for this operation")
@@ -3553,7 +3553,7 @@ def monitor_list():
             from system_health_test import MockerChassis
             HealthCheckerManager = MockerManager
             Chassis = MockerChassis
-    except:
+    except Exception:
         # Normal run... # 
         if os.geteuid():
             click.echo("Root privileges are required for this operation")
