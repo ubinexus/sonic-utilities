@@ -3529,7 +3529,7 @@ def detail():
             for element in manager.config.ignore_services:
                 entry = []
                 entry.append(element)
-                entry.append("Ignore")
+                entry.append("Ignored")
                 entry.append("Service")
                 table.append(entry)
         if manager.config.ignore_devices:
