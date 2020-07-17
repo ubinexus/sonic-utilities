@@ -218,14 +218,6 @@ class MellanoxDbMigrator():
         """
         To migrate buffer pool configuration
         """
-        buffer_pool_conf_in_db = {}
-        device_data = self.configDB.get_table('DEVICE_METADATA')
-        if 'localhost' in device_data.keys():
-            platform = device_data['localhost']['platform']
-        else:
-            log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
-            return False
-
         # Buffer pools defined in old version
         old_default_buffer_pools = self.mlnx_default_buffer_parameters(old_version, "buffer_pool_list")
 
@@ -258,7 +250,7 @@ class MellanoxDbMigrator():
             log_info("Checking old pool configuration {}".format(old_config_name))
             if buffer_pool_conf_in_db == old_config:
                 new_config_name = old_config_name
-                log_info("Old buffer pool configuration {} will be migrate to new one".format(old_config_name, new_config_name))
+                log_info("Old buffer pool configuration {} will be migrate to new one".format(old_config_name))
                 break
 
         if not new_config_name:
