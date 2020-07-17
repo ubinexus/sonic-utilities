@@ -178,7 +178,7 @@ class MellanoxDbMigrator():
                              "egress_lossy_pool": {"size": "15241216", "type": "egress", "mode": "dynamic" } },
             "spc2_t1_pool": {"ingress_lossless_pool": { "size": "9388032", "type": "ingress", "mode": "dynamic" },
                              "ingress_lossy_pool": { "size": "9388032", "type": "ingress", "mode": "dynamic" },
-                             "egress_lossless_pool": { "size": "14024640", "type": "egress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
                              "egress_lossy_pool": {"size": "9388032", "type": "egress", "mode": "dynamic" } },
 
             "spc2_3800_t0_pool": {"ingress_lossless_pool": { "size": "13799424", "type": "ingress", "mode": "dynamic" },
