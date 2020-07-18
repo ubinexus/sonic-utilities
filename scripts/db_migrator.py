@@ -62,8 +62,8 @@ class DBMigrator():
         self.asic_type = asic_type
 
         if asic_type == "mellanox":
-            from mellanox_db_migrator import MellanoxDbMigrator
-            self.mellanox_migrator = MellanoxDbMigrator(self.configDB)
+            from mellanox_buffer_migrator import MellanoxBufferMigrator
+            self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB)
 
     def migrate_pfc_wd_table(self):
         '''
@@ -192,7 +192,7 @@ class DBMigrator():
         log_info('Handling version_1_0_2')
         # Check ASIC type, if Mellanox platform then need DB migration
         if self.asic_type == "mellanox":
-            if self.mellanox_migrator.mlnx_migrate_buffer_pool_size('version_1_0_2', 'version_1_0_3'):
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_2', 'version_1_0_3'):
                 self.set_version('version_1_0_3')
         else:
             self.set_version('version_1_0_3')
@@ -206,7 +206,7 @@ class DBMigrator():
 
         # Check ASIC type, if Mellanox platform then need DB migration
         if self.asic_type == "mellanox":
-            if self.mellanox_migrator.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') and self.mellanox_migrator.mlnx_migrate_buffer_profile('version_1_0_3', 'version_1_0_4'):
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_3', 'version_1_0_4'):
                 self.set_version('version_1_0_4')
         else:
             self.set_version('version_1_0_4')

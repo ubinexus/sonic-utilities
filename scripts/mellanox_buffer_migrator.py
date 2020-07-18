@@ -20,7 +20,7 @@ def log_error(msg):
     syslog.closelog()
 
 
-class MellanoxDbMigrator():
+class MellanoxBufferMigrator():
     def __init__(self, configDB):
         self.configDB = configDB
 
