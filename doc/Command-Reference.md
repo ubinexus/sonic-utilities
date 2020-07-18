@@ -2345,6 +2345,7 @@ Subsequent pages explain each of these commands in detail.
     -?, -h, --help  Show this message and exit.
 
   Commands:
+  breakout     Show Breakout Mode information by interfaces
   counters     Show interface counters
   description  Show interface status, protocol and...
   naming_mode  Show interface naming_mode status
@@ -2352,6 +2353,56 @@ Subsequent pages explain each of these commands in detail.
   portchannel  Show PortChannel information
   status       Show Interface status information
   transceiver  Show SFP Transceiver information
+  ```
+
+**show interfaces breakout**
+
+This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. all the available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
+
+- Usage:
+  ```
+  show interfaces breakout
+  show interfaces breakout current-mode
+  show interfaces breakout current-mode <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout
+  {
+      "Ethernet0": {
+          "index": "1,1,1,1",
+          "default_brkout_mode": "1x100G[40G]",
+          "child ports": "Ethernet0",
+          "child port speed": "100G",
+          "breakout_modes": "1x100G[40G],2x50G,4x25G[10G]",
+          "Current Breakout Mode": "1x100G[40G]",
+          "lanes": "65,66,67,68",
+          "alias_at_lanes": "Eth1/1, Eth1/2, Eth1/3, Eth1/4"
+      },... continue
+  }
+
+The "current-mode" subcommand is used to display current breakout mode for all interfaces.
+
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode
+  +-------------+-------------------------+
+  | Interface   | Current Breakout Mode   |
+  +=============+=========================+
+  | Ethernet0   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet4   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet8   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet12  | 4x25G[10G]              |
+  +-------------+-------------------------+
+
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode Ethernet0
+  +-------------+-------------------------+
+  | Interface   | Current Breakout Mode   |
+  +=============+=========================+
+  | Ethernet0   | 4x25G[10G]              |
+  +-------------+-------------------------+
   ```
 
 **show interfaces counters**
@@ -3828,7 +3879,6 @@ This command deletes the SNMP Trap server IP address to which SNMP agent is expe
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#management-vrf)
 
-
 ## Mirroring
 
 ### Mirroring Show commands
@@ -3844,10 +3894,16 @@ This command displays all the mirror sessions that are configured.
 
 - Example:
   ```
-  admin@sonic:~$ show mirror session
-  Name       Status    SRC IP     DST IP    GRE    DSCP    TTL    Queue
-  ---------  --------  ---------  --------  -----  ------  -----  -------
+  admin@sonic:~$ show mirror_session
+  ERSPAN Sessions
+  Name       Status    SRC IP     DST IP    GRE    DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ------     --------  --------   --------  -----  ------  -----  -------  ---------  --------------  ----------  -----------
   everflow0  active    10.1.0.32  10.0.0.7
+
+  SPAN Sessions
+  Name    Status    DST Port    SRC Port       Direction
+  ------  --------  ----------  -------------  -----------
+  port0   active    Ethernet0   PortChannel10  rx
   ```
 
 ### Mirroring Config commands
@@ -3855,7 +3911,12 @@ This command displays all the mirror sessions that are configured.
 **config mirror_session**
 
 This command is used to add or remove mirroring sessions. Mirror session is identified by "session_name".
-While adding a new session, users need to configure the following fields that are used while forwarding the mirrored packets.
+This command supports configuring both SPAN/ERSPAN sessions.
+In SPAN user can configure mirroring of list of source ports/LAG to destination port in ingress/egress/both directions.
+In ERSPAN user can configure mirroring of list of source ports/LAG to a destination IP.
+Both SPAN/ERSPAN support ACL based mirroring and can be used in ACL configurations.
+
+While adding a new ERSPAN session, users need to configure the following fields that are used while forwarding the mirrored packets.
 
 1) source IP address,
 2) destination IP address,
@@ -3863,19 +3924,65 @@ While adding a new session, users need to configure the following fields that ar
 4) TTL value
 5) optional - GRE Type in case if user wants to send the packet via GRE tunnel. GRE type could be anything; it could also be left as empty; by default, it is 0x8949 for Mellanox; and 0x88be for the rest of the chips.
 6) optional - Queue in which packets shall be sent out of the device. Valid values 0 to 7 for most of the devices. Users need to know their device and the number of queues supported in that device.
+7) optional - Policer which will be used to control the rate at which frames are mirrored.
+8) optional - List of source ports which can have both Ethernet and LAG ports.
+9) optional - Direction - Mirror session direction when configured along with Source port. (Supported rx/tx/both. default direction is both)
 
 - Usage:
+  ```
+  config mirror_session erspan add <session_name> <src_ip> <dst_ip> <dscp> <ttl> [gre_type] [queue] [policer <policer_name>] [source-port-list] [direction]
+  ```
+
+  The following command is also supported to be backward compatible.
+  This command will be deprecated in future releases.
   ```
   config mirror_session add <session_name> <src_ip> <dst_ip> <dscp> <ttl> [gre_type] [queue]
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config mirror_session add mrr_abcd 1.2.3.4 20.21.22.23 8 100 0x6558 0
-  admin@sonic:~$ show mirror_session
-  Name       Status    SRC IP       DST IP       GRE     DSCP    TTL    Queue
-  ---------  --------  -----------  -----------  ------  ------  -----  -------
-  mrr_abcd   inactive  1.2.3.4      20.21.22.23  0x6558  8       100    0
+  root@T1-2:~# config mirror_session add mrr_legacy 1.2.3.4 20.21.22.23 8 100 0x6558 0
+  root@T1-2:~# show mirror_session
+  Name         Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ---------    --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
+  mrr_legacy   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0
+
+
+  root@T1-2:~# config mirror_session erspan add mrr_abcd 1.2.3.4 20.21.22.23 8 100 0x6558 0
+  root@T1-2:~# show mirror_session
+  Name       Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ---------  --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
+  mrr_abcd   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0
+  root@T1-2:~#
+
+  root@T1-2:~# config mirror_session erspan add mrr_port 1.2.3.4 20.21.22.23 8 100 0x6558 0 Ethernet0
+  root@T1-2:~# show mirror_session
+  Name       Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ---------  --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
+  mrr_port   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0                                   Ethernet0   both
+  root@T1-2:~#
+  ```
+
+While adding a new SPAN session, users need to configure the following fields that are used while forwarding the mirrored packets.
+1) destination port,
+2) optional - List of source ports- List of source ports which can have both Ethernet and LAG ports.
+3) optional - Direction - Mirror session direction when configured along with Source port. (Supported rx/tx/both. default direction is both)
+4) optional - Queue in which packets shall be sent out of the device. Valid values 0 to 7 for most of the devices. Users need to know their device and the number of queues supported in that device.
+5) optional - Policer which will be used to control the rate at which frames are mirrored.
+
+- Usage:
+  ```
+  config mirror_session span add <session_name> <dst_port> [source-port-list] [direction] [queue] [policer <policer_name>]
+  ```
+
+- Example:
+  ```
+  root@T1-2:~# config mirror_session span add port0 Ethernet0 Ethernet4,PortChannel001,Ethernet8
+  root@T1-2:~# show mirror_session
+  Name    Status    DST Port    SRC Port                           Direction
+  ------  --------  ----------  ---------------------------------  -----------
+  port0   active    Ethernet0   Ethernet4,PortChannel10,Ethernet8  both
+  root@T1-2:~#
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#mirroring)
@@ -4538,7 +4645,7 @@ Supported options:
 2. -f|--force - install FW regardless the current version
 3. -i|--image - update FW using current/next SONiC image
 
-Note: the default option is --image=current (current/next values are taken from `sonic_installer list`)
+Note: the default option is --image=current (current/next values are taken from `sonic-installer list`)
 
 ### Platform Component Firmware vendor specific behaviour
 
@@ -6497,7 +6604,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#waterm
 
 ## Software Installation and Management
 
-SONiC software can be installed in two methods, viz, "using sonic_installer tool", "ONIE Installer".
+SONiC software can be installed in two methods, viz, "using sonic-installer tool", "ONIE Installer".
 
 
 ### SONiC Installer
@@ -6505,18 +6612,18 @@ This is a command line tool available as part of the SONiC software; If the devi
 This tool has facility to install an alternate image, list the available images and to set the next reboot image.
 This command requires elevated (root) privileges to run.
 
-**sonic_installer list**
+**sonic-installer list**
 
 This command displays information about currently installed images. It displays a list of installed images, currently running image and image set to be loaded in next reboot.
 
 - Usage:
   ```
-  sonic_installer list
+  sonic-installer list
   ```
 
 - Example:
    ```
-  admin@sonic:~$ sudo sonic_installer list
+  admin@sonic:~$ sudo sonic-installer list
   Current: SONiC-OS-HEAD.XXXX
   Next: SONiC-OS-HEAD.XXXX
   Available:
@@ -6526,18 +6633,18 @@ This command displays information about currently installed images. It displays 
 
 TIP: This output can be obtained without evelated privileges by running the `show boot` command. See [here](#show-system-status) for details.
 
-**sonic_installer install**
+**sonic-installer install**
 
 This command is used to install a new image on the alternate image partition.  This command takes a path to an installable SONiC image or URL and installs the image.
 
 - Usage:
   ```
-  sonic_installer install <image_file_path>
+  sonic-installer install <image_file_path>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin
+  admin@sonic:~$ sudo sonic-installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin
   New image will be installed, continue? [y/N]: y
   Downloading image...
   ...100%, 480 MB, 3357 KB/s, 146 seconds passed
@@ -6569,46 +6676,46 @@ This command is used to install a new image on the alternate image partition.  T
   Done
   ```
 
-**sonic_installer set_default**
+**sonic-installer set_default**
 
 This command is be used to change the image which can be loaded by default in all the subsequent reboots.
 
 - Usage:
   ```
-  sonic_installer set_default <image_name>
+  sonic-installer set_default <image_name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer set_default SONiC-OS-HEAD.XXXX
+  admin@sonic:~$ sudo sonic-installer set_default SONiC-OS-HEAD.XXXX
   ```
 
-**sonic_installer set_next_boot**
+**sonic-installer set_next_boot**
 
 This command is used to change the image that can be loaded in the *next* reboot only. Note that it will fallback to current image in all other subsequent reboots after the next reboot.
 
 - Usage:
   ```
-  sonic_installer set_next_boot <image_name>
+  sonic-installer set_next_boot <image_name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer set_next_boot SONiC-OS-HEAD.XXXX
+  admin@sonic:~$ sudo sonic-installer set_next_boot SONiC-OS-HEAD.XXXX
   ```
 
-**sonic_installer remove**
+**sonic-installer remove**
 
 This command is used to remove the unused SONiC image from the disk. Note that it's *not* allowed to remove currently running image.
 
 - Usage:
   ```
-  sonic_installer remove [-y|--yes] <image_name>
+  sonic-installer remove [-y|--yes] <image_name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer remove SONiC-OS-HEAD.YYYY
+  admin@sonic:~$ sudo sonic-installer remove SONiC-OS-HEAD.YYYY
   Image will be removed, continue? [y/N]: y
   Updating GRUB...
   Done
@@ -6619,18 +6726,18 @@ This command is used to remove the unused SONiC image from the disk. Note that i
   Image removed
   ```
 
-**sonic_installer cleanup**
+**sonic-installer cleanup**
 
 This command removes all unused images from the device, leaving only the currently active image and the image which will be booted into next (if different) installed. If there are no images which can be removed, the command will output `No image(s) to remove`
 
 - Usage:
   ```
-  sonic_installer cleanup [-y|--yes]
+  sonic-installer cleanup [-y|--yes]
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer cleanup
+  admin@sonic:~$ sudo sonic-installer cleanup
   Remove images which are not current and next, continue? [y/N]: y
   No image(s) to remove
   ```
