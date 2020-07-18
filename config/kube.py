@@ -4,7 +4,6 @@
 import click
 import os
 import sys
-import syslog
 import urllib3
 import tempfile
 import requests
@@ -16,15 +15,7 @@ import inspect
 import shutil
 from urlparse import urlparse
 from swsssdk import ConfigDBConnector
-
-
-def hostname():
-    return os.uname()[1]
-
-from config.main import run_command, AbbreviationGroup, config
-
-logger_identity = "kube_config"
-log_level = syslog.LOG_DEBUG
+from utilities_common.common import *
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBELET_YAML = "/var/lib/kubelet/config.yaml"
@@ -36,50 +27,12 @@ KUBEADM_JOIN_CMD = "kubeadm join --discovery-file {} --node-name {}"
 LOCK_FILE = "/var/lock/kube_join.lock"
 
 
-def _log_msg(lvl, fname, ln, m):
-    if lvl <= log_level:
-        syslog.openlog(logger_identity)
-        syslog.syslog(lvl, m)
-        syslog.closelog()
-
-    if (log_level == syslog.LOG_DEBUG or
-            sys.flags.interactive or
-            sys.flags.debug or
-            sys.flags.verbose):
-        print("{}: {}:{}: {}".format(logger_identity, fname, ln, m))
-
-
-def _log_info(m):
-    _log_msg(syslog.LOG_INFO, inspect.stack()[1][1], inspect.stack()[1][2], m)
-
-
-def _log_err(m):
-    _log_msg(syslog.LOG_ERR, inspect.stack()[1][1], inspect.stack()[1][2], m)
-
-
-def _log_debug(m):
-    _log_msg(syslog.LOG_DEBUG, inspect.stack()[1][1], inspect.stack()[1][2], m)
-
-
-def _do_exit(m):
-    m = "FATAL failure: {}. Exiting...".format(m)
-    _log_msg(syslog.LOG_ERR, inspect.stack()[1][1], inspect.stack()[1][2], m)
-    raise SystemExit(m)
-
-
-def _get_configdb_data(table, key):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table(table)
-    return data[key] if key in data else None
-
-
 def _update_kube_server(field, val):
     config_db = ConfigDBConnector()
     config_db.connect()
     table = "KUBERNETES_MASTER"
     key = "SERVER"
-    db_data = _get_configdb_data(table, key)
+    db_data = get_configdb_data(table, key)
     def_data = {
         "IP": "",
         "insecure": "False",
@@ -100,10 +53,10 @@ def _take_lock():
     try:
         lock_fd = open(LOCK_FILE, "w")
         fcntl.lockf(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        _log_info("Lock taken {}".format(LOCK_FILE))
+        log_info("Lock taken {}".format(LOCK_FILE), True)
     except IOError as e:
         lock_fd = None
-        _log_err("Lock {} failed: {}".format(LOCK_FILE, str(e)))
+        log_err("Lock {} failed: {}".format(LOCK_FILE, str(e)), True)
     return lock_fd
 
 
@@ -118,7 +71,7 @@ def _download_file(server, insecure):
         os.write(h, r.text)
         os.close(h)
     else:
-        _do_exit("Failed to download {}".format(
+        do_exit("Failed to download {}".format(
             SERVER_ADMIN_URL.format(server)))
 
     # Ensure the admin.conf has given VIP as server-IP.
@@ -156,7 +109,7 @@ def _get_labels():
     labels.append("sonic_version={}".format(
         sonic_device_util.get_sonic_version_info()['build_version']))
     labels.append("hwsku={}".format(sonic_device_util.get_hwsku()))
-    lh = _get_configdb_data('DEVICE_METADATA', 'localhost')
+    lh = get_configdb_data('DEVICE_METADATA', 'localhost')
     labels.append("deployment_type={}".format(
         lh['type'] if lh and 'type' in lh else "Unknown"))
     labels.append("enable_pods=True")
@@ -166,7 +119,7 @@ def _get_labels():
 
 def _label_node(label):
     cmd = "kubectl --kubeconfig {} label nodes {} {}".format(
-            KUBE_ADMIN_CONF, hostname(), label)
+            KUBE_ADMIN_CONF, get_hostname(), label)
     run_command(cmd, ignore_error=True)
 
 
@@ -198,7 +151,7 @@ c)  In Master check if all system pods are running good.
     os.write(h, msg)
     os.close(h)
 
-    _log_err("Refer file {} for troubleshooting tips".format(fname))
+    log_err("Refer file {} for troubleshooting tips".format(fname), True)
 
 
 def _do_join(server, insecure):
@@ -208,7 +161,7 @@ def _do_join(server, insecure):
         run_command("systemctl enable kubelet")
 
         run_command(KUBEADM_JOIN_CMD.format(
-            KUBE_ADMIN_CONF, hostname()), ignore_error=True)
+            KUBE_ADMIN_CONF, get_hostname()), ignore_error=True)
 
         if _is_connected(server):
             labels = _get_labels()
@@ -216,10 +169,10 @@ def _do_join(server, insecure):
                 _label_node(label)
 
     except requests.exceptions.RequestException as e:
-        _do_exit("Download failed: {}".format(str(e)))
+        do_exit("Download failed: {}".format(str(e)))
 
     except OSError as e:
-        _do_exit("Download failed: {}".format(str(e)))
+        do_exit("Download failed: {}".format(str(e)))
 
     _troubleshoot_tips()
 
@@ -227,7 +180,7 @@ def _do_join(server, insecure):
 def kube_reset():
     lock_fd = _take_lock()
     if not lock_fd:
-        log_err("Lock {} is active; Bail out".format(LOCK_FILE))
+        log_err("Lock {} is active; Bail out".format(LOCK_FILE), True)
         return
 
     # Remove a key label and drain/delete self from cluster
@@ -237,11 +190,11 @@ def kube_reset():
         _label_node("enable_pods-")
         run_command(
                 "kubectl --kubeconfig {} --request-timeout 20s drain {} --ignore-daemonsets".format(
-                    KUBE_ADMIN_CONF, hostname()),
+                    KUBE_ADMIN_CONF, get_hostname()),
                 ignore_error=True)
         run_command(
                 "kubectl --kubeconfig {} --request-timeout 20s delete node {}".format(
-                    KUBE_ADMIN_CONF, hostname()),
+                    KUBE_ADMIN_CONF, get_hostname()),
                 ignore_error=True)
 
     run_command("kubeadm reset -f", ignore_error=True)
@@ -254,15 +207,15 @@ def kube_reset():
 def kube_join(force=False):
     lock_fd = _take_lock()
     if not lock_fd:
-        log_err("Lock {} is active; Bail out".format(LOCK_FILE))
+        log_err("Lock {} is active; Bail out".format(LOCK_FILE), True)
         return
 
-    db_data = _get_configdb_data('KUBERNETES_MASTER', 'SERVER')
+    db_data = get_configdb_data('KUBERNETES_MASTER', 'SERVER')
     if not db_data or 'IP' not in db_data or not db_data['IP']:
-        _log_err("Kubernetes server is not configured")
+        log_err("Kubernetes server is not configured", True)
 
     if db_data['disable'].lower() != "false":
-        _log_err("kube join skipped as kubernetes server is marked disabled")
+        log_err("kube join skipped as kubernetes server is marked disabled", True)
         return
 
     if not force:
@@ -278,8 +231,6 @@ def kube_join(force=False):
 def kubernetes():
     """kubernetes command line"""
     pass
-
-config.add_command(kubernetes)
 
 
 # cmd kubernetes join [-f/--force]
@@ -376,7 +327,4 @@ def drop(key):
 
 label.add_command(drop)
 
-
-if __name__ == "__main__":
-    kubernetes()
 

@@ -1732,13 +1732,6 @@ elif routing_stack == "frr":
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
 
-# Import kube commands
-from . import kube
-
-# A dummy call to denote that this kube is not unused
-# Else LGTM is unable to understand the indirect use through cli.group class method
-kube.hostname()
-
 #
 # 'lldp' group ("show lldp ...")
 #
@@ -3425,6 +3418,9 @@ def tunnel():
         table.append(r)
 
     click.echo(tabulate(table, header))
+
+from .kube import kubernetes
+cli.add_command(kubernetes)
 
 if __name__ == '__main__':
     cli()

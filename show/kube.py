@@ -2,25 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import os
+import click
 
-
-def hostname():
-    return os.uname()[1]
-
-from show.main import AliasedGroup, cli, run_command
-from swsssdk import ConfigDBConnector
+from utilities_common.common import run_command
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"
 REDIS_KUBE_TABLE = 'KUBERNETES_MASTER'
 REDIS_KUBE_KEY = 'SERVER'
-
-
-def _get_configdb_data(table, key):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table(table)
-    return data[key] if key in data else None
 
 
 def _print_entry(d, prefix):
@@ -44,9 +33,8 @@ def run_kube_command(cmd):
 #
 # kubernetes group ("show kubernetes ...")
 #
-@cli.group(cls=AliasedGroup)
+@click.group()
 def kubernetes():
-    """Show details of the kubernetes nodes/pods/..."""
     pass
 
 
@@ -71,13 +59,10 @@ def status():
 @kubernetes.command()
 def server():
     """Show kube configuration"""
-    kube_fvs = _get_configdb_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
+    kube_fvs = get_configdb_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
     if kube_fvs:
         _print_entry(kube_fvs, "{} {}".format(
             REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
     else:
         print("Kubernetes server is not configured")
 
-
-if __name__ == '__main__':
-    kubernetes()
