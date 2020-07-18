@@ -103,6 +103,8 @@
 * [Startup & Running Configuration](#startup--running-configuration)
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
+* [SNMP Community Configuration](#snmp-community-configuration)
+  * [snmp-community config command](#snmp-community-config-commands)
 * [Syslog](#syslog)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
@@ -145,6 +147,7 @@
 | v1 | Mar-23-2019 | Initial version of CLI Guide with minimal command set |
 
 ## Introduction
+
 SONiC is an open source network operating system based on Linux that runs on switches from multiple vendors and ASICs. SONiC offers a full-suite of network functionality, like BGP and RDMA, that has been production-hardened in the data centers of some of the largest cloud-service providers. It offers teams the flexibility to create the network solutions they need while leveraging the collective strength of a large ecosystem and community.
 
 SONiC software shall be loaded in these [supported devices](https://github.com/Azure/SONiC/wiki/Supported-Devices-and-Platforms) and this CLI guide shall be used to configure the devices as well as to display the configuration, state and status.
@@ -290,6 +293,7 @@ This command lists all the possible configuration commands at the top level.
     reload                 Clear current configuration and import a...
     route                  route-related configuration tasks
     save                   Export current config DB to a file on disk.
+    snmp-community         Add SNMP community string
     tacacs                 TACACS+ server configuration
     vlan                   VLAN-related configuration tasks
     vrf                    VRF-related configuration tasks
@@ -5570,6 +5574,23 @@ This command displays the running configuration of the snmp module.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#Startup--Running-Configuration)
 
+## SNMP Community  Configuration
+
+### snmp-community config command
+
+  This command is used to add SNMP community string to snmp_rocommunities.
+
+  - Usage:
+	config snmp-community <community_name>
+
+  - Example:
+
+	```
+	admin@sonic:~$ sudo config snmp-community new_public
+	Restarting SNMP service...
+	```
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#snmp-community-configuration)
 
 ## Syslog
 
