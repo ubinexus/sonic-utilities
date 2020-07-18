@@ -190,6 +190,65 @@ class MellanoxBufferMigrator():
                                   "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
                                   "egress_lossy_pool": {"size": "7946240", "type": "egress", "mode": "dynamic" } },
 
+            # Lossless headroom info
+            "spc1_headroom": {"pg_lossless_10000_5m_profile": {"size": "33792", "xon":"19456"},
+                              "pg_lossless_25000_5m_profile": {"size": "34816", "xon":"19456"},
+                              "pg_lossless_40000_5m_profile": {"size": "34816", "xon":"19456"},
+                              "pg_lossless_50000_5m_profile": {"size": "34816", "xon":"19456"},
+                              "pg_lossless_100000_5m_profile": {"size": "36864", "xon":"19456"},
+                              "pg_lossless_10000_40m_profile": {"size": "35840", "xon":"19456"},
+                              "pg_lossless_25000_40m_profile": {"size": "38912", "xon":"19456"},
+                              "pg_lossless_40000_40m_profile": {"size": "41984", "xon":"19456"},
+                              "pg_lossless_50000_40m_profile": {"size": "44032", "xon":"19456"},
+                              "pg_lossless_100000_40m_profile": {"size": "54272", "xon":"19456"},
+                              "pg_lossless_10000_300m_profile": {"size": "49152", "xon":"19456"},
+                              "pg_lossless_25000_300m_profile": {"size": "71680", "xon":"19456"},
+                              "pg_lossless_40000_300m_profile": {"size": "94208", "xon":"19456"},
+                              "pg_lossless_50000_300m_profile": {"size": "108544", "xon":"19456"},
+                              "pg_lossless_100000_300m_profile": {"size": "184320", "xon":"19456"}},
+            "spc2_headroom": {"pg_lossless_1000_5m_profile": {"size": "33792", "xon":"19456"},
+                              "pg_lossless_10000_5m_profile": {"size": "35840", "xon":"19456"},
+                              "pg_lossless_25000_5m_profile": {"size": "35840", "xon":"19456"},
+                              "pg_lossless_40000_5m_profile": {"size": "36864", "xon":"19456"},
+                              "pg_lossless_50000_5m_profile": {"size": "36864", "xon":"19456"},
+                              "pg_lossless_100000_5m_profile": {"size": "37888", "xon":"19456"},
+                              "pg_lossless_200000_5m_profile": {"size": "40960", "xon":"19456"},
+                              "pg_lossless_1000_40m_profile": {"size": "33792", "xon":"19456"},
+                              "pg_lossless_10000_40m_profile": {"size": "37888", "xon":"19456"},
+                              "pg_lossless_25000_40m_profile": {"size": "40960", "xon":"19456"},
+                              "pg_lossless_40000_40m_profile": {"size": "45056", "xon":"19456"},
+                              "pg_lossless_50000_40m_profile": {"size": "47104", "xon":"19456"},
+                              "pg_lossless_100000_40m_profile": {"size": "58368", "xon":"19456"},
+                              "pg_lossless_200000_40m_profile": {"size": "80896", "xon":"19456"},
+                              "pg_lossless_1000_300m_profile": {"size": "35840", "xon":"19456"},
+                              "pg_lossless_10000_300m_profile": {"size": "52224", "xon":"19456"},
+                              "pg_lossless_25000_300m_profile": {"size": "77824", "xon":"19456"},
+                              "pg_lossless_40000_300m_profile": {"size": "103424", "xon":"19456"},
+                              "pg_lossless_50000_300m_profile": {"size": "120832", "xon":"19456"},
+                              "pg_lossless_100000_300m_profile": {"size": "205824", "xon":"19456"},
+                              "pg_lossless_200000_300m_profile": {"size": "376832", "xon":"19456"}},
+            "spc2_3800_headroom": {"pg_lossless_1000_5m_profile": {"size": "33792", "xon":"19456"},
+                                   "pg_lossless_10000_5m_profile": {"size": "37888", "xon":"19456"},
+                                   "pg_lossless_25000_5m_profile": {"size": "41984", "xon":"19456"},
+                                   "pg_lossless_40000_5m_profile": {"size": "46080", "xon":"19456"},
+                                   "pg_lossless_50000_5m_profile": {"size": "48128", "xon":"19456"},
+                                   "pg_lossless_100000_5m_profile": {"size": "60416", "xon":"19456"},
+                                   "pg_lossless_200000_5m_profile": {"size": "86016", "xon":"19456"},
+                                   "pg_lossless_1000_40m_profile": {"size": "34816", "xon":"19456"},
+                                   "pg_lossless_10000_40m_profile": {"size": "39936", "xon":"19456"},
+                                   "pg_lossless_25000_40m_profile": {"size": "47104", "xon":"19456"},
+                                   "pg_lossless_40000_40m_profile": {"size": "53248", "xon":"19456"},
+                                   "pg_lossless_50000_40m_profile": {"size": "58368", "xon":"19456"},
+                                   "pg_lossless_100000_40m_profile": {"size": "80896", "xon":"19456"},
+                                   "pg_lossless_200000_40m_profile": {"size": "125952", "xon":"19456"},
+                                   "pg_lossless_1000_300m_profile": {"size": "35840", "xon":"19456"},
+                                   "pg_lossless_10000_300m_profile": {"size": "55296", "xon":"19456"},
+                                   "pg_lossless_25000_300m_profile": {"size": "83968", "xon":"19456"},
+                                   "pg_lossless_40000_300m_profile": {"size": "112640", "xon":"19456"},
+                                   "pg_lossless_50000_300m_profile": {"size": "132096", "xon":"19456"},
+                                   "pg_lossless_100000_300m_profile": {"size": "228352", "xon":"19456"},
+                                   "pg_lossless_200000_300m_profile": {"size": "421888", "xon":"19456"}},
+
             # Buffer profile info
             "buffer_profiles": {"ingress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
                                 "ingress_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|ingress_lossy_pool]", "size": "0"},
@@ -295,20 +354,29 @@ class MellanoxBufferMigrator():
         default_lossless_profiles = None
         if platform == 'x86_64-mlnx_msn3800-r0':
             default_lossless_profiles = self.mlnx_default_buffer_parameters(old_version, "spc2_3800_headroom")
+            new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, "spc2_3800_headroom")
         elif platform in spc2_platforms:
             default_lossless_profiles = self.mlnx_default_buffer_parameters(old_version, "spc2_headroom")
+            new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, "spc2_headroom")
         elif platform in spc1_platforms:
             default_lossless_profiles = self.mlnx_default_buffer_parameters(old_version, "spc1_headroom")
+            new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, "spc1_headroom")
 
-        if default_lossless_profiles:
+        if default_lossless_profiles and new_lossless_profiles:
             for name, profile in buffer_profile_conf.iteritems():
                 if name in default_lossless_profiles.keys():
-                    default_profile = default_lossless_profiles[name]
+                    default_profile = default_lossless_profiles.get(name)
+                    new_profile = new_lossless_profiles.get(name)
+                    if not default_profile or not new_profile:
+                        continue
                     default_profile['dynamic_th'] = '0'
                     default_profile['xoff'] = str(int(default_profile['size']) - int(default_profile['xon']))
                     default_profile['pool'] = '[BUFFER_POOL|ingress_lossless_pool]'
                     if profile == default_profile:
-                        self.configDB.set_entry('BUFFER_PROFILE', name, None)
+                        default_profile['size'] = new_profile['size']
+                        default_profile['xon'] = new_profile['xon']
+                        default_profile['xoff'] = str(int(default_profile['size']) - int(default_profile['xon']))
+                        self.configDB.set_entry('BUFFER_PROFILE', name, default_profile)
 
         if not buffer_profile_new_configure:
             # Not providing new profile configure in new version means they do need to be changed
