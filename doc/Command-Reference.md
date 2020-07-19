@@ -6092,7 +6092,7 @@ In addition, displays a list of all current 'Services' and 'Hardware' being moni
   
   Name         Status    Type
   -----------  --------  ------
-  psu.voltage  Ignore    Device
+  psu.voltage  Ignored   Device
 
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
