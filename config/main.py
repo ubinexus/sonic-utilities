@@ -846,7 +846,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
 
     if dst_port:
-        if not interface_name_is_valid(dst_port):
+        if not interface_name_is_valid(config_db, dst_port):
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
             return False
 
@@ -868,7 +868,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     if src_port:
         for port in src_port.split(","):
-            if not interface_name_is_valid(port):
+            if not interface_name_is_valid(config_db, port):
                 click.echo("Error: Source Interface {} is invalid".format(port))
                 return False
             if dst_port and dst_port == port:
@@ -1403,7 +1403,7 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_p
     """ Add ERSPAN mirror session """
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
 
-def gather_session_info(session_info, policer, queue, src_port, direction):
+def gather_session_info(config_db, session_info, policer, queue, src_port, direction):
     if policer:
         session_info['policer'] = policer
 
@@ -1414,7 +1414,7 @@ def gather_session_info(session_info, policer, queue, src_port, direction):
         if clicommon.get_interface_naming_mode() == "alias":
             src_port_list = []
             for port in src_port.split(","):
-                src_port_list.append(interface_alias_to_name(port))
+                src_port_list.append(interface_alias_to_name(config_db, port))
             src_port=",".join(src_port_list)
 
         session_info['src_port'] = src_port
@@ -1436,8 +1436,6 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     if gre_type:
         session_info['gre_type'] = gre_type
 
-    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
-
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
@@ -1445,6 +1443,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
+        session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
         if validate_mirror_session_config(config_db, session_name, None, src_port, direction) is False:
             return
         config_db.set_entry("MIRROR_SESSION", session_name, session_info)
@@ -1453,6 +1452,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
         for front_asic_namespaces in namespaces['front_ns']:
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
+            session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
             if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, None, src_port, direction) is False:
                 return
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
@@ -1486,8 +1486,6 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
             "dst_port": dst_port,
             }
 
-    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
-
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
@@ -1495,6 +1493,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
+        session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
         if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
             return
         config_db.set_entry("MIRROR_SESSION", session_name, session_info)
@@ -1503,6 +1502,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
         for front_asic_namespaces in namespaces['front_ns']:
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
+            session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
             if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
                 return
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
