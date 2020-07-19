@@ -1493,6 +1493,12 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
+
+        if get_interface_naming_mode() == "alias":
+            dst_port = interface_alias_to_name(config_db, dst_port)
+            if dst_port is None:
+                click.echo("Error: Destination Interface {} is invalid".format(dst_port))
+                return
         session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
         if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
             return
@@ -1502,6 +1508,12 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
         for front_asic_namespaces in namespaces['front_ns']:
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
+
+            if get_interface_naming_mode() == "alias":
+                dst_port = interface_alias_to_name(config_db, dst_port)
+                if dst_port is None:
+                    click.echo("Error: Destination Interface {} is invalid".format(dst_port))
+                    return
             session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
             if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
                 return
