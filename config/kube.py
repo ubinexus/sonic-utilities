@@ -3,7 +3,6 @@
 
 import click
 import os
-import sys
 import urllib3
 import tempfile
 import requests
@@ -11,7 +10,6 @@ import fcntl
 import sonic_device_util
 import yaml
 import netaddr
-import inspect
 import shutil
 from urlparse import urlparse
 from swsssdk import ConfigDBConnector
