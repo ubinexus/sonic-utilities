@@ -1559,13 +1559,19 @@ def vlan(ctx, redis_unix_socket_path):
 
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
+#@click.argument('typ', metavar='<management/control>', required=False, type=click.Choice(["mgmt","ctrl"]))
+@click.option("-t", "--type", "typ", required=False, type=click.Choice(["management","control"]))
 @click.pass_context
-def add_vlan(ctx, vid):
+def add_vlan(ctx, vid, typ):
     if vid >= 1 and vid <= 4094:
         db = ctx.obj['db']
         vlan = 'Vlan{}'.format(vid)
         if len(db.get_entry('VLAN', vlan)) != 0:
             ctx.fail("{} already exists".format(vlan))
+        if typ:
+            db.set_entry('VLAN', vlan, {'vlanid': vid, 'vlan_type': typ})
+        else :
+            db.set_entry('VLAN', vlan, {'vlanid': vid})
         db.set_entry('VLAN', vlan, {'vlanid': vid})
     else :
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
@@ -1582,6 +1588,40 @@ def del_vlan(ctx, vid):
         db.set_entry('VLAN_MEMBER', k, None)
     db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
+#
+# 'list' group ('config vlan list ...')
+#
+@vlan.group('list')
+@click.pass_context
+def vlan_list(ctx):
+    pass
+
+@vlan_list.command('add')
+@click.argument('vid', metavar='<vid1 vid2 ... vidn>', nargs=-1, required=True, type=int)
+@click.option("-t", "--type", "typ", required=False, type=click.Choice(["management","control"]))
+@click.pass_context
+def add_vlan_list(ctx, vid, typ):
+    db = ctx.obj['db']
+    for i in range(0,len(vid)):
+        if vid[i] >= 1 and vid[i] <= 4094:
+            vlan = 'Vlan{}'.format(vid[i])
+            if len(db.get_entry('VLAN', vlan)) != 0:
+                ctx.fail("{} already exists".format(vlan))
+            if typ:
+                db.set_entry('VLAN', vlan, {'vlanid': vid[i], 'vlan_type': typ})
+            else :
+                db.set_entry('VLAN', vlan, {'vlanid': vid[i]})
+
+@vlan_list.command('del')
+@click.argument('vid', metavar='<vid1 vid2 ... vidn>', nargs=-1, required=True, type=int)
+@click.pass_context
+def del_vlan_list(ctx, vid):
+    db = ctx.obj['db']
+    for i in range(0,len(vid)):
+        keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid[i]) ]
+        for k in keys:
+            db.set_entry('VLAN_MEMBER', k, None)
+        db.set_entry('VLAN', 'Vlan{}'.format(vid[i]), None)
 
 #
 # 'member' group ('config vlan member ...')
