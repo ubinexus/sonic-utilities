@@ -8,6 +8,7 @@ import netaddr
 import re
 import syslog
 import time
+import tempfile
 import netifaces
 import threading
 
@@ -171,7 +172,7 @@ def execute_systemctl(list_of_services, action):
                     if e.is_set():
                         sys.exit(1)
 
-def run_command(command, display_cmd=False, ignore_error=False):
+def run_command(command, display_cmd=False, ignore_error=False, raise_exception_when_error=False):
     """Run bash command and print output to stdout
     """
     if display_cmd == True:
@@ -184,6 +185,8 @@ def run_command(command, display_cmd=False, ignore_error=False):
         click.echo(out)
 
     if proc.returncode != 0 and not ignore_error:
+        if raise_exception_when_error:
+            raise Exception("Return code is not zero(exit_code={})".format(proc.returncode))
         sys.exit(proc.returncode)
 
 # Validate whether a given namespace name is valid in the device.
@@ -783,13 +786,24 @@ def save(filename):
             else:
                 file = "/etc/sonic/config_db{}.json".format(inst)
 
+        tmp_file_hdl=tempfile.NamedTemporaryFile(suffix='.db', prefix='config{}'.format(inst), delete=False)
+        tmp_filename=tmp_file_hdl.name
+        tmp_file_hdl.close()
+
         if namespace is None:
-            command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, file)
+            command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, tmp_filename)
         else:
-            command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, file)
+            command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, tmp_filename)
 
         log_info("'save' executing...")
-        run_command(command, display_cmd=True)
+        try:
+            run_command(command, display_cmd=True, raise_exception_when_error=True)
+            if os.path.isfile(file):
+                os.remove(file)
+            os.rename(tmp_filename, file)
+        except Exception as e:
+            os.remove(tmp_filename)
+            exit(str(e))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
