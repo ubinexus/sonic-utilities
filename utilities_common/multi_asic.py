@@ -1,18 +1,22 @@
-import subprocess
-import json
-import click
-import functools
-from sonic_device_util import get_num_npus
-from sonic_device_util import get_namespaces
-from sonic_device_util import is_multi_npu
-from sonic_device_util import is_port_internal
-from sonic_device_util import is_port_channel_internal
-from sonic_device_util import is_bgp_session_internal
-from sonic_device_util import get_all_namespaces
-
-import swsssdk
-from swsssdk import ConfigDBConnector
 import argparse
+import functools
+import json
+import subprocess
+
+import click
+
+from sonic_device_util import get_all_namespaces
+from sonic_device_util import get_namespaces
+from sonic_device_util import get_num_npus
+from sonic_device_util import is_multi_npu
+from sonic_device_util import is_bgp_session_internal
+from sonic_device_util import is_port_channel_internal
+from sonic_device_util import is_port_internal
+
+
+from swsssdk import ConfigDBConnector
+from swsssdk import SonicDBConfig
+from swsssdk import SonicV2Connector
 
 DEFAULT_NAMESPACE = ''
 DISPLAY_ALL = 'all'
@@ -26,20 +30,21 @@ class MultiAsic(object):
     def __init__(self, display_option=DISPLAY_ALL, namespace_option=None):
         self.namespace_option = namespace_option
         self.display_option = display_option
-        swsssdk.SonicDBConfig.load_sonic_global_db_config()
+        SonicDBConfig.load_sonic_global_db_config()
         self.current_namespace = None
+        self.is_multi_asic = is_multi_npu()
 
     def connect_dbs_for_ns(self,namespace=DEFAULT_NAMESPACE):
         '''
         The function connects to the DBs for a given namespace and
         returns the handle
-        If no namespace is provide, it will connect to the db in the
+        If no namespace is provided, it will connect to the db in the
         default namespace.
-        In case of multi ASIC, the default namespace in the database instance running the on the host
-        In case of single ASIC, the namespace has to DEFAULT_NAMESPACE
+        In case of multi ASIC, the default namespace is the database instance running the on the host
+        In case of single ASIC, the namespace has to be DEFAULT_NAMESPACE
         '''
 
-        db = swsssdk.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        db = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
         db.connect(db.APPL_DB)
         db.connect(db.CONFIG_DB)
         db.connect(db.STATE_DB)
@@ -51,10 +56,10 @@ class MultiAsic(object):
         '''
         The function connects to the config DB for a given namespace and
         returns the handle
-        If no namespace is provide, it will connect to the db in the
+        If no namespace is provided, it will connect to the db in the
         default namespace.
-        In case of multi ASIC, the default namespace in the database instance running the on the host
-        In case of single ASIC, the namespace has to DEFAULT_NAMESPACE
+        In case of multi ASIC, the default namespace is the database instance running the on the host
+        In case of single ASIC, the namespace has to be DEFAULT_NAMESPACE
         '''
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
@@ -79,7 +84,7 @@ class MultiAsic(object):
         returns false, if the cli option is all or if it the platform is single ASIC.
 
         '''
-        if not is_multi_npu():
+        if not self.is_multi_asic:
             return False
         if self.display_option == DISPLAY_ALL:
             return False
@@ -87,7 +92,7 @@ class MultiAsic(object):
 
     def get_ns_list_based_on_options(self):
         ns_list = []
-        if not is_multi_npu():
+        if not self.is_multi_asic:
             return [DEFAULT_NAMESPACE]
         else:
             namespaces = get_all_namespaces()
@@ -97,12 +102,14 @@ class MultiAsic(object):
                 else:
                     ns_list = namespaces['front_ns']
             else:
+                if self.namespace_option not in get_namespaces():
+                    raise ValueError('Unknown Namespace {}'.format(self.namespace_option))
                 ns_list = [self.namespace_option]
         return ns_list
-
+    
 def multi_asic_ns_choices():
     if not is_multi_npu() :
-        return []
+        return [DEFAULT_NAMESPACE]
     choices =  get_namespaces()
     return choices
 
@@ -117,8 +124,6 @@ def multi_asic_display_default_option():
         return DISPLAY_ALL
     else:
         return  DISPLAY_EXTERNAL
-
-
 
 _multi_asic_click_options = [
     click.option('--display', '-d', 'display', default=multi_asic_display_default_option(), show_default=True, type=click.Choice(multi_asic_display_choices()), help='Show internal interfaces'),
