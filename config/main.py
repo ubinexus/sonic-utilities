@@ -196,7 +196,7 @@ def shutdown_interfaces(ctx, del_intf_dict):
     return True
 
 def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
-    """ Validate Parent interface and user selected mode before starting deletetion or addition process """
+    """ Validate Parent interface and user selected mode before starting deletion or addition process """
     breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
 
     if interface_name not in breakout_file_input:
@@ -237,7 +237,7 @@ def load_ConfigMgmt(verbose):
 
 def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
     """
-    Funtion to warn user about extra tables while Dynamic Port Breakout(DPB).
+    Function to warn user about extra tables while Dynamic Port Breakout(DPB).
     confirm: re-confirm from user to proceed.
     Config Tables Without Yang model considered extra tables.
     cm =  instance of config MGMT class.
@@ -264,13 +264,13 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
     # check if DPB failed
     if ret == False:
         if not force and deps:
-            print("Dependecies Exist. No further action will be taken")
-            print("*** Printing dependecies ***")
+            click.echo("Dependecies Exist. No further action will be taken")
+            click.echo("*** Printing dependecies ***")
             for dep in deps:
-                print(dep)
+                click.echo(dep)
             sys.exit(0)
         else:
-            print("[ERROR] Port breakout Failed!!! Opting Out")
+            click.echo("[ERROR] Port breakout Failed!!! Opting Out")
             raise click.Abort()
         return
 
