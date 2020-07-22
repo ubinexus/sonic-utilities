@@ -28,13 +28,11 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
-INTF_KEY = "interfaces"
-
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
 NAMESPACE_PREFIX = 'asic'
-
+INTF_KEY = "interfaces"
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -43,13 +41,11 @@ SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
 DEFAULT_NAMESPACE = ''
-
 CFG_LOOPBACK_PREFIX = "Loopback"
 CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
-
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -199,7 +195,6 @@ def shutdown_interfaces(ctx, del_intf_dict):
             return False
     return True
 
-
 def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
     """ Validate Parent interface and user selected mode before starting deletetion or addition process """
     breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
@@ -240,14 +235,13 @@ def load_ConfigMgmt(verbose):
     except Exception as e:
         raise Exception("Failed to load the config. Error: {}".format(str(e)))
 
-"""
-Funtion to warn user about extra tables while Dynamic Port Breakout(DPB).
-confirm: re-confirm from user to proceed.
-Config Tables Without Yang model considered extra tables.
-cm =  instance of config MGMT class.
-"""
 def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
-
+    """
+    Funtion to warn user about extra tables while Dynamic Port Breakout(DPB).
+    confirm: re-confirm from user to proceed.
+    Config Tables Without Yang model considered extra tables.
+    cm =  instance of config MGMT class.
+    """
     try:
         # check if any extra tables exist
         eTables = cm.tablesWithOutYang()
@@ -260,7 +254,6 @@ def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
             click.confirm('Do you wish to Continue?', abort=True)
     except Exception as e:
         raise Exception("Failed in breakout_warnUser_extraTables. Error: {}".format(str(e)))
-
     return
 
 def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
@@ -279,9 +272,7 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
         else:
             print("[ERROR] Port breakout Failed!!! Opting Out")
             raise click.Abort()
-
         return
-
 
 #
 # Helper functions
@@ -2088,11 +2079,10 @@ def speed(ctx, interface_name, interface_speed, verbose):
         command += " -vv"
     run_command(command, display_cmd=verbose)
 
-
-
 #
 # 'breakout' subcommand
 #
+
 @interface.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('mode', required=True, type=click.STRING, autocompletion=_get_option)
@@ -2102,9 +2092,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
 def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load_predefined_config):
-
     """ Set interface breakout mode """
-
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
         raise click.Abort()
@@ -2139,7 +2127,6 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     else:
         click.secho("[ERROR] del_intf_dict is None! No interfaces are there to be deleted", fg='red')
         raise click.Abort()
-
 
     """ Interface Addition Logic """
     # Get list of interfaces to be added
@@ -2210,7 +2197,6 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
             fg='magenta')
         sys.exit(0)
 
-
 def _get_all_mgmtinterface_keys():
     """Returns list of strings containing mgmt interface keys 
     """
@@ -2232,7 +2218,6 @@ def mgmt_ip_restart_services():
     os.system (cmd)
     cmd="systemctl restart ntp-config"
     os.system (cmd)
-
 
 #
 # 'mtu' subcommand
