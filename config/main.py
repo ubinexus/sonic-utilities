@@ -186,12 +186,18 @@ def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
     try:
         # check if any extra tables exist
         eTables = cm.tablesWithOutYang()
-        if len(eTables):
-            # find relavent tables in extra tables, i.e. one which can have deleted
-            # ports
-            tables = cm.configWithKeys(configIn=eTables, keys=final_delPorts)
+        if len(eTables) == 0:
+            return
+        # let user know that extra tables exist in config
+        click.secho("Below Table(s) can not be verified using YANG models:")
+        click.secho("{}".format(eTables.keys()))
+        # find relavent tables in extra tables, i.e. one which can have deleted
+        # ports
+        tables = cm.configWithKeys(configIn=eTables, keys=final_delPorts)
+        if len(tables):
             click.secho("Below Config can not be verified, It may cause harm "\
-                "to the system\n {}".format(json.dumps(tables, indent=2)))
+                "to the system:\n{}".format(json.dumps(tables, indent=2)))
+            # Need to confirm if extra Tables have any deleted ports.
             click.confirm('Do you wish to Continue?', abort=True)
     except Exception as e:
         raise Exception("Failed in breakout_warnUser_extraTables. Error: {}".format(str(e)))
@@ -697,7 +703,6 @@ def _restart_services():
 
     click.echo("Enabling container monitoring ...")
     clicommon.run_command("sudo monit monitor container_checker")
-
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface is in a vlan """

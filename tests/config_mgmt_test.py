@@ -78,6 +78,30 @@ class TestConfigMgmt(TestCase):
         self.dpb_port4_4x25G_2x50G_f_l(curConfig)
         return
 
+    def test_extra_brk_cfg_tables_cases(self):
+        # make sure no prompt with BREAKOUT_CFG
+        curConfig = dict(configDbJson)
+        brk_cfg = {
+                    "BREAKOUT_CFG": {
+                      "Ethernet0": {
+                        "brkout_mode": "1x100G[40G]"
+                      }
+                    }
+                  }
+        self.updateConfig(curConfig, brk_cfg)
+        prevLen = len(curConfig)
+        cm = self.config_mgmt_dpb(curConfig)
+        # Assert BREAKOUT_CFG is removed from Input Config
+        assert (len(cm.configdbJsonIn) ==  prevLen-1) and \
+            'BREAKOUT_CFG' not in cm.configdbJsonIn.keys()
+        # Test by direct Call
+        prevLen = len(curConfig)
+        cm._filterTablesInConfig(curConfig)
+        assert (len(curConfig) == prevLen-1) and \
+            'BREAKOUT_CFG' not in curConfig.keys()
+
+        return
+
     def tearDown(self):
         try:
             os.remove(config_mgmt.CONFIG_DB_JSON_FILE)
