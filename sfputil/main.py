@@ -305,8 +305,18 @@ def cli():
 
     # Load port info
     try:
-        port_config_file_path = device_info.get_path_to_port_config_file()
-        platform_sfputil.read_porttab_mappings(port_config_file_path)
+        if sonic_device_util.is_multi_npu():
+            # For multi ASIC platforms we pass DIR of port_config_file_path and the number of asics
+            (platform, hwsku) = device_info.get_platform_and_hwsku()
+
+            # Load platform module from source
+            platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
+            hwsku_path = "/".join([platform_path, hwsku])
+            platform_sfputil.read_all_porttab_mappings(hwsku_path, sonic_device_util.get_num_npus())
+        else:
+            # For single ASIC platforms we pass port_config_file_path and the asic_inst as 0
+            port_config_file_path = device_info.get_path_to_port_config_file()
+            platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
     except Exception as e:
         log.log_error("Error reading port info (%s)" % str(e), True)
         sys.exit(3)

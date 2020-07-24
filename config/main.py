@@ -52,6 +52,25 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
+asic_type = None
+config_db = None
+
+# TODO move to a common file like sonic_device_util.py
+# Dictionary of SONIC interface name prefixes.
+SONIC_INTERFACE_PREFIXES = {
+  "Ethernet": "Ethernet",
+  "PortChannel": "PortChannel",
+  "Vlan": "Vlan",
+  "Loopback": "Loopback",
+  "Ethernet-backplane": "Ethernet-BP"
+}
+
+# ========================== Syslog wrappers ==========================
+
+def log_debug(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_DEBUG, msg)
+    syslog.closelog()
 
 asic_type = None
 
@@ -365,17 +384,17 @@ def interface_name_to_alias(config_db, interface_name):
 def get_interface_table_name(interface_name):
     """Get table name by interface_name prefix
     """
-    if interface_name.startswith("Ethernet"):
+    if interface_name.startswith(SONIC_INTERFACE_PREFIXES["Ethernet"]):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "INTERFACE"
-    elif interface_name.startswith("PortChannel"):
+    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["PortChannel"]):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORTCHANNEL_INTERFACE"
-    elif interface_name.startswith("Vlan"):
+    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Vlan"]):
         return "VLAN_INTERFACE"
-    elif interface_name.startswith("Loopback"):
+    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Loopback"]):
         return "LOOPBACK_INTERFACE"
     else:
         return ""
@@ -404,6 +423,7 @@ def is_interface_bind_to_vrf(config_db, interface_name):
         return True
     return False
 
+# TODO move to a common file like sonic_device_util.py
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
     if not sonic_device_util.is_multi_npu():
@@ -419,17 +439,17 @@ def validate_namespace(namespace):
 def get_port_table_name(interface_name):
     """Get table name by port_name prefix
     """
-    if interface_name.startswith("Ethernet"):
+    if interface_name.startswith(SONIC_INTERFACE_PREFIXES["Ethernet"]):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORT"
-    elif interface_name.startswith("PortChannel"):
+    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["PortChannel"]):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORTCHANNEL"
-    elif interface_name.startswith("Vlan"):
+    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Vlan"]):
         return "VLAN_INTERFACE"
-    elif interface_name.startswith("Loopback"):
+    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Loopback"]):
         return "LOOPBACK_INTERFACE"
     else:
         return ""
@@ -948,7 +968,7 @@ def save(filename):
     # various namespaces created per ASIC. {NS} is the namespace index.
     for inst in range(-1, num_cfg_file-1):
         #inst = -1, refers to the linux host where there is no namespace.
-        if inst is -1:
+        if inst == -1:
             namespace = None
         else:
             namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
@@ -1004,7 +1024,7 @@ def load(filename, yes):
     # various namespaces created per ASIC. {NS} is the namespace index.
     for inst in range(-1, num_cfg_file-1):
         #inst = -1, refers to the linux host where there is no namespace.
-        if inst is -1:
+        if inst == -1:
             namespace = None
         else:
             namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
@@ -1088,7 +1108,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     # denoting the current namespace which we are in ( the linux host )
     for inst in range(-1, num_cfg_file-1):
         # Get the namespace name, for linux host it is None
-        if inst is -1:
+        if inst == -1:
             namespace = None
         else:
             namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
@@ -2330,6 +2350,9 @@ def startup(ctx, interface_name):
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) > 1 and sonic_device_util.is_multi_npu():
+         ctx.fail("Interface range not supported in multi-asic platforms !!")
+
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
          ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
@@ -2375,6 +2398,9 @@ def shutdown(ctx, interface_name):
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) > 1 and sonic_device_util.is_multi_npu():
+         ctx.fail("Interface range not supported in multi-asic platforms !!")
+
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
