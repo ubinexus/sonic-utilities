@@ -246,6 +246,14 @@ function backup_database()
             end
         end
     " 0 > /dev/null
+    # Delete COPP_TABLE keys in APPL_DB
+    sonic-db-cli APPL_DB eval "
+        for _, k in ipairs(redis.call('keys', '*')) do
+            if string.match(k, 'COPP_TABLE:') then
+                redis.call('del', k)
+            end
+        end
+    " 0 > /dev/null
     sonic-db-cli SAVE > /dev/null
     #TODO : need a script to copy all rdb files if there is multiple db instances config
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR

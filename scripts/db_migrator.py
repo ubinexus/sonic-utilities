@@ -37,7 +37,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_1_0_3'
+        self.CURRENT_VERSION = 'version_1_0_4'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -238,6 +238,17 @@ class DBMigrator():
         log_info("Successfully migrate mlnx buffer pool size to the latest.")
         return True
 
+    def migrate_copp_table(self):
+        '''
+        Delete the existing COPP table
+        '''
+        if self.appDB is None:
+            return
+
+        keys = self.appDB.keys(self.appDB.APPL_DB, "COPP_TABLE:*")
+        for copp_key in keys:
+            self.appDB.delete(self.appDB.APPL_DB, copp_key)
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -288,9 +299,17 @@ class DBMigrator():
 
     def version_1_0_3(self):
         """
-        Current latest version. Nothing to do here.
+        version_1_0_3
         """
         log_info('Handling version_1_0_3')
+        self.migrate_copp_table()
+        self.set_version('version_1_0_4')
+
+    def version_1_0_4(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log_info('Handling version_1_0_4')
 
         return None
 
