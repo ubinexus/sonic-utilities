@@ -478,8 +478,8 @@ def _clear_qos(namespace):
     if namespace:
         if namespace not in namespace_list:
             click.secho(
-                "Command {} failed with invalid namespace {}".format(
-                    "qos reload", namespace
+                "Command 'qos clear' failed with invalid namespace '{}'".format(
+                    namespace
                 ),
                 fg='yellow'
             )
@@ -1458,8 +1458,8 @@ def reload(namespace):
     if namespace:
         if namespace not in namespace_list:
             click.secho(
-                "Command {} failed with invalid namespace {}".format(
-                    "qos reload", namespace
+                "Command 'qos reload' failed with invalid namespace '{}'".format(
+                    namespace
                 ),
                 fg='yellow'
             )
@@ -1473,9 +1473,8 @@ def reload(namespace):
             asic_id = sonic_device_util.get_npu_id_from_name(ns)
             if asic_id is None:
                 click.secho(
-                    "Command {} failed with invalid namespace {}".format(
-                        "qos reload", ns
-                    ),
+                    "Command 'qos reload' failed with invalid namespace '{}'".
+                        format(ns),
                     fg='yellow'
                 )
                 raise click.Abort()
