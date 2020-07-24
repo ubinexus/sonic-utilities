@@ -12,18 +12,10 @@ from sonic_device_util import is_multi_npu
 from sonic_device_util import is_bgp_session_internal
 from sonic_device_util import is_port_channel_internal
 from sonic_device_util import is_port_internal
-
-
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicDBConfig
 from swsssdk import SonicV2Connector
-
-DEFAULT_NAMESPACE = ''
-DISPLAY_ALL = 'all'
-DISPLAY_EXTERNAL = 'frontend'
-PORT_CHANNEL_OBJ = 'PORT_CHANNEL'
-PORT_OBJ = 'PORT'
-BGP_NEIGH_OBJ = 'BGP_NEIGH'
+from utilities_common.constants import *
 
 class MultiAsic(object):
 
@@ -67,7 +59,10 @@ class MultiAsic(object):
 
     def is_object_internal(self, object_type, cli_object):
         '''
-        The function check if a CLI object is internal and returns true or false.
+        The function checks if a CLI object is internal and returns true or false.
+        Internal objects are port or portchannel which are connected to other 
+        ports or portchannels within a multi ASIC device.
+
         For single asic, this function is not applicable
         '''
         if object_type == PORT_OBJ:
