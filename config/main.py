@@ -6,7 +6,6 @@ import click
 import subprocess
 import netaddr
 import re
-import syslog
 import time
 import netifaces
 import threading
@@ -29,7 +28,6 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
@@ -721,7 +719,7 @@ def interface_is_in_vlan(vlan_member_table, interface_name):
 
     return False
 
-def  interface_is_in_portchannel(portchannel_member_table, interface_name):
+def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
     for _,intf in portchannel_member_table.keys():
         if intf == interface_name:
