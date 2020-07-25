@@ -22,6 +22,8 @@ from portconfig import get_child_ports
 
 import mlnx
 
+from utilities_common.multi_asic import multi_asic_click_options
+
 # Global Variable
 PLATFORM_ROOT_PATH = "/usr/share/sonic/device"
 PLATFORM_JSON = 'platform.json'
@@ -1022,34 +1024,40 @@ def presence(interfacename, verbose):
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
+@multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def description(interfacename, verbose):
+def description(interfacename, namespace, display, verbose):
     """Show interface status, protocol and description"""
 
-    cmd = "intfutil description"
+    cmd = "intfutil -c description"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
-
+    namespace_option = "" if namespace is None else " -n {}".format(namespace)
+    cmd += " {} -d {}".format(namespace_option, display)
+    
     run_command(cmd, display_cmd=verbose)
 
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
+@multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def status(interfacename, verbose):
+def status(interfacename, namespace, display, verbose):
     """Show Interface status information"""
 
-    cmd = "intfutil status"
+    cmd = "intfutil -c status"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
+    namespace_option = "" if namespace is None else " -n {}".format(namespace)
+    cmd += " {} -d {}".format(namespace_option, display)
 
     run_command(cmd, display_cmd=verbose)
 
