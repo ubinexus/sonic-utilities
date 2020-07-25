@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-__all__ = ['log_info', 'log_err', 'log_warning', 'log_debug',
+__all__ = ['log_info', 'log_error', 'log_warning', 'log_debug',
         'do_exit', 'get_configdb_data', 'run_command',
         'AbbreviationGroup']
 
@@ -10,6 +10,7 @@ import os
 import syslog
 import click
 import subprocess
+import inspect
 from swsssdk import ConfigDBConnector
 
 SYSLOG_IDENTIFIER = "config"
@@ -24,11 +25,11 @@ def _log_msg(lvl, print_msg, fname, ln, msg):
     syslog.syslog(lvl, msg)
     syslog.closelog()
 
-    if (print_msg or
-            log_level == syslog.LOG_DEBUG or
-            sys.flags.interactive or
-            sys.flags.debug or
-                sys.flags.verbose):
+    if (print_msg and
+            (lvl == syslog.LOG_DEBUG or
+                sys.flags.interactive or
+                sys.flags.debug or
+                sys.flags.verbose)):
         print("{}: {}:{}: {}".format(SYSLOG_IDENTIFIER, fname, ln, msg))
 
 
@@ -36,7 +37,7 @@ def log_info(msg, print_msg=False):
     _log_msg(syslog.LOG_INFO, print_msg, inspect.stack()[1][1], inspect.stack()[1][2], msg)
 
 
-def log_err(msg, print_msg=False):
+def log_error(msg, print_msg=False):
     _log_msg(syslog.LOG_ERR, print_msg, inspect.stack()[1][1], inspect.stack()[1][2], msg)
 
 

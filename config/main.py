@@ -48,31 +48,6 @@ CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
-# ========================== Syslog wrappers ==========================
-
-def log_debug(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_DEBUG, msg)
-    syslog.closelog()
-
-
-def log_info(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-
-def log_warning(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-
-def log_error(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
 
 #
 # Load asic_type for further use
@@ -738,7 +713,7 @@ def is_ipaddress(val):
         return False
     return True
 
-def  interface_is_in_vlan(vlan_member_table, interface_name):
+def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
     for _,intf in vlan_member_table.keys():
         if intf == interface_name:

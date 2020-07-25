@@ -40,10 +40,12 @@ def _update_kube_server(field, val):
         if db_data and f in db_data:
             if f == field and db_data[f] != val:
                 config_db.mod_entry(table, key, {field: val})
+                log_info("modify kubernetes server entry {}={}".format(field,val), True)
         else:
             # Missing field. Set to default or given value
             v = val if f == field else def_data[f]
             config_db.mod_entry(table, key, {f: v})
+            log_info("set kubernetes server entry {}={}".format(f,v), True)
 
 
 def _take_lock():
@@ -54,7 +56,7 @@ def _take_lock():
         log_info("Lock taken {}".format(LOCK_FILE), True)
     except IOError as e:
         lock_fd = None
-        log_err("Lock {} failed: {}".format(LOCK_FILE, str(e)), True)
+        log_error("Lock {} failed: {}".format(LOCK_FILE, str(e)), True)
     return lock_fd
 
 
@@ -149,7 +151,7 @@ c)  In Master check if all system pods are running good.
     os.write(h, msg)
     os.close(h)
 
-    log_err("Refer file {} for troubleshooting tips".format(fname), True)
+    log_error("Refer file {} for troubleshooting tips".format(fname), True)
 
 
 def _do_join(server, insecure):
@@ -178,7 +180,7 @@ def _do_join(server, insecure):
 def kube_reset():
     lock_fd = _take_lock()
     if not lock_fd:
-        log_err("Lock {} is active; Bail out".format(LOCK_FILE), True)
+        log_error("Lock {} is active; Bail out".format(LOCK_FILE), True)
         return
 
     # Remove a key label and drain/delete self from cluster
@@ -205,15 +207,15 @@ def kube_reset():
 def kube_join(force=False):
     lock_fd = _take_lock()
     if not lock_fd:
-        log_err("Lock {} is active; Bail out".format(LOCK_FILE), True)
+        log_error("Lock {} is active; Bail out".format(LOCK_FILE), True)
         return
 
     db_data = get_configdb_data('KUBERNETES_MASTER', 'SERVER')
     if not db_data or 'IP' not in db_data or not db_data['IP']:
-        log_err("Kubernetes server is not configured", True)
+        log_error("Kubernetes server is not configured", True)
 
     if db_data['disable'].lower() != "false":
-        log_err("kube join skipped as kubernetes server is marked disabled", True)
+        log_error("kube join skipped as kubernetes server is marked disabled", True)
         return
 
     if not force:
