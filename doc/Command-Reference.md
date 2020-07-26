@@ -6032,7 +6032,7 @@ In addition, displays a list of all current 'Services' and 'Hardware' being moni
   System status LED  red
   
   Services            Not OK
-  		    telemetry is not Running
+                      telemetry is not Running
   Hardware            OK
   
   System services and devices monitor list
