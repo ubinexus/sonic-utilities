@@ -52,6 +52,35 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
+MAXIMUM_WARMRESTART_TIMER_VALUE = 9999
+
+asic_type = None
+config_db = None
+# ========================== Syslog wrappers ==========================
+
+def log_debug(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_DEBUG, msg)
+    syslog.closelog()
+
+
+def log_info(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_INFO, msg)
+    syslog.closelog()
+
+
+def log_warning(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_WARNING, msg)
+    syslog.closelog()
+
+
+def log_error(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    syslog.closelog()
+
 
 asic_type = None
 
@@ -1679,8 +1708,8 @@ def warm_restart_bgp_timer(ctx, seconds):
 @click.pass_context
 def warm_restart_teamsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
-    if seconds not in range(1,3600):
-        ctx.fail("teamsyncd warm restart timer must be in range 1-3600")
+    if seconds not in range(1,3600) and seconds != MAXIMUM_WARMRESTART_TIMER_VALUE:
+        ctx.fail("teamsyncd warm restart timer must be in range 1-3600 or value 9999")
     db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
 
 @warm_restart.command('bgp_eoiu')
