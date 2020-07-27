@@ -37,6 +37,10 @@ class Crm:
         """
         CRM Handler to display thresholds information.
         """
+        default_threshold_type = 'percentage'
+        default_threshold_low = 70
+        default_threshold_high = 85
+
         configdb = swsssdk.ConfigDBConnector()
         configdb.connect()
 
@@ -50,9 +54,35 @@ class Crm:
                 for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
                             "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
                             "acl_counter", "fdb_entry"]:
-                    data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
+                    if(crm_info.has_key(res + "_threshold_type")):
+                        threshold_type = crm_info[res + "_threshold_type"]
+                    else:
+                        threshold_type = default_threshold_type
+                    if(crm_info.has_key(res + "_low_threshold")):
+                        threshold_low = crm_info[res + "_low_threshold"]
+                    else:
+                        threshold_low = default_threshold_low
+                    if(crm_info.has_key(res + "_high_threshold")):
+                        threshold_high = crm_info[res + "_high_threshold"]
+                    else:
+                        threshold_high = default_threshold_high
+
+                    data.append([res, threshold_type, threshold_low, threshold_high])
             else:
-                data.append([resource, crm_info[resource + "_threshold_type"], crm_info[resource + "_low_threshold"], crm_info[resource + "_high_threshold"]])
+                if(crm_info.has_key(resource + "_threshold_type")):
+                    threshold_type = crm_info[resource + "_threshold_type"]
+                else:
+                    threshold_type = default_threshold_type
+                if(crm_info.has_key(resource + "_low_threshold")):
+                    threshold_low = crm_info[resource + "_low_threshold"]
+                else:
+                    threshold_low = default_threshold_low
+                if(crm_info.has_key(resource + "_high_threshold")):
+                    threshold_high = crm_info[resource + "_high_threshold"]
+                else:
+                    threshold_high = default_threshold_high
+
+                data.append([resource, threshold_type, threshold_low, threshold_high])
         else:
             print '\nError! Could not get CRM configuration.'
 
