@@ -454,7 +454,7 @@ def _change_hostname(hostname):
         run_command('sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
 
-def _clear_qos(namespace):
+def _clear_qos():
     QOS_TABLE_NAMES = [
             'TC_TO_PRIORITY_GROUP_MAP',
             'MAP_PFC_PRIORITY_TO_QUEUE',
@@ -474,17 +474,6 @@ def _clear_qos(namespace):
     namespace_list = [DEFAULT_NAMESPACE]
     if sonic_device_util.get_num_npus() > 1:
         namespace_list = sonic_device_util.get_namespaces()
-
-    if namespace:
-        if namespace not in namespace_list:
-            click.secho(
-                "Command 'qos clear' failed with invalid namespace '{}'".format(
-                    namespace
-                ),
-                fg='yellow'
-            )
-            raise click.Abort()
-        namespace_list = [namespace]
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
@@ -1433,38 +1422,21 @@ def qos(ctx):
     pass
 
 @qos.command('clear')
-@click.option(
-    '-n', '--namespace', default=None, type=str, help="Network namespace"
-)
-def clear(namespace):
+def clear():
     """Clear QoS configuration"""
     log_info("'qos clear' executing...")
-    _clear_qos(namespace)
+    _clear_qos()
 
 @qos.command('reload')
-@click.option(
-    '-n', '--namespace', default=None, type=str, help="Network namespace"
-)
-def reload(namespace):
+def reload():
     """Reload QoS configuration"""
     log_info("'qos reload' executing...")
-    _clear_qos(namespace)
+    _clear_qos()
     platform = sonic_device_util.get_platform()
     hwsku = sonic_device_util.get_hwsku()
     namespace_list = [DEFAULT_NAMESPACE]
     if sonic_device_util.get_num_npus() > 1:
         namespace_list = sonic_device_util.get_namespaces()
-
-    if namespace:
-        if namespace not in namespace_list:
-            click.secho(
-                "Command 'qos reload' failed with invalid namespace '{}'".format(
-                    namespace
-                ),
-                fg='yellow'
-            )
-            raise click.Abort()
-        namespace_list = [namespace]
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
