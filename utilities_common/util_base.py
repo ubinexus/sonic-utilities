@@ -3,7 +3,6 @@
 try:
     import imp
     import os
-    import subprocess
     import syslog
 
     from sonic_py_common import device_info

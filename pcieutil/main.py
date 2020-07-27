@@ -6,13 +6,9 @@
 #
 
 try:
-    import imp
     import os
-    import subprocess
     import sys
     import syslog
-    import traceback
-    import types
 
     import click
     from sonic_py_common import device_info

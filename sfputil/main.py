@@ -9,7 +9,6 @@ try:
     import click
     import imp
     import os
-    import subprocess
     import sys
     import syslog
 
