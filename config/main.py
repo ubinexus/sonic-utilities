@@ -1,30 +1,30 @@
 #!/usr/sbin/env python
 
-import sys
-import os
 import click
-import subprocess
-import netaddr
-import re
-import syslog
-import time
-import netifaces
-import threading
-import json
-
-import sonic_device_util
 import ipaddress
-from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
+import json
+import netaddr
+import netifaces
+import os
+import re
+import subprocess
+import sys
+import syslog
+import threading
+import time
+
 from minigraph import parse_device_desc_xml
-from config_mgmt import ConfigMgmtDPB
+from portconfig import get_child_ports, get_port_config_file_name
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common.util_base import UtilHelper
 from utilities_common.db import Db
-from portconfig import get_child_ports, get_port_config_file_name
 
 import aaa
 import mlnx
 import nat
+from config_mgmt import ConfigMgmtDPB
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -116,14 +116,23 @@ class AbbreviationGroup(click.Group):
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
+
+#
+# Load asic_type for further use
+#
+
+try:
+    version_info = device_info.get_sonic_version_info()
+    asic_type = version_info['asic_type']
+except (KeyError, TypeError):
+    raise click.Abort()
+
 #
 # Load breakout config file for Dynamic Port Breakout
 #
 
 try:
-    # Load the helper class
-    helper = UtilHelper()
-    (platform, hwsku) = helper.get_platform_and_hwsku()
+    (platform, hwsku) = device_info.get_platform_and_hwsku()
 except Exception as e:
     click.secho("Failed to get platform and hwsku with error:{}".format(str(e)), fg='red')
     raise click.Abort()
@@ -285,7 +294,7 @@ def execute_systemctl_per_asic_instance(inst, event, service, action):
 
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
-    num_asic = sonic_device_util.get_num_npus()
+    num_asic = device_info.get_num_npus()
     generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
     if ((generated_services_list == []) and
         (generated_multi_instance_services == [])):
@@ -303,7 +312,7 @@ def execute_systemctl(list_of_services, action):
 
         if (service + '.service' in generated_multi_instance_services):
             # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
-            if sonic_device_util.is_multi_npu():
+            if device_info.is_multi_npu():
                 threads = []
                 # Use this event object to co-ordinate if any threads raised exception
                 e = threading.Event()
@@ -357,10 +366,10 @@ def _get_device_type():
 
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
-    if not sonic_device_util.is_multi_npu():
+    if not device_info.is_multi_npu():
         return True
 
-    namespaces = sonic_device_util.get_all_namespaces()
+    namespaces = device_info.get_all_namespaces()
     if namespace in namespaces['front_ns'] + namespaces['back_ns']:
         return True
     else:
@@ -665,8 +674,8 @@ def _clear_qos():
             'BUFFER_QUEUE']
 
     namespace_list = [DEFAULT_NAMESPACE]
-    if sonic_device_util.get_num_npus() > 1:
-        namespace_list = sonic_device_util.get_namespaces()
+    if device_info.get_num_npus() > 1:
+        namespace_list = device_info.get_namespaces()
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
@@ -928,7 +937,7 @@ def config(ctx):
     global asic_type
 
     try:
-        version_info = sonic_device_util.get_sonic_version_info()
+        version_info = device_info.get_sonic_version_info()
         asic_type = version_info['asic_type']
     except KeyError, TypeError:
         raise click.Abort()
@@ -961,11 +970,11 @@ def save(filename):
     """Export current config DB to a file on disk.\n
        <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
     """
-    num_asic = sonic_device_util.get_num_npus()
+    num_asic = device_info.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if sonic_device_util.is_multi_npu():
+    if device_info.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -1018,11 +1027,11 @@ def load(filename, yes):
     if not yes:
         click.confirm(message, abort=True)
 
-    num_asic = sonic_device_util.get_num_npus()
+    num_asic = device_info.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if sonic_device_util.is_multi_npu():
+    if device_info.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -1086,11 +1095,11 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
 
     log_info("'reload' executing...")
 
-    num_asic = sonic_device_util.get_num_npus()
+    num_asic = device_info.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if sonic_device_util.is_multi_npu():
+    if device_info.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -1234,9 +1243,9 @@ def load_minigraph(db, no_service_restart):
     # for mulit Asic platform the empty string to generate the config
     # for host
     namespace_list = [DEFAULT_NAMESPACE]
-    num_npus = sonic_device_util.get_num_npus()
+    num_npus = device_info.get_num_npus()
     if num_npus > 1:
-        namespace_list += sonic_device_util.get_namespaces()
+        namespace_list += device_info.get_namespaces()
 
     for namespace in namespace_list:
         if namespace is DEFAULT_NAMESPACE:
@@ -1460,7 +1469,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = sonic_device_util.get_all_namespaces()
+    namespaces = device_info.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1510,7 +1519,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = sonic_device_util.get_all_namespaces()
+    namespaces = device_info.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1535,7 +1544,7 @@ def remove(session_name):
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = sonic_device_util.get_all_namespaces()
+    namespaces = device_info.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1653,17 +1662,17 @@ def reload():
     """Reload QoS configuration"""
     log_info("'qos reload' executing...")
     _clear_qos()
-    platform = sonic_device_util.get_platform()
-    hwsku = sonic_device_util.get_hwsku()
+    platform = device_info.get_platform()
+    hwsku = device_info.get_hwsku()
     namespace_list = [DEFAULT_NAMESPACE]
-    if sonic_device_util.get_num_npus() > 1:
-        namespace_list = sonic_device_util.get_namespaces()
+    if device_info.get_num_npus() > 1:
+        namespace_list = device_info.get_namespaces()
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
             asic_id_suffix = ""
         else:
-            asic_id = sonic_device_util.get_npu_id_from_name(ns)
+            asic_id = device_info.get_npu_id_from_name(ns)
             if asic_id is None:
                 click.secho(
                     "Command 'qos reload' failed with invalid namespace '{}'".
@@ -2205,8 +2214,8 @@ def all(verbose):
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
-    if sonic_device_util.is_multi_npu():
-        ns_list = sonic_device_util.get_all_namespaces()
+    if device_info.is_multi_npu():
+        ns_list = device_info.get_all_namespaces()
         namespaces = ns_list['front_ns']
         ignore_local_hosts = True
 
@@ -2231,8 +2240,8 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if sonic_device_util.is_multi_npu():
-        ns_list = sonic_device_util.get_all_namespaces()
+    if device_info.is_multi_npu():
+        ns_list = device_info.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -2262,8 +2271,8 @@ def all(verbose):
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
-    if sonic_device_util.is_multi_npu():
-        ns_list = sonic_device_util.get_all_namespaces()
+    if device_info.is_multi_npu():
+        ns_list = device_info.get_all_namespaces()
         namespaces = ns_list['front_ns']
         ignore_local_hosts = True
 
@@ -2288,8 +2297,8 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if sonic_device_util.is_multi_npu():
-        ns_list = sonic_device_util.get_all_namespaces()
+    if device_info.is_multi_npu():
+        ns_list = device_info.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -2321,8 +2330,8 @@ def remove_neighbor(neighbor_ip_or_hostname):
     namespaces = [DEFAULT_NAMESPACE]
     removed_neighbor = False
 
-    if sonic_device_util.is_multi_npu():
-        ns_list = sonic_device_util.get_all_namespaces()
+    if device_info.is_multi_npu():
+        ns_list = device_info.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the

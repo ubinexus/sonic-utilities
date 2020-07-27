@@ -20,14 +20,17 @@
 """
 
 from __future__ import print_function
-import subprocess
+
+import argparse
 import re
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from tabulate import tabulate
-import argparse
-import sonic_device_util
+
+from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicDBConfig
+from tabulate import tabulate
+
 BACKEND_ASIC_INTERFACE_NAME_PREFIX = 'Ethernet-BP'
 
 LLDP_INTERFACE_LIST_IN_HOST_NAMESPACE = ''
@@ -48,7 +51,7 @@ class Lldpshow(object):
         SonicDBConfig.load_sonic_global_db_config()
 
         # For multi-asic platforms we will get only front-panel interface to display
-        namespaces = sonic_device_util.get_all_namespaces()
+        namespaces = device_info.get_all_namespaces()
         per_asic_configdb = {}
         for instance_num, front_asic_namespaces in enumerate(namespaces['front_ns']):
             per_asic_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)

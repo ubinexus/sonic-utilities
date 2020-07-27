@@ -6,12 +6,14 @@
 #
 
 try:
-    import sys
-    import os
-    import subprocess
     import click
     import imp
+    import os
+    import subprocess
+    import sys
     import syslog
+
+    from sonic_py_common import device_info
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -292,53 +294,12 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 # ==================== Methods for initialization ====================
 
 
-# Returns platform and HW SKU
-def get_platform_and_hwsku():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError as e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
-
-# Returns path to port config file
-def get_path_to_port_config_file():
-    # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
-
-    # Load platform module from source
-    platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-    hwsku_path = "/".join([platform_path, hwsku])
-
-    # First check for the presence of the new 'port_config.ini' file
-    port_config_file_path = "/".join([platform_path, PLATFORM_JSON])
-    if not os.path.isfile(port_config_file_path):
-        # platform.json doesn't exist. Try loading the legacy 'port_config.ini' file
-        port_config_file_path = "/".join([hwsku_path, PORT_CONFIG_INI])
-
-    return port_config_file_path
-
 # Loads platform specific sfputil module from source
 def load_platform_sfputil():
     global platform_sfputil
 
     # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
+    (platform, hwsku) = device_info.get_platform_and_hwsku()
 
     # Load platform module from source
     platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
@@ -379,7 +340,7 @@ def cli():
 
     # Load port info
     try:
-        port_config_file_path = get_path_to_port_config_file()
+        port_config_file_path = device_info.get_path_to_port_config_file()
         platform_sfputil.read_porttab_mappings(port_config_file_path)
     except Exception as e:
         log_error("Error reading port info (%s)" % str(e), True)

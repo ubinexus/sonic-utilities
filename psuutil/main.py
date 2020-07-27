@@ -6,12 +6,14 @@
 #
 
 try:
-    import sys
+    import imp
     import os
     import subprocess
-    import click
-    import imp
+    import sys
     import syslog
+
+    import click
+    from sonic_py_common import device_info
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -64,36 +66,12 @@ def log_error(msg, also_print_to_console=False):
 
 # ==================== Methods for initialization ====================
 
-# Returns platform and HW SKU
-def get_platform_and_hwsku():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError as e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
-
 # Loads platform specific psuutil module from source
 def load_platform_psuutil():
     global platform_psuutil
 
     # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
+    (platform, hwsku) = device_info.get_platform_and_hwsku()
 
     # Load platform module from source
     platform_path = ''

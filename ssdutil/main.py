@@ -6,11 +6,13 @@
 #
 
 try:
-    import sys
+    import argparse
     import os
     import subprocess
-    import argparse
+    import sys
     import syslog
+
+    from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -39,36 +41,6 @@ def syslog_msg(severity, msg, stdout=False):
     if stdout:
         print msg
 
-def get_platform_and_hwsku():
-    """
-    Retrieves current platform name and hwsku
-    Raises an OSError exception when failed to fetch
-
-    Returns:
-        tuple of strings platform and hwsku
-        e.g. ("x86_64-mlnx_msn2700-r0", "ACS-MSN2700")
-    """
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError as e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
 def import_ssd_api(diskdev):
     """
     Loads platform specific or generic ssd_util module from source
@@ -79,7 +51,7 @@ def import_ssd_api(diskdev):
     """
 
     # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
+    (platform, hwsku) = device_info.get_platform_and_hwsku()
 
     # try to load platform specific module
     try:

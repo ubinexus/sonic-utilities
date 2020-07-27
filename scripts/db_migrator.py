@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import traceback
-import sys
 import argparse
+import sys
 import syslog
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsssdk import SonicV2Connector
-import sonic_device_util
+import traceback
+
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector, SonicDBConfig, SonicV2Connector
 
 
 SYSLOG_IDENTIFIER = 'db_migrator'
@@ -278,7 +278,7 @@ class DBMigrator():
         """
         log_info('Handling version_1_0_2')
         # Check ASIC type, if Mellanox platform then need DB migration
-        version_info = sonic_device_util.get_sonic_version_info()
+        version_info = device_info.get_sonic_version_info()
         if version_info['asic_type'] == "mellanox":
             if self.mlnx_migrate_buffer_pool_size():
                 self.set_version('version_1_0_3')
