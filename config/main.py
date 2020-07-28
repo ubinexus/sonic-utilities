@@ -55,7 +55,7 @@ CFG_LOOPBACK_NO="<0-999>"
 asic_type = None
 config_db = None
 
-# TODO move to a common file like sonic_device_util.py
+# TODO move to sonic-py-common package
 # Dictionary of SONIC interface name prefixes.
 SONIC_INTERFACE_PREFIXES = {
   "Ethernet": "Ethernet",
@@ -381,6 +381,7 @@ def interface_name_to_alias(config_db, interface_name):
 
     return None
 
+# TODO move to sonic-py-common package
 def get_interface_table_name(interface_name):
     """Get table name by interface_name prefix
     """
@@ -423,7 +424,7 @@ def is_interface_bind_to_vrf(config_db, interface_name):
         return True
     return False
 
-# TODO move to a common file like sonic_device_util.py
+# TODO move to sonic-py-common package
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
     if not sonic_device_util.is_multi_npu():
@@ -435,6 +436,7 @@ def validate_namespace(namespace):
     else:
         return False
 
+# TODO move to sonic-py-common package
 # Get the table name based on the interface type
 def get_port_table_name(interface_name):
     """Get table name by port_name prefix
@@ -454,6 +456,7 @@ def get_port_table_name(interface_name):
     else:
         return ""
 
+# TODO move to sonic-py-common package
 # Return the namespace where an interface belongs
 def get_port_namespace(port):
     # If it is a non multi-asic platform, or if the interface is management interface
