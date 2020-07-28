@@ -28,7 +28,6 @@ PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 PORT_STR = "Ethernet"
-ERROR_MESSAGE_LENGTH_LIMIT = 100
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
