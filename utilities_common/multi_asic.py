@@ -5,17 +5,22 @@ import subprocess
 
 import click
 
-from sonic_device_util import get_all_namespaces
-from sonic_device_util import get_namespaces
-from sonic_device_util import get_num_npus
-from sonic_device_util import is_multi_npu
-from sonic_device_util import is_bgp_session_internal
-from sonic_device_util import is_port_channel_internal
-from sonic_device_util import is_port_internal
+from sonic_py_common.device_info import get_all_namespaces
+from sonic_py_common.device_info import get_namespaces
+from sonic_py_common.device_info import is_multi_asic
+from sonic_py_common.device_info import is_bgp_session_internal
+from sonic_py_common.device_info import is_port_channel_internal
+from sonic_py_common.device_info import is_port_internal
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicDBConfig
 from swsssdk import SonicV2Connector
-from utilities_common.constants import *
+from utilities_common.constants import DEFAULT_NAMESPACE
+from utilities_common.constants import DISPLAY_ALL
+from utilities_common.constants import DISPLAY_EXTERNAL
+from utilities_common.constants import BGP_NEIGH_OBJ
+from utilities_common.constants import PORT_CHANNEL_OBJ
+from utilities_common.constants import PORT_OBJ
+
 
 class MultiAsic(object):
 
@@ -24,7 +29,7 @@ class MultiAsic(object):
         self.display_option = display_option
         SonicDBConfig.load_sonic_global_db_config()
         self.current_namespace = None
-        self.is_multi_asic = is_multi_npu()
+        self.is_multi_asic = is_multi_asic()
 
     def connect_dbs_for_ns(self,namespace=DEFAULT_NAMESPACE):
         '''
@@ -103,19 +108,19 @@ class MultiAsic(object):
         return ns_list
     
 def multi_asic_ns_choices():
-    if not is_multi_npu() :
+    if not is_multi_asic() :
         return [DEFAULT_NAMESPACE]
     choices =  get_namespaces()
     return choices
 
 def multi_asic_display_choices():
-    if not is_multi_npu():
+    if not is_multi_asic():
         return [DISPLAY_ALL]
     else:
         return [DISPLAY_ALL, DISPLAY_EXTERNAL]
 
 def multi_asic_display_default_option():
-    if not is_multi_npu():
+    if not is_multi_asic():
         return DISPLAY_ALL
     else:
         return  DISPLAY_EXTERNAL
