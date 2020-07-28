@@ -481,7 +481,7 @@ def get_port_namespace(port):
     return None
 
 # Return the derived namespace and config_db connector based on the input interface and namespace
-def get_namespace_configDB_connector(ctx, interface_name, namespace):
+def get_derived_namespace_and_config_db(ctx, interface_name, namespace):
     # In multi ASIC platforms, if the user don't give the namespace as input parameter,
     # we derive the namespace using interface name.
     if sonic_device_util.is_multi_npu() == True and namespace == DEFAULT_NAMESPACE:
@@ -2345,7 +2345,7 @@ def interface(ctx, namespace):
 def startup(ctx, interface_name):
     """Start up interface"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2434,7 +2434,7 @@ def shutdown(ctx, interface_name):
 def speed(ctx, interface_name, interface_speed, verbose):
     """Set interface speed"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2469,7 +2469,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         raise click.Abort()
 
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
     ctx.obj['config_db'] = config_db
 
     target_brkout_mode = mode
@@ -2601,7 +2601,7 @@ def mgmt_ip_restart_services():
 def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2621,7 +2621,7 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
 def fec(ctx, interface_name, interface_fec, verbose):
     """Set interface fec"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if interface_fec not in ["rs", "fc", "none"]:
         ctx.fail("'fec not in ['rs', 'fc', 'none']!")
@@ -2657,7 +2657,7 @@ def ip(ctx):
 def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2718,7 +2718,7 @@ def add(ctx, interface_name, ip_addr, gw):
 def remove(ctx, interface_name, ip_addr):
     """Remove an IP address from the interface"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2772,7 +2772,7 @@ def transceiver(ctx):
 def lpmode(ctx, interface_name, state):
     """Enable/disable low-power mode for SFP transceiver module"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2795,7 +2795,7 @@ def lpmode(ctx, interface_name, state):
 def reset(ctx, interface_name):
     """Reset SFP transceiver module"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2829,7 +2829,7 @@ def vrf(ctx):
 def bind(ctx, interface_name, vrf_name):
     """Bind the interface to VRF"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2866,7 +2866,7 @@ def bind(ctx, interface_name, vrf_name):
 def unbind(ctx, interface_name):
     """Unbind the interface to VRF"""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -3298,7 +3298,7 @@ def pfc(ctx):
 def asymmetric(ctx, interface_name, status):
     """Set asymmetric PFC configuration."""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -3319,7 +3319,7 @@ def asymmetric(ctx, interface_name, status):
 def priority(ctx, interface_name, priority, status):
     """Set PFC priority configuration."""
     # Get the namespace and config_db connector
-    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
+    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
 
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
