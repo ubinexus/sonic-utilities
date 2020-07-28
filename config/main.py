@@ -130,12 +130,12 @@ def shutdown_interfaces(ctx, del_intf_dict):
     for intf in del_intf_dict.keys():
         config_db = ctx.obj['config_db']
         if clicommon.get_interface_naming_mode() == "alias":
-            interface_name = interface_alias_to_name(intf)
+            interface_name = interface_alias_to_name(config_db, intf)
             if interface_name is None:
                 click.echo("[ERROR] interface name is None!")
                 return False
 
-        if interface_name_is_valid(intf) is False:
+        if interface_name_is_valid(config_db, intf) is False:
             click.echo("[ERROR] Interface name is invalid. Please enter a valid interface name!!")
             return False
 
@@ -2468,9 +2468,8 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
         raise click.Abort()
 
-    # Connect to config db and get the context
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    # Get the namespace and config_db connector
+    namespace, config_db = get_namespace_configDB_connector(ctx, interface_name, ctx.obj['namespace'])
     ctx.obj['config_db'] = config_db
 
     target_brkout_mode = mode
