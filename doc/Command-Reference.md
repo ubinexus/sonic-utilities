@@ -5928,23 +5928,23 @@ If any of the elements under each of these two sections is 'Not OK' a proper mes
   ```
   admin@sonic:~$ show system-health summary
   System status summary
-  ---------------------
+
   System status LED  red
-
-  Services            Not OK
-                      telemetry is not Running
-  Hardware            OK
-
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'sflowmgrd'
+  Hardware:
+    Status: OK
   ```
   ```
   admin@sonic:~$ show system-health summary
   System status summary
-  ---------------------
+
   System status LED  green
-
-  Services            OK
-  Hardware            OK
-
+  Services:
+    Status: OK
+  Hardware:
+    Status: OK
   ```
 
 **show system-health monitor-list**
@@ -5960,11 +5960,11 @@ This command displays a list of all current 'Services' and 'Hardware' being moni
   ```
   admin@sonic:~$ show system-health monitor-list
   System services and devices monitor list
-  ----------------------------------------
   
   Name            Status    Type
   --------------  --------  ----------
   telemetry       Not OK    Process
+  orchagent       Not OK    Process
   neighsyncd      OK        Process
   vrfmgrd         OK        Process
   dialout_client  OK        Process
@@ -5973,7 +5973,6 @@ This command displays a list of all current 'Services' and 'Hardware' being moni
   snmpd           OK        Process
   redis_server    OK        Process
   intfmgrd        OK        Process
-  orchagent       OK        Process
   vxlanmgrd       OK        Process
   lldpd_monitor   OK        Process
   portsyncd       OK        Process
@@ -6010,7 +6009,6 @@ This command displays a list of all current 'Services' and 'Hardware' being moni
   fan6            OK        Fan
   fan9            OK        Fan
   fan8            OK        Fan
-
   ```
 
 **show system-health detail**
@@ -6028,19 +6026,20 @@ In addition, displays a list of all current 'Services' and 'Hardware' being moni
   ```
   admin@sonic:~$ show system-health detail
   System status summary
-  ---------------------
+
   System status LED  red
-  
-  Services            Not OK
-                      telemetry is not Running
-  Hardware            OK
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'orchagent'
+  Hardware:
+    Status: OK
   
   System services and devices monitor list
-  ----------------------------------------
   
   Name            Status    Type
   --------------  --------  ----------
   telemetry       Not OK    Process
+  orchagent       Not OK    Process
   neighsyncd      OK        Process
   vrfmgrd         OK        Process
   dialout_client  OK        Process
@@ -6049,7 +6048,6 @@ In addition, displays a list of all current 'Services' and 'Hardware' being moni
   snmpd           OK        Process
   redis_server    OK        Process
   intfmgrd        OK        Process
-  orchagent       OK        Process
   vxlanmgrd       OK        Process
   lldpd_monitor   OK        Process
   portsyncd       OK        Process
@@ -6088,12 +6086,10 @@ In addition, displays a list of all current 'Services' and 'Hardware' being moni
   fan8            OK        Fan
   
   System services and devices ignore list
-  ---------------------------------------
   
   Name         Status    Type
   -----------  --------  ------
   psu.voltage  Ignored   Device
-
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
 

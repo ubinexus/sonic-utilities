@@ -28,6 +28,7 @@ PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 PORT_STR = "Ethernet"
+ERROR_MESSAGE_LENGTH_LIMIT = 100
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -3456,18 +3457,36 @@ def summary():
     if state == HealthCheckerManager.STATE_RUNNING:
         chassis.initizalize_system_led()
         led = chassis.get_status_led()
-        fault_counter = 0
-        click.echo("System status summary\n---------------------\nSystem status LED  " + led + '\n')
+        click.echo("System status summary\n\n  System status LED  " + led)
+        services_list = []
+        fs_list = []
+        device_list =[]
         for category, elements in stat.items():
             for element in elements:
                 if elements[element]['status'] != "OK":
-                    fault_counter += 1
-                    if fault_counter == 1:
-                        click.echo(category + "\tNot OK")
-                    click.echo('\t\t' + elements[element]['message'])
-            if not fault_counter:
-                click.echo(category + "\tOK")
-            fault_counter = 0
+                    if 'Running' in elements[element]['message']:
+                        services_list.append(element)
+                    elif 'Accessible' in elements[element]['message']:
+                        fs_list.append(element)
+                    else:
+                        device_list.append(elements[element]['message'])
+        if len(services_list) or len(fs_list):
+            click.echo("  Services:\n    Status: Not OK")
+        else:
+            click.echo("  Services:\n    Status: OK")
+        if len(services_list):
+            services_list_string = str(services_list)
+            click.echo("    Not Running: " + services_list_string.replace("[", "").replace(']', ""))
+        if len(fs_list):
+            fs_list_string = str(fs_list)
+            click.echo("    Not Accessible: " + fs_list_string.replace("[", "").replace(']', ""))
+        if len(device_list):
+            click.echo("  Hardware:\n    Status: Not OK")
+            click.echo("    Reasons: " + device_list.pop())
+            while len(device_list):
+                click.echo("\t     " + device_list.pop())
+        else:
+            click.echo("  Hardware:\n    Status: OK")
                 
 @system_health.command()
 def detail():
@@ -3499,20 +3518,38 @@ def detail():
         #summary output
         chassis.initizalize_system_led()
         led = chassis.get_status_led()
-        fault_counter = 0
-        click.echo("System status summary\n---------------------\nSystem status LED  " + led + '\n')
+        click.echo("System status summary\n\n  System status LED  " + led)
+        services_list = []
+        fs_list = []
+        device_list =[]
         for category, elements in stat.items():
             for element in elements:
                 if elements[element]['status'] != "OK":
-                    fault_counter += 1
-                    if fault_counter == 1:
-                        click.echo(category + "\tNot OK")
-                    click.echo('\t\t' + elements[element]['message'])
-            if not fault_counter:
-                click.echo(category + "\tOK")
-            fault_counter = 0
+                    if 'Running' in elements[element]['message']:
+                        services_list.append(element)
+                    elif 'Accessible' in elements[element]['message']:
+                        fs_list.append(element)
+                    else:
+                        device_list.append(elements[element]['message'])
+        if len(services_list) or len(fs_list):
+            click.echo("  Services:\n    Status: Not OK")
+        else:
+            click.echo("  Services:\n    Status: OK")
+        if len(services_list):
+            services_list_string = str(services_list)
+            click.echo("    Not Running: " + services_list_string.replace("[", "").replace(']', ""))
+        if len(fs_list):
+            fs_list_string = str(fs_list)
+            click.echo("    Not Accessible: " + fs_list_string.replace("[", "").replace(']', ""))
+        if len(device_list):
+            click.echo("  Hardware:\n    Status: Not OK")
+            click.echo("    Reasons: " + device_list.pop())
+            while len(device_list):
+                click.echo("\t     " + device_list.pop())
+        else:
+            click.echo("  Hardware:\n    Status: OK")
 
-        click.echo('\nSystem services and devices monitor list\n----------------------------------------\n')
+        click.echo('\nSystem services and devices monitor list\n')
         header = ['Name', 'Status', 'Type']
         table = []
         for category, elements in stat.items():
@@ -3523,7 +3560,7 @@ def detail():
                 entry.append(element[1]['type'])
                 table.append(entry)
         click.echo(tabulate(table, header))
-        click.echo('\nSystem services and devices ignore list\n---------------------------------------\n')
+        click.echo('\nSystem services and devices ignore list\n')
         table = []
         if manager.config.ignore_services:
             for element in manager.config.ignore_services:
@@ -3568,7 +3605,7 @@ def monitor_list():
         click.echo("System is currently booting...")
         return
     if state == HealthCheckerManager.STATE_RUNNING:
-        click.echo('\nSystem services and devices monitor list\n----------------------------------------\n')
+        click.echo('\nSystem services and devices monitor list\n')
         header = ['Name', 'Status', 'Type']
         table = []
         for category, elements in stat.items():
