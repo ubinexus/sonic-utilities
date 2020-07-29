@@ -21,6 +21,7 @@ from swsssdk import SonicV2Connector
 from portconfig import get_child_ports
 
 import mlnx
+from utilities_common.multi_asic import multi_asic_click_options
 
 # Global Variable
 PLATFORM_ROOT_PATH = "/usr/share/sonic/device"
@@ -1059,9 +1060,10 @@ def status(interfacename, verbose):
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-p', '--period')
 @click.option('-i', '--interface')
+@multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, interface, printall):
+def counters(ctx, verbose, period, interface, printall, namespace, display):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
@@ -1073,6 +1075,10 @@ def counters(ctx, verbose, period, interface, printall):
             cmd += " -p {}".format(period)
         if interface is not None:
             cmd += " -i {}".format(interface)
+        if namespace is not None:
+            cmd += " -n {}".format(namespace)
+        
+        cmd += " -s {}".format(display)
 
         run_command(cmd, display_cmd=verbose)
 
