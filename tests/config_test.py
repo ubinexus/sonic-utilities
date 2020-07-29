@@ -18,15 +18,31 @@ from generic_config_updater.generic_updater import ConfigFormat
 
 import config.main as config
 
-load_minigraph_command_output="""\
-Stopping SONiC target ...
-Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
+def get_load_minigraph_command_output(init_cfg=False, default_config=False):
+    load_minigraph_command_output="""\
+Stopping SONiC target ..."""
+
+    if init_cfg:
+       load_minigraph_command_output += """
+Running command: /usr/local/bin/sonic-cfggen -H -m -j /etc/sonic/init_cfg.json   --write-to-db"""
+    else:
+       load_minigraph_command_output += """
+Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db"""
+
+    if default_config:
+       load_minigraph_command_output += """
+Running command: /usr/local/bin/sonic-cfggen -j /usr/share/sonic/device/x86_64-mlnx_msn3800-r0/default_config.json   --write-to-db
+Running command: /usr/local/bin/sonic-cfggen -j /usr/share/sonic/device/x86_64-mlnx_msn3800-r0/Arista-VM/default_config.json   --write-to-db"""
+
+    load_minigraph_command_output += """
 Running command: pfcwd start_default
 Running command: config qos reload --no-dynamic-buffer
 Restarting SONiC target ...
 Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
+
+    return load_minigraph_command_output
 
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
@@ -55,8 +71,37 @@ class TestLoadMinigraph(object):
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == get_load_minigraph_command_output()
             assert mock_run_command.call_count == 7
+
+    def test_load_minigraph_with_init_cfg(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command, \
+             mock.patch("os.path.isfile") as mock_isfile:
+            mock_isfile.side_effect = lambda filename: filename.endswith( "init_cfg.json" )
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == get_load_minigraph_command_output( init_cfg=True )
+            assert mock_run_command.call_count == 7
+
+    def test_load_minigraph_with_default_config(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command, \
+             mock.patch("os.path.isfile") as mock_isfile:
+            mock_isfile.side_effect = lambda filename: filename.endswith( "default_config.json" )
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == get_load_minigraph_command_output( default_config=True )
+            assert mock_run_command.call_count == 9
+
 
     @classmethod
     def teardown_class(cls):

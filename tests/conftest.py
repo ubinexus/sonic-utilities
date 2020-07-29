@@ -62,6 +62,7 @@ def set_mock_apis():
     cwd = os.path.dirname(os.path.realpath(__file__))
     config.asic_type = mock.MagicMock(return_value="broadcom")
     config._get_device_type = mock.MagicMock(return_value="ToRRouter")
+    config._get_hwsku = mock.MagicMock(return_value="Arista-VM")
 
 @pytest.fixture
 def setup_qos_mock_apis():

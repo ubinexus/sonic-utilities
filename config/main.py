@@ -242,6 +242,22 @@ def _get_device_type():
 
     return device_type
 
+def _get_hwsku(config_db):
+    """
+    Get hwsku from CONFIG_DB
+
+    TODO: move to sonic-py-common
+    """
+
+    metadata = config_db.get_table('DEVICE_METADATA')
+    if metadata and 'localhost' in metadata and 'hwsku' in metadata['localhost']:
+       return metadata['localhost']['hwsku']
+
+    click.echo("Could not get the hwsku from CONFIG_DB, setting hwsku to Unknown")
+    hwsku = 'Unknown'
+
+    return hwsku
+
 def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
     """
@@ -1284,11 +1300,13 @@ def load_minigraph(db, no_service_restart):
         log.log_info("'load_minigraph' stopping services...")
         _stop_services()
 
+    platform = device_info.get_platform()
+
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
     # for host
     namespace_list = [DEFAULT_NAMESPACE]
-    num_npus = multi_asic.get_num_asics()
+    num_npus = device_info.get_num_npus()
     if num_npus > 1:
         namespace_list += multi_asic.get_namespaces_from_linux()
 
@@ -1309,6 +1327,25 @@ def load_minigraph(db, no_service_restart):
         else:
             command = "{} -H -m --write-to-db {}".format(SONIC_CFGGEN_PATH, cfggen_namespace_option)
         clicommon.run_command(command, display_cmd=True)
+
+        if namespace is DEFAULT_NAMESPACE:
+            npu_id = ''
+        else:
+            npu_id = device_info.get_npu_id_from_name(namespace)
+
+        # load default_config.json file from platform directory
+        default_config_file = os.path.join('/usr/share/sonic/device/', platform, npu_id, 'default_config.json')
+        if os.path.isfile(default_config_file):
+            command = "{} -j {} {} --write-to-db".format(SONIC_CFGGEN_PATH, default_config_file, cfggen_namespace_option)
+            clicommon.run_command(command, display_cmd=True)
+
+        hwsku = _get_hwsku(config_db)
+        # load default_config.json file from hwsku directory
+        default_config_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, npu_id, 'default_config.json')
+        if os.path.isfile(default_config_file):
+            command = "{} -j {} {} --write-to-db".format(SONIC_CFGGEN_PATH, default_config_file, cfggen_namespace_option)
+            clicommon.run_command(command, display_cmd=True)
+
         client.set(config_db.INIT_INDICATOR, 1)
 
     # get the device type
