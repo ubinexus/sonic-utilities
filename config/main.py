@@ -52,10 +52,14 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
+<<<<<<< HEAD
 MAXIMUM_WARMRESTART_TIMER_VALUE = 9999
 
 asic_type = None
 config_db = None
+=======
+DISABLE_WARMRESTART_TIMER_VALUE = 9999
+>>>>>>> [warmboot] using disable keyword to set timer
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -1704,13 +1708,20 @@ def warm_restart_bgp_timer(ctx, seconds):
     db.mod_entry('WARM_RESTART', 'bgp', {'bgp_timer': seconds})
 
 @warm_restart.command('teamsyncd_timer')
-@click.argument('seconds', metavar='<seconds>', required=True, type=int)
+@click.argument('seconds', metavar='<seconds>', required=True)
 @click.pass_context
 def warm_restart_teamsyncd_timer(ctx, seconds):
+    if seconds != 'disable' and not seconds.isdigit():
+        ctx.fail("Invalid value for 'seconds': {} is not a valid integer or 'disable'".format(seconds))
+
     db = ctx.obj['db']
-    if seconds not in range(1,3600) and seconds != MAXIMUM_WARMRESTART_TIMER_VALUE:
-        ctx.fail("teamsyncd warm restart timer must be in range 1-3600 or value 9999")
-    db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
+    if seconds == 'disable':
+        db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': DISABLE_WARMRESTART_TIMER_VALUE})
+    else:
+        seconds = int(seconds)
+        if seconds not in range(1,3600):
+            ctx.fail("teamsyncd warm restart timer must be in range 1-3600 or disable")
+        db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
 
 @warm_restart.command('bgp_eoiu')
 @click.argument('enable', metavar='<enable>', default='true', required=False, type=click.Choice(["true", "false"]))
