@@ -21,16 +21,15 @@
 
 import json
 import os
-import swsssdk
 import subprocess
 import sys
+
 from tabulate import tabulate
 from natsort import natsorted
+
+from sonic_py_common.multi_asic_device_info import get_asic_id_from_name
 from utilities_common.multi_asic import MultiAsic
 from utilities_common.multi_asic import run_on_all_asics
-from utilities_common.multi_asic import multi_asic_args
-
-from sonic_device_util import get_npu_id_from_name
 from utilities_common.multi_asic import multi_asic_args
 from utilities_common.multi_asic import PORT_CHANNEL_OBJ
 
@@ -91,7 +90,7 @@ class Teamshow(object):
             Command: 'teamdctl <teamdevname> state dump'.
         """
         for team in self.teams:
-            teamdctl_cmd = "sudo docker exec -it teamd{} teamdctl {} state dump".format(get_npu_id_from_name(self.multi_asic.current_namespace), team)
+            teamdctl_cmd = "sudo docker exec -it teamd{} teamdctl {} state dump".format(get_asic_id_from_name(self.multi_asic.current_namespace), team)
             p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (output, err) = p.communicate()
             rc = p.wait()
