@@ -480,24 +480,6 @@ def get_port_namespace(port):
 
     return None
 
-# Return the derived namespace and config_db connector based on the input interface and namespace
-def get_derived_namespace_and_config_db(ctx, interface_name, namespace):
-    # In multi ASIC platforms, if the user don't give the namespace as input parameter,
-    # we derive the namespace using interface name.
-    if sonic_device_util.is_multi_npu() == True and namespace == DEFAULT_NAMESPACE:
-        ns_name = get_port_namespace(interface_name)
-        if ns_name is None:
-            # If namespace cannot be derived from interface name, need input from user
-            ctx.fail("Input the namespace [-n] option to configure interface {}".format(interface_name))
-    else:
-        ns_name = namespace
-
-    # Create the ConfigDBConnector object and connect
-    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=ns_name)
-    config_db.connect()
-
-    return ns_name, config_db
-
 def del_interface_bind_to_vrf(config_db, vrf_name):
     """del interface bind to vrf
     """
@@ -1301,15 +1283,16 @@ def hostname(new_hostname):
 # 'portchannel' group ('config portchannel ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup)
-@click.option('-n', '--namespace', help='Namespace name', default=None)
+# TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
+# This will help to hide namespace option for single asic platforms where it is ignored.
+@click.option('-n', '--namespace', help='Namespace name',
+             required=True if sonic_device_util.is_multi_npu() else False,
+             type=click.Choice(sonic_device_util.get_namespaces() if sonic_device_util.is_multi_npu() else [DEFAULT_NAMESPACE]))
 @click.pass_context
 def portchannel(ctx, namespace):
-    # If multi ASIC platform, check if the namespace entered by user is valid
-    if sonic_device_util.is_multi_npu():
-        if str(namespace) == DEFAULT_NAMESPACE:
-            ctx.fail("namespace [-n] option required for portchannel/member (add/del)")
-        if not validate_namespace(str(namespace)):
-            ctx.fail("Invalid Namespace entered {}".format(str(namespace)))
+    # Set namespace to default_namespace if it is None.
+    if namespace is None:
+        namespace = DEFAULT_NAMESPACE
 
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
@@ -1823,7 +1806,11 @@ def warm_restart_bgp_eoiu(ctx, enable):
 #
 @config.group(cls=AbbreviationGroup)
 @click.pass_context
-@click.option('-n', '--namespace', help='Namespace name', default=DEFAULT_NAMESPACE)
+# TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
+# This will help to hide namespace option for single asic platforms where it is ignored.
+@click.option('-n', '--namespace', help='Namespace name',
+             required=True if sonic_device_util.is_multi_npu() else False,
+             type=click.Choice(sonic_device_util.get_namespaces() if sonic_device_util.is_multi_npu() else [DEFAULT_NAMESPACE]))
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def vlan(ctx, redis_unix_socket_path, namespace):
     """VLAN-related configuration tasks"""
@@ -1831,12 +1818,9 @@ def vlan(ctx, redis_unix_socket_path, namespace):
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
 
-    # If multi ASIC platform, check if the namespace entered by user is valid
-    if sonic_device_util.is_multi_npu(): 
-        if str(namespace) == DEFAULT_NAMESPACE:
-            ctx.fail("namespace [-n] option required for vlan/member (add/del)")
-        if not validate_namespace(str(namespace)):
-            ctx.fail("Invalid Namespace entered {}".format(str(namespace)))
+    # Set namespace to default_namespace if it is None.
+    if namespace is None:
+        namespace = DEFAULT_NAMESPACE
 
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace), **kwargs)
     config_db.connect(wait_for_init=False)
@@ -2324,16 +2308,20 @@ def remove_neighbor(neighbor_ip_or_hostname):
 #
 
 @config.group(cls=clicommon.AbbreviationGroup)
-@click.option('-n', '--namespace', help='Namespace name', default=None)
+# TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
+# This will help to hide namespace option for single asic platforms where it is ignored.
+@click.option('-n', '--namespace', help='Namespace name',
+             required=True if sonic_device_util.is_multi_npu() else False,
+             type=click.Choice(sonic_device_util.get_namespaces() if sonic_device_util.is_multi_npu() else [DEFAULT_NAMESPACE]))
 @click.pass_context
 def interface(ctx, namespace):
     """Interface-related configuration tasks"""
-    # Check if the namespace entered by user is valid
-    if sonic_device_util.is_multi_npu():
-        if str(namespace) != DEFAULT_NAMESPACE and not validate_namespace(str(namespace)):
-            ctx.fail("Invalid Namespace entered {}".format(str(namespace)))
-
-    ctx.obj = {'namespace': str(namespace)}
+    # Set namespace to default_namespace if it is None.
+    if namespace is None:
+        namespace = DEFAULT_NAMESPACE
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
+    config_db.connect()
+    ctx.obj = {'config_db': config_db, 'namespace': str(namespace)}
 
 #
 # 'startup' subcommand
@@ -2344,8 +2332,8 @@ def interface(ctx, namespace):
 @click.pass_context
 def startup(ctx, interface_name):
     """Start up interface"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2433,8 +2421,8 @@ def shutdown(ctx, interface_name):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def speed(ctx, interface_name, interface_speed, verbose):
     """Set interface speed"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2443,7 +2431,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
 
     log.log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
-    command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, namespace)
+    command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, ctx.obj['namespace'])
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2468,9 +2456,8 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
         raise click.Abort()
 
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
-    ctx.obj['config_db'] = config_db
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     target_brkout_mode = mode
 
@@ -2600,15 +2587,15 @@ def mgmt_ip_restart_services():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, namespace)
+    command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, ctx.obj['namespace'])
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2620,8 +2607,8 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def fec(ctx, interface_name, interface_fec, verbose):
     """Set interface fec"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if interface_fec not in ["rs", "fc", "none"]:
         ctx.fail("'fec not in ['rs', 'fc', 'none']!")
@@ -2630,7 +2617,7 @@ def fec(ctx, interface_name, interface_fec, verbose):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, namespace)
+    command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, ctx.obj['namespace'])
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2656,8 +2643,8 @@ def ip(ctx):
 @click.pass_context
 def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2717,8 +2704,8 @@ def add(ctx, interface_name, ip_addr, gw):
 @click.pass_context
 def remove(ctx, interface_name, ip_addr):
     """Remove an IP address from the interface"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2744,7 +2731,7 @@ def remove(ctx, interface_name, ip_addr):
             config_db.set_entry(table_name, interface_name, None)
 
         if sonic_device_util.is_multi_npu():
-            command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(namespace, interface_name, ip_addr)
+            command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, ip_addr)
         else:
             command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
         run_command(command)
@@ -2771,8 +2758,8 @@ def transceiver(ctx):
 @click.pass_context
 def lpmode(ctx, interface_name, state):
     """Enable/disable low-power mode for SFP transceiver module"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2794,8 +2781,8 @@ def lpmode(ctx, interface_name, state):
 @click.pass_context
 def reset(ctx, interface_name):
     """Reset SFP transceiver module"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2828,8 +2815,8 @@ def vrf(ctx):
 @click.pass_context
 def bind(ctx, interface_name, vrf_name):
     """Bind the interface to VRF"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2848,7 +2835,7 @@ def bind(ctx, interface_name, vrf_name):
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
-    state_db = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+    state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
     while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
@@ -2865,8 +2852,8 @@ def bind(ctx, interface_name, vrf_name):
 @click.pass_context
 def unbind(ctx, interface_name):
     """Unbind the interface to VRF"""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -3297,8 +3284,8 @@ def pfc(ctx):
 @click.pass_context
 def asymmetric(ctx, interface_name, status):
     """Set asymmetric PFC configuration."""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -3318,8 +3305,8 @@ def asymmetric(ctx, interface_name, status):
 @click.pass_context
 def priority(ctx, interface_name, priority, status):
     """Set PFC priority configuration."""
-    # Get the namespace and config_db connector
-    namespace, config_db = get_derived_namespace_and_config_db(ctx, interface_name, ctx.obj['namespace'])
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
