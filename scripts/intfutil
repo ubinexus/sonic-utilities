@@ -301,7 +301,7 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
         status = portchannel_speed_dict[po_name]
         return status
     if status_type == "vlan":
-        if po_name in combined_int_to_vlan_po_dict.keys():
+        if combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
             status = "trunk"
         else:
             status = "routed"
