@@ -6573,7 +6573,7 @@ teamsyncd_timer holds the time interval utilized by teamsyncd during warm-restar
 The timer is started when teamsyncd starts. During the timer interval, teamsyncd will preserve all LAG interface changes, but it will not apply them.
 The changes will only be applied when the timer expires.
 When the changes are applied, the stale LAG entries will be removed, the new LAG entries will be created.
-Supported range: 1-9999. 0 is invalid
+Supported range: 1-9999. 0 is invalid. disable is skipping teamsyncd reconciliation logic.
 
 - Usage:
   ```
@@ -6581,11 +6581,12 @@ Supported range: 1-9999. 0 is invalid
   ```
 
   - Parameters:
-    - seconds: Range from 1 to 9999
+    - seconds: Range from 1 to 9999 or 'disable'
 
 - Example:
   ```
   admin@sonic:~$ sudo config warm_restart teamsyncd_timer 3000
+  admin@sonic:~$ sudo config warm_restart teamsyncd_timer disable
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#warm-restart)
