@@ -208,31 +208,30 @@ def print_deprecation_warning(deprecated_cmd_or_subcmd, new_cmd_or_subcmd):
                 fg="red", err=True)
     click.secho("Please use '{}' instead".format(new_cmd_or_subcmd), fg="red", err=True)
 
-def run_cmd_or_abort(click, argv):
-    cmd_process = subprocess.Popen(argv, stdout=subprocess.PIPE)
-    stdout, stderr = cmd_process.communicate()
-    if not stdout or cmd_process.returncode:
-        click.echo("Failed to run command '{0}'".format(argv))
-        raise click.Abort()
-
-    return stdout
-
 def update_sonic_environment(click, binary_image_version):
+    """Prepare sonic environment variable using incoming image template file. If incoming image template does not exist
+       use current image template file.
+    """
     sonic_env_template_file = "/usr/share/sonic/templates/sonic-environment.j2"
+    sonic_version = re.sub("SONiC-OS-", '', binary_image_version)
+    new_image_squashfs_path = "/host/image-{0}/fs.squashfs".format(sonic_version)
+    new_image_mount = "/tmp/image-{0}-fs".format(sonic_version)
+
+    run_command("mkdir -p {0}".format(new_image_mount))
+    run_command("mount -t squashfs {0} {1}".format(new_image_squashfs_path, new_image_mount))
+
+    if os.path.exists(os.path.join(new_image_mount, sonic_env_template_file)):
+        sonic_env_template_file = os.path.join(new_image_mount, sonic_env_template_file)
+
     if os.path.exists(sonic_env_template_file):
-        sonic_version = re.sub("SONiC-OS-", '', binary_image_version)
-        sonic_env = run_cmd_or_abort(
-            click,
-            [
-                "sonic-cfggen",
-                "-d",
-                "-y",
-                "/etc/sonic/sonic_version.yml",
-                "-a",
-                "{{\"build_version\":\"{0}\"}}".format(sonic_version),
-                "-t",
-                sonic_env_template_file
-            ]
+        sonic_env = run_command_output(
+                "sonic-cfggen"
+                " -d"
+                " -y"
+                " /etc/sonic/sonic_version.yml"
+                " -a"
+                " '{{\"build_version\":\"{0}\"}}'"
+                " -t{1}".format(sonic_version, sonic_env_template_file)
         )
         sonic_image_dir = "image-" + sonic_version
         env_dir = "/host/" + sonic_image_dir + "/sonic-config"
@@ -241,6 +240,9 @@ def update_sonic_environment(click, binary_image_version):
         with open(env_file, "w+") as ef:
             print >>ef, sonic_env
         os.chmod(env_file, 0o644)
+
+    run_command("umount -rf {0}".format(new_image_mount))
+    run_command("rm -rf {0}".format(new_image_mount))
 
 # Main entrypoint
 @click.group(cls=AliasedGroup)
