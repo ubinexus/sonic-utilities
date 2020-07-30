@@ -13,6 +13,7 @@ STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
+WATCHDOG_UTIL="/usr/bin/watchdogutil"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
@@ -32,6 +33,7 @@ EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
 EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
+EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 
 function error()
 {
@@ -156,6 +158,42 @@ function request_pre_shutdown()
     }
 }
 
+function recover_issu_bank_file_instruction()
+{
+    debug "To recover (${ISSU_BANK_FILE}) file, do the following:"
+    debug "$ docker exec -it syncd sx_api_dbg_generate_dump.py"
+    debug "$ docker exec -it syncd cat /tmp/sdkdump | grep 'ISSU Bank'"
+    debug "Command above will print the VALUE of ISSU BANK - 0 or 1, use this VALUE in the next command"
+    debug "$ printf VALUE > /host/warmboot/issu_bank.txt"
+}
+
+function check_issu_bank_file()
+{
+    ISSU_BANK_FILE=/host/warmboot/issu_bank.txt
+    MLNX_ISSU_BANK_BROKEN=102
+
+    if [[ ! -s "$ISSU_BANK_FILE" ]]; then
+        error "(${ISSU_BANK_FILE}) does NOT exist or empty ..."
+        recover_issu_bank_file_instruction
+        if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN}"
+        fi
+        return
+    fi
+
+    issu_file_chars_count=`stat -c %s ${ISSU_BANK_FILE}`;
+    issu_file_content=`awk '{print $0}' ${ISSU_BANK_FILE}`
+
+    if [[ $issu_file_chars_count != 1 ]] ||
+        [[ "$issu_file_content" != "0" && "$issu_file_content" != "1" ]]; then
+        error "(${ISSU_BANK_FILE}) is broken ..."
+        recover_issu_bank_file_instruction
+        if [[ "$1" = true ]]; then
+            exit "${MLNX_ISSU_BANK_BROKEN}"
+        fi
+    fi
+}
+
 function wait_for_pre_shutdown_complete_or_fail()
 {
     debug "Waiting for pre-shutdown ..."
@@ -236,7 +274,7 @@ function teardown_control_plane_assistant()
 function setup_reboot_variables()
 {
     # Kernel and initrd image
-    NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+    NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
         KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
@@ -268,10 +306,12 @@ function reboot_pre_check()
         exit ${EXIT_FILE_SYSTEM_FULL}
     fi
 
-    # Make sure that the next image exists
-    if [[ ! -d ${IMAGE_PATH} ]]; then
-        debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
-        exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
+    # Verify the next image by sonic_installer
+    INSTALLER_VERIFY_RC=0
+    sonic_installer verify-next-image > /dev/null || INSTALLER_VERIFY_RC=$?
+    if [[ INSTALLER_VERIFY_RC -ne 0 ]]; then
+        error "Failed to verify next image. Exit code: $INSTALLER_VERIFY_RC"
+        exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
     fi
     
     # Make sure ASIC configuration has not changed between images
@@ -327,9 +367,6 @@ case "$REBOOT_TYPE" in
             # source mlnx-ffb.sh file with
             # functions to check ISSU upgrade possibility
             source mlnx-ffb.sh
-        elif [[ "$sonic_asic_type" == "barefoot" ]]; then
-            REBOOT_TYPE="fastfast-reboot"
-            BOOT_TYPE_ARG="fastfast"
         else
             BOOT_TYPE_ARG="warm"
         fi
@@ -382,6 +419,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     DUMP_DIR=/host/fast-reboot
+    CONFIG_DB_FILE=/etc/sonic/config_db.json
     mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
     /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
@@ -393,7 +431,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json || FILTER_FDB_ENTRIES_RC=$?
+    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
@@ -484,9 +522,19 @@ systemctl stop swss
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     initialize_pre_shutdown
 
+    BEFORE_PRE_SHUTDOWN=true
+
+    if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
+        check_issu_bank_file "$BEFORE_PRE_SHUTDOWN"
+    fi
+
     request_pre_shutdown
 
     wait_for_pre_shutdown_complete_or_fail
+
+    if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
+        check_issu_bank_file
+    fi
 
     # Warm reboot: dump state to host disk
     if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
@@ -568,6 +616,12 @@ fi
 if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     debug "Running ${PLATFORM} specific plugin..."
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
+fi
+
+# Enable Watchdog Timer
+if [ -x ${WATCHDOG_UTIL} ]; then
+    debug "Enabling Watchdog before ${REBOOT_TYPE}"
+    ${WATCHDOG_UTIL} arm
 fi
 
 # Reboot: explicity call Linux native reboot under sbin

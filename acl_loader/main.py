@@ -244,6 +244,9 @@ class AclLoader(object):
         :param table_name: Table name
         :return:
         """
+        if not self.is_table_valid(table_name):
+            warning("Table \"%s\" not found" % table_name)
+
         self.current_table = table_name
 
     def set_session_name(self, session_name):
@@ -412,7 +415,7 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        if rule.ip.config.protocol:
+        if rule.ip.config.protocol or rule.ip.config.protocol == 0:  # 0 is a valid protocol number
             if self.ip_protocol_map.has_key(rule.ip.config.protocol):
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
@@ -718,21 +721,30 @@ class AclLoader(object):
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue", "Policer", "Monitor Port")
+        erspan_header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue",
+                            "Policer", "Monitor Port", "SRC Port", "Direction")
+        span_header = ("Name", "Status", "DST Port", "SRC Port", "Direction", "Queue", "Policer")
 
-        data = []
+        erspan_data = []
+        span_data = []
         for key, val in self.get_sessions_db_info().iteritems():
             if session_name and key != session_name:
                 continue
-            # For multi-mpu platform status and monitor port will be dict()
-            # of 'asic-x':value
-            data.append([key, val["status"], val["src_ip"], val["dst_ip"],
-                         val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
-                         val.get("monitor_port", "")])
 
-        print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
+            if val.get("type") == "SPAN":
+                span_data.append([key, val.get("status", ""), val.get("dst_port", ""),
+                                       val.get("src_port", ""), val.get("direction", "").lower(),
+                                       val.get("queue", ""), val.get("policer", "")])
+            else:
+                erspan_data.append([key, val.get("status", ""), val.get("src_ip", ""),
+                                         val.get("dst_ip", ""), val.get("gre_type", ""), val.get("dscp", ""),
+                                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
+                                         val.get("monitor_port", ""), val.get("src_port", ""), val.get("direction", "").lower()])
 
+        print("ERSPAN Sessions")
+        print(tabulate.tabulate(erspan_data, headers=erspan_header, tablefmt="simple", missingval=""))
+        print("\nSPAN Sessions")
+        print(tabulate.tabulate(span_data, headers=span_header, tablefmt="simple", missingval=""))
 
     def show_policer(self, policer_name):
         """
@@ -762,7 +774,11 @@ class AclLoader(object):
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
         def pop_priority(val):
-            priority  = val.pop("PRIORITY")
+            priority = "N/A"
+            for key in dict(val):
+                if (key.upper() == "PRIORITY"):
+                    priority  = val.pop(key)
+                    return priority
             return priority
 
         def pop_action(val):

@@ -9,6 +9,7 @@ import subprocess
 import sys
 import ipaddress
 from pkg_resources import parse_version
+from collections import OrderedDict
 
 import click
 from natsort import natsorted
@@ -17,10 +18,16 @@ from tabulate import tabulate
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from portconfig import get_child_ports
 
 import mlnx
 
+# Global Variable
+PLATFORM_ROOT_PATH = "/usr/share/sonic/device"
+PLATFORM_JSON = 'platform.json'
+HWSKU_JSON = 'hwsku.json'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
+PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -181,6 +188,15 @@ def get_routing_stack():
 # Global Routing-Stack variable
 routing_stack = get_routing_stack()
 
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except Exception as e:
+        click.echo(str(e))
+        raise click.Abort()
+    return result
 
 def run_command(command, display_cmd=False, return_cmd=False):
     if display_cmd:
@@ -788,6 +804,101 @@ def alias(interfacename):
                 body.append([port_name, port_name])
 
     click.echo(tabulate(body, header))
+
+
+#
+# 'breakout' group ###
+#
+@interfaces.group(invoke_without_command=True)
+@click.pass_context
+def breakout(ctx):
+    """Show Breakout Mode information by interfaces"""
+    # Reading data from Redis configDb
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+
+    try:
+        curBrkout_tbl = config_db.get_table('BREAKOUT_CFG')
+    except Exception as e:
+        click.echo("Breakout table is not present in Config DB")
+        raise click.Abort()
+
+    if ctx.invoked_subcommand is None:
+
+        # Get HWSKU and Platform information
+        hw_info_dict = get_hw_info_dict()
+        platform = hw_info_dict['platform']
+        hwsku = hw_info_dict['hwsku']
+
+        # Get port capability from platform and hwsku related files
+        platformFile = "{}/{}/{}".format(PLATFORM_ROOT_PATH, platform, PLATFORM_JSON)
+        platformDict = readJsonFile(platformFile)['interfaces']
+        hwskuDict = readJsonFile("{}/{}/{}/{}".format(PLATFORM_ROOT_PATH, platform, hwsku, HWSKU_JSON))['interfaces']
+
+        if not platformDict or not hwskuDict:
+            click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
+            raise click.Abort()
+
+        for port_name in platformDict.keys():
+            curBrkout_mode = curBrkout_tbl[port_name]["brkout_mode"]
+
+            # Update deafult breakout mode and current breakout mode to platformDict
+            platformDict[port_name].update(hwskuDict[port_name])
+            platformDict[port_name]["Current Breakout Mode"] = curBrkout_mode
+
+            # List all the child ports if present
+            child_portDict = get_child_ports(port_name, curBrkout_mode, platformFile)
+            if not child_portDict:
+                click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
+                raise click.Abort()
+
+            child_ports = natsorted(child_portDict.keys())
+
+            children, speeds = [], []
+            # Update portname and speed of child ports if present
+            for port in child_ports:
+                speed = config_db.get_entry('PORT', port).get('speed')
+                if speed is not None:
+                    speeds.append(str(int(speed)//1000)+'G')
+                    children.append(port)
+
+            platformDict[port_name]["child ports"] = ",".join(children)
+            platformDict[port_name]["child port speeds"] = ",".join(speeds)
+
+        # Sorted keys by name in natural sort Order for human readability
+        parsed = OrderedDict((k, platformDict[k]) for k in natsorted(platformDict.keys()))
+        click.echo(json.dumps(parsed, indent=4))
+
+# 'breakout current-mode' subcommand ("show interfaces breakout current-mode")
+@breakout.command('current-mode')
+@click.argument('interface', metavar='<interface_name>', required=False, type=str)
+@click.pass_context
+def currrent_mode(ctx, interface):
+    """Show current Breakout mode Info by interface(s)"""
+
+    config_db = ctx.obj['db']
+
+    header = ['Interface', 'Current Breakout Mode']
+    body = []
+
+    try:
+        curBrkout_tbl = config_db.get_table('BREAKOUT_CFG')
+    except Exception as e:
+        click.echo("Breakout table is not present in Config DB")
+        raise click.Abort()
+
+    # Show current Breakout Mode of user prompted interface
+    if interface is not None:
+        body.append([interface, str(curBrkout_tbl[interface]['brkout_mode'])])
+        click.echo(tabulate(body, header, tablefmt="grid"))
+        return
+
+    # Show current Breakout Mode for all interfaces
+    for name in natsorted(curBrkout_tbl.keys()):
+        body.append([name, str(curBrkout_tbl[name]['brkout_mode'])])
+    click.echo(tabulate(body, header, tablefmt="grid"))
+
 
 #
 # 'neighbor' group ###
@@ -1546,6 +1657,7 @@ def interfaces():
 
         if netifaces.AF_INET6 in ipaddresses:
             ifaddresses = []
+            neighbor_info = []
             for ipaddr in ipaddresses[netifaces.AF_INET6]:
                 neighbor_name = 'N/A'
                 neighbor_ip = 'N/A'
@@ -1557,6 +1669,7 @@ def interfaces():
                     neighbor_ip = bgp_peer[local_ip][1]
                 except Exception:
                     pass
+                neighbor_info.append([neighbor_name, neighbor_ip])
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -1567,9 +1680,11 @@ def interfaces():
                 master = get_if_master(iface)
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
-            for ifaddr in ifaddresses[1:]:
-                data.append(["", "", ifaddr[1], ""])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                neighbor_info.pop(0)
+                for ifaddr in ifaddresses[1:]:
+                    data.append(["", "", ifaddr[1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                    neighbor_info.pop(0)
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
@@ -1738,13 +1853,6 @@ def pcieinfo(check, verbose):
         cmd = "pcieutil pcie_check"
     run_command(cmd, display_cmd=verbose)
 
-# 'firmware' subcommand ("show platform firmware")
-@platform.command()
-def firmware():
-    """Show firmware status information"""
-    cmd = "fwutil show status"
-    run_command(cmd)
-
 # 'fan' subcommand ("show platform fan")
 @platform.command()
 def fan():
@@ -1758,7 +1866,25 @@ def temperature():
     """Show device temperature information"""
     cmd = 'tempershow'
     run_command(cmd)
-    
+
+# 'firmware' subcommand ("show platform firmware")
+@platform.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def firmware(args):
+    """Show firmware information"""
+    cmd = "fwutil show {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
 #
 # 'logging' command ("show logging")
 #
@@ -2596,7 +2722,7 @@ def ecn():
 @cli.command('boot')
 def boot():
     """Show boot configuration"""
-    cmd = "sudo sonic_installer list"
+    cmd = "sudo sonic-installer list"
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 
@@ -2635,7 +2761,8 @@ def reboot_cause():
 # 'line' command ("show line")
 #
 @cli.command('line')
-def line():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def line(verbose):
     """Show all /dev/ttyUSB lines and their info"""
     cmd = "consutil show"
     run_command(cmd, display_cmd=verbose)
@@ -2842,6 +2969,43 @@ def pool(verbose):
     cmd = "sudo natconfig -p"
     run_command(cmd, display_cmd=verbose)
 
+# Define GEARBOX commands only if GEARBOX is configured
+app_db = SonicV2Connector(host='127.0.0.1')
+app_db.connect(app_db.APPL_DB) 
+if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
+
+    @cli.group(cls=AliasedGroup)
+    def gearbox():
+        """Show gearbox info"""
+        pass
+
+    # 'phys' subcommand ("show gearbox phys")
+    @gearbox.group(cls=AliasedGroup)
+    def phys():
+        """Show external PHY information"""
+        pass
+
+    # 'status' subcommand ("show gearbox phys status")
+    @phys.command()
+    @click.pass_context
+    def status(ctx):
+        """Show gearbox phys status"""
+        run_command("gearboxutil phys status")
+        return
+
+    # 'interfaces' subcommand ("show gearbox interfaces")
+    @gearbox.group(cls=AliasedGroup)
+    def interfaces():
+        """Show gearbox interfaces information"""
+        pass
+
+    # 'status' subcommand ("show gearbox interfaces status")
+    @interfaces.command()
+    @click.pass_context
+    def status(ctx):
+        """Show gearbox interfaces status"""
+        run_command("gearboxutil interfaces status")
+        return
 
 # 'bindings' subcommand  ("show nat config bindings")
 @config.command()

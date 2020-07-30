@@ -49,9 +49,11 @@ setup(
         'pddf_ledutil',
         'show',
         'sonic_installer',
+        'sonic_installer.bootloader',
         'sonic-utilities-tests',
         'undebug',
         'utilities_common',
+        'watchdogutil',
     ],
     package_data={
         'show': ['aliases.ini'],
@@ -76,6 +78,7 @@ setup(
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/filter_fdb_entries.py',
+        'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',
@@ -132,8 +135,10 @@ setup(
             'pddf_ledutil = pddf_ledutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
-            'sonic_installer = sonic_installer.main:cli',
+            'sonic-installer = sonic_installer.main:sonic_installer',
+            'sonic_installer = sonic_installer.main:sonic_installer',  # Deprecated
             'undebug = undebug.main:cli',
+            'watchdogutil = watchdogutil.main:watchdogutil',
         ]
     },
     # NOTE: sonic-utilities also depends on other packages that are either only
@@ -147,7 +152,8 @@ setup(
     # - tabulate
     install_requires=[
         'click',
-        'natsort'
+        'natsort',
+        'm2crypto'
     ],
     setup_requires= [
         'pytest-runner'
