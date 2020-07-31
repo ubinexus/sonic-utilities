@@ -692,12 +692,12 @@ def _get_disabled_services_list():
                 log_warning("Feature is None")
                 continue
 
-            status = feature_table[feature_name]['status']
-            if not status:
-                log_warning("Status of feature '{}' is None".format(feature_name))
+            state = feature_table[feature_name]['state']
+            if not state:
+                log_warning("Enable state of feature '{}' is None".format(feature_name))
                 continue
 
-            if status == "disabled":
+            if state == "disabled":
                 disabled_services_list.append(feature_name)
     else:
         log_warning("Unable to retreive FEATURE table")
@@ -3780,40 +3780,41 @@ def feature():
 #
 # 'feature' command ('config feature state ...')
 #
-@feature.command('state')
+@feature.command('state', short_help="Enable/disable a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
-@click.argument('state', metavar='<feature-state>', required=True, type=click.Choice(["enabled", "disabled"]))
+@click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
 def feature_state(name, state):
-    """ Configure status of feature"""
+    """Enable/disable a feature"""
     config_db = ConfigDBConnector()
     config_db.connect()
-    status_data = config_db.get_entry('FEATURE', name)
+    state_data = config_db.get_entry('FEATURE', name)
 
-    if not status_data:
+    if not state_data:
         click.echo(" Feature '{}' doesn't exist".format(name))
         return
 
-    config_db.mod_entry('FEATURE', name, {'status': state})
+    config_db.mod_entry('FEATURE', name, {'state': state})
 
 #
 # 'autorestart' subcommand ('config feature autorestart ...')
 #
-@feature.command(name='autorestart', short_help="Configure the autosrestart status for a feature")
+@feature.command(name='autorestart', short_help="Enable/disable autosrestart of a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
-@click.argument('autorestart_status', metavar='<feature-status>', required=True, type=click.Choice(["enabled", "disabled"]))
-def feature_autorestart(name, autorestart_status):
+@click.argument('autorestart', metavar='<autorestart>', required=True, type=click.Choice(["enabled", "disabled"]))
+def feature_autorestart(name, autorestart):
+    """Enable/disable autorestart of a feature"""
     config_db = ConfigDBConnector()
     config_db.connect()
-    container_feature_table = config_db.get_table('FEATURE')
-    if not container_feature_table:
+    feature_table = config_db.get_table('FEATURE')
+    if not feature_table:
         click.echo("Unable to retrieve feature table from Config DB.")
         return
 
-    if not container_feature_table.has_key(name):
+    if not feature_table.has_key(name):
         click.echo("Unable to retrieve feature '{}'".format(name))
         return
 
-    config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart_status})
+    config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
     config()

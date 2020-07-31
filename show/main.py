@@ -3059,25 +3059,25 @@ def feature():
     pass
 
 #
-# 'status' subcommand (show feature status)
+# 'state' subcommand (show feature state)
 #
-@feature.command('status', short_help="Show feature status")
+@feature.command('state', short_help="Show feature state")
 @click.argument('feature_name', required=False)
 def autorestart(feature_name):
     config_db = ConfigDBConnector()
     config_db.connect()
-    header = ['Feature', 'Status', 'AutoRestart']
+    header = ['Feature', 'State', 'AutoRestart']
     body = []
     feature_table = config_db.get_table('FEATURE')
     for key in feature_table.keys():
-        body.append([key, feature_table[key]['status']])
+        body.append([key, feature_table[key]['State']])
         body.append([key, feature_table[key]['auto_restart']])
     click.echo(tabulate(body, header))
 
 #
 # 'autorestart' subcommand (show feature autorestart)
 #
-@feature.command('autorestart', short_help="Show auto-restart status for a feature")
+@feature.command('autorestart', short_help="Show auto-restart state for a feature")
 @click.argument('feature_name', required=False)
 def autorestart(feature_name):
     config_db = ConfigDBConnector()
