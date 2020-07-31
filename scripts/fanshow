@@ -52,13 +52,13 @@ class FanShow(object):
 
             presence = data_dict[PRESENCE_FIELD_NAME].lower()
             presence = 'Present' if presence == 'true' else 'Not Present'
-            status = data_dict[STATUS_FIELD_NAME].lower()
-            if status == 'true':
+            
+            status = data_dict[STATUS_FIELD_NAME]
+            status_lower = status.lower()
+            if status_lower == 'true':
                 status = 'OK'
-            elif status == 'false':
+            elif status_lower == 'false':
                 status = 'Not OK'
-            else:
-                status = 'N/A'
 
             table.append((data_dict[DRAWER_FIELD_NAME], data_dict[LED_STATUS_FIELD_NAME], name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, 
                           data_dict[TIMESTAMP_FIELD_NAME]))
