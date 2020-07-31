@@ -16,7 +16,7 @@ import click
 from swsssdk import SonicV2Connector
 
 from .bootloader import get_bootloader
-from .common import run_command
+from .common import run_command, run_command_output
 
 
 # Global Config object
@@ -212,37 +212,48 @@ def update_sonic_environment(click, binary_image_version):
     """Prepare sonic environment variable using incoming image template file. If incoming image template does not exist
        use current image template file.
     """
-    sonic_env_template_file = "/usr/share/sonic/templates/sonic-environment.j2"
+    def mount_next_image_fs(squashfs_path, mount_point):
+        run_command("mkdir -p {0}".format(mount_point))
+        run_command("mount -t squashfs {0} {1}".format(squashfs_path, mount_point))
+
+    def umount_next_image_fs(mount_point):
+        run_command("umount -rf {0}".format(mount_point))
+        run_command("rm -rf {0}".format(mount_point))
+
+    SONIC_ENV_TEMPLATE_FILE = os.path.join("usr", "share", "sonic", "templates", "sonic-environment.j2")
+    SONIC_VERSION_YML_FILE = os.path.join("etc", "sonic", "sonic_version.yml")
+
     sonic_version = re.sub("SONiC-OS-", '', binary_image_version)
-    new_image_squashfs_path = "/host/image-{0}/fs.squashfs".format(sonic_version)
-    new_image_mount = "/tmp/image-{0}-fs".format(sonic_version)
+    new_image_dir = os.path.join('/', "host", "image-{0}".format(sonic_version))
+    new_image_squashfs_path = os.path.join(new_image_dir, "fs.squashfs")
+    new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
 
-    run_command("mkdir -p {0}".format(new_image_mount))
-    run_command("mount -t squashfs {0} {1}".format(new_image_squashfs_path, new_image_mount))
+    mount_next_image_fs(new_image_squashfs_path, new_image_mount)
 
-    if os.path.exists(os.path.join(new_image_mount, sonic_env_template_file)):
-        sonic_env_template_file = os.path.join(new_image_mount, sonic_env_template_file)
+    next_sonic_env_template_file = os.path.join(new_image_mount, SONIC_ENV_TEMPLATE_FILE)
+    next_sonic_version_yml_file = os.path.join(new_image_mount, SONIC_VERSION_YML_FILE)
 
-    if os.path.exists(sonic_env_template_file):
+    if not os.path.exists(next_sonic_env_template_file) or not os.path.exists(next_sonic_version_yml_file):
+        click.echo("SONiC environment file was not found on incoming image. Aborting...")
+        umount_next_image_fs(new_image_mount)
+        raise click.Abort()
+
+    try:
         sonic_env = run_command_output(
                 "sonic-cfggen"
                 " -d"
                 " -y"
-                " /etc/sonic/sonic_version.yml"
-                " -a"
-                " '{{\"build_version\":\"{0}\"}}'"
-                " -t{1}".format(sonic_version, sonic_env_template_file)
+                " {0}"
+                " -t{1}".format(next_sonic_version_yml_file, next_sonic_env_template_file)
         )
-        sonic_image_dir = "image-" + sonic_version
-        env_dir = "/host/" + sonic_image_dir + "/sonic-config"
+        env_dir = os.path.join(new_image_dir, "sonic-config")
         os.mkdir(env_dir, 0o755)
-        env_file = env_dir + "/sonic-environment"
+        env_file = os.path.join(env_dir, "sonic-environment")
         with open(env_file, "w+") as ef:
             print >>ef, sonic_env
         os.chmod(env_file, 0o644)
-
-    run_command("umount -rf {0}".format(new_image_mount))
-    run_command("rm -rf {0}".format(new_image_mount))
+    finally:
+        umount_next_image_fs(new_image_mount)
 
 # Main entrypoint
 @click.group(cls=AliasedGroup)
