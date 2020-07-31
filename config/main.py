@@ -3778,7 +3778,7 @@ def feature():
     pass
 
 #
-# 'feature' command ('config feature state ...')
+# 'state' command ('config feature state ...')
 #
 @feature.command('state', short_help="Enable/disable a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
@@ -3796,7 +3796,7 @@ def feature_state(name, state):
     config_db.mod_entry('FEATURE', name, {'state': state})
 
 #
-# 'autorestart' subcommand ('config feature autorestart ...')
+# 'autorestart' command ('config feature autorestart ...')
 #
 @feature.command(name='autorestart', short_help="Enable/disable autosrestart of a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
