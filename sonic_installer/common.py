@@ -24,18 +24,14 @@ def run_command(command):
     if proc.returncode != 0:
         sys.exit(proc.returncode)
 
-# Run bash command, print output to stdout and return output on success
-def run_command_output(command):
-    click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+# Run bash command and return output, raise if it fails
+def run_command_or_raise(argv):
+    click.echo(click.style("Command: ", fg='cyan') + click.style(' '.join(argv), fg='green'))
 
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, _) = proc.communicate()
-
-    click.echo(out)
+    proc = subprocess.Popen(argv, stdout=subprocess.PIPE)
+    out, _ = proc.communicate()
 
     if proc.returncode != 0:
-        click.echo(click.style("FAILED!", fg='red'))
-        sys.exit(proc.returncode)
+        raise Exception("Failed to run command '{0}'".format(argv))
 
-    return out
-
+    return out.rstrip("\n")
