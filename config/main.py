@@ -315,8 +315,6 @@ def validate_namespace(namespace):
 def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
     """
-    port_dict = config_db.get_table('PORT')
-
     vlan_id = ""
     sub_intf_sep_idx = -1
     if interface_alias is not None:
@@ -325,6 +323,19 @@ def interface_alias_to_name(config_db, interface_alias):
             vlan_id = interface_alias[sub_intf_sep_idx + 1:]
             # interface_alias holds the parent port name so the subsequent logic still applies
             interface_alias = interface_alias[:sub_intf_sep_idx]
+
+    # If the input parameter config_db is None, derive it from interface.
+    # In single ASIC platform, get_port_namespace() returns DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = get_port_namespace(interface_alias)
+        if namespace is None:
+            return None
+
+        db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        db.connect()
+    else:
+        db = config_db
+    port_dict = db.get_table('PORT')
 
     if interface_alias is not None:
         if not port_dict:
@@ -338,16 +349,26 @@ def interface_alias_to_name(config_db, interface_alias):
     # portchannel is passed in as argument, which does not have an alias
     return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
-
 def interface_name_is_valid(config_db, interface_name):
     """Check if the interface name is valid
     """
-    port_dict = config_db.get_table('PORT')
-    port_channel_dict = config_db.get_table('PORTCHANNEL')
-    sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
+    # If the input parameter config_db is None, derive it from interface.
+    # In single ASIC platform, get_port_namespace() returns DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = get_port_namespace(interface_name)
+        if namespace is None:
+            return False
+
+        db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        db.connect()
+    else:
+        db = config_db
+    port_dict = db.get_table('PORT')
+    port_channel_dict = db.get_table('PORTCHANNEL')
+    sub_port_intf_dict = db.get_table('VLAN_SUB_INTERFACE')
 
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
+        interface_name = interface_alias_to_name(db, interface_name)
 
     if interface_name is not None:
         if not port_dict:
@@ -369,7 +390,18 @@ def interface_name_is_valid(config_db, interface_name):
 def interface_name_to_alias(config_db, interface_name):
     """Return alias interface name if default name is given as argument
     """
-    port_dict = config_db.get_table('PORT')
+    # If the input parameter config_db is None, derive it from interface.
+    # In single ASIC platform, get_port_namespace() returns DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = get_port_namespace(interface_name)
+        if namespace is None:
+            return None
+
+        db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        db.connect()
+    else:
+        db = config_db
+    port_dict = db.get_table('PORT')
 
     if interface_name is not None:
         if not port_dict:
@@ -436,7 +468,6 @@ def validate_namespace(namespace):
     else:
         return False
 
-# TODO move to sonic-py-common package
 # Get the table name based on the interface type
 def get_port_table_name(interface_name):
     """Get table name by port_name prefix
@@ -456,8 +487,8 @@ def get_port_table_name(interface_name):
     else:
         return ""
 
-# TODO move to sonic-py-common package
 # Return the namespace where an interface belongs
+# The port name input could be in default mode or in alias mode.
 def get_port_namespace(port):
     # If it is a non multi-asic platform, or if the interface is management interface
     # return DEFAULT_NAMESPACE
@@ -474,9 +505,18 @@ def get_port_namespace(port):
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
-        entry = config_db.get_entry(table_name, port)
-        if entry:
-            return namespace
+
+        # If the interface naming mode is alias, search the tables for alias_name.
+        if get_interface_naming_mode() == "alias":
+            port_dict = config_db.get_table(table_name)
+            if port_dict:
+                for port_name in port_dict.keys():
+                    if port == port_dict[port_name]['alias']:
+                        return namespace
+        else:
+            entry = config_db.get_entry(table_name, port)
+            if entry:
+                return namespace
 
     return None
 
@@ -1359,6 +1399,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
     db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
 
+
 #
 # 'mirror_session' group ('config mirror_session ...')
 #
@@ -1409,7 +1450,7 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_p
     """ Add ERSPAN mirror session """
     add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer, src_port, direction)
 
-def gather_session_info(config_db, session_info, policer, queue, src_port, direction):
+def gather_session_info(session_info, policer, queue, src_port, direction):
     if policer:
         session_info['policer'] = policer
 
@@ -1420,7 +1461,7 @@ def gather_session_info(config_db, session_info, policer, queue, src_port, direc
         if clicommon.get_interface_naming_mode() == "alias":
             src_port_list = []
             for port in src_port.split(","):
-                src_port_list.append(interface_alias_to_name(config_db, port))
+                src_port_list.append(interface_alias_to_name(None, port))
             src_port=",".join(src_port_list)
 
         session_info['src_port'] = src_port
@@ -1442,6 +1483,8 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     if gre_type:
         session_info['gre_type'] = gre_type
 
+    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
@@ -1449,7 +1492,6 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
-        session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
         if validate_mirror_session_config(config_db, session_name, None, src_port, direction) is False:
             return
         config_db.set_entry("MIRROR_SESSION", session_name, session_info)
@@ -1458,12 +1500,8 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
         for front_asic_namespaces in namespaces['front_ns']:
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
-            # TODO Need to work on API's gather_session_info/validate_mirror_session_config to support multi-asic
-            # as src_port which is a list of ports, dst_port all could be in different asics ? 
-            session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
             if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, None, src_port, direction) is False:
                 return
-
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
 
 @mirror_session.group(cls=clicommon.AbbreviationGroup, name='span')
@@ -1500,6 +1538,8 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
             "dst_port": dst_port,
             }
 
+    session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
@@ -1507,7 +1547,6 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
-        session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
         if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
             return
         config_db.set_entry("MIRROR_SESSION", session_name, session_info)
@@ -1516,12 +1555,8 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
         for front_asic_namespaces in namespaces['front_ns']:
             per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_npu_configdb[front_asic_namespaces].connect()
-            # TODO Need to work on API's gather_session_info/validate_mirror_session_config to support multi-asic
-            # as src_port which is a list of ports, dst_port all could be in different asics ? 
-            session_info = gather_session_info(config_db, session_info, policer, queue, src_port, direction)
             if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
                 return
-
             per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
 
 
