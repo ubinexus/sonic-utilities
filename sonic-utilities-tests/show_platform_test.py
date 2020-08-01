@@ -21,15 +21,14 @@ TEST_ASIC_TYPE = "mellanox"
 
 """
     Note: The following 'show platform' commands simply call other SONiC
-    CLI utilities, so the unit tests for the other utilities will cover
-    testing their functionality:
+    CLI utilities, so the unit tests for the other utilities are expected
+    to cover testing their functionality:
 
         show platform fan
         show platform firmware
         show platform mlnx
         show platform psustatus
         show platform ssdhealth
-        show platform summary
         show platform syseeprom
         show platform temperature
 """
