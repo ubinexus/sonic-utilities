@@ -2,8 +2,9 @@ import os
 import sys
 import textwrap
 
+import mock
 from click.testing import CliRunner
-from unittest import TestCase, mock
+from unittest import TestCase
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
