@@ -1778,19 +1778,13 @@ def get_hw_info_dict():
     This function is used to get the HW info helper function
     """
     hw_info_dict = {}
-    platform = device_info.get_platform()
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('DEVICE_METADATA')
-    try:
-        hwsku = data['localhost']['hwsku']
-    except KeyError:
-        hwsku = "Unknown"
+
     version_info = device_info.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-    hw_info_dict['platform'] = platform
-    hw_info_dict['hwsku'] = hwsku
-    hw_info_dict['asic_type'] = asic_type
+
+    hw_info_dict['platform'] = device_info.get_platform()
+    hw_info_dict['hwsku'] = device_info.get_hwsku()
+    hw_info_dict['asic_type'] = version_info['asic_type']
+
     return hw_info_dict
 
 @cli.group(cls=AliasedGroup)
