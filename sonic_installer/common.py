@@ -8,6 +8,8 @@ import sys
 
 import click
 
+from .exception import SonicRuntimeException
+
 HOST_PATH = '/host'
 IMAGE_PREFIX = 'SONiC-OS-'
 IMAGE_DIR_PREFIX = 'image-'
@@ -32,6 +34,6 @@ def run_command_or_raise(argv):
     out, _ = proc.communicate()
 
     if proc.returncode != 0:
-        raise Exception("Failed to run command '{0}'".format(argv))
+        raise SonicRuntimeException("Failed to run command '{0}'".format(argv))
 
     return out.rstrip("\n")

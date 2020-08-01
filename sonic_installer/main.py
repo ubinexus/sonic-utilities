@@ -16,7 +16,8 @@ import click
 from swsssdk import SonicV2Connector
 
 from .bootloader import get_bootloader
-from .common import run_command, run_command_output
+from .common import run_command, run_command_or_raise
+from .exception import SonicRuntimeException
 
 
 # Global Config object
@@ -227,6 +228,8 @@ def update_sonic_environment(click, binary_image_version):
     new_image_dir = os.path.join('/', "host", "image-{0}".format(sonic_version))
     new_image_squashfs_path = os.path.join(new_image_dir, "fs.squashfs")
     new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
+    env_dir = os.path.join(new_image_dir, "sonic-config")
+    env_file = os.path.join(env_dir, "sonic-environment")
 
     try:
         mount_next_image_fs(new_image_squashfs_path, new_image_mount)
@@ -242,14 +245,16 @@ def update_sonic_environment(click, binary_image_version):
                 "-t",
                 next_sonic_env_template_file,
         ])
-        env_dir = os.path.join(new_image_dir, "sonic-config")
         os.mkdir(env_dir, 0o755)
-        env_file = os.path.join(env_dir, "sonic-environment")
         with open(env_file, "w+") as ef:
             print >>ef, sonic_env
         os.chmod(env_file, 0o644)
-    except Exception as ex:
-        pass
+    except SonicRuntimeException as ex:
+        click.secho("Warning: SONiC environment variables are not supported for this image: {0}".format(str(ex)),
+                    fg="red", err=True)
+        if os.path.exists(env_file):
+            os.remove(env_file)
+            os.rmdir(env_dir)
     finally:
         umount_next_image_fs(new_image_mount)
 
