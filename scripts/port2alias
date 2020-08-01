@@ -34,7 +34,7 @@ def translate_line(line, ports):
     return sb.getvalue()
 
 def main():
-    (platform, hwsku) = device_info.get_platform_hwsku()
+    (platform, hwsku) = device_info.get_platform_and_hwsku()
     (ports, _) = get_port_config(hwsku, platform)
     for line in sys.stdin:
         sys.stdout.write(translate_line(line, ports))
