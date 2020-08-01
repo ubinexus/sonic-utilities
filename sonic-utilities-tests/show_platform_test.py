@@ -36,7 +36,7 @@ class TestShowPlatform(TestCase):
             ASIC: {}
             """.format(TEST_PLATFORM, TEST_HWSKU, TEST_ASIC_TYPE)
 
-        with mock.patch("show.get_hw_info_dict",
+        with mock.patch("show.main.get_hw_info_dict",
                         return_value={"platform": TEST_PLATFORM, "hwsku": TEST_HWSKU, "asic_type": TEST_ASIC_TYPE}):
             result = self.runner.invoke(show.cli.commands["platform"].commands["summary"], [])
             assert result.output == textwrap.dedent(expected_output)
