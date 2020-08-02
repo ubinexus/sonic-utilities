@@ -31,6 +31,8 @@ PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
+config_db = None
+
 try:
     # noinspection PyPep8Naming
     import ConfigParser as configparser
@@ -3059,19 +3061,24 @@ def feature():
     pass
 
 #
-# 'state' subcommand (show feature state)
+# 'state' subcommand (show feature status)
 #
-@feature.command('state', short_help="Show feature state")
+@feature.command('status', short_help="Show feature state")
 @click.argument('feature_name', required=False)
 def autorestart(feature_name):
-    config_db = ConfigDBConnector()
-    config_db.connect()
     header = ['Feature', 'State', 'AutoRestart']
     body = []
     feature_table = config_db.get_table('FEATURE')
-    for key in feature_table.keys():
-        body.append([key, feature_table[key]['State']])
-        body.append([key, feature_table[key]['auto_restart']])
+    if feature_name:
+        if feature_table and feature_table.has_key(feature_name):
+            body.append([feature_name, feature_table[feature_name]['state'], \
+                         feature_table[feature_name]['auto_restart']])
+        else:
+            click.echo("Can not find feature {}".format(feature_name))
+            sys.exit(1)
+    else:
+        for key in natsorted(feature_table.keys()):
+            body.append([key, feature_table[key]['state'], feature_table[key]['auto_restart']])
     click.echo(tabulate(body, header))
 
 #
@@ -3080,16 +3087,17 @@ def autorestart(feature_name):
 @feature.command('autorestart', short_help="Show auto-restart state for a feature")
 @click.argument('feature_name', required=False)
 def autorestart(feature_name):
-    config_db = ConfigDBConnector()
-    config_db.connect()
     header = ['Feature', 'AutoRestart']
     body = []
     feature_table = config_db.get_table('FEATURE')
     if feature_name:
-        if feature_table and feature_table.has_key(feature):
+        if feature_table and feature_table.has_key(feature_name):
             body.append([feature_name, feature_table[feature_name]['auto_restart']])
+        else:
+            click.echo("Can not find feature {}".format(feature_name))
+            sys.exit(1)
     else:
-        for name in feature_table.keys():
+        for name in natsorted(feature_table.keys()):
             body.append([name, feature_table[name]['auto_restart']])
     click.echo(tabulate(body, header))
 
@@ -3413,4 +3421,8 @@ def tunnel():
     click.echo(tabulate(table, header))
 
 if __name__ == '__main__':
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
     cli()

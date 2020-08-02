@@ -48,6 +48,10 @@ CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
+
+asic_type = None
+config_db = None
+
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -111,17 +115,6 @@ class AbbreviationGroup(click.Group):
                 return click.Group.get_command(self, ctx, shortest)
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
-
-
-#
-# Load asic_type for further use
-#
-
-try:
-    version_info = sonic_device_util.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-except (KeyError, TypeError):
-    raise click.Abort()
 
 #
 # Load breakout config file for Dynamic Port Breakout
@@ -3202,9 +3195,6 @@ def priority(ctx, interface_name, priority, status):
 def platform():
     """Platform-related configuration tasks"""
 
-if asic_type == 'mellanox':
-    platform.add_command(mlnx.mlnx)
-
 # 'firmware' subgroup ("config platform firmware ...")
 @platform.group(cls=AbbreviationGroup)
 def firmware():
@@ -3785,13 +3775,11 @@ def feature():
 @click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
 def feature_state(name, state):
     """Enable/disable a feature"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
     state_data = config_db.get_entry('FEATURE', name)
 
     if not state_data:
-        click.echo(" Feature '{}' doesn't exist".format(name))
-        return
+        click.echo("Feature '{}' doesn't exist".format(name))
+        sys.exit(1)
 
     config_db.mod_entry('FEATURE', name, {'state': state})
 
@@ -3803,18 +3791,31 @@ def feature_state(name, state):
 @click.argument('autorestart', metavar='<autorestart>', required=True, type=click.Choice(["enabled", "disabled"]))
 def feature_autorestart(name, autorestart):
     """Enable/disable autorestart of a feature"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
     feature_table = config_db.get_table('FEATURE')
     if not feature_table:
         click.echo("Unable to retrieve feature table from Config DB.")
-        return
+        sys.exit(1)
 
     if not feature_table.has_key(name):
         click.echo("Unable to retrieve feature '{}'".format(name))
-        return
+        sys.exit(1)
 
     config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
+    #
+    # Load asic_type for further use
+    #
+    try:
+        version_info = sonic_device_util.get_sonic_version_info()
+        asic_type = version_info['asic_type']
+    except KeyError, TypeError:
+        raise click.Abort()
+
+    if asic_type == 'mellanox':
+        platform.add_command(mlnx.mlnx)
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
     config()
