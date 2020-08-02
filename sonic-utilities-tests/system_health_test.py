@@ -76,34 +76,232 @@ class TestHealth(object):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
         click.echo(result.output)
-        expected = """System is currently booting...\n"""
+        expected = """System is currently booting...
+"""
         assert result.output == expected
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
-        expected = """System status summary\n\n  System status LED  red\n  Services:\n    Status: Not OK\n    Not Running: 'telemetry', 'snmp_subagent'\n  Hardware:\n    Status: OK\n"""
+        expected = """System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'snmp_subagent'
+  Hardware:
+    Status: OK
+"""
         click.echo(result.output)
         assert result.output == expected
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
         click.echo(result.output)
-        expected = """System status summary\n\n  System status LED  green\n  Services:\n    Status: OK\n  Hardware:\n    Status: OK\n"""
+        expected = """System status summary
+
+  System status LED  green
+  Services:
+    Status: OK
+  Hardware:
+    Status: OK
+"""
         assert result.output == expected
    
     def test_health_monitor(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["monitor-list"])
         click.echo(result.output)
-        expected = """\nSystem services and devices monitor list\n\nName            Status    Type\n--------------  --------  ----------\ntelemetry       Not OK    Process\nsflowmgrd       Not OK    Process\nneighsyncd      OK        Process\nvrfmgrd         OK        Process\ndialout_client  OK        Process\nzebra           OK        Process\nrsyslog         OK        Process\nsnmpd           OK        Process\nredis_server    OK        Process\nintfmgrd        OK        Process\norchagent       OK        Process\nvxlanmgrd       OK        Process\nlldpd_monitor   OK        Process\nportsyncd       OK        Process\nvar-log         OK        Filesystem\nlldpmgrd        OK        Process\nsyncd           OK        Process\nsonic           OK        System\nbuffermgrd      OK        Process\nportmgrd        OK        Process\nstaticd         OK        Process\nvlanmgrd        OK        Process\nlldp_syncd      OK        Process\nbgpcfgd         OK        Process\nsnmp_subagent   OK        Process\nroot-overlay    OK        Filesystem\nfpmsyncd        OK        Process\nbgpd            OK        Process\nnbrmgrd         OK        Process\nfan12           OK        Fan\npsu_1_fan_1     OK        Fan\npsu_2_fan_1     OK        Fan\nfan11           OK        Fan\nfan10           OK        Fan\nPSU 2           OK        PSU\nASIC            OK        ASIC\nfan1            OK        Fan\nPSU 1           OK        PSU\nfan3            OK        Fan\nfan2            OK        Fan\nfan5            OK        Fan\nfan4            OK        Fan\nfan7            OK        Fan\nfan6            OK        Fan\nfan9            OK        Fan\nfan8            OK        Fan\n"""
+        expected = """
+System services and devices monitor list
+
+Name            Status    Type
+--------------  --------  ----------
+telemetry       Not OK    Process
+sflowmgrd       Not OK    Process
+neighsyncd      OK        Process
+vrfmgrd         OK        Process
+dialout_client  OK        Process
+zebra           OK        Process
+rsyslog         OK        Process
+snmpd           OK        Process
+redis_server    OK        Process
+intfmgrd        OK        Process
+orchagent       OK        Process
+vxlanmgrd       OK        Process
+lldpd_monitor   OK        Process
+portsyncd       OK        Process
+var-log         OK        Filesystem
+lldpmgrd        OK        Process
+syncd           OK        Process
+sonic           OK        System
+buffermgrd      OK        Process
+portmgrd        OK        Process
+staticd         OK        Process
+vlanmgrd        OK        Process
+lldp_syncd      OK        Process
+bgpcfgd         OK        Process
+snmp_subagent   OK        Process
+root-overlay    OK        Filesystem
+fpmsyncd        OK        Process
+bgpd            OK        Process
+nbrmgrd         OK        Process
+fan12           OK        Fan
+psu_1_fan_1     OK        Fan
+psu_2_fan_1     OK        Fan
+fan11           OK        Fan
+fan10           OK        Fan
+PSU 2           OK        PSU
+ASIC            OK        ASIC
+fan1            OK        Fan
+PSU 1           OK        PSU
+fan3            OK        Fan
+fan2            OK        Fan
+fan5            OK        Fan
+fan4            OK        Fan
+fan7            OK        Fan
+fan6            OK        Fan
+fan9            OK        Fan
+fan8            OK        Fan
+"""
         assert result.output == expected
 
     def test_health_detail(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["detail"])
         click.echo(result.output)
-        expected = """System status summary\n\n  System status LED  red\n  Services:\n    Status: Not OK\n    Not Running: 'telemetry', 'sflowmgrd'\n  Hardware:\n    Status: Not OK\n    Reasons: Failed to get voltage minimum threshold data for PSU 1\n\t     Failed to get voltage minimum threshold data for PSU 2\n\nSystem services and devices monitor list\n\nName            Status    Type\n--------------  --------  ----------\ntelemetry       Not OK    Process\nsflowmgrd       Not OK    Process\nneighsyncd      OK        Process\nvrfmgrd         OK        Process\ndialout_client  OK        Process\nzebra           OK        Process\nrsyslog         OK        Process\nsnmpd           OK        Process\nredis_server    OK        Process\nintfmgrd        OK        Process\norchagent       OK        Process\nvxlanmgrd       OK        Process\nlldpd_monitor   OK        Process\nportsyncd       OK        Process\nvar-log         OK        Filesystem\nlldpmgrd        OK        Process\nsyncd           OK        Process\nsonic           OK        System\nbuffermgrd      OK        Process\nportmgrd        OK        Process\nstaticd         OK        Process\nvlanmgrd        OK        Process\nlldp_syncd      OK        Process\nbgpcfgd         OK        Process\nsnmp_subagent   OK        Process\nroot-overlay    OK        Filesystem\nfpmsyncd        OK        Process\nbgpd            OK        Process\nnbrmgrd         OK        Process\nPSU 2           Not OK    PSU\nPSU 1           Not OK    PSU\nfan12           OK        Fan\npsu_1_fan_1     OK        Fan\npsu_2_fan_1     OK        Fan\nfan11           OK        Fan\nfan10           OK        Fan\nASIC            OK        ASIC\nfan1            OK        Fan\nfan3            OK        Fan\nfan2            OK        Fan\nfan5            OK        Fan\nfan4            OK        Fan\nfan7            OK        Fan\nfan6            OK        Fan\nfan9            OK        Fan\nfan8            OK        Fan\n\nSystem services and devices ignore list\n\nName    Status    Type\n------  --------  ------\n"""
+        expected = """System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'sflowmgrd'
+  Hardware:
+    Status: Not OK
+    Reasons: Failed to get voltage minimum threshold data for PSU 1
+	     Failed to get voltage minimum threshold data for PSU 2
+
+System services and devices monitor list
+
+Name            Status    Type
+--------------  --------  ----------
+telemetry       Not OK    Process
+sflowmgrd       Not OK    Process
+neighsyncd      OK        Process
+vrfmgrd         OK        Process
+dialout_client  OK        Process
+zebra           OK        Process
+rsyslog         OK        Process
+snmpd           OK        Process
+redis_server    OK        Process
+intfmgrd        OK        Process
+orchagent       OK        Process
+vxlanmgrd       OK        Process
+lldpd_monitor   OK        Process
+portsyncd       OK        Process
+var-log         OK        Filesystem
+lldpmgrd        OK        Process
+syncd           OK        Process
+sonic           OK        System
+buffermgrd      OK        Process
+portmgrd        OK        Process
+staticd         OK        Process
+vlanmgrd        OK        Process
+lldp_syncd      OK        Process
+bgpcfgd         OK        Process
+snmp_subagent   OK        Process
+root-overlay    OK        Filesystem
+fpmsyncd        OK        Process
+bgpd            OK        Process
+nbrmgrd         OK        Process
+PSU 2           Not OK    PSU
+PSU 1           Not OK    PSU
+fan12           OK        Fan
+psu_1_fan_1     OK        Fan
+psu_2_fan_1     OK        Fan
+fan11           OK        Fan
+fan10           OK        Fan
+ASIC            OK        ASIC
+fan1            OK        Fan
+fan3            OK        Fan
+fan2            OK        Fan
+fan5            OK        Fan
+fan4            OK        Fan
+fan7            OK        Fan
+fan6            OK        Fan
+fan9            OK        Fan
+fan8            OK        Fan
+
+System services and devices ignore list
+
+Name    Status    Type
+------  --------  ------
+"""
         assert result.output == expected
         MockerConfig.ignore_devices.insert(0, "psu.voltage")
         result = runner.invoke(show.cli.commands["system-health"].commands["detail"])
         click.echo(result.output)
-        expected = """System status summary\n\n  System status LED  red\n  Services:\n    Status: Not OK\n    Not Running: 'telemetry', 'sflowmgrd'\n  Hardware:\n    Status: OK\n\nSystem services and devices monitor list\n\nName            Status    Type\n--------------  --------  ----------\ntelemetry       Not OK    Process\nsflowmgrd       Not OK    Process\nneighsyncd      OK        Process\nvrfmgrd         OK        Process\ndialout_client  OK        Process\nzebra           OK        Process\nrsyslog         OK        Process\nsnmpd           OK        Process\nredis_server    OK        Process\nintfmgrd        OK        Process\norchagent       OK        Process\nvxlanmgrd       OK        Process\nlldpd_monitor   OK        Process\nportsyncd       OK        Process\nvar-log         OK        Filesystem\nlldpmgrd        OK        Process\nsyncd           OK        Process\nsonic           OK        System\nbuffermgrd      OK        Process\nportmgrd        OK        Process\nstaticd         OK        Process\nvlanmgrd        OK        Process\nlldp_syncd      OK        Process\nbgpcfgd         OK        Process\nsnmp_subagent   OK        Process\nroot-overlay    OK        Filesystem\nfpmsyncd        OK        Process\nbgpd            OK        Process\nnbrmgrd         OK        Process\nfan12           OK        Fan\npsu_1_fan_1     OK        Fan\npsu_2_fan_1     OK        Fan\nfan11           OK        Fan\nfan10           OK        Fan\nPSU 2           OK        PSU\nASIC            OK        ASIC\nfan1            OK        Fan\nPSU 1           OK        PSU\nfan3            OK        Fan\nfan2            OK        Fan\nfan5            OK        Fan\nfan4            OK        Fan\nfan7            OK        Fan\nfan6            OK        Fan\nfan9            OK        Fan\nfan8            OK        Fan\n\nSystem services and devices ignore list\n\nName         Status    Type\n-----------  --------  ------\npsu.voltage  Ignored   Device\n"""
+        expected = """System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'sflowmgrd'
+  Hardware:
+    Status: OK
+
+System services and devices monitor list
+
+Name            Status    Type
+--------------  --------  ----------
+telemetry       Not OK    Process
+sflowmgrd       Not OK    Process
+neighsyncd      OK        Process
+vrfmgrd         OK        Process
+dialout_client  OK        Process
+zebra           OK        Process
+rsyslog         OK        Process
+snmpd           OK        Process
+redis_server    OK        Process
+intfmgrd        OK        Process
+orchagent       OK        Process
+vxlanmgrd       OK        Process
+lldpd_monitor   OK        Process
+portsyncd       OK        Process
+var-log         OK        Filesystem
+lldpmgrd        OK        Process
+syncd           OK        Process
+sonic           OK        System
+buffermgrd      OK        Process
+portmgrd        OK        Process
+staticd         OK        Process
+vlanmgrd        OK        Process
+lldp_syncd      OK        Process
+bgpcfgd         OK        Process
+snmp_subagent   OK        Process
+root-overlay    OK        Filesystem
+fpmsyncd        OK        Process
+bgpd            OK        Process
+nbrmgrd         OK        Process
+fan12           OK        Fan
+psu_1_fan_1     OK        Fan
+psu_2_fan_1     OK        Fan
+fan11           OK        Fan
+fan10           OK        Fan
+PSU 2           OK        PSU
+ASIC            OK        ASIC
+fan1            OK        Fan
+PSU 1           OK        PSU
+fan3            OK        Fan
+fan2            OK        Fan
+fan5            OK        Fan
+fan4            OK        Fan
+fan7            OK        Fan
+fan6            OK        Fan
+fan9            OK        Fan
+fan8            OK        Fan
+
+System services and devices ignore list
+
+Name         Status    Type
+-----------  --------  ------
+psu.voltage  Ignored   Device
+"""
         assert result.output == expected
         
     @classmethod
@@ -111,3 +309,4 @@ class TestHealth(object):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+
