@@ -3421,7 +3421,6 @@ def tunnel():
     click.echo(tabulate(table, header))
 
 if __name__ == '__main__':
-
     config_db = ConfigDBConnector()
     config_db.connect()
 
