@@ -175,5 +175,6 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Topic :: Utilities',
     ],
-    keywords='sonic SONiC utilities command line cli CLI'
+    keywords='sonic SONiC utilities command line cli CLI',
+    test_suite='setup.get_test_suite'
 )
