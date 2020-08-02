@@ -1,8 +1,6 @@
 import sys
 import os
 import mock
-import pytest
-import traceback
 from click.testing import CliRunner
 from swsssdk import ConfigDBConnector
 
@@ -10,7 +8,6 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
 
-import mock_tables.dbconnector
 import show.main as show
 import config.main as config
 
