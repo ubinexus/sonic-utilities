@@ -39,9 +39,6 @@ class TestShowPlatform(TestCase):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
-    def setUp(self):
-        self.runner = CliRunner()
-
     # Test 'show platform summary'
     def test_summary(self):
         expected_output = """\
@@ -52,7 +49,8 @@ class TestShowPlatform(TestCase):
 
         with mock.patch("show.main.get_hw_info_dict",
                         return_value={"platform": TEST_PLATFORM, "hwsku": TEST_HWSKU, "asic_type": TEST_ASIC_TYPE}):
-            result = self.runner.invoke(show.cli.commands["platform"].commands["summary"], [])
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["platform"].commands["summary"], [])
             assert result.output == textwrap.dedent(expected_output)
 
     @classmethod
