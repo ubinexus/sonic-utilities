@@ -1,5 +1,7 @@
-import sys
 import os
+import sys
+
+import shutil
 from click.testing import CliRunner
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -8,7 +10,6 @@ scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
-import mock_tables.dbconnector
 import show.main as show
 import clear.main as clear
 
@@ -79,6 +80,7 @@ class TestDropCounters(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        shutil.rmtree("/tmp/dropstat")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
