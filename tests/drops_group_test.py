@@ -76,11 +76,14 @@ Ethernet8      N/A         0           0         0           0          0       
 sonic_drops_test               0
 """
 
+dropstat_path = "/tmp/dropstat"
+
 class TestDropCounters(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        shutil.rmtree("/tmp/dropstat")
+        if os.path.exists(dropstat_path):
+            shutil.rmtree(dropstat_path)
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
