@@ -886,6 +886,8 @@ def config():
     #
     # Load asic_type for further use
     #
+    global asic_type
+
     try:
         version_info = sonic_device_util.get_sonic_version_info()
         asic_type = version_info['asic_type']
