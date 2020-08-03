@@ -4,11 +4,9 @@ import textwrap
 
 import mock
 from click.testing import CliRunner
-from unittest import TestCase
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
-sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
 import show.main as show
@@ -33,7 +31,7 @@ TEST_ASIC_TYPE = "mellanox"
         show platform temperature
 """
 
-class TestShowPlatform(TestCase):
+class TestShowPlatform(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
