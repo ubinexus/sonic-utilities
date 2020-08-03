@@ -559,7 +559,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'show' command"""
-    pass
+    global config_db
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
 #
 # 'vrf' command ("show vrf")
@@ -3421,7 +3424,4 @@ def tunnel():
     click.echo(tabulate(table, header))
 
 if __name__ == '__main__':
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     cli()

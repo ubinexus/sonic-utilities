@@ -883,6 +883,17 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 @click.group(cls=AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 def config():
     """SONiC command line - 'config' command"""
+    #
+    # Load asic_type for further use
+    #
+    try:
+        version_info = sonic_device_util.get_sonic_version_info()
+        asic_type = version_info['asic_type']
+    except KeyError, TypeError:
+        raise click.Abort()
+
+    if asic_type == 'mellanox':
+        platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
     SonicDBConfig.load_sonic_global_db_config()
@@ -892,6 +903,10 @@ def config():
 
     SonicDBConfig.load_sonic_global_db_config()
 
+    global config_db
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
@@ -3803,19 +3818,4 @@ def feature_autorestart(name, autorestart):
     config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
-    #
-    # Load asic_type for further use
-    #
-    try:
-        version_info = sonic_device_util.get_sonic_version_info()
-        asic_type = version_info['asic_type']
-    except KeyError, TypeError:
-        raise click.Abort()
-
-    if asic_type == 'mellanox':
-        platform.add_command(mlnx.mlnx)
-
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     config()
