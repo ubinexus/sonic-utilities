@@ -2,6 +2,7 @@ import os
 import sys
 
 import mock
+import click
 import pytest
 
 import mock_tables.dbconnector
@@ -48,6 +49,10 @@ generated_services_list = [
     'telemetry.timer']
 
 
+def _dummy_run_command(command, display_cmd=False, return_cmd=False):
+    if display_cmd == True:
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
 @pytest.fixture
 def setup_config_db():
     import config.main as config
@@ -58,6 +63,8 @@ def setup_config_db():
 
     config.config_db = config_db
     show.config_db = config_db
+
+    config.run_command = _dummy_run_command
 
     return (config, show)
 

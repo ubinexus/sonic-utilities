@@ -328,9 +328,6 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
-    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
-        return
-
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     (out, err) = proc.communicate()
 
@@ -341,7 +338,11 @@ def run_command(command, display_cmd=False, ignore_error=False):
         sys.exit(proc.returncode)
 
 def _get_device_type():
-    """Get device type"""
+    """
+    Get device type
+
+    TODO: move to sonic-py-common
+    """
 
     command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
