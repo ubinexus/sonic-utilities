@@ -50,14 +50,14 @@ setup(
         'show',
         'sonic_installer',
         'sonic_installer.bootloader',
-        'sonic-utilities-tests',
+        'tests',
         'undebug',
         'utilities_common',
         'watchdogutil',
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
+        'tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -135,7 +135,8 @@ setup(
             'pddf_ledutil = pddf_ledutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
-            'sonic_installer = sonic_installer.main:cli',
+            'sonic-installer = sonic_installer.main:sonic_installer',
+            'sonic_installer = sonic_installer.main:sonic_installer',  # Deprecated
             'undebug = undebug.main:cli',
             'watchdogutil = watchdogutil.main:watchdogutil',
         ]
