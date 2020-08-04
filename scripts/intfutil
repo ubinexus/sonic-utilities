@@ -195,9 +195,9 @@ def tuple_to_dict(tup, new_dict):
     return new_dict
 
 
-def get_raw_portchannel_info(config_db):
+def get_raw_portchannel_info(aapl_db):
     """
-    This function uses the redis config_db as input and gets the "PORTCHANNEL_MEMBER" table
+    This function uses the redis aapl_db as input and gets the "LAG_MEMBER_TABLE" table
     create
     >>> get_po_int_configdb_info = get_portchannel_info(config_db)
     >>> pprint(get_po_int_configdb_info)
@@ -208,26 +208,30 @@ def get_raw_portchannel_info(config_db):
      ('PortChannel0004', 'Ethernet124'): {}}
     This function returns a dictionary with the key being portchannels and interface tuple.
     """
-    get_raw_po_int_configdb_info = config_db.get_table('PORTCHANNEL_MEMBER')
-    return get_raw_po_int_configdb_info     # Return a dictionary with the key being the portchannel and interface
+    get_raw_po_int_appdb_info = {}
+    team_keys = aapl_db.keys(aapl_db.APPL_DB, "LAG_MEMBER_TABLE:"+"*")
+    for key in team_keys:
+        team_info = key.split(":")
+        get_raw_po_int_appdb_info[(team_info[1], team_info[2])] = {}
+    return get_raw_po_int_appdb_info     # Return a dictionary with the key being the portchannel and interface
 
-def get_portchannel_list(get_raw_po_int_configdb_info):
+def get_portchannel_list(get_raw_po_int_appdb_info):
     """
-    >>> portchannel_list = get_portchannel_list(get_raw_po_int_configdb_info)
+    >>> portchannel_list = get_portchannel_list(get_raw_po_int_appdb_info)
     >>> pprint(portchannel_list)
     ['PortChannel0001', 'PortChannel0002', 'PortChannel0003', 'PortChannel0004']
     >>> 
     """
     portchannel_list = []
-    for po in get_raw_po_int_configdb_info:
+    for po in get_raw_po_int_appdb_info:
         portchannel = po[0]
         if portchannel not in portchannel_list:
             portchannel_list.append(portchannel)
     return natsorted(portchannel_list)
 
-def create_po_int_tuple_list(get_raw_po_int_configdb_info):
+def create_po_int_tuple_list(get_raw_po_int_appdb_info):
     """
-    >>> po_int_tuple = get_raw_po_int_configdb_info.keys()
+    >>> po_int_tuple = get_raw_po_int_appdb_info.keys()
     >>> pprint(po_int_tuple_list)
     [('PortChannel0001', 'Ethernet108'),
      ('PortChannel0002', 'Ethernet116'),
@@ -236,7 +240,7 @@ def create_po_int_tuple_list(get_raw_po_int_configdb_info):
      ('PortChannel0001', 'Ethernet112')]
     >>> 
     """
-    po_int_tuple_list = get_raw_po_int_configdb_info.keys()
+    po_int_tuple_list = get_raw_po_int_appdb_info.keys()
     return po_int_tuple_list
 
 def create_po_int_dict(po_int_tuple_list):
@@ -442,9 +446,9 @@ class IntfStatus(object):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
         appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, None)
         self.int_to_vlan_dict = get_interface_vlan_dict(self.config_db)
-        self.get_raw_po_int_configdb_info = get_raw_portchannel_info(self.config_db)
-        self.portchannel_list = get_portchannel_list(self.get_raw_po_int_configdb_info)
-        self.po_int_tuple_list = create_po_int_tuple_list(self.get_raw_po_int_configdb_info)
+        self.get_raw_po_int_appdb_info = get_raw_portchannel_info(self.appl_db)
+        self.portchannel_list = get_portchannel_list(self.get_raw_po_int_appdb_info)
+        self.po_int_tuple_list = create_po_int_tuple_list(self.get_raw_po_int_appdb_info)
         self.po_int_dict = create_po_int_dict(self.po_int_tuple_list)
         self.int_po_dict = create_int_to_portchannel_dict(self.po_int_tuple_list)
         self.combined_int_to_vlan_po_dict = merge_dicts(self.int_to_vlan_dict, self.int_po_dict)
