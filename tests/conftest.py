@@ -54,7 +54,7 @@ def _dummy_run_command(command, display_cmd=False, return_cmd=False):
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
 @pytest.fixture
-def setup_config_db():
+def get_cmd_module():
     import config.main as config
     import show.main as show
 

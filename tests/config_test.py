@@ -46,8 +46,8 @@ class TestLoadMinigraph(object):
     def setup_class(cls):
         print("SETUP")
 
-    def test_load_minigraph(self, setup_config_db, setup_single_broacom_asic):
-        (config, show) = setup_config_db
+    def test_load_minigraph(self, get_cmd_module, setup_single_broacom_asic):
+        (config, show) = get_cmd_module
         runner = CliRunner()
         result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
         print result.exit_code
@@ -55,8 +55,8 @@ class TestLoadMinigraph(object):
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
 
-    def test_load_minigraph_with_disabled_telemetry(self, setup_config_db, setup_single_broacom_asic):
-        (config, show) = setup_config_db
+    def test_load_minigraph_with_disabled_telemetry(self, get_cmd_module, setup_single_broacom_asic):
+        (config, show) = get_cmd_module
         runner = CliRunner()
         runner.invoke(config.config.commands["feature"].commands["state"], ["telemetry", "disabled"])
         result = runner.invoke(show.cli.commands["feature"].commands["status"], ["telemetry"])
