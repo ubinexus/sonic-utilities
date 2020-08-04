@@ -730,9 +730,9 @@ def _stop_services():
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
 
-    disable_services = _get_disabled_services_list()
+    disabled_services = _get_disabled_services_list()
 
-    for service in disable_services:
+    for service in disabled_services:
         if service in services_to_stop:
             services_to_stop.remove(service)
 
@@ -762,9 +762,9 @@ def _reset_failed_services():
         'telemetry'
     ]
 
-    disable_services = _get_disabled_services_list()
+    disabled_services = _get_disabled_services_list()
 
-    for service in disable_services:
+    for service in disabled_services:
         if service in services_to_reset:
             services_to_reset.remove(service)
 
@@ -790,9 +790,9 @@ def _restart_services():
         'telemetry'
     ]
 
-    disable_services = _get_disabled_services_list()
+    disabled_services = _get_disabled_services_list()
 
-    for service in disable_services:
+    for service in disabled_services:
         if service in services_to_restart:
             services_to_restart.remove(service)
 
