@@ -1,10 +1,3 @@
-import os
-import sys
-
-import mock
-import pytest
-import traceback
-
 from click.testing import CliRunner
 
 show_feature_status_output="""\
@@ -74,7 +67,6 @@ class TestFeature(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
     def test_show_feature_status(self, setup_config_db):
         (config, show) = setup_config_db
@@ -82,8 +74,6 @@ class TestFeature(object):
         result = runner.invoke(show.cli.commands["feature"].commands["status"], [])
         print(result.exit_code)
         print(result.output)
-        print(result.exception)
-        traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_feature_status_output
 

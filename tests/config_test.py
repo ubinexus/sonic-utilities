@@ -1,9 +1,3 @@
-import os
-import sys
-
-import mock
-import pytest
-
 from click.testing import CliRunner
 
 load_minigraph_command_output="""\
@@ -51,7 +45,6 @@ class TestLoadMinigraph(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
     def test_load_minigraph(self, setup_config_db, setup_single_broacom_asic):
         (config, show) = setup_config_db
@@ -77,5 +70,3 @@ class TestLoadMinigraph(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
-        os.environ["UTILITIES_UNIT_TESTING"] = "0"
