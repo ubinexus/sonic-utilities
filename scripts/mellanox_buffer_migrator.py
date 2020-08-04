@@ -1,6 +1,6 @@
 import syslog
 
-SYSLOG_IDENTIFIER = 'db_migrator'
+SYSLOG_IDENTIFIER = 'mellanox_buffer_migrator'
 
 def log_info(msg):
     syslog.openlog(SYSLOG_IDENTIFIER)
