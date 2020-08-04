@@ -10,12 +10,16 @@ import syslog
 import time
 import netifaces
 import threading
+import json
 
 import sonic_device_util
 import ipaddress
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
+from config_mgmt import ConfigMgmtDPB
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common.util_base import UtilHelper
+from portconfig import get_child_ports, get_port_config_file_name
 
 import aaa
 import mlnx
@@ -30,6 +34,7 @@ VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
 NAMESPACE_PREFIX = 'asic'
+INTF_KEY = "interfaces"
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -43,6 +48,10 @@ CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
+
+asic_type = None
+config_db = None
+
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -107,16 +116,158 @@ class AbbreviationGroup(click.Group):
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
-
 #
-# Load asic_type for further use
+# Load breakout config file for Dynamic Port Breakout
 #
 
 try:
-    version_info = sonic_device_util.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-except (KeyError, TypeError):
+    # Load the helper class
+    helper = UtilHelper()
+    (platform, hwsku) = helper.get_platform_and_hwsku()
+except Exception as e:
+    click.secho("Failed to get platform and hwsku with error:{}".format(str(e)), fg='red')
     raise click.Abort()
+
+try:
+    breakout_cfg_file = get_port_config_file_name(hwsku, platform)
+except Exception as e:
+    click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
+    raise click.Abort()
+
+#
+# Breakout Mode Helper functions
+#
+
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except Exception as e:
+        raise Exception(str(e))
+    return result
+
+def _get_option(ctx,args,incomplete):
+    """ Provides dynamic mode option as per user argument i.e. interface name """
+    all_mode_options = []
+    interface_name = args[-1]
+
+    if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
+        return []
+    else:
+        breakout_file_input = readJsonFile(breakout_cfg_file)
+        if interface_name in breakout_file_input[INTF_KEY]:
+            breakout_mode_list = [v["breakout_modes"] for i ,v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
+            breakout_mode_options = []
+            for i in breakout_mode_list.split(','):
+                    breakout_mode_options.append(i)
+            all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
+            return all_mode_options
+
+def shutdown_interfaces(ctx, del_intf_dict):
+    """ shut down all the interfaces before deletion """
+    for intf in del_intf_dict.keys():
+        config_db = ctx.obj['config_db']
+        if get_interface_naming_mode() == "alias":
+            interface_name = interface_alias_to_name(intf)
+            if interface_name is None:
+                click.echo("[ERROR] interface name is None!")
+                return False
+
+        if interface_name_is_valid(intf) is False:
+            click.echo("[ERROR] Interface name is invalid. Please enter a valid interface name!!")
+            return False
+
+        port_dict = config_db.get_table('PORT')
+        if not port_dict:
+            click.echo("port_dict is None!")
+            return False
+
+        if intf in port_dict.keys():
+            config_db.mod_entry("PORT", intf, {"admin_status": "down"})
+        else:
+            click.secho("[ERROR] Could not get the correct interface name, exiting", fg='red')
+            return False
+    return True
+
+def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
+    """ Validate Parent interface and user selected mode before starting deletion or addition process """
+    breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
+
+    if interface_name not in breakout_file_input:
+        click.secho("[ERROR] {} is not a Parent port. So, Breakout Mode is not available on this port".format(interface_name), fg='red')
+        return False
+
+    # Check whether target breakout mode is available for the user-selected interface or not
+    if target_brkout_mode not in breakout_file_input[interface_name]["breakout_modes"]:
+        click.secho('[ERROR] Target mode {} is not available for the port {}'. format(target_brkout_mode, interface_name), fg='red')
+        return False
+
+    # Get config db context
+    config_db = ctx.obj['config_db']
+    port_dict = config_db.get_table('PORT')
+
+    # Check whether there is any port in config db.
+    if not port_dict:
+        click.echo("port_dict is None!")
+        return False
+
+    # Check whether the  user-selected interface is part of  'port' table in config db.
+    if interface_name not in port_dict.keys():
+        click.secho("[ERROR] {} is not in port_dict".format(interface_name))
+        return False
+    click.echo("\nRunning Breakout Mode : {} \nTarget Breakout Mode : {}".format(cur_brkout_mode, target_brkout_mode))
+    if (cur_brkout_mode == target_brkout_mode):
+        click.secho("[WARNING] No action will be taken as current and desired Breakout Mode are same.", fg='magenta')
+        sys.exit(0)
+    return True
+
+def load_ConfigMgmt(verbose):
+    """ Load config for the commands which are capable of change in config DB. """
+    try:
+        cm = ConfigMgmtDPB(debug=verbose)
+        return cm
+    except Exception as e:
+        raise Exception("Failed to load the config. Error: {}".format(str(e)))
+
+def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
+    """
+    Function to warn user about extra tables while Dynamic Port Breakout(DPB).
+    confirm: re-confirm from user to proceed.
+    Config Tables Without Yang model considered extra tables.
+    cm =  instance of config MGMT class.
+    """
+    try:
+        # check if any extra tables exist
+        eTables = cm.tablesWithOutYang()
+        if len(eTables):
+            # find relavent tables in extra tables, i.e. one which can have deleted
+            # ports
+            tables = cm.configWithKeys(configIn=eTables, keys=final_delPorts)
+            click.secho("Below Config can not be verified, It may cause harm "\
+                "to the system\n {}".format(json.dumps(tables, indent=2)))
+            click.confirm('Do you wish to Continue?', abort=True)
+    except Exception as e:
+        raise Exception("Failed in breakout_warnUser_extraTables. Error: {}".format(str(e)))
+    return
+
+def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
+    loadDefConfig=False, verbose=False):
+
+    deps, ret = cm.breakOutPort(delPorts=delPorts,  portJson=portJson, \
+                    force=force, loadDefConfig=loadDefConfig)
+    # check if DPB failed
+    if ret == False:
+        if not force and deps:
+            click.echo("Dependecies Exist. No further action will be taken")
+            click.echo("*** Printing dependecies ***")
+            for dep in deps:
+                click.echo(dep)
+            sys.exit(0)
+        else:
+            click.echo("[ERROR] Port breakout Failed!!! Opting Out")
+            raise click.Abort()
+        return
 
 #
 # Helper functions
@@ -394,7 +545,7 @@ def _is_neighbor_ipaddress(config_db, ipaddress):
 
 def _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=False):
     """Returns list of strings containing IP addresses of all BGP neighbors
-       if the flag ignore_local_hosts is set to True, additional check to see if 
+       if the flag ignore_local_hosts is set to True, additional check to see if
        if the BGP neighbor AS number is same as local BGP AS number, if so ignore that neigbor.
     """
     addrs = []
@@ -534,12 +685,12 @@ def _get_disabled_services_list():
                 log_warning("Feature is None")
                 continue
 
-            status = feature_table[feature_name]['status']
-            if not status:
-                log_warning("Status of feature '{}' is None".format(feature_name))
+            state = feature_table[feature_name]['state']
+            if not state:
+                log_warning("Enable state of feature '{}' is None".format(feature_name))
                 continue
 
-            if status == "disabled":
+            if state == "disabled":
                 disabled_services_list.append(feature_name)
     else:
         log_warning("Unable to retreive FEATURE table")
@@ -548,8 +699,10 @@ def _get_disabled_services_list():
 
 
 def _stop_services():
+    # This list is order-dependent. Please add services in the order they should be stopped
     # on Mellanox platform pmon is stopped by syncd
     services_to_stop = [
+        'telemetry',
         'restapi',
         'swss',
         'lldp',
@@ -566,6 +719,7 @@ def _stop_services():
 
 
 def _reset_failed_services():
+    # This list is order-independent. Please keep list in alphabetical order
     services_to_reset = [
         'bgp',
         'dhcp_relay',
@@ -573,23 +727,25 @@ def _reset_failed_services():
         'hostname-config',
         'interfaces-config',
         'lldp',
+        'nat',
         'ntp-config',
         'pmon',
         'radv',
+        'restapi',
         'rsyslog-config',
+        'sflow',
         'snmp',
         'swss',
         'syncd',
         'teamd',
-        'nat',
-        'sflow',
-        'restapi'
+        'telemetry'
     ]
 
     execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
 
 def _restart_services():
+    # This list is order-dependent. Please add services in the order they should be started
     # on Mellanox platform pmon is started by syncd
     services_to_restart = [
         'hostname-config',
@@ -603,7 +759,8 @@ def _restart_services():
         'hostcfgd',
         'nat',
         'sflow',
-        'restapi'
+        'restapi',
+        'telemetry'
     ]
 
     disable_services = _get_disabled_services_list()
@@ -726,6 +883,19 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 @click.group(cls=AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 def config():
     """SONiC command line - 'config' command"""
+    #
+    # Load asic_type for further use
+    #
+    global asic_type
+
+    try:
+        version_info = sonic_device_util.get_sonic_version_info()
+        asic_type = version_info['asic_type']
+    except KeyError, TypeError:
+        raise click.Abort()
+
+    if asic_type == 'mellanox':
+        platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
     SonicDBConfig.load_sonic_global_db_config()
@@ -735,6 +905,10 @@ def config():
 
     SonicDBConfig.load_sonic_global_db_config()
 
+    global config_db
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
@@ -843,7 +1017,7 @@ def load(filename, yes):
         # if any of the config files in linux host OR namespace is not present, return
         if not os.path.isfile(file):
             click.echo("The config_db file {} doesn't exist".format(file))
-            return 
+            return
 
         if namespace is None:
             command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
@@ -1061,7 +1235,7 @@ def load_minigraph(no_service_restart):
 
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-    
+
     # Write latest db version string into db
     db_migrator='/usr/bin/db_migrator.py'
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
@@ -1071,7 +1245,7 @@ def load_minigraph(no_service_restart):
             else:
                 cfggen_namespace_option = " -n {}".format(namespace)
             run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
-     
+
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
@@ -1727,7 +1901,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -1748,7 +1922,7 @@ def del_snmp_agent_address(ctx, agentip, port, vrf):
 
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -2010,7 +2184,7 @@ def all(verbose):
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
         bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
-        for ipaddress in bgp_neighbor_ip_list: 
+        for ipaddress in bgp_neighbor_ip_list:
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
@@ -2180,8 +2354,126 @@ def speed(ctx, interface_name, interface_speed, verbose):
         command += " -vv"
     run_command(command, display_cmd=verbose)
 
+#
+# 'breakout' subcommand
+#
+
+@interface.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mode', required=True, type=click.STRING, autocompletion=_get_option)
+@click.option('-f', '--force-remove-dependencies', is_flag=True,  help='Clear all depenedecies internally first.')
+@click.option('-l', '--load-predefined-config', is_flag=True,  help='load predefied user configuration (alias, lanes, speed etc) first.')
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False, prompt='Do you want to Breakout the port, continue?')
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+@click.pass_context
+def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load_predefined_config):
+    """ Set interface breakout mode """
+    if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
+        click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
+        raise click.Abort()
+
+    # Connect to config db and get the context
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj['config_db'] = config_db
+
+    target_brkout_mode = mode
+
+    # Get current breakout mode
+    cur_brkout_dict = config_db.get_table('BREAKOUT_CFG')
+    cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
+
+    # Validate Interface and Breakout mode
+    if not _validate_interface_mode(ctx, breakout_cfg_file, interface_name, mode, cur_brkout_mode):
+        raise click.Abort()
+
+    """ Interface Deletion Logic """
+    # Get list of interfaces to be deleted
+    del_ports = get_child_ports(interface_name, cur_brkout_mode, breakout_cfg_file)
+    del_intf_dict = {intf: del_ports[intf]["speed"] for intf in del_ports}
+
+    if del_intf_dict:
+        """ shut down all the interface before deletion """
+        ret = shutdown_interfaces(ctx, del_intf_dict)
+        if not ret:
+            raise click.Abort()
+        click.echo("\nPorts to be deleted : \n {}".format(json.dumps(del_intf_dict, indent=4)))
+
+    else:
+        click.secho("[ERROR] del_intf_dict is None! No interfaces are there to be deleted", fg='red')
+        raise click.Abort()
+
+    """ Interface Addition Logic """
+    # Get list of interfaces to be added
+    add_ports = get_child_ports(interface_name, target_brkout_mode, breakout_cfg_file)
+    add_intf_dict = {intf: add_ports[intf]["speed"] for intf in add_ports}
+
+    if add_intf_dict:
+        click.echo("Ports to be added : \n {}".format(json.dumps(add_intf_dict, indent=4)))
+    else:
+        click.secho("[ERROR] port_dict is None!", fg='red')
+        raise click.Abort()
+
+    """ Special Case: Dont delete those ports  where the current mode and speed of the parent port
+                      remains unchanged to limit the traffic impact """
+
+    click.secho("\nAfter running Logic to limit the impact", fg="cyan", underline=True)
+    matched_item = [intf for intf, speed in del_intf_dict.items() if intf in add_intf_dict.keys() and speed == add_intf_dict[intf]]
+
+    # Remove the interface which remains unchanged from both del_intf_dict and add_intf_dict
+    map(del_intf_dict.pop, matched_item)
+    map(add_intf_dict.pop, matched_item)
+
+    click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
+    if len(add_intf_dict.keys()) == 0:
+        click.secho("[ERROR] add_intf_dict is None! No interfaces are there to be added", fg='red')
+        raise click.Abort()
+
+    port_dict = {}
+    for intf in add_intf_dict:
+        if intf in add_ports.keys():
+            port_dict[intf] = add_ports[intf]
+
+    # writing JSON object
+    with open('new_port_config.json', 'w') as f:
+        json.dump(port_dict, f, indent=4)
+
+    # Start Interation with Dy Port BreakOut Config Mgmt
+    try:
+        """ Load config for the commands which are capable of change in config DB """
+        cm = load_ConfigMgmt(verbose)
+
+        """ Delete all ports if forced else print dependencies using ConfigMgmt API """
+        final_delPorts = [intf for intf in del_intf_dict.keys()]
+        """ Warn user if tables without yang models exist and have final_delPorts """
+        breakout_warnUser_extraTables(cm, final_delPorts, confirm=True)
+
+        # Create a dictionary containing all the added ports with its capabilities like alias, lanes, speed etc.
+        portJson = dict(); portJson['PORT'] = port_dict
+
+        # breakout_Ports will abort operation on failure, So no need to check return
+        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, \
+            loadDefConfig=load_predefined_config, verbose=verbose)
+
+        # Set Current Breakout mode in config DB
+        brkout_cfg_keys = config_db.get_keys('BREAKOUT_CFG')
+        if interface_name.decode("utf-8") not in  brkout_cfg_keys:
+            click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".\
+                format(interface_name), fg='red')
+            raise click.Abort()
+        config_db.set_entry("BREAKOUT_CFG", interface_name,\
+            {'brkout_mode': target_brkout_mode})
+        click.secho("Breakout process got successfully completed.".\
+            format(interface_name),  fg="cyan", underline=True)
+        click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
+
+    except Exception as e:
+        click.secho("Failed to break out Port. Error: {}".format(str(e)), \
+            fg='magenta')
+        sys.exit(0)
+
 def _get_all_mgmtinterface_keys():
-    """Returns list of strings containing mgmt interface keys 
+    """Returns list of strings containing mgmt interface keys
     """
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -2909,9 +3201,9 @@ def priority(ctx, interface_name, priority, status):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
-    
+
     run_command("pfc config priority {0} {1} {2}".format(status, interface_name, priority))
-    
+
 #
 # 'platform' group ('config platform ...')
 #
@@ -2919,9 +3211,6 @@ def priority(ctx, interface_name, priority, status):
 @config.group(cls=AbbreviationGroup)
 def platform():
     """Platform-related configuration tasks"""
-
-if asic_type == 'mellanox':
-    platform.add_command(mlnx.mlnx)
 
 # 'firmware' subgroup ("config platform firmware ...")
 @platform.group(cls=AbbreviationGroup)
@@ -3010,10 +3299,10 @@ def naming_mode_alias():
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation
     """
-    
+
     if loopback_name[:CFG_LOOPBACK_PREFIX_LEN] != CFG_LOOPBACK_PREFIX :
         return False
-    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or 
+    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or
           int(loopback_name[CFG_LOOPBACK_PREFIX_LEN:]) > CFG_LOOPBACK_ID_MAX_VAL) :
         return False
     if len(loopback_name) > CFG_LOOPBACK_NAME_TOTAL_LEN_MAX:
@@ -3180,7 +3469,7 @@ def add_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         click.echo("NTP server {} is already configured".format(ntp_ip_address))
         return
-    else: 
+    else:
         db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
         click.echo("NTP server {} added to configuration".format(ntp_ip_address))
         try:
@@ -3201,7 +3490,7 @@ def del_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
         click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
-    else: 
+    else:
         ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
     try:
         click.echo("Restarting ntp-config service...")
@@ -3488,58 +3777,47 @@ def delete(ctx):
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
-# 'feature' command ('config feature name state')
-# 
-@config.command('feature')
-@click.argument('name', metavar='<feature-name>', required=True)
-@click.argument('state', metavar='<feature-state>', required=True, type=click.Choice(["enabled", "disabled"]))
-def feature_status(name, state):
-    """ Configure status of feature"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    status_data = config_db.get_entry('FEATURE', name)
-
-    if not status_data:
-        click.echo(" Feature '{}' doesn't exist".format(name))
-        return
-
-    config_db.mod_entry('FEATURE', name, {'status': state})
-
+# 'feature' group ('config feature ...')
 #
-# 'container' group ('config container ...')
-#
-@config.group(cls=AbbreviationGroup, name='container', invoke_without_command=False)
-def container():
-    """Modify configuration of containers"""
-    pass
-
-#
-# 'feature' group ('config container feature ...')
-#
-@container.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
+@config.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
 def feature():
-    """Modify configuration of container features"""
+    """Modify configuration of features"""
     pass
 
 #
-# 'autorestart' subcommand ('config container feature autorestart ...')
+# 'state' command ('config feature state ...')
 #
-@feature.command(name='autorestart', short_help="Configure the status of autorestart feature for specific container")
-@click.argument('container_name', metavar='<container_name>', required=True)
-@click.argument('autorestart_status', metavar='<autorestart_status>', required=True, type=click.Choice(["enabled", "disabled"]))
-def autorestart(container_name, autorestart_status):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
-    if not container_feature_table:
-        click.echo("Unable to retrieve container feature table from Config DB.")
-        return
+@feature.command('state', short_help="Enable/disable a feature")
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
+def feature_state(name, state):
+    """Enable/disable a feature"""
+    state_data = config_db.get_entry('FEATURE', name)
 
-    if not container_feature_table.has_key(container_name):
-        click.echo("Unable to retrieve features for container '{}'".format(container_name))
-        return
+    if not state_data:
+        click.echo("Feature '{}' doesn't exist".format(name))
+        sys.exit(1)
 
-    config_db.mod_entry('CONTAINER_FEATURE', container_name, {'auto_restart': autorestart_status})
+    config_db.mod_entry('FEATURE', name, {'state': state})
+
+#
+# 'autorestart' command ('config feature autorestart ...')
+#
+@feature.command(name='autorestart', short_help="Enable/disable autosrestart of a feature")
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('autorestart', metavar='<autorestart>', required=True, type=click.Choice(["enabled", "disabled"]))
+def feature_autorestart(name, autorestart):
+    """Enable/disable autorestart of a feature"""
+    feature_table = config_db.get_table('FEATURE')
+    if not feature_table:
+        click.echo("Unable to retrieve feature table from Config DB.")
+        sys.exit(1)
+
+    if not feature_table.has_key(name):
+        click.echo("Unable to retrieve feature '{}'".format(name))
+        sys.exit(1)
+
+    config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
     config()
