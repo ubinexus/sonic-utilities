@@ -5,52 +5,6 @@ import mock
 import pytest
 
 from click.testing import CliRunner
-import sonic_device_util
-from swsssdk import ConfigDBConnector
-
-test_path = os.path.dirname(os.path.abspath(__file__))
-modules_path = os.path.dirname(test_path)
-scripts_path = os.path.join(modules_path, "config")
-sys.path.insert(0, modules_path)
-
-os.environ["UTILITIES_UNIT_TESTING"] = "1"
-
-import config.main as config
-import show.main as show
-
-generated_services_list = [
-    'ntp-config.service',
-    'warmboot-finalizer.service',
-    'watchdog-control.service',
-    'rsyslog-config.service',
-    'interfaces-config.service',
-    'hostcfgd.service',
-    'hostname-config.service',
-    'topology.service',
-    'updategraph.service',
-    'config-setup.service',
-    'caclmgrd.service',
-    'procdockerstatsd.service',
-    'pcie-check.service',
-    'process-reboot-cause.service',
-    'dhcp_relay.service',
-    'snmp.service',
-    'sflow.service',
-    'bgp.service',
-    'telemetry.service',
-    'swss.service',
-    'database.service',
-    'database.service',
-    'lldp.service',
-    'lldp.service',
-    'pmon.service',
-    'radv.service',
-    'mgmt-framework.service',
-    'nat.service',
-    'teamd.service',
-    'syncd.service',
-    'snmp.timer',
-    'telemetry.timer']
 
 load_minigraph_command_output="""\
 Executing stop of service telemetry...
@@ -93,65 +47,14 @@ Executing restart of service telemetry...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
-load_minigraph_command_output_with_telemetry_disabled="""\
-Executing stop of service swss...
-Executing stop of service lldp...
-Executing stop of service pmon...
-Executing stop of service bgp...
-Executing stop of service hostcfgd...
-Executing stop of service nat...
-Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
-Running command:   pfcwd start_default
-Running command:   config qos reload
-Executing reset-failed of service bgp...
-Executing reset-failed of service dhcp_relay...
-Executing reset-failed of service hostcfgd...
-Executing reset-failed of service hostname-config...
-Executing reset-failed of service interfaces-config...
-Executing reset-failed of service lldp...
-Executing reset-failed of service nat...
-Executing reset-failed of service ntp-config...
-Executing reset-failed of service pmon...
-Executing reset-failed of service radv...
-Executing reset-failed of service rsyslog-config...
-Executing reset-failed of service snmp...
-Executing reset-failed of service swss...
-Executing reset-failed of service syncd...
-Executing reset-failed of service teamd...
-Executing restart of service hostname-config...
-Executing restart of service interfaces-config...
-Executing restart of service ntp-config...
-Executing restart of service rsyslog-config...
-Executing restart of service swss...
-Executing restart of service bgp...
-Executing restart of service pmon...
-Executing restart of service lldp...
-Executing restart of service hostcfgd...
-Executing restart of service nat...
-Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
-"""
-
-@pytest.fixture
-def setup_config_db():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
-    config.config_db = config_db
-    show.config_db = config_db
-
-    config.asic_type = mock.MagicMock(return_value = "broadcom")
-    config._get_device_type = mock.MagicMock(return_value = "ToRRouter")
-
-class TestConfigLoad(object):
+class TestLoadMinigraph(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        os.environ["PATH"] += os.pathsep + scripts_path
-        sonic_device_util.get_num_npus = mock.MagicMock(return_value = 1)
-        config._get_sonic_generated_services = \
-            mock.MagicMock(return_value = (generated_services_list, []))
+        os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
-    def test_load_minigraph(self, setup_config_db):
+    def test_load_minigraph(self, setup_config_db, setup_single_broacom_asic):
+        (config, show) = setup_config_db
         runner = CliRunner()
         result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
         print result.exit_code
@@ -159,7 +62,8 @@ class TestConfigLoad(object):
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
 
-    def test_load_minigraph_with_disabled_telemetry(self, setup_config_db):
+    def test_load_minigraph_with_disabled_telemetry(self, setup_config_db, setup_single_broacom_asic):
+        (config, show) = setup_config_db
         runner = CliRunner()
         runner.invoke(config.config.commands["feature"].commands["state"], ["telemetry", "disabled"])
         result = runner.invoke(show.cli.commands["feature"].commands["status"], ["telemetry"])
@@ -168,7 +72,7 @@ class TestConfigLoad(object):
         print result.exit_code
         print result.output
         assert result.exit_code == 0
-        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output_with_telemetry_disabled
+        assert "telemetry" not in result.output
 
     @classmethod
     def teardown_class(cls):
