@@ -80,7 +80,8 @@ class TestHealth(object):
 """
         assert result.output == expected
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
-        expected = """System status summary
+        expected = """\
+System status summary
 
   System status LED  red
   Services:
@@ -93,7 +94,8 @@ class TestHealth(object):
         assert result.output == expected
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
         click.echo(result.output)
-        expected = """System status summary
+        expected = """\
+System status summary
 
   System status LED  green
   Services:
@@ -165,7 +167,8 @@ fan8            OK        Fan
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["detail"])
         click.echo(result.output)
-        expected = """System status summary
+        expected = """\
+System status summary
 
   System status LED  red
   Services:
@@ -236,7 +239,8 @@ Name    Status    Type
         MockerConfig.ignore_devices.insert(0, "psu.voltage")
         result = runner.invoke(show.cli.commands["system-health"].commands["detail"])
         click.echo(result.output)
-        expected = """System status summary
+        expected = """\
+System status summary
 
   System status LED  red
   Services:
