@@ -827,12 +827,6 @@ def breakout(ctx):
         raise click.Abort()
 
     if ctx.invoked_subcommand is None:
-
-        # Get HWSKU and Platform information
-        hw_info_dict = get_hw_info_dict()
-        platform = hw_info_dict['platform']
-        hwsku = hw_info_dict['hwsku']
-
         # Get port capability from platform and hwsku related files
         platform_path, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
         platform_file = os.path.join(platform_path, PLATFORM_JSON)
