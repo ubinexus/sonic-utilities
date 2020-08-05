@@ -5,29 +5,18 @@ import subprocess
 
 import click
 
-from sonic_py_common.multi_asic_device_info import connect_config_db_for_ns
-from sonic_py_common.multi_asic_device_info import connect_to_all_dbs_for_ns
-from sonic_py_common.multi_asic_device_info import get_all_namespaces
-from sonic_py_common.multi_asic_device_info import get_namespace_list
-from sonic_py_common.multi_asic_device_info import is_multi_asic
-from sonic_py_common.multi_asic_device_info import is_bgp_session_internal
-from sonic_py_common.multi_asic_device_info import is_port_channel_internal
-from sonic_py_common.multi_asic_device_info import is_port_internal
-from utilities_common.constants import DEFAULT_NAMESPACE
-from utilities_common.constants import DISPLAY_ALL
-from utilities_common.constants import DISPLAY_EXTERNAL
-from utilities_common.constants import BGP_NEIGH_OBJ
-from utilities_common.constants import PORT_CHANNEL_OBJ
-from utilities_common.constants import PORT_OBJ
+from sonic_py_common import multi_asic
+from utilities_common import constants
 
 
 class MultiAsic(object):
 
-    def __init__(self, display_option=DISPLAY_ALL, namespace_option=None):
+    def __init__(self, display_option=constants.DISPLAY_ALL,
+                 namespace_option=None):
         self.namespace_option = namespace_option
         self.display_option = display_option
         self.current_namespace = None
-        self.is_multi_asic = is_multi_asic()
+        self.is_multi_asic = multi_asic.is_multi_asic()
 
     def is_object_internal(self, object_type, cli_object):
         '''
@@ -37,12 +26,12 @@ class MultiAsic(object):
 
         For single asic, this function is not applicable
         '''
-        if object_type == PORT_OBJ:
-            return is_port_internal(cli_object)
-        elif object_type == PORT_CHANNEL_OBJ:
-            return is_port_channel_internal(cli_object)
-        elif object_type == BGP_NEIGH_OBJ:
-            return is_bgp_session_internal(cli_object)
+        if object_type == constants.PORT_OBJ:
+            return multi_asic.is_port_internal(cli_object)
+        elif object_type == constants.PORT_CHANNEL_OBJ:
+            return multi_asic.is_port_channel_internal(cli_object)
+        elif object_type == constants.BGP_NEIGH_OBJ:
+            return multi_asic.is_bgp_session_internal(cli_object)
 
     def skip_display(self, object_type, cli_object):
         '''
@@ -53,18 +42,18 @@ class MultiAsic(object):
         '''
         if not self.is_multi_asic:
             return False
-        if self.display_option == DISPLAY_ALL:
+        if self.display_option == constants.DISPLAY_ALL:
             return False
         return self.is_object_internal(object_type, cli_object)
 
     def get_ns_list_based_on_options(self):
         ns_list = []
         if not self.is_multi_asic:
-            return [DEFAULT_NAMESPACE]
+            return [constants.DEFAULT_NAMESPACE]
         else:
-            namespaces = get_all_namespaces()
+            namespaces = multi_asic.get_all_namespaces()
             if self.namespace_option is None:
-                if self.display_option == DISPLAY_ALL:
+                if self.display_option == constants.DISPLAY_ALL:
                     ns_list = namespaces['front_ns'] + namespaces['back_ns']
                 else:
                     ns_list = namespaces['front_ns']
@@ -78,24 +67,24 @@ class MultiAsic(object):
 
 
 def multi_asic_ns_choices():
-    if not is_multi_asic():
-        return [DEFAULT_NAMESPACE]
-    choices = get_namespace_list()
+    if not multi_asic.is_multi_asic():
+        return [constants.DEFAULT_NAMESPACE]
+    choices = multi_asic.get_namespace_list()
     return choices
 
 
 def multi_asic_display_choices():
-    if not is_multi_asic():
-        return [DISPLAY_ALL]
+    if not multi_asic.is_multi_asic():
+        return [constants.DISPLAY_ALL]
     else:
-        return [DISPLAY_ALL, DISPLAY_EXTERNAL]
+        return [constants.DISPLAY_ALL, constants.DISPLAY_EXTERNAL]
 
 
 def multi_asic_display_default_option():
-    if not is_multi_asic():
-        return DISPLAY_ALL
+    if not multi_asic.is_multi_asic():
+        return constants.DISPLAY_ALL
     else:
-        return DISPLAY_EXTERNAL
+        return constants.DISPLAY_EXTERNAL
 
 
 _multi_asic_click_options = [
@@ -120,7 +109,7 @@ def multi_asic_click_options(func):
     return func
 
 
-def run_on_all_asics(func):
+def run_on_multi_asic(func):
     '''
     This decorator is used on the CLI functions which needs to be
     run on all the namespaces in the multi ASIC platform
@@ -134,8 +123,8 @@ def run_on_all_asics(func):
         ns_list = self.multi_asic.get_ns_list_based_on_options()
         for ns in ns_list:
             self.multi_asic.current_namespace = ns
-            self.db = connect_to_all_dbs_for_ns(ns)
-            self.config_db = connect_config_db_for_ns(ns)
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+            self.config_db = multi_asic.connect_config_db_for_ns(ns)
             func(self,  *args, **kwargs)
     return wrapped_run_on_all_asics
 
@@ -145,7 +134,7 @@ def multi_asic_args(parser=None):
         parser = argparse.ArgumentParser(
             formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('-d', '--display', default=DISPLAY_EXTERNAL,
+    parser.add_argument('-d', '--display', default=constants.DISPLAY_EXTERNAL,
                         help='Display all interfaces or only external interfaces')
     parser.add_argument('-n', '--namespace', default=None,
                         help='Display interfaces for specific namespace')
