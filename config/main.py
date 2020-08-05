@@ -1223,11 +1223,11 @@ def load_minigraph(no_service_restart):
         if namespace is DEFAULT_NAMESPACE:
             config_db = ConfigDBConnector()
             cfggen_namespace_option = " "
-            ns_cmd_prefix = " "
+            ns_cmd_prefix = ""
         else:
             config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
             cfggen_namespace_option = " -n {}".format(namespace)
-            ns_cmd_prefix = "sudo ip netns exec {}".format(namespace)
+            ns_cmd_prefix = "sudo ip netns exec {} ".format(namespace)
         config_db.connect()
         client = config_db.get_redis_client(config_db.CONFIG_DB)
         client.flushdb()
@@ -1241,7 +1241,7 @@ def load_minigraph(no_service_restart):
         # These commands are not run for host on multi asic platform
         if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:
             if device_type != 'MgmtToRRouter':
-                run_command('{} pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
+                run_command('{}pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
 
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
