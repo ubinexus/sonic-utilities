@@ -604,7 +604,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 count += 1
                 time.sleep(2)
                 state = hget_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
-                log.log_info("%s reached %s state" % (warm_app_name, state))
+                log.log_notice("%s reached %s state" % (warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:
                 click.echo("%s failed to reach %s state" % (warm_app_name, exp_state))
