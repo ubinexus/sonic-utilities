@@ -11,7 +11,7 @@ try:
     import syslog
 
     import click
-    from sonic_py_common import device_info
+    from sonic_py_common import device_info, logger
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -25,43 +25,17 @@ PLATFORM_SPECIFIC_MODULE_NAME = "pcieutil"
 platform_pcieutil = None
 platform_plugins_path = None
 
-# ========================== Syslog wrappers ==========================
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
-def log_info(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_warning(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_error(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-def log_out(name, result):            
+def print_result(name, result):
     string = "PCI Device:  {} ".format(name)
     length = 105-len(string)
-    sys.stdout.write(string)        
+    sys.stdout.write(string)
     for i in xrange(int(length)):
         sys.stdout.write("-")
-    print ' [%s]' % result
-    
+    print(' [%s]' % result)
+
 # ==================== Methods for initialization ====================
 
 # Loads platform specific psuutil module from source
@@ -76,12 +50,12 @@ def load_platform_pcieutil():
         sys.path.append(os.path.abspath(platform_plugins_path))
         from pcieutil import PcieUtil
     except ImportError as e:
-        log_warning("Fail to load specific PcieUtil moudle. Falling down to the common implementation")
+        log.log_warning("Failed to load platform-specific PcieUtil module. Falling back to the common implementation")
         try:
             from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
             platform_pcieutil = PcieUtil(platform_plugins_path)
         except ImportError as e:
-            log_error("Fail to load default PcieUtil moudle. Error :{}".format(str(e)), True)
+            log.log_error("Failed to load default PcieUtil module. Error : {}".format(str(e)), True)
             raise e
 
 
@@ -124,9 +98,9 @@ def pcie_show():
         Fn = item["fn"]
         Name = item["name"]
         Id = item["id"]
-        print "bus:dev.fn %s:%s.%s - dev_id=0x%s,  %s" % (Bus,Dev,Fn,Id,Name) 
-        
-    
+        print "bus:dev.fn %s:%s.%s - dev_id=0x%s,  %s" % (Bus,Dev,Fn,Id,Name)
+
+
 
 
 
@@ -140,16 +114,16 @@ def pcie_check():
     resultInfo = platform_pcieutil.get_pcie_check()
     for item in resultInfo:
         if item["result"] == "Passed":
-            log_out(item["name"], "Passed")
+            print_result(item["name"], "Passed")
         else:
-            log_out(item["name"], "Failed")
-            log_warning("PCIe Device: " +  item["name"] + " Not Found")
+            print_result(item["name"], "Failed")
+            log.log_warning("PCIe Device: " +  item["name"] + " Not Found")
             err+=1
     if err:
         print "PCIe Device Checking All Test ----------->>> FAILED"
     else:
         print "PCIe Device Checking All Test ----------->>> PASSED"
-        
+
 
 
 
