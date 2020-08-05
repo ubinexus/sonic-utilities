@@ -22,8 +22,7 @@ from utilities_common.db import Db
 
 import mlnx
 
-# Global Variable
-PLATFORM_ROOT_PATH = "/usr/share/sonic/device"
+# Global Variables
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"

@@ -1662,8 +1662,11 @@ def reload():
     """Reload QoS configuration"""
     log_info("'qos reload' executing...")
     _clear_qos()
+
     platform = device_info.get_platform()
     hwsku = device_info.get_hwsku()
+    _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+
     namespace_list = [DEFAULT_NAMESPACE]
     if device_info.get_num_npus() > 1:
         namespace_list = device_info.get_namespaces()
@@ -1683,9 +1686,7 @@ def reload():
             asic_id_suffix = str(asic_id)
 
         buffer_template_file = os.path.join(
-            '/usr/share/sonic/device/',
-            platform,
-            hwsku,
+            hwsku_path,
             asic_id_suffix,
             'buffers.json.j2'
         )
@@ -1702,9 +1703,7 @@ def reload():
             )
             run_command(command, display_cmd=True)
             qos_template_file = os.path.join(
-                '/usr/share/sonic/device/',
-                platform,
-                hwsku,
+                hwsku_path,
                 asic_id_suffix,
                 'qos.json.j2'
             )
