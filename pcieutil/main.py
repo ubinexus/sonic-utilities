@@ -21,17 +21,9 @@ VERSION = '1.0'
 SYSLOG_IDENTIFIER = "pcieutil"
 PLATFORM_SPECIFIC_MODULE_NAME = "pcieutil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-PLATFORM_ROOT_PATH_DOCKER = '/usr/share/sonic/platform'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-
-#from pcieutil import PcieUtil 
-
 # Global platform-specific psuutil class instance
 platform_pcieutil = None
-hwsku_path = None
+platform_plugins_path = None
 
 # ========================== Syslog wrappers ==========================
 
@@ -75,20 +67,19 @@ def log_out(name, result):
 # Loads platform specific psuutil module from source
 def load_platform_pcieutil():
     global platform_pcieutil
-    global hwsku_plugins_path
-    # Get platform and hwsku
-    (platform, hwsku) = device_info.get_platform_and_hwsku()
+    global platform_plugins_path
 
     # Load platform module from source
     try:
-        hwsku_plugins_path = "/".join([PLATFORM_ROOT_PATH, platform, "plugins"])
-        sys.path.append(os.path.abspath(hwsku_plugins_path))
+        platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+        platform_plugins_path = os.path.join(platform_path, "plugins")
+        sys.path.append(os.path.abspath(platform_plugins_path))
         from pcieutil import PcieUtil
     except ImportError as e:
         log_warning("Fail to load specific PcieUtil moudle. Falling down to the common implementation")
         try:
             from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
-            platform_pcieutil = PcieUtil(hwsku_plugins_path)
+            platform_pcieutil = PcieUtil(platform_plugins_path)
         except ImportError as e:
             log_error("Fail to load default PcieUtil moudle. Error :{}".format(str(e)), True)
             raise e
@@ -167,7 +158,7 @@ def pcie_check():
 def pcie_generate():
     '''Generate config file with current pci device'''
     platform_pcieutil.dump_conf_yaml()
-    print "Generate config file pcie.yaml under path %s" %hwsku_plugins_path
+    print "Generate config file pcie.yaml under path %s" % platform_plugins_path
 
 if __name__ == '__main__':
     cli()

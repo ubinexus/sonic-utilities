@@ -18,11 +18,6 @@ except ImportError as e:
 DEFAULT_DEVICE="/dev/sda"
 SYSLOG_IDENTIFIER = "ssdutil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-
 def syslog_msg(severity, msg, stdout=False):
     """
     Prints to syslog (and stdout if needed) message with specified severity
@@ -49,13 +44,11 @@ def import_ssd_api(diskdev):
         Instance of the class with SSD API implementation (vendor or generic)
     """
 
-    # Get platform and hwsku
-    (platform, hwsku) = device_info.get_platform_and_hwsku()
-
     # try to load platform specific module
     try:
-        hwsku_plugins_path = "/".join([PLATFORM_ROOT_PATH, platform, "plugins"])
-        sys.path.append(os.path.abspath(hwsku_plugins_path))
+        platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+        platform_plugins_path = os.path.join(platform_path, "plugins")
+        sys.path.append(os.path.abspath(platform_plugins_path))
         from ssd_util import SsdUtil
     except ImportError as e:
         syslog_msg(syslog.LOG_WARNING, "Platform specific SsdUtil module not found. Falling down to the generic implementation")

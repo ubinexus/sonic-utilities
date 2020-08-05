@@ -24,11 +24,6 @@ SYSLOG_IDENTIFIER = "sfputil"
 PLATFORM_SPECIFIC_MODULE_NAME = "sfputil"
 PLATFORM_SPECIFIC_CLASS_NAME = "SfpUtil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-
 # Global platform-specific sfputil class instance
 platform_sfputil = None
 PLATFORM_JSON = 'platform.json'
@@ -297,14 +292,11 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 def load_platform_sfputil():
     global platform_sfputil
 
-    # Get platform and hwsku
-    (platform, hwsku) = device_info.get_platform_and_hwsku()
-
     # Load platform module from source
-    platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
+    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
 
     try:
-        module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
+        module_file = os.path.join(platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py")
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
     except IOError as e:
         log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)

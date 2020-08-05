@@ -12,12 +12,6 @@ except ImportError as e:
 #
 # Constants ====================================================================
 #
-# Platform root directory
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-PLATFORM_ROOT_DOCKER = '/usr/share/sonic/platform'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 PDDF_FILE_PATH = '/usr/share/sonic/platform/pddf_support'
 
 EEPROM_MODULE_NAME = 'eeprom'
@@ -74,7 +68,7 @@ class UtilHelper(object):
         (platform_path, hwsku_path) = device_info.get_paths_to_platform_and_hwsku_dirs()
 
         try:
-            module_file = "/".join([platform_path, "plugins", module_name + ".py"])
+            module_file = os.path.join(platform_path, "plugins", module_name + ".py")
             module = imp.load_source(module_name, module_file)
         except IOError as e:
             raise IOError("Failed to load platform module '%s': %s" % (module_name, str(e)))

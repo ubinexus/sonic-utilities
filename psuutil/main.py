@@ -23,12 +23,6 @@ SYSLOG_IDENTIFIER = "psuutil"
 PLATFORM_SPECIFIC_MODULE_NAME = "psuutil"
 PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-PLATFORM_ROOT_PATH_DOCKER = '/usr/share/sonic/platform'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-
 # Global platform-specific psuutil class instance
 platform_psuutil = None
 
@@ -69,18 +63,11 @@ def log_error(msg, also_print_to_console=False):
 def load_platform_psuutil():
     global platform_psuutil
 
-    # Get platform and hwsku
-    (platform, hwsku) = device_info.get_platform_and_hwsku()
-
     # Load platform module from source
-    platform_path = ''
-    if len(platform) != 0:
-        platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-    else:
-        platform_path = PLATFORM_ROOT_PATH_DOCKER
+    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
 
     try:
-        module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
+        module_file = os.path.join(platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py")
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
     except IOError as e:
         log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
