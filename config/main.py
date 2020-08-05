@@ -331,11 +331,10 @@ def interface_alias_to_name(config_db, interface_alias):
         if namespace is None:
             return None
 
-        db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        db.connect()
-    else:
-        db = config_db
-    port_dict = db.get_table('PORT')
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+
+    port_dict = config_db.get_table('PORT')
 
     if interface_alias is not None:
         if not port_dict:
@@ -359,16 +358,15 @@ def interface_name_is_valid(config_db, interface_name):
         if namespace is None:
             return False
 
-        db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        db.connect()
-    else:
-        db = config_db
-    port_dict = db.get_table('PORT')
-    port_channel_dict = db.get_table('PORTCHANNEL')
-    sub_port_intf_dict = db.get_table('VLAN_SUB_INTERFACE')
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+
+    port_dict = config_db.get_table('PORT')
+    port_channel_dict = config_db.get_table('PORTCHANNEL')
+    sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
 
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(db, interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
 
     if interface_name is not None:
         if not port_dict:
@@ -397,11 +395,10 @@ def interface_name_to_alias(config_db, interface_name):
         if namespace is None:
             return None
 
-        db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        db.connect()
-    else:
-        db = config_db
-    port_dict = db.get_table('PORT')
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+
+    port_dict = config_db.get_table('PORT')
 
     if interface_name is not None:
         if not port_dict:
@@ -1840,8 +1837,7 @@ def warm_restart_bgp_eoiu(ctx, enable):
 #
 @config.group(cls=AbbreviationGroup)
 @click.pass_context
-# TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
-# This will help to hide namespace option for single asic platforms where it is ignored.
+# TODO add "hidden=True" keyword for hiding this option with single asic platform, once click 7.0 is present in all branches.
 @click.option('-n', '--namespace', help='Namespace name',
              required=True if sonic_device_util.is_multi_npu() else False,
              type=click.Choice(sonic_device_util.get_namespaces() if sonic_device_util.is_multi_npu() else [DEFAULT_NAMESPACE]))
