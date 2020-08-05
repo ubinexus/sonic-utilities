@@ -13,11 +13,8 @@ from natsort import natsorted
 
 import swsssdk
 from swsssdk import ConfigDBConnector
-from utilities_common.constants import PORT_CHANNEL_OBJ
-from utilities_common.constants import PORT_OBJ
-from utilities_common.multi_asic import MultiAsic
-from utilities_common.multi_asic import multi_asic_args
-from utilities_common.multi_asic import run_on_all_asics
+from utilities_common import constants
+from utilities_common import multi_asic as multi_asic_util
 from utilities_common.intf_filter import parse_interface_in_filter
 
 # mock the redis for unit test purposes #
@@ -353,13 +350,17 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
 header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'FEC', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
 header_stat_sub_intf = ['Sub port interface', 'Speed', 'MTU', 'Vlan', 'Admin', 'Type']
 
+
 class IntfStatus(object):
 
     def display_intf_status(self):
         self.get_intf_status()
         sorted_table = natsorted(self.table)
-        print tabulate(sorted_table, header_stat if not self.sub_intf_only else header_stat_sub_intf, tablefmt="simple", stralign='right')
-    
+        print tabulate(sorted_table,
+                       header_stat if not self.sub_intf_only else header_stat_sub_intf,
+                       tablefmt="simple",
+                       stralign='right')
+
     def generate_intf_status(self):
         """
             Generate interface-status output
@@ -378,7 +379,7 @@ class IntfStatus(object):
             for i in self.appl_db_keys:
                 key = re.split(':', i, maxsplit=1)[-1].strip()
                 if key in self.front_panel_ports_list:
-                    if self.multi_asic.skip_display(PORT_OBJ, key):
+                    if self.multi_asic.skip_display(constants.PORT_OBJ, key):
                         continue
 
                     if self.intf_name is None or key in intf_fs:
@@ -396,7 +397,7 @@ class IntfStatus(object):
 
             for po, value in self.portchannel_speed_dict.iteritems():
                 if po:
-                    if self.multi_asic.skip_display(PORT_CHANNEL_OBJ, po):
+                    if self.multi_asic.skip_display(constants.PORT_CHANNEL_OBJ, po):
                         continue
                     if self.intf_name is None or po in intf_fs:
                         table.append((po,
@@ -435,7 +436,7 @@ class IntfStatus(object):
         self.intf_name = intf_name
         self.sub_intf_name = intf_name
         self.table = []
-        self.multi_asic = MultiAsic(display_option, namespace_option)
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
         if intf_name is not None:
             if intf_name == SUB_PORT:
                 self.intf_name = None
@@ -447,7 +448,7 @@ class IntfStatus(object):
                     self.sub_intf_only = True
                     self.intf_name = intf_name[:sub_intf_sep_idx]
 
-    @run_on_all_asics
+    @multi_asic_util.run_on_multi_asic
     def get_intf_status(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
         self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, None)
@@ -498,7 +499,7 @@ class IntfDescription(object):
         for i in self.appl_db_keys:
             key = re.split(':', i, maxsplit=1)[-1].strip()
             if key in self.front_panel_ports_list:
-                if self.multi_asic.skip_display(PORT_OBJ, key):
+                if self.multi_asic.skip_display(constants.PORT_OBJ, key):
                         continue
                 table.append((key,
                               appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
@@ -512,14 +513,14 @@ class IntfDescription(object):
         self.db = None
         self.config_db = None
         self.table = []
-        self.multi_asic = MultiAsic(display_option, namespace_option)
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
 
         if intf_name is not None and intf_name == SUB_PORT:
             self.intf_name = None
         else:
             self.intf_name = intf_name
 
-    @run_on_all_asics
+    @multi_asic_util.run_on_multi_asic
     def get_intf_description(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
         self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, self.intf_name)
@@ -531,7 +532,7 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-c', '--command', type=str, help='get interface status or description', default=None)
     parser.add_argument('-i', '--interface', type=str, help='interface information for specific port: Ethernet0', default=None)
-    parser = multi_asic_args(parser)
+    parser = multi_asic_util.multi_asic_args(parser)
     args = parser.parse_args()
 
     if args.command == "status":
