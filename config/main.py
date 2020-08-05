@@ -301,6 +301,7 @@ def _get_device_type():
 
     return device_type
 
+# TODO move to sonic-py-common package
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
     if not device_info.is_multi_npu():
@@ -452,18 +453,6 @@ def is_interface_bind_to_vrf(config_db, interface_name):
     if entry and entry.get("vrf_name"):
         return True
     return False
-
-# TODO move to sonic-py-common package
-# Validate whether a given namespace name is valid in the device.
-def validate_namespace(namespace):
-    if not sonic_device_util.is_multi_npu():
-        return True
-
-    namespaces = sonic_device_util.get_all_namespaces()
-    if namespace in namespaces['front_ns'] + namespaces['back_ns']:
-        return True
-    else:
-        return False
 
 # Get the table name based on the interface type
 def get_port_table_name(interface_name):
