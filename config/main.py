@@ -49,11 +49,11 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
-asic_type = None
-
 
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
+
+asic_type = None
 
 
 class AbbreviationGroup(click.Group):
@@ -94,16 +94,6 @@ class AbbreviationGroup(click.Group):
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
-
-#
-# Load asic_type for further use
-#
-
-try:
-    version_info = device_info.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-except (KeyError, TypeError):
-    raise click.Abort()
 
 #
 # Load breakout config file for Dynamic Port Breakout
