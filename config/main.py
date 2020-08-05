@@ -1103,7 +1103,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log_info("'reload' stopping services...")
-        _stop_services(db.cdb)
+        _stop_services(db.cfgdb)
 
     """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
         service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1176,9 +1176,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cdb)
+        _reset_failed_services(db.cfgdb)
         log_info("'reload' restarting services...")
-        _restart_services(db.cdb)
+        _restart_services(db.cfgdb)
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1217,7 +1217,7 @@ def load_minigraph(db, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log_info("'load_minigraph' stopping services...")
-        _stop_services(db.cdb)
+        _stop_services(db.cfgdb)
 
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
@@ -1271,10 +1271,10 @@ def load_minigraph(db, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cdb)
+        _reset_failed_services(db.cfgdb)
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
         log_info("'load_minigraph' restarting services...")
-        _restart_services(db.cdb)
+        _restart_services(db.cfgdb)
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 
@@ -3815,13 +3815,13 @@ def feature():
 @pass_db
 def feature_state(db, name, state):
     """Enable/disable a feature"""
-    state_data = db.cdb.get_entry('FEATURE', name)
+    state_data = db.cfgdb.get_entry('FEATURE', name)
 
     if not state_data:
         click.echo("Feature '{}' doesn't exist".format(name))
         sys.exit(1)
 
-    db.cdb.mod_entry('FEATURE', name, {'state': state})
+    db.cfgdb.mod_entry('FEATURE', name, {'state': state})
 
 #
 # 'autorestart' command ('config feature autorestart ...')
@@ -3832,7 +3832,7 @@ def feature_state(db, name, state):
 @pass_db
 def feature_autorestart(db, name, autorestart):
     """Enable/disable autorestart of a feature"""
-    feature_table = db.cdb.get_table('FEATURE')
+    feature_table = db.cfgdb.get_table('FEATURE')
     if not feature_table:
         click.echo("Unable to retrieve feature table from Config DB.")
         sys.exit(1)
@@ -3841,7 +3841,7 @@ def feature_autorestart(db, name, autorestart):
         click.echo("Unable to retrieve feature '{}'".format(name))
         sys.exit(1)
 
-    db.cdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
+    db.cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
     config()

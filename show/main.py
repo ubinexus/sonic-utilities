@@ -3072,7 +3072,7 @@ def feature():
 def feature_status(db, feature_name):
     header = ['Feature', 'State', 'AutoRestart']
     body = []
-    feature_table = db.cdb.get_table('FEATURE')
+    feature_table = db.cfgdb.get_table('FEATURE')
     if feature_name:
         if feature_table and feature_table.has_key(feature_name):
             body.append([feature_name, feature_table[feature_name]['state'], \
@@ -3094,7 +3094,7 @@ def feature_status(db, feature_name):
 def feature_autorestart(db, feature_name):
     header = ['Feature', 'AutoRestart']
     body = []
-    feature_table = db.cdb.get_table('FEATURE')
+    feature_table = db.cfgdb.get_table('FEATURE')
     if feature_name:
         if feature_table and feature_table.has_key(feature_name):
             body.append([feature_name, feature_table[feature_name]['auto_restart']])
