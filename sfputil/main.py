@@ -6,13 +6,12 @@
 #
 
 try:
-    import click
     import imp
     import os
     import sys
-    import syslog
 
-    from sonic_py_common import device_info
+    import click
+    from sonic_py_common import device_info, logger
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -29,34 +28,9 @@ platform_sfputil = None
 PLATFORM_JSON = 'platform.json'
 PORT_CONFIG_INI = 'port_config.ini'
 
-# ========================== Syslog wrappers ==========================
 
-
-def log_info(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
-
-
-def log_warning(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
-
-
-def log_error(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 # ========================== Methods for printing ==========================
@@ -299,14 +273,14 @@ def load_platform_sfputil():
         module_file = os.path.join(platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py")
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
     except IOError as e:
-        log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
+        log.log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
     try:
         platform_sfputil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
         platform_sfputil = platform_sfputil_class()
     except AttributeError as e:
-        log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
+        log.log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
         return -2
 
     return 0
@@ -334,7 +308,7 @@ def cli():
         port_config_file_path = device_info.get_path_to_port_config_file()
         platform_sfputil.read_porttab_mappings(port_config_file_path)
     except Exception as e:
-        log_error("Error reading port info (%s)" % str(e), True)
+        log.log_error("Error reading port info (%s)" % str(e), True)
         sys.exit(3)
 
 

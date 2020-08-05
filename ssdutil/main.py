@@ -9,31 +9,17 @@ try:
     import argparse
     import os
     import sys
-    import syslog
 
-    from sonic_py_common import device_info
+    from sonic_py_common import device_info, logger
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 DEFAULT_DEVICE="/dev/sda"
 SYSLOG_IDENTIFIER = "ssdutil"
 
-def syslog_msg(severity, msg, stdout=False):
-    """
-    Prints to syslog (and stdout if needed) message with specified severity
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
-    Args:
-        severity : message severity
-        msg      : message
-        stdout   : also primt message to stdout
-
-    """
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(severity, msg)
-    syslog.closelog()
-
-    if stdout:
-        print msg
 
 def import_ssd_api(diskdev):
     """
@@ -51,11 +37,11 @@ def import_ssd_api(diskdev):
         sys.path.append(os.path.abspath(platform_plugins_path))
         from ssd_util import SsdUtil
     except ImportError as e:
-        syslog_msg(syslog.LOG_WARNING, "Platform specific SsdUtil module not found. Falling down to the generic implementation")
+        log.log_warning("Platform specific SsdUtil module not found. Falling down to the generic implementation")
         try:
             from sonic_platform_base.sonic_ssd.ssd_generic import SsdUtil
         except ImportError as e:
-            syslog_msg(syslog.LOG_ERR, "Failed to import default SsdUtil. Error: {}".format(str(e)), True)
+            log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)
             raise e
 
     return SsdUtil(diskdev)

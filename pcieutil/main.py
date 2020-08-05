@@ -8,7 +8,6 @@
 try:
     import os
     import sys
-    import syslog
 
     import click
     from sonic_py_common import device_info, logger

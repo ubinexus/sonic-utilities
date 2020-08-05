@@ -3,7 +3,6 @@
 try:
     import imp
     import os
-    import syslog
 
     from sonic_py_common import device_info
 except ImportError as e:
@@ -16,44 +15,6 @@ PDDF_FILE_PATH = '/usr/share/sonic/platform/pddf_support'
 
 EEPROM_MODULE_NAME = 'eeprom'
 EEPROM_CLASS_NAME = 'board'
-
-class UtilLogger(object):
-    def __init__(self, syslog_identifier):
-        self.syslog = syslog
-        self.syslog.openlog(ident=syslog_identifier, logoption=self.syslog.LOG_NDELAY, facility=self.syslog.LOG_DAEMON)
-
-    def __del__(self):
-        self.syslog.closelog()
-
-    def log_error(self, msg, print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_ERR, msg)
-
-        if print_to_console:
-            print msg
-
-    def log_warning(self, msg, print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_WARNING, msg)
-
-        if print_to_console:
-            print msg
-
-    def log_notice(self, msg, print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_NOTICE, msg)
-
-        if print_to_console:
-            print msg
-
-    def log_info(self, msg, print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_INFO, msg)
-
-        if print_to_console:
-            print msg
-
-    def log_debug(self, msg, print_to_console=False):
-        self.syslog.syslog(self.syslog.LOG_DEBUG, msg)
-
-        if print_to_console:
-            print msg
 
 
 class UtilHelper(object):

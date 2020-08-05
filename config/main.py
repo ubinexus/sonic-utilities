@@ -9,13 +9,12 @@ import os
 import re
 import subprocess
 import sys
-import syslog
 import threading
 import time
 
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports, get_port_config_file_name
-from sonic_py_common import device_info
+from sonic_py_common import device_info, logger
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -52,30 +51,9 @@ CFG_LOOPBACK_NO="<0-999>"
 
 asic_type = None
 
-# ========================== Syslog wrappers ==========================
 
-def log_debug(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_DEBUG, msg)
-    syslog.closelog()
-
-
-def log_info(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-
-def log_warning(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-
-def log_error(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 class AbbreviationGroup(click.Group):
@@ -288,7 +266,7 @@ def execute_systemctl_per_asic_instance(inst, event, service, action):
         click.echo("Executing {} of service {}@{}...".format(action, service, inst))
         run_command("systemctl {} {}@{}.service".format(action, service, inst))
     except SystemExit as e:
-        log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
+        log.log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
         # Set the event object if there is a failure and exception was raised.
         event.set()
 
@@ -298,7 +276,7 @@ def execute_systemctl(list_of_services, action):
     generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
     if ((generated_services_list == []) and
         (generated_multi_instance_services == [])):
-        log_error("Failed to get generated services")
+        log.log_error("Failed to get generated services")
         return
 
     for service in list_of_services:
@@ -307,7 +285,7 @@ def execute_systemctl(list_of_services, action):
                 click.echo("Executing {} of service {}...".format(action, service))
                 run_command("systemctl {} {}".format(action, service))
             except SystemExit as e:
-                log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
+                log.log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
                 raise
 
         if (service + '.service' in generated_multi_instance_services):
@@ -718,18 +696,18 @@ def _get_disabled_services_list(config_db):
     if feature_table is not None:
         for feature_name in feature_table.keys():
             if not feature_name:
-                log_warning("Feature is None")
+                log.log_warning("Feature is None")
                 continue
 
             state = feature_table[feature_name]['state']
             if not state:
-                log_warning("Enable state of feature '{}' is None".format(feature_name))
+                log.log_warning("Enable state of feature '{}' is None".format(feature_name))
                 continue
 
             if state == "disabled":
                 disabled_services_list.append(feature_name)
     else:
-        log_warning("Unable to retreive FEATURE table")
+        log.log_warning("Unable to retreive FEATURE table")
 
     return disabled_services_list
 
@@ -1009,7 +987,7 @@ def save(filename):
         else:
             command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, file)
 
-        log_info("'save' executing...")
+        log.log_info("'save' executing...")
         run_command(command, display_cmd=True)
 
 @config.command()
@@ -1071,7 +1049,7 @@ def load(filename, yes):
         else:
             command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, file)
 
-        log_info("'load' executing...")
+        log.log_info("'load' executing...")
         run_command(command, display_cmd=True)
 
 
@@ -1093,7 +1071,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     if not yes:
         click.confirm(message, abort=True)
 
-    log_info("'reload' executing...")
+    log.log_info("'reload' executing...")
 
     num_asic = device_info.get_num_npus()
     cfg_files = []
@@ -1122,7 +1100,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
 
     #Stop services before config push
     if not no_service_restart:
-        log_info("'reload' stopping services...")
+        log.log_info("'reload' stopping services...")
         _stop_services(db.cfgdb)
 
     """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
@@ -1197,7 +1175,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     # status from all services before we attempt to restart them
     if not no_service_restart:
         _reset_failed_services(db.cfgdb)
-        log_info("'reload' restarting services...")
+        log.log_info("'reload' restarting services...")
         _restart_services(db.cfgdb)
 
 @config.command("load_mgmt_config")
@@ -1206,7 +1184,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
 @click.argument('filename', default='/etc/sonic/device_desc.xml', type=click.Path(exists=True))
 def load_mgmt_config(filename):
     """Reconfigure hostname and mgmt interface based on device description file."""
-    log_info("'load_mgmt_config' executing...")
+    log.log_info("'load_mgmt_config' executing...")
     command = "{} -M {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     #FIXME: After config DB daemon for hostname and mgmt interface is implemented, we'll no longer need to do manual configuration here
@@ -1232,11 +1210,11 @@ def load_mgmt_config(filename):
 @pass_db
 def load_minigraph(db, no_service_restart):
     """Reconfigure based on minigraph."""
-    log_info("'load_minigraph' executing...")
+    log.log_info("'load_minigraph' executing...")
 
     #Stop services before config push
     if not no_service_restart:
-        log_info("'load_minigraph' stopping services...")
+        log.log_info("'load_minigraph' stopping services...")
         _stop_services(db.cfgdb)
 
     # For Single Asic platform the namespace list has the empty string
@@ -1295,7 +1273,8 @@ def load_minigraph(db, no_service_restart):
     if not no_service_restart:
         _reset_failed_services(db.cfgdb)
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
-        log_info("'load_minigraph' restarting services...")
+        log.log_info("'load_minigraph' restarting services...")
+        _restart_services()
         _restart_services(db.cfgdb)
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
@@ -1654,13 +1633,13 @@ def qos(ctx):
 @qos.command('clear')
 def clear():
     """Clear QoS configuration"""
-    log_info("'qos clear' executing...")
+    log.log_info("'qos clear' executing...")
     _clear_qos()
 
 @qos.command('reload')
 def reload():
     """Reload QoS configuration"""
-    log_info("'qos reload' executing...")
+    log.log_info("'qos reload' executing...")
     _clear_qos()
 
     platform = device_info.get_platform()
@@ -1846,7 +1825,7 @@ def add_vlan(ctx, vid):
 @click.pass_context
 def del_vlan(ctx, vid):
     """Delete VLAN"""
-    log_info("'vlan del {}' executing...".format(vid))
+    log.log_info("'vlan del {}' executing...".format(vid))
     db = ctx.obj['db']
     keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
     for k in keys:
@@ -1870,7 +1849,7 @@ def vlan_member(ctx):
 @click.pass_context
 def add_vlan_member(ctx, vid, interface_name, untagged):
     """Add VLAN member"""
-    log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
+    log.log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1913,7 +1892,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 @click.pass_context
 def del_vlan_member(ctx, vid, interface_name):
     """Delete VLAN member"""
-    log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
+    log.log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -2209,7 +2188,7 @@ def all(verbose):
     """Shut down all BGP sessions
        In the case of Multi-Asic platform, we shut only the EBGP sessions with external neighbors.
     """
-    log_info("'bgp shutdown all' executing...")
+    log.log_info("'bgp shutdown all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
@@ -2235,7 +2214,7 @@ def neighbor(ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname.
        User can specify either internal or external BGP neighbor to shutdown
     """
-    log_info("'bgp shutdown neighbor {}' executing...".format(ipaddr_or_hostname))
+    log.log_info("'bgp shutdown neighbor {}' executing...".format(ipaddr_or_hostname))
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
@@ -2266,7 +2245,7 @@ def all(verbose):
     """Start up all BGP sessions
        In the case of Multi-Asic platform, we startup only the EBGP sessions with external neighbors.
     """
-    log_info("'bgp startup all' executing...")
+    log.log_info("'bgp startup all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
@@ -2289,7 +2268,7 @@ def all(verbose):
 @click.argument('ipaddr_or_hostname', metavar='<ipaddr_or_hostname>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
-    log_info("'bgp startup neighbor {}' executing...".format(ipaddr_or_hostname))
+    log.log_info("'bgp startup neighbor {}' executing...".format(ipaddr_or_hostname))
     """Start up BGP session by neighbor IP address or hostname.
        User can specify either internal or external BGP neighbor to startup
     """
@@ -2377,7 +2356,7 @@ def startup(ctx, interface_name):
     if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
          ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    log_info("'interface startup {}' executing...".format(interface_name))
+    log.log_info("'interface startup {}' executing...".format(interface_name))
     port_dict = config_db.get_table('PORT')
     for port_name in port_dict.keys():
         if port_name in intf_fs:
@@ -2402,7 +2381,7 @@ def startup(ctx, interface_name):
 @click.pass_context
 def shutdown(ctx, interface_name):
     """Shut down interface"""
-    log_info("'interface shutdown {}' executing...".format(interface_name))
+    log.log_info("'interface shutdown {}' executing...".format(interface_name))
     config_db = ctx.obj['config_db']
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
@@ -2444,7 +2423,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
+    log.log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose:
@@ -3139,7 +3118,7 @@ def update():
 @click.argument('file_name', required=True)
 def full(file_name):
     """Full update of ACL rules configuration."""
-    log_info("'acl update full {}' executing...".format(file_name))
+    log.log_info("'acl update full {}' executing...".format(file_name))
     command = "acl-loader update full {}".format(file_name)
     run_command(command)
 
@@ -3152,7 +3131,7 @@ def full(file_name):
 @click.argument('file_name', required=True)
 def incremental(file_name):
     """Incremental update of ACL rule configuration."""
-    log_info("'acl update incremental {}' executing...".format(file_name))
+    log.log_info("'acl update incremental {}' executing...".format(file_name))
     command = "acl-loader update incremental {}".format(file_name)
     run_command(command)
 
@@ -3243,7 +3222,7 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     """ECN-related configuration tasks"""
-    log_info("'ecn -profile {}' executing...".format(profile))
+    log.log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
     if rmax is not None: command += " -rmax %d" % rmax
     if rmin is not None: command += " -rmin %d" % rmin
@@ -3630,7 +3609,7 @@ def enable(ctx):
         ctx.fail("Unable to check sflow status {}".format(e))
 
     if out != "active":
-        log_info("sflow service is not enabled. Starting sflow docker...")
+        log.log_info("sflow service is not enabled. Starting sflow docker...")
         run_command("sudo systemctl enable sflow")
         run_command("sudo systemctl start sflow")
 

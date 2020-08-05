@@ -9,10 +9,9 @@ try:
     import imp
     import os
     import sys
-    import syslog
 
     import click
-    from sonic_py_common import device_info
+    from sonic_py_common import device_info, logger
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -27,34 +26,8 @@ PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
 platform_psuutil = None
 
 
-# ========================== Syslog wrappers ==========================
-
-
-def log_info(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_warning(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_error(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 # ==================== Methods for initialization ====================
@@ -70,14 +43,14 @@ def load_platform_psuutil():
         module_file = os.path.join(platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py")
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
     except IOError as e:
-        log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
+        log.log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
     try:
         platform_psuutil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
         platform_psuutil = platform_psuutil_class()
     except AttributeError as e:
-        log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
+        log.log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
         return -2
 
     return 0
