@@ -38,6 +38,7 @@ LLDP_INSTANCE_IN_HOST_NAMESPACE = ''
 LLDP_DEFAULT_INTERFACE_LIST_IN_ASIC_NAMESPACE = ''
 SPACE_TOKEN = ' '
 
+
 class Lldpshow(object):
     def __init__(self):
         self.lldpraw = []
@@ -45,8 +46,8 @@ class Lldpshow(object):
         self.lldp_interface = []
         self.lldp_instance = []
         self.err = None
-        ### So far only find Router and Bridge two capabilities in lldpctl, so any other capacility types will be read as Other
-        ### if further capability type is supported like WLAN, can just add the tag definition here
+        # So far only find Router and Bridge two capabilities in lldpctl, so any other capacility types will be read as Other
+        # if further capability type is supported like WLAN, can just add the tag definition here
         self.ctags = {'Router': 'R', 'Bridge': 'B'}
         SonicDBConfig.load_sonic_global_db_config()
 
@@ -54,7 +55,8 @@ class Lldpshow(object):
         namespaces = device_info.get_all_namespaces()
         per_asic_configdb = {}
         for instance_num, front_asic_namespaces in enumerate(namespaces['front_ns']):
-            per_asic_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_asic_configdb[front_asic_namespaces] = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=front_asic_namespaces)
             per_asic_configdb[front_asic_namespaces].connect()
             # Initalize Interface list to be ''. We will do string append of the interfaces below.
             self.lldp_interface.append(LLDP_DEFAULT_INTERFACE_LIST_IN_ASIC_NAMESPACE)
@@ -75,14 +77,15 @@ class Lldpshow(object):
         """
         for lldp_instace_num in range(len(self.lldp_instance)):
             lldp_interface_list = lldp_port if lldp_port is not None else self.lldp_interface[lldp_instace_num]
-            # In detail mode we will pass interface list (only front ports) and get O/P as plain text 
+            # In detail mode we will pass interface list (only front ports) and get O/P as plain text
             # and in table format we will get xml output
-            lldp_cmd = 'sudo docker exec -i lldp{} lldpctl '.format(self.lldp_instance[lldp_instace_num]) + ('-f xml' if not lldp_detail_info else lldp_interface_list)
+            lldp_cmd = 'sudo docker exec -i lldp{} lldpctl '.format(self.lldp_instance[lldp_instace_num]) + (
+                '-f xml' if not lldp_detail_info else lldp_interface_list)
             p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True)
             (output, err) = p.communicate()
             ## Wait for end of command. Get return returncode ##
             returncode = p.wait()
-            ### if no error, get the lldpctl result
+            # if no error, get the lldpctl result
             if returncode == 0:
                 # ignore the output if given port is not present
                 if lldp_port is not None and lldp_port not in output:
@@ -92,7 +95,7 @@ class Lldpshow(object):
                     break
             else:
                 self.err = err
-        
+
         if self.err:
             self.lldpraw = []
 
@@ -143,9 +146,9 @@ class Lldpshow(object):
 
     def sort_sum(self, summary):
         """ Sort the summary information in the way that is expected(natural string)."""
-        alphanum_key = lambda key: [re.findall('[A-Za-z]+',key) + [int(port_num) for port_num in re.findall('\d+',key)]]
+        def alphanum_key(key): return [re.findall('[A-Za-z]+', key) + [int(port_num)
+                                                                       for port_num in re.findall('\d+', key)]]
         return sorted(summary, key=alphanum_key)
-
 
     def display_sum(self, lldp_detail_info):
         """
@@ -163,18 +166,20 @@ class Lldpshow(object):
             header = ['LocalPort', 'RemoteDevice', 'RemotePortID', 'Capability', 'RemotePortDescr']
             sortedsum = self.sort_sum(self.lldpsum)
             for key in sortedsum:
-                lldpstatus.append([ key, self.lldpsum[key]['r_name'], self.lldpsum[key]['r_portid'], self.lldpsum[key]['capability'], self.lldpsum[key]['r_portname']])
+                lldpstatus.append([key, self.lldpsum[key]['r_name'], self.lldpsum[key]['r_portid'],
+                                   self.lldpsum[key]['capability'], self.lldpsum[key]['r_portname']])
             print (tabulate(lldpstatus, header))
             print ('-'.rjust(50, '-'))
             print ('Total entries displayed: ', len(self.lldpsum))
         elif self.err is not None:
-            print ('Error:',self.err)
+            print ('Error:', self.err)
+
 
 def main():
-    parser  = argparse.ArgumentParser(description='Display the LLDP neighbors',
-                                      version='1.0.0',
-                                      formatter_class=argparse.RawTextHelpFormatter,
-                                      epilog="""
+    parser = argparse.ArgumentParser(description='Display the LLDP neighbors',
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     epilog="""
                                       Examples:
                                       lldpshow
                                       lldpshow -d
@@ -200,6 +205,7 @@ def main():
     except Exception as e:
         print(e.message, file=sys.stderr)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
