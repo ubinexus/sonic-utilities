@@ -74,18 +74,24 @@ def cli():
         sys.exit(2)
 
 # 'version' subcommand
+
+
 @cli.command()
 def version():
     """Display version info"""
     click.echo("psuutil version {0}".format(VERSION))
 
 # 'numpsus' subcommand
+
+
 @cli.command()
 def numpsus():
     """Display number of supported PSUs on device"""
     click.echo(str(platform_psuutil.get_num_psus()))
 
 # 'status' subcommand
+
+
 @cli.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
 def status(index):
@@ -104,8 +110,8 @@ def status(index):
         msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
-            click.echo("Error! The {} is not available on the platform.\n" \
-            "Number of supported PSU - {}.".format(psu_name, platform_psuutil.get_num_psus()))
+            click.echo("Error! The {} is not available on the platform.\n"
+                       "Number of supported PSU - {}.".format(psu_name, platform_psuutil.get_num_psus()))
             continue
         presence = platform_psuutil.get_psu_presence(psu)
         if presence:
@@ -117,6 +123,7 @@ def status(index):
 
     if status_table:
         click.echo(tabulate(status_table, header, tablefmt="simple"))
+
 
 if __name__ == '__main__':
     cli()
