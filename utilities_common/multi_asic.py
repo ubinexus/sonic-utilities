@@ -1,7 +1,5 @@
 import argparse
 import functools
-import json
-import subprocess
 
 import click
 
