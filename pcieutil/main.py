@@ -38,6 +38,8 @@ def print_result(name, result):
 # ==================== Methods for initialization ====================
 
 # Loads platform specific psuutil module from source
+
+
 def load_platform_pcieutil():
     global platform_pcieutil
     global platform_plugins_path
@@ -73,18 +75,22 @@ def cli():
     load_platform_pcieutil()
 
 # 'version' subcommand
+
+
 @cli.command()
 def version():
     """Display version info"""
     click.echo("pcieutil version {0}".format(VERSION))
 
-#show the platform PCIE info
+# show the platform PCIE info
 
 
 def print_test_title(testname):
     click.echo("{name:=^80s}".format(name=testname))
 
 #  Show PCIE lnkSpeed
+
+
 @cli.command()
 def pcie_show():
     '''Display PCIe Device '''
@@ -97,10 +103,7 @@ def pcie_show():
         Fn = item["fn"]
         Name = item["name"]
         Id = item["id"]
-        print "bus:dev.fn %s:%s.%s - dev_id=0x%s,  %s" % (Bus,Dev,Fn,Id,Name)
-
-
-
+        print "bus:dev.fn %s:%s.%s - dev_id=0x%s, %s" % (Bus, Dev, Fn, Id, Name)
 
 
 #  Show PCIE Vender ID and Device ID
@@ -116,14 +119,12 @@ def pcie_check():
             print_result(item["name"], "Passed")
         else:
             print_result(item["name"], "Failed")
-            log.log_warning("PCIe Device: " +  item["name"] + " Not Found")
-            err+=1
+            log.log_warning("PCIe Device: " + item["name"] + " Not Found")
+            err += 1
     if err:
         print "PCIe Device Checking All Test ----------->>> FAILED"
     else:
         print "PCIe Device Checking All Test ----------->>> PASSED"
-
-
 
 
 @cli.command()
@@ -132,6 +133,7 @@ def pcie_generate():
     '''Generate config file with current pci device'''
     platform_pcieutil.dump_conf_yaml()
     print "Generate config file pcie.yaml under path %s" % platform_plugins_path
+
 
 if __name__ == '__main__':
     cli()
