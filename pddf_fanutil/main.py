@@ -76,12 +76,9 @@ def _wrapper_get_fan_speed(idx):
 
 def _wrapper_get_fan_speed_rear(idx):
     if platform_chassis is not None:
-        try:
-            #TODO: find out a way to calculate rear fan speed using 2.0 APIs
-            #return platform_chassis.get_fan(idx-1).get_speed()
-            return 0
-        except NotImplementedError:
-            pass
+        # This wrapper API is invalid for Pl API 2.0 as every fan 
+        # is treated as a separate fan
+        return 0
     return platform_fanutil.get_speed_rear(idx)
 
 def _wrapper_set_fan_speed(idx, percent):
@@ -200,7 +197,6 @@ def direction(index):
     status_table = []
 
     for fan in fan_ids:
-        msg = ""
         fan_name = _wrapper_get_fan_name(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
@@ -232,7 +228,6 @@ def getspeed(index):
     status_table = []
 
     for fan in fan_ids:
-        msg = ""
         fan_name = _wrapper_get_fan_name(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
