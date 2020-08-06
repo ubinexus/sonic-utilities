@@ -318,7 +318,6 @@ class SFPShow(object):
             state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name)) if presence else {}
 
         if dump_dom:
-            sfp_type = sfp_info_dict.get('type', null)
             dom_info_dict = state_db.get_all(
                 state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name)) if presence else {}
 
