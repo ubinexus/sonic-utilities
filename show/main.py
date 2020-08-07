@@ -19,7 +19,6 @@ from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
-from utilities_common.cli import AbbreviationGroup, pass_db
 
 import feature
 import mlnx

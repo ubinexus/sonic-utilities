@@ -2,7 +2,7 @@ import click
 from natsort import natsorted
 from tabulate import tabulate
 
-from utilities_common.cli import AbbreviationGroup, pass_db
+from utilities_common.cli import pass_db
 
 #
 # 'feature' group (show feature ...)
