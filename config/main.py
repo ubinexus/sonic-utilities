@@ -3206,6 +3206,10 @@ def asymmetric(ctx, interface_name, status):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid!!")
+
+
     run_command("pfc config asymmetric {0} {1}".format(status, interface_name))
 
 #
