@@ -18,7 +18,6 @@ from sonic_py_common import device_info, logger
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
-from utilities_common.util_base import UtilHelper
 
 import aaa
 import mlnx
@@ -1264,7 +1263,6 @@ def load_minigraph(db, no_service_restart):
         _reset_failed_services(db.cfgdb)
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
         log.log_info("'load_minigraph' restarting services...")
-        _restart_services()
         _restart_services(db.cfgdb)
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
