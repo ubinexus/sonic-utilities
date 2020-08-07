@@ -52,14 +52,10 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
-<<<<<<< HEAD
 MAXIMUM_WARMRESTART_TIMER_VALUE = 9999
 
 asic_type = None
 config_db = None
-=======
-DISABLE_WARMRESTART_TIMER_VALUE = 9999
->>>>>>> [warmboot] using disable keyword to set timer
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
