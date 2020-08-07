@@ -503,8 +503,7 @@ systemctl stop nat
 debug "Stopped nat ..."
 
 # Kill radv before stopping BGP service to prevent annoucing our departure.
-debug "Stopping radv ..."
-docker kill radv &>/dev/null || [ $? == 1 ]
+debug "Stopping radv service..."
 systemctl stop radv
 
 # Kill bgpd to start the bgp graceful restart procedure
@@ -536,11 +535,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     debug "Stopped teamd ..."
 fi
 
-# Kill swss Docker container
-# We call `docker kill swss` to ensure the container stops as quickly as possible,
-# then immediately call `systemctl stop swss` to prevent the service from
-# restarting the container automatically.
-docker kill swss &> /dev/null || debug "Docker swss is not running ($?) ..."
+debug "Stopping swss service ..."
 systemctl stop swss
 
 # Pre-shutdown syncd
