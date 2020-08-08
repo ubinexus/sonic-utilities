@@ -1630,8 +1630,6 @@ def reload():
     log.log_info("'qos reload' executing...")
     _clear_qos()
 
-    platform = device_info.get_platform()
-    hwsku = device_info.get_hwsku()
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
 
     namespace_list = [DEFAULT_NAMESPACE]
