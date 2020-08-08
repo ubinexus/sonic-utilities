@@ -884,9 +884,9 @@ def config(ctx):
 
     ctx.obj = Db()
 
-config.add_command(feature.feature)
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(feature.feature)
 # === Add NAT Configuration ==========
 config.add_command(nat.nat)
 

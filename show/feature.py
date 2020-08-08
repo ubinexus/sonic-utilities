@@ -2,12 +2,12 @@ import click
 from natsort import natsorted
 from tabulate import tabulate
 
-from utilities_common.cli import pass_db
+from utilities_common.cli import AbbreviationGroup, pass_db
 
 #
 # 'feature' group (show feature ...)
 #
-@click.group(name='feature', invoke_without_command=False)
+@click.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
 def feature():
     """Show feature status"""
     pass
