@@ -107,6 +107,13 @@ class TestVlan(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
 
+    def test_show_vlan(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vlan"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
     def test_show_vlan_brief(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [])
