@@ -13,11 +13,10 @@ import ipaddress
 import click
 from click_default_group import DefaultGroup
 from natsort import natsorted
-from tabulate import tabulate
-
-import sonic_device_util
+from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from tabulate import tabulate
 
 import mlnx
 
@@ -1622,20 +1621,13 @@ def get_hw_info_dict():
     This function is used to get the HW info helper function
     """
     hw_info_dict = {}
-    machine_info = sonic_device_util.get_machine_info()
-    platform = sonic_device_util.get_platform_info(machine_info)
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('DEVICE_METADATA')
-    try:
-        hwsku = data['localhost']['hwsku']
-    except KeyError:
-        hwsku = "Unknown"
-    version_info = sonic_device_util.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-    hw_info_dict['platform'] = platform
-    hw_info_dict['hwsku'] = hwsku
-    hw_info_dict['asic_type'] = asic_type
+
+    version_info = device_info.get_sonic_version_info()
+
+    hw_info_dict['platform'] = device_info.get_platform()
+    hw_info_dict['hwsku'] = device_info.get_hwsku()
+    hw_info_dict['asic_type'] = version_info['asic_type']
+
     return hw_info_dict
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
@@ -1643,7 +1635,7 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
-version_info = sonic_device_util.get_sonic_version_info()
+version_info = device_info.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
     platform.add_command(mlnx.mlnx)
 
@@ -1760,7 +1752,7 @@ def logging(process, lines, follow, verbose):
 @click.option("--verbose", is_flag=True, help="Enable verbose output")
 def version(verbose):
     """Show version information"""
-    version_info = sonic_device_util.get_sonic_version_info()
+    version_info = device_info.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
     serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
