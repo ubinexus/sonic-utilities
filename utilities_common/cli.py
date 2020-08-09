@@ -52,10 +52,8 @@ class AbbreviationGroup(click.Group):
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 try:
-    # noinspection PyPep8Naming
     import ConfigParser as configparser
 except ImportError:
-    # noinspection PyUnresolvedReferences
     import configparser
 
 # This is from the aliases example:
