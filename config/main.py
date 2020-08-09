@@ -18,8 +18,9 @@ from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
-import utilities_common.cli as clicommon # lgtm [py/import-and-import-from]
-from utilities_common.cli import cfglog as log
+import utilities_common.cli as clicommon
+from .utils import log
+
 
 import aaa
 import mlnx

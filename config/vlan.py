@@ -1,6 +1,7 @@
 import click
 
 import utilities_common.cli as clicommon
+from .utils import log
 
 #
 # 'vlan' group ('config vlan ...')
@@ -33,7 +34,7 @@ def add_vlan(db, vid):
 def del_vlan(db, vid):
     """Delete VLAN"""
 
-    clicommon.cfglog.log_info("'vlan del {}' executing...".format(vid))
+    log.log_info("'vlan del {}' executing...".format(vid))
 
     ctx = click.get_current_context()
 
@@ -66,7 +67,7 @@ def add_vlan_member(db, vid, port, untagged):
 
     ctx = click.get_current_context()
 
-    clicommon.cfglog.log_info("'vlan member add {} {}' executing...".format(vid, port))
+    log.log_info("'vlan member add {} {}' executing...".format(vid, port))
 
     if not clicommon.is_vlanid_in_range(vid):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
@@ -110,7 +111,7 @@ def del_vlan_member(db, vid, port):
 
     ctx = click.get_current_context()
 
-    clicommon.cfglog.log_info("'vlan member del {} {}' executing...".format(vid, port))
+    log.log_info("'vlan member del {} {}' executing...".format(vid, port))
 
     if not clicommon.is_vlanid_in_range(vid):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))

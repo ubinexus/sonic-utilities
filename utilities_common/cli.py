@@ -7,16 +7,11 @@ import click
 
 from utilities_common.db import Db
 
-from sonic_py_common import logger
 from swsssdk import ConfigDBConnector
 
-SYSLOG_IDENTIFIER_FOR_CONFIG = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 pass_db = click.make_pass_decorator(Db, ensure=True)
-
-# Global logger instance
-cfglog = logger.Logger(SYSLOG_IDENTIFIER_FOR_CONFIG)
 
 class AbbreviationGroup(click.Group):
     """This subclass of click.Group supports abbreviated subgroup/subcommand names
