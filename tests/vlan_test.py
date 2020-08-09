@@ -260,7 +260,6 @@ class TestVlan(object):
 
     def test_config_vlan_del_nonexist_vlan_member(self):
         runner = CliRunner()
-        db = Db()
 
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], \
 				["1000", "Ethernet0"])

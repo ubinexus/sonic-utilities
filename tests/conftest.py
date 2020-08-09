@@ -2,7 +2,6 @@ import os
 import sys
 
 import mock
-import click
 import pytest
 
 import mock_tables.dbconnector
