@@ -260,21 +260,6 @@ def execute_systemctl(list_of_services, action):
                     if e.is_set():
                         sys.exit(1)
 
-def run_command(command, display_cmd=False, ignore_error=False):
-    """Run bash command and print output to stdout
-    """
-    if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
-
-    if len(out) > 0:
-        click.echo(out)
-
-    if proc.returncode != 0 and not ignore_error:
-        sys.exit(proc.returncode)
-
 def _get_device_type():
     """
     Get device type
