@@ -4,7 +4,7 @@
 import os
 import click
 
-from utilities_common.common import run_command
+from utilities_common.common import *
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"

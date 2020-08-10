@@ -3,7 +3,7 @@
 
 __all__ = ['log_info', 'log_error', 'log_warning', 'log_debug',
         'do_exit', 'get_configdb_data', 'run_command',
-        'AbbreviationGroup']
+        'AbbreviationGroup', 'get_hostname']
 
 import sys
 import os
