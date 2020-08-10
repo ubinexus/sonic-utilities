@@ -7,13 +7,13 @@ import urllib3
 import tempfile
 import requests
 import fcntl
-import sonic_device_util
 import yaml
 import netaddr
 import shutil
 from urlparse import urlparse
 from swsssdk import ConfigDBConnector
 from utilities_common.common import *
+from sonic_py_common import device_info
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBELET_YAML = "/var/lib/kubelet/config.yaml"
@@ -106,9 +106,11 @@ def _is_connected(server=""):
 def _get_labels():
     labels = []
 
-    labels.append("sonic_version={}".format(
-        sonic_device_util.get_sonic_version_info()['build_version']))
-    labels.append("hwsku={}".format(sonic_device_util.get_hwsku()))
+    hwsku = device_info.get_hwsku()
+    version_info = device_info.get_sonic_version_info()
+
+    labels.append("sonic_version={}".format(version_info['build_version']))
+    labels.append("hwsku={}".format(hwsku))
     lh = get_configdb_data('DEVICE_METADATA', 'localhost')
     labels.append("deployment_type={}".format(
         lh['type'] if lh and 'type' in lh else "Unknown"))
