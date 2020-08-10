@@ -10,7 +10,7 @@ from tabulate import tabulate
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "1":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
-        test_path = os.path.join(modules_path, "sonic-utilities-tests")
+        test_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
@@ -35,7 +35,7 @@ def psu_status_show(index):
     else:
         psu_ids = [index]
 
-    header = ['PSU', 'Status']
+    header = ['PSU', 'Status', 'LED']
     status_table = []
 
     for psu in psu_ids:
@@ -51,7 +51,8 @@ def psu_status_show(index):
             msg = 'OK' if oper_status == 'true' else "NOT OK"
         else:
             msg = 'NOT PRESENT'
-        status_table.append([psu_name, msg])
+        led_status = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'led_status')
+        status_table.append([psu_name, msg, led_status])
 
     if status_table:
         print tabulate(status_table, header, tablefmt="simple")

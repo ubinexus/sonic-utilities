@@ -41,19 +41,23 @@ setup(
         'ssdutil',
         'pfc',
         'psuutil',
+        'fwutil',
+        'pcieutil',
         'pddf_fanutil',
         'pddf_psuutil',
         'pddf_thermalutil',
         'pddf_ledutil',
         'show',
         'sonic_installer',
-        'sonic-utilities-tests',
+        'sonic_installer.bootloader',
+        'tests',
         'undebug',
         'utilities_common',
+        'watchdogutil',
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json']
+        'tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -66,16 +70,24 @@ setup(
         'scripts/dropcheck',
         'scripts/dropconfig',
         'scripts/dropstat',
+        'scripts/dump_nat_entries.py',
         'scripts/ecnconfig',
+        'scripts/fanshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
+        'scripts/filter_fdb_entries.py',
+        'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/log_ssd_health',
         'scripts/mmuconfig',
+        'scripts/natclear',
+        'scripts/natconfig',
+        'scripts/natshow',
         'scripts/nbrshow',
         'scripts/neighbor_advertiser',
         'scripts/pcmping',
@@ -91,13 +103,16 @@ setup(
         'scripts/sfpshow',
         'scripts/syseeprom-to-json',
         'scripts/teamshow',
+        'scripts/tempershow',
         'scripts/update_json.py',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
-        'scripts/watermarkcfg'
+        'scripts/watermarkcfg',
+        'scripts/sonic-kdump-config'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
+        ('/usr/share/sonic/templates', ['sonic_installer/templates/sonic-environment.j2']),
     ],
     entry_points={
         'console_scripts': [
@@ -113,14 +128,18 @@ setup(
             'ssdutil = ssdutil.main:ssdutil',
             'pfc = pfc.main:cli',
             'psuutil = psuutil.main:cli',
+            'fwutil = fwutil.main:cli',
+            'pcieutil = pcieutil.main:cli',
             'pddf_fanutil = pddf_fanutil.main:cli',
             'pddf_psuutil = pddf_psuutil.main:cli',
             'pddf_thermalutil = pddf_thermalutil.main:cli',
             'pddf_ledutil = pddf_ledutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
-            'sonic_installer = sonic_installer.main:cli',
+            'sonic-installer = sonic_installer.main:sonic_installer',
+            'sonic_installer = sonic_installer.main:sonic_installer',  # Deprecated
             'undebug = undebug.main:cli',
+            'watchdogutil = watchdogutil.main:watchdogutil',
         ]
     },
     # NOTE: sonic-utilities also depends on other packages that are either only
@@ -130,12 +149,13 @@ setup(
     # therefore all dependencies will be assumed to also be available as .debs.
     # These unlistable dependencies are as follows:
     # - sonic-config-engine
-    # - swsssdk
+    # - sonic-py-common
+    # - sonic-py-swsssdk
     # - tabulate
     install_requires=[
-        'click-default-group',
         'click',
-        'natsort'
+        'natsort',
+        'm2crypto'
     ],
     setup_requires= [
         'pytest-runner'
