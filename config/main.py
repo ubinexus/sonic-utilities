@@ -730,21 +730,7 @@ def _restart_services(config_db):
     execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
 
 
-<<<<<<< HEAD
-def is_ipaddress(val):
-    """ Validate if an entry is a valid IP """
-    if not val:
-        return False
-    try:
-        netaddr.IPAddress(str(val))
-    except ValueError:
-        return False
-    return True
-
 def interface_is_in_vlan(vlan_member_table, interface_name):
-=======
-def  interface_is_in_vlan(vlan_member_table, interface_name):
->>>>>>> upstream/master
     """ Check if an interface  is in a vlan """
     for _,intf in vlan_member_table.keys():
         if intf == interface_name:
