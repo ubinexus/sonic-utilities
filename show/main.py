@@ -8,25 +8,24 @@ import re
 import subprocess
 import sys
 import ipaddress
-from pkg_resources import parse_version
 from collections import OrderedDict
 
 import click
 from natsort import natsorted
-from tabulate import tabulate
-
-import sonic_device_util
+from pkg_resources import parse_version
+from portconfig import get_child_ports
+from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
-from portconfig import get_child_ports
+from tabulate import tabulate
+from utilities_common.db import Db
 
+import feature
 import mlnx
 
-# Global Variable
-PLATFORM_ROOT_PATH = "/usr/share/sonic/device"
+# Global Variables
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
@@ -555,9 +554,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 # This is our entrypoint - the main "show" command
 # TODO: Consider changing function name to 'show' for better understandability
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
-def cli():
+@click.pass_context
+def cli(ctx):
     """SONiC command line - 'show' command"""
-    pass
+
+    ctx.obj = Db()
+
+cli.add_command(feature.feature)
 
 #
 # 'vrf' command ("show vrf")
@@ -819,41 +822,36 @@ def breakout(ctx):
     ctx.obj = {'db': config_db}
 
     try:
-        curBrkout_tbl = config_db.get_table('BREAKOUT_CFG')
+        cur_brkout_tbl = config_db.get_table('BREAKOUT_CFG')
     except Exception as e:
         click.echo("Breakout table is not present in Config DB")
         raise click.Abort()
 
     if ctx.invoked_subcommand is None:
-
-        # Get HWSKU and Platform information
-        hw_info_dict = get_hw_info_dict()
-        platform = hw_info_dict['platform']
-        hwsku = hw_info_dict['hwsku']
-
         # Get port capability from platform and hwsku related files
-        platformFile = "{}/{}/{}".format(PLATFORM_ROOT_PATH, platform, PLATFORM_JSON)
-        platformDict = readJsonFile(platformFile)['interfaces']
-        hwskuDict = readJsonFile("{}/{}/{}/{}".format(PLATFORM_ROOT_PATH, platform, hwsku, HWSKU_JSON))['interfaces']
+        platform_path, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+        platform_file = os.path.join(platform_path, PLATFORM_JSON)
+        platform_dict = readJsonFile(platform_file)['interfaces']
+        hwsku_dict = readJsonFile(os.path.join(hwsku_path, HWSKU_JSON))['interfaces']
 
-        if not platformDict or not hwskuDict:
+        if not platform_dict or not hwsku_dict:
             click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
             raise click.Abort()
 
-        for port_name in platformDict.keys():
-            curBrkout_mode = curBrkout_tbl[port_name]["brkout_mode"]
+        for port_name in platform_dict.keys():
+            cur_brkout_mode = cur_brkout_tbl[port_name]["brkout_mode"]
 
-            # Update deafult breakout mode and current breakout mode to platformDict
-            platformDict[port_name].update(hwskuDict[port_name])
-            platformDict[port_name]["Current Breakout Mode"] = curBrkout_mode
+            # Update deafult breakout mode and current breakout mode to platform_dict
+            platform_dict[port_name].update(hwsku_dict[port_name])
+            platform_dict[port_name]["Current Breakout Mode"] = cur_brkout_mode
 
             # List all the child ports if present
-            child_portDict = get_child_ports(port_name, curBrkout_mode, platformFile)
-            if not child_portDict:
+            child_port_dict = get_child_ports(port_name, cur_brkout_mode, platformFile)
+            if not child_port_dict:
                 click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
                 raise click.Abort()
 
-            child_ports = natsorted(child_portDict.keys())
+            child_ports = natsorted(child_port_dict.keys())
 
             children, speeds = [], []
             # Update portname and speed of child ports if present
@@ -863,11 +861,11 @@ def breakout(ctx):
                     speeds.append(str(int(speed)//1000)+'G')
                     children.append(port)
 
-            platformDict[port_name]["child ports"] = ",".join(children)
-            platformDict[port_name]["child port speeds"] = ",".join(speeds)
+            platform_dict[port_name]["child ports"] = ",".join(children)
+            platform_dict[port_name]["child port speeds"] = ",".join(speeds)
 
         # Sorted keys by name in natural sort Order for human readability
-        parsed = OrderedDict((k, platformDict[k]) for k in natsorted(platformDict.keys()))
+        parsed = OrderedDict((k, platform_dict[k]) for k in natsorted(platform_dict.keys()))
         click.echo(json.dumps(parsed, indent=4))
 
 # 'breakout current-mode' subcommand ("show interfaces breakout current-mode")
@@ -883,20 +881,20 @@ def currrent_mode(ctx, interface):
     body = []
 
     try:
-        curBrkout_tbl = config_db.get_table('BREAKOUT_CFG')
+        cur_brkout_tbl = config_db.get_table('BREAKOUT_CFG')
     except Exception as e:
         click.echo("Breakout table is not present in Config DB")
         raise click.Abort()
 
     # Show current Breakout Mode of user prompted interface
     if interface is not None:
-        body.append([interface, str(curBrkout_tbl[interface]['brkout_mode'])])
+        body.append([interface, str(cur_brkout_tbl[interface]['brkout_mode'])])
         click.echo(tabulate(body, header, tablefmt="grid"))
         return
 
     # Show current Breakout Mode for all interfaces
-    for name in natsorted(curBrkout_tbl.keys()):
-        body.append([name, str(curBrkout_tbl[name]['brkout_mode'])])
+    for name in natsorted(cur_brkout_tbl.keys()):
+        body.append([name, str(cur_brkout_tbl[name]['brkout_mode'])])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 
@@ -1179,8 +1177,8 @@ def priority(interface):
     cmd = 'pfc show priority'
     if interface is not None and get_interface_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
-                
-    if interface is not None:    
+
+    if interface is not None:
         cmd += ' {0}'.format(interface)
 
     run_command(cmd)
@@ -1192,8 +1190,8 @@ def asymmetric(interface):
     cmd = 'pfc show asymmetric'
     if interface is not None and get_interface_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
-                
-    if interface is not None:    
+
+    if interface is not None:
         cmd += ' {0}'.format(interface)
 
     run_command(cmd)
@@ -1727,7 +1725,7 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    from .bgp_frr_v4 import bgp 
+    from .bgp_frr_v4 import bgp
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
@@ -1774,20 +1772,13 @@ def get_hw_info_dict():
     This function is used to get the HW info helper function
     """
     hw_info_dict = {}
-    machine_info = sonic_device_util.get_machine_info()
-    platform = sonic_device_util.get_platform_info(machine_info)
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('DEVICE_METADATA')
-    try:
-        hwsku = data['localhost']['hwsku']
-    except KeyError:
-        hwsku = "Unknown"
-    version_info = sonic_device_util.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-    hw_info_dict['platform'] = platform
-    hw_info_dict['hwsku'] = hwsku
-    hw_info_dict['asic_type'] = asic_type
+
+    version_info = device_info.get_sonic_version_info()
+
+    hw_info_dict['platform'] = device_info.get_platform()
+    hw_info_dict['hwsku'] = device_info.get_hwsku()
+    hw_info_dict['asic_type'] = version_info['asic_type']
+
     return hw_info_dict
 
 @cli.group(cls=AliasedGroup)
@@ -1795,7 +1786,7 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
-version_info = sonic_device_util.get_sonic_version_info()
+version_info = device_info.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
     platform.add_command(mlnx.mlnx)
 
@@ -1922,7 +1913,7 @@ def logging(process, lines, follow, verbose):
 @click.option("--verbose", is_flag=True, help="Enable verbose output")
 def version(verbose):
     """Show version information"""
-    version_info = sonic_device_util.get_sonic_version_info()
+    version_info = device_info.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
     serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
@@ -2173,7 +2164,7 @@ def ntp(ctx, verbose):
     ntpstat_cmd = "ntpstat"
     ntpcmd = "ntpq -p -n"
     if is_mgmt_vrf_enabled(ctx) is True:
-        #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version 
+        #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version
         os_info =  os.uname()
         release = os_info[2].split('-')
         if parse_version(release[0]) > parse_version("4.9.0"):
@@ -2971,7 +2962,7 @@ def pool(verbose):
 
 # Define GEARBOX commands only if GEARBOX is configured
 app_db = SonicV2Connector(host='127.0.0.1')
-app_db.connect(app_db.APPL_DB) 
+app_db.connect(app_db.APPL_DB)
 if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
 
     @cli.group(cls=AliasedGroup)
@@ -3049,56 +3040,6 @@ def ztp(status, verbose):
     if verbose:
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
-
-#
-# show features
-#
-@cli.command('features')
-def features():
-    """Show status of optional features"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['Feature', 'Status']
-    body = []
-    status_data = config_db.get_table('FEATURE')
-    for key in status_data.keys():
-        body.append([key, status_data[key]['status']])
-    click.echo(tabulate(body, header))
-
-#
-# 'container' group (show container ...)
-#
-@cli.group(name='container', invoke_without_command=False)
-def container():
-    """Show container"""
-    pass
-
-#
-# 'feature' group (show container feature ...)
-#
-@container.group(name='feature', invoke_without_command=False)
-def feature():
-    """Show container feature"""
-    pass
-
-#
-# 'autorestart' subcommand (show container feature autorestart)
-#
-@feature.command('autorestart', short_help="Show whether the auto-restart feature for container(s) is enabled or disabled")
-@click.argument('container_name', required=False)
-def autorestart(container_name):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['Container Name', 'Status']
-    body = []
-    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
-    if container_name:
-        if container_feature_table and container_feature_table.has_key(container_name):
-            body.append([container_name, container_feature_table[container_name]['auto_restart']])
-    else:
-        for name in container_feature_table.keys():
-            body.append([name, container_feature_table[name]['auto_restart']])
-    click.echo(tabulate(body, header))
 
 #
 # 'vnet' command ("show vnet")
