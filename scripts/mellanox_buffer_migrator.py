@@ -1,24 +1,9 @@
-import syslog
+from sonic_py_common import logger
 
 SYSLOG_IDENTIFIER = 'mellanox_buffer_migrator'
 
-def log_info(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-
-def log_notice(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_NOTICE, msg)
-    syslog.closelog()
-
-
-def log_error(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 class MellanoxBufferMigrator():
     def __init__(self, configDB):
@@ -274,43 +259,43 @@ class MellanoxBufferMigrator():
 
         # Buffer pool numbers is different with default, don't need migrate
         if len(name_list_of_pools_in_db) != len(old_default_buffer_pools):
-            log_notice("Pools in CONFIG_DB ({}) don't match default ({}), skip buffer pool migration".format(name_list_of_pools_in_db, old_default_buffer_pools))
+            log.log_notice("Pools in CONFIG_DB ({}) don't match default ({}), skip buffer pool migration".format(name_list_of_pools_in_db, old_default_buffer_pools))
             return True
 
         # If some buffer pool is not default ones, don't need migrate
         for buffer_pool in old_default_buffer_pools:
             if buffer_pool not in name_list_of_pools_in_db:
-                log_notice("Default pool {} isn't in CONFIG_DB, skip buffer pool migration".format(buffer_pool))
+                log.log_notice("Default pool {} isn't in CONFIG_DB, skip buffer pool migration".format(buffer_pool))
                 return True
 
         old_pool_configuration_list = self.mlnx_default_buffer_parameters(old_version, "pool_configuration_list")
         if not old_pool_configuration_list:
-            log_error("Trying to get pool configuration list or migration control failed, skip migration")
+            log.log_error("Trying to get pool configuration list or migration control failed, skip migration")
             return False
 
         new_config_name = None
         for old_config_name in old_pool_configuration_list:
             old_config = self.mlnx_default_buffer_parameters(old_version, old_config_name)
-            log_info("Checking old pool configuration {}".format(old_config_name))
+            log.log_info("Checking old pool configuration {}".format(old_config_name))
             if buffer_pool_conf_in_db == old_config:
                 new_config_name = old_config_name
-                log_info("Old buffer pool configuration {} will be migrate to new one".format(old_config_name))
+                log.log_info("Old buffer pool configuration {} will be migrate to new one".format(old_config_name))
                 break
 
         if not new_config_name:
-            log_notice("The configuration doesn't match any default configuration, migration for pool isn't required")
+            log.log_notice("The configuration doesn't match any default configuration, migration for pool isn't required")
             return True
 
         new_buffer_pool_conf = self.mlnx_default_buffer_parameters(new_version, new_config_name)
         if not new_buffer_pool_conf:
-            log_error("Can't find the buffer pool configuration for {} in {}".format(new_config_name, new_version))
+            log.log_error("Can't find the buffer pool configuration for {} in {}".format(new_config_name, new_version))
             return False
 
         # Migrate old buffer conf to latest.
         for pool in old_default_buffer_pools:
             self.configDB.set_entry('BUFFER_POOL', pool, new_buffer_pool_conf.get(pool))
 
-            log_info("Successfully migrate mlnx buffer pool {} size to the latest.".format(pool))
+            log.log_info("Successfully migrate mlnx buffer pool {} size to the latest.".format(pool))
 
         return True
 
@@ -322,7 +307,7 @@ class MellanoxBufferMigrator():
         if 'localhost' in device_data.keys():
             platform = device_data['localhost']['platform']
         else:
-            log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
             return False
 
         spc1_platforms = ["x86_64-mlnx_msn2010-r0", "x86_64-mlnx_msn2100-r0", "x86_64-mlnx_msn2410-r0", "x86_64-mlnx_msn2700-r0", "x86_64-mlnx_msn2740-r0"]
@@ -365,16 +350,16 @@ class MellanoxBufferMigrator():
 
         if not buffer_profile_new_configure:
             # Not providing new profile configure in new version means they do need to be changed
-            log_notice("No buffer profile in {}, don't need to migrate non-lossless profiles".format(new_version))
+            log.log_notice("No buffer profile in {}, don't need to migrate non-lossless profiles".format(new_version))
             return True
 
         for name, profile in buffer_profile_old_configure.iteritems():
             if name in buffer_profile_conf.keys() and profile == buffer_profile_old_configure[name]:
                 continue
             # return if any default profile isn't in cofiguration
-            log_notice("Default profile {} isn't in database or doesn't match default value".format(name))
+            log.log_notice("Default profile {} isn't in database or doesn't match default value".format(name))
             return True
 
         for name, profile in buffer_profile_new_configure.iteritems():
-            log_info("Successfully migrate profile {}".format(name))
+            log.log_info("Successfully migrate profile {}".format(name))
             self.configDB.set_entry('BUFFER_PROFILE', name, profile)

@@ -48,7 +48,7 @@ class DBMigrator():
         if self.appDB is not None:
             self.appDB.connect(self.appDB.APPL_DB)
 
-        version_info = sonic_device_util.get_sonic_version_info()
+        version_info = device_info.get_sonic_version_info()
         asic_type = version_info.get('asic_type')
         self.asic_type = asic_type
 
@@ -208,7 +208,9 @@ class DBMigrator():
         """
         Current latest version. Nothing to do here.
         """
-        log_info('Handling version_1_0_4')
+        log.log_info('Handling version_1_0_4')
+
+        return None
 
     def get_version(self):
         version = self.configDB.get_entry(self.TABLE_NAME, self.TABLE_KEY)
