@@ -85,7 +85,7 @@ def _get_breakout_cfg_file_name():
         raise click.Abort()
 
 
-def _get_breakout_options(ctx,args,incomplete):
+def _get_breakout_options(ctx, args, incomplete):
     """ Provides dynamic mode option as per user argument i.e. interface name """
     all_mode_options = []
     interface_name = args[-1]
