@@ -328,7 +328,7 @@ def construct_neighbor_advertiser_slice():
             for addr in ipv6_addr:
                 mapping = {
                     'ipAddr': addr,
-                    'ipPrefixLen': 32,
+                    'ipPrefixLen': 128,
                     'macAddr': mac_addr
                 }
                 ipv6_mappings.append(mapping)
