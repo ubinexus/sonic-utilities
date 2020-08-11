@@ -491,9 +491,9 @@ def set_lpmode(logical_port, enable):
         ganged = True
 
     for physical_port in physical_port_list:
-        click.echo("%s low-power mode for port %s... " % (
+        click.echo("{} low-power mode for port {}... ".format(
             "Enabling" if enable else "Disabling",
-            get_physical_port_name(logical_port, i, ganged)))
+            get_physical_port_name(logical_port, i, ganged)), nl=False)
 
         try:
             result = platform_sfputil.set_low_power_mode(physical_port, enable)
