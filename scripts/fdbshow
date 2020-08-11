@@ -130,7 +130,7 @@ class FdbShow(object):
             output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
 
         print(tabulate(output, self.HEADER))
-        print("Total number of entries {0} ".format(self.FDB_COUNT))
+        print("Total number of entries {0}".format(self.FDB_COUNT))
 
 
 def main():
