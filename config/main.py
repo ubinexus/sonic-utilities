@@ -79,10 +79,12 @@ def _get_breakout_cfg_file_name():
         raise click.Abort()
 
     try:
-        breakout_cfg_file = get_port_config_file_name(hwsku, platform)
+        breakout_cfg_file_name = get_port_config_file_name(hwsku, platform)
     except Exception as e:
         click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
         raise click.Abort()
+
+    return breakout_cfg_file_name
 
 
 def _get_breakout_options(ctx, args, incomplete):
