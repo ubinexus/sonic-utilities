@@ -9,7 +9,6 @@ import sys
 import os
 import syslog
 import click
-import subprocess
 import inspect
 from swsssdk import ConfigDBConnector
 
