@@ -547,7 +547,7 @@ def reset(port_name):
         ganged = True
 
     for physical_port in physical_port_list:
-        click.echo("Resetting port %s... " % get_physical_port_name(port_name, i, ganged))
+        click.echo("Resetting port %s... " % get_physical_port_name(port_name, i, ganged), nl=False)
 
         try:
             result = platform_sfputil.reset(physical_port)
