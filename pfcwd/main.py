@@ -3,7 +3,6 @@
 import click
 import swsssdk
 import os
-import sys
 from tabulate import tabulate
 from natsort import natsorted
 
