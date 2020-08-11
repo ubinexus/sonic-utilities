@@ -223,7 +223,9 @@ def get_vlan_addresses(vlan_interface):
 
     mac_addr = None
     ipv4_addr = []
+    ipv4_prefix = []
     ipv6_addr = []
+    ipv6_prefix = []
 
     '''
     Sample output for "ip addr show Vlan101"
@@ -243,8 +245,10 @@ def get_vlan_addresses(vlan_interface):
             keys=line.strip().split(' ')
             if keys[0] == 'inet':
                 ipv4_addr.append(keys[1].split('/')[0])
+                ipv4_prefix.append(keys[1].split('/')[1])
             elif keys[0] == 'inet6':
                 ipv6_addr.append(keys[1].split('/')[0])
+                ipv6_prefix.append(keys[1].split('/')[1])
             elif keys[0] == 'link/ether':
                 mac_addr = keys[1]
     except Exception:
@@ -259,7 +263,7 @@ def get_vlan_addresses(vlan_interface):
     if not ipv6_addr:
         ipv6_addr = get_vlan_addr(vlan_interface, 6)
 
-    return vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr
+    return vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr
 
 #
 # Set up neighbor advertiser slice on Ferret
@@ -281,28 +285,53 @@ def construct_neighbor_advertiser_slice():
 
     all_vlan_interfaces = get_vlan_interfaces()
 
+    vlan_intf_table = config_db.get_table('VLAN_INTERFACE')
+
     for vlan_interface in all_vlan_interfaces:
-        vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr = get_vlan_addresses(vlan_interface)
+        vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr = get_vlan_addresses(vlan_interface)
 
         if not mac_addr:
             log.log_warning('Cannot find mac addr of vlan interface {}'.format(vlan_interface))
             continue
 
         ipv4_mappings = []
-        for addr in ipv4_addr:
-            mapping = {
-                'ipAddr': addr,
-                'macAddr': mac_addr
-            }
-            ipv4_mappings.append(mapping)
-
         ipv6_mappings = []
-        for addr in ipv6_addr:
-            mapping = {
-                'ipAddr': addr,
-                'macAddr': mac_addr
-            }
-            ipv6_mappings.append(mapping)
+        if vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
+            ctr = 0
+            for addr in ipv4_addr:
+                mapping = {
+                    'ipAddr': addr,
+                    'ipPrefixLen': ipv4_prefix[ctr],
+                    'macAddr': mac_addr
+                }
+                ipv4_mappings.append(mapping)
+                ctr += 1
+
+            ctr = 0
+            for addr in ipv6_addr:
+                mapping = {
+                    'ipAddr': addr,
+                    'ipPrefixLen': ipv6_prefix[ctr],
+                    'macAddr': mac_addr
+                }
+                ipv6_mappings.append(mapping)
+
+        else:            
+            for addr in ipv4_addr:
+                mapping = {
+                    'ipAddr': addr,
+                    'ipPrefixLen': 32,
+                    'macAddr': mac_addr
+                }
+                ipv4_mappings.append(mapping)
+
+            for addr in ipv6_addr:
+                mapping = {
+                    'ipAddr': addr,
+                    'ipPrefixLen': 32,
+                    'macAddr': mac_addr
+                }
+                ipv6_mappings.append(mapping)
 
         vlan_interface_obj = {
             'vlanId': vlan_id,
