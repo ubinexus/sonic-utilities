@@ -14,6 +14,7 @@ from urlparse import urlparse
 from swsssdk import ConfigDBConnector
 from utilities_common.common import *
 from sonic_py_common import device_info
+import utilities_common.cli as clicommon
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBELET_YAML = "/var/lib/kubelet/config.yaml"
@@ -78,11 +79,11 @@ def _download_file(server, insecure):
     update_file = "{}.upd".format(fname)
     cmd = 'sed "s/server:.*:6443/server: https:\/\/{}:6443/" {} > {}'.format(
             server, fname, update_file)
-    run_command(cmd)
+    clicommon.run_command(cmd)
 
     shutil.copyfile(update_file, KUBE_ADMIN_CONF)
 
-    run_command("rm -f {} {}".format(fname, update_file))
+    clicommon.run_command("rm -f {} {}".format(fname, update_file))
 
 
 def _is_connected(server=""):
@@ -122,7 +123,7 @@ def _get_labels():
 def _label_node(label):
     cmd = "kubectl --kubeconfig {} label nodes {} {}".format(
             KUBE_ADMIN_CONF, get_hostname(), label)
-    run_command(cmd, ignore_error=True)
+    clicommon.run_command(cmd, ignore_error=True)
 
 
 def _troubleshoot_tips():
@@ -160,9 +161,9 @@ def _do_join(server, insecure):
     try:
         _download_file(server, insecure)
 
-        run_command("systemctl enable kubelet")
+        clicommon.run_command("systemctl enable kubelet")
 
-        run_command(KUBEADM_JOIN_CMD.format(
+        clicommon.run_command(KUBEADM_JOIN_CMD.format(
             KUBE_ADMIN_CONF, get_hostname()), ignore_error=True)
 
         if _is_connected(server):
@@ -190,20 +191,20 @@ def kube_reset():
     #
     if os.path.exists(KUBE_ADMIN_CONF):
         _label_node("enable_pods-")
-        run_command(
+        clicommon.run_command(
                 "kubectl --kubeconfig {} --request-timeout 20s drain {} --ignore-daemonsets".format(
                     KUBE_ADMIN_CONF, get_hostname()),
                 ignore_error=True)
-        run_command(
+        clicommon.run_command(
                 "kubectl --kubeconfig {} --request-timeout 20s delete node {}".format(
                     KUBE_ADMIN_CONF, get_hostname()),
                 ignore_error=True)
 
-    run_command("kubeadm reset -f", ignore_error=True)
-    run_command("rm -rf /etc/cni/net.d")
-    run_command("rm -f {}".format(KUBE_ADMIN_CONF))
-    run_command("systemctl stop kubelet")
-    run_command("systemctl disable kubelet")
+    clicommon.run_command("kubeadm reset -f", ignore_error=True)
+    clicommon.run_command("rm -rf /etc/cni/net.d")
+    clicommon.run_command("rm -f {}".format(KUBE_ADMIN_CONF))
+    clicommon.run_command("systemctl stop kubelet")
+    clicommon.run_command("systemctl disable kubelet")
 
 
 def kube_join(force=False):

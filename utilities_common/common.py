@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 __all__ = ['log_info', 'log_error', 'log_warning', 'log_debug',
-        'do_exit', 'get_configdb_data', 'run_command',
+        'do_exit', 'get_configdb_data', 
         'AbbreviationGroup', 'get_hostname']
 
 import sys
@@ -60,22 +60,6 @@ def get_configdb_data(table, key):
     config_db.connect()
     data = config_db.get_table(table)
     return data[key] if key in data else None
-
-
-def run_command(command, display_cmd=False, ignore_error=False):
-    """Run bash command and print output to stdout
-    """
-    if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
-
-    if len(out) > 0:
-        click.echo(out)
-
-    if proc.returncode != 0 and not ignore_error:
-        sys.exit(proc.returncode)
 
 
 class AbbreviationGroup(click.Group):

@@ -5,6 +5,7 @@ import os
 import click
 
 from utilities_common.common import *
+import utilities_common.cli as clicommon
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"
@@ -25,7 +26,7 @@ def _print_entry(d, prefix):
 
 def run_kube_command(cmd):
     if os.path.exists(KUBE_ADMIN_CONF):
-        run_command(KUBECTL_CMD.format(cmd))
+        clicommon.run_command(KUBECTL_CMD.format(cmd))
     else:
         print("System not connected to cluster yet")
 
