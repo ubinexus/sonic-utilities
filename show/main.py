@@ -8,12 +8,10 @@ import re
 import subprocess
 import sys
 import ipaddress
-from collections import OrderedDict
 
 import click
 from natsort import natsorted
 from pkg_resources import parse_version
-from portconfig import get_child_ports
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector

@@ -1,5 +1,4 @@
 import json
-import subprocess
 
 import click
 from natsort import natsorted
@@ -217,8 +216,6 @@ def neighbor():
 @clicommon.pass_db
 def expected(db, interfacename):
     """Show expected neighbor information by interfaces"""
-
-    ctx = click.get_current_context()
 
     neighbor_dict = db.cfgdb.get_table("DEVICE_NEIGHBOR")
     if neighbor_dict is None:

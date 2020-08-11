@@ -1,11 +1,8 @@
 import os
-import traceback
 
 from click.testing import CliRunner
 
-import config.main as config
 import show.main as show
-from utilities_common.db import Db
 
 show_interfaces_alias_output="""\
 Name         Alias
@@ -117,7 +114,7 @@ class TestInterfaces(object):
         assert result.exit_code != 0
         assert "Error: Invalid interface name Ethernet3" in result.output
 
-    def test_show_interfaces_naming_mode(self):
+    def test_show_interfaces_naming_mode_default(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["naming_mode"], [])
         print(result.exit_code)
@@ -125,7 +122,7 @@ class TestInterfaces(object):
         assert result.exit_code == 0
         assert result.output.rstrip() == "default"
 
-    def test_show_interfaces_naming_mode(self):
+    def test_show_interfaces_naming_mode_alias(self):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
         result = runner.invoke(show.cli.commands["interfaces"].commands["naming_mode"], [])
