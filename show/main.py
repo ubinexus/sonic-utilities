@@ -2940,7 +2940,7 @@ def neighbors():
                     r = ["", ip, mac, intf]
                     table.append(r)
         click.echo(tabulate(table, header))
-        click.echo("\n")
+        click.echo()
 
     if not bool(vnet_intfs):
         click.echo(tabulate(table, header))
@@ -2973,7 +2973,7 @@ def all():
 
     click.echo(tabulate(table, header))
 
-    click.echo("\n")
+    click.echo()
 
     header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
 

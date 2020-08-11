@@ -56,9 +56,9 @@ class Crm:
         else:
             click.echo('\nError! Could not get CRM configuration.')
 
-        click.echo('\n')
+        click.echo()
         click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
-        click.echo('\n')
+        click.echo()
 
     def show_resources(self, resource):
         """
@@ -82,9 +82,9 @@ class Crm:
         else:
             click.echo('\nCRM counters are not ready. They would be populated after the polling interval.')
 
-        click.echo('\n')
+        click.echo()
         click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
-        click.echo('\n')
+        click.echo()
 
     def show_acl_resources(self):
         """
@@ -108,9 +108,9 @@ class Crm:
                                         crm_stats['crm_stats_' + res + "_available"]
                                     ])
 
-        click.echo('\n')
+        click.echo()
         click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
-        click.echo('\n')
+        click.echo()
 
     def show_acl_table_resources(self):
         """
@@ -136,9 +136,9 @@ class Crm:
                     if ('crm_stats_' + res + '_used' in crm_stats) and ('crm_stats_' + res + '_available' in crm_stats):
                         data.append([id, res, crm_stats['crm_stats_' + res + '_used'], crm_stats['crm_stats_' + res + '_available']])
 
-            click.echo('\n')
+            click.echo()
             click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
-            click.echo('\n')
+            click.echo()
 
 
 @click.group()

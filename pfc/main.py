@@ -45,9 +45,9 @@ def showPfcAsym(interface):
 
     sorted_table = natsorted(table)
 
-    click.echo('\n')
+    click.echo()
     click.echo(tabulate(sorted_table, headers=header, tablefmt="simple", missingval=""))
-    click.echo('\n')
+    click.echo()
 
 def configPfcPrio(status, interface, priority):
     configdb = swsssdk.ConfigDBConnector()
@@ -110,9 +110,9 @@ def showPfcPrio(interface):
         table.append([intf, entry.get('pfc_enable', 'N/A')])
     
     sorted_table = natsorted(table)
-    click.echo('\n')
+    click.echo()
     click.echo(tabulate(sorted_table, headers=header, tablefmt="simple", missingval=""))
-    click.echo('\n')
+    click.echo()
     
 @click.group()
 def cli():
