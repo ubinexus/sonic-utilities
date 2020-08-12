@@ -48,6 +48,7 @@ setup(
         'pddf_thermalutil',
         'pddf_ledutil',
         'show',
+        'show.interfaces',
         'sonic_installer',
         'sonic_installer.bootloader',
         'tests',
