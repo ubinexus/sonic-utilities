@@ -96,19 +96,18 @@ def brief(db, verbose):
 def config(db):
     data = db.cfgdb.get_table('VLAN')
     keys = data.keys()
+    member_data = db.cfgdb.get_table('VLAN_MEMBER')
 
     def tablelize(keys, data):
         table = []
 
         for k in natsorted(keys):
-            if 'members' not in data[k] :
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                table.append(r)
-                continue
+            members = set(data[k].get('members', []))
+            for (vlan, interface_name) in member_data:
+                if vlan == k:
+                    members.add(interface_name)
 
-            for m in data[k].get('members', []):
+            for m in members:
                 r = []
                 r.append(k)
                 r.append(data[k]['vlanid'])

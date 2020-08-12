@@ -49,9 +49,12 @@ show_vlan_brief_with_portchannel_output="""\
 """
 
 show_vlan_config_output="""\
-Name        VID
---------  -----
-Vlan1000   1000
+Name        VID  Member      Mode
+--------  -----  ----------  --------
+Vlan1000   1000  Ethernet8   untagged
+Vlan1000   1000  Ethernet12  untagged
+Vlan1000   1000  Ethernet4   untagged
+Vlan1000   1000  Ethernet16  untagged
 """
 
 config_vlan_add_dhcp_relay_output="""\
