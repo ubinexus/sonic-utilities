@@ -3435,8 +3435,8 @@ def summary():
         if os.environ["UTILITIES_UNIT_TESTING"] == "1":
             modules_path = os.path.join(os.path.dirname(__file__), "..")
             sys.path.insert(0, modules_path)
-            from system_health_test import MockerManager
-            from system_health_test import MockerChassis
+            from tests.system_health_test import MockerManager
+            from tests.system_health_test import MockerChassis
             HealthCheckerManager = MockerManager
             Chassis = MockerChassis
     except Exception:
@@ -3495,8 +3495,8 @@ def detail():
         if os.environ["UTILITIES_UNIT_TESTING"] == "1":
             modules_path = os.path.join(os.path.dirname(__file__), "..")
             sys.path.insert(0, modules_path)
-            from system_health_test import MockerManager
-            from system_health_test import MockerChassis
+            from tests.system_health_test import MockerManager
+            from tests.system_health_test import MockerChassis
             HealthCheckerManager = MockerManager
             Chassis = MockerChassis
     except Exception:
@@ -3585,8 +3585,8 @@ def monitor_list():
         if os.environ["UTILITIES_UNIT_TESTING"] == "1":
             modules_path = os.path.join(os.path.dirname(__file__), "..")
             sys.path.insert(0, modules_path)
-            from system_health_test import MockerManager
-            from system_health_test import MockerChassis
+            from tests.system_health_test import MockerManager
+            from tests.system_health_test import MockerChassis
             HealthCheckerManager = MockerManager
             Chassis = MockerChassis
     except Exception:
