@@ -1,8 +1,3 @@
-import json
-import os
-import swsssdk
-import subprocess
-import sys
 import click
 
 from tabulate import tabulate
