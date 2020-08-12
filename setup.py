@@ -102,7 +102,6 @@ setup(
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/syseeprom-to-json',
-        'scripts/teamshow',
         'scripts/tempershow',
         'scripts/update_json.py',
         'scripts/warm-reboot',
