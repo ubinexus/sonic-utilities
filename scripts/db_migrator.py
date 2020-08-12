@@ -1,26 +1,18 @@
 #!/usr/bin/env python
 
-import traceback
-import sys
 import argparse
-import syslog
-from swsssdk import ConfigDBConnector, SonicDBConfig
-import sonic_device_util
+import sys
+import traceback
+
+from sonic_py_common import device_info, logger
+from swsssdk import ConfigDBConnector, SonicDBConfig, SonicV2Connector
 
 
 SYSLOG_IDENTIFIER = 'db_migrator'
 
 
-def log_info(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-
-def log_error(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 class DBMigrator():
@@ -51,6 +43,10 @@ class DBMigrator():
         else:
             self.configDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
+
+        self.appDB = SonicV2Connector(host='127.0.0.1')
+        if self.appDB is not None:
+            self.appDB.connect(self.appDB.APPL_DB)
 
     def migrate_pfc_wd_table(self):
         '''
@@ -95,9 +91,48 @@ class DBMigrator():
             for key in data.keys():
                 if not self.is_ip_prefix_in_key(key) or key[0] in if_db:
                     continue
-                log_info('Migrating interface table for ' + key[0])
+                log.log_info('Migrating interface table for ' + key[0])
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
+
+    def migrate_intf_table(self):
+        '''
+        Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
+        to have an additional ONE entry without IP Prefix. For. e.g, for an entry
+        "Vlan1000:192.168.0.1/21": {}", this function shall add an entry without
+        IP prefix as ""Vlan1000": {}". This also migrates 'lo' to 'Loopback0' interface
+        '''
+
+        if self.appDB is None:
+            return
+
+        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+
+        if data is None:
+            return
+
+        if_db = []
+        for key in data:
+            if_name = key.split(":")[1]
+            if if_name == "lo":
+                self.appDB.delete(self.appDB.APPL_DB, key)
+                key = key.replace(if_name, "Loopback0")
+                log.log_info('Migrating lo entry to ' + key)
+                self.appDB.set(self.appDB.APPL_DB, key, 'NULL', 'NULL')
+
+            if '/' not in key:
+                if_db.append(key.split(":")[1])
+                continue
+
+        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        for key in data:
+            if_name = key.split(":")[1]
+            if if_name in if_db:
+                continue
+            log.log_info('Migrating intf table for ' + if_name)
+            table = "INTF_TABLE:" + if_name
+            self.appDB.set(self.appDB.APPL_DB, table, 'NULL', 'NULL')
+            if_db.append(if_name)
 
     def mlnx_migrate_buffer_pool_size(self):
         """
@@ -149,7 +184,7 @@ class DBMigrator():
             hwsku = device_data['localhost']['hwsku']
             platform = device_data['localhost']['platform']
         else:
-            log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
             return False
         buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
 
@@ -186,12 +221,12 @@ class DBMigrator():
                 new_buffer_pool_conf = spc2_t1_default_config
         else:
             # It's not using default buffer pool configuration, no migration needed.
-            log_info("buffer pool size is not old default value, no need to migrate")
+            log.log_info("buffer pool size is not old default value, no need to migrate")
             return True
         # Migrate old buffer conf to latest.
         for pool in buffer_pools:
             self.configDB.set_entry('BUFFER_POOL', pool, new_buffer_pool_conf[pool])
-        log_info("Successfully migrate mlnx buffer pool size to the latest.")
+        log.log_info("Successfully migrate mlnx buffer pool size to the latest.")
         return True
 
     def version_unknown(self):
@@ -204,7 +239,7 @@ class DBMigrator():
         before migrating date to the next version.
         """
 
-        log_info('Handling version_unknown')
+        log.log_info('Handling version_unknown')
 
         # NOTE: Uncomment next 3 lines of code when the migration code is in
         #       place. Note that returning specific string is intentional,
@@ -213,6 +248,7 @@ class DBMigrator():
         #       upgrade will take care of the subsequent migrations.
         self.migrate_pfc_wd_table()
         self.migrate_interface_table()
+        self.migrate_intf_table()
         self.set_version('version_1_0_2')
         return 'version_1_0_2'
 
@@ -220,9 +256,10 @@ class DBMigrator():
         """
         Version 1_0_1.
         """
-        log_info('Handling version_1_0_1')
+        log.log_info('Handling version_1_0_1')
 
         self.migrate_interface_table()
+        self.migrate_intf_table()
         self.set_version('version_1_0_2')
         return 'version_1_0_2'
 
@@ -230,9 +267,9 @@ class DBMigrator():
         """
         Version 1_0_2.
         """
-        log_info('Handling version_1_0_2')
+        log.log_info('Handling version_1_0_2')
         # Check ASIC type, if Mellanox platform then need DB migration
-        version_info = sonic_device_util.get_sonic_version_info()
+        version_info = device_info.get_sonic_version_info()
         if version_info['asic_type'] == "mellanox":
             if self.mlnx_migrate_buffer_pool_size():
                 self.set_version('version_1_0_3')
@@ -244,7 +281,7 @@ class DBMigrator():
         """
         Current latest version. Nothing to do here.
         """
-        log_info('Handling version_1_0_3')
+        log.log_info('Handling version_1_0_3')
 
         return None
 
@@ -259,14 +296,14 @@ class DBMigrator():
     def set_version(self, version=None):
         if not version:
             version = self.CURRENT_VERSION
-        log_info('Setting version to ' + version)
+        log.log_info('Setting version to ' + version)
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
 
     def migrate(self):
         version = self.get_version()
-        log_info('Upgrading from version ' + version)
+        log.log_info('Upgrading from version ' + version)
         while version:
             next_version = getattr(self, version)()
             if next_version == version:
@@ -318,7 +355,7 @@ def main():
             print(str(result))
 
     except Exception as e:
-        log_error('Caught exception: ' + str(e))
+        log.log_error('Caught exception: ' + str(e))
         traceback.print_exc()
         print(str(e))
         parser.print_help()

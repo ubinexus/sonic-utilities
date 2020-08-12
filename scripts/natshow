@@ -132,6 +132,8 @@ class NatShow(object):
                 continue
 
             ip_protocol = "all"
+            source = "---"
+            destination = "---"
             translated_dst = "---"
             translated_src = "---"
 
@@ -249,7 +251,7 @@ class NatShow(object):
                     napt_keys = re.split(':', napt_entry)
                     napt_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAPT_TABLE:{}'.format(napt_entry))
 
-                    ip_protocol = napt_keys[0]
+                    ip_protocol = napt_keys[0].lower()
                     source = "---"
                     destination = "---"
 
@@ -278,6 +280,8 @@ class NatShow(object):
                     nat_twice_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAT_TWICE_TABLE:{}'.format(nat_twice_entry))
 
                     ip_protocol = "all"
+                    source = "---"
+                    destination = "---"
 
                     source = nat_twice_keys[0]
                     destination = nat_twice_keys[1]
@@ -301,7 +305,9 @@ class NatShow(object):
                     napt_twice_keys = re.split(':', napt_twice_entry)
                     napt_twice_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAPT_TWICE_TABLE:{}'.format(napt_twice_entry))
 
-                    ip_protocol = napt_twice_keys[0]
+                    ip_protocol = napt_twice_keys[0].lower()
+                    source = "---"
+                    destination = "---"
 
                     source = napt_twice_keys[1] + ':' + napt_twice_keys[2]
                     destination = napt_twice_keys[3] + ':' + napt_twice_keys[4]
@@ -323,19 +329,19 @@ class NatShow(object):
         totalEntries = int(self.static_nat_entries) + int(self.dynamic_nat_entries) + int(self.static_napt_entries) + int(self.dynamic_napt_entries)
         totalEntries += (int(self.static_twice_nat_entries) + int(self.dynamic_twice_nat_entries) + int(self.static_twice_napt_entries) + int(self.dynamic_twice_napt_entries))
 
-        print ""
-        print "Static NAT Entries         ..................... {}".format(self.static_nat_entries)
-        print "Static NAPT Entries        ..................... {}".format(self.static_napt_entries)
-        print "Dynamic NAT Entries        ..................... {}".format(self.dynamic_nat_entries)
-        print "Dynamic NAPT Entries       ..................... {}".format(self.dynamic_napt_entries)
-        print "Static Twice NAT Entries   ..................... {}".format(self.static_twice_nat_entries)
-        print "Static Twice NAPT Entries  ..................... {}".format(self.static_twice_napt_entries)
-        print "Dynamic Twice NAT Entries  ..................... {}".format(self.dynamic_twice_nat_entries)
-        print "Dynamic Twice NAPT Entries ..................... {}".format(self.dynamic_twice_napt_entries)
-        print "Total SNAT/SNAPT Entries   ..................... {}".format(self.snat_entries)
-        print "Total DNAT/DNAPT Entries   ..................... {}".format(self.dnat_entries)
-        print "Total Entries              ..................... {}".format(totalEntries)
-        print ""
+        print()
+        print("Static NAT Entries         ..................... {}".format(self.static_nat_entries))
+        print("Static NAPT Entries        ..................... {}".format(self.static_napt_entries))
+        print("Dynamic NAT Entries        ..................... {}".format(self.dynamic_nat_entries))
+        print("Dynamic NAPT Entries       ..................... {}".format(self.dynamic_napt_entries))
+        print("Static Twice NAT Entries   ..................... {}".format(self.static_twice_nat_entries))
+        print("Static Twice NAPT Entries  ..................... {}".format(self.static_twice_napt_entries))
+        print("Dynamic Twice NAT Entries  ..................... {}".format(self.dynamic_twice_nat_entries))
+        print("Dynamic Twice NAPT Entries ..................... {}".format(self.dynamic_twice_napt_entries))
+        print("Total SNAT/SNAPT Entries   ..................... {}".format(self.snat_entries))
+        print("Total DNAT/DNAPT Entries   ..................... {}".format(self.dnat_entries))
+        print("Total Entries              ..................... {}".format(totalEntries))
+        print()
 
     def display_translations(self):
         """
@@ -348,8 +354,8 @@ class NatShow(object):
         for nat in self.nat_entries_list:
             output.append([nat[0], nat[1], nat[2], nat[3], nat[4]])
 
-        print tabulate(output, HEADER)
-        print ""
+        print(tabulate(output, HEADER))
+        print()
 
     def display_statistics(self):
         """
@@ -362,9 +368,9 @@ class NatShow(object):
         for nat in self.nat_statistics_list:
             output.append([nat[0], nat[1], nat[2], nat[3], nat[4]])
 
-        print ""
-        print tabulate(output, HEADER)
-        print ""
+        print()
+        print(tabulate(output, HEADER))
+        print()
 
 def main():
     parser = argparse.ArgumentParser(description='Display the nat information',
@@ -403,7 +409,7 @@ def main():
             nat.display_count()
 
     except Exception as e:
-        print e.message
+        print(e.message)
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -4,15 +4,13 @@ import click
 import ipaddr
 import json
 import syslog
-import tabulate
-from natsort import natsorted
-import sonic_device_util
 
 import openconfig_acl
+import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-from swsssdk import SonicDBConfig
+from natsort import natsorted
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 
 
 def info(msg):
@@ -142,7 +140,7 @@ class AclLoader(object):
 
         # Getting all front asic namespace and correspding config and state DB connector
         
-        namespaces = sonic_device_util.get_all_namespaces()
+        namespaces = device_info.get_all_namespaces()
         for front_asic_namespaces in namespaces['front_ns']:
             self.per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             self.per_npu_configdb[front_asic_namespaces].connect()
@@ -244,6 +242,9 @@ class AclLoader(object):
         :param table_name: Table name
         :return:
         """
+        if not self.is_table_valid(table_name):
+            warning("Table \"%s\" not found" % table_name)
+
         self.current_table = table_name
 
     def set_session_name(self, session_name):
@@ -412,7 +413,7 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        if rule.ip.config.protocol:
+        if rule.ip.config.protocol or rule.ip.config.protocol == 0:  # 0 is a valid protocol number
             if self.ip_protocol_map.has_key(rule.ip.config.protocol):
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
@@ -718,21 +719,30 @@ class AclLoader(object):
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue", "Policer", "Monitor Port")
+        erspan_header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue",
+                            "Policer", "Monitor Port", "SRC Port", "Direction")
+        span_header = ("Name", "Status", "DST Port", "SRC Port", "Direction", "Queue", "Policer")
 
-        data = []
+        erspan_data = []
+        span_data = []
         for key, val in self.get_sessions_db_info().iteritems():
             if session_name and key != session_name:
                 continue
-            # For multi-mpu platform status and monitor port will be dict()
-            # of 'asic-x':value
-            data.append([key, val["status"], val["src_ip"], val["dst_ip"],
-                         val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
-                         val.get("monitor_port", "")])
 
-        print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
+            if val.get("type") == "SPAN":
+                span_data.append([key, val.get("status", ""), val.get("dst_port", ""),
+                                       val.get("src_port", ""), val.get("direction", "").lower(),
+                                       val.get("queue", ""), val.get("policer", "")])
+            else:
+                erspan_data.append([key, val.get("status", ""), val.get("src_ip", ""),
+                                         val.get("dst_ip", ""), val.get("gre_type", ""), val.get("dscp", ""),
+                                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
+                                         val.get("monitor_port", ""), val.get("src_port", ""), val.get("direction", "").lower()])
 
+        print("ERSPAN Sessions")
+        print(tabulate.tabulate(erspan_data, headers=erspan_header, tablefmt="simple", missingval=""))
+        print("\nSPAN Sessions")
+        print(tabulate.tabulate(span_data, headers=span_header, tablefmt="simple", missingval=""))
 
     def show_policer(self, policer_name):
         """
