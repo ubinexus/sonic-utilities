@@ -101,7 +101,7 @@ def interval(poll_interval):
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     port_info = {}
-    if poll_interval is not None:
+    if poll_interval:
         port_info['POLL_INTERVAL'] = poll_interval
     configdb.mod_entry("FLEX_COUNTER_TABLE", PORT_BUFFER_DROP, port_info)
 
