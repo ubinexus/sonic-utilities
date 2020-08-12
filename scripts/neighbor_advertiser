@@ -296,8 +296,10 @@ def construct_neighbor_advertiser_slice():
 
     vlan_intf_table = config_db.get_table('VLAN_INTERFACE')
 
-    vxlanPort = appl_db.get_table('SWITCH_TABLE:switch')['vxlan_port']
-
+    vxlanPort = None
+    if 'vxlan_port' in appl_db.get_all(appl_db.APPL_DB, 'SWITCH_TABLE:switch'):
+        vxlanPort = appl_db.get(appl_db.APPL_DB, 'SWITCH_TABLE:switch', 'vxlan_port')
+        
     for vlan_interface in all_vlan_interfaces:
         vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr = get_vlan_addresses(vlan_interface)
 
@@ -310,11 +312,8 @@ def construct_neighbor_advertiser_slice():
         
         ctr = 0
         for addr in ipv4_addr:
-            if 'proxy_arp' in vlan_intf_table[vlan_interface]:
-                if vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
-                    ipPrefixLen = ipv4_prefix[ctr]
-                else:
-                    ipPrefixLen = '32'
+            if 'proxy_arp' in vlan_intf_table[vlan_interface] and vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
+                ipPrefixLen = ipv4_prefix[ctr]
             else:
                 ipPrefixLen = '32'
             mapping = {
@@ -327,11 +326,8 @@ def construct_neighbor_advertiser_slice():
 
         ctr = 0
         for addr in ipv6_addr:
-            if 'proxy_arp' in vlan_intf_table[vlan_interface]:
-                if vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
-                    ipPrefixLen = ipv6_prefix[ctr]
-                else:
-                    ipPrefixLen = '128'
+            if 'proxy_arp' in vlan_intf_table[vlan_interface] and vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
+                ipPrefixLen = ipv6_prefix[ctr]
             else:
                 ipPrefixLen = '128'
             mapping = {
@@ -345,10 +341,12 @@ def construct_neighbor_advertiser_slice():
         vlan_interface_obj = {
             'vlanId': vlan_id,
             'vxlanId': vxlan_id,
-            'vxlanPort': vxlanPort,
             'ipv4AddrMappings': ipv4_mappings,
             'ipv6AddrMappings': ipv6_mappings
         }
+
+        if vxlanPort:
+            vlan_interface_obj['vxlanPort'] = vxlanPort
 
         vlan_interfaces_obj.append(vlan_interface_obj)
 
