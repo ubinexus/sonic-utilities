@@ -95,7 +95,7 @@ def interval(poll_interval):
     Set port_buffer_drop counter query interval
     This counter group causes high CPU usage when polled,
     hence the allowed interval is between 30s and 300s.
-    This is a ahort term solution and
+    This is a short term solution and
     should be changed once the performance is enhanced
     """
     configdb = swsssdk.ConfigDBConnector()
@@ -232,4 +232,3 @@ def show():
         data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     print tabulate(data, headers=header, tablefmt="simple", missingval="")
-
