@@ -4,15 +4,13 @@ import click
 import ipaddr
 import json
 import syslog
-import tabulate
-from natsort import natsorted
-import sonic_device_util
 
 import openconfig_acl
+import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-from swsssdk import SonicDBConfig
+from natsort import natsorted
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 
 
 def info(msg):
@@ -142,7 +140,7 @@ class AclLoader(object):
 
         # Getting all front asic namespace and correspding config and state DB connector
         
-        namespaces = sonic_device_util.get_all_namespaces()
+        namespaces = device_info.get_all_namespaces()
         for front_asic_namespaces in namespaces['front_ns']:
             self.per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             self.per_npu_configdb[front_asic_namespaces].connect()
@@ -244,6 +242,9 @@ class AclLoader(object):
         :param table_name: Table name
         :return:
         """
+        if not self.is_table_valid(table_name):
+            warning("Table \"%s\" not found" % table_name)
+
         self.current_table = table_name
 
     def set_session_name(self, session_name):
@@ -412,7 +413,7 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        if rule.ip.config.protocol:
+        if rule.ip.config.protocol or rule.ip.config.protocol == 0:  # 0 is a valid protocol number
             if self.ip_protocol_map.has_key(rule.ip.config.protocol):
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
