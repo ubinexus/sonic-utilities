@@ -112,7 +112,7 @@ def config(db):
                 r.append(k)
                 r.append(data[k]['vlanid'])
                 if clicommon.get_interface_naming_mode() == "alias":
-                    alias = iface_alias_converter.name_to_alias(m)
+                    alias = clicommon.InterfaceAliasConverter(db).name_to_alias(m)
                     r.append(alias)
                 else:
                     r.append(m)

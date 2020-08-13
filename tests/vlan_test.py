@@ -57,6 +57,15 @@ Vlan1000   1000  Ethernet4   untagged
 Vlan1000   1000  Ethernet16  untagged
 """
 
+show_vlan_config_in_alias_mode_output="""\
+Name        VID  Member    Mode
+--------  -----  --------  --------
+Vlan1000   1000  etp3      untagged
+Vlan1000   1000  etp4      untagged
+Vlan1000   1000  etp2      untagged
+Vlan1000   1000  etp5      untagged
+"""
+
 config_vlan_add_dhcp_relay_output="""\
 Added DHCP relay destination address 192.0.0.100 to Vlan1000
 Restarting DHCP relay service...
@@ -137,11 +146,11 @@ class TestVlan(object):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"])
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_in_alias_mode_output
-        os.environ['SONIC_CLI_IFACE_MODE'] = ""
 
     def test_show_vlan_config(self):
         runner = CliRunner()
@@ -150,6 +159,16 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vlan_config_output
+
+    def test_show_vlan_config_in_alias_mode(self):
+        runner = CliRunner()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["vlan"].commands["config"], [])
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vlan_config_in_alias_mode_output
 
     def test_config_vlan_add_vlan_with_invalid_vlanid(self):
         runner = CliRunner()
