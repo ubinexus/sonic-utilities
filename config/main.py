@@ -1230,7 +1230,7 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     db = ctx.obj['db']
-    if len([ (k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
+    if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         ctx.fail("Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
         db.set_entry('PORTCHANNEL', portchannel_name, None)
