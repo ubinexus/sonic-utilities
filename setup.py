@@ -48,16 +48,17 @@ setup(
         'pddf_thermalutil',
         'pddf_ledutil',
         'show',
+        'show.interfaces',
         'sonic_installer',
         'sonic_installer.bootloader',
-        'sonic-utilities-tests',
+        'tests',
         'undebug',
         'utilities_common',
         'watchdogutil',
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
+        'tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -102,7 +103,6 @@ setup(
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/syseeprom-to-json',
-        'scripts/teamshow',
         'scripts/tempershow',
         'scripts/update_json.py',
         'scripts/warm-reboot',
@@ -112,6 +112,7 @@ setup(
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
+        ('/usr/share/sonic/templates', ['sonic_installer/templates/sonic-environment.j2']),
     ],
     entry_points={
         'console_scripts': [
@@ -148,7 +149,8 @@ setup(
     # therefore all dependencies will be assumed to also be available as .debs.
     # These unlistable dependencies are as follows:
     # - sonic-config-engine
-    # - swsssdk
+    # - sonic-py-common
+    # - sonic-py-swsssdk
     # - tabulate
     install_requires=[
         'click',
