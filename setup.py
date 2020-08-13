@@ -79,6 +79,7 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/mellanox_buffer_migrator.py',
         'scripts/mmuconfig',
         'scripts/natclear',
         'scripts/natconfig',
