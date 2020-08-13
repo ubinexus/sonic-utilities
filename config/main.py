@@ -610,7 +610,7 @@ def config():
     global asic_type
 
     try:
-        version_info = sonic_device_util.get_sonic_version_info()
+        version_info = device_info.get_sonic_version_info()
         asic_type = version_info['asic_type']
     except KeyError, TypeError:
         raise click.Abort()
