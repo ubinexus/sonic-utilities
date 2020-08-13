@@ -124,13 +124,13 @@ def file_exists_or_raise(filename):
     if not os.path.exists(filename):
         raise Exception("file '{0}' does not exist".format(filename))
 
-def main():
+def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fdb', type=str, default='/tmp/fdb.json', help='fdb file name')
     parser.add_argument('-a', '--arp', type=str, default='/tmp/arp.json', help='arp file name')
     parser.add_argument('-c', '--config_db', type=str, default='/tmp/config_db.json', help='config db file name')
     parser.add_argument('-b', '--backup_file', type=bool, default=True, help='Back up old fdb entries file')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     fdb_filename = args.fdb
     arp_filename = args.arp
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     res = 0
     try:
         syslog.openlog('filter_fdb_entries')
-        res = main()
+        res = main(sys.argv[1:])
     except KeyboardInterrupt:
         syslog.syslog(syslog.LOG_NOTICE, "SIGINT received. Quitting")
         res = 1
