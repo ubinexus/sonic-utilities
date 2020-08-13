@@ -8,6 +8,17 @@ from tabulate import tabulate
 from swsssdk import SonicV2Connector
 from natsort import natsorted
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+except KeyError:
+    pass
+
 
 header = ['Drawer', 'LED', 'FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
 
