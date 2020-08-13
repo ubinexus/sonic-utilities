@@ -61,6 +61,7 @@ setup(
         'tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
+        'scripts/__init__.py',
         'scripts/aclshow',
         'scripts/asic_config_check',
         'scripts/boot_part',
