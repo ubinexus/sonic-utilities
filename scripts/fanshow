@@ -4,6 +4,8 @@
 """
 from __future__ import print_function
 
+import os
+import sys
 from tabulate import tabulate
 from swsssdk import SonicV2Connector
 from natsort import natsorted

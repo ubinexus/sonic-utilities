@@ -21,11 +21,11 @@ class TestFan(object):
         result = runner.invoke(show.cli.commands["platform"].commands["fan"])
         print(result.output)
         expected = """\
-  Drawer    LED          FAN     Speed    Direction    Presence    Status          Timestamp
---------  -----  -----------  --------  -----------  ----------  --------  -----------------
- drawer1    red         fan1       30%       intake     Present        OK  20200813 01:32:30
- drawer2  green         fan2       50%       intake     Present    Not OK  20200813 01:32:30
- drawer3  green         fan3       50%       intake     Present  Updating  20200813 01:32:30
+  Drawer    LED    FAN    Speed    Direction    Presence    Status          Timestamp
+--------  -----  -----  -------  -----------  ----------  --------  -----------------
+ drawer1    red   fan1      30%       intake     Present        OK  20200813 01:32:30
+ drawer2  green   fan2      50%       intake     Present    Not OK  20200813 01:32:30
+ drawer3  green   fan3      50%       intake     Present  Updating  20200813 01:32:30
 """
 
         assert result.output == expected
