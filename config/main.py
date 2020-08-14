@@ -14,7 +14,7 @@ import time
 
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports, get_port_config_file_name
-from sonic_py_common import device_info, logger, multi_asic, interface
+from sonic_py_common import device_info, multi_asic, interface
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -312,10 +312,9 @@ def interface_alias_to_name(config_db, interface_alias):
         namespace = get_port_namespace(interface_alias)
         if namespace is None:
             return None
-
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        config_db.connect()
 
+    config_db.connect()
     port_dict = config_db.get_table('PORT')
 
     if interface_alias is not None:
@@ -339,10 +338,9 @@ def interface_name_is_valid(config_db, interface_name):
         namespace = get_port_namespace(interface_name)
         if namespace is None:
             return False
-
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        config_db.connect()
 
+    config_db.connect()
     port_dict = config_db.get_table('PORT')
     port_channel_dict = config_db.get_table('PORTCHANNEL')
     sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
@@ -376,10 +374,9 @@ def interface_name_to_alias(config_db, interface_name):
         namespace = get_port_namespace(interface_name)
         if namespace is None:
             return None
-
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        config_db.connect()
 
+    config_db.connect()
     port_dict = config_db.get_table('PORT')
 
     if interface_name is not None:
@@ -1486,12 +1483,7 @@ def add(session_name, dst_port, src_port, direction, queue, policer):
 
 def add_span(session_name, dst_port, src_port, direction, queue, policer):
     if clicommon.get_interface_naming_mode() == "alias":
-        # Get namespace where the port belongs, in case of Single ASIC it is DEFAULT_NAMESPACE
-        namespace = get_port_namespace(dst_port)
-        db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        db.connect()
-
-        dst_port = interface_alias_to_name(db, dst_port)
+        dst_port = interface_alias_to_name(None, dst_port)
         if dst_port is None:
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
             return
@@ -1797,155 +1789,6 @@ def warm_restart_teamsyncd_timer(ctx, seconds):
 def warm_restart_bgp_eoiu(ctx, enable):
     db = ctx.obj['db']
     db.mod_entry('WARM_RESTART', 'bgp', {'bgp_eoiu': enable})
-
-#
-# 'vlan' group ('config vlan ...')
-#
-@config.group(cls=AbbreviationGroup)
-@click.pass_context
-# TODO add "hidden=True if this is a single ASIC platform, once we have click 7.0 in all branches.
-@click.option('-n', '--namespace', help='Namespace name',
-             required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
-@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
-def vlan(ctx, redis_unix_socket_path, namespace):
-    """VLAN-related configuration tasks"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-
-    # Set namespace to default_namespace if it is None.
-    if namespace is None:
-        namespace = DEFAULT_NAMESPACE
-
-    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace), **kwargs)
-    config_db.connect(wait_for_init=False)
-    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
-
-@vlan.command('add')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.pass_context
-def add_vlan(ctx, vid):
-    if vid >= 1 and vid <= 4094:
-        db = ctx.obj['db']
-        vlan = 'Vlan{}'.format(vid)
-        if len(db.get_entry('VLAN', vlan)) != 0:
-            ctx.fail("{} already exists".format(vlan))
-        db.set_entry('VLAN', vlan, {'vlanid': vid})
-    else :
-        ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
-
-@vlan.command('del')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.pass_context
-def del_vlan(ctx, vid):
-    """Delete VLAN"""
-    log.log_info("'vlan del {}' executing...".format(vid))
-    db = ctx.obj['db']
-    keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
-    for k in keys:
-        db.set_entry('VLAN_MEMBER', k, None)
-    db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
-
-
-#
-# 'member' group ('config vlan member ...')
-#
-@vlan.group(cls=AbbreviationGroup, name='member')
-@click.pass_context
-def vlan_member(ctx):
-    pass
-
-
-@vlan_member.command('add')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.option('-u', '--untagged', is_flag=True)
-@click.pass_context
-def add_vlan_member(ctx, vid, interface_name, untagged):
-    """Add VLAN member"""
-    log.log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
-
-    db = ctx.obj['db']
-
-    # Check if the member interface given by user is valid in the namespace.
-    if interface_name_is_valid(db, interface_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
-
-    vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.get_entry('VLAN', vlan_name)
-    interface_table = db.get_table('INTERFACE')
-
-    if get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    if len(vlan) == 0:
-        ctx.fail("{} doesn't exist".format(vlan_name))
-    if interface_is_mirror_dst_port(db, interface_name):
-        ctx.fail("{} is configured as mirror destination port".format(interface_name))
-
-    members = vlan.get('members', [])
-    if interface_name in members:
-        if get_interface_naming_mode() == "alias":
-            interface_name = interface_name_to_alias(db, interface_name)
-            if interface_name is None:
-                ctx.fail("'interface_name' is None!")
-            ctx.fail("{} is already a member of {}".format(interface_name,
-                                                        vlan_name))
-        else:
-            ctx.fail("{} is already a member of {}".format(interface_name,
-                                                        vlan_name))
-    for entry in interface_table:
-        if (interface_name == entry[0]):
-            ctx.fail("{} is a L3 interface!".format(interface_name))
-
-    members.append(interface_name)
-    vlan['members'] = members
-    db.set_entry('VLAN', vlan_name, vlan)
-    db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), {'tagging_mode': "untagged" if untagged else "tagged" })
-
-
-@vlan_member.command('del')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def del_vlan_member(ctx, vid, interface_name):
-    """Delete VLAN member"""
-    log.log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
-
-    db = ctx.obj['db']
-
-    # Check if the member interface given by user is valid in the namespace.
-    if interface_name_is_valid(db, interface_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
-
-    vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.get_entry('VLAN', vlan_name)
-
-    if get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
-
-    if len(vlan) == 0:
-        ctx.fail("{} doesn't exist".format(vlan_name))
-    members = vlan.get('members', [])
-    if interface_name not in members:
-        if get_interface_naming_mode() == "alias":
-            interface_name = interface_name_to_alias(db, interface_name)
-            if interface_name is None:
-                ctx.fail("'interface_name' is None!")
-            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
-        else:
-            ctx.fail("{} is not a member of {}".format(interface_name, vlan_name))
-    members.remove(interface_name)
-    if len(members) == 0:
-        del vlan['members']
-    else:
-        vlan['members'] = members
-    db.set_entry('VLAN', vlan_name, vlan)
-    db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
 def mvrf_restart_services():
     """Restart interfaces-config service and NTP service when mvrf is changed"""
