@@ -7,7 +7,7 @@ import subprocess
 
 from collections import defaultdict
 from filter_fdb_input.test_vectors import filterFdbEntriesTestVector
-from scripts.filter_fdb_entries import main as filterFdbMain
+from fdb_utils.filter_fdb_entries import main as filterFdbMain
 
 class TestFilterFdbEntries(object):
     """

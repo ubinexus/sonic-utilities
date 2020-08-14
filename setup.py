@@ -61,7 +61,6 @@ setup(
         'tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
     },
     scripts=[
-        'scripts/__init__.py',
         'scripts/aclshow',
         'scripts/asic_config_check',
         'scripts/boot_part',
@@ -79,7 +78,6 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
-        'scripts/filter_fdb_entries.py',
         'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/intfutil',
@@ -141,6 +139,7 @@ setup(
             'sonic_installer = sonic_installer.main:sonic_installer',  # Deprecated
             'undebug = undebug.main:cli',
             'watchdogutil = watchdogutil.main:watchdogutil',
+            'filter_fdb_entries = fdb_utils.filter_fdb_entries:main',
         ]
     },
     # NOTE: sonic-utilities also depends on other packages that are either only
