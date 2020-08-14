@@ -14,7 +14,7 @@ import time
 
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports, get_port_config_file_name
-from sonic_py_common import device_info
+from sonic_py_common import device_info, logger, multi_asic, interface
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -52,25 +52,6 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
-asic_type = None
-config_db = None
-
-# TODO move to sonic-py-common package
-# Dictionary of SONIC interface name prefixes.
-SONIC_INTERFACE_PREFIXES = {
-  "Ethernet-FrontPanel": "Ethernet",
-  "PortChannel": "PortChannel",
-  "Vlan": "Vlan",
-  "Loopback": "Loopback",
-  "Ethernet-backplane": "Ethernet-BP"
-}
-
-# ========================== Syslog wrappers ==========================
-
-def log_debug(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_DEBUG, msg)
-    syslog.closelog()
 
 asic_type = None
 
@@ -246,7 +227,7 @@ def execute_systemctl_per_asic_instance(inst, event, service, action):
 
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
     if ((generated_services_list == []) and
         (generated_multi_instance_services == [])):
@@ -264,7 +245,7 @@ def execute_systemctl(list_of_services, action):
 
         if (service + '.service' in generated_multi_instance_services):
             # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
-            if device_info.is_multi_npu():
+            if multi_asic.is_multi_asic():
                 threads = []
                 # Use this event object to co-ordinate if any threads raised exception
                 e = threading.Event()
@@ -304,10 +285,10 @@ def _get_device_type():
 # TODO move to sonic-py-common package
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
-    if not device_info.is_multi_npu():
+    if not multi_asic.is_multi_asic():
         return True
 
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if namespace in namespaces['front_ns'] + namespaces['back_ns']:
         return True
     else:
@@ -415,17 +396,17 @@ def interface_name_to_alias(config_db, interface_name):
 def get_interface_table_name(interface_name):
     """Get table name by interface_name prefix
     """
-    if interface_name.startswith(SONIC_INTERFACE_PREFIXES["Ethernet-FrontPanel"]):
+    if interface_name.startswith(interface.front_panel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "INTERFACE"
-    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["PortChannel"]):
+    elif interface_name.startswith(interface.portchannel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORTCHANNEL_INTERFACE"
-    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Vlan"]):
+    elif interface_name.startswith(interface.vlan_prefix()):
         return "VLAN_INTERFACE"
-    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Loopback"]):
+    elif interface_name.startswith(interface.loopback_prefix()):
         return "LOOPBACK_INTERFACE"
     else:
         return ""
@@ -458,17 +439,17 @@ def is_interface_bind_to_vrf(config_db, interface_name):
 def get_port_table_name(interface_name):
     """Get table name by port_name prefix
     """
-    if interface_name.startswith(SONIC_INTERFACE_PREFIXES["Ethernet-FrontPanel"]):
+    if interface_name.startswith(interface.front_panel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORT"
-    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["PortChannel"]):
+    elif interface_name.startswith(interface.portchannel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORTCHANNEL"
-    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Vlan"]):
+    elif interface_name.startswith(interface.vlan_prefix()):
         return "VLAN_INTERFACE"
-    elif interface_name.startswith(SONIC_INTERFACE_PREFIXES["Loopback"]):
+    elif interface_name.startswith(interface.loopback_prefix()):
         return "LOOPBACK_INTERFACE"
     else:
         return ""
@@ -478,7 +459,7 @@ def get_port_table_name(interface_name):
 def get_port_namespace(port):
     # If it is a non multi-asic platform, or if the interface is management interface
     # return DEFAULT_NAMESPACE
-    if sonic_device_util.is_multi_npu() == False or port == 'eth0':
+    if not multi_asic.is_multi_asic() or port == 'eth0':
         return DEFAULT_NAMESPACE
 
     # Get the table to check for interface presence
@@ -486,7 +467,7 @@ def get_port_namespace(port):
     if table_name == "":
         return None
 
-    ns_list = sonic_device_util.get_all_namespaces()
+    ns_list = multi_asic.get_all_namespaces()
     namespaces = ns_list['front_ns'] + ns_list['back_ns']
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
@@ -533,8 +514,8 @@ def set_interface_naming_mode(mode):
     # created for the front facing ASIC.
 
     namespaces = [DEFAULT_NAMESPACE]
-    if sonic_device_util.is_multi_npu():
-        namespaces = sonic_device_util.get_all_namespaces()['front_ns']
+    if multi_asic.is_multi_asic():
+        namespaces = multi_asic.get_all_namespaces()['front_ns']
 
     # Ensure all interfaces have an 'alias' key in PORT dict
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespaces[0])
@@ -692,8 +673,8 @@ def _clear_qos():
             'BUFFER_QUEUE']
 
     namespace_list = [DEFAULT_NAMESPACE]
-    if device_info.get_num_npus() > 1:
-        namespace_list = device_info.get_namespaces()
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
@@ -941,8 +922,6 @@ def config(ctx):
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
-    SonicDBConfig.load_sonic_global_db_config()
-
     ctx.obj = Db()
 
 config.add_command(aaa.aaa)
@@ -960,11 +939,11 @@ def save(filename):
     """Export current config DB to a file on disk.\n
        <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
     """
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
     num_cfg_file = 1
-    if device_info.is_multi_npu():
+    if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -1016,11 +995,11 @@ def load(filename, yes):
     if not yes:
         click.confirm(message, abort=True)
 
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
     num_cfg_file = 1
-    if device_info.is_multi_npu():
+    if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -1083,11 +1062,11 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
 
     log.log_info("'reload' executing...")
 
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
     num_cfg_file = 1
-    if device_info.is_multi_npu():
+    if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -1229,9 +1208,9 @@ def load_minigraph(db, no_service_restart):
     # for mulit Asic platform the empty string to generate the config
     # for host
     namespace_list = [DEFAULT_NAMESPACE]
-    num_npus = device_info.get_num_npus()
+    num_npus = multi_asic.get_num_asics()
     if num_npus > 1:
-        namespace_list += device_info.get_namespaces()
+        namespace_list += multi_asic.get_namespaces_from_linux()
 
     for namespace in namespace_list:
         if namespace is DEFAULT_NAMESPACE:
@@ -1312,8 +1291,8 @@ def hostname(new_hostname):
 # TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
 # This will help to hide namespace option for single asic platforms where it is ignored.
 @click.option('-n', '--namespace', help='Namespace name',
-             required=True if sonic_device_util.is_multi_npu() else False,
-             type=click.Choice(sonic_device_util.get_namespaces() if sonic_device_util.is_multi_npu() else [DEFAULT_NAMESPACE]))
+             required=True if multi_asic.is_multi_asic() else False,
+             type=click.Choice(sonic_device_util.get_namespaces() if multi_asic.is_multi_asic() else [DEFAULT_NAMESPACE]))
 @click.pass_context
 def portchannel(ctx, namespace):
     # Set namespace to default_namespace if it is None.
@@ -1474,7 +1453,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1529,7 +1508,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1554,7 +1533,7 @@ def remove(session_name):
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1676,14 +1655,14 @@ def reload():
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
 
     namespace_list = [DEFAULT_NAMESPACE]
-    if device_info.get_num_npus() > 1:
-        namespace_list = device_info.get_namespaces()
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
             asic_id_suffix = ""
         else:
-            asic_id = device_info.get_npu_id_from_name(ns)
+            asic_id = multi_asic.get_asic_id_from_name(ns)
             if asic_id is None:
                 click.secho(
                     "Command 'qos reload' failed with invalid namespace '{}'".
@@ -1828,8 +1807,8 @@ def warm_restart_bgp_eoiu(ctx, enable):
 @click.pass_context
 # TODO add "hidden=True" keyword for hiding this option with single asic platform, once click 7.0 is present in all branches.
 @click.option('-n', '--namespace', help='Namespace name',
-             required=True if sonic_device_util.is_multi_npu() else False,
-             type=click.Choice(sonic_device_util.get_namespaces() if sonic_device_util.is_multi_npu() else [DEFAULT_NAMESPACE]))
+             required=True if multi_asic.is_multi_asic() else False,
+             type=click.Choice(sonic_device_util.get_namespaces() if multi_asic.is_multi_asic() else [DEFAULT_NAMESPACE]))
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def vlan(ctx, redis_unix_socket_path, namespace):
     """VLAN-related configuration tasks"""
@@ -1888,13 +1867,6 @@ def vlan_member(ctx):
 def add_vlan_member(ctx, vid, interface_name, untagged):
     """Add VLAN member"""
     log.log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
-    if sonic_device_util.is_multi_npu():
-        # Get the namespace based on the member interface given by user.
-        intf_ns = get_intf_namespace(interface_name)
-        if intf_ns is None:
-            ctx.fail("member interface {} is invalid".format(interface_name))
-        elif intf_ns != ctx.obj['namespace']:
-            ctx.fail("member interface {} doesn't exist in namespace {}".format(interface_name, ctx.obj['namespace']))
 
     db = ctx.obj['db']
 
@@ -1944,13 +1916,6 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 def del_vlan_member(ctx, vid, interface_name):
     """Delete VLAN member"""
     log.log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
-    if sonic_device_util.is_multi_npu():
-        # Get the namespace based on the member interface given by user.
-        intf_ns = get_intf_namespace(interface_name)
-        if intf_ns is None:
-            ctx.fail("member interface {} is invalid".format(interface_name))
-        elif intf_ns != ctx.obj['namespace']:
-            ctx.fail("member interface {} doesn't exist in namespace {}".format(interface_name, ctx.obj['namespace']))
 
     db = ctx.obj['db']
 
@@ -2191,8 +2156,8 @@ def all(verbose):
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns']
         ignore_local_hosts = True
 
@@ -2217,8 +2182,8 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -2248,8 +2213,8 @@ def all(verbose):
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns']
         ignore_local_hosts = True
 
@@ -2274,8 +2239,8 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -2307,8 +2272,8 @@ def remove_neighbor(neighbor_ip_or_hostname):
     namespaces = [DEFAULT_NAMESPACE]
     removed_neighbor = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -2330,8 +2295,8 @@ def remove_neighbor(neighbor_ip_or_hostname):
 # TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
 # This will help to hide namespace option for single asic platforms where it is ignored.
 @click.option('-n', '--namespace', help='Namespace name',
-             required=True if sonic_device_util.is_multi_npu() else False,
-             type=click.Choice(sonic_device_util.get_namespaces() if sonic_device_util.is_multi_npu() else [DEFAULT_NAMESPACE]))
+             required=True if multi_asic.is_multi_asic() else False,
+             type=click.Choice(sonic_device_util.get_namespaces() if multi_asic.is_multi_asic() else [DEFAULT_NAMESPACE]))
 @click.pass_context
 def interface(ctx, namespace):
     """Interface-related configuration tasks"""
@@ -2360,7 +2325,7 @@ def startup(ctx, interface_name):
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
-    if len(intf_fs) > 1 and sonic_device_util.is_multi_npu():
+    if len(intf_fs) > 1 and multi_asic.is_multi_asic():
          ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
@@ -2392,15 +2357,8 @@ def startup(ctx, interface_name):
 def shutdown(ctx, interface_name):
     """Shut down interface"""
     log.log_info("'interface shutdown {}' executing...".format(interface_name))
-    namespace = ctx.obj['namespace']
-    if  sonic_device_util.is_multi_npu() and namespace is None:
-        ns = get_intf_namespace(interface_name)
-        if ns is None:
-            ctx.fail("namespace [-n] option required to configure interface {}".format(interface_name))
-        else:
-            namespace = ns
-    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-    config_db.connect()
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -2408,7 +2366,7 @@ def shutdown(ctx, interface_name):
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
-    if len(intf_fs) > 1 and sonic_device_util.is_multi_npu():
+    if len(intf_fs) > 1 and multi_asic.is_multi_asic():
          ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
@@ -2749,7 +2707,7 @@ def remove(ctx, interface_name, ip_addr):
         if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
             config_db.set_entry(table_name, interface_name, None)
 
-        if sonic_device_util.is_multi_npu():
+        if multi_asic.is_multi_asic():
             command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, ip_addr)
         else:
             command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
