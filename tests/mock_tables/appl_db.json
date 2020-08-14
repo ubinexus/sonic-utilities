@@ -3,7 +3,7 @@
         "admin_state": "up",
         "sample_rate": "2500"
     },
-    "SFLOW_SESSION_TABLE:Ethernet1": {
+    "SFLOW_SESSION_TABLE:Ethernet4": {
         "admin_state": "up",
         "sample_rate": "1000"
     },

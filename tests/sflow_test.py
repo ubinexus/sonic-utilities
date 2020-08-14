@@ -1,19 +1,19 @@
 import os
 import sys
+import pytest
 from click.testing import CliRunner
-from unittest import TestCase
-from swsssdk import ConfigDBConnector
+from utilities_common.db import Db
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
-import mock_tables.dbconnector
 import show.main as show
+import mock_tables.dbconnector
 
 # Expected output for 'show sflow'
-show_sflow = ''+ \
+show_sflow_output = ''+ \
 """
 sFlow Global Information:
   sFlow Admin State:          up
@@ -26,7 +26,7 @@ sFlow Global Information:
 """
 
 # Expected output for 'show sflow interface'
-show_sflow_intf = ''+ \
+show_sflow_intf_output = ''+ \
 """
 sFlow interface configurations
 +-------------+---------------+-----------------+
@@ -34,7 +34,7 @@ sFlow interface configurations
 +=============+===============+=================+
 | Ethernet0   | up            |            2500 |
 +-------------+---------------+-----------------+
-| Ethernet1   | up            |            1000 |
+| Ethernet4   | up            |            1000 |
 +-------------+---------------+-----------------+
 | Ethernet112 | up            |            1000 |
 +-------------+---------------+-----------------+
@@ -50,19 +50,20 @@ class TestShowSflow(TestCase):
 
     def setUp(self):
         self.runner = CliRunner()
-        self.config_db = ConfigDBConnector()
-        self.config_db.connect()
-        self.obj = {'db': self.config_db}
+        self.db = Db()
+        self.obj = {'db': self.db}
 
     def test_show_sflow(self):
         result = self.runner.invoke(show.cli.commands["sflow"], [], obj=self.obj)
         print(sys.stderr, result.output)
-        assert result.output == show_sflow
+        assert result.exit_code == 0
+        assert result.output == show_sflow_output
 
     def test_show_sflow_intf(self):
         result = self.runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=self.obj)
         print(sys.stderr, result.output)
-        assert result.output == show_sflow_intf
+        assert result.exit_code == 0
+        assert result.output == show_sflow_intf_output
 
     @classmethod
     def teardown_class(cls):

@@ -550,7 +550,7 @@
         "high_mem_alert": "disabled"
     },
     "FEATURE|sflow": {
-        "state": "enabled",
+        "state": "disabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled"
     },
