@@ -1844,11 +1844,6 @@ def delete_snmptrap_server(ctx, ver):
     cmd="systemctl restart snmp"
     os.system (cmd)
 
-@vlan.group(cls=AbbreviationGroup, name='dhcp_relay')
-@click.pass_context
-def vlan_dhcp_relay(ctx):
-    pass
-
 @vlan_dhcp_relay.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
