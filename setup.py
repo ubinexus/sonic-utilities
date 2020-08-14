@@ -122,6 +122,7 @@ setup(
             'counterpoll = counterpoll.main:cli',
             'crm = crm.main:cli',
             'debug = debug.main:cli',
+            'filter_fdb_entries = fdbutils.filter_fdb_entries:main',
             'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
             'ssdutil = ssdutil.main:ssdutil',
@@ -139,7 +140,6 @@ setup(
             'sonic_installer = sonic_installer.main:sonic_installer',  # Deprecated
             'undebug = undebug.main:cli',
             'watchdogutil = watchdogutil.main:watchdogutil',
-            'filter_fdb_entries = fdb_utils.filter_fdb_entries:main',
         ]
     },
     # NOTE: sonic-utilities also depends on other packages that are either only
