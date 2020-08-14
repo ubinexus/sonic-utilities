@@ -11,7 +11,7 @@ try:
     import sys
 
     import click
-    from sonic_py_common import device_info, logger
+    from sonic_py_common import device_info, logger, multi_asic
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -305,14 +305,14 @@ def cli():
 
     # Load port info
     try:
-        if sonic_device_util.is_multi_npu():
+        if multi_asic.is_multi_asic():
             # For multi ASIC platforms we pass DIR of port_config_file_path and the number of asics
             (platform, hwsku) = device_info.get_platform_and_hwsku()
 
             # Load platform module from source
             platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
             hwsku_path = "/".join([platform_path, hwsku])
-            platform_sfputil.read_all_porttab_mappings(hwsku_path, sonic_device_util.get_num_npus())
+            platform_sfputil.read_all_porttab_mappings(hwsku_path, multi_asic.get_num_asics())
         else:
             # For single ASIC platforms we pass port_config_file_path and the asic_inst as 0
             port_config_file_path = device_info.get_path_to_port_config_file()

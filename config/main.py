@@ -1288,11 +1288,9 @@ def hostname(new_hostname):
 # 'portchannel' group ('config portchannel ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup)
-# TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
-# This will help to hide namespace option for single asic platforms where it is ignored.
+# TODO add "hidden=True if this is a single ASIC platform, once we have click 7.0 in all branches.
 @click.option('-n', '--namespace', help='Namespace name',
-             required=True if multi_asic.is_multi_asic() else False,
-             type=click.Choice(sonic_device_util.get_namespaces() if multi_asic.is_multi_asic() else [DEFAULT_NAMESPACE]))
+             required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.pass_context
 def portchannel(ctx, namespace):
     # Set namespace to default_namespace if it is None.
@@ -1805,10 +1803,9 @@ def warm_restart_bgp_eoiu(ctx, enable):
 #
 @config.group(cls=AbbreviationGroup)
 @click.pass_context
-# TODO add "hidden=True" keyword for hiding this option with single asic platform, once click 7.0 is present in all branches.
+# TODO add "hidden=True if this is a single ASIC platform, once we have click 7.0 in all branches.
 @click.option('-n', '--namespace', help='Namespace name',
-             required=True if multi_asic.is_multi_asic() else False,
-             type=click.Choice(sonic_device_util.get_namespaces() if multi_asic.is_multi_asic() else [DEFAULT_NAMESPACE]))
+             required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def vlan(ctx, redis_unix_socket_path, namespace):
     """VLAN-related configuration tasks"""
@@ -2292,11 +2289,9 @@ def remove_neighbor(neighbor_ip_or_hostname):
 #
 
 @config.group(cls=clicommon.AbbreviationGroup)
-# TODO add "hidden=True if not sonic_device_util.is_multi_npu() else False", once we have click 7.0 in all branches.
-# This will help to hide namespace option for single asic platforms where it is ignored.
+# TODO add "hidden=True if this is a single ASIC platform, once we have click 7.0 in all branches.
 @click.option('-n', '--namespace', help='Namespace name',
-             required=True if multi_asic.is_multi_asic() else False,
-             type=click.Choice(sonic_device_util.get_namespaces() if multi_asic.is_multi_asic() else [DEFAULT_NAMESPACE]))
+             required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.pass_context
 def interface(ctx, namespace):
     """Interface-related configuration tasks"""
