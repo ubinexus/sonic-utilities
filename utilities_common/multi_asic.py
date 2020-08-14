@@ -2,7 +2,6 @@ import argparse
 import functools
 
 import click
-
 from sonic_py_common import multi_asic
 from utilities_common import constants
 
