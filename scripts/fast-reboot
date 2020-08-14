@@ -505,6 +505,7 @@ debug "Stopped nat ..."
 # Kill radv before stopping BGP service to prevent annoucing our departure.
 debug "Stopping radv service..."
 systemctl stop radv
+debug "Stopped radv service..."
 
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
@@ -537,6 +538,7 @@ fi
 
 debug "Stopping swss service ..."
 systemctl stop swss
+debug "Stopped swss service ..."
 
 # Pre-shutdown syncd
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
