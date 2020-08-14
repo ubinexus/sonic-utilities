@@ -4,7 +4,8 @@ import traceback
 import sys
 import argparse
 import syslog
-from swsssdk import ConfigDBConnector
+from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsssdk import SonicV2Connector
 import sonic_device_util
 
 
@@ -24,7 +25,7 @@ def log_error(msg):
 
 
 class DBMigrator():
-    def __init__(self, socket=None):
+    def __init__(self, namespace, socket=None):
         """
         Version string format:
            version_<major>_<minor>_<build>
@@ -46,9 +47,15 @@ class DBMigrator():
         if socket:
             db_kwargs['unix_socket_path'] = socket
 
-        self.configDB        = ConfigDBConnector(**db_kwargs)
+        if namespace is None:
+            self.configDB = ConfigDBConnector(**db_kwargs)
+        else:
+            self.configDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
 
+        self.appDB = SonicV2Connector(host='127.0.0.1')
+        if self.appDB is not None:
+            self.appDB.connect(self.appDB.APPL_DB)
 
     def migrate_pfc_wd_table(self):
         '''
@@ -96,6 +103,45 @@ class DBMigrator():
                 log_info('Migrating interface table for ' + key[0])
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
+
+    def migrate_intf_table(self):
+        '''
+        Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
+        to have an additional ONE entry without IP Prefix. For. e.g, for an entry
+        "Vlan1000:192.168.0.1/21": {}", this function shall add an entry without
+        IP prefix as ""Vlan1000": {}". This also migrates 'lo' to 'Loopback0' interface
+        '''
+
+        if self.appDB is None:
+            return
+
+        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+
+        if data is None:
+            return
+
+        if_db = []
+        for key in data:
+            if_name = key.split(":")[1]
+            if if_name == "lo":
+                self.appDB.delete(self.appDB.APPL_DB, key)
+                key = key.replace(if_name, "Loopback0")
+                log_info('Migrating lo entry to ' + key)
+                self.appDB.set(self.appDB.APPL_DB, key, 'NULL', 'NULL')
+
+            if '/' not in key:
+                if_db.append(key.split(":")[1])
+                continue
+
+        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        for key in data:
+            if_name = key.split(":")[1]
+            if if_name in if_db:
+                continue
+            log_info('Migrating intf table for ' + if_name)
+            table = "INTF_TABLE:" + if_name
+            self.appDB.set(self.appDB.APPL_DB, table, 'NULL', 'NULL')
+            if_db.append(if_name)
 
     def mlnx_migrate_buffer_pool_size(self):
         """
@@ -211,6 +257,7 @@ class DBMigrator():
         #       upgrade will take care of the subsequent migrations.
         self.migrate_pfc_wd_table()
         self.migrate_interface_table()
+        self.migrate_intf_table()
         self.set_version('version_1_0_2')
         return 'version_1_0_2'
 
@@ -221,6 +268,7 @@ class DBMigrator():
         log_info('Handling version_1_0_1')
 
         self.migrate_interface_table()
+        self.migrate_intf_table()
         self.set_version('version_1_0_2')
         return 'version_1_0_2'
 
@@ -291,14 +339,25 @@ def main():
                         required = False,
                         help = 'the unix socket that the desired database listens on',
                         default = None )
+        parser.add_argument('-n',
+                        dest='namespace',
+                        metavar='asic namespace',
+                        type = str,
+                        required = False,
+                        help = 'The asic namespace whose DB instance we need to connect',
+                        default = None )
         args = parser.parse_args()
         operation = args.operation
         socket_path = args.socket
+        namespace = args.namespace
+
+        if args.namespace is not None:
+            SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
 
         if socket_path:
-            dbmgtr = DBMigrator(socket=socket_path)
+            dbmgtr = DBMigrator(namespace, socket=socket_path)
         else:
-            dbmgtr = DBMigrator()
+            dbmgtr = DBMigrator(namespace)
 
         result = getattr(dbmgtr, operation)()
         if result:

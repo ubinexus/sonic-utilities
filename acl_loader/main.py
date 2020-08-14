@@ -6,11 +6,13 @@ import json
 import syslog
 import tabulate
 from natsort import natsorted
+import sonic_device_util
 
 import openconfig_acl
 import pyangbind.lib.pybindJSON as pybindJSON
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from swsssdk import SonicDBConfig
 
 
 def info(msg):
@@ -114,12 +116,39 @@ class AclLoader(object):
         self.tables_db_info = {}
         self.rules_db_info = {}
         self.rules_info = {}
+        # Load global db config. This call is no-op in single npu platforms
+        SonicDBConfig.load_sonic_global_db_config()
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
         self.statedb = SonicV2Connector(host="127.0.0.1")
         self.statedb.connect(self.statedb.STATE_DB)
 
+        # For multi-npu architecture we will have both global and per front asic namespace.
+        # Global namespace will be used for Control plane ACL which are via IPTables.
+        # Per ASIC namespace will be used for Data and Everflow ACL's.
+        # Global Configdb will have all ACL information for both Ctrl and Data/Evereflow ACL's
+        # and will be used as souurce of truth for ACL modification to config DB which will be done to both Global DB and 
+        # front asic namespace
+        
+        self.per_npu_configdb = {}
+
+        # State DB are used for to get mirror Session monitor port.
+        # For multi-npu platforms each asic namespace can have different monitor port
+        # dependinding on which route to session destination ip. So for multi-npu
+        # platforms we get state db for all front asic namespace in addition to 
+        
+        self.per_npu_statedb = {}
+
+        # Getting all front asic namespace and correspding config and state DB connector
+        
+        namespaces = sonic_device_util.get_all_namespaces()
+        for front_asic_namespaces in namespaces['front_ns']:
+            self.per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            self.per_npu_configdb[front_asic_namespaces].connect()
+            self.per_npu_statedb[front_asic_namespaces] = SonicV2Connector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            self.per_npu_statedb[front_asic_namespaces].connect(self.per_npu_statedb[front_asic_namespaces].STATE_DB)
+        
         self.read_tables_info()
         self.read_rules_info()
         self.read_sessions_info()
@@ -150,7 +179,14 @@ class AclLoader(object):
         Read POLICER table from configuration database
         :return:
         """
-        self.policers_db_info = self.configdb.get_table(self.POLICER)
+        
+        # For multi-npu platforms we will read from any one of front asic namespace 
+        # config db as the information should be same across all config db
+        if self.per_npu_configdb:
+            namespace_configdb = (self.per_npu_configdb.values())[0]
+            self.policers_db_info = namespace_configdb.get_table(self.POLICER)
+        else:
+            self.policers_db_info = self.configdb.get_table(self.POLICER)
 
     def get_policers_db_info(self):
         return self.policers_db_info
@@ -160,17 +196,30 @@ class AclLoader(object):
         Read MIRROR_SESSION table from configuration database
         :return:
         """
-        self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
+
+        # For multi-npu platforms we will read from any one of front asic namespace 
+        # config db as the information should be same across all config db
+        if self.per_npu_configdb:
+            namespace_configdb = (self.per_npu_configdb.values())[0]
+            self.sessions_db_info = namespace_configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
+        else:
+            self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
         for key in self.sessions_db_info.keys():
-            state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
-            monitor_port = ""
-            if state_db_info:
-                status = state_db_info.get("status", "inactive")
-                monitor_port = state_db_info.get("monitor_port", "")
+            if self.per_npu_statedb:
+                # For multi-npu platforms we will read from all front asic name space 
+                # statedb as the monitor port will be differnt for each asic 
+                # and it's status also might be different (ideally should not happen)
+                # We will store them as dict of 'asic' : value
+                self.sessions_db_info[key]["status"] = {}
+                self.sessions_db_info[key]["monitor_port"] = {}
+                for namespace_key, namespace_statedb in self.per_npu_statedb.iteritems():
+                    state_db_info = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
+                    self.sessions_db_info[key]["status"][namespace_key] = state_db_info.get("status", "inactive") if state_db_info else "error"
+                    self.sessions_db_info[key]["monitor_port"][namespace_key] = state_db_info.get("monitor_port", "") if state_db_info else ""
             else:
-                status = "error"
-            self.sessions_db_info[key]["status"] = status
-            self.sessions_db_info[key]["monitor_port"] = monitor_port
+                state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
+                self.sessions_db_info[key]["status"] = state_db_info.get("status", "inactive") if state_db_info else "error"
+                self.sessions_db_info[key]["monitor_port"] = state_db_info.get("monitor_port", "") if state_db_info else ""
 
     def get_sessions_db_info(self):
         return self.sessions_db_info
@@ -195,6 +244,9 @@ class AclLoader(object):
         :param table_name: Table name
         :return:
         """
+        if not self.is_table_valid(table_name):
+            warning("Table \"%s\" not found" % table_name)
+
         self.current_table = table_name
 
     def set_session_name(self, session_name):
@@ -309,7 +361,17 @@ class AclLoader(object):
             raise AclLoaderException("Table {} does not exist".format(table_name))
 
         stage = self.tables_db_info[table_name].get("stage", Stage.INGRESS)
-        capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+
+        # check if per npu state db is there then read using first state db
+        # else read from global statedb
+        if self.per_npu_statedb:
+            # For multi-npu we will read using anyone statedb connector for front asic namespace. 
+            # Same information should be there in all state DB's 
+            # as it is static information about switch capability
+            namespace_statedb = (self.per_npu_statedb.values())[0]
+            capability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+        else: 
+            capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         for action_key in dict(action_props):
             key = "{}|{}".format(self.ACL_ACTIONS_CAPABILITY_FIELD, stage.upper())
             if key not in capability:
@@ -353,7 +415,7 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        if rule.ip.config.protocol:
+        if rule.ip.config.protocol or rule.ip.config.protocol == 0:  # 0 is a valid protocol number
             if self.ip_protocol_map.has_key(rule.ip.config.protocol):
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
@@ -518,9 +580,16 @@ class AclLoader(object):
         """
         for key in self.rules_db_info.keys():
             if self.current_table is None or self.current_table == key[0]:
-               self.configdb.mod_entry(self.ACL_RULE, key, None)
+                self.configdb.mod_entry(self.ACL_RULE, key, None)
+                # Program for per front asic namespace also if present
+                for namespace_configdb in self.per_npu_configdb.values():
+                    namespace_configdb.mod_entry(self.ACL_RULE, key, None)
+
 
         self.configdb.mod_config({self.ACL_RULE: self.rules_info})
+        # Program for per front asic namespace also if present
+        for namespace_configdb in self.per_npu_configdb.values():
+            namespace_configdb.mod_config({self.ACL_RULE: self.rules_info})
 
     def incremental_update(self):
         """
@@ -559,10 +628,17 @@ class AclLoader(object):
         # Remove all existing dataplane rules
         for key in current_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
+            # Program for per-asic namespace also if present
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, None)
+
 
         # Add all new dataplane rules
         for key in new_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+            # Program for per-asic namespace corresponding to front asic also if present. 
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         added_controlplane_rules = new_controlplane_rules.difference(current_controlplane_rules)
         removed_controlplane_rules = current_controlplane_rules.difference(new_controlplane_rules)
@@ -570,14 +646,25 @@ class AclLoader(object):
 
         for key in added_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+            # Program for per-asic namespace corresponding to front asic also if present. 
+            # For control plane ACL it's not needed but to keep all db in sync program everywhere
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         for key in removed_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
+            # Program for per-asic namespace corresponding to front asic also if present. 
+            # For control plane ACL it's not needed but to keep all db in sync program everywhere
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, None)
 
         for key in existing_controlplane_rules:
             if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
                 self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
-
+                # Program for per-asic namespace corresponding to front asic also if present. 
+                # For control plane ACL it's not needed but to keep all db in sync program everywhere
+                for namespace_configdb in self.per_npu_configdb.values():
+                    namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
     def delete(self, table=None, rule=None):
         """
@@ -589,8 +676,10 @@ class AclLoader(object):
             if not table or table == key[0]:
                 if not rule or rule == key[1]:
                     self.configdb.set_entry(self.ACL_RULE, key, None)
-
-
+                    # Program for per-asic namespace corresponding to front asic also if present. 
+                    for namespace_configdb in self.per_npu_configdb.values():
+                        namespace_configdb.set_entry(self.ACL_RULE, key, None)
+    
     def show_table(self, table_name):
         """
         Show ACL table configuration.
@@ -626,27 +715,36 @@ class AclLoader(object):
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
-
     def show_session(self, session_name):
         """
         Show mirror session configuration.
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue", "Policer", "Monitor Port")
+        erspan_header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue",
+                            "Policer", "Monitor Port", "SRC Port", "Direction")
+        span_header = ("Name", "Status", "DST Port", "SRC Port", "Direction", "Queue", "Policer")
 
-        data = []
+        erspan_data = []
+        span_data = []
         for key, val in self.get_sessions_db_info().iteritems():
             if session_name and key != session_name:
                 continue
 
-            data.append([key, val["status"], val["src_ip"], val["dst_ip"],
-                         val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
-                         val.get("monitor_port", "")])
+            if val.get("type") == "SPAN":
+                span_data.append([key, val.get("status", ""), val.get("dst_port", ""),
+                                       val.get("src_port", ""), val.get("direction", "").lower(),
+                                       val.get("queue", ""), val.get("policer", "")])
+            else:
+                erspan_data.append([key, val.get("status", ""), val.get("src_ip", ""),
+                                         val.get("dst_ip", ""), val.get("gre_type", ""), val.get("dscp", ""),
+                                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
+                                         val.get("monitor_port", ""), val.get("src_port", ""), val.get("direction", "").lower()])
 
-        print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
-
+        print("ERSPAN Sessions")
+        print(tabulate.tabulate(erspan_data, headers=erspan_header, tablefmt="simple", missingval=""))
+        print("\nSPAN Sessions")
+        print(tabulate.tabulate(span_data, headers=span_header, tablefmt="simple", missingval=""))
 
     def show_policer(self, policer_name):
         """
@@ -676,7 +774,11 @@ class AclLoader(object):
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
         def pop_priority(val):
-            priority  = val.pop("PRIORITY")
+            priority = "N/A"
+            for key in dict(val):
+                if (key.upper() == "PRIORITY"):
+                    priority  = val.pop(key)
+                    return priority
             return priority
 
         def pop_action(val):

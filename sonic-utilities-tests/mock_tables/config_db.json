@@ -1,4 +1,13 @@
 {
+    "BREAKOUT_CFG|Ethernet0": {
+        "brkout_mode": "4x25G[10G]"
+    },
+    "BREAKOUT_CFG|Ethernet4": {
+        "brkout_mode": "2x50G"
+    },
+    "BREAKOUT_CFG|Ethernet8": {
+        "brkout_mode": "1x100G[40G]"
+    },
     "PORT|Ethernet0": {
         "alias": "etp1",
         "lanes": "0,1,2,3",
@@ -93,6 +102,11 @@
             "L4_DST_PORT": "4661",
             "PACKET_ACTION": "FORWARD",
             "PRIORITY": "9991"
+    },
+    "ACL_RULE|DATAACL|RULE_10": {
+            "PACKET_ACTION": "DROP",
+            "priority": "9989",
+            "SRC_IP": "10.0.0.3/32"
     },
      "ACL_TABLE|DATAACL": {
             "policy_desc": "DATAACL",

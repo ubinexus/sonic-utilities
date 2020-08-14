@@ -43,12 +43,17 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Gearbox](#gearbox)
+  * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
 * [Interface Naming Mode](#interface-naming-mode)
   * [Interface naming mode show commands](#interface-naming-mode-show-commands)
   * [Interface naming mode config commands](#interface-naming-mode-config-commands)
+ * [Interface Vrf binding](#interface-vrf-binding)
+      * [Interface vrf bind & unbind config commands](#interface-vrf-bind-&-unbind-config-commands)
+      * [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
@@ -60,6 +65,11 @@
   * [Reloading Configuration](#reloading-configuration)
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
+ * [Loopback Interfaces](#loopback-interfaces)
+    * [Loopback config commands](#loopback-config-commands)
+* [VRF Configuration](#vrf-configuration)
+    * [VRF show commands](#vrf-show-commands)
+    * [VRF config commands](#vrf-config-commands)
 * [Management VRF](#Management-VRF)
   * [Management VRF Show commands](#management-vrf-show-commands)
   * [Management VRF Config commands](#management-vrf-config-commands)
@@ -104,6 +114,11 @@
     * [VLAN Config commands](#vlan-config-commands)
   * [FDB](#fdb)
     * [FDB show commands](#fdb-show-commands)
+* [VxLAN & Vnet](#vxlan--vnet)
+  * [VxLAN](#vxlan)
+    * [VxLAN show commands](#vxlan-show-commands)
+  * [Vnet](#vnet)
+    * [Vnet show commands](#vnet-show-commands)
 * [Warm Reboot](#warm-reboot)
 * [Warm Restart](#warm-restart)
   * [Warm Restart show commands](#warm-restart-show-commands)
@@ -116,6 +131,9 @@
 * [Troubleshooting Commands](#troubleshooting-commands)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
+* [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
+  * [ ZTP show commands](#ztp-show-commands)
+  * [ZTP configuration commands](#ztp-configuration-commands)
 
 ## Document History
 
@@ -263,15 +281,18 @@ This command lists all the possible configuration commands at the top level.
     load                   Import a previous saved config DB dump file.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
+    loopback               Loopback-related configuration tasks.
     mirror_session
     nat                    NAT-related configuration tasks
     platform               Platform-related configuration tasks
     portchannel
     qos
     reload                 Clear current configuration and import a...
+    route                  route-related configuration tasks
     save                   Export current config DB to a file on disk.
     tacacs                 TACACS+ server configuration
     vlan                   VLAN-related configuration tasks
+    vrf                    VRF-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
     container              Modify configuration of containers
@@ -334,6 +355,7 @@ This command displays the full list of show commands available in the software; 
     users                 Show users
     version               Show version information
     vlan                  Show VLAN information
+    vrf                   Show vrf config
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
     container             Show details of container
@@ -1598,6 +1620,38 @@ Optionally, you can specify an IP address in order to display only that particul
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp neighbors" for Quagga.
 
 
+**show ip bgp network [[<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+
+This command displays all the details of IPv4 Border Gateway Protocol (BGP) prefixes.
+
+- Usage:
+
+
+  ```
+  show ip bgp network [[<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+  ```
+
+- Example:
+
+  NOTE: The "longer-prefixes" option is only available when a network prefix with a "/" notation is used.
+
+  ```
+  admin@sonic:~$ show ip bgp network
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 bestpath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 multipath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 json
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 bestpath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 multipath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 json
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 longer-prefixes
+  ```
 
 **show bgp ipv6 summary (Versions >= 201904 using default FRR routing stack)**
 
@@ -1665,6 +1719,41 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
   ```
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga.
 
+
+**show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+
+This command displays all the details of IPv6 Border Gateway Protocol (BGP) prefixes.  
+
+- Usage: 
+
+  
+  ```
+  show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]   
+  ```
+
+- Example:
+
+  NOTE: The "longer-prefixes" option is only available when a network prefix with a "/" notation is used.
+ 
+  ```
+  admin@sonic:~$ show ipv6 bgp network
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 bestpath 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 multipath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 json 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 bestpath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 multipath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 json 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 longer-prefixes
+  ```
+ 
+  
 
 
 **show route-map**
@@ -2170,6 +2259,56 @@ The list of the WRED profile fields that are configurable is listed in the below
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
 
+## Gearbox
+
+This section explains all the Gearbox PHY show commands that are supported in SONiC.
+
+### Gearbox show commands
+This sub-section contains the show commands that are supported for gearbox phy.
+
+**show gearbox interfaces status**
+
+This command displays information about the gearbox phy interface lanes, speeds and status. Data is displayed for both MAC side and line side of the gearbox phy
+
+- Usage:
+  ```
+  show gearbox interfaces status
+  ```
+
+- Example:
+
+```
+home/admin# show gearbox interfaces status
+  PHY Id    Interface    MAC Lanes    MAC Lane Speed    PHY Lanes    PHY Lane Speed    Line Lanes    Line Lane Speed    Oper    Admin
+--------  -----------  -----------  ----------------  -----------  ----------------  ------------  -----------------  ------  -------
+       1    Ethernet0  25,26,27,28               10G      200,201               20G           206                40G      up       up
+       1    Ethernet4  29,30,31,32               10G      202,203               20G           207                40G      up       up
+       1    Ethernet8  33,34,35,36               10G      204,205               20G           208                40G      up       up
+
+  ```
+
+**show gearbox phys status**
+
+This command displays basic information about the gearbox phys configured on the switch. 
+
+- Usage:
+  ```
+  show gearbox phys status
+  ```
+
+- Example:
+
+```
+/home/admin# show gearbox phys status
+  PHY Id     Name    Firmware
+--------  -------  ----------
+       1  sesto-1        v0.1
+
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#gearbox)
+
+
 ## Update Device Hostname Configuration Commands
 
 This sub-section of commands is used to change device hostname without traffic being impacted.
@@ -2206,6 +2345,7 @@ Subsequent pages explain each of these commands in detail.
     -?, -h, --help  Show this message and exit.
 
   Commands:
+  breakout     Show Breakout Mode information by interfaces
   counters     Show interface counters
   description  Show interface status, protocol and...
   naming_mode  Show interface naming_mode status
@@ -2213,6 +2353,56 @@ Subsequent pages explain each of these commands in detail.
   portchannel  Show PortChannel information
   status       Show Interface status information
   transceiver  Show SFP Transceiver information
+  ```
+
+**show interfaces breakout**
+
+This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. all the available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
+
+- Usage:
+  ```
+  show interfaces breakout
+  show interfaces breakout current-mode
+  show interfaces breakout current-mode <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout
+  {
+      "Ethernet0": {
+          "index": "1,1,1,1",
+          "default_brkout_mode": "1x100G[40G]",
+          "child ports": "Ethernet0",
+          "child port speed": "100G",
+          "breakout_modes": "1x100G[40G],2x50G,4x25G[10G]",
+          "Current Breakout Mode": "1x100G[40G]",
+          "lanes": "65,66,67,68",
+          "alias_at_lanes": "Eth1/1, Eth1/2, Eth1/3, Eth1/4"
+      },... continue
+  }
+
+The "current-mode" subcommand is used to display current breakout mode for all interfaces.
+
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode
+  +-------------+-------------------------+
+  | Interface   | Current Breakout Mode   |
+  +=============+=========================+
+  | Ethernet0   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet4   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet8   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet12  | 4x25G[10G]              |
+  +-------------+-------------------------+
+
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode Ethernet0
+  +-------------+-------------------------+
+  | Interface   | Current Breakout Mode   |
+  +=============+=========================+
+  | Ethernet0   | 4x25G[10G]              |
+  +-------------+-------------------------+
   ```
 
 **show interfaces counters**
@@ -2223,7 +2413,9 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
 - Usage:
   ```
   show interfaces counters [-a|--printall] [-p|--period <period>]
-  show interfaces counters rif [-p|--period <period>] <interface_name>
+  show interfaces counters errors
+  show interfaces counters rates 
+  show interfaces counters rif [-p|--period <period>] [-i <interface_name>]
   ```
 
 - Example:
@@ -2238,7 +2430,41 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet16        U   16,679,692,972   13.83 MB/s      0.27%         0    17,605         0   18,206,586,265   17.51 MB/s      0.34%         0         0         0
    Ethernet20        U   47,983,339,172   35.89 MB/s      0.70%         0     2,174         0   58,986,354,359   51.83 MB/s      1.01%         0         0         0
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
+
+  admin@sonic:~$ show interfaces counters -i Ethernet4,Ethernet12-16
+        IFACE    STATE            RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR            TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+  -----------  -------  ---------------  -----------  ---------  --------  --------  --------  ---------------  -----------  ---------  --------  --------  --------
+    Ethernet4        U  453,838,006,636  632.97 MB/s     12.36%         0     1,636         0  388,299,875,056  529.34 MB/s     10.34%         0         0         0
+   Ethernet12        U  458,052,204,029  636.84 MB/s     12.44%         0    17,614         0  388,341,776,615  527.37 MB/s     10.30%         0         0         0
+   Ethernet16        U   16,679,692,972   13.83 MB/s      0.27%         0    17,605         0   18,206,586,265   17.51 MB/s      0.34%         0         0         0
   ```
+
+The "errors" subcommand is used to display the interface errors. 
+
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ show interface counters errors
+      IFACE    STATE    RX_ERR    RX_DRP    RX_OVR    TX_ERR    TX_DRP    TX_OVR
+  -----------  -------  --------  --------  --------  --------  --------  --------
+    Ethernet0        U         0         4         0         0         0         0
+    Ethernet4        U         0         0         0         0         0         0
+    Ethernet8        U         0         1         0         0         0         0
+   Ethernet12        U         0         0         0         0         0         0
+```
+
+The "rates" subcommand is used to disply only the interface rates. 
+
+- Exmaple: 
+  ```
+  admin@str-s6000-acs-11:/usr/bin$ show int counters rates
+      IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    TX_OK    TX_BPS    TX_PPS    TX_UTIL
+  -----------  -------  -------  --------  --------  ---------  -------  --------  --------  ---------
+    Ethernet0        U   467510       N/A       N/A        N/A   466488       N/A       N/A        N/A
+    Ethernet4        U   469679       N/A       N/A        N/A   469245       N/A       N/A        N/A
+    Ethernet8        U   466660       N/A       N/A        N/A   465982       N/A       N/A        N/A
+   Ethernet12        U   466579       N/A       N/A        N/A   466318       N/A       N/A        N/A
+```
+
 
 The "rif" subcommand is used to display l3 interface counters. Layer 3 interfaces include router interfaces, portchannels and vlan interfaces.
 
@@ -2336,7 +2562,6 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
-
 **show interfaces naming_mode**
 
 Refer sub-section [Interface-Naming-Mode](#Interface-Naming-Mode)
@@ -2412,6 +2637,18 @@ This command displays some more fields such as Lanes, Speed, MTU, Type, Asymmetr
   Ethernet0   101,102      40G   9100   fortyGigE1/1/1      up       up
   ```
 
+- Example (to only display the status for range of interfaces):
+  ```
+  admin@sonic:~$ show interfaces status Ethernet8,Ethernet168-180
+  Interface              Lanes    Speed    MTU            Alias     Oper    Admin    Type   Asym PFC
+  -----------  -----------------  -------  -----  ---------------  ------  -------  ------  ----------
+    Ethernet8      49,50,51,52     100G    9100    hundredGigE3     down     down     N/A         N/A
+  Ethernet168       9,10,11,12     100G    9100    hundredGigE43    down     down     N/A         N/A
+  Ethernet172      13,14,15,16     100G    9100    hundredGigE44    down     down     N/A         N/A
+  Ethernet176  109,110,111,112     100G    9100    hundredGigE45    down     down     N/A         N/A
+  Ethernet180  105,106,107,108     100G    9100    hundredGigE46    down     down     N/A         N/A
+  ```
+
 **show interfaces transceiver**
 
 This command is already explained [here](#Transceivers)
@@ -2423,10 +2660,11 @@ This sub-section explains the following list of configuration on the interfaces.
 3) shutdown - to administratively shut down the interface
 4) speed - to set the interface speed
 5) startup - to bring up the administratively shutdown interface
+6) breakout - to set interface breakout mode
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
-- config interface  interface_subcommand <interface_name>
+- config interface interface_subcommand <interface_name>
 i.e Interface name comes after the subcommand
 - Ex: config interface startup Ethernet63
 
@@ -2440,7 +2678,7 @@ NOTE: In older versions of SONiC until 201811 release, the command syntax was `c
 **config interface <interface_name> ip add <ip_addr> (Versions <= 201811)**
 
 This command is used for adding the IP address for an interface.
-IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command. 
+IP address for either physical interface or for portchannel or for VLAN interface or for Loopback interface can be configured using this command. 
 While configuring the IP address for the management interface "eth0", users can provide the default gateway IP address as an optional parameter from release 201911. 
 
 
@@ -2592,6 +2830,7 @@ This command is used to administratively shut down either the Physical interface
   *Versions <= 201811*
   ```
   config interface <interface_name> shutdown (for 201811- version)
+  ```
 
 - Example:
 
@@ -2602,6 +2841,11 @@ This command is used to administratively shut down either the Physical interface
   *Versions <= 201811*
   ```
   admin@sonic:~$ sudo config interface Ethernet63 shutdown
+  ```
+
+  shutdown multiple interfaces
+  ```
+  admin@sonic:~$ sudo config interface shutdown Ethernet8,Ethernet16-20,Ethernet32
   ```
 
 **config interface startup <interface_name> (Versions >= 201904)**
@@ -2619,6 +2863,7 @@ This command is used for administratively bringing up the Physical interface or 
   *Versions <= 201811*
   ```
   config interface <interface_name> startup (for 201811- version)
+  ```
 
 - Example:
 
@@ -2629,6 +2874,11 @@ This command is used for administratively bringing up the Physical interface or 
   *Versions <= 201811*
   ```
   admin@sonic:~$ sudo config interface Ethernet63 startup
+  ```
+
+  startup multiple interfaces
+  ```
+  admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
 
 **config interface speed <interface_name> (Versions >= 201904)**
@@ -2657,6 +2907,44 @@ Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot c
 - Example (Versions <= 201811):
   ```
   admin@sonic:~$ sudo config interface Ethernet63 speed 40000
+
+  ```
+
+**config interface transceiver lpmode**
+
+This command is used to enable or disable low-power mode for an SFP transceiver
+
+- Usage:
+
+  ```
+  config interface transceiver lpmode <interface_name> (enable | disable)
+  ```
+
+- Examples:
+
+  ```
+  user@sonic~$ sudo config interface transceiver lpmode Ethernet0 enable
+  Enabling low-power mode for port Ethernet0...  OK
+
+  user@sonic~$ sudo config interface transceiver lpmode Ethernet0 disable
+  Disabling low-power mode for port Ethernet0...  OK
+  ```
+
+**config interface transceiver reset**
+
+This command is used to reset an SFP transceiver
+
+- Usage:
+
+  ```
+  config interface transceiver reset <interface_name>
+  ```
+
+- Examples:
+
+  ```
+  user@sonic~$ sudo config interface transceiver reset Ethernet0
+  Resetting port Ethernet0...  OK
   ```
 
 **config interface mtu <interface_name> (Versions >= 201904)**
@@ -2673,6 +2961,36 @@ This command is used to configure the mtu for the Physical interface. Use the va
 - Example (Versions >= 201904):
   ```
   admin@sonic:~$ sudo config interface mtu Ethernet64 1500
+  ```
+
+**config interface breakout**
+
+This command is used to set breakout mode available for user-specified interface.
+kindly use, double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
+
+- Usage:
+  ```
+  sudo config interface breakout  --help
+  Usage: config interface breakout [OPTIONS] <interface_name> MODE
+
+    Set interface breakout mode
+
+    Options:
+      -f, --force-remove-dependencies
+                                      Clear all depenedecies internally first.
+      -l, --load-predefined-config    load predefied user configuration (alias,
+                                      lanes, speed etc) first.
+      -y, --yes
+      -v, --verbose                   Enable verbose output
+      -?, -h, --help                  Show this message and exit.
+  ```
+- Example :
+  ```
+  admin@sonic:~$ sudo config interface breakout  Ethernet0 <tab><tab>
+  <tab provides option for breakout mode>
+  1x100G[40G]  2x50G        4x25G[10G]
+
+  admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
@@ -2756,6 +3074,35 @@ The user must log out and log back in for changes to take effect. Note that the 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interface-naming-mode)
 
+## Interface Vrf binding
+
+### Interface vrf bind & unbind config commands
+
+**config interface vrf bind**
+
+This command is used to bind a interface to a vrf.
+By default, all L3 interfaces will be in default vrf. Above vrf bind command will let users bind interface to a vrf.
+
+- Usage:
+  ```
+  config interface vrf bind <interface_name> <vrf_name>
+  ```
+
+**config interface vrf unbind**
+
+This command is used to ubind a interface from a vrf.
+This will move the interface to default vrf.
+
+- Usage:
+  ```
+  config interface vrf unbind <interface_name> <vrf_name>
+  ```
+  
+  ### Interface vrf binding show commands
+  
+  To display interface vrf binding information, user can use show vrf command.  Please refer sub-section [Vrf-show-command](#vrf-show-commands).
+  
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interface-vrf-binding)
 
 ## IP / IPv6
 
@@ -2774,7 +3121,7 @@ This command displays either all the route entries from the routing table or a s
 
 - Usage:
   ```
-  show ip route [<ip_address>]
+  show ip route [<vrf-name>] [<ip_address>]
   ```
 
 - Example:
@@ -2785,12 +3132,9 @@ This command displays either all the route entries from the routing table or a s
          > - selected route, * - FIB route
   S>* 0.0.0.0/0 [200/0] via 10.11.162.254, eth0
   C>* 1.1.0.0/16 is directly connected, Vlan100
-  C>* 10.1.0.1/32 is directly connected, lo
-  C>* 10.1.0.32/32 is directly connected, lo
   C>* 10.1.1.0/31 is directly connected, Ethernet112
   C>* 10.1.1.2/31 is directly connected, Ethernet116
   C>* 10.11.162.0/24 is directly connected, eth0
-  C>* 10.12.0.102/32 is directly connected, lo
   C>* 127.0.0.0/8 is directly connected, lo
   C>* 240.127.1.0/24 is directly connected, docker0
   ```
@@ -2804,6 +3148,27 @@ This command displays either all the route entries from the routing table or a s
     Known via "connected", distance 0, metric 0, best
     * directly connected, Ethernet112
   ```
+
+  - Vrf-name can also be specified to get IPv4 routes programmed in the vrf.
+
+  - Example:
+     ```
+     admin@sonic:~$ show ip route vrf Vrf-red
+       Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route
+       VRF Vrf-red:
+       C>*  11.1.1.1/32 is directly connected, Loopback11, 21:50:47
+       C>*  100.1.1.0/24 is directly connected, Vlan100, 03w1d06h
+       
+     admin@sonic:~$ show ip route vrf Vrf-red 11.1.1.1/32
+       Routing entry for 11.1.1.1/32
+       Known via "connected", distance 0, metric 0, vrf Vrf-red, best
+       Last update 21:57:53 ago
+       * directly connected, Loopback11
+   ```
 
 **show ip interfaces**
 
@@ -2824,16 +3189,20 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ip interfaces
-  Interface      IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
-  -------------  -------------------  ------------  --------------  -------------
-  PortChannel01  10.0.0.56/31         up/down       DEVICE1         10.0.0.57
-  PortChannel02  10.0.0.58/31         up/down       DEVICE2         10.0.0.59
-  PortChannel03  10.0.0.60/31         up/down       DEVICE3         10.0.0.61
-  PortChannel04  10.0.0.62/31         up/down       DEVICE4         10.0.0.63
-  Vlan1000       192.168.0.1/27       up/up         N/A             N/A
-  docker0        240.127.1.1/24       up/down       N/A             N/A
-  eth0           10.3.147.252/23      up/up         N/A             N/A
-  lo             127.0.0.1/8          up/up         N/A             N/A
+  Interface       Master          IPv4 address/mask     Admin/Oper      BGP Neighbor     Neighbor IP     Flags
+  -------------   ------------    ------------------    --------------  -------------    -------------   -------
+  Loopback0                       1.0.0.1/32            up/up           N/A              N/A
+  Loopback11      Vrf-red         11.1.1.1/32           up/up           N/A              N/A
+  Loopback100     Vrf-blue        100.0.0.1/32          up/up           N/A              N/A
+  PortChannel01                   10.0.0.56/31          up/down         DEVICE1          10.0.0.57
+  PortChannel02                   10.0.0.58/31          up/down         DEVICE2          10.0.0.59
+  PortChannel03                   10.0.0.60/31          up/down         DEVICE3          10.0.0.61
+  PortChannel04                   10.0.0.62/31          up/down         DEVICE4          10.0.0.63
+  Vlan100         Vrf-red         1001.1.1/24           up/up           N/A              N/A
+  Vlan1000                        192.168.0.1/27        up/up           N/A              N/A
+  docker0                         240.127.1.1/24        up/down         N/A              N/A
+  eth0                            10.3.147.252/23       up/up           N/A              N/A
+  lo                              127.0.0.1/8           up/up           N/A              N/A
   ```
 
 **show ip protocol**
@@ -2882,7 +3251,7 @@ This command displays either all the IPv6 route entries from the routing table o
 
 - Usage:
   ```
-  show ipv6 route [<ipv6_address>]
+  show ipv6 route [<vrf-name>] [<ipv6_address>]
   ```
 
 - Example:
@@ -2916,6 +3285,29 @@ This command displays either all the IPv6 route entries from the routing table o
     * directly connected, lo
   ```
 
+ Vrf-name can also be specified to get IPv6 routes programmed in the vrf.
+
+  - Example:
+     ```
+     admin@sonic:~$ show ipv6 route vrf Vrf-red
+       Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route
+       VRF Vrf-red:
+            C>*  1100::1/128 is directly connected, Loopback11, 21:50:47           
+            C>*  100::/112 is directly connected, Vlan100, 03w1d06h
+            C>*  fe80::/64 is directly connected, Loopback11, 21:50:47
+            C>*  fe80::/64 is directly connected, Vlan100, 03w1d06h
+            
+      admin@sonic:~$ show ipv6 route vrf Vrf-red 1100::1/128
+        Routing entry for 1100::1/128
+        Known via "connected", distance 0, metric 0, vrf Vrf-red, best
+        Last update 21:57:53 ago
+        * directly connected, Loopback11
+     ```
+
 **show ipv6 interfaces**
 
 This command displays the details about all the Layer3 IPv6 interfaces in the device for which IPv6 address has been assigned.
@@ -2934,16 +3326,18 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ipv6 interfaces
-  Interface      IPv6 address/mask                         Admin/Oper    BGP Neighbor    Neighbor IP
-  -------------  ----------------------------------------  ------------  --------------  -------------
-  Bridge         fe80::7c45:1dff:fe08:cdd%Bridge/64        up/up         N/A             N/A
-  PortChannel01  fc00::71/126                              up/down       DEVICE1         fc00::72
-  PortChannel02  fc00::75/126                              up/down       DEVICE2         fc00::76
-  PortChannel03  fc00::79/126                              up/down       DEVICE3         fc00::7a
-  PortChannel04  fc00::7d/126                              up/down       DEVICE4         fc00::7e
-  Vlan100        fe80::eef4:bbff:fefe:880a%Vlan100/64      up/up         N/A             N/A
-  eth0           fe80::eef4:bbff:fefe:880a%eth0/64         up/up         N/A             N/A
-  lo             fc00:1::32/128                            up/up         N/A             N/A
+  Interface        Master     IPv6 address/mask                          Admin/Oper    BGP Neighbor    Neighbor IP
+  -----------      --------   ----------------------------------------   ------------  --------------  -------------
+  Bridge                      fe80::7c45:1dff:fe08:cdd%Bridge/64         up/up         N/A             N/A
+  Loopback11       Vrf-red    1100::1/128                                up/up
+  PortChannel01               fc00::71/126                               up/down       DEVICE1         fc00::72
+  PortChannel02               fc00::75/126                               up/down       DEVICE2         fc00::76
+  PortChannel03               fc00::79/126                               up/down       DEVICE3         fc00::7a
+  PortChannel04               fc00::7d/126                               up/down       DEVICE4         fc00::7e
+  Vlan100          Vrf-red    100::1/112                                 up/up         N/A             N/A
+                              fe80::eef4:bbff:fefe:880a%Vlan100/64
+  eth0                        fe80::eef4:bbff:fefe:880a%eth0/64          up/up         N/A             N/A
+  lo                          fc00:1::32/128                             up/up         N/A             N/A
   ```
 
 **show ipv6 protocol**
@@ -3125,9 +3519,13 @@ NOTE: Management interface IP address and default route (or specific route) may 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
 
+When user specifies the optional argument "-n" or "--no-service-restart", this command loads the configuration without restarting dependent services
+running on the device. One use case for this option is during boot time when config-setup service loads minigraph configuration and there is no services
+running on the device.
+
 - Usage:
   ```
-  config load_minigraph [-y|--yes]
+  config load_minigraph [-y|--yes] [-n|--no-service-restart]
   ```
 
 - Example:
@@ -3160,9 +3558,13 @@ NOTE: Management interface IP address and default route (or specific route) may 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
 
+When user specifies the optional argument "-n" or "--no-service-restart", this command clear and loads the configuration without restarting dependent services
+running on the device. One use case for this option is during boot time when config-setup service loads existing old configuration and there is no services
+running on the device.
+
 - Usage:
   ```
-  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>]
+  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart]
   ```
 
 - Example:
@@ -3234,6 +3636,73 @@ Saved file can be transferred to remote machines for debugging. If users wants t
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#loading-reloading-and-saving-configuration)
 
+## Loopback Interfaces
+
+### Loopback Config commands
+
+This sub-section explains how to create and delete loopback interfaces.
+
+**config interface loopback**
+
+This command is used to add or delete loopback interfaces.
+It is recommended to use loopback names in the format "Loopbackxxx", where "xxx" is number of 1 to 3 digits. Ex: "Loopback11".
+
+- Usage:
+  ```
+  config loopback (add | del) <loopback_name>
+  ```
+
+- Example (Create the loopback with name "Loopback11"):
+  ```
+  admin@sonic:~$ sudo config loopback add Loopback11
+  ```
+
+## VRF Configuration
+
+### VRF show commands
+
+**show vrf**
+
+This command displays all vrfs configured on the system along with interface binding to the vrf.
+If vrf-name is also provided as part of the command, if the vrf is created it will display all interfaces binding to the vrf, if vrf is not created nothing will be displayed.
+
+- Usage:
+  ```
+  show vrf [<vrf_name>]
+  ```
+
+- Example:
+  ````
+     admin@sonic:~$ show vrf
+     VRF        Interfaces
+     -------    ------------
+     default    Vlan20
+     Vrf-red    Vlan100
+                Loopback11
+     Vrf-blue   Loopback100
+                Loopback102
+  ````  
+
+### VRF config commands
+
+**config vrf add **
+
+This command creates vrf in SONiC system with provided vrf-name.
+
+- Usage:
+ ```
+config vrf add <vrf-name>
+```
+Note: vrf-name should always start with keyword "Vrf"
+
+**config vrf del <vrf-name>**
+
+This command deletes vrf with name vrf-name.
+
+- Usage:
+ ```
+config vrf del <vrf-name>
+```
 
 ## Management VRF
 
@@ -3441,7 +3910,6 @@ This command deletes the SNMP Trap server IP address to which SNMP agent is expe
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#management-vrf)
 
-
 ## Mirroring
 
 ### Mirroring Show commands
@@ -3457,10 +3925,16 @@ This command displays all the mirror sessions that are configured.
 
 - Example:
   ```
-  admin@sonic:~$ show mirror session
-  Name       Status    SRC IP     DST IP    GRE    DSCP    TTL    Queue
-  ---------  --------  ---------  --------  -----  ------  -----  -------
+  admin@sonic:~$ show mirror_session
+  ERSPAN Sessions
+  Name       Status    SRC IP     DST IP    GRE    DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ------     --------  --------   --------  -----  ------  -----  -------  ---------  --------------  ----------  -----------
   everflow0  active    10.1.0.32  10.0.0.7
+
+  SPAN Sessions
+  Name    Status    DST Port    SRC Port       Direction
+  ------  --------  ----------  -------------  -----------
+  port0   active    Ethernet0   PortChannel10  rx
   ```
 
 ### Mirroring Config commands
@@ -3468,7 +3942,12 @@ This command displays all the mirror sessions that are configured.
 **config mirror_session**
 
 This command is used to add or remove mirroring sessions. Mirror session is identified by "session_name".
-While adding a new session, users need to configure the following fields that are used while forwarding the mirrored packets.
+This command supports configuring both SPAN/ERSPAN sessions.
+In SPAN user can configure mirroring of list of source ports/LAG to destination port in ingress/egress/both directions.
+In ERSPAN user can configure mirroring of list of source ports/LAG to a destination IP.
+Both SPAN/ERSPAN support ACL based mirroring and can be used in ACL configurations.
+
+While adding a new ERSPAN session, users need to configure the following fields that are used while forwarding the mirrored packets.
 
 1) source IP address,
 2) destination IP address,
@@ -3476,19 +3955,65 @@ While adding a new session, users need to configure the following fields that ar
 4) TTL value
 5) optional - GRE Type in case if user wants to send the packet via GRE tunnel. GRE type could be anything; it could also be left as empty; by default, it is 0x8949 for Mellanox; and 0x88be for the rest of the chips.
 6) optional - Queue in which packets shall be sent out of the device. Valid values 0 to 7 for most of the devices. Users need to know their device and the number of queues supported in that device.
+7) optional - Policer which will be used to control the rate at which frames are mirrored.
+8) optional - List of source ports which can have both Ethernet and LAG ports.
+9) optional - Direction - Mirror session direction when configured along with Source port. (Supported rx/tx/both. default direction is both)
 
 - Usage:
+  ```
+  config mirror_session erspan add <session_name> <src_ip> <dst_ip> <dscp> <ttl> [gre_type] [queue] [policer <policer_name>] [source-port-list] [direction]
+  ```
+
+  The following command is also supported to be backward compatible.
+  This command will be deprecated in future releases.
   ```
   config mirror_session add <session_name> <src_ip> <dst_ip> <dscp> <ttl> [gre_type] [queue]
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config mirror_session add mrr_abcd 1.2.3.4 20.21.22.23 8 100 0x6558 0
-  admin@sonic:~$ show mirror_session
-  Name       Status    SRC IP       DST IP       GRE     DSCP    TTL    Queue
-  ---------  --------  -----------  -----------  ------  ------  -----  -------
-  mrr_abcd   inactive  1.2.3.4      20.21.22.23  0x6558  8       100    0
+  root@T1-2:~# config mirror_session add mrr_legacy 1.2.3.4 20.21.22.23 8 100 0x6558 0
+  root@T1-2:~# show mirror_session
+  Name         Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ---------    --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
+  mrr_legacy   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0
+
+
+  root@T1-2:~# config mirror_session erspan add mrr_abcd 1.2.3.4 20.21.22.23 8 100 0x6558 0
+  root@T1-2:~# show mirror_session
+  Name       Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ---------  --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
+  mrr_abcd   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0
+  root@T1-2:~#
+
+  root@T1-2:~# config mirror_session erspan add mrr_port 1.2.3.4 20.21.22.23 8 100 0x6558 0 Ethernet0
+  root@T1-2:~# show mirror_session
+  Name       Status    SRC IP     DST IP       GRE     DSCP    TTL    Queue    Policer    Monitor Port    SRC Port    Direction
+  ---------  --------  --------   -----------  ------  ------  -----  -------  ---------  --------------  ----------  -----------
+  mrr_port   inactive  1.2.3.4    20.21.22.23  0x6558  8       100    0                                   Ethernet0   both
+  root@T1-2:~#
+  ```
+
+While adding a new SPAN session, users need to configure the following fields that are used while forwarding the mirrored packets.
+1) destination port,
+2) optional - List of source ports- List of source ports which can have both Ethernet and LAG ports.
+3) optional - Direction - Mirror session direction when configured along with Source port. (Supported rx/tx/both. default direction is both)
+4) optional - Queue in which packets shall be sent out of the device. Valid values 0 to 7 for most of the devices. Users need to know their device and the number of queues supported in that device.
+5) optional - Policer which will be used to control the rate at which frames are mirrored.
+
+- Usage:
+  ```
+  config mirror_session span add <session_name> <dst_port> [source-port-list] [direction] [queue] [policer <policer_name>]
+  ```
+
+- Example:
+  ```
+  root@T1-2:~# config mirror_session span add port0 Ethernet0 Ethernet4,PortChannel001,Ethernet8
+  root@T1-2:~# show mirror_session
+  Name    Status    DST Port    SRC Port                           Direction
+  ------  --------  ----------  ---------------------------------  -----------
+  port0   active    Ethernet0   Ethernet4,PortChannel10,Ethernet8  both
+  root@T1-2:~#
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#mirroring)
@@ -3853,11 +4378,16 @@ This command displays a list of NTP peers known to the server as well as a summa
 - Example:
   ```
   admin@sonic:~$ show ntp
+  synchronised to NTP server (204.2.134.164) at stratum 3
+     time correct to within 326797 ms
+     polling server every 1024 s
+
        remote           refid      st t when poll reach   delay   offset  jitter
   ==============================================================================
    23.92.29.245    .XFAC.          16 u    - 1024    0    0.000    0.000   0.000
   *204.2.134.164   46.233.231.73    2 u  916 1024  377    3.079    0.394   0.128
   ```
+
 
 ### NTP Config Commands
 
@@ -4146,7 +4676,7 @@ Supported options:
 2. -f|--force - install FW regardless the current version
 3. -i|--image - update FW using current/next SONiC image
 
-Note: the default option is --image=current (current/next values are taken from `sonic_installer list`)
+Note: the default option is --image=current (current/next values are taken from `sonic-installer list`)
 
 ### Platform Component Firmware vendor specific behaviour
 
@@ -5608,6 +6138,188 @@ Clear the FDB table
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)
 
+## VxLAN & Vnet
+
+### VxLAN
+
+#### VxLAN show commands
+
+**show vxlan tunnel**
+
+This command displays brief information about all the vxlans configured in the device. It displays the vxlan tunnel name, source IP address, destination IP address (if configured), tunnel map name and mapping.
+
+- Usage:
+
+  ```
+  show vxlan tunnel
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vxlan tunnel
+  vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
+  -------------------  -----------  ----------------  -----------------  ---------------------------------
+  tunnel1              10.10.10.10
+  tunnel2              10.10.10.10  20.10.10.10       tmap1              1234 -> 100
+  tunnel3              10.10.10.10  30.10.10.10       tmap2              1235 -> 200
+  ```
+
+**show vxlan name <vxlan_name>**
+
+This command displays <vlan_name> configuration.
+
+- Usage:
+
+  ```
+  show vxlan name <vxlan_name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vxlan name tunnel3
+  vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
+  -------------------  -----------  ----------------  -----------------  ---------------------------------
+  tunnel3              10.10.10.10  30.10.10.10       tmap2              1235 -> 200
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vxlan--vnet)
+
+### Vnet
+
+#### Vnet show commands
+
+**show vnet brief**
+
+This command displays brief information about all the vnets configured in the device. It displays the vnet name, vxlan tunnel name, vni and peer list (if configured).
+
+- Usage:
+
+  ```
+  show vnet brief
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet brief
+  vnet name    vxlan tunnel      vni  peer list
+  -----------  --------------  -----  ------------------
+  Vnet_2000    tunnel1          2000
+  Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
+  ```
+
+**show vnet name <vnet_name>**
+
+This command displays brief information about <vnet_name> configured in the device.
+
+- Usage:
+
+  ```
+  show vnet name <vnet_name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet name Vnet_3000
+  vnet name    vxlan tunnel      vni  peer list
+  -----------  --------------  -----  ------------------
+  Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
+  ```
+
+**show vnet interfaces**
+
+This command displays vnet interfaces information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet interfaces
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet interfaces
+  vnet name    interfaces
+  -----------  ------------
+  Vnet_2000    Ethernet1
+  Vnet_3000    Vlan2000
+  ```
+
+**show vnet neighbors**
+
+This command displays vnet neighbor information about all the vnets configured in the device. It displays the vnet name, neighbor IP address, neighbor mac address (if configured) and interface.
+
+- Usage:
+
+  ```
+  show vnet neighbors
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet neighbors
+  Vnet_2000    neighbor     mac_address    interfaces
+  -----------  -----------  -------------  ------------
+               11.11.11.11                 Ethernet1
+               11.11.11.12                 Ethernet1
+
+  Vnet_3000    neighbor     mac_address        interfaces
+  -----------  -----------  -----------------  ------------
+               20.20.20.20  aa:bb:cc:dd:ee:ff  Vlan2000
+  ```
+
+**show vnet routes all**
+
+This command displays all routes information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet routes all
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet routes all
+  vnet name    prefix          nexthop    interface
+  -----------  --------------  ---------  -----------
+  Vnet_2000    100.100.3.0/24             Ethernet52
+  Vnet_3000    100.100.4.0/24             Vlan2000
+
+  vnet name    prefix          endpoint    mac address        vni
+  -----------  --------------  ----------  -----------------  -----
+  Vnet_2000    100.100.1.1/32  10.10.10.1
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  ```
+
+**show vnet routes tunnel**
+
+This command displays tunnel routes information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet routes tunnel
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet routes tunnel
+  vnet name    prefix          endpoint    mac address        vni
+  -----------  --------------  ----------  -----------------  -----
+  Vnet_2000    100.100.1.1/32  10.10.10.1
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vxlan--vnet)
+
 ## Warm Reboot
 
 warm-reboot command initiates a warm reboot of the device.
@@ -5923,7 +6635,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#waterm
 
 ## Software Installation and Management
 
-SONiC software can be installed in two methods, viz, "using sonic_installer tool", "ONIE Installer".
+SONiC software can be installed in two methods, viz, "using sonic-installer tool", "ONIE Installer".
 
 
 ### SONiC Installer
@@ -5931,18 +6643,18 @@ This is a command line tool available as part of the SONiC software; If the devi
 This tool has facility to install an alternate image, list the available images and to set the next reboot image.
 This command requires elevated (root) privileges to run.
 
-**sonic_installer list**
+**sonic-installer list**
 
 This command displays information about currently installed images. It displays a list of installed images, currently running image and image set to be loaded in next reboot.
 
 - Usage:
   ```
-  sonic_installer list
+  sonic-installer list
   ```
 
 - Example:
    ```
-  admin@sonic:~$ sudo sonic_installer list
+  admin@sonic:~$ sudo sonic-installer list
   Current: SONiC-OS-HEAD.XXXX
   Next: SONiC-OS-HEAD.XXXX
   Available:
@@ -5952,18 +6664,18 @@ This command displays information about currently installed images. It displays 
 
 TIP: This output can be obtained without evelated privileges by running the `show boot` command. See [here](#show-system-status) for details.
 
-**sonic_installer install**
+**sonic-installer install**
 
 This command is used to install a new image on the alternate image partition.  This command takes a path to an installable SONiC image or URL and installs the image.
 
 - Usage:
   ```
-  sonic_installer install <image_file_path>
+  sonic-installer install <image_file_path>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin
+  admin@sonic:~$ sudo sonic-installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin
   New image will be installed, continue? [y/N]: y
   Downloading image...
   ...100%, 480 MB, 3357 KB/s, 146 seconds passed
@@ -5995,46 +6707,46 @@ This command is used to install a new image on the alternate image partition.  T
   Done
   ```
 
-**sonic_installer set_default**
+**sonic-installer set_default**
 
 This command is be used to change the image which can be loaded by default in all the subsequent reboots.
 
 - Usage:
   ```
-  sonic_installer set_default <image_name>
+  sonic-installer set_default <image_name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer set_default SONiC-OS-HEAD.XXXX
+  admin@sonic:~$ sudo sonic-installer set_default SONiC-OS-HEAD.XXXX
   ```
 
-**sonic_installer set_next_boot**
+**sonic-installer set_next_boot**
 
 This command is used to change the image that can be loaded in the *next* reboot only. Note that it will fallback to current image in all other subsequent reboots after the next reboot.
 
 - Usage:
   ```
-  sonic_installer set_next_boot <image_name>
+  sonic-installer set_next_boot <image_name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer set_next_boot SONiC-OS-HEAD.XXXX
+  admin@sonic:~$ sudo sonic-installer set_next_boot SONiC-OS-HEAD.XXXX
   ```
 
-**sonic_installer remove**
+**sonic-installer remove**
 
 This command is used to remove the unused SONiC image from the disk. Note that it's *not* allowed to remove currently running image.
 
 - Usage:
   ```
-  sonic_installer remove [-y|--yes] <image_name>
+  sonic-installer remove [-y|--yes] <image_name>
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer remove SONiC-OS-HEAD.YYYY
+  admin@sonic:~$ sudo sonic-installer remove SONiC-OS-HEAD.YYYY
   Image will be removed, continue? [y/N]: y
   Updating GRUB...
   Done
@@ -6045,18 +6757,18 @@ This command is used to remove the unused SONiC image from the disk. Note that i
   Image removed
   ```
 
-**sonic_installer cleanup**
+**sonic-installer cleanup**
 
 This command removes all unused images from the device, leaving only the currently active image and the image which will be booted into next (if different) installed. If there are no images which can be removed, the command will output `No image(s) to remove`
 
 - Usage:
   ```
-  sonic_installer cleanup [-y|--yes]
+  sonic-installer cleanup [-y|--yes]
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo sonic_installer cleanup
+  admin@sonic:~$ sudo sonic-installer cleanup
   Remove images which are not current and next, continue? [y/N]: y
   No image(s) to remove
   ```
@@ -6319,3 +7031,152 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#quagga-bgp-show-commands)
+
+# ZTP Configuration And Show Commands
+
+This section explains all the Zero Touch Provisioning commands that are supported in SONiC.
+
+## ZTP show commands
+
+
+This command displays the current ZTP configuration of the switch. It also displays detailed information about current state of a ZTP session. It displays information related to all configuration sections as defined in the switch provisioning information discovered in a particular ZTP session.
+
+- Usage:
+  show ztp status
+
+  show ztp status --verbose
+
+- Example:
+
+```
+root@B1-SP1-7712:/home/admin# show ztp status
+ZTP Admin Mode : True
+ZTP Service    : Inactive
+ZTP Status     : SUCCESS
+ZTP Source     : dhcp-opt67 (eth0)
+Runtime        : 05m 31s
+Timestamp      : 2019-09-11 19:12:24 UTC
+
+ZTP Service is not running
+
+01-configdb-json: SUCCESS
+02-connectivity-check: SUCCESS
+```
+Use the verbose option to display more detailed information.
+
+```
+root@B1-SP1-7712:/home/admin# show ztp status --verbose
+Command: ztp status --verbose
+========================================
+ZTP
+========================================
+ZTP Admin Mode : True
+ZTP Service    : Inactive
+ZTP Status     : SUCCESS
+ZTP Source     : dhcp-opt67 (eth0)
+Runtime        : 05m 31s
+Timestamp      : 2019-09-11 19:12:16 UTC
+ZTP JSON Version : 1.0
+
+ZTP Service is not running
+
+----------------------------------------
+01-configdb-json
+----------------------------------------
+Status          : SUCCESS
+Runtime         : 02m 48s
+Timestamp       : 2019-09-11 19:11:55 UTC
+Exit Code       : 0
+Ignore Result   : False
+
+----------------------------------------
+02-connectivity-check
+----------------------------------------
+Status          : SUCCESS
+Runtime         : 04s
+Timestamp       : 2019-09-11 19:12:16 UTC
+Exit Code       : 0
+Ignore Result   : False
+```
+
+- Description
+
+  - **ZTP Admin Mode** - Displays if the ZTP feature is administratively enabled or disabled. Possible values are True or False. This value is configurable using "config ztp enabled" and "config ztp disable" commands.
+  - **ZTP Service** - Displays the ZTP service status. The following are possible values this field can display:
+    - *Active Discovery*: ZTP service is operational and is performing DHCP discovery to learn switch provisioning information
+    - *Processing*: ZTP service has discovered switch provisioning information and is processing it
+  - **ZTP Status** - Displays the current state and result of ZTP session. The following are possible values this field can display:
+    - *IN-PROGRESS*: ZTP session is currently in progress. ZTP service is processing switch provisioning information.
+    - *SUCCESS*: ZTP service has successfully processed the switch provisioning information.
+    - *FAILED*:  ZTP service has failed to process the switch provisioning information.
+    - *Not Started*: ZTP service has not started processing the discovered switch provisioning information.
+  - **ZTP Source** - Displays the DHCP option and then interface name from which switch provisioning information has been discovered.
+  - **Runtime** - Displays the time taken for ZTP process to complete from start to finish. For individual configuration sections it indicates the time taken to process the associated configuration section.
+  - **Timestamp** - Displays the date/time stamp when the status field has last changed.
+  - **ZTP JSON Version** - Version of ZTP JSON file used for describing switch provisioning information.
+  - **Status** - Displays the current state and result of a configuration section. The following are possible values this field can display:
+    - *IN-PROGRESS*: Corresponding configuration section is currently being processed.
+    - *SUCCESS*: Corresponding configuration section was processed successfully.
+    - *FAILED*:  Corresponding configuration section failed to execute successfully.
+    - *Not Started*: ZTP service has not started processing the corresponding configuration section.
+    - *DISABLED*: Corresponding configuration section has been marked as disabled and will not be processed.
+  - **Exit Code** - Displays the program exit code of the configuration section executed. Non-zero exit code indicates that the configuration section has failed to execute successfully.
+  - **Ignore Result** - If this value is True, the result of the corresponding configuration section is ignored and not used to evaluate the overall ZTP result.
+  - **Activity String** - In addition to above information an activity string is displayed indicating the current action being performed by the ZTP service and how much time it has been performing the mentioned activity. Below is an example.
+    -    (04m 12s) Discovering provisioning data
+
+## ZTP configuration commands
+
+This sub-section explains the list of the configuration options available for ZTP.
+
+
+
+**config ztp enable**
+
+Use this command to enable ZTP administrative mode
+
+- Example:
+
+```
+root@sonic:/home/admin# config ztp enable
+Running command: ztp enable
+```
+
+
+
+**config ztp disable**
+
+Use this command to disable ZTP administrative mode.  This command can also be used to abort a current ZTP session and load the factory default switch configuration.
+
+- Usage:
+  config ztp disable
+
+  config ztp disable -y
+
+- Example:
+
+```
+root@sonic:/home/admin# config ztp disable
+Active ZTP session will be stopped and disabled, continue? [y/N]: y
+Running command: ztp disable -y
+```
+
+
+**config ztp run**
+
+Use this command to manually restart a new ZTP session.  This command deletes the existing */etc/sonic/config_db.json* file and stats ZTP service. It also erases the previous ZTP session data. ZTP configuration is loaded on to the switch and ZTP discovery is performed.
+
+- Usage:
+  config ztp run
+
+  config ztp run -y
+
+- Example:
+
+```
+root@sonic:/home/admin# config ztp run
+ZTP will be restarted. You may lose switch data and connectivity, continue? [y/N]: y
+Running command: ztp run -y
+```
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ztp-configuration-and-show-commands)
