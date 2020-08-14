@@ -164,6 +164,7 @@ class TestFilterFdbEntries(object):
         try:
             self.__setUp(testData)
             argv = [
+                "filter_fdb_entries",
                 "-a",
                 self.ARP_FILENAME,
                 "-f",
