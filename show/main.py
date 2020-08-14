@@ -1773,24 +1773,6 @@ def config(redis_unix_socket_path):
     header = ['Name', 'VID', 'Member', 'Mode']
     click.echo(tabulate(tablelize(keys, data), header))
 
-@vlan.command()
-def count():
-    """Show Vlan count"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
-    # Fetching Vlan keys from config DB
-    vlan_keys = config_db.keys('CONFIG_DB', "VLAN|*")
-
-    if not vlan_keys:
-        vlan_count = 0
-    else:
-        vlan_count = len(vlan_keys)
-
-    output = 'Total Vlan count:'
-    output += ('%s \n' % (str(vlan_count)))
-    click.echo(output)
-
 @cli.command('services')
 def services():
     """Show all daemon services"""
