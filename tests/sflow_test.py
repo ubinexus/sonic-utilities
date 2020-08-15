@@ -4,11 +4,6 @@ import pytest
 from click.testing import CliRunner
 from utilities_common.db import Db
 
-test_path = os.path.dirname(os.path.abspath(__file__))
-modules_path = os.path.dirname(test_path)
-sys.path.insert(0, test_path)
-sys.path.insert(0, modules_path)
-
 import show.main as show
 import mock_tables.dbconnector
 
@@ -42,25 +37,22 @@ sFlow interface configurations
 +-------------+---------------+-----------------+
 """
 
-class TestShowSflow(TestCase):
+class TestShowSflow(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
-    def setUp(self):
-        self.runner = CliRunner()
-        self.db = Db()
-        self.obj = {'db': self.db}
-
     def test_show_sflow(self):
-        result = self.runner.invoke(show.cli.commands["sflow"], [], obj=self.obj)
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=Db())
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_output
 
     def test_show_sflow_intf(self):
-        result = self.runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=self.obj)
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=Db())
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_intf_output
