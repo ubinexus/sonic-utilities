@@ -1,4 +1,5 @@
 import json
+import sys
 import os
 import argparse
 import syslog
@@ -121,7 +122,7 @@ def file_exists_or_raise(filename):
     if not os.path.exists(filename):
         raise Exception("file '{0}' does not exist".format(filename))
 
-def main(argv):
+def main(argv=sys.argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fdb', type=str, default='/tmp/fdb.json', help='fdb file name')
     parser.add_argument('-a', '--arp', type=str, default='/tmp/arp.json', help='arp file name')
