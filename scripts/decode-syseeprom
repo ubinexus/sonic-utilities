@@ -26,7 +26,7 @@ def main():
         raise RuntimeError("must be root to run")
 
     # Get platform name
-    platform = device_info.get_platform_info()
+    platform = device_info.get_platform()
 
     platform_path = '/'.join([PLATFORM_ROOT, platform])
 
