@@ -41,6 +41,7 @@ setup(
         'ssdutil',
         'pfc',
         'psuutil',
+        'fdbutils',
         'fwutil',
         'pcieutil',
         'pddf_fanutil',

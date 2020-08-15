@@ -1,5 +1,4 @@
 import json
-import sys
 import os
 import argparse
 import syslog
@@ -135,6 +134,7 @@ def main(argv):
     config_db_filename = args.config_db
     backup_file = args.backup_file
 
+    res = 0
     try:
         syslog.openlog('filter_fdb_entries')
         file_exists_or_raise(fdb_filename)
@@ -145,12 +145,9 @@ def main(argv):
     except KeyboardInterrupt:
         syslog.syslog(syslog.LOG_NOTICE, "SIGINT received. Quitting")
         res = 1
-    except Exception as e:
-        syslog.syslog(syslog.LOG_ERR, "Got an exception %s: Traceback: %s" % (str(e), traceback.format_exc()))
-        res = 2
     else:
         filter_fdb_entries(fdb_filename, arp_filename, config_db_filename, backup_file)
     finally:
         syslog.closelog()
 
-    return 0
+    return res
