@@ -97,7 +97,7 @@ class FdbShow(object):
             #When if_name not mapped to port_id in DB, using port_id as if_name in the display.
             try:
                 if_name = self.if_oid_map[port_id]
-            except :
+            except Exception:
                 if_name = port_id
                 
             if 'vlan' in fdb:
