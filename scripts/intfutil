@@ -11,20 +11,24 @@ from pprint import pprint
 from tabulate import tabulate
 from natsort import natsorted
 
-import swsssdk
-from swsssdk import ConfigDBConnector
+from sonic_py_common import multi_asic
 from utilities_common import constants
+
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common.intf_filter import parse_interface_in_filter
 
 # mock the redis for unit test purposes #
 try:
-    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+    if os.environ["UTILITIES_UNIT_TESTING"] >= "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         tests_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         import mock_tables.dbconnector
+        if os.environ["UTILITIES_UNIT_TESTING"] == "3":
+            import mock_tables.mock_multi_asic
+            mock_tables.dbconnector.load_namespace_config()
+           
 except KeyError:
     pass
 
@@ -48,16 +52,6 @@ VLAN_SUB_INTERFACE_SEPARATOR = "."
 VLAN_SUB_INTERFACE_TYPE = "802.1q-encapsulation"
 
 SUB_PORT = "subport"
-
-def db_connect_configdb():
-    """
-    Connect to configdb
-    """
-    config_db = ConfigDBConnector()
-    if config_db is None:
-        return None
-    config_db.connect()
-    return config_db
 
 def get_frontpanel_port_list(config_db):
     ports_dict = config_db.get_table('PORT')
@@ -105,14 +99,6 @@ def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list, intf_
     return vlan
 
 
-def db_connect_appl():
-    appl_db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    if appl_db is None:
-        return None
-    appl_db.connect(appl_db.APPL_DB)
-    return appl_db
-
-
 def appl_db_keys_get(appl_db, front_panel_ports_list, intf_name):
     """
     Get APPL_DB Keys
@@ -155,18 +141,6 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
     if status_type == PORT_SPEED and status != "N/A":
        status = '{}G'.format(status[:-3])
     return status
-
-
-def db_connect_state():
-    """
-    Connect to REDIS STATE DB and get optics info
-    """
-    state_db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    if state_db is None:
-        return None
-    state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
-    return state_db
-
 
 def state_db_port_optics_get(state_db, intf_name, type):
     """
