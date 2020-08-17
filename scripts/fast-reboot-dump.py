@@ -11,7 +11,6 @@ import binascii
 import argparse
 import syslog
 import traceback
-import datetime
 
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request

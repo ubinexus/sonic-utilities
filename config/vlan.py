@@ -307,11 +307,11 @@ def del_vlan_range(ctx, vid1, vid2, warning):
         if vlan_ip_keys is not None:
             for v in vlan_ip_keys:
                 pipe.hgetall(v)
-            vlan_ip_members = pipe.execute()
+            pipe.execute()
         if vlan_member_keys is not None:
             for v in vlan_member_keys:
                 pipe.hgetall(v)
-            vlan_members = pipe.execute()
+            pipe.execute()
         for vid in range(vid1, vid2):
             vlan_member_configured = False
             ip_configured = False

@@ -4,8 +4,6 @@ import click
 import ipaddress
 import json
 import netaddr
-import syslog
-import logging
 import time
 import netifaces
 import os
@@ -19,7 +17,6 @@ from minigraph import parse_device_desc_xml
 from itertools import count, groupby
 from config_mgmt import ConfigMgmtDPB
 from utilities_common.intf_filter import parse_interface_in_filter
-from utilities_common.util_base import UtilHelper
 from portconfig import get_child_ports, get_port_config_file_name
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
@@ -1881,7 +1878,6 @@ def mac(ctx, redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     ctx.obj = {'db': config_db}
-    pass
 
 @mac.command('aging_time')
 @click.argument('interval', metavar='<aging interval in sec [0-1000000], 0 to disable aging>', required=True, type=int)
