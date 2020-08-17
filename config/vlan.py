@@ -260,10 +260,8 @@ def del_vlan_range(ctx, vid1, vid2, warning):
     warning_ip_list = []
     clients = db.redis_clients["CONFIG_DB"]
     pipe = clients.pipeline()
-    vlan_members = []
     vlan_member_keys = db.keys('CONFIG_DB', "*VLAN_MEMBER*")
     vlan_temp_member_keys = db.keys('CONFIG_DB', "*VLAN_MEMBER*")
-    vlan_ip_members = []
     vlan_ip_keys = db.keys('CONFIG_DB', "*VLAN_INTERFACE*")
 
     # Fetch the interfaces from config_db associated with *VLAN_MEMBER*

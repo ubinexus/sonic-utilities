@@ -76,7 +76,6 @@ class FdbShow(object):
             fdb_list.append(fdb)
             pipe.hgetall(s)
         values = pipe.execute()
-        vlans = []
         vlan_keys = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_VLAN:*")
         for v in vlan_keys:
             pipe.hgetall(v)
