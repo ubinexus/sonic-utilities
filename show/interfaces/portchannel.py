@@ -1,4 +1,9 @@
-#!/usr/bin/python
+import click
+
+from tabulate import tabulate
+from natsort import natsorted
+
+import utilities_common.cli as clicommon
 
 """
     Script to show LAG and LAG member status in a summary view
@@ -35,9 +40,11 @@ from utilities_common.multi_asic import PORT_CHANNEL_OBJ
 
 PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
+PORT_CHANNEL_STATE_TABLE_PREFIX = "LAG_TABLE|"
 PORT_CHANNEL_STATUS_FIELD = "oper_status"
 
 PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX = "LAG_MEMBER_TABLE:"
+PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX = "LAG_MEMBER_TABLE|"
 PORT_CHANNEL_MEMBER_STATUS_FIELD = "status"
 
 class Teamshow(object):
@@ -89,15 +96,15 @@ class Teamshow(object):
             Get teams raw data from teamdctl.
             Command: 'teamdctl <teamdevname> state dump'.
         """
+
+        team_keys = self.db.keys(self.db.STATE_DB, PORT_CHANNEL_STATE_TABLE_PREFIX+"*")
+        if team_keys is None:
+            return
+        _teams = [key[len(PORT_CHANNEL_STATE_TABLE_PREFIX):] for key in team_keys]
+
         for team in self.teams:
-            teamdctl_cmd = "sudo docker exec -it teamd{} teamdctl {} state dump".format(get_asic_id_from_name(self.multi_asic.current_namespace), team)
-            p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            (output, err) = p.communicate()
-            rc = p.wait()
-	    if rc == 0:
-                self.teamsraw[self.get_team_id(team)] = output
-            else:
-                self.err = err
+            if team in _teams:
+                self.teamsraw[self.get_team_id(team)] = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_STATE_TABLE_PREFIX+team)
 
     def get_teamshow_result(self):
         """
@@ -111,9 +118,10 @@ class Teamshow(object):
                 self.summary[team_id] = info
                 self.summary[team_id]['ports'] = ''
                 continue
-            json_info = json.loads(self.teamsraw[team_id])
-            info['protocol'] = json_info['setup']['runner_name'].upper()
-            info['protocol'] += '(A)' if json_info['runner']['active'] else '(I)'
+            state = self.teamsraw[team_id]
+            info['protocol'] = "LACP"
+            info['protocol'] += "(A)" if state['runner.active'] == "true" else '(I)'
+
             portchannel_status = self.get_portchannel_status(team)
             if portchannel_status is None:
                 info['protocol'] += '(N/A)'
@@ -125,14 +133,20 @@ class Teamshow(object):
                 info['protocol'] += '(N/A)'
 
             info['ports'] = ""
-            if 'ports' not in json_info:
+            member_keys = self.db.keys(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|*')
+            if member_keys is None:
                 info['ports'] = 'N/A'
             else:
-                for port in json_info['ports']:
+                ports = [key[len(PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'):] for key in member_keys]
+                for port in ports:
                     status = self.get_portchannel_member_status(team, port)
-                    selected = json_info["ports"][port]["runner"]["selected"]
-
-                    info["ports"] += port + "("
+                    pstate = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'+port)
+                    selected = True if pstate['runner.aggregator.selected'] == "true" else False
+                    if clicommon.get_interface_naming_mode() == "alias":
+                        alias = clicommon.InterfaceAliasConverter(self.db2).name_to_alias(port)
+                        info["ports"] += alias + "("
+                    else:
+                        info["ports"] += port + "("
                     info["ports"] += "S" if selected else "D"
                     if status is None or (status == "enabled" and not selected) or (status == "disabled" and selected):
                         info["ports"] += "*"
