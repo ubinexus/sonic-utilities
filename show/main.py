@@ -13,12 +13,12 @@ import ipaddress
 import click
 from click_default_group import DefaultGroup
 from natsort import natsorted
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
-
 import mlnx
+import utilities_common.multi_asic as multi_asic_util
 
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 
@@ -56,10 +56,7 @@ class InterfaceAliasConverter(object):
 
     def __init__(self):
         self.alias_max_length = 0
-
-        config_db = ConfigDBConnector()
-        config_db.connect()
-        self.port_dict = config_db.get_table('PORT')
+        self.port_dict = multi_asic.get_port_table()
 
         if not self.port_dict:
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
@@ -924,35 +921,46 @@ def presence(interfacename, verbose):
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def description(interfacename, verbose):
+def description(interfacename, namespace, display, verbose):
     """Show interface status, protocol and description"""
 
-    cmd = "intfutil description"
+    cmd = "intfutil -c description"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-        cmd += " {}".format(interfacename)
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+    
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def status(interfacename, verbose):
+def status(interfacename, namespace, display, verbose):
     """Show Interface status information"""
 
-    cmd = "intfutil status"
+    cmd = "intfutil -c status"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-        cmd += " {}".format(interfacename)
+        cmd += " -i {}".format(interfacename)
+    else:
+            cmd += " -d {}".format(display)
 
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1014,7 +1022,7 @@ def subinterfaces():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def status(subinterfacename, verbose):
     """Show sub port interface status information"""
-    cmd = "intfutil status "
+    cmd = "intfutil -c status"
 
     if subinterfacename is not None:
         sub_intf_sep_idx = subinterfacename.find(VLAN_SUB_INTERFACE_SEPARATOR)
@@ -1025,9 +1033,9 @@ def status(subinterfacename, verbose):
         if get_interface_mode() == "alias":
             subinterfacename = iface_alias_converter.alias_to_name(subinterfacename)
 
-        cmd += subinterfacename
+        cmd +=  " -i {}".format(subinterfacename)
     else:
-        cmd += "subport"
+        cmd += " -i subport"
     run_command(cmd, display_cmd=verbose)
 
 #
