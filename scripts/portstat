@@ -7,28 +7,23 @@
 #####################################################################
 
 import argparse
-from ast import NodeTransformer
-
 import cPickle as pickle
 import datetime
 import os.path
-import swsssdk
 import sys
 import time
+from collections import OrderedDict, namedtuple
 
-from collections import namedtuple, OrderedDict
+
 from natsort import natsorted
 from tabulate import tabulate
+from sonic_py_common import multi_asic
 
-from sonic_py_common.multi_asic_device_info import connect_to_all_dbs_for_ns
-from utilities_common.constants import DISPLAY_EXTERNAL
-from utilities_common.constants import DISPLAY_ALL
-from utilities_common.constants import PORT_OBJ
-from utilities_common.netstat import ns_diff, ns_brate, ns_prate, ns_util, table_as_json
+from utilities_common import constants
 from utilities_common.intf_filter import parse_interface_in_filter
-from utilities_common.multi_asic import MultiAsic
-from utilities_common.multi_asic import run_on_all_asics
-
+import  utilities_common.multi_asic as multi_asic_util
+from utilities_common.netstat import (ns_brate, ns_diff, ns_prate, ns_util,
+                                      table_as_json)
 
 PORT_RATE = 40
 
@@ -76,7 +71,7 @@ PORT_STATE_DISABLED = 'X'
 class Portstat(object):
     def __init__(self, namespace, display_option):
         self.db = None
-        self.multi_asic = MultiAsic(display_option, namespace)
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace)
 
     def get_cnstat_dict(self):
         self.cnstat_dict = OrderedDict()
@@ -84,7 +79,7 @@ class Portstat(object):
         self.collect_stat()
         return self.cnstat_dict
 
-    @run_on_all_asics
+    @multi_asic_util.run_on_multi_asic
     def collect_stat(self):
         """
         Collect the statisitics from all the asics present on the 
@@ -119,7 +114,7 @@ class Portstat(object):
             return cnstat_dict
         for port in natsorted(counter_port_name_map):
             port_name = port.split(":")[0]
-            if self.multi_asic.skip_display(PORT_OBJ, port_name):
+            if self.multi_asic.skip_display(constants.PORT_OBJ, port_name):
                 continue
             cnstat_dict[port] = get_counters(counter_port_name_map[port])
         
@@ -133,7 +128,7 @@ class Portstat(object):
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
         speed = PORT_RATE
         for ns in self.multi_asic.get_ns_list_based_on_options():
-            self.db = connect_to_all_dbs_for_ns(ns)
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
             speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
             if speed is not None:
                 return int(speed)//1000
@@ -145,7 +140,7 @@ class Portstat(object):
         """
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
         for ns in self.multi_asic.get_ns_list_based_on_options():
-            self.db = connect_to_all_dbs_for_ns(ns)
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
             admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
             oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
             
@@ -345,7 +340,7 @@ Examples:
     parser.add_argument('-t', '--tag', type=str, help='Save stats with name TAG', default=None)
     parser.add_argument('-p', '--period', type=int, help='Display stats over a specified period (in seconds).', default=0)
     parser.add_argument('-i', '--interface', type=str, help='Display stats for interface lists.', default=None)
-    parser.add_argument('-s','--show',   default=DISPLAY_EXTERNAL, help='Display all interfaces or only external interfaces')
+    parser.add_argument('-s','--show',   default=constants.DISPLAY_EXTERNAL, help='Display all interfaces or only external interfaces')
     parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
     args = parser.parse_args()
 
@@ -401,7 +396,7 @@ Examples:
     # for all ports(Internal and External)
     if save_fresh_stats:
         namespace = None
-        display_option = DISPLAY_ALL
+        display_option = constants.DISPLAY_ALL
 
     portstat = Portstat(namespace, display_option)
     cnstat_dict = portstat.get_cnstat_dict()
