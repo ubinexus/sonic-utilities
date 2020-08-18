@@ -1,10 +1,7 @@
 import os
 import subprocess
-from unittest.case import TestCase
 
 from click.testing import CliRunner
-
-import show.main as show
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(root_path)
@@ -82,13 +79,12 @@ intf_description_asic0_all = """\
 Ethernet-BP0      up       up  Ethernet-BP0          ASIC1:Eth0-ASIC1
 Ethernet-BP4      up       up  Ethernet-BP4          ASIC1:Eth1-ASIC1
 """
-class TestInterfacesMultiAsic(TestCase):
+class TestInterfacesMultiAsic(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "3"
-        print('done loading cli script')
 
     def setUp(self):
         self.runner = CliRunner()

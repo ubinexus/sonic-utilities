@@ -58,7 +58,7 @@ def alias(interfacename, namespace, display):
     else:
         # Output name and alias for all interfaces
         for port_name in natsorted(port_dict.keys()):
-            if ((display is multi_asic_util.constants.DISPLAY_EXTERNAL) and
+            if ((display == multi_asic_util.constants.DISPLAY_EXTERNAL) and
                 ('role' in port_dict[port_name]) and
                     (port_dict[port_name]['role'] is multi_asic.INTERNAL_PORT)):
                 continue

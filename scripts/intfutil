@@ -2,18 +2,13 @@
 
 import argparse
 import os
-from os import ttyname
-import sys
 import re
+import sys
 import types
-from pprint import pprint
 
-from tabulate import tabulate
 from natsort import natsorted
-
-from sonic_py_common import multi_asic
+from tabulate import tabulate
 from utilities_common import constants
-
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common.intf_filter import parse_interface_in_filter
 
@@ -330,6 +325,32 @@ header_stat_sub_intf = ['Sub port interface', 'Speed', 'MTU', 'Vlan', 'Admin', '
 
 class IntfStatus(object):
 
+    def __init__(self, intf_name, namespace_option, display_option):
+        """
+        Class constructor method
+        :param self:
+        :param intf_name: string of interface
+        :return:
+        """
+        self.db = None
+        self.config_db = None
+        self.sub_intf_only = False
+        self.intf_name = intf_name
+        self.sub_intf_name = intf_name
+        self.table = []
+        self.multi_asic = multi_asic_util.MultiAsic(
+            display_option, namespace_option)
+        if intf_name is not None:
+            if intf_name == SUB_PORT:
+                self.intf_name = None
+                self.sub_intf_name = None
+                self.sub_intf_only = True
+            else:
+                sub_intf_sep_idx = intf_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+                if sub_intf_sep_idx != -1:
+                    self.sub_intf_only = True
+                    self.intf_name = intf_name[:sub_intf_sep_idx]
+
     def display_intf_status(self):
         self.get_intf_status()
         sorted_table = natsorted(self.table)
@@ -400,30 +421,6 @@ class IntfStatus(object):
                                 appl_db_sub_intf_status_get(self.db, self.config_db, self.front_panel_ports_list, self.portchannel_speed_dict, sub_intf, PORT_OPTICS_TYPE)))
         return table
 
-    def __init__(self, intf_name, namespace_option, display_option):
-        """
-        Class constructor method
-        :param self:
-        :param intf_name: string of interface
-        :return:
-        """
-        self.db = None
-        self.config_db = None
-        self.sub_intf_only = False
-        self.intf_name = intf_name
-        self.sub_intf_name = intf_name
-        self.table = []
-        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
-        if intf_name is not None:
-            if intf_name == SUB_PORT:
-                self.intf_name = None
-                self.sub_intf_name = None
-                self.sub_intf_only = True
-            else:
-                sub_intf_sep_idx = intf_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
-                if sub_intf_sep_idx != -1:
-                    self.sub_intf_only = True
-                    self.intf_name = intf_name[:sub_intf_sep_idx]
 
     @multi_asic_util.run_on_multi_asic
     def get_intf_status(self):
@@ -451,6 +448,18 @@ header_desc = ['Interface', 'Oper', 'Admin', 'Alias', 'Description']
 
 
 class IntfDescription(object):
+
+    def __init__(self, intf_name, namespace_option, display_option):
+        self.db = None
+        self.config_db = None
+        self.table = []
+        self.multi_asic = multi_asic_util.MultiAsic(
+            display_option, namespace_option)
+
+        if intf_name is not None and intf_name == SUB_PORT:
+            self.intf_name = None
+        else:
+            self.intf_name = intf_name
 
     def display_intf_description(self):
         
@@ -484,18 +493,6 @@ class IntfDescription(object):
                               appl_db_port_status_get(self.db, key, PORT_ALIAS),
                               appl_db_port_status_get(self.db, key, PORT_DESCRIPTION)))
         return table
-
-    def __init__(self, intf_name, namespace_option, display_option):
-
-        self.db = None
-        self.config_db = None
-        self.table = []
-        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
-
-        if intf_name is not None and intf_name == SUB_PORT:
-            self.intf_name = None
-        else:
-            self.intf_name = intf_name
 
     @multi_asic_util.run_on_multi_asic
     def get_intf_description(self):
