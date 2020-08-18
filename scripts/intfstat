@@ -2,7 +2,7 @@
 
 #####################################################################
 #
-# intfstat is a tool for summarizing l3 network statistics. 
+# intfstat is a tool for summarizing l3 network statistics.
 #
 #####################################################################
 
@@ -17,9 +17,9 @@ import time
 
 # mock the redis for unit test purposes #
 try:
-    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
-        test_path = os.path.join(modules_path, "sonic-utilities-tests")
+        test_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
@@ -34,7 +34,7 @@ from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json,
 NStats = namedtuple("NStats", "rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok,\
                     rx_b_err, rx_p_err, tx_b_err, tx_p_err,")
 
-header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_ERR', 
+header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_ERR',
               'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_ERR']
 
 counter_names = (
@@ -93,11 +93,11 @@ class Intfstat(object):
 
 
         if counter_rif_name_map is None:
-            print "No %s in the DB!" % COUNTERS_RIF_NAME_MAP
+            print("No %s in the DB!" % COUNTERS_RIF_NAME_MAP)
             sys.exit(1)
-        
+
         if rif and not rif in counter_rif_name_map:
-            print "Interface %s missing from %s! Make sure it exists" % (rif, COUNTERS_RIF_NAME_MAP)
+            print("Interface %s missing from %s! Make sure it exists" % (rif, COUNTERS_RIF_NAME_MAP))
             sys.exit(2)
 
         if rif:
@@ -105,7 +105,7 @@ class Intfstat(object):
             return cnstat_dict
 
         for rif in natsorted(counter_rif_name_map):
-            cnstat_dict[rif] = get_counters(counter_rif_name_map[rif]) 
+            cnstat_dict[rif] = get_counters(counter_rif_name_map[rif])
         return cnstat_dict
 
     def get_intf_state(self, port_name):
@@ -140,10 +140,10 @@ class Intfstat(object):
                                data.tx_p_ok, STATUS_NA, STATUS_NA, data.tx_p_err))
 
         if use_json:
-            print table_as_json(table, header)
+            print(table_as_json(table, header))
 
         else:
-            print tabulate(table, header, tablefmt='simple', stralign='right')
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json):
         """
@@ -182,17 +182,17 @@ class Intfstat(object):
                             STATUS_NA,
                             cntr.tx_p_err))
         if use_json:
-            print table_as_json(table, header)
+            print(table_as_json(table, header))
         else:
-            print tabulate(table, header, tablefmt='simple', stralign='right')
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
     def cnstat_single_interface(self, rif, cnstat_new_dict, cnstat_old_dict):
-        
+
         header = rif + '\n' + '-'*len(rif)
         body = """
         RX:
-        %10s packets 
-        %10s bytes 
+        %10s packets
+        %10s bytes
         %10s error packets
         %10s error bytes
         TX:
@@ -202,7 +202,7 @@ class Intfstat(object):
         %10s error bytes"""
 
         cntr = cnstat_new_dict.get(rif)
-        
+
         if cnstat_old_dict:
             old_cntr = cnstat_old_dict.get(rif)
             if old_cntr:
@@ -218,8 +218,8 @@ class Intfstat(object):
             body = body % (cntr.rx_p_ok, cntr.rx_b_ok, cntr.rx_p_err,cntr.rx_b_err,
                            cntr.tx_p_ok, cntr.tx_b_ok, cntr.tx_p_err, cntr.tx_b_err)
 
-        print header
-        print body
+        print(header)
+        print(body)
 
 
 def main():
@@ -276,7 +276,7 @@ def main():
             os.rmdir(cnstat_dir)
             sys.exit(0)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(e)
 
     if delete_saved_stats:
@@ -284,7 +284,7 @@ def main():
             os.remove(cnstat_fqn_file)
         except IOError as e:
             if e.errno != ENOENT:
-                print e.errno, e
+                print(e.errno, e)
                 sys.exit(1)
         finally:
             if os.listdir(cnstat_dir) == []:
@@ -299,7 +299,7 @@ def main():
         try:
             os.makedirs(cnstat_dir)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(1)
 
     if save_fresh_stats:
@@ -308,24 +308,24 @@ def main():
         except IOError as e:
             sys.exit(e.errno)
         else:
-            print "Cleared counters"
+            print("Cleared counters")
             sys.exit(0)
 
     if wait_time_in_seconds == 0:
         if os.path.isfile(cnstat_fqn_file):
             try:
                 cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))
-                print "Last cached time was " + str(cnstat_cached_dict.get('time'))
+                print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 if interface_name:
                     intfstat.cnstat_single_interface(interface_name, cnstat_dict, cnstat_cached_dict)
                 else:
                     intfstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, use_json)
             except IOError as e:
-                print e.errno, e
+                print(e.errno, e)
         else:
             if tag_name:
-                print "\nFile '%s' does not exist" % cnstat_fqn_file
-                print "Did you run 'intfstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name)
+                print("\nFile '%s' does not exist" % cnstat_fqn_file)
+                print("Did you run 'intfstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name))
             else:
                 if interface_name:
                     intfstat.cnstat_single_interface(interface_name, cnstat_dict, None)
@@ -334,7 +334,7 @@ def main():
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
-        print "The rates are calculated within %s seconds period" % wait_time_in_seconds
+        print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
         cnstat_new_dict = intfstat.get_cnstat(rif=interface_name)
         if interface_name:
             intfstat.cnstat_single_interface(interface_name, cnstat_new_dict, cnstat_dict)
