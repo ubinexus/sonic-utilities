@@ -1,9 +1,13 @@
+
+import os
+import sys
+
 import click
-
-from tabulate import tabulate
-from natsort import natsorted
-
 import utilities_common.cli as clicommon
+from natsort import natsorted
+from tabulate import tabulate
+import utilities_common.multi_asic as multi_asic_util
+from utilities_common.constants import PORT_CHANNEL_OBJ
 
 """
     Script to show LAG and LAG member status in a summary view
@@ -24,20 +28,6 @@ import utilities_common.cli as clicommon
 
 """
 
-import json
-import os
-import subprocess
-import sys
-
-from tabulate import tabulate
-from natsort import natsorted
-
-from sonic_py_common.multi_asic_device_info import get_asic_id_from_name
-from utilities_common.multi_asic import MultiAsic
-from utilities_common.multi_asic import run_on_all_asics
-from utilities_common.multi_asic import multi_asic_args
-from utilities_common.multi_asic import PORT_CHANNEL_OBJ
-
 PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
 PORT_CHANNEL_STATE_TABLE_PREFIX = "LAG_TABLE|"
@@ -48,15 +38,15 @@ PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX = "LAG_MEMBER_TABLE|"
 PORT_CHANNEL_MEMBER_STATUS_FIELD = "status"
 
 class Teamshow(object):
-    def __init__(self,display_option, namespace_option):
+    def __init__(self, namespace_option, display_option):
         self.teams = []
         self.teamsraw = {}
         self.summary = {}
         self.err = None
         self.db = None
-        self.multi_asic = MultiAsic(display_option, namespace_option)
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
 
-    @run_on_all_asics
+    @multi_asic_util.run_on_multi_asic
     def get_teams_info(self):
         self.get_portchannel_names()
         self.get_teamdctl()
@@ -143,7 +133,7 @@ class Teamshow(object):
                     pstate = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'+port)
                     selected = True if pstate['runner.aggregator.selected'] == "true" else False
                     if clicommon.get_interface_naming_mode() == "alias":
-                        alias = clicommon.InterfaceAliasConverter(self.db2).name_to_alias(port)
+                        alias = clicommon.InterfaceAliasConverter().name_to_alias(port)
                         info["ports"] += alias + "("
                     else:
                         info["ports"] += port + "("
@@ -167,22 +157,12 @@ class Teamshow(object):
             output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
         print tabulate(output, header)
 
-def main():
-    if os.geteuid() != 0:
-        exit("This utility must be run as root")
-
-    parser = multi_asic_args()
-    args = parser.parse_args()
-
-    display_option = args.display
-    namespace_option = args.namespace
-
-    try:
-        team = Teamshow(display_option, namespace_option)
-        team.get_teams_info()
-        team.display_summary()
-    except Exception as e:
-        sys.exit(e.message)
-
-if __name__ == "__main__":
-    main()
+# 'portchannel' subcommand ("show interfaces portchannel")
+@click.command()
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def portchannel(namespace, display, verbose):
+    """Show PortChannel information"""
+    team = Teamshow(namespace, display)
+    team.get_teams_info()
+    team.display_summary()
