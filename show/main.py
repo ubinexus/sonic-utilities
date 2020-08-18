@@ -1809,6 +1809,141 @@ def mmu():
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 
+#
+# 'fg nhg active-hops' command ("show fg-nhg-active-hops")
+#
+@cli.command('fg-nhg-active-hops')
+@click.argument('nhg', required=True)
+def fg_nhg_active_hops(nhg):
+   
+    state_db = SonicV2Connector(host='127.0.0.1')
+    try:
+    	state_db.connect(state_db.STATE_DB, False)   # Make one attempt only STATE_DB
+    except:
+	click.echo("STATE_DB Table does not exist!")
+	exit()
+	   
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    table_keys = []  
+
+    try:  
+	table_keys = state_db.keys(state_db.STATE_DB, _hash)
+    except:
+        click.echo("FG_ROUTE_TABLE does not exist!")
+	exit()
+
+    if table_keys is None:	
+	click.echo("FG_ROUTE_TABLE does not contain any keys!")
+	exit()   
+
+    t_dict = {}
+    table = []
+    key_avail = {"ipv4":None, "ipv6": None}
+
+    for tk in table_keys:
+	if "." in tk:
+		key_avail['ipv4'] = tk
+	elif ":" in tk:
+		key_avail['ipv6'] = tk
+
+    if nhg == "fgnhg_v4":
+	if key_avail["ipv4"] is not None:
+		t_dict = state_db.get_all(state_db.STATE_DB, key_avail["ipv4"])
+
+	else:
+		click.echo("IPV4 nhg does not exist!")
+		exit()
+
+    if nhg == "fgnhg_v6":
+	if key_avail["ipv6"] is not None:
+		t_dict = state_db.get_all(state_db.STATE_DB, key_avail["ipv6"])
+	else:
+		click.echo("IPV6 nhg does not exist!")
+		exit()
+	
+    vals = sorted(set([val for val in t_dict.values()]))
+	 
+    for nh_ip in vals:
+	r = []  
+        r.append(nh_ip.split("@")[0])
+	table.append(r)
+    	
+	
+    header = ["Active Next-Hops"]
+    click.echo(tabulate(table, header))
+
+
+#
+# 'fg nhg hash-view' command ("show fg nhg hash-view")
+#
+@cli.command('fg-nhg-hash-view')
+@click.argument('nhg', required=True)
+def fg_nhg_hash_view(nhg):
+   
+    state_db = SonicV2Connector(host='127.0.0.1')
+    try:
+    	state_db.connect(state_db.STATE_DB, False)   # Make one attempt only STATE_DB
+    except:
+	click.echo("STATE_DB Table does not exist!")
+	exit()
+	   
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    table_keys = []  
+
+    try:  
+	table_keys = state_db.keys(state_db.STATE_DB, _hash)
+    except:
+        click.echo("FG_ROUTE_TABLE does not exist!")
+	exit()
+
+    if table_keys is None:	
+	click.echo("FG_ROUTE_TABLE does not contain any keys!")
+	exit()   
+
+    t_dict = {}
+    table = []
+    key_avail = {"ipv4":None, "ipv6": None}
+
+    for tk in table_keys:
+	if "." in tk:
+		key_avail['ipv4'] = tk
+	elif ":" in tk:
+		key_avail['ipv6'] = tk
+
+    if nhg == "fgnhg_v4":
+	if key_avail["ipv4"] is not None:
+		t_dict = state_db.get_all(state_db.STATE_DB, key_avail["ipv4"])
+
+	else:
+		click.echo("IPV4 nhg does not exist!")
+		exit()
+
+    if nhg == "fgnhg_v6":
+	if key_avail["ipv6"] is not None:
+		t_dict = state_db.get_all(state_db.STATE_DB, key_avail["ipv6"])
+	else:
+		click.echo("IPV6 nhg does not exist!")
+		exit()
+		
+    
+	     
+    vals = sorted(set([val for val in t_dict.values()]))
+	 
+    for nh_ip in vals:
+	bank_ids = [int(k) for k,v in t_dict.items() if v == nh_ip]
+	r = []  
+        r.append(nh_ip.split("@")[0])
+	r.append(sorted(bank_ids))
+	table.append(r)
+    	
+	
+    header = ["Next-Hop-Key", "Hash Bucket #"]
+    click.echo(tabulate(table, header))
+
 
 #
 # 'reboot-cause' command ("show reboot-cause")
