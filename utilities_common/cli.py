@@ -8,8 +8,6 @@ import click
 from natsort import natsorted
 
 from utilities_common.db import Db
-
-#from swsssdk import ConfigDBConnector
 from sonic_py_common import multi_asic
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'

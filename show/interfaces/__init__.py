@@ -38,7 +38,7 @@ def alias(interfacename, namespace, display):
     """Show Interface Name/Alias Mapping"""
 
     ctx = click.get_current_context()
-    
+
     port_dict = multi_asic.get_port_table(namespace=namespace)
 
     header = ['Name', 'Alias']
