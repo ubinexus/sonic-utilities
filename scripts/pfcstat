@@ -189,6 +189,8 @@ Examples:
   pfcstat
   pfcstat -c
   pfcstat -d
+  pfcstat -n asic1
+  pfcstat -s all -n asic0
 """)
 
     parser.add_argument( '-c', '--clear', action='store_true',
