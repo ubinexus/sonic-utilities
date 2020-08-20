@@ -32,7 +32,7 @@ class TestNeighborAdvertiser(object):
                                     ], 
                                     'vxlanId': u'1000', 
                                     'vlanId': u'1000', 
-                                    'vxlanPort': '65330'
+                                    'vxlanPort': '13550'
                                 }, 
                                 {
                                     'ipv4AddrMappings': [
@@ -43,7 +43,7 @@ class TestNeighborAdvertiser(object):
                                     ], 
                                     'vxlanId': u'2000', 
                                     'vlanId': u'2000', 
-                                    'vxlanPort': '65330'
+                                    'vxlanPort': '13550'
                                 }]
                             })        
         assert output == expected_output
