@@ -1,13 +1,13 @@
-import json
-import sys
-import os
 import argparse
+import json
+import os
+import sys
 import syslog
-import traceback
 import time
+import traceback
 
-from ipaddress import ip_address, ip_network, ip_interface
 from collections import defaultdict
+from ipaddress import ip_address, ip_network, ip_interface
 
 def get_vlan_cidr_map(filename):
     """
@@ -33,7 +33,9 @@ def get_vlan_cidr_map(filename):
                 continue
             vlan, cidr = tuple(vlan_key.split('|'))
             if vlan in config_db_entries["VLAN"]:
-                vlan_cidr[vlan] = ip_interface(cidr).network
+                if vlan not in vlan_cidr:
+                    vlan_cidr[vlan] = {4: ip_address("0.0.0.0".decode()), 6: ip_address("::".decode())}
+                vlan_cidr[vlan][ip_interface(cidr).version] = ip_interface(cidr).network
 
     return vlan_cidr
 
@@ -63,7 +65,8 @@ def get_arp_entries_map(arp_filename, config_db_filename):
                 continue
             table, vlan, ip = tuple(key.split(':'))
             if "NEIGH_TABLE" in table and vlan in vlan_cidr.keys() \
-                and ip_address(ip) in ip_network(vlan_cidr[vlan]) and "neigh" in config.keys():
+                and ip_address(ip) in ip_network(vlan_cidr[vlan][ip_interface(ip).version]) \
+                and "neigh" in config.keys():
                 arp_map[config["neigh"].replace(':', '-')] = ""
 
     return arp_map
