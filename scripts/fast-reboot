@@ -315,9 +315,9 @@ function reboot_pre_check()
         exit ${EXIT_FILE_SYSTEM_FULL}
     fi
 
-    # Verify the next image by sonic_installer
+    # Verify the next image by sonic-installer
     INSTALLER_VERIFY_RC=0
-    sonic_installer verify-next-image > /dev/null || INSTALLER_VERIFY_RC=$?
+    sonic-installer verify-next-image > /dev/null || INSTALLER_VERIFY_RC=$?
     if [[ INSTALLER_VERIFY_RC -ne 0 ]]; then
         error "Failed to verify next image. Exit code: $INSTALLER_VERIFY_RC"
         exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
@@ -456,7 +456,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
+    /usr/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
@@ -503,9 +503,9 @@ systemctl stop nat
 debug "Stopped nat ..."
 
 # Kill radv before stopping BGP service to prevent annoucing our departure.
-debug "Stopping radv ..."
-docker kill radv &>/dev/null || [ $? == 1 ]
+debug "Stopping radv service..."
 systemctl stop radv
+debug "Stopped radv service..."
 
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
@@ -536,12 +536,9 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     debug "Stopped teamd ..."
 fi
 
-# Kill swss Docker container
-# We call `docker kill swss` to ensure the container stops as quickly as possible,
-# then immediately call `systemctl stop swss` to prevent the service from
-# restarting the container automatically.
-docker kill swss &> /dev/null || debug "Docker swss is not running ($?) ..."
+debug "Stopping swss service ..."
 systemctl stop swss
+debug "Stopped swss service ..."
 
 # Pre-shutdown syncd
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
