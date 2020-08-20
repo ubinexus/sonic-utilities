@@ -236,41 +236,21 @@ def get_vlan_addresses(vlan_interface):
     ipv6_addr = []
     ipv6_prefix = []
 
-    '''
-    Sample output for "ip addr show Vlan101"
+    vlan_intfs = config_db.get_table('VLAN_INTERFACE')
+    for item in vlan_intfs.keys():
+        if vlan_interface in item[0]:
+            ipaddr = IPNetwork(item[1])
+            if ipaddr.ip.version == 4:
+                ipv4_addr.append(str(ipaddr.ip))
+                ipv4_prefix.append(ipaddr.prefixlen)
+            else:
+                ipv6_addr.append(str(ipaddr.ip))
+                ipv6_prefix.append(ipaddr.prefixlen)
 
-	218: Vlan101@Bridge: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
-		link/ether 98:5d:82:01:d8:48 brd ff:ff:ff:ff:ff:ff
-		inet 10.171.22.113/29 scope global Vlan101
-		   valid_lft forever preferred_lft forever
-		inet6 2603:10b0:10f:843c::1/64 scope global
-		   valid_lft forever preferred_lft forever
-		inet6 fe80::9a5d:82ff:fe01:d848/64 scope link
-		   valid_lft forever preferred_lft forever
-    '''
-    try:
-        out = subprocess.check_output(['ip', 'addr', 'show', vlan_interface])
-        for line in out.splitlines():
-            keys=line.strip().split(' ')
-            if keys[0] == 'inet':
-                ipv4_addr.append(keys[1].split('/')[0])
-                ipv4_prefix.append(keys[1].split('/')[1])
-            elif keys[0] == 'inet6':
-                ipv6_addr.append(keys[1].split('/')[0])
-                ipv6_prefix.append(keys[1].split('/')[1])
-            elif keys[0] == 'link/ether':
-                mac_addr = keys[1]
-    except Exception:
-        log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
-
+    metadata = config_db.get_table('DEVICE_METADATA')
+    mac_addr = metadata['localhost']['mac']
     if not mac_addr:
         mac_addr = get_vlan_interface_mac_address(vlan_interface)
-
-    if not ipv4_addr:
-        ipv4_addr = get_vlan_addr(vlan_interface, 4)
-
-    if not ipv6_addr:
-        ipv6_addr = get_vlan_addr(vlan_interface, 6)
 
     return vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr
 
@@ -299,7 +279,7 @@ def construct_neighbor_advertiser_slice():
     vxlanPort = None
     if 'vxlan_port' in appl_db.get_all(appl_db.APPL_DB, 'SWITCH_TABLE:switch'):
         vxlanPort = appl_db.get(appl_db.APPL_DB, 'SWITCH_TABLE:switch', 'vxlan_port')
-        
+
     for vlan_interface in all_vlan_interfaces:
         vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr = get_vlan_addresses(vlan_interface)
 
@@ -309,11 +289,10 @@ def construct_neighbor_advertiser_slice():
 
         ipv4_mappings = []
         ipv6_mappings = []
-        
         ctr = 0
         for addr in ipv4_addr:
             if 'proxy_arp' in vlan_intf_table[vlan_interface] and vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
-                ipPrefixLen = ipv4_prefix[ctr]
+                ipPrefixLen = str(ipv4_prefix[ctr])
             else:
                 ipPrefixLen = '32'
             mapping = {
@@ -327,7 +306,7 @@ def construct_neighbor_advertiser_slice():
         ctr = 0
         for addr in ipv6_addr:
             if 'proxy_arp' in vlan_intf_table[vlan_interface] and vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
-                ipPrefixLen = ipv6_prefix[ctr]
+                ipPrefixLen = str(ipv6_prefix[ctr])
             else:
                 ipPrefixLen = '128'
             mapping = {
@@ -576,7 +555,7 @@ def main():
         sys.exit(1)
 
     connect_config_db()
-
+    connect_app_db()
     if operation_mode == 'set':
         set_success = False
 
