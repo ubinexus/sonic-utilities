@@ -8,16 +8,20 @@ import re
 import subprocess
 import sys
 import ipaddress
+import commands
 
 import click
 from natsort import natsorted
 from pkg_resources import parse_version
 from sonic_py_common import device_info
+from sonic_py_common import multi_asic
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 import utilities_common.cli as clicommon
+import utilities_common.multi_asic as multi_asic_util
+
 
 import mlnx
 import feature
@@ -35,7 +39,7 @@ VLAN_SUB_INTERFACE_SEPARATOR = '.'
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
-    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -1"
 
     try:
         proc = subprocess.Popen(command,
@@ -888,23 +892,213 @@ def get_bgp_peer():
         bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
     return bgp_peer
 
+def print_ip_routes(route_info):
+    # This method is following what zebra_vty.c does when handling the route parsing printing
+    # The route_info is a json file which is treated as a dictionary of a bunch of route + info
+    # This interpretation is based on FRR 7.2 branch. If we later moved on to a new branch, we may
+    # have to rexamine if there are any changes made that may impact the parsing logic
+    proto_code = {"system":'X', "kernel":'K', "connected":'C', "static":'S', "rip":'R', "ripng":'R',
+            "ospf":'O', "ospf6":'O', "isis":'I', "bgp":'B', "pim":'P', "hsls":'H', "olsr":'o', "babel":'A'}
+    mpls_label_code = { 0:"IPv4 Explicit Null", 1:"Router Alert", 2:"IPv6 Explicit Null", 3:"implicit-null", 4:"Reserved (4)",
+            5:"Reserved (5)", 6:"Reserved (6)", 7:"Entropy Label Indicator", 8:"Reserved (8)", 9:"Reserved (9)", 10:"Reserved (10)",
+            11:"Reserved (11)", 12:"Reserved (12)", 13:"Generic Associated Channel", 14:"OAM Alert", 15:"Extension"}
+    NH_F_IS_RECURSIVE = 2
+    NH_F_IS_DUPLICATE = 5
+    for route, info in route_info.items():
+        for i in range(0, len(info)):
+            str_2_print = ""
+            str_2_print += proto_code[info[i]['protocol']]
+            if "instance" in info[i]:
+                str_2_print += "[" + str(info[i]['instance']) + "]"
+            if "selected" in info[i]:
+                str_2_print += ">"
+            else:
+                str_2_print += " "
+            for j in range(0, len(info[i]['nexthops'])):
+                if j != 0:
+                    str_2_print = "  "
+                if "queued" in info[i]:
+                    str_2_print += "q"
+                elif "failed" in info[i]:
+                    str_2_print += "r"
+                elif "installed" in info[i]:
+                    if info[i]['nexthops'][j]['flags'] & (1 << NH_F_IS_RECURSIVE) or info[i]['nexthops'][j]['flags'] & (1 << NH_F_IS_DUPLICATE):
+                        str_2_print += " "
+                    else:
+                        str_2_print += "*"
+                # on 1st nexhop print the prefix and distance/metric if appropriate.
+                # on all subsequent nexthop replace the prefix and distance/metric by empty spaces only.
+                if j == 0:
+                    str_2_print += info[i]['prefix']
+                    if info[i]['protocol'] != "connected":
+                        str_2_print += " [" + str(info[i]['distance']) + "/" + str(info[i]['metric']) + "]"
+                    elif info[i]['distance'] > 0 or info[i]['metric'] > 0:
+                        str_2_print += " [" + str(info[i]['distance']) + "/" + str(info[i]['metric']) + "]"
+                    str_length = len(str_2_print)
+                else:
+                    str_2_print += " "*(str_length - 3)
+                if "ip" in info[i]['nexthops'][j]:
+                    str_2_print += " via " + info[i]['nexthops'][j]['ip'] + ","
+                    if "interfaceName" in info[i]['nexthops'][j]:
+                        str_2_print += " " + info[i]['nexthops'][j]['interfaceName'] + ","
+                elif "directlyConnected" in info[i]['nexthops'][j]:
+                    str_2_print += " is directly connected,"
+                    if "interfaceName" in info[i]['nexthops'][j]:
+                        str_2_print += " " + info[i]['nexthops'][j]['interfaceName'] + ","
+                elif "unreachable" in info[i]['nexthops'][j]:
+                    if "reject" in info[i]['nexthops'][j]:
+                        str_2_print += " (ICMP unreachable)"
+                    elif "admin-prohibited" in info[i]['nexthops'][j]:
+                        str_2_print += " (ICMP admin-prohibited)"
+                    elif "blackhole" in info[i]['nexthops'][j]:
+                        str_2_print += " (blackhole)"
+                if "vrf" in info[i]['nexthops'][j]:
+                    str_2_print += "(vrf " + info[i]['nexthops'][j]['vrf'] + ", " + info[i]['nexthops'][j]['interfaceName'] + ","
+                if "active" not in info[i]['nexthops'][j]:
+                    str_2_print += " inactive"
+                if "onLink" in info[i]['nexthops'][j]:
+                    str_2_print += " onlink"
+                if "recursive" in info[i]['nexthops'][j]:
+                    str_2_print += " (recursive)"
+                if "source" in info[i]['nexthops'][j]:
+                    str_2_print += ", src " + info[i]['nexthops'][j]['source']
+                if "labels" in info[i]['nexthops'][j]:
+                    # MPLS labels are stored as an array (list) in json if present. Need to print through each one in list
+                    str_2_print += ", label "
+                    for k in range(0, len(info[i]['nexthops'][j]['labels'])):
+                        # MPLS labels that has value 15 or lower has special interpretation
+                        if info[i]['nexthops'][j]['labels'][k] > 15:
+                            label_string = str(info[i]['nexthops'][j]['labels'][k])
+                        else:
+                            label_string = mpls_label_code[info[i]['nexthops'][j]['labels'][k]]
+                        if k == 0:
+                            str_2_print += label_string
+                        else:
+                            str_2_print += "/" + label_string
+                # add uptime at the end of the string
+                str_2_print += " " + info[i]['uptime']
+                # print out this string
+                print str_2_print
+
+def print_show_ip_route_hdr():
+    # This prints out the show ip route header based on FRR 7.2 version.
+    # Please note that if we moved to future versions, we may heva to make changes to this
+    print("Codes: K - kernel route, C - connected, S - static, R - RIP,")
+    print("       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,")
+    print("       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,")
+    print("       F - PBR, f - OpenFabric,")
+    print("       > - selected route, * - FIB route, q - queued route, r - rejected route\n")
+
 #
 # 'route' subcommand ("show ip route")
 #
 
 @ip.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, verbose):
+def route(args, namespace, display, verbose):
     """Show IP (IPv4) routing table"""
-    cmd = 'sudo vtysh -c "show ip route'
+    is_multi_asic = multi_asic.is_multi_asic()
+    if is_multi_asic:
+        # handling multi-ASIC by gathering the output from specified/all name space into a dictionary via 
+        # jason option and then filter out the json entries (by removing those next Hop that are 
+        # back-end ASIC if display is for front-end only). If the entry itself has no more next Hop after filtering, 
+        # then skip over that particular route entry.  Once completed, if the user chose "json" option, 
+        # then just print out the dictionary in Json format accordingly. But if no "json" option specified,
+        # then print out the header and the decoded entry representation for each route accordingly.
+        # This code is based on FRR 7.2 branch. If we moved to a new version we may need to change here as well
+        asic_cnt = multi_asic.get_num_asics()
+        arg_strg = ""
+        found_json = 0
+        back_end_intf_str = "PortChannel4"
+        if display == "all":
+            filter_back_end = False
+        else:
+            filter_back_end = True
+        if str(namespace) == "None":
+            start_range = 0
+            end_range = asic_cnt
+        else:
+            # -n asic0|asic1|...|asicN    So skip the first 4 chars to get the namespace number only
+            start_range = int(namespace[4:])
+            end_range = start_range + 1
+        hdr_printed = False
+        del_cnt = 0
+        # get all the other arguments except json that needs to be the last argument of the cmd if present
+        for arg in args:
+            arg_strg += " " + str(arg)
+            if str(arg) == "json":
+                found_json = 1
+        if not found_json:
+            arg_strg += " json"
+        for ns in range(start_range, end_range):
+            filtered_route = {}
+            # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
+            cmd = 'sudo docker exec bgp' + str(ns) + ' vtysh -c "show ip route' + arg_strg + '"'
+            output = commands.getoutput(cmd)
+            # in case no output or something went wrong with user specified cmd argument(s) error it out
+            # error from FRR always start with character "%"
+            if output == "":
+                return
+            if output[0] == "%":
+                # remove the "json" keyword that was added by this handler so it wont confuse the user
+                error_msg = output[:-4]
+                print error_msg
+                return
+            route_info = json.loads(output)
+            if filter_back_end:
+                # clean up the dictionary to remove all the nexthops that are back-end interface "PortChannel4xxx"
+                for route, info in route_info.items():
+                    new_info_l = []
+                    new_info_cnt = 0
+                    for i in range(0, len(info)):
+                        new_info = info[i]
+                        new_nhop_l = []
+                        del_cnt = 0
+                        while len(info[i]['nexthops']):
+                            nh = info[i]['nexthops'].pop(0)
+                            if "interfaceName" in nh:
+                                if nh['interfaceName'].find(back_end_intf_str) != -1:
+                                    del_cnt += 1
+                                else:
+                                    new_nhop_l.append(nh)
+                            else:
+                                new_nhop_l.append(nh)
+                        # use the new filtered nhop list if it is not empty. if empty nexthop , this route is filtered out completely
+                        if len(new_nhop_l) > 0:
+                            new_info['nexthops'] = new_nhop_l
+                            new_info_cnt += 1
+                            # in case there are any nexthop that were deleted, we will need to adjust the nexhopt counts as well
+                            if del_cnt > 0:
+                                internalNextHopNum = info[i]['internalNextHopNum'] - del_cnt
+                                new_info['internalNextHopNum'] = internalNextHopNum
+                                internalNextHopActiveNum = info[i]['internalNextHopActiveNum'] - del_cnt
+                                new_info['internalNextHopActiveNum'] = internalNextHopActiveNum
+                            new_info_l.append(new_info)
+                    if new_info_cnt:
+                        filtered_route[route] = new_info_l
+            else:
+                filtered_route = route_info
+            if not found_json:
+                #print out the header if this is not a json request
+                if not hdr_printed:
+                    print_show_ip_route_hdr()
+                    hdr_printed = True
+                print_ip_routes(filtered_route)
+            else:
+                new_string = json.dumps(filtered_route, indent=2)
+                print(new_string)
+    else:
+        cmd = 'sudo vtysh -c "show ip route'
 
-    for arg in args:
-        cmd += " " + str(arg)
+        for arg in args:
+            cmd += " " + str(arg)
 
-    cmd += '"'
+        cmd += '"'
 
-    run_command(cmd, display_cmd=verbose)
+        run_command(cmd, display_cmd=verbose)
+
 
 #
 # 'prefix-list' subcommand ("show ip prefix-list")
