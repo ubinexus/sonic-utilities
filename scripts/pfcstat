@@ -6,7 +6,6 @@
 #
 #####################################################################
 
-import swsssdk
 import sys
 import argparse
 import cPickle as pickle
@@ -200,9 +199,11 @@ Examples:
         '-d', '--delete', action='store_true', help='Delete saved stats'
     )
     parser.add_argument('-s', '--show', default=constants.DISPLAY_EXTERNAL,
-                    help='Display all interfaces or only external interfaces')
+        help='Display all interfaces or only external interfaces'
+    )
     parser.add_argument('-n', '--namespace', default=None,
-                    help='Display interfaces for specific namespace')
+        help='Display interfaces for specific namespace'
+    )
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
