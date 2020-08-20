@@ -133,13 +133,9 @@ def get_switch_hwsku():
 
 
 def extract_ip_ver_addr(ip_prefix):
-    addr = ip_prefix.split('/')[0]
-
-    if ':' in addr:
-        ver = 6
-    else:
-        ver = 4
-
+    ip = IPNetwork(ip_prefix)
+    addr = str(ip.ip)
+    ver = ip.ip.version
     return (ver, addr)
 
 
@@ -212,17 +208,21 @@ def get_vlan_interface_vxlan_id(vlan_intf_name):
 def get_vlan_addr(vlan_intf_name, ip_ver):
     vlan_intfs = config_db.get_table('VLAN_INTERFACE')
     vlan_addr = []
+    vlan_prefix = []
 
     for intf in vlan_intfs.keys():
         if not is_ip_prefix_in_key(intf):
              continue
         if vlan_intf_name in intf:
-            intf_ip_prefix = intf[1]
-            (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)
+            intf_ip = IPNetwork(intf[1])
+            intf_ip_addr = str(intf_ip.ip)
+            intf_ip_ver = intf_ip.ip.version
+            intf_prefixlen = intf_ip.prefixlen
             if intf_ip_ver == ip_ver:
                 vlan_addr.append(intf_ip_addr)
+                vlan_prefix.append(intf_prefixlen)
 
-    return vlan_addr
+    return vlan_addr, vlan_prefix
 
 
 def get_vlan_addresses(vlan_interface):
@@ -230,21 +230,8 @@ def get_vlan_addresses(vlan_interface):
     vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
 
     mac_addr = None
-    ipv4_addr = []
-    ipv4_prefix = []
-    ipv6_addr = []
-    ipv6_prefix = []
-
-    vlan_intfs = config_db.get_table('VLAN_INTERFACE')
-    for item in vlan_intfs.keys():
-        if vlan_interface in item[0]:
-            ipaddr = IPNetwork(item[1])
-            if ipaddr.ip.version == 4:
-                ipv4_addr.append(str(ipaddr.ip))
-                ipv4_prefix.append(ipaddr.prefixlen)
-            else:
-                ipv6_addr.append(str(ipaddr.ip))
-                ipv6_prefix.append(ipaddr.prefixlen)
+    ipv4_addr, ipv4_prefix = get_vlan_addr(vlan_interface, 4)
+    ipv6_addr, ipv6_prefix = get_vlan_addr(vlan_interface, 6)
 
     metadata = config_db.get_table('DEVICE_METADATA')
     mac_addr = metadata['localhost']['mac']
