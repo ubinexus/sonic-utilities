@@ -1,5 +1,7 @@
 import os
 import sys
+import json
+
 
 import mock
 import pytest
@@ -55,6 +57,11 @@ def get_cmd_module():
     return (config, show)
 
 @pytest.fixture
+def get_show_module():
+    import show.main as show
+    return show
+
+@pytest.fixture
 def setup_single_broacom_asic():
     import config.main as config
     import show.main as show
@@ -65,3 +72,20 @@ def setup_single_broacom_asic():
 
     config.asic_type = mock.MagicMock(return_value = "broadcom")
     config._get_device_type = mock.MagicMock(return_value = "ToRRouter")
+
+@pytest.fixture
+def setup_single_bgp_instance(monkeypatch, request):
+    import utilities_common.bgp_util as bgp_util
+
+    if request.param == 'v4':
+        bgp_summary_json = 'mock_tables/ipv4_bgp_summary.json'
+    else:
+        bgp_summary_json = 'mock_tables/ipv6_bgp_summary.json'
+
+    def mock_run_bgp_command(vtysh_cmd, bgp_namespace):
+        with open(bgp_summary_json) as json_data:
+            mock_frr_data = json_data.read()
+        return mock_frr_data
+
+    monkeypatch.setattr(bgp_util, "run_bgp_command", mock_run_bgp_command)
+

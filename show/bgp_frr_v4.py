@@ -1,15 +1,21 @@
+import json
+from utilities_common import constants
+from utilities_common import bgp_util
 import click
 
 import utilities_common.cli as clicommon
 
-from show.main import ip, run_command, get_bgp_summary_extended
-
+from show.main import ip, run_command
+import utilities_common.multi_asic as multi_asic_util
+import utilities_common.bgp_util as bgp_util
+import utilities_common.constants as constants
 
 ###############################################################################
 #
 # 'show ip bgp' cli stanza
 #
 ###############################################################################
+
 
 
 @ip.group(cls=clicommon.AliasedGroup)
@@ -20,14 +26,11 @@ def bgp():
 
 # 'summary' subcommand ("show ip bgp summary")
 @bgp.command()
-def summary():
-    """Show summarized information of IPv4 BGP state"""
-    try:
-        device_output = run_command('sudo vtysh -c "show ip bgp summary"', return_cmd=True)
-        get_bgp_summary_extended(device_output)
-    except Exception:
-        run_command('sudo vtysh -c "show ip bgp summary"')
-
+@multi_asic_util.multi_asic_click_options
+def summary(namespace, display):
+    bgp_summary = bgp_util.get_bgp_summary_from_all_bgp_instances(constants.IPV4, namespace,display)
+    bgp_util.display_bgp_summary(bgp_summary=bgp_summary, af=constants.IPV4)
+    
 
 # 'neighbors' subcommand ("show ip bgp neighbors")
 @bgp.command()
