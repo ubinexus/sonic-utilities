@@ -668,6 +668,10 @@ def _stop_services(config_db):
         if service in services_to_stop:
             services_to_stop.remove(service)
 
+    # First, we stop Monit to prevent any false alarms as other services stop
+    click.echo("Stopping Monit ...")
+    clicommon.run_command("systemctl stop monit", display_cmd=False)
+
     execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
 
 
@@ -732,6 +736,10 @@ def _restart_services(config_db):
         services_to_restart.remove('pmon')
 
     execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
+
+    # Finally, restart Monit to pick up any system changes (e.g., hostname) and begin monitoring again
+    click.echo("Restarting Monit ...")
+    clicommon.run_command("systemctl restart monit", display_cmd=False)
 
 
 def  interface_is_in_vlan(vlan_member_table, interface_name):
