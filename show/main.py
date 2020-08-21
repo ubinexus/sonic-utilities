@@ -16,8 +16,10 @@ from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
-from utilities_common.db import Db
+
 import utilities_common.cli as clicommon
+from utilities_common.db import Db
+from utilities_common import multi_asic as multi_asic_util
 
 import mlnx
 import feature
@@ -416,11 +418,12 @@ def config(verbose):
     run_command(cmd, display_cmd=verbose)
 
 @pfcwd.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def stats(verbose):
+def stats(namespace, display, verbose):
     """Show pfc watchdog stats"""
 
-    cmd = "pfcwd show stats"
+    cmd = "pfcwd show stats -n {} -d {}".format(namespace, display)
 
     run_command(cmd, display_cmd=verbose)
 
