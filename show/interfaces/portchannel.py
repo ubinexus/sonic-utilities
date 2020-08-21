@@ -58,6 +58,8 @@ class Teamshow(object):
         """
         self.teams = []
         team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
+        if team_keys is None:
+            return
         for key in team_keys:
             team_name = key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):]
             if self.multi_asic.skip_display(PORT_CHANNEL_OBJ, team_name) is True:
@@ -155,7 +157,7 @@ class Teamshow(object):
         output = []
         for team_id in natsorted(self.summary):
             output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
-        print tabulate(output, header)
+        print(tabulate(output, header))
 
 # 'portchannel' subcommand ("show interfaces portchannel")
 @click.command()
