@@ -1,12 +1,14 @@
-import pytest
-from click.testing import CliRunner
-import show.main as show
+import os
 
-show_bgp_summary_v4="""\
+import pytest
+
+from click.testing import CliRunner
+
+show_bgp_summary_v4 = """\
 
 IPv4 Unicast Summary:
 BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
-BGP table version 12811 
+BGP table version 12811
 RIB entries 12817, using 2358328 bytes of memory
 Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
@@ -40,11 +42,11 @@ Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down 
 10.0.0.63      4  64016          0          0         0      0       0  never      Active          ARISTA16T0
 """
 
-show_bgp_summary_v6="""\
+show_bgp_summary_v6 = """\
 
 IPv6 Unicast Summary:
 BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
-BGP table version 8972 
+BGP table version 8972
 RIB entries 12817, using 2358328 bytes of memory
 Peers 24, using 502080 KiB of memory
 Peer groups 4, using 256 bytes of memory
@@ -77,23 +79,59 @@ fc00::72       4  64013          0          0         0      0       0  never   
 fc00::76       4  64014          0          0         0      0       0  never      Active          ARISTA14T0
 fc00::a        4  65200       6665       6671         0      0       0  2d09h38m   6402            ARISTA03T2
 """
+
+show_error_invalid_json = """\
+Usage: summary [OPTIONS]
+Try 'summary --help' for help.
+
+Error: bgp summary from bgp container not in json format
+"""
+
+
 class TestBgpCommands(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
         import mock_tables.dbconnector
 
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['v4'], indirect=['setup_single_bgp_instance'])
-    def test_bgp_summary_v4(self,  setup_single_bgp_instance):
-        #reload(show)
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['v4'], indirect=['setup_single_bgp_instance'])
+    def test_bgp_summary_v4(
+            self,
+            setup_bgp_commands,
+            setup_single_bgp_instance):
+        show = setup_bgp_commands
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["ip"].commands["bgp"].commands["summary"])
-        print("Result : {}".format(result.output))
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
         assert result.output == show_bgp_summary_v4
 
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['v6'], indirect=['setup_single_bgp_instance'])
-    def test_bgp_summary_v6(self,  setup_single_bgp_instance):
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['v6'], indirect=['setup_single_bgp_instance'])
+    def test_bgp_summary_v6(
+            self,
+            setup_bgp_commands,
+            setup_single_bgp_instance):
+        show = setup_bgp_commands
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["ipv6"].commands["bgp"].commands["summary"])
-        print("Result : {}".format(result.output))
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
         assert result.output == show_bgp_summary_v6
+
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             [' '], indirect=['setup_single_bgp_instance'])
+    def test_bgp_summary_error(
+            self,
+            setup_bgp_commands,
+            setup_single_bgp_instance):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 2
+        assert result.output == show_error_invalid_json

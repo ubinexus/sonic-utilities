@@ -75,6 +75,7 @@ def get_bgp_neighbors_dict(namespace=multi_asic.DEFAULT_NAMESPACE):
     dynamic_neighbors = get_dynamic_neighbor_subnet(config_db)
     return static_neighbors, dynamic_neighbors
 
+
 def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
     """
     return neighbor name for the ip provided
@@ -87,14 +88,19 @@ def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
         return static_neighbors[ip]
     elif is_ipv4_address(unicode(ip)):
         for subnet in dynamic_neighbors[constants.IPV4].keys():
-            if ipaddress.IPv4Address(unicode(ip)) in ipaddress.IPv4Network(unicode(subnet)):
+            if ipaddress.IPv4Address(
+                    unicode(ip)) in ipaddress.IPv4Network(
+                    unicode(subnet)):
                 return dynamic_neighbors[constants.IPV4][subnet]
     elif is_ipv6_address(unicode(ip)):
         for subnet in dynamic_neighbors[constants.IPV6].keys():
-            if ipaddress.IPv6Address(unicode(ip)) in ipaddress.IPv6Network(unicode(subnet)):
+            if ipaddress.IPv6Address(
+                    unicode(ip)) in ipaddress.IPv6Network(
+                    unicode(subnet)):
                 return dynamic_neighbors[constants.IPV6][subnet]
     else:
         return "NotAvailable"
+
 
 def get_bgp_summary_extended(command_output):
     """
@@ -112,8 +118,11 @@ def get_bgp_summary_extended(command_output):
             modified_output.append(element)
         elif re.match(r"(\*?([0-9A-Fa-f]{1,4}:|\d+.\d+.\d+.\d+))", element.split()[0]):
             first_element = element.split()[0]
-            ip = first_element[1:] if first_element.startswith("*") else first_element
-            name = get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors)
+            ip = first_element[1:] if first_element.startswith(
+                "*") else first_element
+            name = get_bgp_neighbor_ip_to_name(ip,
+                                               static_neighbors,
+                                               dynamic_neighbors)
             if len(element.split()) == 1:
                 modified_output.append(element)
                 element = next(my_list)
@@ -123,7 +132,8 @@ def get_bgp_summary_extended(command_output):
             modified_output.append(element)
     click.echo("\n".join(modified_output))
 
-def get_neighbor_dict_from_table(db,table_name):
+
+def get_neighbor_dict_from_table(db, table_name):
     """
     returns a dict with bgp neighbor ip as key and neighbor name as value
     :param table_name: config db table name
@@ -139,84 +149,153 @@ def get_neighbor_dict_from_table(db,table_name):
     except Exception:
         return neighbor_dict
 
+
 def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
     bgp_instance_id = ' '
-
+    output = None
     if bgp_namespace is not multi_asic.DEFAULT_NAMESPACE:
         bgp_instance_id = multi_asic.get_asic_id_from_name(bgp_namespace)
 
-    cmd = 'sudo docker exec bgp{} vtysh -c "{}"'.format(bgp_instance_id, vtysh_cmd) 
-    output = clicommon.run_command(cmd, return_cmd=True)
+    cmd = 'sudo docker exec bgp{} vtysh -c "{}"'.format(
+        bgp_instance_id, vtysh_cmd)
+    try:
+        output = clicommon.run_command(cmd, return_cmd=True)
+    except Exception:
+        ctx = click.get_current_context()
+        ctx.fail("Unable to get summary from bgp".format(bgp_instance_id))
+
     return output
 
-def get_bgp_summary_from_all_bgp_instances(af,namespace, display):
+
+def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
+
     device = multi_asic_util.MultiAsic(display, namespace)
+    ctx = click.get_current_context()
     if af is constants.IPV4:
-            vtysh_cmd = "show ip bgp summary json"
-            key = 'ipv4Unicast'
+        vtysh_cmd = "show ip bgp summary json"
+        key = 'ipv4Unicast'
     else:
         vtysh_cmd = "show bgp ipv6 summary json"
         key = 'ipv6Unicast'
+
     bgp_summary = {}
+    cmd_output_json = {}
     for ns in device.get_ns_list_based_on_options():
-        cmd_output = json.loads(run_bgp_command(vtysh_cmd, ns))
+        cmd_output = run_bgp_command(vtysh_cmd, ns)
+        try:
+            cmd_output_json = json.loads(cmd_output)
+        except ValueError:
+            ctx.fail("bgp summary from bgp container not in json format")
+
+        if key not in cmd_output_json:
+            ctx.fail("bgp summary from bgp container in invalid format")
+
         device.current_namespace = ns
-        process_bgp_summary_json(bgp_summary, cmd_output[key], device)
+
+        process_bgp_summary_json(bgp_summary, cmd_output_json[key], device)
     return bgp_summary
 
 
 def display_bgp_summary(bgp_summary, af):
-    headers = ["Neighbhor", "V", "AS", "MsgRcvd", "MsgSent", "TblVer", "InQ", "OutQ", "Up/Down", "State/PfxRcd", "NeighborName"]
-    click.echo("\nIP{} Unicast Summary:".format(af))
-    for router_info in bgp_summary['router_info']:
-        for k in router_info.keys():
-            v = router_info[k]
-            instance = "{}: ".format(k) if k is not "" else ""
-            click.echo("{}BGP router identifier {}, local AS number {} vrf-id {}"\
-                        .format(instance, v['router_id'], v['as'], v['vrf'] ))
-            click.echo("BGP table version {} ".format(v['tbl_ver']))
-    click.echo("RIB entries {}, using {} bytes of memory".format(bgp_summary['ribCount'], bgp_summary['ribMemory']))
-    click.echo("Peers {}, using {} KiB of memory".format(bgp_summary['peerCount'], bgp_summary['peerMemory']) )
-    click.echo("Peer groups {}, using {} bytes of memory".format(bgp_summary['peerGroupCount'], bgp_summary['peerGroupMemory']))
-    click.echo("\n")
-    click.echo(tabulate(natsorted(bgp_summary['peers']), headers = headers))
+    '''
+    Display the json output in the format display by FRR
+
+    Args:
+        bgp_summary ([dict]): [Bgp summary from all bgp instances in ]
+        af: IPV4 or IPV6
+
+    '''
+    headers = ["Neighbhor", "V", "AS", "MsgRcvd", "MsgSent", "TblVer",
+               "InQ", "OutQ", "Up/Down", "State/PfxRcd", "NeighborName"]
+
+    try:
+        click.echo("\nIP{} Unicast Summary:".format(af))
+        # display the bgp instance information
+        for router_info in bgp_summary['router_info']:
+            for k in router_info.keys():
+                v = router_info[k]
+                instance = "{}: ".format(k) if k is not "" else ""
+                click.echo(
+                    "{}BGP router identifier {}, local AS number {} vrf-id {}" .format(
+                        instance, v['router_id'], v['as'], v['vrf']))
+                click.echo("BGP table version {}".format(v['tbl_ver']))
+
+        click.echo("RIB entries {}, using {} bytes of memory"
+                   .format(bgp_summary['ribCount'], bgp_summary['ribMemory']))
+        click.echo(
+            "Peers {}, using {} KiB of memory" .format(
+                bgp_summary['peerCount'],
+                bgp_summary['peerMemory']))
+        click.echo("Peer groups {}, using {} bytes of memory" .format(
+            bgp_summary['peerGroupCount'], bgp_summary['peerGroupMemory']))
+        click.echo("\n")
+
+        click.echo(tabulate(natsorted(bgp_summary['peers']), headers=headers))
+    except KeyError as e:
+        ctx = click.get_current_context()
+        ctx.fail("{} missing in the bgp_summary".format(e.args[0]))
+
 
 def process_bgp_summary_json(bgp_summary, cmd_output, device):
-    static_neighbors, dynamic_neighbors = get_bgp_neighbors_dict(device.current_namespace)
-    bgp_summary['peerCount'] = bgp_summary.get('peerCount', 0) + cmd_output['peerCount']
-    bgp_summary['peerMemory'] = bgp_summary.get('peerMemory', 0) + cmd_output['peerMemory']
-    bgp_summary['ribCount'] = bgp_summary.get('ribCount', 0) + cmd_output['ribCount']
-    bgp_summary['ribMemory'] = bgp_summary.get('ribMemory', 0) + cmd_output['ribMemory']
-    bgp_summary['peerGroupCount'] = bgp_summary.get('peerGroupCount', 0) + cmd_output['peerGroupCount']
-    bgp_summary['peerGroupMemory'] = bgp_summary.get('peerGroupMemory', 0) + cmd_output['peerGroupMemory']
+    '''
+    This function process the frr output in json format from a bgp
+    instance and stores the need values in the a bgp_summary
 
-    router_info = {}
-    router_info['router_id'] = cmd_output['routerId']
-    router_info['vrf'] = cmd_output['vrfId']
-    router_info['as'] = cmd_output['as']
-    router_info['tbl_ver'] = cmd_output['tableVersion']
-    bgp_summary.setdefault('router_info', []).append({device.current_namespace: router_info})
+    '''
+    static_neighbors, dynamic_neighbors = get_bgp_neighbors_dict(
+        device.current_namespace)
+    try:
+        # add all the router level fields
+        bgp_summary['peerCount'] = bgp_summary.get(
+            'peerCount', 0) + cmd_output['peerCount']
+        bgp_summary['peerMemory'] = bgp_summary.get(
+            'peerMemory', 0) + cmd_output['peerMemory']
+        bgp_summary['ribCount'] = bgp_summary.get(
+            'ribCount', 0) + cmd_output['ribCount']
+        bgp_summary['ribMemory'] = bgp_summary.get(
+            'ribMemory', 0) + cmd_output['ribMemory']
+        bgp_summary['peerGroupCount'] = bgp_summary.get(
+            'peerGroupCount', 0) + cmd_output['peerGroupCount']
+        bgp_summary['peerGroupMemory'] = bgp_summary.get(
+            'peerGroupMemory', 0) + cmd_output['peerGroupMemory']
 
-    for peer_ip, value in cmd_output['peers'].iteritems():
-        peers = []
-        if device.skip_display(constants.BGP_NEIGH_OBJ, peer_ip):
-            continue
+        #store instance level field is seperate dict
+        router_info = {}
+        router_info['router_id'] = cmd_output['routerId']
+        router_info['vrf'] = cmd_output['vrfId']
+        router_info['as'] = cmd_output['as']
+        router_info['tbl_ver'] = cmd_output['tableVersion']
+        bgp_summary.setdefault('router_info', []).append(
+            {device.current_namespace: router_info})
 
-        peers.append(peer_ip)
-        neigh_name = get_bgp_neighbor_ip_to_name(peer_ip, static_neighbors, dynamic_neighbors)
-        peers.append( value['version'])
-        peers.append(value['remoteAs'])
-        peers.append(value['msgRcvd'])
-        peers.append(value['msgSent'])
-        peers.append(value['tableVersion'])
+        # store all the peers in the list
+        for peer_ip, value in cmd_output['peers'].iteritems():
+            peers = []
+            # if display option is 'frontend', internal bgp neighbors will not
+            # be displayed
+            if device.skip_display(constants.BGP_NEIGH_OBJ, peer_ip):
+                continue
 
-        peers.append(value['inq'])
-        peers.append(value['outq'])
-        peers.append(value['peerUptime'])
-        if value['state'] == 'Established':
-            peers.append(value['pfxRcd'])
-        else:
-            peers.append(value['state'])
+            peers.append(peer_ip)
+            peers.append(value['version'])
+            peers.append(value['remoteAs'])
+            peers.append(value['msgRcvd'])
+            peers.append(value['msgSent'])
+            peers.append(value['tableVersion'])
+            peers.append(value['inq'])
+            peers.append(value['outq'])
+            peers.append(value['peerUptime'])
+            if value['state'] == 'Established':
+                peers.append(value['pfxRcd'])
+            else:
+                peers.append(value['state'])
+            
+            # Get the bgp neighbour name ans store it
+            neigh_name = get_bgp_neighbor_ip_to_name(
+                peer_ip, static_neighbors, dynamic_neighbors)
+            peers.append(neigh_name)
 
-        peers.append(neigh_name)
-        bgp_summary.setdefault('peers', []).append(peers)
+            bgp_summary.setdefault('peers', []).append(peers)
+    except KeyError as e:
+        ctx = click.get_current_context()
+        ctx.fail("{} missing in the bgp_summary".format(e.args[0]))
