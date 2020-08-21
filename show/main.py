@@ -468,7 +468,7 @@ def subinterfaces():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def status(subinterfacename, verbose):
     """Show sub port interface status information"""
-    cmd = "intfutil status "
+    cmd = "intfutil -c status"
 
     if subinterfacename is not None:
         sub_intf_sep_idx = subinterfacename.find(VLAN_SUB_INTERFACE_SEPARATOR)
@@ -479,9 +479,9 @@ def status(subinterfacename, verbose):
         if clicommon.get_interface_naming_mode() == "alias":
             subinterfacename = iface_alias_converter.alias_to_name(subinterfacename)
 
-        cmd += subinterfacename
+        cmd += " -i {}".format(subinterfacename)
     else:
-        cmd += "subport"
+        cmd += " -i subport"
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -1749,20 +1749,18 @@ def policer(policer_name, verbose):
 @click.pass_context
 def sflow(ctx):
     """Show sFlow related information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {'db': config_db}
     if ctx.invoked_subcommand is None:
-        show_sflow_global(config_db)
+        db = Db()
+        show_sflow_global(db.cfgdb)
 
 #
 # 'sflow command ("show sflow interface ...")
 #
 @sflow.command('interface')
-@click.pass_context
-def sflow_interface(ctx):
+@clicommon.pass_db
+def sflow_interface(db):
     """Show sFlow interface information"""
-    show_sflow_interface(ctx.obj['db'])
+    show_sflow_interface(db.cfgdb)
 
 def sflow_appDB_connect():
     db = SonicV2Connector(host='127.0.0.1')
@@ -1824,7 +1822,7 @@ def show_sflow_global(config_db):
     click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
     for collector_name in sorted(sflow_info.keys()):
         click.echo("    Name: {}".format(collector_name).ljust(30) +
-                   "IP addr: {}".format(sflow_info[collector_name]['collector_ip']).ljust(20) +
+                   "IP addr: {} ".format(sflow_info[collector_name]['collector_ip']).ljust(25) +
                    "UDP port: {}".format(sflow_info[collector_name]['collector_port']))
 
 

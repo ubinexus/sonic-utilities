@@ -41,6 +41,7 @@ setup(
         'ssdutil',
         'pfc',
         'psuutil',
+        'fdbutil',
         'fwutil',
         'pcieutil',
         'pddf_fanutil',
@@ -58,7 +59,12 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
-        'tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
+        'tests': ['acl_input/*',
+                  'mock_tables/*.py',
+                  'mock_tables/*.json',
+                  'mock_tables/asic0/*.json',
+                  'mock_tables/asic1/*.json',
+                  'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -78,7 +84,6 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
-        'scripts/filter_fdb_entries.py',
         'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/intfutil',
@@ -124,6 +129,7 @@ setup(
             'counterpoll = counterpoll.main:cli',
             'crm = crm.main:cli',
             'debug = debug.main:cli',
+            'filter_fdb_entries = fdbutil.filter_fdb_entries:main',
             'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
             'ssdutil = ssdutil.main:ssdutil',
