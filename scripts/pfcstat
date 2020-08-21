@@ -216,6 +216,11 @@ Examples:
     cnstat_fqn_file_rx = os.path.join(cnstat_dir, "{}rx".format(cnstat_file))
     cnstat_fqn_file_tx = os.path.join(cnstat_dir, "{}tx".format(cnstat_file))
 
+    # if '-c' option is provided get stats from all (frontend and backend) ports
+    if save_fresh_stats:
+        args.namespace = None
+        args.show = constants.DISPLAY_ALL
+
     pfcstat = Pfcstat(args.namespace, args.show)
 
     if delete_all_stats:
