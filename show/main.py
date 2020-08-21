@@ -734,12 +734,10 @@ def mac(ctx, vlan, port, verbose):
 @mac.command()
 def aging_time():
     """Show MAC Aging-Time"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
 
-    # Fetching data from config_db for SWITCH
-    switch_table = config_db.get_table('SWITCH')
-    switch_keys = switch_table.keys()
+    app_db = SonicV2Connector(host='127.0.0.1')
+    app_db.connect(app_db.APPL_DB)
+    switch_keys = app_db.keys(app_db.APPL_DB, 'SWITCH_TABLE:*')
 
     age_time = 0
     for key in switch_keys:

@@ -359,10 +359,10 @@ def vlan_id_is_valid(vid):
     """Check if the vlan id is in acceptable range (between 1 and 4094)
     """
 
-    if vid<1 or vid>4094:
-        return False
+    if vid>0 and vid<4095:
+        return True
 
-    return True
+    return False
 
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
@@ -1888,6 +1888,11 @@ def set_aging_time(ctx, interval):
         ctx.fail("Aging timer must be in range [0-1000000]")
     db.set_entry('SWITCH', 'switch', {'fdb_aging_time': interval})
 
+def mac_address_is_valid(mac):
+    """Check if the mac address is valid
+    """
+    return bool(re.match('^' + '[\:\-]'.join(['([0-9a-f]{2})']*6) + '$', mac.lower()))
+
 @mac.command('add')
 @click.argument('mac', metavar='<mac-address as xx:xx:xx:xx:xx:xx>', required=True)
 @click.argument('vlan', metavar='<vlan>', required=True, type=int)
@@ -1896,7 +1901,7 @@ def set_aging_time(ctx, interval):
 def add_mac(ctx, mac, vlan, interface_name):
     db = ctx.obj['db']
 
-    mac_valid = bool(re.match('^' + '[\:\-]'.join(['([0-9a-f]{2})']*6) + '$', mac.lower()))
+    mac_valid = bool(mac_address_is_valid(mac))
     if mac_valid == False:
         ctx.fail("Incorrect mac-address format!!")
 
@@ -1935,7 +1940,7 @@ def add_mac(ctx, mac, vlan, interface_name):
 def del_mac(ctx, mac, vlan):
     db = ctx.obj['db']
 
-    mac_valid = bool(re.match('^' + '[\:\-]'.join(['([0-9a-f]{2})']*6) + '$', mac.lower()))
+    mac_valid = bool(mac_address_is_valid(mac))
     if mac_valid == False:
         ctx.fail("Incorrect mac-address format!!")
 
