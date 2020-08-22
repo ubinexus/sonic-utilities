@@ -43,9 +43,16 @@ CONFIG_DB_PFC_WD_TABLE_NAME = 'PFC_WD'
 def cli():
     """ SONiC PFC Watchdog """
 
-def get_all_queues(db):
+def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')
-    return natsorted(queue_names.keys() if queue_names else {})
+    queues = queue_names.keys() if queue_names else {}
+    if display == constants.DISPLAY_ALL:
+        return natsorted(queues)
+
+    display_ports = [q.split(":")[0] for q in queues]
+    display_ports = get_external_ports(display_ports, namespace)
+    queues = [q for q in queues if q.split(":")[0] in display_ports]
+    return natsorted(queues)
 
 def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
     all_port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
@@ -79,24 +86,13 @@ class PfcwdCli(object):
         self.multi_asic = multi_asic_util.MultiAsic(display, namespace)
         self.table = []
 
-    def get_external_queues(
-        self, queues, namespace=None, display=constants.DISPLAY_ALL
-    ):
-        if display == constants.DISPLAY_ALL:
-            return queues
-        display_ports = [q.split(":")[0] for q in queues]
-        display_ports = get_external_ports(display_ports, namespace)
-        queues = [q for q in queues if q.split(":")[0] in display_ports]
-        return natsorted(queues)
-
     @multi_asic_util.run_on_multi_asic
     def collect_stats(self, empty, queues):
         table = []
 
         if len(queues) == 0:
-            queues = get_all_queues(self.db)
-            queues = self.get_external_queues(
-                queues,
+            queues = get_all_queues(
+                self.db,
                 self.multi_asic.current_namespace,
                 self.multi_asic.display_option
             )
