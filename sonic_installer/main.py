@@ -336,11 +336,13 @@ def install(url, force, skip_migration=False):
         else:
             run_command('config-setup backup')
 
+<<<<<<< HEAD
         update_sonic_environment(click, binary_image_version)
-
+=======
     # Clean-up by deleting downloaded file
     if os.path.exists(image_path):
         os.remove(image_path)
+>>>>>>> 3909818... Use /var/tmp instead of /tmp for sonic_installer and generate_dump
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
