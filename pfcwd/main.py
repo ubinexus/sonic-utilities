@@ -47,7 +47,7 @@ def get_all_queues(db):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')
     return natsorted(queue_names.keys() if queue_names else {})
 
-def get_all_ports(db):
+def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
     all_port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
 
     # Get list of physical ports
@@ -55,7 +55,10 @@ def get_all_ports(db):
     for i in all_port_names:
         if i.startswith('Ethernet'):
             port_names[i]= all_port_names[i]
-    return natsorted(port_names.keys())
+    display_ports = port_names.keys()
+    if display == constants.DISPLAY_EXTERNAL:
+        display_ports = get_external_ports(display_ports, namespace)
+    return natsorted(display_ports)
 
 def get_server_facing_ports(db):
     candidates = db.get_table('DEVICE_NEIGHBOR')
@@ -76,26 +79,47 @@ class PfcwdCli(object):
         self.multi_asic = multi_asic_util.MultiAsic(display, namespace)
         self.table = []
 
+    def get_external_queues(
+        self, queues, namespace=None, display=constants.DISPLAY_ALL
+    ):
+        if display == constants.DISPLAY_ALL:
+            return queues
+        display_ports = [q.split(":")[0] for q in queues]
+        display_ports = get_external_ports(display_ports, namespace)
+        queues = [q for q in queues if q.split(":")[0] in display_ports]
+        return natsorted(queues)
+
     @multi_asic_util.run_on_multi_asic
     def collect_stats(self, empty, queues):
         table = []
 
         if len(queues) == 0:
             queues = get_all_queues(self.db)
+            queues = self.get_external_queues(
+                queues,
+                self.multi_asic.current_namespace,
+                self.multi_asic.display_option
+            )
 
         for queue in queues:
             stats_list = []
-            queue_oid = self.db.get(self.db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP', queue)
+            queue_oid = self.db.get(
+                self.db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP', queue
+            )
             if queue_oid is None:
                 continue
-            stats = self.db.get_all(self.db.COUNTERS_DB, 'COUNTERS:' + queue_oid)
+            stats = self.db.get_all(
+                self.db.COUNTERS_DB, 'COUNTERS:' + queue_oid
+            )
             if stats is None:
                 continue
             for stat in STATS_DESCRIPTION:
                 line = stats.get(stat[1], '0') + '/' + stats.get(stat[2], '0')
                 stats_list.append(line)
             if stats_list != ['0/0'] * len(STATS_DESCRIPTION) or empty:
-                table.append([queue, stats.get('PFC_WD_STATUS', 'N/A')] + stats_list)
+                table.append(
+                    [queue, stats.get('PFC_WD_STATUS', 'N/A')] + stats_list
+                )
 
         self.table += table
 
@@ -108,36 +132,62 @@ class PfcwdCli(object):
             tablefmt='simple'
         ))
 
-    def config(self, ports):
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
-        countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
-        countersdb.connect(countersdb.COUNTERS_DB)
+    @multi_asic_util.run_on_multi_asic
+    def collect_config(self, ports):
         table = []
-
-        all_ports = get_all_ports(countersdb)
+        all_ports = get_all_ports(
+            self.db,
+            self.multi_asic.current_namespace,
+            self.multi_asic.display_option
+        )
 
         if len(ports) == 0:
             ports = all_ports
 
         for port in ports:
             config_list = []
-            config_entry = configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port)
+            config_entry = self.config_db.get_entry(
+                CONFIG_DB_PFC_WD_TABLE_NAME, port
+            )
             if config_entry is None or config_entry == {}:
                 continue
             for config in CONFIG_DESCRIPTION:
                 line = config_entry.get(config[1], config[2])
                 config_list.append(line)
             table.append([port] + config_list)
-        poll_interval = configdb.get_entry( CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL').get('POLL_INTERVAL')
+
+        poll_interval = self.config_db.get_entry(
+            CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL'
+        ).get('POLL_INTERVAL')
+
+        current_ns = self.multi_asic.current_namespace
+        asic_ns = "" if current_ns is None else " on {}".format(current_ns)
         if poll_interval is not None:
-            click.echo("Changed polling interval to " + poll_interval + "ms")
+            click.echo("Changed polling interval to {} ms{}".format(
+                poll_interval , asic_ns
+            ))
 
-        big_red_switch = configdb.get_entry( CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL').get('BIG_RED_SWITCH')
+        big_red_switch = self.config_db.get_entry(
+            CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL'
+        ).get('BIG_RED_SWITCH')
+
         if big_red_switch is not None:
-            click.echo("BIG_RED_SWITCH status is " + big_red_switch)
+            click.echo("BIG_RED_SWITCH status is {}{}".format(
+                big_red_switch, asic_ns
+            ))
 
-        click.echo(tabulate(table, CONFIG_HEADER, stralign='right', numalign='right', tablefmt='simple'))
+        self.table += table
+
+    def config(self, ports):
+        del self.table[:]
+        self.collect_config(ports)
+        click.echo(tabulate(
+            self.table,
+            CONFIG_HEADER,
+            stralign='right',
+            numalign='right',
+            tablefmt='simple'
+        ))
 
     def start(self, action, restoration_time, ports, detection_time):
         if os.geteuid() != 0:
@@ -292,8 +342,9 @@ class Show(object):
 
     # Show stats
     @show.command()
+    @multi_asic_util.multi_asic_click_options
     @click.argument('ports', nargs = -1)
-    def config(ports):
+    def config(namespace, display, ports):
         """ Show PFC Watchdog configuration """
         PfcwdCli(namespace, display).config(ports)
 
