@@ -15,7 +15,7 @@ import time
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports, get_port_config_file_name
 from sonic_py_common import device_info, multi_asic
-from sonic_py_common.interface import *
+from sonic_py_common.interface import front_panel_prefix, portchannel_prefix, vlan_prefix, loopback_prefix
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
