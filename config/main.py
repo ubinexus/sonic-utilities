@@ -92,7 +92,7 @@ def _get_breakout_options(ctx, args, incomplete):
     all_mode_options = []
     interface_name = args[-1]
 
-    breakout_cfg_file = _get_breakout_cfg_file_name()
+    breakout_cfg_file = device_info.get_path_to_port_config_file()
 
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         return []
@@ -2153,7 +2153,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
 @click.pass_context
 def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load_predefined_config):
     """ Set interface breakout mode """
-    breakout_cfg_file = _get_breakout_cfg_file_name()
+    breakout_cfg_file = device_info.get_path_to_port_config_file()
 
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
