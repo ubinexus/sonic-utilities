@@ -1,14 +1,12 @@
 import json
-from utilities_common import constants
-from utilities_common import bgp_util
+
 import click
 
-import utilities_common.cli as clicommon
-
-from show.main import ip, run_command
-import utilities_common.multi_asic as multi_asic_util
 import utilities_common.bgp_util as bgp_util
+import utilities_common.cli as clicommon
 import utilities_common.constants as constants
+import utilities_common.multi_asic as multi_asic_util
+from show.main import ip, run_command
 
 ###############################################################################
 #
