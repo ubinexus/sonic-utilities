@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 
-from minigraph import parse_device_desc_xml
+from minigraph import earse_device_desc_xml
 from portconfig import get_child_ports, get_port_config_file_name
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
@@ -67,25 +67,6 @@ def readJsonFile(fileName):
     except Exception as e:
         raise Exception(str(e))
     return result
-
-def _get_breakout_cfg_file_name():
-    """
-    Get name of config file for Dynamic Port Breakout
-    """
-    try:
-        (platform, hwsku) = device_info.get_platform_and_hwsku()
-    except Exception as e:
-        click.secho("Failed to get platform and hwsku with error:{}".format(str(e)), fg='red')
-        raise click.Abort()
-
-    try:
-        breakout_cfg_file_name = get_port_config_file_name(hwsku, platform)
-    except Exception as e:
-        click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
-        raise click.Abort()
-
-    return breakout_cfg_file_name
-
 
 def _get_breakout_options(ctx, args, incomplete):
     """ Provides dynamic mode option as per user argument i.e. interface name """
