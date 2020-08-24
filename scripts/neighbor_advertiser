@@ -205,7 +205,7 @@ def get_vlan_interface_vxlan_id(vlan_intf_name):
     return vlan_intf_name[4:]
 
 
-def get_vlan_addr(vlan_intf_name, ip_ver):
+def get_vlan_addr_prefix(vlan_intf_name, ip_ver):
     vlan_intfs = config_db.get_table('VLAN_INTERFACE')
     vlan_addr = []
     vlan_prefix = []
@@ -230,8 +230,8 @@ def get_vlan_addresses(vlan_interface):
     vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
 
     mac_addr = None
-    ipv4_addr, ipv4_prefix = get_vlan_addr(vlan_interface, 4)
-    ipv6_addr, ipv6_prefix = get_vlan_addr(vlan_interface, 6)
+    ipv4_addr, ipv4_prefix = get_vlan_addr_prefix(vlan_interface, 4)
+    ipv6_addr, ipv6_prefix = get_vlan_addr_prefix(vlan_interface, 6)
 
     metadata = config_db.get_table('DEVICE_METADATA')
     mac_addr = metadata['localhost']['mac']
@@ -262,9 +262,7 @@ def construct_neighbor_advertiser_slice():
 
     vlan_intf_table = config_db.get_table('VLAN_INTERFACE')
 
-    vxlanPort = None
-    if 'vxlan_port' in appl_db.get_all(appl_db.APPL_DB, 'SWITCH_TABLE:switch'):
-        vxlanPort = appl_db.get(appl_db.APPL_DB, 'SWITCH_TABLE:switch', 'vxlan_port')
+    vxlanPort = appl_db.get(appl_db.APPL_DB, 'SWITCH_TABLE:switch', 'vxlan_port')
 
     for vlan_interface in all_vlan_interfaces:
         vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr = get_vlan_addresses(vlan_interface)
