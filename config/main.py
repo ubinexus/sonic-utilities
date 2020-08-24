@@ -13,7 +13,7 @@ import threading
 import time
 
 from minigraph import parse_device_desc_xml
-from portconfig import get_child_ports, get_port_config_file_name
+from portconfig import get_child_ports
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
