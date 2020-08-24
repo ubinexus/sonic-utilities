@@ -67,7 +67,7 @@ def get_arp_entries_map(arp_filename, config_db_filename):
             if "NEIGH_TABLE" in table and vlan in vlan_cidr.keys() \
                 and ip_address(ip) in ip_network(vlan_cidr[vlan][ip_interface(ip).version]) \
                 and "neigh" in config.keys():
-                arp_map[config["neigh"].replace(':', '-')] = ""
+                arp_map[config["neigh"].replace(':', '-').upper()] = ""
 
     return arp_map
 
@@ -95,7 +95,7 @@ def filter_fdb_entries(fdb_filename, arp_filename, config_db_filename, backup_fi
     def filter_fdb_entry(fdb_entry):
         for key, _ in fdb_entry.items():
             if 'FDB_TABLE' in key:
-                return key.split(':')[-1] in arp_map
+                return key.split(':')[-1].upper() in arp_map
 
         # malformed entry, default to False so it will be deleted
         return False
