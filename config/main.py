@@ -14,7 +14,8 @@ import time
 
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports, get_port_config_file_name
-from sonic_py_common import device_info, multi_asic, interface
+from sonic_py_common import device_info, multi_asic
+from sonic_py_common.interface import *
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -393,17 +394,17 @@ def interface_name_to_alias(config_db, interface_name):
 def get_interface_table_name(interface_name):
     """Get table name by interface_name prefix
     """
-    if interface_name.startswith(interface.front_panel_prefix()):
+    if interface_name.startswith(front_panel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "INTERFACE"
-    elif interface_name.startswith(interface.portchannel_prefix()):
+    elif interface_name.startswith(portchannel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORTCHANNEL_INTERFACE"
-    elif interface_name.startswith(interface.vlan_prefix()):
+    elif interface_name.startswith(vlan_prefix()):
         return "VLAN_INTERFACE"
-    elif interface_name.startswith(interface.loopback_prefix()):
+    elif interface_name.startswith(loopback_prefix()):
         return "LOOPBACK_INTERFACE"
     else:
         return ""
@@ -436,17 +437,17 @@ def is_interface_bind_to_vrf(config_db, interface_name):
 def get_port_table_name(interface_name):
     """Get table name by port_name prefix
     """
-    if interface_name.startswith(interface.front_panel_prefix()):
+    if interface_name.startswith(front_panel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORT"
-    elif interface_name.startswith(interface.portchannel_prefix()):
+    elif interface_name.startswith(portchannel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORTCHANNEL"
-    elif interface_name.startswith(interface.vlan_prefix()):
+    elif interface_name.startswith(vlan_prefix()):
         return "VLAN_INTERFACE"
-    elif interface_name.startswith(interface.loopback_prefix()):
+    elif interface_name.startswith(loopback_prefix()):
         return "LOOPBACK_INTERFACE"
     else:
         return ""
@@ -471,7 +472,7 @@ def get_port_namespace(port):
         config_db.connect()
 
         # If the interface naming mode is alias, search the tables for alias_name.
-        if get_interface_naming_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             port_dict = config_db.get_table(table_name)
             if port_dict:
                 for port_name in port_dict.keys():
@@ -2144,7 +2145,6 @@ def interface(ctx, namespace):
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
     ctx.obj = {'config_db': config_db, 'namespace': str(namespace)}
-
 #
 # 'startup' subcommand
 #
@@ -2246,7 +2246,11 @@ def speed(ctx, interface_name, interface_speed, verbose):
 
     log.log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
-    command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, ctx.obj['namespace'])
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
+    else:
+        command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, ctx.obj['namespace'])
+
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2404,13 +2408,16 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
     # Get the config_db connector
     config_db = ctx.obj['config_db']
-
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, ctx.obj['namespace'])
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    else:
+        command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, ctx.obj['namespace'])
+
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2432,7 +2439,11 @@ def fec(ctx, interface_name, interface_fec, verbose):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, ctx.obj['namespace'])
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -f {}".format(interface_name, interface_fec)
+    else:
+        command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, ctx.obj['namespace'])
+
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2549,7 +2560,7 @@ def remove(ctx, interface_name, ip_addr):
             command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, ip_addr)
         else:
             command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
-        run_command(command)
+        clicommon.run_command(command)
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
@@ -2650,7 +2661,10 @@ def bind(ctx, interface_name, vrf_name):
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
-    state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        state_db = SonicV2Connector(use_unix_socket_path=True)
+    else:
+        state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
     while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
@@ -3102,7 +3116,7 @@ def asymmetric(ctx, interface_name, status):
     # Get the config_db connector
     config_db = ctx.obj['config_db']
 
-    if get_interface_naming_mode() == "alias":
+    if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
@@ -3123,7 +3137,7 @@ def priority(ctx, interface_name, priority, status):
     # Get the config_db connector
     config_db = ctx.obj['config_db']
 
-    if get_interface_naming_mode() == "alias":
+    if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")

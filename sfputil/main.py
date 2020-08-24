@@ -307,11 +307,9 @@ def cli():
     try:
         if multi_asic.is_multi_asic():
             # For multi ASIC platforms we pass DIR of port_config_file_path and the number of asics
-            (platform, hwsku) = device_info.get_platform_and_hwsku()
+            (platform_path, hwsku_path) = device_info.get_paths_to_platform_and_hwsku_dirs()
 
             # Load platform module from source
-            platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-            hwsku_path = "/".join([platform_path, hwsku])
             platform_sfputil.read_all_porttab_mappings(hwsku_path, multi_asic.get_num_asics())
         else:
             # For single ASIC platforms we pass port_config_file_path and the asic_inst as 0
