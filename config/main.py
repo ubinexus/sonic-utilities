@@ -433,6 +433,7 @@ def is_interface_bind_to_vrf(config_db, interface_name):
         return True
     return False
 
+# TODO move to sonic-py-common package
 # Get the table name based on the interface type
 def get_port_table_name(interface_name):
     """Get table name by port_name prefix
