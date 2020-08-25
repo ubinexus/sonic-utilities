@@ -17,6 +17,7 @@ from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
+from utilities_common.multi_asic import multi_asic_click_options
 
 import mlnx
 
@@ -993,10 +994,14 @@ def rif(interface, period, verbose):
 
 # 'portchannel' subcommand ("show interfaces portchannel")
 @interfaces.command()
+@multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def portchannel(verbose):
+def portchannel(namespace,  display, verbose):
     """Show PortChannel information"""
-    cmd = "sudo teamshow"
+    cmd = "sudo teamshow -d {}".format(display)
+    if namespace is not None:
+        cmd += "  -n {}".format(namespace)
+    
     run_command(cmd, display_cmd=verbose)
 
 #
