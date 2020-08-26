@@ -13,7 +13,6 @@ import threading
 import time
 
 from minigraph import parse_device_desc_xml
-
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import front_panel_prefix, portchannel_prefix, vlan_prefix, loopback_prefix
