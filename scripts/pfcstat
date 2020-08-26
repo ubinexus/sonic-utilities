@@ -12,6 +12,11 @@ import cPickle as pickle
 import datetime
 import os.path
 
+modules_path = os.path.join(os.path.dirname(__file__), "..")
+tests_path = os.path.join(modules_path, "tests")
+sys.path.insert(0, modules_path)
+sys.path.insert(0, tests_path)
+
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
@@ -20,6 +25,20 @@ from sonic_py_common.multi_asic import get_external_ports
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+
+except KeyError:
+    pass
 
 PStats = namedtuple("PStats", "pfc0, pfc1, pfc2, pfc3, pfc4, pfc5, pfc6, pfc7")
 header_Rx = ['Port Rx', 'PFC0', 'PFC1', 'PFC2', 'PFC3', 'PFC4', 'PFC5', 'PFC6', 'PFC7']
@@ -90,6 +109,8 @@ class Pfcstat(object):
         counter_port_name_map = self.db.get_all(
             self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP
         )
+        if counter_port_name_map is None:
+            return
         display_ports_set = set(counter_port_name_map.keys())
         if self.multi_asic.display_option == constants.DISPLAY_EXTERNAL:
             display_ports_set = get_external_ports(
@@ -287,12 +308,3 @@ Examples:
             cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'r'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_tx, cnstat_cached_dict, False)
-        except IOError as e:
-            print(e.errno, e)
-    else:
-        pfcstat.cnstat_print(cnstat_dict_tx, False)
-
-    sys.exit(0)
-
-if __name__ == "__main__":
-    main()
