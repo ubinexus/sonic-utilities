@@ -1,20 +1,17 @@
 import imp
 import os
 import shutil
-import subprocess
 import sys
 
 from click.testing import CliRunner
 
+import show.main as show
+
+from utils import get_result_and_return_code
+
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
-sys.path.insert(0, test_path)
-sys.path.insert(0, modules_path)
-
-import mock_tables.dbconnector
-import show.main as show
-import clear.main as clear
 
 show_pfc_counters_output = """\
   Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
@@ -87,20 +84,6 @@ Ethernet-BP4       0       0       0       0       0       0       0       0
 Ethernet-BP0       0       0       0       0       0       0       0       0
 Ethernet-BP4       0       0       0       0       0       0       0       0
 """
-
-
-def get_result_and_return_code(cmd):
-    return_code = 0
-    try:
-        output = subprocess.check_output(
-            cmd, stderr=subprocess.STDOUT, shell=True)
-    except subprocess.CalledProcessError as e:
-        return_code = e.returncode
-        # store only the error, no need for the traceback
-        output = e.output.strip().split("\n")[-1]
-
-    print(output)
-    return(return_code, output)
 
 
 def pfc_clear(expected_output):
@@ -211,3 +194,4 @@ class TestMultiAsicPfcstat(object):
             os.environ["PATH"].split(os.pathsep)[:-1]
         )
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
