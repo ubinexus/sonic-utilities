@@ -103,7 +103,7 @@ class SkuCreate(object):
         self.remove_mode = False
         self.verbose = None
 
-    def sku_def_parser(self,sku_def):
+    def sku_def_parser(self, sku_def):
         # Parsing XML sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d> to be used to analyze split configuration
 	# Rest of the fields are used as placeholders for portconfig_dict [name,lanes,SPEED,ALIAS,index]
         try:
@@ -131,7 +131,7 @@ class SkuCreate(object):
 
 	f.close()
 
-    def parse_deviceinfo(self,meta,hwsku):
+    def parse_deviceinfo(self, meta, hwsku):
 	# Parsing minigraph sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d> to be used to analyze split configuration
 	# Rest of the fields are used as placeholders for portconfig_dict [name,lanes,SPEED,ALIAS,index]
         idx = 1
@@ -155,7 +155,7 @@ class SkuCreate(object):
 	    raise ValueError("Couldn't find a SKU ",hwsku, "in minigraph file")
 			
 
-    def minigraph_parser(self,minigraph_file):
+    def minigraph_parser(self, minigraph_file):
         #Function to parse minigrpah XML file and generate SKU file (port_config.ini) by populating information regarding the ports that are extracted 
         #from minigraph file
 	root = ET.parse(minigraph_file).getroot()
@@ -176,7 +176,7 @@ class SkuCreate(object):
 	    if child.tag == str(QName(minigraph_ns, "DeviceInfos")):
 		self.parse_deviceinfo(child,hwsku)
 
-    def check_json_lanes_with_bko(self,data,port_idx):
+    def check_json_lanes_with_bko(self, data, port_idx):
         #Function to find matching entry in bko_dict that matches Port details from config_db.json file
         port_str = "Ethernet{:d}".format(port_idx)
         port_dict = []
@@ -228,7 +228,7 @@ class SkuCreate(object):
                     return entry
         return None
 
-    def write_json_lanes_to_ini_file(self,data,port_idx,port_split,f_out):
+    def write_json_lanes_to_ini_file(self, data, port_idx, port_split, f_out):
         #Function to write line of port_config.ini corresponding to a port
         step = bko_dict[port_split]["step"]
         for i in range(0,self.base_lanes,step):
@@ -248,7 +248,7 @@ class SkuCreate(object):
                 print(out_str)
         return
 
-    def json_file_parser(self,json_file):
+    def json_file_parser(self, json_file):
         #Function to generate SKU file from config_db.json file by extracting port related information from the config_db.json file
         with open(json_file) as f:
             data = json.load(f,object_pairs_hook=OrderedDict)
@@ -260,8 +260,8 @@ class SkuCreate(object):
 	    return
 	self.create_sku_dir()
 	print("Created a new sku (Location: " + self.new_sku_dir+")")
-        ini_file = self.new_sku_dir + "/" + "port_config.ini"  
-        new_file = ini_file + ".new"
+        self.ini_file = self.new_sku_dir + "/" + "port_config.ini"  
+        new_file = self.ini_file + ".new"
         f_out = open(new_file, 'w')
         for key, value in data['PORT'].iteritems():
             port_str = key
@@ -278,9 +278,10 @@ class SkuCreate(object):
                     self.write_json_lanes_to_ini_file(data,port_idx,result,f_out)
             else:
                 continue
+        f_out.close()
         self.port_config_split_analyze(self.ini_file)
         self.form_port_config_dict_from_ini(self.ini_file)
-	self.platform_specific()	
+	self.platform_specific()    
         shutil.copy(new_file,self.ini_file)
         return
 
@@ -306,11 +307,11 @@ class SkuCreate(object):
 		self.fpp_split[int(m.group(1))] = [[line_arr[2]],[idx]] #1
 	    else:
 		self.fpp_split[int(m.group(1))][0].append(line_arr[2]) #+= 1
-		self.fpp_split[int(m.group(1))][1].append(str(idx))
+		self.fpp_split[int(m.group(1))][1].append(idx)
             idx += 1
         f_in.close()
 
-    def form_port_config_dict_from_ini(self,ini_file):
+    def form_port_config_dict_from_ini(self, ini_file):
         #Internal function to populate portconfig_dict from port_config.ini file
         new_file = ini_file + ".new"
         f_in = open(new_file, 'r')
@@ -326,13 +327,17 @@ class SkuCreate(object):
  
             line = line.lstrip()
             line_arr = line.split()
-            self.portconfig_dict[idx] = ["Ethernet"+str(idx),[1,2,3,4], line_arr[2],  str(idx), line_arr[4]]
-	    idx += 1
+            if len(line_arr) == 5:
+                self.portconfig_dict[idx] = ["Ethernet"+str(idx),[1,2,3,4], line_arr[2],  str(idx), line_arr[4]]
+	        idx += 1
+            else:
+                print("port_config.ini file does not contain all fields, Exiting...") 
+                exit(1)
 
         f_in.close()
 
 
-    def break_in_ini(self,ini_file,port_name,port_split):
+    def break_in_ini(self, ini_file, port_name, port_split):
         #Function to split or unsplit a port in Port_config.ini file
         lanes_str_result = ""
 	pattern = '^([0-9]{1,})x([0-9]{1,})'
@@ -431,7 +436,7 @@ class SkuCreate(object):
         f_out.close()
         return lanes_str_result
 
-    def break_in_cfg(self,cfg_file,port_name,port_split,lanes_str_result):
+    def break_in_cfg(self, cfg_file, port_name, port_split, lanes_str_result):
         #Function to split or unsplit a port in config_db.json file
         if not os.access(os.path.dirname(cfg_file), os.W_OK):
             print("Skipping config_db.json updates for a write permission issue")
@@ -496,7 +501,7 @@ class SkuCreate(object):
 
         print("--------------------------------------------------------")
 
-    def break_a_port(self,port_name,port_split):
+    def break_a_port(self, port_name, port_split):
         #Function to split or unsplit a port based on user input in both port_config.ini file and config_db.json file
         new_file = self.ini_file + ".new"
         lanes_str_result = self.break_in_ini(self.ini_file,port_name,port_split)
