@@ -12,11 +12,6 @@ import cPickle as pickle
 import datetime
 import os.path
 
-modules_path = os.path.join(os.path.dirname(__file__), "..")
-tests_path = os.path.join(modules_path, "tests")
-sys.path.insert(0, modules_path)
-sys.path.insert(0, tests_path)
-
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
@@ -308,3 +303,12 @@ Examples:
             cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'r'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_tx, cnstat_cached_dict, False)
+        except IOError as e:
+            print(e.errno, e)
+    else:
+        pfcstat.cnstat_print(cnstat_dict_tx, False)
+
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
