@@ -48,7 +48,7 @@ def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queues = queue_names.keys() if queue_names else {}
     if display == constants.DISPLAY_ALL:
         return natsorted(queues)
-
+    # filter the backend end ports
     display_ports = [q.split(":")[0] for q in queues]
     display_ports = get_external_ports(display_ports, namespace)
     queues = [q for q in queues if q.split(":")[0] in display_ports]
@@ -71,7 +71,9 @@ def get_server_facing_ports(db):
     candidates = db.get_table('DEVICE_NEIGHBOR')
     server_facing_ports = []
     for port in candidates.keys():
-        neighbor = db.get_entry('DEVICE_NEIGHBOR_METADATA', candidates[port]['name'])
+        neighbor = db.get_entry(
+            'DEVICE_NEIGHBOR_METADATA', candidates[port]['name']
+        )
         if neighbor and neighbor['type'].lower() == 'server':
             server_facing_ports.append(port)
     if not server_facing_ports:
@@ -131,14 +133,10 @@ class PfcwdCli(object):
     @multi_asic_util.run_on_multi_asic
     def collect_config(self, ports):
         table = []
-        all_ports = get_all_ports(
-            self.db,
-            self.multi_asic.current_namespace,
-            self.multi_asic.display_option
-        )
-
         if len(ports) == 0:
-            ports = all_ports
+            ports = get_all_ports(self.db, self.multi_asic.current_namespace,
+                self.multi_asic.display_option
+            )
 
         for port in ports:
             config_list = []
@@ -178,13 +176,11 @@ class PfcwdCli(object):
         del self.table[:]
         self.collect_config(ports)
         click.echo(tabulate(
-            self.table,
-            CONFIG_HEADER,
-            stralign='right',
-            numalign='right',
+            self.table, CONFIG_HEADER, stralign='right', numalign='right',
             tablefmt='simple'
         ))
 
+    @multi_asic_util.run_on_multi_asic
     def start(self, action, restoration_time, ports, detection_time):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
@@ -194,11 +190,16 @@ class PfcwdCli(object):
         countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
         countersdb.connect(countersdb.COUNTERS_DB)
 
-        all_ports = get_all_ports(countersdb)
+        all_ports = get_all_ports(self.db, self.multi_asic.current_namespace,
+            self.multi_asic.display_option
+        )
         allowed_strs = allowed_strs + all_ports
         for p in ports:
             if p not in allowed_strs:
-                raise click.BadOptionUsage("Bad command line format. Try 'pfcwd start --help' for usage")
+                raise click.BadOptionUsage(
+                    "Bad command line format. Try 'pfcwd start --help' for"
+                    "usage"
+                )
 
         if len(ports) == 0:
             ports = all_ports
@@ -212,55 +213,79 @@ class PfcwdCli(object):
             pfcwd_info['restoration_time'] = restoration_time
         else:
             pfcwd_info['restoration_time'] = 2 * detection_time
-            click.echo("restoration time not defined; default to 2 times detection time: %d ms" % (2 * detection_time))
+            click.echo("restoration time not defined; default to 2 times"
+                "detection time: {} ms".format(2 * detection_time)
+            )
 
         for port in ports:
             if port == "all":
                 for p in all_ports:
-                    configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p, None)
-                    configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p, pfcwd_info)
+                    self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p,
+                        None
+                    )
+                    self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p,
+                        pfcwd_info
+                    )
             else:
                 if port not in all_ports:
                     continue
-                configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, None)
-                configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info)
+                self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port,
+                    None
+                )
+                self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port,
+                    pfcwd_info
+                )
 
+    @multi_asic_util.run_on_multi_asic
     def interval(self, poll_interval):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
         pfcwd_info = {}
         if poll_interval is not None:
-            pfcwd_table = configdb.get_table(CONFIG_DB_PFC_WD_TABLE_NAME)
+            pfcwd_table = self.config_db.get_table(CONFIG_DB_PFC_WD_TABLE_NAME)
             entry_min = 3000
             for entry in pfcwd_table:
                 if("Ethernet" not in entry):
                     continue
-                detection_time_entry_value = int(configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, entry).get('detection_time'))
-                restoration_time_entry_value = int(configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, entry).get('restoration_time'))
-                if ((detection_time_entry_value != None) and (detection_time_entry_value < entry_min)):
+                detection_time_entry_value = int(self.config_db.get_entry(
+                    CONFIG_DB_PFC_WD_TABLE_NAME, entry
+                ).get('detection_time'))
+                restoration_time_entry_value = int(self.config_db.get_entry(
+                    CONFIG_DB_PFC_WD_TABLE_NAME, entry
+                ).get('restoration_time'))
+                if ((detection_time_entry_value != None) and
+                    (detection_time_entry_value < entry_min)
+                ):
                     entry_min = detection_time_entry_value
                     entry_min_str = "detection time"
-                if ((restoration_time_entry_value != None) and (restoration_time_entry_value < entry_min)):
+                if ((restoration_time_entry_value != None) and
+                    (restoration_time_entry_value < entry_min)
+                ):
                     entry_min = restoration_time_entry_value
                     entry_min_str = "restoration time"
             if entry_min < poll_interval:
-                click.echo("unable to use polling interval = {}ms, value is bigger than one of the configured {} values, please choose a smaller polling_interval".format(poll_interval,entry_min_str), err=True)
+                click.echo("unable to use polling interval = {}ms, value is "
+                    "bigger than one of the configured {} values, please "
+                    "choose a smaller polling_interval".format(
+                        poll_interval,entry_min_str), err=True
+                    )
                 exit(1)
 
             pfcwd_info['POLL_INTERVAL'] = poll_interval
-            configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
+            self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL",
+                pfcwd_info
+            )
 
+    @multi_asic_util.run_on_multi_asic
     def stop(self, ports):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
         configdb = swsssdk.ConfigDBConnector()
         configdb.connect()
-        countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
-        countersdb.connect(countersdb.COUNTERS_DB)
 
-        all_ports = get_all_ports(countersdb)
+        all_ports = get_all_ports(self.db, self.multi_asic.current_namespace,
+            self.multi_asic.display_option
+        )
 
         if len(ports) == 0:
             ports = all_ports
@@ -268,22 +293,25 @@ class PfcwdCli(object):
         for port in ports:
             if port not in all_ports:
                 continue
-            configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, None)
+            self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, None)
 
+    @multi_asic_util.run_on_multi_asic
     def start_default(self):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
-        enable = configdb.get_entry('DEVICE_METADATA', 'localhost').get('default_pfcwd_status')
+        enable = self.config_db.get_entry('DEVICE_METADATA', 'localhost').get(
+            'default_pfcwd_status'
+        )
 
         # Get active ports from Config DB
-        active_ports = natsorted(configdb.get_table('DEVICE_NEIGHBOR').keys())
+        active_ports = natsorted(
+            self.config_db.get_table('DEVICE_NEIGHBOR').keys()
+        )
 
         if not enable or enable.lower() != "enable":
            return
 
-        port_num = len(configdb.get_table('PORT').keys())
+        port_num = len(self.config_db.get_table('PORT').keys())
 
         # Paramter values positively correlate to the number of ports.
         multiply = max(1, (port_num-1)/DEFAULT_PORT_NUM+1)
@@ -294,31 +322,34 @@ class PfcwdCli(object):
         }
 
         for port in active_ports:
-            configdb.set_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info)
+            self.config_db.set_entry(
+                CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info
+            )
 
         pfcwd_info = {}
         pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * multiply
-        configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
+        self.config_db.mod_entry(
+            CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info
+        )
 
+    @multi_asic_util.run_on_multi_asic
     def counter_poll(self, counter_poll):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
         pfcwd_info = {}
         pfcwd_info['FLEX_COUNTER_STATUS'] = counter_poll
-        configdb.mod_entry("FLEX_COUNTER_TABLE", "PFCWD", pfcwd_info)
+        self.config_db.mod_entry("FLEX_COUNTER_TABLE", "PFCWD", pfcwd_info)
 
+    @multi_asic_util.run_on_multi_asic
     def big_red_switch(self, big_red_switch):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
         pfcwd_info = {}
         if big_red_switch is not None:
             pfcwd_info['BIG_RED_SWITCH'] = big_red_switch
-
-        configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
+        self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL",
+            pfcwd_info
+        )
 
 
 # Show stats
@@ -334,6 +365,8 @@ class Show(object):
     @click.argument('queues', nargs = -1)
     def stats(namespace, display, empty, queues):
         """ Show PFC Watchdog stats per queue """
+        if (len(queues)):
+            display = constants.DISPLAY_ALL
         PfcwdCli(namespace, display).show_stats(empty, queues)
 
     # Show stats
@@ -348,7 +381,9 @@ class Show(object):
 # Start WD
 class Start(object):
     @cli.command()
-    @click.option('--action', '-a', type=click.Choice(['drop', 'forward', 'alert']))
+    @click.option('--action', '-a',
+        type=click.Choice(['drop', 'forward', 'alert'])
+    )
     @click.option('--restoration-time', '-r', type=click.IntRange(100, 60000))
     @click.argument('ports', nargs=-1)
     @click.argument('detection-time', type=click.IntRange(100, 5000))
