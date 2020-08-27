@@ -123,7 +123,7 @@ def _get_labels():
 
 def _label_node(label):
     cmd = "kubectl --kubeconfig {} label nodes {} {}".format(
-            KUBE_ADMIN_CONF, get_hostname(), label)
+            KUBE_ADMIN_CONF, device_info.get_hostname(), label)
     clicommon.run_command(cmd, ignore_error=True)
 
 
@@ -165,7 +165,7 @@ def _do_join(server, insecure):
         clicommon.run_command("systemctl enable kubelet")
 
         clicommon.run_command(KUBEADM_JOIN_CMD.format(
-            KUBE_ADMIN_CONF, get_hostname()), ignore_error=True)
+            KUBE_ADMIN_CONF, device_info.get_hostname()), ignore_error=True)
 
         if _is_connected(server):
             labels = _get_labels()
@@ -194,11 +194,11 @@ def kube_reset():
         _label_node("enable_pods-")
         clicommon.run_command(
                 "kubectl --kubeconfig {} --request-timeout 20s drain {} --ignore-daemonsets".format(
-                    KUBE_ADMIN_CONF, get_hostname()),
+                    KUBE_ADMIN_CONF, device_info.get_hostname()),
                 ignore_error=True)
         clicommon.run_command(
                 "kubectl --kubeconfig {} --request-timeout 20s delete node {}".format(
-                    KUBE_ADMIN_CONF, get_hostname()),
+                    KUBE_ADMIN_CONF, device_info.get_hostname()),
                 ignore_error=True)
 
     clicommon.run_command("kubeadm reset -f", ignore_error=True)
