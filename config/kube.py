@@ -15,6 +15,7 @@ from swsssdk import ConfigDBConnector
 from utilities_common.common import *
 from sonic_py_common import device_info
 import utilities_common.cli as clicommon
+from .utils import log
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBELET_YAML = "/var/lib/kubelet/config.yaml"
@@ -41,12 +42,12 @@ def _update_kube_server(field, val):
         if db_data and f in db_data:
             if f == field and db_data[f] != val:
                 config_db.mod_entry(table, key, {field: val})
-                log_info("modify kubernetes server entry {}={}".format(field,val), True)
+                log.log_info("modify kubernetes server entry {}={}".format(field,val))
         else:
             # Missing field. Set to default or given value
             v = val if f == field else def_data[f]
             config_db.mod_entry(table, key, {f: v})
-            log_info("set kubernetes server entry {}={}".format(f,v), True)
+            log.log_info("set kubernetes server entry {}={}".format(f,v))
 
 
 def _take_lock():
@@ -54,10 +55,10 @@ def _take_lock():
     try:
         lock_fd = open(LOCK_FILE, "w")
         fcntl.lockf(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        log_info("Lock taken {}".format(LOCK_FILE), True)
+        log.log_info("Lock taken {}".format(LOCK_FILE))
     except IOError as e:
         lock_fd = None
-        log_error("Lock {} failed: {}".format(LOCK_FILE, str(e)), True)
+        log.log_error("Lock {} failed: {}".format(LOCK_FILE, str(e)))
     return lock_fd
 
 
@@ -154,7 +155,7 @@ c)  In Master check if all system pods are running good.
     os.write(h, msg)
     os.close(h)
 
-    log_error("Refer file {} for troubleshooting tips".format(fname), True)
+    log.log_error("Refer file {} for troubleshooting tips".format(fname))
 
 
 def _do_join(server, insecure):
@@ -183,7 +184,7 @@ def _do_join(server, insecure):
 def kube_reset():
     lock_fd = _take_lock()
     if not lock_fd:
-        log_error("Lock {} is active; Bail out".format(LOCK_FILE), True)
+        log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
 
     # Remove a key label and drain/delete self from cluster
@@ -210,15 +211,15 @@ def kube_reset():
 def kube_join(force=False):
     lock_fd = _take_lock()
     if not lock_fd:
-        log_error("Lock {} is active; Bail out".format(LOCK_FILE), True)
+        log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
 
     db_data = get_configdb_data('KUBERNETES_MASTER', 'SERVER')
     if not db_data or 'IP' not in db_data or not db_data['IP']:
-        log_error("Kubernetes server is not configured", True)
+        log.log_error("Kubernetes server is not configured")
 
     if db_data['disable'].lower() != "false":
-        log_error("kube join skipped as kubernetes server is marked disabled", True)
+        log.log_error("kube join skipped as kubernetes server is marked disabled")
         return
 
     if not force:
