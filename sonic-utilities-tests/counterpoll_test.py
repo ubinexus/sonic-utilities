@@ -43,7 +43,7 @@ class TestCounterpoll(object):
         print(result.output)
         assert result.exit_code == 0
 
-    def test_port_buffer_drop_interval_to_short(self):
+    def test_port_buffer_drop_interval_too_short(self):
         runner = CliRunner()
         result = runner.invoke(counterpoll.cli.commands["port-buffer-drop"].commands["interval"], ["1000"])
         print(result.output)
