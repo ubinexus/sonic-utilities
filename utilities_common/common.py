@@ -17,37 +17,6 @@ SYSLOG_IDENTIFIER = "config"
 def get_hostname():
     return os.uname()[1]
 
-# ========================== Syslog wrappers ==========================
-
-def _log_msg(lvl, print_msg, fname, ln, msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(lvl, msg)
-    syslog.closelog()
-
-    if (print_msg and
-            (lvl == syslog.LOG_DEBUG or
-                sys.flags.interactive or
-                sys.flags.debug or
-                sys.flags.verbose)):
-        print("{}: {}:{}: {}".format(SYSLOG_IDENTIFIER, fname, ln, msg))
-
-
-def log_info(msg, print_msg=False):
-    _log_msg(syslog.LOG_INFO, print_msg, inspect.stack()[1][1], inspect.stack()[1][2], msg)
-
-
-def log_error(msg, print_msg=False):
-    _log_msg(syslog.LOG_ERR, print_msg, inspect.stack()[1][1], inspect.stack()[1][2], msg)
-
-
-def log_warning(msg, print_msg=False):
-    _log_msg(syslog.LOG_WARNING, print_msg, inspect.stack()[1][1], inspect.stack()[1][2], msg)
-
-
-def log_debug(msg, print_msg=False):
-    _log_msg(syslog.LOG_DEBUG, print_msg, inspect.stack()[1][1], inspect.stack()[1][2], msg)
-
-
 def do_exit(msg):
     m = "FATAL failure: {}. Exiting...".format(msg)
     _log_msg(syslog.LOG_ERR, True, inspect.stack()[1][1], inspect.stack()[1][2], m)

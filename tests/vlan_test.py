@@ -16,6 +16,11 @@ show_vlan_brief_output="""\
 |           |                 | Ethernet12 | untagged       | 192.0.0.3             |
 |           |                 | Ethernet16 | untagged       | 192.0.0.4             |
 +-----------+-----------------+------------+----------------+-----------------------+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
+|           |                 |            |                | 192.0.0.3             |
+|           |                 |            |                | 192.0.0.4             |
++-----------+-----------------+------------+----------------+-----------------------+
 """
 
 show_vlan_brief_in_alias_mode_output="""\
@@ -27,13 +32,22 @@ show_vlan_brief_in_alias_mode_output="""\
 |           |                 | etp4    | untagged       | 192.0.0.3             |
 |           |                 | etp5    | untagged       | 192.0.0.4             |
 +-----------+-----------------+---------+----------------+-----------------------+
+|      2000 | 192.168.0.10/21 | etp7    | untagged       | 192.0.0.1             |
+|           | fc02:1011::1/64 | etp8    | untagged       | 192.0.0.2             |
+|           |                 |         |                | 192.0.0.3             |
+|           |                 |         |                | 192.0.0.4             |
++-----------+-----------------+---------+----------------+-----------------------+
 """
 
 show_vlan_brief_empty_output="""\
-+-----------+--------------+---------+----------------+-----------------------+
-| VLAN ID   | IP Address   | Ports   | Port Tagging   | DHCP Helper Address   |
-+===========+==============+=========+================+=======================+
-+-----------+--------------+---------+----------------+-----------------------+
++-----------+-----------------+------------+----------------+-----------------------+
+|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   |
++===========+=================+============+================+=======================+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
+|           |                 |            |                | 192.0.0.3             |
+|           |                 |            |                | 192.0.0.4             |
++-----------+-----------------+------------+----------------+-----------------------+
 """
 
 show_vlan_brief_with_portchannel_output="""\
@@ -46,12 +60,33 @@ show_vlan_brief_with_portchannel_output="""\
 |           |                 | Ethernet16      | untagged       | 192.0.0.4             |
 |           |                 | PortChannel1001 | untagged       |                       |
 +-----------+-----------------+-----------------+----------------+-----------------------+
+|      2000 | 192.168.0.10/21 | Ethernet24      | untagged       | 192.0.0.1             |
+|           | fc02:1011::1/64 | Ethernet28      | untagged       | 192.0.0.2             |
+|           |                 |                 |                | 192.0.0.3             |
+|           |                 |                 |                | 192.0.0.4             |
++-----------+-----------------+-----------------+----------------+-----------------------+
 """
 
 show_vlan_config_output="""\
-Name        VID
---------  -----
-Vlan1000   1000
+Name        VID  Member      Mode
+--------  -----  ----------  --------
+Vlan1000   1000  Ethernet8   untagged
+Vlan1000   1000  Ethernet16  untagged
+Vlan1000   1000  Ethernet12  untagged
+Vlan1000   1000  Ethernet4   untagged
+Vlan2000   2000  Ethernet28  untagged
+Vlan2000   2000  Ethernet24  untagged
+"""
+
+show_vlan_config_in_alias_mode_output="""\
+Name        VID  Member    Mode
+--------  -----  --------  --------
+Vlan1000   1000  etp3      untagged
+Vlan1000   1000  etp5      untagged
+Vlan1000   1000  etp4      untagged
+Vlan1000   1000  etp2      untagged
+Vlan2000   2000  etp8      untagged
+Vlan2000   2000  etp7      untagged
 """
 
 config_vlan_add_dhcp_relay_output="""\
@@ -74,6 +109,11 @@ show_vlan_brief_output_with_new_dhcp_relay_address="""\
 |           |                 | Ethernet16 | untagged       | 192.0.0.4             |
 |           |                 |            |                | 192.0.0.100           |
 +-----------+-----------------+------------+----------------+-----------------------+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
+|           |                 |            |                | 192.0.0.3             |
+|           |                 |            |                | 192.0.0.4             |
++-----------+-----------------+------------+----------------+-----------------------+
 """
 
 config_add_del_vlan_and_vlan_member_output="""\
@@ -87,6 +127,11 @@ config_add_del_vlan_and_vlan_member_output="""\
 +-----------+-----------------+------------+----------------+-----------------------+
 |      1001 |                 | Ethernet20 | untagged       |                       |
 +-----------+-----------------+------------+----------------+-----------------------+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
+|           |                 |            |                | 192.0.0.3             |
+|           |                 |            |                | 192.0.0.4             |
++-----------+-----------------+------------+----------------+-----------------------+
 """
 
 config_add_del_vlan_and_vlan_member_in_alias_mode_output="""\
@@ -99,6 +144,11 @@ config_add_del_vlan_and_vlan_member_in_alias_mode_output="""\
 |           |                 | etp5    | untagged       | 192.0.0.4             |
 +-----------+-----------------+---------+----------------+-----------------------+
 |      1001 |                 | etp6    | untagged       |                       |
++-----------+-----------------+---------+----------------+-----------------------+
+|      2000 | 192.168.0.10/21 | etp7    | untagged       | 192.0.0.1             |
+|           | fc02:1011::1/64 | etp8    | untagged       | 192.0.0.2             |
+|           |                 |         |                | 192.0.0.3             |
+|           |                 |         |                | 192.0.0.4             |
 +-----------+-----------------+---------+----------------+-----------------------+
 """
 class TestVlan(object):
@@ -134,11 +184,11 @@ class TestVlan(object):
         runner = CliRunner()
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"])
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_in_alias_mode_output
-        os.environ['SONIC_CLI_IFACE_MODE'] = ""
 
     def test_show_vlan_config(self):
         runner = CliRunner()
@@ -147,6 +197,16 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vlan_config_output
+
+    def test_show_vlan_config_in_alias_mode(self):
+        runner = CliRunner()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["vlan"].commands["config"], [])
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vlan_config_in_alias_mode_output
 
     def test_config_vlan_add_vlan_with_invalid_vlanid(self):
         runner = CliRunner()

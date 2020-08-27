@@ -1,4 +1,13 @@
-#!/usr/bin/python
+
+import os
+import sys
+
+import click
+import utilities_common.cli as clicommon
+from natsort import natsorted
+from tabulate import tabulate
+import utilities_common.multi_asic as multi_asic_util
+from utilities_common.constants import PORT_CHANNEL_OBJ
 
 """
     Script to show LAG and LAG member status in a summary view
@@ -19,40 +28,43 @@
 
 """
 
-import json
-import os
-import swsssdk
-import subprocess
-import sys
-from tabulate import tabulate
-from natsort import natsorted
-
 PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
+PORT_CHANNEL_STATE_TABLE_PREFIX = "LAG_TABLE|"
 PORT_CHANNEL_STATUS_FIELD = "oper_status"
 
 PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX = "LAG_MEMBER_TABLE:"
+PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX = "LAG_MEMBER_TABLE|"
 PORT_CHANNEL_MEMBER_STATUS_FIELD = "status"
 
 class Teamshow(object):
-    def __init__(self):
+    def __init__(self, namespace_option, display_option):
         self.teams = []
         self.teamsraw = {}
         self.summary = {}
         self.err = None
-        # setup db connection
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
-        self.db.connect(self.db.APPL_DB)
-        self.db.connect(self.db.CONFIG_DB)
+        self.db = None
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
+
+    @multi_asic_util.run_on_multi_asic
+    def get_teams_info(self):
+        self.get_portchannel_names()
+        self.get_teamdctl()
+        self.get_teamshow_result()
 
     def get_portchannel_names(self):
         """
             Get the portchannel names from database.
         """
+        self.teams = []
         team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
         if team_keys is None:
             return
-        self.teams = [key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):] for key in team_keys]
+        for key in team_keys:
+            team_name = key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):]
+            if self.multi_asic.skip_display(PORT_CHANNEL_OBJ, team_name) is True:
+                continue
+            self.teams.append(team_name)
 
     def get_portchannel_status(self, port_channel_name):
         """
@@ -76,15 +88,15 @@ class Teamshow(object):
             Get teams raw data from teamdctl.
             Command: 'teamdctl <teamdevname> state dump'.
         """
+
+        team_keys = self.db.keys(self.db.STATE_DB, PORT_CHANNEL_STATE_TABLE_PREFIX+"*")
+        if team_keys is None:
+            return
+        _teams = [key[len(PORT_CHANNEL_STATE_TABLE_PREFIX):] for key in team_keys]
+
         for team in self.teams:
-            teamdctl_cmd = 'teamdctl ' + team + ' state dump'
-            p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            (output, err) = p.communicate()
-            rc = p.wait()
-	    if rc == 0:
-                self.teamsraw[self.get_team_id(team)] = output
-            else:
-                self.err = err
+            if team in _teams:
+                self.teamsraw[self.get_team_id(team)] = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_STATE_TABLE_PREFIX+team)
 
     def get_teamshow_result(self):
         """
@@ -98,9 +110,10 @@ class Teamshow(object):
                 self.summary[team_id] = info
                 self.summary[team_id]['ports'] = ''
                 continue
-            json_info = json.loads(self.teamsraw[team_id])
-            info['protocol'] = json_info['setup']['runner_name'].upper()
-            info['protocol'] += '(A)' if json_info['runner']['active'] else '(I)'
+            state = self.teamsraw[team_id]
+            info['protocol'] = "LACP"
+            info['protocol'] += "(A)" if state['runner.active'] == "true" else '(I)'
+
             portchannel_status = self.get_portchannel_status(team)
             if portchannel_status is None:
                 info['protocol'] += '(N/A)'
@@ -112,14 +125,20 @@ class Teamshow(object):
                 info['protocol'] += '(N/A)'
 
             info['ports'] = ""
-            if 'ports' not in json_info:
+            member_keys = self.db.keys(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|*')
+            if member_keys is None:
                 info['ports'] = 'N/A'
             else:
-                for port in json_info['ports']:
+                ports = [key[len(PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'):] for key in member_keys]
+                for port in ports:
                     status = self.get_portchannel_member_status(team, port)
-                    selected = json_info["ports"][port]["runner"]["selected"]
-
-                    info["ports"] += port + "("
+                    pstate = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'+port)
+                    selected = True if pstate['runner.aggregator.selected'] == "true" else False
+                    if clicommon.get_interface_naming_mode() == "alias":
+                        alias = clicommon.InterfaceAliasConverter().name_to_alias(port)
+                        info["ports"] += alias + "("
+                    else:
+                        info["ports"] += port + "("
                     info["ports"] += "S" if selected else "D"
                     if status is None or (status == "enabled" and not selected) or (status == "disabled" and selected):
                         info["ports"] += "*"
@@ -138,20 +157,14 @@ class Teamshow(object):
         output = []
         for team_id in natsorted(self.summary):
             output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
-        print tabulate(output, header)
+        print(tabulate(output, header))
 
-def main():
-    if os.geteuid() != 0:
-        exit("This utility must be run as root")
-
-    try:
-        team = Teamshow()
-        team.get_portchannel_names()
-        team.get_teamdctl()
-        team.get_teamshow_result()
-        team.display_summary()
-    except Exception as e:
-        sys.exit(e.message)
-
-if __name__ == "__main__":
-    main()
+# 'portchannel' subcommand ("show interfaces portchannel")
+@click.command()
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def portchannel(namespace, display, verbose):
+    """Show PortChannel information"""
+    team = Teamshow(namespace, display)
+    team.get_teams_info()
+    team.display_summary()
