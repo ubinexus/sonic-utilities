@@ -4,6 +4,7 @@
 import os
 import click
 
+from sonic_py_common import device_info
 from utilities_common.db import Db
 import utilities_common.cli as clicommon
 
@@ -48,13 +49,13 @@ def nodes():
 @kubernetes.command()
 def pods():
     """List all pods in this kubernetes cluster"""
-    run_kube_command("get pods  --field-selector spec.nodeName={}".format(get_hostname()))
+    run_kube_command("get pods  --field-selector spec.nodeName={}".format(device_info.get_hostname()))
 
 
 @kubernetes.command()
 def status():
     """Descibe this node"""
-    run_kube_command("describe node {}".format(get_hostname()))
+    run_kube_command("describe node {}".format(device_info.get_hostname()))
 
 
 @kubernetes.command()
