@@ -409,11 +409,12 @@ def pfcwd():
     pass
 
 @pfcwd.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def config(verbose):
     """Show pfc watchdog config"""
 
-    cmd = "pfcwd show config"
+    cmd = "pfcwd show config -n {} -d {}".format(namespace, display)
 
     run_command(cmd, display_cmd=verbose)
 
