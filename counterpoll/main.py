@@ -7,6 +7,7 @@ from tabulate import tabulate
 BUFFER_POOL_WATERMARK = "BUFFER_POOL_WATERMARK"
 PORT_BUFFER_DROP = "PORT_BUFFER_DROP"
 DISABLE = "disable"
+ENABLE = "enable"
 DEFLT_60_SEC= "default (60000)"
 DEFLT_10_SEC= "default (10000)"
 DEFLT_1_SEC = "default (1000)"
@@ -111,7 +112,7 @@ def enable():
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     port_info = {}
-    port_info['FLEX_COUNTER_STATUS'] = 'enable'
+    port_info['FLEX_COUNTER_STATUS'] = ENABLE
     configdb.mod_entry("FLEX_COUNTER_TABLE", PORT_BUFFER_DROP, port_info)
 
 @port_buffer_drop.command()
@@ -120,7 +121,7 @@ def disable():
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     port_info = {}
-    port_info['FLEX_COUNTER_STATUS'] = 'disable'
+    port_info['FLEX_COUNTER_STATUS'] = DISABLE
     configdb.mod_entry("FLEX_COUNTER_TABLE", PORT_BUFFER_DROP, port_info)
 
 # RIF counter commands
