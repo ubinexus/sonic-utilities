@@ -12,7 +12,7 @@ import netaddr
 import shutil
 from urlparse import urlparse
 from swsssdk import ConfigDBConnector
-from utilities_common.common import *
+from utilities_common.db import Db
 from sonic_py_common import device_info
 import utilities_common.cli as clicommon
 from .utils import log
@@ -32,7 +32,7 @@ def _update_kube_server(field, val):
     config_db.connect()
     table = "KUBERNETES_MASTER"
     key = "SERVER"
-    db_data = get_configdb_data(table, key)
+    db_data = Db().get_data(table, key)
     def_data = {
         "IP": "",
         "insecure": "False",
@@ -73,7 +73,7 @@ def _download_file(server, insecure):
         os.write(h, r.text)
         os.close(h)
     else:
-        do_exit("Failed to download {}".format(
+        clicommon.do_exit("Failed to download {}".format(
             SERVER_ADMIN_URL.format(server)))
 
     # Ensure the admin.conf has given VIP as server-IP.
@@ -113,7 +113,7 @@ def _get_labels():
 
     labels.append("sonic_version={}".format(version_info['build_version']))
     labels.append("hwsku={}".format(hwsku))
-    lh = get_configdb_data('DEVICE_METADATA', 'localhost')
+    lh = Db().get_data('DEVICE_METADATA', 'localhost')
     labels.append("deployment_type={}".format(
         lh['type'] if lh and 'type' in lh else "Unknown"))
     labels.append("enable_pods=True")
@@ -173,10 +173,10 @@ def _do_join(server, insecure):
                 _label_node(label)
 
     except requests.exceptions.RequestException as e:
-        do_exit("Download failed: {}".format(str(e)))
+        clicommon.do_exit("Download failed: {}".format(str(e)))
 
     except OSError as e:
-        do_exit("Download failed: {}".format(str(e)))
+        clicommon.do_exit("Download failed: {}".format(str(e)))
 
     _troubleshoot_tips()
 
@@ -214,7 +214,7 @@ def kube_join(force=False):
         log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
 
-    db_data = get_configdb_data('KUBERNETES_MASTER', 'SERVER')
+    db_data = Db().get_data('KUBERNETES_MASTER', 'SERVER')
     if not db_data or 'IP' not in db_data or not db_data['IP']:
         log.log_error("Kubernetes server is not configured")
 
@@ -231,7 +231,7 @@ def kube_join(force=False):
     _do_join(db_data['IP'], db_data['insecure'])
 
 
-@click.group(cls=AbbreviationGroup)
+@click.group(cls=clicommon.AbbreviationGroup)
 def kubernetes():
     """kubernetes command line"""
     pass

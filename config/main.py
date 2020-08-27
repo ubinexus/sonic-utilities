@@ -21,7 +21,6 @@ from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
 from .utils import log
-from utilities_common.common import *
 
 
 import aaa

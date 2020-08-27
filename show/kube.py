@@ -4,7 +4,7 @@
 import os
 import click
 
-from utilities_common.common import *
+from utilities_common.db import Db
 import utilities_common.cli as clicommon
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
@@ -60,7 +60,7 @@ def status():
 @kubernetes.command()
 def server():
     """Show kube configuration"""
-    kube_fvs = get_configdb_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
+    kube_fvs = Db().get_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
     if kube_fvs:
         _print_entry(kube_fvs, "{} {}".format(
             REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
