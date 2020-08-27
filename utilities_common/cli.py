@@ -8,8 +8,7 @@ import click
 from natsort import natsorted
 
 from utilities_common.db import Db
-
-from swsssdk import ConfigDBConnector
+from sonic_py_common import multi_asic
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -122,13 +121,12 @@ class InterfaceAliasConverter(object):
     def __init__(self, db=None):
 
         if db is None:
-            self.config_db = ConfigDBConnector()
-            self.config_db.connect()
+            self.port_dict = multi_asic.get_port_table()
         else:
             self.config_db = db.cfgdb
-
+            self.port_dict = self.config_db.get_table('PORT')
         self.alias_max_length = 0
-        self.port_dict = self.config_db.get_table('PORT')
+        
 
         if not self.port_dict:
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
@@ -438,20 +436,6 @@ def run_command_in_alias_mode(command):
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
 
-            elif command.startswith("sudo teamshow"):
-                """
-                sudo teamshow
-                Search for port names either at the start of a line or preceded immediately by
-                whitespace and followed immediately by either the end of a line or whitespace
-                OR followed immediately by '(D)', '(S)', '(D*)' or '(S*)'
-                """
-                converted_output = raw_output
-                for port_name in iface_alias_converter.port_dict.keys():
-                    converted_output = re.sub(r"(^|\s){}(\([DS]\*{{0,1}}\)(?:$|\s))".format(port_name),
-                            r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
-                            converted_output)
-                click.echo(converted_output.rstrip('\n'))
-
             else:
                 """
                 Default command conversion
@@ -478,7 +462,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
-    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+    if os.getenv("UTILITIES_UNIT_TESTING") == "1":
         return
 
     # No conversion needed for intfutil commands as it already displays
