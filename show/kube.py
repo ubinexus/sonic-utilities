@@ -48,13 +48,13 @@ def nodes():
 @kubernetes.command()
 def pods():
     """List all pods in this kubernetes cluster"""
-    run_kube_command("get pods")
+    run_kube_command("get pods  --field-selector spec.nodeName={}".format(get_hostname()))
 
 
 @kubernetes.command()
 def status():
     """Descibe this node"""
-    run_kube_command("describe node {}".format(hostname()))
+    run_kube_command("describe node {}".format(get_hostname()))
 
 
 @kubernetes.command()
