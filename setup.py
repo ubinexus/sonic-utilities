@@ -51,6 +51,7 @@ setup(
         'sonic-utilities-tests',
         'undebug',
         'utilities_common',
+        'watchdogutil',
     ],
     package_data={
         'show': ['aliases.ini'],
@@ -79,6 +80,7 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/mellanox_buffer_migrator.py',
         'scripts/mmuconfig',
         'scripts/natclear',
         'scripts/natconfig',
@@ -130,6 +132,7 @@ setup(
             'sonic-clear = clear.main:cli',
             'sonic_installer = sonic_installer.main:cli',
             'undebug = undebug.main:cli',
+            'watchdogutil = watchdogutil.main:watchdogutil',
         ]
     },
     # NOTE: sonic-utilities also depends on other packages that are either only

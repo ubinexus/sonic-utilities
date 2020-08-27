@@ -13,17 +13,18 @@ import ipaddress
 import click
 from click_default_group import DefaultGroup
 from natsort import natsorted
-from tabulate import tabulate
-
-import sonic_device_util
+from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from tabulate import tabulate
 
 import mlnx
 
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
+
+config_db = None
 
 try:
     # noinspection PyPep8Naming
@@ -548,7 +549,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'show' command"""
-    pass
+    global config_db
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
 #
 # 'vrf' command ("show vrf")
@@ -1570,7 +1574,7 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    from .bgp_frr_v4 import bgp 
+    from .bgp_frr_v4 import bgp
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
@@ -1617,20 +1621,13 @@ def get_hw_info_dict():
     This function is used to get the HW info helper function
     """
     hw_info_dict = {}
-    machine_info = sonic_device_util.get_machine_info()
-    platform = sonic_device_util.get_platform_info(machine_info)
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('DEVICE_METADATA')
-    try:
-        hwsku = data['localhost']['hwsku']
-    except KeyError:
-        hwsku = "Unknown"
-    version_info = sonic_device_util.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-    hw_info_dict['platform'] = platform
-    hw_info_dict['hwsku'] = hwsku
-    hw_info_dict['asic_type'] = asic_type
+
+    version_info = device_info.get_sonic_version_info()
+
+    hw_info_dict['platform'] = device_info.get_platform()
+    hw_info_dict['hwsku'] = device_info.get_hwsku()
+    hw_info_dict['asic_type'] = version_info['asic_type']
+
     return hw_info_dict
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
@@ -1638,7 +1635,7 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
-version_info = sonic_device_util.get_sonic_version_info()
+version_info = device_info.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
     platform.add_command(mlnx.mlnx)
 
@@ -1755,7 +1752,7 @@ def logging(process, lines, follow, verbose):
 @click.option("--verbose", is_flag=True, help="Enable verbose output")
 def version(verbose):
     """Show version information"""
-    version_info = sonic_device_util.get_sonic_version_info()
+    version_info = device_info.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
     serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
@@ -2765,53 +2762,52 @@ def ztp(status, verbose):
     run_command(cmd, display_cmd=verbose)
 
 #
-# show features
+# 'feature' group (show feature ...)
 #
-@cli.command('features')
-def features():
-    """Show status of optional features"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['Feature', 'Status']
+@cli.group(name='feature', invoke_without_command=False)
+def feature():
+    """Show feature status"""
+    pass
+
+#
+# 'state' subcommand (show feature status)
+#
+@feature.command('status', short_help="Show feature state")
+@click.argument('feature_name', required=False)
+def autorestart(feature_name):
+    header = ['Feature', 'State', 'AutoRestart']
     body = []
-    status_data = config_db.get_table('FEATURE')
-    for key in status_data.keys():
-        body.append([key, status_data[key]['status']])
+    feature_table = config_db.get_table('FEATURE')
+    if feature_name:
+        if feature_table and feature_table.has_key(feature_name):
+            body.append([feature_name, feature_table[feature_name]['state'], \
+                         feature_table[feature_name]['auto_restart']])
+        else:
+            click.echo("Can not find feature {}".format(feature_name))
+            sys.exit(1)
+    else:
+        for key in natsorted(feature_table.keys()):
+            body.append([key, feature_table[key]['state'], feature_table[key]['auto_restart']])
     click.echo(tabulate(body, header))
 
 #
-# 'container' group (show container ...)
+# 'autorestart' subcommand (show feature autorestart)
 #
-@cli.group(name='container', invoke_without_command=False)
-def container():
-    """Show container"""
-    pass
-
-#
-# 'feature' group (show container feature ...)
-#
-@container.group(name='feature', invoke_without_command=False)
-def feature():
-    """Show container feature"""
-    pass
-
-#
-# 'autorestart' subcommand (show container feature autorestart)
-#
-@feature.command('autorestart', short_help="Show whether the auto-restart feature for container(s) is enabled or disabled")
-@click.argument('container_name', required=False)
-def autorestart(container_name):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['Container Name', 'Status']
+@feature.command('autorestart', short_help="Show auto-restart state for a feature")
+@click.argument('feature_name', required=False)
+def autorestart(feature_name):
+    header = ['Feature', 'AutoRestart']
     body = []
-    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
-    if container_name:
-        if container_feature_table and container_feature_table.has_key(container_name):
-            body.append([container_name, container_feature_table[container_name]['auto_restart']])
+    feature_table = config_db.get_table('FEATURE')
+    if feature_name:
+        if feature_table and feature_table.has_key(feature_name):
+            body.append([feature_name, feature_table[feature_name]['auto_restart']])
+        else:
+            click.echo("Can not find feature {}".format(feature_name))
+            sys.exit(1)
     else:
-        for name in container_feature_table.keys():
-            body.append([name, container_feature_table[name]['auto_restart']])
+        for name in natsorted(feature_table.keys()):
+            body.append([name, feature_table[name]['auto_restart']])
     click.echo(tabulate(body, header))
 
 #
