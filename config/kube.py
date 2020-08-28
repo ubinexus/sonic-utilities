@@ -164,6 +164,8 @@ def _do_join(server, insecure):
 
         clicommon.run_command("systemctl enable kubelet")
 
+        clicommon.run_command("modprobe br_netfilter")
+
         clicommon.run_command(KUBEADM_JOIN_CMD.format(
             KUBE_ADMIN_CONF, device_info.get_hostname()), ignore_error=True)
 
