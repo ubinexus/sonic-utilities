@@ -414,10 +414,12 @@ def pfcwd():
 @pfcwd.command()
 @multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def config(verbose):
+def config(namespace, display, verbose):
     """Show pfc watchdog config"""
 
-    cmd = "pfcwd show config -n {} -d {}".format(namespace, display)
+    cmd = "pfcwd show config -d {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -427,7 +429,9 @@ def config(verbose):
 def stats(namespace, display, verbose):
     """Show pfc watchdog stats"""
 
-    cmd = "pfcwd show stats -n {} -d {}".format(namespace, display)
+    cmd = "pfcwd show stats -d {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 

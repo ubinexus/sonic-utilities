@@ -3,6 +3,8 @@
 import click
 import swsssdk
 import os
+import sys
+
 from tabulate import tabulate
 from natsort import natsorted
 
@@ -10,6 +12,20 @@ from sonic_py_common.multi_asic import get_external_ports
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+
+except KeyError:
+    pass
 
 # Default configuration
 DEFAULT_DETECTION_TIME = 200
@@ -43,6 +59,7 @@ CONFIG_DB_PFC_WD_TABLE_NAME = 'PFC_WD'
 def cli():
     """ SONiC PFC Watchdog """
 
+
 def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')
     queues = queue_names.keys() if queue_names else {}
@@ -54,6 +71,7 @@ def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queues = [q for q in queues if q.split(":")[0] in display_ports]
     return natsorted(queues)
 
+
 def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
     all_port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
 
@@ -61,11 +79,12 @@ def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
     port_names = {}
     for i in all_port_names:
         if i.startswith('Ethernet'):
-            port_names[i]= all_port_names[i]
+            port_names[i] = all_port_names[i]
     display_ports = port_names.keys()
     if display == constants.DISPLAY_EXTERNAL:
         display_ports = get_external_ports(display_ports, namespace)
     return natsorted(display_ports)
+
 
 def get_server_facing_ports(db):
     candidates = db.get_table('DEVICE_NEIGHBOR')
@@ -121,7 +140,6 @@ class PfcwdCli(object):
 
         self.table += table
 
-
     def show_stats(self, empty, queues):
         del self.table[:]
         self.collect_stats(empty, queues)
@@ -134,7 +152,8 @@ class PfcwdCli(object):
     def collect_config(self, ports):
         table = []
         if len(ports) == 0:
-            ports = get_all_ports(self.db, self.multi_asic.current_namespace,
+            ports = get_all_ports(
+                self.db, self.multi_asic.current_namespace,
                 self.multi_asic.display_option
             )
 
@@ -155,11 +174,16 @@ class PfcwdCli(object):
         ).get('POLL_INTERVAL')
 
         current_ns = self.multi_asic.current_namespace
-        asic_ns = "" if current_ns is None else " on {}".format(current_ns)
+        asic_ns = \
+            "" if current_ns is None or current_ns == "" else " on {}".format(
+                current_ns
+            )
         if poll_interval is not None:
-            click.echo("Changed polling interval to {} ms{}".format(
-                poll_interval , asic_ns
-            ))
+            click.echo(
+                "Changed polling interval to {} ms{}".format(
+                    poll_interval, asic_ns
+                )
+            )
 
         big_red_switch = self.config_db.get_entry(
             CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL'
@@ -190,7 +214,8 @@ class PfcwdCli(object):
         countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
         countersdb.connect(countersdb.COUNTERS_DB)
 
-        all_ports = get_all_ports(self.db, self.multi_asic.current_namespace,
+        all_ports = get_all_ports(
+            self.db, self.multi_asic.current_namespace,
             self.multi_asic.display_option
         )
         allowed_strs = allowed_strs + all_ports
@@ -213,27 +238,28 @@ class PfcwdCli(object):
             pfcwd_info['restoration_time'] = restoration_time
         else:
             pfcwd_info['restoration_time'] = 2 * detection_time
-            click.echo("restoration time not defined; default to 2 times"
+            click.echo(
+                "restoration time not defined; default to 2 times"
                 "detection time: {} ms".format(2 * detection_time)
             )
 
         for port in ports:
             if port == "all":
                 for p in all_ports:
-                    self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p,
-                        None
+                    self.config_db.mod_entry(
+                        CONFIG_DB_PFC_WD_TABLE_NAME, p, None
                     )
-                    self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p,
-                        pfcwd_info
+                    self.config_db.mod_entry(
+                        CONFIG_DB_PFC_WD_TABLE_NAME, p, pfcwd_info
                     )
             else:
                 if port not in all_ports:
                     continue
-                self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port,
-                    None
+                self.config_db.mod_entry(
+                    CONFIG_DB_PFC_WD_TABLE_NAME, port, None
                 )
-                self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port,
-                    pfcwd_info
+                self.config_db.mod_entry(
+                    CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info
                 )
 
     @multi_asic_util.run_on_multi_asic
@@ -253,27 +279,29 @@ class PfcwdCli(object):
                 restoration_time_entry_value = int(self.config_db.get_entry(
                     CONFIG_DB_PFC_WD_TABLE_NAME, entry
                 ).get('restoration_time'))
-                if ((detection_time_entry_value != None) and
+                if ((detection_time_entry_value is not None) and
                     (detection_time_entry_value < entry_min)
                 ):
                     entry_min = detection_time_entry_value
                     entry_min_str = "detection time"
-                if ((restoration_time_entry_value != None) and
+                if ((restoration_time_entry_value is not None) and
                     (restoration_time_entry_value < entry_min)
                 ):
                     entry_min = restoration_time_entry_value
                     entry_min_str = "restoration time"
             if entry_min < poll_interval:
-                click.echo("unable to use polling interval = {}ms, value is "
-                    "bigger than one of the configured {} values, please "
-                    "choose a smaller polling_interval".format(
-                        poll_interval,entry_min_str), err=True
-                    )
+                click.echo(
+                   "unable to use polling interval = {}ms, value is "
+                   "bigger than one of the configured {} values, "
+                   "please choose a smaller polling_interval".format(
+                        poll_interval, entry_min_str
+                    ), err=True
+                )
                 exit(1)
 
             pfcwd_info['POLL_INTERVAL'] = poll_interval
-            self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL",
-                pfcwd_info
+            self.config_db.mod_entry(
+                CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info
             )
 
     @multi_asic_util.run_on_multi_asic
@@ -283,7 +311,8 @@ class PfcwdCli(object):
         configdb = swsssdk.ConfigDBConnector()
         configdb.connect()
 
-        all_ports = get_all_ports(self.db, self.multi_asic.current_namespace,
+        all_ports = get_all_ports(
+            self.db, self.multi_asic.current_namespace,
             self.multi_asic.display_option
         )
 
@@ -309,7 +338,7 @@ class PfcwdCli(object):
         )
 
         if not enable or enable.lower() != "enable":
-           return
+            return
 
         port_num = len(self.config_db.get_table('PORT').keys())
 
@@ -347,7 +376,8 @@ class PfcwdCli(object):
         pfcwd_info = {}
         if big_red_switch is not None:
             pfcwd_info['BIG_RED_SWITCH'] = big_red_switch
-        self.config_db.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL",
+        self.config_db.mod_entry(
+            CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL",
             pfcwd_info
         )
 
@@ -361,8 +391,8 @@ class Show(object):
 
     @show.command()
     @multi_asic_util.multi_asic_click_options
-    @click.option('-e', '--empty', is_flag = True)
-    @click.argument('queues', nargs = -1)
+    @click.option('-e', '--empty', is_flag=True)
+    @click.argument('queues', nargs=-1)
     def stats(namespace, display, empty, queues):
         """ Show PFC Watchdog stats per queue """
         if (len(queues)):
@@ -372,7 +402,7 @@ class Show(object):
     # Show stats
     @show.command()
     @multi_asic_util.multi_asic_click_options
-    @click.argument('ports', nargs = -1)
+    @click.argument('ports', nargs=-1)
     def config(namespace, display, ports):
         """ Show PFC Watchdog configuration """
         PfcwdCli(namespace, display).config(ports)
@@ -381,8 +411,8 @@ class Show(object):
 # Start WD
 class Start(object):
     @cli.command()
-    @click.option('--action', '-a',
-        type=click.Choice(['drop', 'forward', 'alert'])
+    @click.option(
+        '--action', '-a', type=click.Choice(['drop', 'forward', 'alert'])
     )
     @click.option('--restoration-time', '-r', type=click.IntRange(100, 60000))
     @click.argument('ports', nargs=-1)
@@ -411,7 +441,7 @@ class Interval(object):
 # Stop WD
 class Stop(object):
     @cli.command()
-    @click.argument('ports', nargs = -1)
+    @click.argument('ports', nargs=-1)
     def stop(ports):
         """ Stop PFC watchdog on port(s) """
         PfcwdCli().stop(ports)
@@ -440,6 +470,7 @@ class BigRedSwitch(object):
     @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
     def big_red_switch(big_red_switch):
         """ Enable/disable BIG_RED_SWITCH mode """
+        print("msm modifying..")
         PfcwdCli().big_red_switch(big_red_switch)
 
 
@@ -453,7 +484,7 @@ def get_pfcwd_clis():
     cli.add_command(Show().show)
     return cli
 
+
 if __name__ == '__main__':
-    print("msm new")
     cli = get_pfcwd_clis()
     cli()
