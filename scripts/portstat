@@ -25,6 +25,21 @@ import  utilities_common.multi_asic as multi_asic_util
 from utilities_common.netstat import (ns_brate, ns_diff, ns_prate, ns_util,
                                       table_as_json)
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+           
+except KeyError:
+    pass
+
 PORT_RATE = 40
 
 NStats = namedtuple("NStats", "rx_ok, rx_err, rx_drop, rx_ovr, tx_ok,\
@@ -117,7 +132,6 @@ class Portstat(object):
             if self.multi_asic.skip_display(constants.PORT_OBJ, port_name):
                 continue
             cnstat_dict[port] = get_counters(counter_port_name_map[port])
-        
         return cnstat_dict
 
     def get_port_speed(self, port_name):

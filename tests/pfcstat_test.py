@@ -41,7 +41,7 @@ Ethernet4       0       0       0       0       0       0       0       0
 Ethernet8       0       0       0       0       0       0       0       0
 """
 
-show_pfc_counters_all = """\
+show_pfc_counters_asic_all = """\
      Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ------------  ------  ------  ------  ------  ------  ------  ------  ------
    Ethernet0     400     201     202     203     204     205     206     207
@@ -55,6 +55,25 @@ Ethernet-BP4     800     801     802     803     804     805     806     807
    Ethernet4     400     401     402     403     404     405     406     407
 Ethernet-BP0     600     601     602     603     604     605     606     607
 Ethernet-BP4     800     801     802     803     804     805     806     807
+"""
+show_pfc_counters_all = """\
+       Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0     400     201     202     203     204     205     206     207
+     Ethernet4     400     401     402     403     404     405     406     407
+  Ethernet-BP0     600     601     602     603     604     605     606     607
+  Ethernet-BP4     800     801     802     803     804     805     806     807
+Ethernet-BP256     400     201     202     203     204     205     206     207
+Ethernet-BP260     400     401     402     403     404     405     406     407
+
+       Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0     400     201     202     203     204     205     206     207
+     Ethernet4     400     401     402     403     404     405     406     407
+  Ethernet-BP0     600     601     602     603     604     605     606     607
+  Ethernet-BP4     800     801     802     803     804     805     806     807
+Ethernet-BP256     400     201     202     203     204     205     206     207
+Ethernet-BP260     400     401     402     403     404     405     406     407
 """
 
 show_pfc_counters_asic0_frontend = """\
@@ -70,19 +89,23 @@ Ethernet4     400     401     402     403     404     405     406     407
 """
 
 show_pfc_counters_msaic_output_diff = """\
-     Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
-------------  ------  ------  ------  ------  ------  ------  ------  ------
-   Ethernet0       0       0       0       0       0       0       0       0
-   Ethernet4       0       0       0       0       0       0       0       0
-Ethernet-BP0       0       0       0       0       0       0       0       0
-Ethernet-BP4       0       0       0       0       0       0       0       0
+       Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0       0       0       0       0       0       0       0       0
+     Ethernet4       0       0       0       0       0       0       0       0
+  Ethernet-BP0       0       0       0       0       0       0       0       0
+  Ethernet-BP4       0       0       0       0       0       0       0       0
+Ethernet-BP256       0       0       0       0       0       0       0       0
+Ethernet-BP260       0       0       0       0       0       0       0       0
 
-     Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
-------------  ------  ------  ------  ------  ------  ------  ------  ------
-   Ethernet0       0       0       0       0       0       0       0       0
-   Ethernet4       0       0       0       0       0       0       0       0
-Ethernet-BP0       0       0       0       0       0       0       0       0
-Ethernet-BP4       0       0       0       0       0       0       0       0
+       Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0       0       0       0       0       0       0       0       0
+     Ethernet4       0       0       0       0       0       0       0       0
+  Ethernet-BP0       0       0       0       0       0       0       0       0
+  Ethernet-BP4       0       0       0       0       0       0       0       0
+Ethernet-BP256       0       0       0       0       0       0       0       0
+Ethernet-BP260       0       0       0       0       0       0       0       0
 """
 
 
@@ -182,7 +205,7 @@ class TestMultiAsicPfcstat(object):
             'pfcstat -n asic0 -s all'
         )
         assert return_code == 0
-        assert result == show_pfc_counters_all
+        assert result == show_pfc_counters_asic_all
 
     def test_pfc_clear(self):
         pfc_clear(show_pfc_counters_msaic_output_diff)
