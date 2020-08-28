@@ -13,6 +13,9 @@ from natsort import natsorted
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
 
+from utilities_common import multi_asic as multi_asic_util
+from sonic_py_common.interface import front_panel_prefix, backplane_prefix
+
 # Mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "2":
@@ -21,6 +24,9 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
 except KeyError:
     pass
 
@@ -130,14 +136,15 @@ dom_value_unit_map = {'rx1power': 'dBm', 'rx2power': 'dBm',
 
 class SFPShow(object):
 
-    def __init__(self):
+    def __init__(self, intf_name, namespace_option, dump_dom=False):
         super(SFPShow,self).__init__()
-        self.adb = SonicV2Connector(host="127.0.0.1")
-        self.adb.connect(self.adb.APPL_DB)
-
-        self.sdb = SonicV2Connector(host="127.0.0.1")
-        self.sdb.connect(self.sdb.STATE_DB)
-        return
+        self.db = None
+        self.config_db = None
+        self.intf_name = intf_name
+        self.dump_dom = dump_dom
+        self.table = []
+        self.output = ''
+        self.multi_asic = multi_asic_util.MultiAsic(namespace_option=namespace_option)
 
     # Convert dict values to cli output string
     def format_dict_value_to_string(self, sorted_key_table,
@@ -291,53 +298,62 @@ class SFPShow(object):
 
         return out_put
 
-    def display_eeprom(self, interfacename, dump_dom):
+    @multi_asic_util.run_on_multi_asic
+    def get_eeprom(self):
         out_put = ''
 
-        if interfacename is not None:
-            presence = self.sdb.exists(self.sdb.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interfacename))
+        if self.intf_name is not None:
+            presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(self.intf_name))
             if presence:
-                out_put = self.convert_interface_sfp_info_to_cli_output_string(self.sdb, interfacename, dump_dom)
+                out_put = self.convert_interface_sfp_info_to_cli_output_string(self.db, self.intf_name, self.dump_dom)
             else:
-               out_put = out_put + interfacename + ': ' + 'SFP EEPROM Not detected' + '\n'
+               out_put = out_put + self.intf_name + ': ' + 'SFP EEPROM Not detected' + '\n'
         else:
-            port_table_keys = self.adb.keys(self.adb.APPL_DB, "PORT_TABLE:*")
+            port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             sorted_table_keys = natsorted(port_table_keys)
+            print(self.multi_asic.current_namespace)
             for i in sorted_table_keys:
                 interface = re.split(':', i, maxsplit=1)[-1].strip()
-                if interface and interface.startswith('Ethernet'):
-                    presence = self.sdb.exists(self.sdb.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
+                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith(backplane_prefix()):
+                    presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
                     if presence:
-                        out_put = out_put + self.convert_interface_sfp_info_to_cli_output_string(self.sdb, interface, dump_dom)
+                        out_put = out_put + self.convert_interface_sfp_info_to_cli_output_string(self.db, interface, self.dump_dom)
                     else:
                        out_put = out_put + interface + ': ' + 'SFP EEPROM Not detected' + '\n'
 
-                out_put = out_put + '\n'
+                    out_put = out_put + '\n'
 
-        click.echo(out_put)
+        self.output += out_put
 
-    def display_presence(self, interfacename):
+    @multi_asic_util.run_on_multi_asic
+    def get_presence(self):
         port_table = []
-        header = ['Port', 'Presence']
 
-        if interfacename is not None:
-            presence = self.sdb.exists(self.sdb.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interfacename))
+        if self.intf_name is not None:
+            presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(self.intf_name))
             if presence:
-                port_table.append((interfacename, 'Present'))
+                port_table.append((self.intf_name, 'Present'))
             else:
-                port_table.append((interfacename, 'Not present'))
+                port_table.append((self.intf_name, 'Not present'))
         else:
-            port_table_keys = self.adb.keys(self.adb.APPL_DB, "PORT_TABLE:*")
+            port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             for i in port_table_keys:
                 key = re.split(':', i, maxsplit=1)[-1].strip()
-                if key and key.startswith('Ethernet'):
-                    presence = self.sdb.exists(self.sdb.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(key))
+                if key and key.startswith(front_panel_prefix()) and not key.startswith(backplane_prefix()):
+                    presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(key))
                     if presence:
                         port_table.append((key,'Present'))
                     else:
                         port_table.append((key,'Not present'))
 
-        sorted_port_table = natsorted(port_table)
+        self.table += port_table
+
+    def display_eeprom(self):
+        click.echo(self.output)
+
+    def display_presence(self):
+        header = ['Port', 'Presence']
+        sorted_port_table = natsorted(self.table)
         click.echo(tabulate(sorted_port_table, header))
 
 # This is our main entrypoint - the main 'sfpshow' command
@@ -350,16 +366,34 @@ def cli():
 @cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM data for port <port_name> only")
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
-def eeprom(port, dump_dom):
-    sfp = SFPShow()
-    sfp.display_eeprom(port, dump_dom)
+@click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
+def eeprom(port, dump_dom, namespace):
+    if port:
+        ns = multi_asic_util.get_port_namespace(port)
+        if namespace is not None and ns != namespace:
+            print("Error: Interface {} don't belong to this namespace {}".format(port, namespace))
+            return
+        namespace=ns
+
+    sfp = SFPShow(port, namespace, dump_dom)
+    sfp.get_eeprom()
+    sfp.display_eeprom()
 
 # 'presence' subcommand
 @cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP presence for port <port_name> only")
-def presence(port):
-    sfp = SFPShow()
-    sfp.display_presence(port)
+@click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
+def presence(port, namespace):
+    if port:
+        ns = multi_asic_util.get_port_namespace(port)
+        if namespace is not None and ns != namespace:
+            print("Error: Interface {} don't belong to this namespace {}".format(port, namespace))
+            return
+        namespace=ns
+
+    sfp = SFPShow(port, namespace)
+    sfp.get_presence()
+    sfp.display_presence()
 
 if __name__ == "__main__":
     cli()

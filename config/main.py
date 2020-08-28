@@ -15,10 +15,11 @@ import time
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
-from sonic_py_common.interface import front_panel_prefix, portchannel_prefix, vlan_prefix, loopback_prefix
+from sonic_py_common.interface import get_interface_table_name
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common.multi_asic import get_port_namespace
 import utilities_common.cli as clicommon
 from .utils import log
 
@@ -371,25 +372,6 @@ def interface_name_to_alias(config_db, interface_name):
 
     return None
 
-# TODO move to sonic-py-common package
-def get_interface_table_name(interface_name):
-    """Get table name by interface_name prefix
-    """
-    if interface_name.startswith(front_panel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "INTERFACE"
-    elif interface_name.startswith(portchannel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "PORTCHANNEL_INTERFACE"
-    elif interface_name.startswith(vlan_prefix()):
-        return "VLAN_INTERFACE"
-    elif interface_name.startswith(loopback_prefix()):
-        return "LOOPBACK_INTERFACE"
-    else:
-        return ""
-
 def interface_ipaddr_dependent_on_interface(config_db, interface_name):
     """Get table keys including ipaddress
     """
@@ -413,59 +395,6 @@ def is_interface_bind_to_vrf(config_db, interface_name):
     if entry and entry.get("vrf_name"):
         return True
     return False
-
-# TODO move to sonic-py-common package
-# Get the table name based on the interface type
-def get_port_table_name(interface_name):
-    """Get table name by port_name prefix
-    """
-    if interface_name.startswith(front_panel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "PORT"
-    elif interface_name.startswith(portchannel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "PORTCHANNEL"
-    elif interface_name.startswith(vlan_prefix()):
-        return "VLAN_INTERFACE"
-    elif interface_name.startswith(loopback_prefix()):
-        return "LOOPBACK_INTERFACE"
-    else:
-        return ""
-
-# Return the namespace where an interface belongs
-# The port name input could be in default mode or in alias mode.
-def get_port_namespace(port):
-    # If it is a non multi-asic platform, or if the interface is management interface
-    # return DEFAULT_NAMESPACE
-    if not multi_asic.is_multi_asic() or port == 'eth0':
-        return DEFAULT_NAMESPACE
-
-    # Get the table to check for interface presence
-    table_name = get_port_table_name(port)
-    if table_name == "":
-        return None
-
-    ns_list = multi_asic.get_all_namespaces()
-    namespaces = ns_list['front_ns'] + ns_list['back_ns']
-    for namespace in namespaces:
-        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-        config_db.connect()
-
-        # If the interface naming mode is alias, search the tables for alias_name.
-        if clicommon.get_interface_naming_mode() == "alias":
-            port_dict = config_db.get_table(table_name)
-            if port_dict:
-                for port_name in port_dict.keys():
-                    if port == port_dict[port_name]['alias']:
-                        return namespace
-        else:
-            entry = config_db.get_entry(table_name, port)
-            if entry:
-                return namespace
-
-    return None
 
 def del_interface_bind_to_vrf(config_db, vrf_name):
     """del interface bind to vrf

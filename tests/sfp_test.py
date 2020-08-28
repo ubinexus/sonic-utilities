@@ -86,6 +86,7 @@ class TestSFP(object):
         print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
 
     def test_sfp_presence(self):
         runner = CliRunner()
@@ -118,6 +119,52 @@ Ethernet200  Not present
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_output
 
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet200"])
+        result_lines = result.output.strip('\n')
+        expected = "Ethernet200: SFP EEPROM Not detected"
+        assert result_lines == expected
+
+    def test_sfp_presence_with_ns(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet0 -n asic0"])
+        expected = """Port       Presence
+---------  ----------
+Ethernet0  Present
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet200 -n asic0"])
+        expected = """Port         Presence
+-----------  -----------
+Ethernet200  Not present
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
+    def test_sfp_eeprom_with_dom_with_ns(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -d -n asic0"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_with_dom_output
+
+    def test_sfp_eeprom_with_ns(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -n asic0"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_output
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet200 -n asic0"])
+        result_lines = result.output.strip('\n')
+        expected = "Ethernet200: SFP EEPROM Not detected"
+        assert result_lines == expected
+
+    def test_sfp_eeprom_with_ns(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -n asic0"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_output
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet200 -n asic0"])
         result_lines = result.output.strip('\n')
         expected = "Ethernet200: SFP EEPROM Not detected"
         assert result_lines == expected
