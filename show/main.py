@@ -1001,7 +1001,7 @@ def rif(interface, period, verbose):
 
 # 'portchannel' subcommand ("show interfaces portchannel")
 @interfaces.command()
-@multi_asic_click_options
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def portchannel(namespace,  display, verbose):
     """Show PortChannel information"""
