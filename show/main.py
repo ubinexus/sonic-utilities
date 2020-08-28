@@ -25,6 +25,7 @@ import mlnx
 import feature
 import interfaces
 import vlan
+import kube
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -2424,8 +2425,7 @@ def tunnel():
 
     click.echo(tabulate(table, header))
 
-from .kube import kubernetes
-cli.add_command(kubernetes)
+cli.add_command(kube.kubernetes)
 
 if __name__ == '__main__':
     cli()

@@ -505,4 +505,3 @@ def do_exit(msg):
     m = "FATAL failure: {}. Exiting...".format(msg)
     _log_msg(syslog.LOG_ERR, True, inspect.stack()[1][1], inspect.stack()[1][2], m)
     raise SystemExit(m)
-

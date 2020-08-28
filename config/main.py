@@ -28,6 +28,7 @@ import mlnx
 import nat
 import feature
 import vlan
+import kube
 from config_mgmt import ConfigMgmtDPB
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
@@ -929,8 +930,7 @@ config.add_command(feature.feature)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 
-from .kube import kubernetes
-config.add_command(kubernetes)
+config.add_command(kube.kubernetes)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,

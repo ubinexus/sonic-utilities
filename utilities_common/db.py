@@ -12,5 +12,3 @@ class Db(object):
     def get_data(self, table, key):
         data = self.cfgdb.get_table(table)
         return data[key] if key in data else None
-
-

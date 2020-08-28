@@ -1,20 +1,23 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-import click
-import os
-import urllib3
-import tempfile
-import requests
 import fcntl
-import yaml
-import netaddr
+import os
 import shutil
+import tempfile
+
+import click
+import netaddr
+import requests
+import urllib3
+import yaml
 from urlparse import urlparse
+
+from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from utilities_common.db import Db
-from sonic_py_common import device_info
 import utilities_common.cli as clicommon
+
 from .utils import log
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
@@ -332,5 +335,3 @@ def drop(key):
     _label_node("{}-".format(key))
 
 label.add_command(drop)
-
-

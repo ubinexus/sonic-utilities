@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 import click
 
 from sonic_py_common import device_info
