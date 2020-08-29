@@ -4,7 +4,6 @@
 import os
 
 import click
-
 from sonic_py_common import device_info
 from utilities_common.db import Db
 import utilities_common.cli as clicommon

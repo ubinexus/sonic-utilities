@@ -124,8 +124,11 @@ def cli(ctx):
 
     ctx.obj = Db()
 
+
+# Add groups from other modules
 cli.add_command(feature.feature)
 cli.add_command(interfaces.interfaces)
+cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
 
 #
@@ -2425,7 +2428,6 @@ def tunnel():
 
     click.echo(tabulate(table, header))
 
-cli.add_command(kube.kubernetes)
 
 if __name__ == '__main__':
     cli()

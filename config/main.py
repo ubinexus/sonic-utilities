@@ -923,14 +923,15 @@ def config(ctx):
 
     ctx.obj = Db()
 
+
+# Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
 config.add_command(feature.feature)
-# === Add NAT Configuration ==========
+config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 
-config.add_command(kube.kubernetes)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
