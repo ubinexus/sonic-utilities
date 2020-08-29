@@ -24,11 +24,11 @@ from .utils import log
 
 
 import aaa
+import feature
+import kube
 import mlnx
 import nat
-import feature
 import vlan
-import kube
 from config_mgmt import ConfigMgmtDPB
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])

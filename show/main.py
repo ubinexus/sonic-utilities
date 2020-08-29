@@ -21,11 +21,11 @@ import utilities_common.cli as clicommon
 from utilities_common.db import Db
 from utilities_common.multi_asic import multi_asic_click_options
 
-import mlnx
 import feature
 import interfaces
-import vlan
 import kube
+import mlnx
+import vlan
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'

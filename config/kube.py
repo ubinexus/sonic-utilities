@@ -243,33 +243,27 @@ def kubernetes():
 
 
 # cmd kubernetes join [-f/--force]
-@click.command()
+@kubernetes.command()
 @click.option('-f', '--force', help='Force a join', is_flag=True)
 def join(force):
     kube_join(force=force)
 
-kubernetes.add_command(join)
-
 
 # cmd kubernetes reset
-@click.command()
+@kubernetes.command()
 def reset():
     kube_reset()
 
-kubernetes.add_command(reset)
-
 
 # cmd kubernetes server
-@click.group()
+@kubernetes.group()
 def server():
     """ Server configuration """
     pass
 
-kubernetes.add_command(server)
-
 
 # cmd kubernetes server IP
-@click.command()
+@server.command()
 @click.argument('vip')
 def ip(vip):
     """Specify a kubernetes cluster VIP"""
@@ -278,40 +272,32 @@ def ip(vip):
         return
     _update_kube_server('IP', vip)
 
-server.add_command(ip)
-
 
 # cmd kubernetes server insecure
-@click.command()
+@server.command()
 @click.argument('option', type=click.Choice(["on", "off"]))
 def insecure(option):
     """Specify a kubernetes cluster VIP access as insecure or not"""
     _update_kube_server('insecure', option == "on")
 
-server.add_command(insecure)
-
 
 # cmd kubernetes server disable
-@click.command()
+@server.command()
 @click.argument('option', type=click.Choice(["on", "off"]))
 def disable(option):
     """Specify a kubernetes cluster VIP access is disabled or not"""
     _update_kube_server('disable', option == "on")
 
-server.add_command(disable)
-
 
 # cmd kubernetes label
-@click.group()
+@kubernetes.group()
 def label():
     """ label configuration """
     pass
 
-kubernetes.add_command(label)
-
 
 # cmd kubernetes label add <key> <val>
-@click.command()
+@label.command()
 @click.argument('key', required=True)
 @click.argument('val', required=True)
 def add(key, val):
@@ -321,11 +307,9 @@ def add(key, val):
         return
     _label_node("{}={}".format(key, val))
 
-label.add_command(add)
-
 
 # cmd kubernetes label drop <key>
-@click.command()
+@label.command()
 @click.argument('key', required=True)
 def drop(key):
     """Drop a label from this node"""
@@ -333,5 +317,3 @@ def drop(key):
         click.echo('Require key to drop')
         return
     _label_node("{}-".format(key))
-
-label.add_command(drop)
