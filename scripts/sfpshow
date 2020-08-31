@@ -10,7 +10,6 @@ import operator
 import os
 
 from natsort import natsorted
-from swsssdk import SonicV2Connector
 from tabulate import tabulate
 
 from utilities_common import multi_asic as multi_asic_util
