@@ -15,7 +15,7 @@ import time
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
-from sonic_py_common.interface import get_interface_table_name
+from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -263,18 +263,6 @@ def _get_device_type():
         device_type = device_type.strip()
 
     return device_type
-
-# TODO move to sonic-py-common package
-# Validate whether a given namespace name is valid in the device.
-def validate_namespace(namespace):
-    if not multi_asic.is_multi_asic():
-        return True
-
-    namespaces = multi_asic.get_all_namespaces()
-    if namespace in namespaces['front_ns'] + namespaces['back_ns']:
-        return True
-    else:
-        return False
 
 def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
