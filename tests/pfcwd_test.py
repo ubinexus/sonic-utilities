@@ -1,7 +1,9 @@
 import os
 import sys
+
 from click.testing import CliRunner
 from utilities_common.db import Db
+
 from pfcwd_input.pfcwd_test_vectors import testData
 
 test_path = os.path.dirname(os.path.abspath(__file__))
