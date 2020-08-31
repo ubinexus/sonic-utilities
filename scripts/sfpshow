@@ -15,6 +15,7 @@ from tabulate import tabulate
 
 from utilities_common import multi_asic as multi_asic_util
 from sonic_py_common.interface import front_panel_prefix, backplane_prefix
+from sonic_py_common import multi_asic
 
 # Mock the redis for unit test purposes #
 try:
@@ -368,8 +369,8 @@ def cli():
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
 @click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
 def eeprom(port, dump_dom, namespace):
-    if port:
-        ns = multi_asic_util.get_port_namespace(port)
+    if port and multi_asic.is_multi_asic():
+        ns = multi_asic.get_namespace_for_port(port)
         if namespace is not None and ns != namespace:
             print("Error: Interface {} don't belong to this namespace {}".format(port, namespace))
             return
@@ -384,8 +385,8 @@ def eeprom(port, dump_dom, namespace):
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP presence for port <port_name> only")
 @click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
 def presence(port, namespace):
-    if port:
-        ns = multi_asic_util.get_port_namespace(port)
+    if port and multi_asic.is_multi_asic():
+        ns = multi_asic.get_namespace_for_port(port)
         if namespace is not None and ns != namespace:
             print("Error: Interface {} don't belong to this namespace {}".format(port, namespace))
             return

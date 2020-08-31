@@ -19,7 +19,6 @@ from sonic_py_common.interface import get_interface_table_name
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
-from utilities_common.multi_asic import get_port_namespace
 import utilities_common.cli as clicommon
 from .utils import log
 
@@ -395,6 +394,39 @@ def is_interface_bind_to_vrf(config_db, interface_name):
     if entry and entry.get("vrf_name"):
         return True
     return False
+
+# Return the namespace where an interface belongs
+# The port name input could be in default mode or in alias mode.
+def get_port_namespace(port):
+    # If it is a non multi-asic platform, or if the interface is management interface
+    # return DEFAULT_NAMESPACE
+    if not multi_asic.is_multi_asic() or port == 'eth0':
+        return DEFAULT_NAMESPACE
+
+    # Get the table to check for interface presence
+    table_name = get_port_table_name(port)
+    if table_name == "":
+        return None
+
+    ns_list = multi_asic.get_all_namespaces()
+    namespaces = ns_list['front_ns'] + ns_list['back_ns']
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+
+        # If the interface naming mode is alias, search the tables for alias_name.
+        if clicommon.get_interface_naming_mode() == "alias":
+            port_dict = config_db.get_table(table_name)
+            if port_dict:
+                for port_name in port_dict.keys():
+                    if port == port_dict[port_name]['alias']:
+                        return namespace
+        else:
+            entry = config_db.get_entry(table_name, port)
+            if entry:
+                return namespace
+
+    return None
 
 def del_interface_bind_to_vrf(config_db, vrf_name):
     """del interface bind to vrf
