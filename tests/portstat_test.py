@@ -262,6 +262,7 @@ class TestPortStat(object):
         assert return_code == 0
         verify_after_clear(result, intf_counter_after_clear)
 
+    @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(
@@ -391,6 +392,7 @@ class TestMultiAsicPortStat(object):
         assert return_code == 1
         assert result == intf_invalid_asic_error
 
+    @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(

@@ -1,34 +1,25 @@
 #! /usr/bin/python -u
 
-import ipaddress
 import json
 import os
-import re
 import subprocess
 import sys
 
+import click
+from natsort import natsorted
 import netifaces
 from pkg_resources import parse_version
-import click
-from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-from tabulate import tabulate
 
-import utilities_common.cli as clicommon
-from utilities_common.db import Db
-from utilities_common.multi_asic import multi_asic_click_options
 
 import feature
 import interfaces
 import kube
 import mlnx
+import utilities_common.cli as clicommon
 import vlan
-from natsort import natsorted
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector
 from tabulate import tabulate
-import utilities_common.cli as clicommon
 from utilities_common.db import Db
 from utilities_common.multi_asic import multi_asic_click_options
 
