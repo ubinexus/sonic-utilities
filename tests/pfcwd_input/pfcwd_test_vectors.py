@@ -23,7 +23,6 @@ Ethernet4      drop               600                 600
 """
 
 pfcwd_show_config_invalid_port_output="""\
-Changed polling interval to 600ms
   PORT    ACTION    DETECTION TIME    RESTORATION TIME
 ------  --------  ----------------  ------------------
 """

@@ -10,7 +10,7 @@ from utils import get_result_and_return_code
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
-scripts_path = os.path.join(modules_path, "scripts")
+scripts_path = os.path.join(modules_path, "pfcwd")
 
 
 show_pfcwd_stats_all = """\
@@ -115,9 +115,9 @@ Ethernet-BP260:15       N/A                        0/1       6803/57        804/
 """
 
 show_pfc_config_all = """\
-Changed polling interval to 199 ms on asic0
+Changed polling interval to 199ms on asic0
 BIG_RED_SWITCH status is enable on asic0
-Changed polling interval to 199 ms on asic1
+Changed polling interval to 199ms on asic1
 BIG_RED_SWITCH status is enable on asic1
           PORT    ACTION    DETECTION TIME    RESTORATION TIME
 --------------  --------  ----------------  ------------------
@@ -139,9 +139,9 @@ Ethernet-BP260:10       N/A                        1/0        6526/9       5217/
 """
 
 show_pfcwd_config_with_ports = """\
-Changed polling interval to 199 ms on asic0
+Changed polling interval to 199ms on asic0
 BIG_RED_SWITCH status is enable on asic0
-Changed polling interval to 199 ms on asic1
+Changed polling interval to 199ms on asic1
 BIG_RED_SWITCH status is enable on asic1
           PORT    ACTION    DETECTION TIME    RESTORATION TIME
 --------------  --------  ----------------  ------------------
@@ -158,13 +158,17 @@ class TestMultiAsicPfcwdShow(object):
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+        import pfcwd.main
+        imp.reload(pfcwd.main)
 
     def test_pfcwd_stats_all(self):
         import pfcwd.main as pfcwd
+        print(pfcwd.__file__)
         runner = CliRunner()
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["stats"]
         )
+        print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfcwd_stats_all
 
@@ -178,6 +182,7 @@ class TestMultiAsicPfcwdShow(object):
                 "Ethernet-BP260:10", "InvalidQueue"
             ]
         )
+        print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfcwd_stats_with_queues
 
@@ -187,6 +192,7 @@ class TestMultiAsicPfcwdShow(object):
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"]
         )
+        print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfc_config_all
 
@@ -197,6 +203,7 @@ class TestMultiAsicPfcwdShow(object):
             pfcwd.cli.commands["show"].commands["config"],
             ["Ethernet0", "Ethernet-BP0", "Ethernet-BP256", "InvalidPort"]
         )
+        print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfcwd_config_with_ports
 

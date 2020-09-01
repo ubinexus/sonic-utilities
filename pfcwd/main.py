@@ -4,7 +4,6 @@ import os
 import sys
 
 import click
-import swsssdk
 
 from natsort import natsorted
 from sonic_py_common.multi_asic import get_external_ports
@@ -185,7 +184,7 @@ class PfcwdCli(object):
             )
         if poll_interval is not None:
             click.echo(
-                "Changed polling interval to {} ms{}".format(
+                "Changed polling interval to {}ms{}".format(
                     poll_interval, asic_namesapce
                 )
             )
