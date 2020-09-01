@@ -21,8 +21,8 @@ from utilities_common.multi_asic import multi_asic_click_options
 
 import feature
 import interfaces
+import kube
 import mlnx
-import netaddr
 import vlan
 from natsort import natsorted
 from sonic_py_common import device_info
@@ -129,8 +129,11 @@ def cli(ctx):
 
     ctx.obj = Db()
 
+
+# Add groups from other modules
 cli.add_command(feature.feature)
 cli.add_command(interfaces.interfaces)
+cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
 
 #
@@ -2429,6 +2432,7 @@ def tunnel():
         table.append(r)
 
     click.echo(tabulate(table, header))
+
 
 if __name__ == '__main__':
     cli()
