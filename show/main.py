@@ -21,9 +21,10 @@ import utilities_common.cli as clicommon
 from utilities_common.db import Db
 from utilities_common import multi_asic as multi_asic_util
 
-import mlnx
 import feature
 import interfaces
+import kube
+import mlnx
 import vlan
 
 # Global Variables
@@ -123,8 +124,11 @@ def cli(ctx):
 
     ctx.obj = Db()
 
+
+# Add groups from other modules
 cli.add_command(feature.feature)
 cli.add_command(interfaces.interfaces)
+cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
 
 #
@@ -2429,6 +2433,7 @@ def tunnel():
         table.append(r)
 
     click.echo(tabulate(table, header))
+
 
 if __name__ == '__main__':
     cli()
