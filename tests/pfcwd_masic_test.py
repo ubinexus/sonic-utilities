@@ -1,11 +1,11 @@
 import imp
 import os
-import show.main as show
 import shutil
 import sys
 
-from click.testing import CliRunner
+import show.main as show
 
+from click.testing import CliRunner
 from utils import get_result_and_return_code
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -129,6 +129,27 @@ Ethernet-BP256      drop               200                 200
 Ethernet-BP260      drop               200                 200
 """
 
+show_pfcwd_stats_with_queues = """\
+            QUEUE    STATUS    STORM DETECTED/RESTORED    TX OK/DROP    RX OK/DROP    TX LAST OK/DROP    RX LAST OK/DROP
+-----------------  --------  -------------------------  ------------  ------------  -----------------  -----------------
+      Ethernet0:3       N/A                        0/1        8814/0       1757/49              470/5            9734/35
+     Ethernet4:15       N/A                        0/1       8073/38       2374/96              115/8             7589/9
+  Ethernet-BP0:13       N/A                        1/0       6203/97       6916/49              253/4            4833/65
+Ethernet-BP260:10       N/A                        1/0        6526/9       5217/26              260/4            9338/69
+"""
+
+show_pfcwd_config_with_ports = """\
+Changed polling interval to 199 ms on asic0
+BIG_RED_SWITCH status is enable on asic0
+Changed polling interval to 199 ms on asic1
+BIG_RED_SWITCH status is enable on asic1
+          PORT    ACTION    DETECTION TIME    RESTORATION TIME
+--------------  --------  ----------------  ------------------
+     Ethernet0      drop               200                 200
+  Ethernet-BP0      drop               200                 200
+Ethernet-BP256      drop               200                 200
+"""
+
 
 class TestMultiAsicPfcwdShow(object):
     @classmethod
@@ -147,15 +168,37 @@ class TestMultiAsicPfcwdShow(object):
         assert result.exit_code == 0
         assert result.output == show_pfcwd_stats_all
 
+    def test_pfcwd_stats_with_queues(self):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["stats"],
+            [
+                "Ethernet0:3", "Ethernet4:15", "Ethernet-BP0:13",
+                "Ethernet-BP260:10", "InvalidQueue"
+            ]
+        )
+        assert result.exit_code == 0
+        assert result.output == show_pfcwd_stats_with_queues
+
     def test_pfcwd_config_all(self):
         import pfcwd.main as pfcwd
         runner = CliRunner()
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"]
         )
-        print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfc_config_all
+
+    def test_pfcwd_config_with_ports(self):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            ["Ethernet0", "Ethernet-BP0", "Ethernet-BP256", "InvalidPort"]
+        )
+        assert result.exit_code == 0
+        assert result.output == show_pfcwd_config_with_ports
 
     @classmethod
     def teardown_class(cls):

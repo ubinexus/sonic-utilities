@@ -1,14 +1,14 @@
 #! /usr/bin/python -u
 
-import click
-import swsssdk
 import os
 import sys
 
-from tabulate import tabulate
-from natsort import natsorted
+import click
+import swsssdk
 
+from natsort import natsorted
 from sonic_py_common.multi_asic import get_external_ports
+from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
 
@@ -65,7 +65,7 @@ def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queues = queue_names.keys() if queue_names else {}
     if display == constants.DISPLAY_ALL:
         return natsorted(queues)
-    # filter the backend end ports
+    # filter the backend ports
     display_ports = [q.split(":")[0] for q in queues]
     display_ports = get_external_ports(display_ports, namespace)
     queues = [q for q in queues if q.split(":")[0] in display_ports]
@@ -157,6 +157,7 @@ class PfcwdCli(object):
                 self.multi_asic.display_option
             )
 
+        ports_found = False
         for port in ports:
             config_list = []
             config_entry = self.config_db.get_entry(
@@ -164,24 +165,28 @@ class PfcwdCli(object):
             )
             if config_entry is None or config_entry == {}:
                 continue
+            ports_found = True
             for config in CONFIG_DESCRIPTION:
                 line = config_entry.get(config[1], config[2])
                 config_list.append(line)
             table.append([port] + config_list)
+
+        if not ports_found:
+            return
 
         poll_interval = self.config_db.get_entry(
             CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL'
         ).get('POLL_INTERVAL')
 
         current_ns = self.multi_asic.current_namespace
-        asic_ns = \
+        asic_namesapce = \
             "" if current_ns is None or current_ns == "" else " on {}".format(
                 current_ns
             )
         if poll_interval is not None:
             click.echo(
                 "Changed polling interval to {} ms{}".format(
-                    poll_interval, asic_ns
+                    poll_interval, asic_namesapce
                 )
             )
 
@@ -191,7 +196,7 @@ class PfcwdCli(object):
 
         if big_red_switch is not None:
             click.echo("BIG_RED_SWITCH status is {}{}".format(
-                big_red_switch, asic_ns
+                big_red_switch, asic_namesapce
             ))
 
         self.table += table
@@ -209,10 +214,6 @@ class PfcwdCli(object):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
         allowed_strs = ['ports', 'all', 'detection-time']
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
-        countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
-        countersdb.connect(countersdb.COUNTERS_DB)
 
         all_ports = get_all_ports(
             self.db, self.multi_asic.current_namespace,
@@ -222,7 +223,7 @@ class PfcwdCli(object):
         for p in ports:
             if p not in allowed_strs:
                 raise click.BadOptionUsage(
-                    "Bad command line format. Try 'pfcwd start --help' for"
+                    "Bad command line format. Try 'pfcwd start --help' for "
                     "usage"
                 )
 
@@ -239,7 +240,7 @@ class PfcwdCli(object):
         else:
             pfcwd_info['restoration_time'] = 2 * detection_time
             click.echo(
-                "restoration time not defined; default to 2 times"
+                "restoration time not defined; default to 2 times "
                 "detection time: {} ms".format(2 * detection_time)
             )
 
@@ -308,8 +309,6 @@ class PfcwdCli(object):
     def stop(self, ports):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
 
         all_ports = get_all_ports(
             self.db, self.multi_asic.current_namespace,
@@ -399,7 +398,7 @@ class Show(object):
             display = constants.DISPLAY_ALL
         PfcwdCli(namespace, display).show_stats(empty, queues)
 
-    # Show stats
+    # Show config
     @show.command()
     @multi_asic_util.multi_asic_click_options
     @click.argument('ports', nargs=-1)
@@ -470,7 +469,6 @@ class BigRedSwitch(object):
     @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
     def big_red_switch(big_red_switch):
         """ Enable/disable BIG_RED_SWITCH mode """
-        print("msm modifying..")
         PfcwdCli().big_red_switch(big_red_switch)
 
 
