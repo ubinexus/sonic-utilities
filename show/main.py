@@ -19,9 +19,9 @@ from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
+from utilities_common import constants
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
-
 
 import mlnx
 import feature
@@ -893,6 +893,30 @@ def get_bgp_peer():
     return bgp_peer
 
 def print_ip_routes(route_info):
+    """
+    Sample Entry output
+    B>*172.16.8.2/32 [20/0] via 10.0.0.47, Ethernet92, 03:33:01
+    B>*192.168.114.96/32 [20/0] via 10.0.0.1, PortChannel0002, 03:30:39
+      *                         via 10.0.0.5, PortChannel0005, 03:30:39
+      *                         via 10.0.0.9, PortChannel0008, 03:30:39
+      *                         via 10.0.0.13, PortChannel0011, 03:30:39
+      *                         via 10.0.0.17, PortChannel0014, 03:30:39
+      *                         via 10.0.0.21, PortChannel0017, 03:30:39
+      *                         via 10.0.0.25, PortChannel0020, 03:30:39
+      *                         via 10.0.0.29, PortChannel0023, 03:30:39
+    B 10.0.107.0/31 [200/0] via 10.0.107.1, inactive 00:10:15
+    K>*0.0.0.0/0 [0/0] via 10.3.146.1, eth0, 00:25:22
+    B 0.0.0.0/0 [20/0] via 10.0.0.1, PortChannel0002, 03:31:52
+                      via 10.0.0.5, PortChannel0005, 03:31:52
+                      via 10.0.0.9, PortChannel0008, 03:31:52
+                      via 10.0.0.13, PortChannel0011, 03:31:52
+                      via 10.0.0.17, PortChannel0014, 03:31:52
+                      via 10.0.0.21, PortChannel0017, 03:31:52
+                      via 10.0.0.25, PortChannel0020, 03:31:52
+                      via 10.0.0.29, PortChannel0023, 03:31:52
+    S 0.0.0.0/0 [200/0] via 10.3.146.1, eth0, 03:35:18
+    C>*10.0.0.62/31 is directly connected, Ethernet124, 03:34:00
+    """
     # This method is following what zebra_vty.c does when handling the route parsing printing
     # The route_info is a json file which is treated as a dictionary of a bunch of route + info
     # This interpretation is based on FRR 7.2 branch. If we later moved on to a new branch, we may
@@ -1000,18 +1024,20 @@ def print_show_ip_route_hdr():
 def route(args, namespace, display, verbose):
     """Show IP (IPv4) routing table"""
     is_multi_asic = multi_asic.is_multi_asic()
+    device = multi_asic_util.MultiAsic(display, namespace)
+    arg_strg = ""
+    found_json = 0
+    hdr_printed = False
+    del_cnt = 0
     if is_multi_asic:
-        # handling multi-ASIC by gathering the output from specified/all name space into a dictionary via 
-        # jason option and then filter out the json entries (by removing those next Hop that are 
-        # back-end ASIC if display is for front-end only). If the entry itself has no more next Hop after filtering, 
-        # then skip over that particular route entry.  Once completed, if the user chose "json" option, 
+        # handling multi-ASIC by gathering the output from specified/all name space into a dictionary via
+        # jason option and then filter out the json entries (by removing those next Hop that are
+        # back-end ASIC if display is for front-end only). If the entry itself has no more next Hop after filtering,
+        # then skip over that particular route entry.  Once completed, if the user chose "json" option,
         # then just print out the dictionary in Json format accordingly. But if no "json" option specified,
         # then print out the header and the decoded entry representation for each route accordingly.
         # This code is based on FRR 7.2 branch. If we moved to a new version we may need to change here as well
         asic_cnt = multi_asic.get_num_asics()
-        arg_strg = ""
-        found_json = 0
-        back_end_intf_str = "PortChannel4"
         if display == "all":
             filter_back_end = False
         else:
@@ -1023,81 +1049,84 @@ def route(args, namespace, display, verbose):
             # -n asic0|asic1|...|asicN    So skip the first 4 chars to get the namespace number only
             start_range = int(namespace[4:])
             end_range = start_range + 1
-        hdr_printed = False
-        del_cnt = 0
-        # get all the other arguments except json that needs to be the last argument of the cmd if present
-        for arg in args:
-            arg_strg += " " + str(arg)
-            if str(arg) == "json":
-                found_json = 1
-        if not found_json:
-            arg_strg += " json"
-        for ns in range(start_range, end_range):
-            filtered_route = {}
-            # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
-            cmd = 'sudo docker exec bgp' + str(ns) + ' vtysh -c "show ip route' + arg_strg + '"'
-            output = commands.getoutput(cmd)
-            # in case no output or something went wrong with user specified cmd argument(s) error it out
-            # error from FRR always start with character "%"
-            if output == "":
-                return
-            if output[0] == "%":
-                # remove the "json" keyword that was added by this handler so it wont confuse the user
-                error_msg = output[:-4]
-                print error_msg
-                return
-            route_info = json.loads(output)
-            if filter_back_end:
-                # clean up the dictionary to remove all the nexthops that are back-end interface "PortChannel4xxx"
-                for route, info in route_info.items():
-                    new_info_l = []
-                    new_info_cnt = 0
-                    for i in range(0, len(info)):
-                        new_info = info[i]
-                        new_nhop_l = []
-                        del_cnt = 0
-                        while len(info[i]['nexthops']):
-                            nh = info[i]['nexthops'].pop(0)
-                            if "interfaceName" in nh:
-                                if nh['interfaceName'].find(back_end_intf_str) != -1:
-                                    del_cnt += 1
-                                else:
-                                    new_nhop_l.append(nh)
+    else:
+        asic_cnt = 1
+        filter_back_end = False
+        start_range = 0
+        end_range = asic_cnt
+    # get all the other arguments except json that needs to be the last argument of the cmd if present
+    for arg in args:
+        arg_strg += " " + str(arg)
+        if str(arg) == "json":
+            found_json = 1
+    if not found_json:
+        arg_strg += " json"
+
+    for ns in range(start_range, end_range):
+        filtered_route = {}
+        # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
+        # If not MultiASIC, use space instad of ns number
+        if is_multi_asic:
+            ns_str = str(ns)
+        else:
+            ns_str = " "
+        cmd = "sudo docker exec bgp{0} vtysh -c 'show ip route {1}'".format(ns_str, arg_strg)
+        output = commands.getoutput(cmd)
+        # in case no output or something went wrong with user specified cmd argument(s) error it out
+        # error from FRR always start with character "%"
+        if output == "":
+            return
+        if output[0] == "%":
+            # remove the "json" keyword that was added by this handler so it wont confuse the user
+            error_msg = output[:-4]
+            print error_msg
+            return
+        route_info = json.loads(output)
+        if filter_back_end:
+            # clean up the dictionary to remove all the nexthops that are back-end interface
+            for route, info in route_info.items():
+                new_info_l = []
+                new_info_cnt = 0
+                for i in range(0, len(info)):
+                    new_info = info[i]
+                    new_nhop_l = []
+                    del_cnt = 0
+                    while len(info[i]['nexthops']):
+                        nh = info[i]['nexthops'].pop(0)
+                        if "interfaceName" in nh:
+                            obj_type = constants.PORT_CHANNEL_OBJ
+                            if nh['interfaceName'].find('Ethernet') != -1:
+                                obj_type = constants.PORT_OBJ
+                            if device.skip_display(obj_type, nh['interfaceName']):
+                                del_cnt += 1
                             else:
                                 new_nhop_l.append(nh)
-                        # use the new filtered nhop list if it is not empty. if empty nexthop , this route is filtered out completely
-                        if len(new_nhop_l) > 0:
-                            new_info['nexthops'] = new_nhop_l
-                            new_info_cnt += 1
-                            # in case there are any nexthop that were deleted, we will need to adjust the nexhopt counts as well
-                            if del_cnt > 0:
-                                internalNextHopNum = info[i]['internalNextHopNum'] - del_cnt
-                                new_info['internalNextHopNum'] = internalNextHopNum
-                                internalNextHopActiveNum = info[i]['internalNextHopActiveNum'] - del_cnt
-                                new_info['internalNextHopActiveNum'] = internalNextHopActiveNum
-                            new_info_l.append(new_info)
-                    if new_info_cnt:
-                        filtered_route[route] = new_info_l
-            else:
-                filtered_route = route_info
-            if not found_json:
-                #print out the header if this is not a json request
-                if not hdr_printed:
-                    print_show_ip_route_hdr()
-                    hdr_printed = True
-                print_ip_routes(filtered_route)
-            else:
-                new_string = json.dumps(filtered_route, indent=2)
-                print(new_string)
-    else:
-        cmd = 'sudo vtysh -c "show ip route'
-
-        for arg in args:
-            cmd += " " + str(arg)
-
-        cmd += '"'
-
-        run_command(cmd, display_cmd=verbose)
+                        else:
+                            new_nhop_l.append(nh)
+                    # use the new filtered nhop list if it is not empty. if empty nexthop , this route is filtered out completely
+                    if len(new_nhop_l) > 0:
+                        new_info['nexthops'] = new_nhop_l
+                        new_info_cnt += 1
+                        # in case there are any nexthop that were deleted, we will need to adjust the nexhopt counts as well
+                        if del_cnt > 0:
+                            internalNextHopNum = info[i]['internalNextHopNum'] - del_cnt
+                            new_info['internalNextHopNum'] = internalNextHopNum
+                            internalNextHopActiveNum = info[i]['internalNextHopActiveNum'] - del_cnt
+                            new_info['internalNextHopActiveNum'] = internalNextHopActiveNum
+                        new_info_l.append(new_info)
+                if new_info_cnt:
+                    filtered_route[route] = new_info_l
+        else:
+            filtered_route = route_info
+        if not found_json:
+            #print out the header if this is not a json request
+            if not hdr_printed:
+                print_show_ip_route_hdr()
+                hdr_printed = True
+            print_ip_routes(filtered_route)
+        else:
+            new_string = json.dumps(filtered_route, indent=2)
+            print(new_string)
 
 
 #
