@@ -132,7 +132,15 @@ dom_value_unit_map = {'rx1power': 'dBm', 'rx2power': 'dBm',
                       'tx3power': 'dBm', 'tx4power': 'dBm',
                       'temperature': 'C', 'voltage': 'Volts'}
 
+def display_invalid_intf_eeprom(intf_name):
+    output = intf_name + ': ' + 'SFP EEPROM Not detected' + '\n'
+    click.echo(output)
 
+def display_invalid_intf_presence(intf_name):
+    header = ['Port', 'Presence']
+    port_table = []
+    port_table.append((intf_name, 'Not present'))
+    click.echo(tabulate(port_table, header))
 
 class SFPShow(object):
 
@@ -311,7 +319,6 @@ class SFPShow(object):
         else:
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             sorted_table_keys = natsorted(port_table_keys)
-            print(self.multi_asic.current_namespace)
             for i in sorted_table_keys:
                 interface = re.split(':', i, maxsplit=1)[-1].strip()
                 if interface and interface.startswith(front_panel_prefix()) and not interface.startswith(backplane_prefix()):
@@ -368,12 +375,13 @@ def cli():
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
 @click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
 def eeprom(port, dump_dom, namespace):
-    if port and multi_asic.is_multi_asic():
-        ns = multi_asic.get_namespace_for_port(port)
-        if namespace is not None and ns != namespace:
-            print("Error: Interface {} don't belong to this namespace {}".format(port, namespace))
-            return
-        namespace=ns
+    if port and multi_asic.is_multi_asic() and namespace is None:
+        try:
+            ns = multi_asic.get_namespace_for_port(port)
+            namespace=ns
+        except Exception:
+            display_invalid_intf_eeprom(port)
+            sys.exit(1)
 
     sfp = SFPShow(port, namespace, dump_dom)
     sfp.get_eeprom()
@@ -384,12 +392,13 @@ def eeprom(port, dump_dom, namespace):
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP presence for port <port_name> only")
 @click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
 def presence(port, namespace):
-    if port and multi_asic.is_multi_asic():
-        ns = multi_asic.get_namespace_for_port(port)
-        if namespace is not None and ns != namespace:
-            print("Error: Interface {} don't belong to this namespace {}".format(port, namespace))
-            return
-        namespace=ns
+    if port and multi_asic.is_multi_asic() and namespace is None:
+        try:
+            ns = multi_asic.get_namespace_for_port(port)
+            namespace=ns
+        except Exception:
+            display_invalid_intf_presence(port)
+            sys.exit(1)
 
     sfp = SFPShow(port, namespace)
     sfp.get_presence()
