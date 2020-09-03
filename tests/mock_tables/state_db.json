@@ -18,7 +18,6 @@
         "application_advertisement": "N/A"
     },
     "TRANSCEIVER_INFO|Ethernet32": {
-        "type": "QSFP28 or later",
         "serial": "CRCL17490BGUP",
         "manufacturer": "INTEL CORP",
         "model": "SPTSBP2CLCKS",
