@@ -1,11 +1,10 @@
 import os
 import sys
-import json
-
 
 import mock
 import pytest
 
+# noinspection PyUnresolvedReferences
 import mock_tables.dbconnector
 
 

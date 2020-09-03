@@ -1,7 +1,4 @@
-import os
-
 import pytest
-
 from click.testing import CliRunner
 
 show_bgp_summary_v4 = """\

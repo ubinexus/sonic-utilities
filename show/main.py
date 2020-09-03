@@ -8,7 +8,6 @@ import os
 import re
 import subprocess
 import sys
-import ipaddress
 
 import click
 from click_default_group import DefaultGroup
