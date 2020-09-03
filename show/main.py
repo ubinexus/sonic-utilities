@@ -869,10 +869,14 @@ def rif(interface, period, verbose):
 
 # 'portchannel' subcommand ("show interfaces portchannel")
 @interfaces.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def portchannel(verbose):
+def portchannel(namespace,  display, verbose):
     """Show PortChannel information"""
-    cmd = "sudo teamshow"
+    cmd = "sudo teamshow -d {}".format(display)
+    if namespace is not None:
+        cmd += "  -n {}".format(namespace)
+    
     run_command(cmd, display_cmd=verbose)
 
 #

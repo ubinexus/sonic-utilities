@@ -22,11 +22,15 @@
 import json
 import os
 import re
-import swsssdk
 import subprocess
 import sys
-from tabulate import tabulate
+
 from natsort import natsorted
+from tabulate import tabulate
+from sonic_py_common.multi_asic import get_asic_id_from_name
+
+import utilities_common.multi_asic as multi_asic_util
+from utilities_common import constants
 
 PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
@@ -36,24 +40,35 @@ PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX = "LAG_MEMBER_TABLE:"
 PORT_CHANNEL_MEMBER_STATUS_FIELD = "status"
 
 class Teamshow(object):
-    def __init__(self):
+    def __init__(self,display_option, namespace_option):
         self.teams = []
         self.teamsraw = {}
         self.summary = {}
         self.err = None
-        # setup db connection
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
-        self.db.connect(self.db.APPL_DB)
-        self.db.connect(self.db.CONFIG_DB)
+        self.db = None
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
+
+    @multi_asic_util.run_on_multi_asic
+    def get_teams_info(self):
+        self.get_portchannel_names()
+        self.get_teamdctl()
+        self.get_teamshow_result()
 
     def get_portchannel_names(self):
         """
             Get the portchannel names from database.
         """
+        self.teams = []
         team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
         if team_keys == None:
             return
-        self.teams = [key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):] for key in team_keys]
+        
+        for key in team_keys:
+            team_name = key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):]
+            if self.multi_asic.skip_display(constants.PORT_CHANNEL_OBJ, team_name) is True:
+                continue
+            self.teams.append(team_name)
+
 
     def get_portchannel_status(self, port_channel_name):
         """
@@ -78,7 +93,7 @@ class Teamshow(object):
             Command: 'teamdctl <teamdevname> state dump'.
         """
         for team in self.teams:
-            teamdctl_cmd = 'teamdctl ' + team + ' state dump'
+            teamdctl_cmd = "sudo docker exec -it teamd{} teamdctl {} state dump".format(get_asic_id_from_name(self.multi_asic.current_namespace), team)
             p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (output, err) = p.communicate()
             rc = p.wait()
@@ -144,12 +159,15 @@ class Teamshow(object):
 def main():
     if os.geteuid() != 0:
         exit("This utility must be run as root")
+        
+    parser = multi_asic_util.multi_asic_args()
+    args = parser.parse_args()
 
+    display_option = args.display
+    namespace_option = args.namespace
     try:
-        team = Teamshow()
-        team.get_portchannel_names()
-        team.get_teamdctl()
-        team.get_teamshow_result()
+        team = Teamshow(display_option, namespace_option)
+        team.get_teams_info()
         team.display_summary()
     except Exception as e:
         sys.exit(e.message)
