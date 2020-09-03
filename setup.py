@@ -110,6 +110,7 @@ setup(
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
+        'scripts/sonic-sync-mode',
         'scripts/syseeprom-to-json',
         'scripts/tempershow',
         'scripts/update_json.py',
