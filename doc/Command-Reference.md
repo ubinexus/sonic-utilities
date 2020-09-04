@@ -823,7 +823,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] [-t|--table] | lpmode | presence) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):

@@ -284,8 +284,9 @@ def transceiver():
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
+@click.option('-t', '--table', 'table', is_flag=True, help="Display SFP EEPROM data in table format")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def eeprom(interfacename, dump_dom, verbose):
+def eeprom(interfacename, dump_dom, table, verbose):
     """Show interface transceiver EEPROM information"""
 
     ctx = click.get_current_context()
@@ -294,6 +295,9 @@ def eeprom(interfacename, dump_dom, verbose):
 
     if dump_dom:
         cmd += " --dom"
+
+    if table:
+        cmd += " --table"
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)

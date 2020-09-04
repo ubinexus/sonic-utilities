@@ -80,6 +80,21 @@ Ethernet0: SFP EEPROM detected
         Vendor SN: MT1706FT02064
 """
 
+test_sfp_eeprom_table_output = """\
+Interface    Identifier       Connector               Vendor Name    Model Name    Serial Number      Nominal Bit Rate(100Mbs)
+-----------  ---------------  ----------------------  -------------  ------------  ---------------  --------------------------
+Ethernet0    QSFP28 or later  No separable connector  Mellanox       MFA1A00-C003  MT1706FT02064                           255
+"""
+
+test_sfp_eeprom_with_dom_table_output = """\
+Interface    Lane Number    Temp(C)                            Voltage(V)                       Current(mA)                      Tx Power(dBm)                 Rx Power(dBm)
+-----------  -------------  ---------------------------------  -------------------------------  -------------------------------  ----------------------------  ---------------------------------
+Ethernet32   Lane 1         32.1055 [low=0.0000,high=75.0000]  3.3769 [low=1.0000,high=9.5000]  6.7500 [low=1.0000,high=9.5000]  0.4961 [low=None,high=None]   0.4961 [low=-9.5001,high=2.4000]
+             Lane 2         32.1055 [low=0.0000,high=75.0000]  3.3769 [low=1.0000,high=9.5000]  6.7500 [low=1.0000,high=9.5000]  0.3782 [low=None,high=None]   0.3782 [low=-9.5001,high=2.4000]
+             Lane 3         32.1055 [low=0.0000,high=75.0000]  3.3769 [low=1.0000,high=9.5000]  6.7500 [low=1.0000,high=9.5000]  0.5918 [low=None,high=None]   -0.0860 [low=-9.5001,high=2.4000]
+             Lane 4         32.1055 [low=0.0000,high=75.0000]  3.3769 [low=1.0000,high=9.5000]  6.7500 [low=1.0000,high=9.5000]  -0.1909 [low=None,high=None]  0.5918 [low=-9.5001,high=2.4000]
+"""
+
 class TestSFP(object):
     @classmethod
     def setup_class(cls):
@@ -111,6 +126,12 @@ Ethernet200  Not present
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_with_dom_output
 
+    def test_sfp_eeprom_with_dom_table(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet32 -dt"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_with_dom_table_output
+
     def test_sfp_eeprom(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0"])
@@ -121,6 +142,12 @@ Ethernet200  Not present
         result_lines = result.output.strip('\n')
         expected = "Ethernet200: SFP EEPROM Not detected"
         assert result_lines == expected
+
+    def test_sfp_eeprom_table(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -t"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_table_output
 
     @classmethod
     def teardown_class(cls):

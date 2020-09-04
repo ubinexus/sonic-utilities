@@ -126,6 +126,15 @@ dom_value_unit_map = {'rx1power': 'dBm', 'rx2power': 'dBm',
                       'tx3power': 'dBm', 'tx4power': 'dBm',
                       'temperature': 'C', 'voltage': 'Volts'}
 
+table_header_info = ['Interface', 'Identifier',
+                    'Connector', 'Vendor Name',
+                    'Model Name', 'Serial Number',
+                    'Nominal Bit Rate(100Mbs)']
+
+table_header_dom = ['Interface', 'Lane Number',
+                    'Temp(C)', 'Voltage(V)',
+                    'Current(mA)', 'Tx Power(dBm)',
+                    'Rx Power(dBm)']
 
 
 class SFPShow(object):
@@ -291,6 +300,50 @@ class SFPShow(object):
 
         return out_put
 
+    # Convert sfp dom sensor info to cli output string
+    def display_dom_val(self, input_dict, val_key, low_key, high_key):
+        val = input_dict.get(val_key)
+        low = input_dict.get(low_key)
+        high = input_dict.get(high_key)
+        return '{0} [low={1},high={2}]'.format(val, low, high) if val else 'N/A'
+
+    # Convert sfp info and dom sensor info in DB to output tuple
+    def convert_interface_sfp_info_to_tuple(self, state_db, interface_name, dump_dom):
+        out_put = []
+        null = 'N/A'
+
+        presence = self.sdb.exists(
+            self.sdb.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
+        sfp_info_dict = state_db.get_all(
+            state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name)) if presence else {}
+
+        if dump_dom:
+            dom_info_dict = state_db.get_all(
+                state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name)) if presence else {}
+
+            lanes = self.adb.get(
+                self.adb.APPL_DB, "PORT_TABLE:{}".format(interface_name), "lanes")
+            num_of_lane = len(lanes.split(",")) if lanes else 1
+            for lane in range(1, num_of_lane+1):
+                port = interface_name if lane == 1 else ""
+                out_put.append((port,
+                                "Lane {}".format(lane),
+                                self.display_dom_val(dom_info_dict, 'temperature', 'templowwarning', 'temphighalarm'),
+                                self.display_dom_val(dom_info_dict, 'voltage', 'txbiaslowwarning', 'txbiashighwarning'),
+                                self.display_dom_val(dom_info_dict, 'tx{}bias'.format(lane), 'txbiaslowwarning', 'txbiashighwarning'),
+                                self.display_dom_val(dom_info_dict, 'tx{}power'.format(lane), 'txpowerlowwarning', 'txpowerhighwarning'),
+                                self.display_dom_val(dom_info_dict, 'rx{}power'.format(lane), 'rxpowerlowwarning', 'rxpowerhighwarning')
+                                ))
+        else:
+            out_put.append((interface_name,
+                            sfp_info_dict.get('type', null),
+                            sfp_info_dict.get('connector', null),
+                            sfp_info_dict.get('manufacturer', null),
+                            sfp_info_dict.get('model', null),
+                            sfp_info_dict.get('serial', null),
+                            sfp_info_dict.get('nominal_bit_rate', null)))
+        return out_put
+
     def display_eeprom(self, interfacename, dump_dom):
         out_put = ''
 
@@ -315,6 +368,25 @@ class SFPShow(object):
                 out_put = out_put + '\n'
 
         click.echo(out_put)
+
+    def display_eeprom_table(self, interfacename, dump_dom):
+        table = []
+        header = table_header_info if not dump_dom else table_header_dom
+
+        if interfacename is not None:
+            table += self.convert_interface_sfp_info_to_tuple(
+                self.sdb, interfacename, dump_dom)
+
+        else:
+            port_table_keys = self.adb.keys(self.adb.APPL_DB, "PORT_TABLE:*")
+            sorted_table_keys = natsorted(port_table_keys)
+            for i in sorted_table_keys:
+                interface = re.split(':', i, maxsplit=1)[-1].strip()
+                if interface and interface.startswith('Ethernet'):
+                    table += self.convert_interface_sfp_info_to_tuple(
+                        self.sdb, interface, dump_dom)
+
+        click.echo(tabulate(table, header, tablefmt="simple", stralign='left'))
 
     def display_presence(self, interfacename):
         port_table = []
@@ -350,9 +422,13 @@ def cli():
 @cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM data for port <port_name> only")
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
-def eeprom(port, dump_dom):
+@click.option('-t', '--table', 'table', is_flag=True, help="Display SFP EEPROM data in table format")
+def eeprom(port, dump_dom, table):
     sfp = SFPShow()
-    sfp.display_eeprom(port, dump_dom)
+    if table:
+        sfp.display_eeprom_table(port, dump_dom)
+    else:
+        sfp.display_eeprom(port, dump_dom)
 
 # 'presence' subcommand
 @cli.command()
