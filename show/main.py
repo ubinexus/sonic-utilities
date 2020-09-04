@@ -920,11 +920,14 @@ def pfc():
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(verbose):
+def counters(namespace, display, verbose):
     """Show pfc counters"""
 
-    cmd = "pfcstat"
+    cmd = "pfcstat -s {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 
