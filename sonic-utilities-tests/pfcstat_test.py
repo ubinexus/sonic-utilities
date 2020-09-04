@@ -1,7 +1,6 @@
 import imp
 import os
 import shutil
-import sys
 
 from click.testing import CliRunner
 
@@ -87,15 +86,15 @@ Ethernet-BP4       0       0       0       0       0       0       0       0
 
 
 def pfc_clear(expected_output):
-    counters_file_list = ['0tx', '0rx']
     uid = str(os.getuid())
     cnstat_dir = os.path.join(os.sep, "tmp", "pfcstat-{}".format(uid))
     shutil.rmtree(cnstat_dir, ignore_errors=True, onerror=None)
 
-    return_code, result = get_result_and_return_code(
+    _, result = get_result_and_return_code(
         'pfcstat -c'
     )
 
+    assert result.exit_code == 0
     # verify that files are created with stats
     cnstat_fqn_file_rx = "{}rx".format(uid)
     cnstat_fqn_file_tx = "{}tx".format(uid)
@@ -105,9 +104,10 @@ def pfc_clear(expected_output):
     files.sort()
     assert files == file_list
 
-    return_code, result = get_result_and_return_code(
+    _, result = get_result_and_return_code(
         'pfcstat -s all'
     )
+    assert result.exit_code == 0
     result_stat = [s for s in result.split("\n") if "Last cached" not in s]
     expected = expected_output.split("\n")
     # this will also verify the saved counters are correct since the
