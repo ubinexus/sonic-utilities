@@ -90,11 +90,8 @@ def pfc_clear(expected_output):
     cnstat_dir = os.path.join(os.sep, "tmp", "pfcstat-{}".format(uid))
     shutil.rmtree(cnstat_dir, ignore_errors=True, onerror=None)
 
-    _, result = get_result_and_return_code(
-        'pfcstat -c'
-    )
+    get_result_and_return_code('pfcstat -c')
 
-    assert result.exit_code == 0
     # verify that files are created with stats
     cnstat_fqn_file_rx = "{}rx".format(uid)
     cnstat_fqn_file_tx = "{}tx".format(uid)
@@ -107,7 +104,6 @@ def pfc_clear(expected_output):
     _, result = get_result_and_return_code(
         'pfcstat -s all'
     )
-    assert result.exit_code == 0
     result_stat = [s for s in result.split("\n") if "Last cached" not in s]
     expected = expected_output.split("\n")
     # this will also verify the saved counters are correct since the
@@ -164,24 +160,21 @@ class TestMultiAsicPfcstat(object):
         assert result.output == show_pfc_counters_all
 
     def test_pfc_counters_frontend(self):
-        return_code, result = get_result_and_return_code(
+        _, result = get_result_and_return_code(
             'pfcstat -s frontend'
         )
-        assert return_code == 0
         assert result == show_pfc_counters_asic0_frontend
 
     def test_pfc_counters_asic(self):
-        return_code, result = get_result_and_return_code(
+        _, result = get_result_and_return_code(
             'pfcstat -n asic0'
         )
-        assert return_code == 0
         assert result == show_pfc_counters_asic0_frontend
 
     def test_pfc_counters_asic_all(self):
-        return_code, result = get_result_and_return_code(
+        _, result = get_result_and_return_code(
             'pfcstat -n asic0 -s all'
         )
-        assert return_code == 0
         assert result == show_pfc_counters_all
 
     def test_pfc_clear(self):
