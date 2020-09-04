@@ -10,7 +10,6 @@ from natsort import natsorted
 import netifaces
 from pkg_resources import parse_version
 
-
 import feature
 import interfaces
 import kube
@@ -21,7 +20,7 @@ from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
-from utilities_common.multi_asic import multi_asic_click_options
+import utilities_common.multi_asic as  multi_asic_util
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -368,7 +367,7 @@ def pfc():
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
-@multi_asic_click_options
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def counters(namespace, display, verbose):
     """Show pfc counters"""
@@ -412,20 +411,26 @@ def pfcwd():
     pass
 
 @pfcwd.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def config(verbose):
+def config(namespace, display, verbose):
     """Show pfc watchdog config"""
 
-    cmd = "pfcwd show config"
+    cmd = "pfcwd show config -d {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 
 @pfcwd.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def stats(verbose):
+def stats(namespace, display, verbose):
     """Show pfc watchdog stats"""
 
-    cmd = "pfcwd show stats"
+    cmd = "pfcwd show stats -d {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 
