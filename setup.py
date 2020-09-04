@@ -81,7 +81,7 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
-        'scripts/filter_fdb_entries.py',
+        'fdbutil/filter_fdb_entries.py',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',
