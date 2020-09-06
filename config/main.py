@@ -14,6 +14,7 @@ import time
 
 from minigraph import parse_device_desc_xml
 from sonic_py_common import device_info, logger
+from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 
 import aaa
@@ -151,17 +152,6 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-# Validate whether a given namespace name is valid in the device.
-def validate_namespace(namespace):
-    if not device_info.is_multi_npu():
-        return True
-
-    namespaces = device_info.get_all_namespaces()
-    if namespace in namespaces['front_ns'] + namespaces['back_ns']:
-        return True
-    else:
-        return False
-
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
@@ -236,24 +226,6 @@ def interface_name_to_alias(interface_name):
                 return port_dict[port_name]['alias']
 
     return None
-
-def get_interface_table_name(interface_name):
-    """Get table name by interface_name prefix
-    """
-    if interface_name.startswith("Ethernet"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "INTERFACE"
-    elif interface_name.startswith("PortChannel"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "PORTCHANNEL_INTERFACE"
-    elif interface_name.startswith("Vlan"):
-        return "VLAN_INTERFACE"
-    elif interface_name.startswith("Loopback"):
-        return "LOOPBACK_INTERFACE"
-    else:
-        return ""
 
 def interface_ipaddr_dependent_on_interface(config_db, interface_name):
     """Get table keys including ipaddress
