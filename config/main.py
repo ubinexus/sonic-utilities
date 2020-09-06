@@ -14,6 +14,7 @@ import time
 
 from minigraph import parse_device_desc_xml
 from sonic_py_common import device_info, multi_asic, logger
+from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from sonic_py_common.interface import front_panel_prefix, portchannel_prefix, vlan_prefix, loopback_prefix
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 
@@ -152,18 +153,6 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-# TODO move to sonic-py-common package
-# Validate whether a given namespace name is valid in the device.
-def validate_namespace(namespace):
-    if not multi_asic.is_multi_asic():
-        return True
-
-    namespaces = multi_asic.get_all_namespaces()
-    if namespace in namespaces['front_ns'] + namespaces['back_ns']:
-        return True
-    else:
-        return False
-
 def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
     """
@@ -259,25 +248,6 @@ def interface_name_to_alias(config_db, interface_name):
 
     return None
 
-# TODO move to sonic-py-common package
-def get_interface_table_name(interface_name):
-    """Get table name by interface_name prefix
-    """
-    if interface_name.startswith(front_panel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "INTERFACE"
-    elif interface_name.startswith(portchannel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "PORTCHANNEL_INTERFACE"
-    elif interface_name.startswith(vlan_prefix()):
-        return "VLAN_INTERFACE"
-    elif interface_name.startswith(loopback_prefix()):
-        return "LOOPBACK_INTERFACE"
-    else:
-        return ""
-
 def interface_ipaddr_dependent_on_interface(config_db, interface_name):
     """Get table keys including ipaddress
     """
@@ -301,26 +271,6 @@ def is_interface_bind_to_vrf(config_db, interface_name):
     if entry and entry.get("vrf_name"):
         return True
     return False
-
-# TODO move to sonic-py-common package
-# Get the table name based on the interface type
-def get_port_table_name(interface_name):
-    """Get table name by port_name prefix
-    """
-    if interface_name.startswith(front_panel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "PORT"
-    elif interface_name.startswith(portchannel_prefix()):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            return "VLAN_SUB_INTERFACE"
-        return "PORTCHANNEL"
-    elif interface_name.startswith(vlan_prefix()):
-        return "VLAN_INTERFACE"
-    elif interface_name.startswith(loopback_prefix()):
-        return "LOOPBACK_INTERFACE"
-    else:
-        return ""
 
 # Return the namespace where an interface belongs
 # The port name input could be in default mode or in alias mode.
