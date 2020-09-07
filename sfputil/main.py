@@ -10,7 +10,11 @@ try:
     import os
     import subprocess
     import click
-    from sonic_py_common import device_info, logger, multi_asic
+    import imp
+    import syslog
+    import types
+    import traceback
+    from sonic_py_common import device_info, multi_asic
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -392,7 +396,7 @@ def cli():
             port_config_file_path = device_info.get_path_to_port_config_file()
             platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
     except Exception as e:
-        log.log_error("Error reading port info (%s)" % str(e), True)
+        log_error("Error reading port info (%s)" % str(e), True)
         sys.exit(3)
 
 
