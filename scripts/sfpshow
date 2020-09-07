@@ -26,9 +26,9 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
-    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
-        import mock_tables.mock_multi_asic
-        mock_tables.dbconnector.load_namespace_config()
+        if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+            import mock_tables.mock_multi_asic
+            mock_tables.dbconnector.load_namespace_config()
 except KeyError:
     pass 
 

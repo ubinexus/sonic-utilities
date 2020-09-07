@@ -778,7 +778,7 @@ def lpmode(interfacename, verbose):
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def presence(db, interfacename, namespace, verbose):
+def presence(interfacename, namespace, verbose):
     """Show interface transceiver presence"""
 
     cmd = "sfpshow presence"
