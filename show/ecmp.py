@@ -1,6 +1,5 @@
 import click
 import ipaddress
-from natsort import natsorted
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
@@ -19,17 +18,14 @@ def fg_nhg_active_hops(nhg):
     config_db.connect()
     fg_nhg_prefix_table = {}
     fg_nhg_alias = {}	
-   
     fg_nhg_prefix_table = config_db.get_table('FG_NHG_PREFIX')
     
     for key, value in fg_nhg_prefix_table.items():
 	    fg_nhg_alias[key] = value['FG_NHG']
-    
-	 
+    	 
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)  # Make one attempt only STATE_DB
      
-
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
@@ -42,13 +38,8 @@ def fg_nhg_active_hops(nhg):
     if nhg is None:
 	for nhg_prefix in table_keys :    
 	    t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-            
             vals = sorted(set([val for val in t_dict.values()]))
-
-
    	    for nh_ip in vals:
-        	    	bank_ids = [int(k) for k, v in t_dict.items() if v == nh_ip]
-        		 
 			if nhg_prefix in output_dict:
  			    output_dict[nhg_prefix].append(nh_ip.split("@")[0])
 			else:
@@ -78,17 +69,14 @@ def fg_nhg_active_hops(nhg):
 		vals = sorted(set([val for val in t_dict.values()]))
 
          	for nh_ip in vals:
-        	    	    bank_ids = [int(k) for k, v in t_dict.items() if v == nh_ip]
 			    if nhg_prefix in output_dict:
  			    	output_dict[nhg_prefix].append(nh_ip.split("@")[0])
 			    else:
 			    	output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
 
-
 		nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
 	        formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
 		table.append([nhg_prefix_report, formatted_nhps])
-
 	        header = ["FG_NHG_PREFIX", "Active Next Hops"]
     	        click.echo(tabulate(table, header, tablefmt = "grid"))
      		 
@@ -100,24 +88,19 @@ def fg_nhg_hash_view(nhg):
     config_db.connect()
     fg_nhg_prefix_table = {}
     fg_nhg_alias = {}	
-   
     fg_nhg_prefix_table = config_db.get_table('FG_NHG_PREFIX')
    
-
     for key, value in fg_nhg_prefix_table.items():
 	    fg_nhg_alias[key] = value['FG_NHG']
     	 
-    state_db = SonicV2Connector(host='127.0.0.1')
-     
+    state_db = SonicV2Connector(host='127.0.0.1')  
     state_db.connect(state_db.STATE_DB, False)  # Make one attempt only STATE_DB
     
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = []
-  
     table_keys = state_db.keys(state_db.STATE_DB, _hash)
-   
     t_dict = {}
     table = []
     output_dict = {}
