@@ -72,7 +72,7 @@ def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     return natsorted(queues)
 
 
-def get_all_ports(db, namespace=None, display=display=constants.DISPLAY_ALL):
+def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
     all_port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
 
     # Get list of physical ports
