@@ -3,7 +3,7 @@ import os
 import sys
 
 from click.testing import CliRunner
-from utilities_common.db import Db
+from swsssdk import ConfigDBConnector
 
 from pfcwd_input.pfcwd_test_vectors import (
     testData, show_pfcwd_stats_all, show_pfc_config_all,
@@ -51,7 +51,8 @@ class TestPfcwd(object):
     def executor(self, testcase):
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = ConfigDBConnector()
+        db.connect()
 
         for input in testcase:
             exec_cmd = ""
