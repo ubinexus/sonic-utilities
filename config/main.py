@@ -1298,11 +1298,9 @@ def synchronous_mode(sync_mode):
     """ Enable or disable synchronous mode between orchagent and syncd \n
         swss restart required to apply the configuration \n
         Options to restart swss and apply the configuration: \n
-            1. Keep and apply configuration after config reload \n
-                config save -y \n
-                config reload -y \n
-            2. Discard configuration after config reload \n
-                systemctl restart swss
+            1. config save -y \n
+               config reload -y \n
+            2. systemctl restart swss
     """
     
     if sync_mode == 'enable' or sync_mode == 'disable':
