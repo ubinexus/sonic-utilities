@@ -14,6 +14,14 @@ sys.path.insert(0, modules_path)
 class MockerConfig(object):
     ignore_devices = []
     ignore_services = []
+    first_time = True
+
+    def config_file_exists(self):
+        if MockerConfig.first_time:
+            MockerConfig.first_time = False
+            return False
+        else:
+            return True
 
 class MockerManager(object):
     STATE_BOOTING = 'booting'
@@ -74,6 +82,11 @@ class TestHealth(object):
 
     def test_health_summary(self):
         runner = CliRunner()
+        result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
+        click.echo(result.output)
+        expected = """System health configuration file not found, exit...
+"""
+        assert result.output == expected
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
         click.echo(result.output)
         expected = """System is currently booting...

@@ -2464,6 +2464,9 @@ def summary():
 
     manager = HealthCheckerManager()
     chassis = Chassis()
+    if not manager.config.config_file_exists():
+        click.echo("System health configuration file not found, exit...")
+        return
     state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
@@ -2524,6 +2527,9 @@ def detail():
 
     manager = HealthCheckerManager()
     chassis = Chassis()
+    if not manager.config.config_file_exists():
+        click.echo("System health configuration file not found, exit...")
+        return
     state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
@@ -2614,6 +2620,9 @@ def monitor_list():
 
     manager = HealthCheckerManager()
     chassis = Chassis()
+    if not manager.config.config_file_exists():
+        click.echo("System health configuration file not found, exit...")
+        return
     state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
