@@ -2463,10 +2463,10 @@ def summary():
         from sonic_platform.chassis import Chassis
 
     manager = HealthCheckerManager()
-    chassis = Chassis()
     if not manager.config.config_file_exists():
         click.echo("System health configuration file not found, exit...")
         return
+    chassis = Chassis()
     state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
@@ -2526,10 +2526,10 @@ def detail():
         from sonic_platform.chassis import Chassis
 
     manager = HealthCheckerManager()
-    chassis = Chassis()
     if not manager.config.config_file_exists():
         click.echo("System health configuration file not found, exit...")
         return
+    chassis = Chassis()
     state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
@@ -2619,10 +2619,10 @@ def monitor_list():
         from sonic_platform.chassis import Chassis
 
     manager = HealthCheckerManager()
-    chassis = Chassis()
     if not manager.config.config_file_exists():
         click.echo("System health configuration file not found, exit...")
         return
+    chassis = Chassis()
     state, stat = manager.check(chassis)
     if state == HealthCheckerManager.STATE_BOOTING:
         click.echo("System is currently booting...")
