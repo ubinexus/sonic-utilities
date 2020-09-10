@@ -74,7 +74,6 @@ Ethernet-BP4     800     801     802     803     804     805     806     807
 Ethernet-BP0     600     601     602     603     604     605     606     607
 Ethernet-BP4     800     801     802     803     804     805     806     807
 """
-
 show_pfc_counters_asic0_frontend = """\
   Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ---------  ------  ------  ------  ------  ------  ------  ------  ------

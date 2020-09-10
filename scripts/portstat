@@ -13,14 +13,30 @@ import getopt
 import os.path
 import re
 import subprocess
-import swsssdk
 import sys
 import time
 
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
+from sonic_py_common import multi_asic
+from utilities_common import constants
+import utilities_common.multi_asic as multi_asic_util
 from utilities_common.netstat import ns_diff, ns_brate, ns_prate, ns_util, table_as_json
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "sonic-utilities-tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+        if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic" :
+            import mock_tables.mock_multi_asic
+            mock_tables.dbconnector.load_namespace_config()
+except KeyError:
+    pass
 
 PORT_RATE = 40
 
@@ -63,11 +79,25 @@ PORT_STATE_UP = 'U'
 PORT_STATE_DOWN = 'D'
 PORT_STATE_DISABLED = 'X'
 
+
 class Portstat(object):
-    def __init__(self):
-        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
-        self.db.connect(self.db.COUNTERS_DB)
-        self.db.connect(self.db.APPL_DB)
+    def __init__(self, namespace, display_option):
+        self.db = None
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace)
+
+    def get_cnstat_dict(self):
+        self.cnstat_dict = OrderedDict()
+        self.cnstat_dict['time'] = datetime.datetime.now()
+        self.collect_stat()
+        return self.cnstat_dict
+
+    @multi_asic_util.run_on_multi_asic
+    def collect_stat(self):
+        """
+        Collect the statisitics from all the asics present on the 
+        device and store in a dict
+        """
+        self.cnstat_dict.update(self.get_cnstat())
 
     def get_cnstat(self):
         """
@@ -96,6 +126,9 @@ class Portstat(object):
         if counter_port_name_map is None:
             return cnstat_dict
         for port in natsorted(counter_port_name_map):
+            port_name = port.split(":")[0]
+            if self.multi_asic.skip_display(constants.PORT_OBJ, port_name):
+                continue
             cnstat_dict[port] = get_counters(counter_port_name_map[port]) 
         return cnstat_dict
 
@@ -105,11 +138,12 @@ class Portstat(object):
         """
         # Get speed from APPL_DB
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
-        if speed is None:
-            speed = PORT_RATE
-        else:
-            speed = int(speed)/1000
+        speed = PORT_RATE
+        for ns in self.multi_asic.get_ns_list_based_on_options():
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+            speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
+            if speed is not None:
+                return int(speed)//1000
         return speed
 
     def get_port_state(self, port_name):
@@ -117,18 +151,22 @@ class Portstat(object):
             Get the port state
         """
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
-        oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
-        if admin_state is None or oper_state is None:
-             return STATUS_NA
-        elif admin_state.upper() == PORT_STATUS_VALUE_DOWN:
-            return PORT_STATE_DISABLED
-        elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_UP:
-            return PORT_STATE_UP
-        elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_DOWN:
-            return PORT_STATE_DOWN
-        else:
-            return STATUS_NA
+        for ns in self.multi_asic.get_ns_list_based_on_options():
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+            admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
+            oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
+
+            if admin_state is None or oper_state is None:
+                continue
+            if admin_state.upper() == PORT_STATUS_VALUE_DOWN:
+                return PORT_STATE_DISABLED
+            elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_UP:
+                return PORT_STATE_UP
+            elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_DOWN:
+                return PORT_STATE_DOWN
+            else:
+                return STATUS_NA
+        return STATUS_NA
 
     def cnstat_print(self, cnstat_dict, use_json, print_all):
         """
@@ -272,6 +310,8 @@ Examples:
     parser.add_argument('-a', '--all', action='store_true', help='Display all the stats counters')
     parser.add_argument('-t', '--tag', type=str, help='Save stats with name TAG', default=None)
     parser.add_argument('-p', '--period', type=int, help='Display stats over a specified period (in seconds).', default=0)
+    parser.add_argument('-s','--show',   default=constants.DISPLAY_EXTERNAL, help='Display all interfaces or only external interfaces')
+    parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -283,6 +323,8 @@ Examples:
     uid = str(os.getuid())
     wait_time_in_seconds = args.period
     print_all = args.all
+    namespace = args.namespace
+    display_option = args.show
 
     if tag_name is not None:
         cnstat_file = uid + "-" + tag_name
@@ -315,8 +357,14 @@ Examples:
                 os.rmdir(cnstat_dir)
             sys.exit(0)
 
-    portstat = Portstat()
-    cnstat_dict = portstat.get_cnstat()
+    # When saving counters to the file, save counters
+    # for all ports(Internal and External)
+    if save_fresh_stats:
+        namespace = None
+        display_option = constants.DISPLAY_ALL
+
+    portstat = Portstat(namespace, display_option)
+    cnstat_dict = portstat.get_cnstat_dict()
 
     # Now decide what information to display
     if raw_stats:
@@ -360,7 +408,7 @@ Examples:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
         print "The rates are calculated within %s seconds period" % wait_time_in_seconds
-        cnstat_new_dict = portstat.get_cnstat()
+        cnstat_new_dict = portstat.get_cnstat_dict()
         portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json, print_all)
 
 if __name__ == "__main__":
