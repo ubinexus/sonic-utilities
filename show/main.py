@@ -1780,6 +1780,12 @@ def counts(group, counter_type, verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+# 'chassis_modules' subcommand ("show platform chassis_modules")
+@platform.command()
+def chassis_modules():
+    """Show chassis-modules information"""
+    cmd = 'chassismodulesshow'
+    run_command(cmd)
 #
 # 'ecn' command ("show ecn")
 #

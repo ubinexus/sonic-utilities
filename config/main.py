@@ -3159,6 +3159,45 @@ def update(args):
         sys.exit(e.returncode)
 
 #
+# 'chassis_modules' subgroup ('config platform chassis_modules ...')
+#
+@platform.group()
+@click.pass_context
+def chassis_modules (ctx):
+    """Chassis module configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+#
+# 'admin_down' subcommand
+#
+@chassis_modules.command('admin_down')
+@click.argument('chassis_module_name', metavar='<chassis_module_name>', required=True)
+@click.argument('instance_number', metavar='<instance_number>', required=True)
+@click.argument('module_type', metavar='<module_type>', required=True)
+@click.pass_context
+def admin_down_chassis_module(ctx, chassis_module_name, instance_number, module_type):
+    """Chassis module admin-down of devices"""
+    db = ctx.obj['db']
+
+    if not (module_type == "LINE-CARD") and not (module_type == "FABRIC-CARD"):
+        ctx.fail("'module_type' has to be 'LINE-CARD' or 'FABRIC-CARD'")
+
+    fvs = {'admin_status': 'down'}
+    fvs['instance'] = int(instance_number)
+    fvs['module_type'] = module_type
+    db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
+
+@chassis_modules.command('del')
+@click.argument('chassis_module_name', metavar='<chassis_module_name>', required=True)
+@click.pass_context
+def del_chassis_module(ctx, chassis_module_name):
+    db = ctx.obj['db']
+    db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
+
+#
 # 'watermark' group ("show watermark telemetry interval")
 #
 

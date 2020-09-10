@@ -1,0 +1,56 @@
+#!/usr/bin/python
+"""
+    Script to show chassis modules status.
+"""
+from __future__ import print_function
+
+import argparse
+
+from tabulate import tabulate
+from swsssdk import SonicV2Connector
+from natsort import natsorted
+
+
+header = ['Module', 'Instance', 'Type', 'Status']
+
+CHASSIS_MODULE_TABLE_NAME = 'CHASSIS_MODULE_TABLE'
+MODULE_FIELD_NAME = 'name'
+INSTANCE_FIELD_NAME = 'instance'
+TYPE_FIELD_NAME = 'type'
+STATUS_FIELD_NAME = 'status'
+
+class ChassisModuleShow(object):
+    def __init__(self):
+        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db.connect(self.db.STATE_DB)
+
+    def show(self):
+        keys = self.db.keys(self.db.STATE_DB, CHASSIS_MODULE_TABLE_NAME + '*')
+        if not keys:
+            print('Chassis-Module Not detected\n')
+            return
+
+        table = []
+        for key in natsorted(keys):
+            key_list = key.split('|')
+            if len(key_list) != 2: # error data in DB, log it and ignore
+                print('Warn: Invalid key in table CHASSIS_MODULE_TABLE: {}'.format(key))
+                continue
+
+            data_dict = self.db.get_all(self.db.STATE_DB, key)
+            name = data_dict[MODULE_FIELD_NAME]
+            instance = data_dict[INSTANCE_FIELD_NAME]
+            type = data_dict[TYPE_FIELD_NAME]
+            status = data_dict[STATUS_FIELD_NAME]
+
+            table.append((name, instance, type, status))
+
+        if table:
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
+        else:
+            print('No chassis_module status data available\n')
+
+
+if __name__ == "__main__":
+    chassismoduleShow = ChassisModuleShow()
+    chassismoduleShow.show()
