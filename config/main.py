@@ -17,7 +17,7 @@ from minigraph import parse_device_desc_xml
 from itertools import count, groupby
 from config_mgmt import ConfigMgmtDPB
 from utilities_common.intf_filter import parse_interface_in_filter
-from portconfig import get_child_ports, get_port_config_file_name
+from portconfig import get_child_ports
 from sonic_py_common import device_info
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
@@ -1951,7 +1951,7 @@ def add_mac(ctx, mac, vlan, interface_name):
     vlan_name = 'Vlan{}'.format(vlan)
 
     if get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
