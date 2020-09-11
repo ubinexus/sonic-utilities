@@ -284,8 +284,10 @@ def transceiver():
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def eeprom(interfacename, dump_dom, verbose):
+def eeprom(interfacename, dump_dom, namespace, verbose):
     """Show interface transceiver EEPROM information"""
 
     ctx = click.get_current_context()
@@ -299,6 +301,9 @@ def eeprom(interfacename, dump_dom, verbose):
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -321,9 +326,11 @@ def lpmode(interfacename, verbose):
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @clicommon.pass_db
-def presence(db, interfacename, verbose):
+def presence(db, interfacename, namespace, verbose):
     """Show interface transceiver presence"""
 
     ctx = click.get_current_context()
@@ -335,6 +342,9 @@ def presence(db, interfacename, verbose):
 
         cmd += " -p {}".format(interfacename)
 
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -345,9 +355,10 @@ def presence(db, interfacename, verbose):
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-p', '--period')
 @click.option('-i', '--interface')
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, interface, printall):
+def counters(ctx, verbose, period, interface, printall, namespace, display):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
@@ -359,29 +370,43 @@ def counters(ctx, verbose, period, interface, printall):
             cmd += " -p {}".format(period)
         if interface is not None:
             cmd += " -i {}".format(interface)
+        else:
+            cmd += " -s {}".format(display)
+        if namespace is not None:
+            cmd += " -n {}".format(namespace)
 
         clicommon.run_command(cmd, display_cmd=verbose)
 
 # 'errors' subcommand ("show interfaces counters errors")
 @counters.command()
 @click.option('-p', '--period')
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def errors(verbose, period):
+def errors(verbose, period, namespace, display):
     """Show interface counters errors"""
     cmd = "portstat -e"
     if period is not None:
         cmd += " -p {}".format(period)
+    
+    cmd += " -s {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
     clicommon.run_command(cmd, display_cmd=verbose)
 
 # 'rates' subcommand ("show interfaces counters rates")
 @counters.command()
 @click.option('-p', '--period')
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def rates(verbose, period):
+def rates(verbose, period, namespace, display):
     """Show interface counters rates"""
     cmd = "portstat -R"
     if period is not None:
         cmd += " -p {}".format(period)
+    cmd += " -s {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
     clicommon.run_command(cmd, display_cmd=verbose)
 
 # 'counters' subcommand ("show interfaces counters rif")

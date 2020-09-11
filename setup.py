@@ -59,12 +59,14 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
+        'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
                   'mock_tables/*.py',
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
                   'mock_tables/asic1/*.json',
-                  'filter_fdb_input/*']
+                  'filter_fdb_input/*',
+                  'pfcwd_input/*']
     },
     scripts=[
         'scripts/aclshow',

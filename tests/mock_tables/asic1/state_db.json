@@ -1,5 +1,5 @@
 {
-    "TRANSCEIVER_INFO|Ethernet0": {
+    "TRANSCEIVER_INFO|Ethernet64": {
         "type": "QSFP28 or later",
         "hardware_rev": "AC",
         "serial": "MT1706FT02064",
@@ -17,7 +17,7 @@
         "nominal_bit_rate": "255",
         "application_advertisement": "N/A"
     },
-    "TRANSCEIVER_DOM_SENSOR|Ethernet0": {
+    "TRANSCEIVER_DOM_SENSOR|Ethernet64": {
         "temperature": "30.9258",
         "voltage": "3.2824",
         "rx1power": "0.3802",
