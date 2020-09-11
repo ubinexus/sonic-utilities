@@ -1307,10 +1307,12 @@ def synchronous_mode(sync_mode):
         config_db = ConfigDBConnector()
         config_db.connect()
         config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"synchronous_mode" : sync_mode})
-        click.echo("Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration" % sync_mode)
+        click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
+    Option 1. config save -y \n
+              config reload -y \n
+    Option 2. systemctl restart swss""" % sync_mode)
     else:
-        click.echo("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
-        sys.exit(1)
+        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
 
 #
 # 'portchannel' group ('config portchannel ...')
