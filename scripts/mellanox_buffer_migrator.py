@@ -138,7 +138,7 @@ class MellanoxBufferMigrator():
         },
         "version_1_0_4": {
             # version 1.0.4 is introduced for updating the buffer settings
-            "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc2_3800_t0_pool", "spc2_3800_t1_pool"],
+            "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc2_3800_t0_pool", "spc2_3800_t1_pool", "spc3_t0_pool", "spc3_t1_pool"],
 
             # Buffer pool info for normal mode
             "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
@@ -168,6 +168,16 @@ class MellanoxBufferMigrator():
                                   "ingress_lossy_pool": { "size": "12457984", "type": "ingress", "mode": "dynamic" },
                                   "egress_lossless_pool": { "size": "34287552", "type": "egress", "mode": "dynamic" },
                                   "egress_lossy_pool": {"size": "12457984", "type": "egress", "mode": "dynamic" } },
+
+            # SPC3 is used only when migrating from 1.0.4 to 1.0.5
+            "spc3_t0_pool": {"ingress_lossless_pool": { "size": "26451968", "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "size": "26451968", "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "60817392", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"size": "26451968", "type": "egress", "mode": "dynamic" } },
+            "spc3_t1_pool": {"ingress_lossless_pool": { "size": "20627456", "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "size": "20627456", "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "60817392", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"size": "20627456", "type": "egress", "mode": "dynamic" } },
 
             # Lossless headroom info
             "spc1_headroom": {"pg_lossless_10000_5m_profile": {"size": "49152", "xon":"19456"},
@@ -225,7 +235,37 @@ class MellanoxBufferMigrator():
                                 "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
                                 "egress_lossy_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "9216"},
                                 "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
-        }
+        },
+        "version_1_0_5": {
+            # version 1.0.5 is introduced for dynamic buffer calculation
+            #
+            "pool_configuration_list": ["spc1_pool", "spc2_pool", "spc3_pool"],
+            "pool_mapped_from_old_version": {
+                "spc1_t0_pool": "spc1_pool",
+                "spc1_t1_pool": "spc1_pool",
+                "spc2_t0_pool": "spc2_pool",
+                "spc2_t1_pool": "spc2_pool",
+                "spc2_3800_t0_pool": "spc2_pool",
+                "spc2_3800_t1_pool": "spc2_pool",
+                "spc3_t0_pool": "spc3_pool",
+                "spc3_t1_pool": "spc3_pool"
+                },
+
+            # Buffer pool info for normal mode
+            "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
+            "spc1_pool": {"ingress_lossless_pool": { "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "13945824", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"type": "egress", "mode": "dynamic" } },
+            "spc2_pool": {"ingress_lossless_pool": { "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "34287552", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": { "type": "egress", "mode": "dynamic" } },
+            "spc3_pool": {"ingress_lossless_pool": { "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "60817392", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"type": "egress", "mode": "dynamic" } }
+            }
     }
 
     def mlnx_default_buffer_parameters(self, db_version, table):
@@ -247,6 +287,8 @@ class MellanoxBufferMigrator():
         """
         To migrate buffer pool configuration
         """
+        buffer_pool_conf_in_db = {}
+
         # Buffer pools defined in old version
         old_default_buffer_pools = self.mlnx_default_buffer_parameters(old_version, "buffer_pool_list")
 
@@ -274,12 +316,16 @@ class MellanoxBufferMigrator():
             return False
 
         new_config_name = None
+        pool_mapping = self.mlnx_default_buffer_parameters(new_version, "pool_mapped_from_old_version")
         for old_config_name in old_pool_configuration_list:
             old_config = self.mlnx_default_buffer_parameters(old_version, old_config_name)
             log.log_info("Checking old pool configuration {}".format(old_config_name))
             if buffer_pool_conf_in_db == old_config:
-                new_config_name = old_config_name
-                log.log_info("Old buffer pool configuration {} will be migrate to new one".format(old_config_name))
+                if pool_mapping:
+                    new_config_name = pool_mapping[old_config_name]
+                else:
+                    new_config_name = old_config_name
+                log.log_info("Old buffer pool configuration {} will be migrate to new one {}".format(old_config_name, new_config_name))
                 break
 
         if not new_config_name:

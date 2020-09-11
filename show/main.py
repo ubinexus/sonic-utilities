@@ -1430,6 +1430,7 @@ def boot():
     click.echo(proc.stdout.read())
 
 
+#
 # 'mmu' command ("show mmu")
 #
 @cli.command('mmu')
@@ -1438,6 +1439,35 @@ def mmu():
     cmd = "mmuconfig -l"
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
+
+#
+# 'buffer' command ("show buffer")
+#
+@cli.group(cls=clicommon.AliasedGroup)
+def buffer():
+    """Show buffer information"""
+    pass
+
+#
+# 'configuration' command ("show buffer command")
+#
+@buffer.command()
+def configuration():
+    """show buffer configuration"""
+    cmd = "mmuconfig -l"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    click.echo(proc.stdout.read())
+
+#
+# 'information' command ("show buffer state")
+#
+@buffer.command()
+def information():
+    """show buffer information"""
+    cmd = "buffershow -l"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    click.echo(proc.stdout.read())
+
 
 #
 # 'line' command ("show line")
