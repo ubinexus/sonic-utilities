@@ -1955,7 +1955,7 @@ def add_mac(ctx, mac, vlan, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    if interface_name_is_valid(db, interface_name) is False:
         ctx.fail("Interface name is invalid!!")
 
     db.set_entry('FDB', (vlan_name, mac), {'port': interface_name })
