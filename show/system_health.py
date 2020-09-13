@@ -1,8 +1,8 @@
 import os
 import sys
+
 import click
 from tabulate import tabulate
-
 import utilities_common.cli as clicommon
 
 #
