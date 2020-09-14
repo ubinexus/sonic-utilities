@@ -9,12 +9,19 @@ try:
     import click
     import os
     import pexpect
+    import re
+    import subprocess
     import sys
     from tabulate import tabulate
     from lib import *
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
+    
+Baudlist = ['9600','19200','115200']
+flowlist = [ 'x','h','n']
+    
+    
 @click.group()
 def consutil():
     """consutil - Command-line utility for interacting with switches via console device"""
@@ -29,11 +36,12 @@ def show():
     """Show all /dev/ttyUSB lines and their info"""
     devices = getAllDevices()
     busyDevices = getBusyDevices()
-
+    LengthPre = getPrefixLen()
+ 
     header = ["Line", "Actual/Configured Baud", "PID", "Start Time"]
     body = []
     for device in devices:
-        lineNum = device[11:]
+        lineNum = device[LengthPre:]
         busy = " "
         pid = ""
         date = ""
@@ -69,17 +77,41 @@ def clear(linenum):
 @consutil.command()
 @click.argument('target')
 @click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret linenum as device name instead")
-def connect(target, devicename):
+@click.option('--baudrate','-b',default=9600,show_default=True,type=str,help="connect with assigned baudrate support 9600,19200,115200")
+@click.option('--databits','-i',default=8,show_default=True,help="set data bits range 5~8")
+@click.option('--stopbits','-j',default=1,show_default=True,help="set stop bits 1 or 2")
+@click.option('--parity','-p',help="set parity none/odd/even/")
+@click.option('--flowcontrol','-f',help="set flow control")
+def connect(target, devicename,baudrate,databits,stopbits,parity,flowcontrol):
     """Connect to switch via console device - TARGET is line number or device name of switch"""
     lineNumber = getLineNumber(target, devicename)
     checkDevice(lineNumber)
     lineNumber = str(lineNumber)
+    devicename1 = DEVICE_PREFIX+lineNumber
+    
+    if baudrate is None:
+        actBaud = "9600"
+    elif baudrate not in Baudlist:
+        print 'Invalid baud rate only support 9600/19200/115200. Default is 9600.'
+        actBaud = "9600"
+    else:
+        print 'baudrate=',baudrate
+        actBaud = baudrate
+        
+    if flowcontrol is None:
+       flowCmd = "n"
+    elif flowcontrol not in flowlist:
+       print 'Invalid flowcontrol only support n,x,h. Default is n.'
+       flowCmd = "n"
+    else:
+       print 'flowcontrol=',flowcontrol
+       flowCmd= flowcontrol
 
     # build and start picocom command
     actBaud, _, flowBool = getConnectionInfo(lineNumber)
     flowCmd = "h" if flowBool else "n"
     quietCmd = "-q" if QUIET else ""
-    cmd = "sudo picocom -b {} -f {} {} {}{}".format(actBaud, flowCmd, quietCmd, DEVICE_PREFIX, lineNumber)
+    cmd = "sudo picocom -b {} -f {} {} {}".format(actBaud, flowCmd, quietCmd,devicename1)
     proc = pexpect.spawn(cmd)
     proc.send("\n")
 
