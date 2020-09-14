@@ -8,10 +8,14 @@
 try:
     import click
     import re
+    import swsssdk
     import subprocess
     import sys
+    import os
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
+    
+from swsssdk import ConfigDBConnector
 
 DEVICE_PREFIX = "/dev/ttyUSB"
 
@@ -24,6 +28,11 @@ DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
 DEFAULT_BAUD = "9600"
 
+PREV_REBOOT_CAUSE="/host/reboot-cause/"
+DEVICE="/usr/share/sonic/device"
+PLATFORM='/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform'
+FILENAME="udevprefix.conf"
+
 # QUIET == True => picocom will not output any messages, and pexpect will wait for console
 #                  switch login or command line to let user interact with shell
 #        Downside: if console switch output ever does not match DEV_READY_MSG, program will think connection failed
@@ -33,6 +42,24 @@ DEFAULT_BAUD = "9600"
 QUIET = False
 DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
 TIMEOUT_SEC = 0.2
+
+
+proc = subprocess.Popen(PLATFORM,stdout=subprocess.PIPE,shell=True,stderr=subprocess.STDOUT)
+stdout = proc.communicate()[0]
+proc.wait()
+platform = stdout.rstrip('\n')
+PLUGIN_PATH="/".join([DEVICE,platform,"plugins","udevprefix.conf"])
+
+if os.path.exists(PLUGIN_PATH):
+    fp = open(PLUGIN_PATH,'r')
+    line=fp.readlines()
+    DEVICE_PREFIX="/dev/"+line[0]
+
+
+def getPrefixLen():
+    return len(DEVICE_PREFIX)
+
+
 
 # runs command, exit if stderr is written to, returns stdout otherwise
 # input: cmd (str), output: output of cmd (str)
