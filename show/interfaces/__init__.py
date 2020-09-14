@@ -1,6 +1,7 @@
 import json
 
 import click
+import os
 from natsort import natsorted
 from tabulate import tabulate
 
