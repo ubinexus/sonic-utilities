@@ -9,6 +9,13 @@ import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 import portchannel
 
+from swsssdk import ConfigDBConnector
+from sonic_py_common import device_info
+
+# Global Variables
+PLATFORM_JSON = 'platform.json'
+HWSKU_JSON = 'hwsku.json'
+
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
 
@@ -123,6 +130,16 @@ def status(interfacename, namespace, display, verbose):
         cmd += " -n {}".format(namespace)
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except Exception as e:
+        click.echo(str(e))
+        raise click.Abort()
+    return result
 
 #
 # 'breakout' group ###
