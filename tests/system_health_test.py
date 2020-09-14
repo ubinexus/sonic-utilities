@@ -2,6 +2,7 @@
 
 import sys
 import os
+
 import click
 from click.testing import CliRunner
 import mock_tables.dbconnector
