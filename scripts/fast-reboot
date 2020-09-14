@@ -13,11 +13,12 @@ STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
+WATCHDOG_UTIL="/usr/bin/watchdogutil"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/bin/log_ssd_health"
-
+SSD_FW_UPDATE="ssd-fw-upgrade"
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
 MIN_HD_SPACE_NEEDED=100000
@@ -32,6 +33,7 @@ EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
 EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
+EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 
 function error()
 {
@@ -269,14 +271,23 @@ function teardown_control_plane_assistant()
     fi
 }
 
+function is_secureboot() {
+    grep -Eq 'secure_boot_enable=[1y]' /proc/cmdline
+}
+
 function setup_reboot_variables()
 {
     # Kernel and initrd image
-    NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+    NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
-        KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-        BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+        if is_secureboot; then
+            KERNEL_IMAGE=""
+            BOOT_OPTIONS="SONIC_BOOT_TYPE=${BOOT_TYPE_ARG} secure_boot_enable=1"
+        else
+            KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
+            BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+        fi
     elif grep -q onie_platform= /host/machine.conf; then
         KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
         KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
@@ -304,10 +315,12 @@ function reboot_pre_check()
         exit ${EXIT_FILE_SYSTEM_FULL}
     fi
 
-    # Make sure that the next image exists
-    if [[ ! -d ${IMAGE_PATH} ]]; then
-        debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
-        exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
+    # Verify the next image by sonic-installer
+    INSTALLER_VERIFY_RC=0
+    sonic-installer verify-next-image > /dev/null || INSTALLER_VERIFY_RC=$?
+    if [[ INSTALLER_VERIFY_RC -ne 0 ]]; then
+        error "Failed to verify next image. Exit code: $INSTALLER_VERIFY_RC"
+        exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
     fi
     
     # Make sure ASIC configuration has not changed between images
@@ -326,6 +339,18 @@ function reboot_pre_check()
             fi
         fi
     fi
+}
+
+function load_aboot_secureboot_kernel() {
+    local next_image="$IMAGE_PATH/sonic.swi"
+    echo "Loading next image from $next_image"
+    unzip -qp "$next_image" boot0 | \
+        swipath=$next_image kexec=true loadonly=true ENV_EXTRA_CMDLINE="$BOOT_OPTIONS" bash -
+}
+
+function load_kernel() {
+    # Load kernel into the memory
+    /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 }
 
 function unload_kernel()
@@ -408,13 +433,18 @@ if [[ "$sonic_asic_type" == "mellanox" ]]; then
     fi
 fi
 
-# Load kernel into the memory
-/sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
+
+if is_secureboot && grep -q aboot_machine= /host/machine.conf; then
+    load_aboot_secureboot_kernel
+else
+    load_kernel
+fi
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     DUMP_DIR=/host/fast-reboot
+    CONFIG_DB_FILE=/etc/sonic/config_db.json
     mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
     /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
@@ -426,7 +456,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json || FILTER_FDB_ENTRIES_RC=$?
+    /usr/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
@@ -473,9 +503,9 @@ systemctl stop nat
 debug "Stopped nat ..."
 
 # Kill radv before stopping BGP service to prevent annoucing our departure.
-debug "Stopping radv ..."
-docker kill radv &>/dev/null || [ $? == 1 ]
+debug "Stopping radv service..."
 systemctl stop radv
+debug "Stopped radv service..."
 
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
@@ -506,12 +536,9 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     debug "Stopped teamd ..."
 fi
 
-# Kill swss Docker container
-# We call `docker kill swss` to ensure the container stops as quickly as possible,
-# then immediately call `systemctl stop swss` to prevent the service from
-# restarting the container automatically.
-docker kill swss &> /dev/null || debug "Docker swss is not running ($?) ..."
+debug "Stopping swss service ..."
 systemctl stop swss
+debug "Stopped swss service ..."
 
 # Pre-shutdown syncd
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
@@ -603,6 +630,18 @@ if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
 fi
 
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
+    debug "updating ssd fw for${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
+fi
+
+# Enable Watchdog Timer
+if [ -x ${WATCHDOG_UTIL} ]; then
+    debug "Enabling Watchdog before ${REBOOT_TYPE}"
+    ${WATCHDOG_UTIL} arm
+fi
+
+# Run platform specific reboot plugin
 if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     debug "Running ${PLATFORM} specific plugin..."
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}

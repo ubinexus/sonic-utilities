@@ -7,19 +7,19 @@
 
 try:
     import os
-    import time
     import json
     import socket
-    import urllib
     import subprocess
+    import time
+    import urllib
+    from collections import OrderedDict
 
     import click
-    import sonic_device_util
-
-    from collections import OrderedDict
-    from urlparse import urlparse
-    from tabulate import tabulate
     from log import LogHelper
+    from sonic_py_common import device_info
+    from tabulate import tabulate
+    from urlparse import urlparse
+
     from . import Platform
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
@@ -221,13 +221,13 @@ class SquashFs(object):
         self.overlay_mountpoint = self.OVERLAY_MOUNTPOINT_TEMPLATE.format(image_stem)
 
     def get_current_image(self):
-        cmd = "sonic_installer list | grep 'Current: ' | cut -f2 -d' '"
+        cmd = "sonic-installer list | grep 'Current: ' | cut -f2 -d' '"
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
 
         return output.rstrip(NEWLINE)
 
     def get_next_image(self):
-        cmd = "sonic_installer list | grep 'Next: ' | cut -f2 -d' '"
+        cmd = "sonic-installer list | grep 'Next: ' | cut -f2 -d' '"
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
 
         return output.rstrip(NEWLINE)
@@ -296,15 +296,10 @@ class PlatformComponentsParser(object):
         self.__chassis_component_map = OrderedDict()
         self.__module_component_map = OrderedDict()
 
-    def __get_platform_type(self):
-        return sonic_device_util.get_platform_info(
-            sonic_device_util.get_machine_info()
-        )
-
     def __get_platform_components_path(self, root_path):
         return self.PLATFORM_COMPONENTS_PATH_TEMPLATE.format(
             root_path,
-            self.__get_platform_type(),
+            device_info.get_platform(),
             self.PLATFORM_COMPONENTS_FILE
         )
 
