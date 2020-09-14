@@ -1,27 +1,18 @@
 #!/usr/bin/env python
 
-import traceback
-import sys
 import argparse
-import syslog
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsssdk import SonicV2Connector
-import sonic_device_util
+import sys
+import traceback
+
+from sonic_py_common import device_info, logger
+from swsssdk import ConfigDBConnector, SonicDBConfig, SonicV2Connector
 
 
 SYSLOG_IDENTIFIER = 'db_migrator'
 
 
-def log_info(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-
-def log_error(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 class DBMigrator():
@@ -56,6 +47,14 @@ class DBMigrator():
         self.appDB = SonicV2Connector(host='127.0.0.1')
         if self.appDB is not None:
             self.appDB.connect(self.appDB.APPL_DB)
+
+        version_info = device_info.get_sonic_version_info()
+        asic_type = version_info.get('asic_type')
+        self.asic_type = asic_type
+
+        if asic_type == "mellanox":
+            from mellanox_buffer_migrator import MellanoxBufferMigrator
+            self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB)
 
     def migrate_pfc_wd_table(self):
         '''
@@ -100,7 +99,7 @@ class DBMigrator():
             for key in data.keys():
                 if not self.is_ip_prefix_in_key(key) or key[0] in if_db:
                     continue
-                log_info('Migrating interface table for ' + key[0])
+                log.log_info('Migrating interface table for ' + key[0])
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
 
@@ -126,7 +125,7 @@ class DBMigrator():
             if if_name == "lo":
                 self.appDB.delete(self.appDB.APPL_DB, key)
                 key = key.replace(if_name, "Loopback0")
-                log_info('Migrating lo entry to ' + key)
+                log.log_info('Migrating lo entry to ' + key)
                 self.appDB.set(self.appDB.APPL_DB, key, 'NULL', 'NULL')
 
             if '/' not in key:
@@ -138,7 +137,7 @@ class DBMigrator():
             if_name = key.split(":")[1]
             if if_name in if_db:
                 continue
-            log_info('Migrating intf table for ' + if_name)
+            log.log_info('Migrating intf table for ' + if_name)
             table = "INTF_TABLE:" + if_name
             self.appDB.set(self.appDB.APPL_DB, table, 'NULL', 'NULL')
             if_db.append(if_name)
@@ -259,7 +258,7 @@ class DBMigrator():
         before migrating date to the next version.
         """
 
-        log_info('Handling version_unknown')
+        log.log_info('Handling version_unknown')
 
         # NOTE: Uncomment next 3 lines of code when the migration code is in
         #       place. Note that returning specific string is intentional,
@@ -276,7 +275,7 @@ class DBMigrator():
         """
         Version 1_0_1.
         """
-        log_info('Handling version_1_0_1')
+        log.log_info('Handling version_1_0_1')
 
         self.migrate_interface_table()
         self.migrate_intf_table()
@@ -287,30 +286,35 @@ class DBMigrator():
         """
         Version 1_0_2.
         """
-        log_info('Handling version_1_0_2')
+        log.log_info('Handling version_1_0_2')
         # Check ASIC type, if Mellanox platform then need DB migration
-        version_info = sonic_device_util.get_sonic_version_info()
-        if version_info['asic_type'] == "mellanox":
-            if self.mlnx_migrate_buffer_pool_size():
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_2', 'version_1_0_3'):
                 self.set_version('version_1_0_3')
         else:
             self.set_version('version_1_0_3')
-        return None
+        return 'version_1_0_3'
 
     def version_1_0_3(self):
         """
-        version_1_0_3
+        Version 1_0_3.
         """
-        log_info('Handling version_1_0_3')
+        log.log_info('Handling version_1_0_3')
+
+        # Check ASIC type, if Mellanox platform then need DB migration
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_3', 'version_1_0_4'):
+                self.set_version('version_1_0_4')
+
         self.migrate_copp_table()
         self.set_version('version_1_0_4')
+        return 'version_1_0_4'
 
     def version_1_0_4(self):
         """
         Current latest version. Nothing to do here.
         """
-        log_info('Handling version_1_0_4')
-
+        log.log_info('Handling version_1_0_4')
         return None
 
     def get_version(self):
@@ -324,14 +328,14 @@ class DBMigrator():
     def set_version(self, version=None):
         if not version:
             version = self.CURRENT_VERSION
-        log_info('Setting version to ' + version)
+        log.log_info('Setting version to ' + version)
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
 
     def migrate(self):
         version = self.get_version()
-        log_info('Upgrading from version ' + version)
+        log.log_info('Upgrading from version ' + version)
         while version:
             next_version = getattr(self, version)()
             if next_version == version:
@@ -383,7 +387,7 @@ def main():
             print(str(result))
 
     except Exception as e:
-        log_error('Caught exception: ' + str(e))
+        log.log_error('Caught exception: ' + str(e))
         traceback.print_exc()
         print(str(e))
         parser.print_help()

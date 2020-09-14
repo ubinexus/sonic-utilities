@@ -1,6 +1,10 @@
 import click
-from show.main import AliasedGroup, ipv6, run_command, get_bgp_summary_extended
 
+import utilities_common.cli as clicommon
+from show.main import ipv6, run_command
+import utilities_common.multi_asic as multi_asic_util
+import utilities_common.bgp_util as bgp_util
+import utilities_common.constants as constants
 
 ###############################################################################
 #
@@ -9,7 +13,7 @@ from show.main import AliasedGroup, ipv6, run_command, get_bgp_summary_extended
 ###############################################################################
 
 
-@ipv6.group(cls=AliasedGroup)
+@ipv6.group(cls=clicommon.AliasedGroup)
 def bgp():
     """Show IPv6 BGP (Border Gateway Protocol) information"""
     pass
@@ -17,13 +21,11 @@ def bgp():
 
 # 'summary' subcommand ("show ipv6 bgp summary")
 @bgp.command()
-def summary():
+@multi_asic_util.multi_asic_click_options
+def summary(namespace, display):
     """Show summarized information of IPv6 BGP state"""
-    try:
-        device_output = run_command('sudo vtysh -c "show bgp ipv6 summary"', return_cmd=True)
-        get_bgp_summary_extended(device_output)
-    except Exception:
-        run_command('sudo vtysh -c "show bgp ipv6 summary"')
+    bgp_summary = bgp_util.get_bgp_summary_from_all_bgp_instances(constants.IPV6, namespace,display)
+    bgp_util.display_bgp_summary(bgp_summary=bgp_summary, af=constants.IPV6)
 
 
 # 'neighbors' subcommand ("show ipv6 bgp neighbors")
