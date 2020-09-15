@@ -62,7 +62,7 @@ class Teamshow(object):
         team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
         if team_keys == None:
             return
-        
+
         for key in team_keys:
             team_name = key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):]
             if self.multi_asic.skip_display(constants.PORT_CHANNEL_OBJ, team_name) is True:
@@ -93,7 +93,7 @@ class Teamshow(object):
             Command: 'teamdctl <teamdevname> state dump'.
         """
         for team in self.teams:
-            teamdctl_cmd = "sudo docker exec -it teamd{} teamdctl {} state dump".format(get_asic_id_from_name(self.multi_asic.current_namespace)
+            teamdctl_cmd = "sudo docker exec -i teamd{} teamdctl {} state dump".format(get_asic_id_from_name(self.multi_asic.current_namespace)
                                                                                         if self.multi_asic.current_namespace else '', team)
             p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (output, err) = p.communicate()
@@ -160,7 +160,7 @@ class Teamshow(object):
 def main():
     if os.geteuid() != 0:
         exit("This utility must be run as root")
-        
+
     parser = multi_asic_util.multi_asic_args()
     args = parser.parse_args()
 
