@@ -49,8 +49,7 @@ class TestShowSflow(object):
 
     def test_show_sflow(self):
         runner = CliRunner()
-        db = Db()
-        result = runner.invoke(show.cli.commands["sflow"], [], obj={'db':db.cfgdb})
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=Db())
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_output
@@ -82,7 +81,7 @@ class TestShowSflow(object):
             'Admin State:          down')
 
         # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
         print(result.exit_code, result.output, show_sflow_output_local)
         assert result.exit_code == 0
         assert result.output == show_sflow_output_local
@@ -94,7 +93,7 @@ class TestShowSflow(object):
         assert result.exit_code == 0
 
         # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_output
@@ -121,7 +120,7 @@ class TestShowSflow(object):
             show_sflow_output.replace('default', 'Ethernet0')
 
         # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
         print(result.exit_code, result.output, show_sflow_output_local)
         assert result.exit_code == 0
         assert result.output == show_sflow_output_local
@@ -133,7 +132,7 @@ class TestShowSflow(object):
         assert result.exit_code == 0
 
         # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_output
@@ -161,7 +160,7 @@ class TestShowSflow(object):
     Name: ser5                IP addr: 172.21.35.15    UDP port: 6343")
 
         # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
         print(result.exit_code, result.output, show_sflow_output_local)
         assert result.exit_code == 0
         assert result.output == show_sflow_output_local
@@ -173,7 +172,7 @@ class TestShowSflow(object):
         assert result.exit_code == 0
 
         # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_output
@@ -198,7 +197,7 @@ class TestShowSflow(object):
             'sFlow Polling Interval:     20')
 
         # run show and check
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=obj)
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_output_local

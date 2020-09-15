@@ -1595,7 +1595,7 @@ def policer(policer_name, verbose):
 def sflow(ctx):
     """Show sFlow related information"""
     if ctx.invoked_subcommand is None:
-        show_sflow_global(ctx.obj['db'])
+        show_sflow_global(ctx.obj.cfgdb)
 
 #
 # 'sflow command ("show sflow interface ...")
