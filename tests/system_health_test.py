@@ -85,12 +85,14 @@ class TestHealth(object):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
         click.echo(result.output)
-        expected = """System health configuration file not found, exit...
+        expected = """\
+System health configuration file not found, exit...
 """
         assert result.output == expected
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
         click.echo(result.output)
-        expected = """System is currently booting...
+        expected = """\
+System is currently booting...
 """
         assert result.output == expected
         result = runner.invoke(show.cli.commands["system-health"].commands["summary"])
