@@ -14,7 +14,6 @@ except ImportError:
     pkg_resources.require('fastentrypoints')
     import fastentrypoints
 
-import glob
 from setuptools import setup
 
 setup(
@@ -117,10 +116,6 @@ setup(
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config'
-    ],
-    data_files=[
-        ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
-        ('/usr/share/sonic/templates', ['sonic_installer/templates/sonic-environment.j2']),
     ],
     entry_points={
         'console_scripts': [
