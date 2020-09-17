@@ -5,3 +5,15 @@ dist/
 *.pyc
 .cache
 *.tar.gz
+
+# Ignores for sonic-utilities-data
+sonic-utilities-data/debian/*
+!sonic-utilities-data/debian/changelog
+!sonic-utilities-data/debian/compat
+!sonic-utilities-data/debian/control
+!sonic-utilities-data/debian/copyright
+!sonic-utilities-data/debian/install
+!sonic-utilities-data/debian/rules
+*.deb
+*.buildinfo
+*.changes

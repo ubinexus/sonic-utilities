@@ -1,7 +1,0 @@
-src/debian/*
-!src/debian/changelog
-!src/debian/compat
-!src/debian/control
-!src/debian/copyright
-!src/debian/install
-!src/debian/rules
