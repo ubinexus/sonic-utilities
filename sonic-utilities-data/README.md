@@ -1,5 +1,5 @@
 # sonic-utilities-data
-Data files required for sonic-utilities
+Data files required for SONiC command line utilities
 
 
 ## To build
