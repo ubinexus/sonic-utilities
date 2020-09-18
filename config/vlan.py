@@ -202,6 +202,29 @@ def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
     except SystemExit as e:
         ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
 
+def vlan_id_is_valid(vid):
+    """Check if the vlan id is in acceptable range (between 1 and 4094)
+    """
+
+    if vid>0 and vid<4095:
+        return True
+
+    return False
+
+# Validate VLAN range.
+#
+def vlan_range_validate(vid1, vid2):
+    vlan1 = 'Vlan{}'.format(vid1)
+    vlan2 = 'Vlan{}'.format(vid2)
+
+    if vlan_id_is_valid(vid1) is False:
+        ctx.fail("{} is not within allowed range of 1 through 4094".format(vlan1))
+    if vlan_id_is_valid(vid2) is False:
+        ctx.fail("{} is not within allowed range of 1 through 4094".format(vlan2))
+
+    if vid2 <= vid1:
+        ctx.fail(" vid2 should be greater than vid1")
+
 #
 # 'range' group ('config vlan range ...')
 #
@@ -215,22 +238,21 @@ def vlan_range(ctx):
 @click.argument('vid1', metavar='<vid1>', required=True, type=int)
 @click.argument('vid2', metavar='<vid2>', required=True, type=int)
 @click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
-@click.pass_context
-def add_vlan_range(ctx, vid1, vid2, warning):
-    db = ctx.obj['db']
+@clicommon.pass_db
+def add_vlan_range(db, vid1, vid2, warning):
 
-    vlan_range_validate(ctx, vid1, vid2)
+    vlan_range_validate(vid1, vid2)
 
     vid2 = vid2+1
 
     warning_vlans_list = []
     curr_vlan_count = 0
-    clients = db.redis_clients["CONFIG_DB"]
+    clients = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
     pipe = clients.pipeline()
     for vid in range (vid1, vid2):
         vlan = 'Vlan{}'.format(vid)
 
-        if len(db.get_entry('VLAN', vlan)) != 0:
+        if len(db.cfgdb.get_entry('VLAN', vlan)) != 0:
             if warning is True:
                 warning_vlans_list.append(vid)
             continue
@@ -247,22 +269,33 @@ def add_vlan_range(ctx, vid1, vid2, warning):
 @click.argument('vid1', metavar='<vid1>', required=True, type=int)
 @click.argument('vid2', metavar='<vid2>', required=True, type=int)
 @click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
-@click.pass_context
-def del_vlan_range(ctx, vid1, vid2, warning):
-    db = ctx.obj['db']
+@clicommon.pass_db
+def del_vlan_range(db, vid1, vid2, warning):
 
-    vlan_range_validate(ctx, vid1, vid2)
+    vlan_range_validate(vid1, vid2)
 
     vid2 = vid2+1
 
     warning_vlans_list = []
     warning_membership_list = []
     warning_ip_list = []
-    clients = db.redis_clients["CONFIG_DB"]
-    pipe = clients.pipeline()
-    vlan_member_keys = db.keys('CONFIG_DB', "*VLAN_MEMBER*")
-    vlan_temp_member_keys = db.keys('CONFIG_DB', "*VLAN_MEMBER*")
-    vlan_ip_keys = db.keys('CONFIG_DB', "*VLAN_INTERFACE*")
+    client = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
+    pipe = client.pipeline()
+
+    cur, vlan_member_keys = client.scan(cursor=0, match='*VLAN_MEMBER*', count=50)
+    while cur != 0:
+        cur, keys = client.scan(cursor=cur, match='*VLAN_MEMBER*', count=50)
+        vlan_member_keys.extend(keys)
+    
+    cur, vlan_temp_member_keys = client.scan(cursor=0, match='*VLAN_MEMBER*', count=50)
+    while cur != 0:
+        cur, keys = client.scan(cursor=cur, match='*VLAN_MEMBER*', count=50)
+        vlan_temp_member_keys.extend(keys)
+
+    cur, vlan_ip_keys = client.scan(cursor=0, match='*VLAN_INTERFACE*', count=50)
+    while cur != 0:
+        cur, keys = client.scan(cursor=cur, match='*VLAN_INTERFACE*', count=50)
+        vlan_ip_keys.extend(keys)
 
     # Fetch the interfaces from config_db associated with *VLAN_MEMBER*
     stored_intf_list = []
@@ -294,7 +327,7 @@ def del_vlan_range(ctx, vid1, vid2, warning):
     if vlan_ip_keys is None and vlan_member_keys is None:
         for vid in range(vid1, vid2):
             vlan = 'Vlan{}'.format(vid)
-            if len(db.get_entry('VLAN', vlan)) == 0:
+            if len(db.cfgdb.get_entry('VLAN', vlan)) == 0:
                 if warning is True:
                     warning_vlans_list.append(vid)
                 continue
@@ -315,7 +348,7 @@ def del_vlan_range(ctx, vid1, vid2, warning):
             ip_configured = False
             vlan = 'Vlan{}'.format(vid)
 
-            if len(db.get_entry('VLAN', vlan)) == 0:
+            if len(db.cfgdb.get_entry('VLAN', vlan)) == 0:
                 if warning is True:
                     warning_vlans_list.append(vid)
                 continue
@@ -382,24 +415,59 @@ def vlan_member_data(member_list):
             vlan_data[key] = str(value)
     return vlan_data
 
+def interface_name_is_valid(config_db, interface_name):
+    """Check if the interface name is valid
+    """
+    # If the input parameter config_db is None, derive it from interface.
+    # In single ASIC platform, get_port_namespace() returns DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = get_port_namespace(interface_name)
+        if namespace is None:
+            return False
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
+    port_channel_dict = config_db.get_table('PORTCHANNEL')
+    sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+
+    if interface_name is not None:
+        if not port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
+        for port_name in port_dict.keys():
+            if interface_name == port_name:
+                return True
+        if port_channel_dict:
+            for port_channel_name in port_channel_dict.keys():
+                if interface_name == port_channel_name:
+                    return True
+        if sub_port_intf_dict:
+            for sub_port_intf_name in sub_port_intf_dict.keys():
+                if interface_name == sub_port_intf_name:
+                    return True
+    return False
+
 @vlan_member_range.command('add')
 @click.argument('vid1', metavar='<vid1>', required=True, type=int)
 @click.argument('vid2', metavar='<vid2>', required=True, type=int)
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.option('-u', '--untagged', is_flag=True)
 @click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
-@click.pass_context
-def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
-    db = ctx.obj['db']
+@clicommon.pass_db
+def add_vlan_member_range(db, vid1, vid2, interface_name, untagged, warning):
+    vlan_range_validate(vid1, vid2)
+    ctx = click.get_current_context()
 
-    vlan_range_validate(ctx, vid1, vid2)
-
-    if get_interface_naming_mode() == "alias":
+    if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    if interface_name_is_valid(db.cfgdb, interface_name) is False:
         ctx.fail("Interface name is invalid!!")
 
     vid2 = vid2+1
@@ -409,26 +477,26 @@ def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
 
     warning_vlans_list = []
     warning_membership_list = []
-    clients = db.redis_clients["CONFIG_DB"]
+    clients = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
     pipe = clients.pipeline()
 
     # Validate if interface has IP configured
     # in physical and port channel tables
-    for k,v in db.get_table('INTERFACE').iteritems():
+    for k,v in db.cfgdb.get_table('INTERFACE').iteritems():
         if k == interface_name:
             ctx.fail(" {} has ip address configured".format(interface_name))
 
-    for k,v in db.get_table('PORTCHANNEL_INTERFACE').iteritems():
+    for k,v in db.cfgdb.get_table('PORTCHANNEL_INTERFACE').iteritems():
         if k == interface_name:
             ctx.fail(" {} has ip address configured".format(interface_name))
 
-    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+    for k,v in db.cfgdb.get_table('PORTCHANNEL_MEMBER'):
         if v == interface_name:
             ctx.fail(" {} is configured as a port channel member".format(interface_name))
 
     for vid in range(vid1, vid2):
         vlan_name = 'Vlan{}'.format(vid)
-        vlan = db.get_entry('VLAN', vlan_name)
+        vlan = db.cfgdb.get_entry('VLAN', vlan_name)
 
         if len(vlan) == 0:
             if warning is True:
@@ -439,7 +507,7 @@ def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
         if interface_name in members:
             if warning is True:
                 warning_membership_list.append(vid)
-            if get_interface_naming_mode() == "alias":
+            if clicommon.get_interface_naming_mode() == "alias":
                 interface_name = interface_name_to_alias(interface_name)
                 if interface_name is None:
                     ctx.fail("'interface_name' is None!")
@@ -469,30 +537,29 @@ def add_vlan_member_range(ctx, vid1, vid2, interface_name, untagged, warning):
 @click.argument('vid2', metavar='<vid2>', required=True, type=int)
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.option('-w', "--warning", is_flag=True, help='warnings are not suppressed')
-@click.pass_context
-def del_vlan_member_range(ctx, vid1, vid2, interface_name, warning):
-    db = ctx.obj['db']
+@clicommon.pass_db
+def del_vlan_member_range(db, vid1, vid2, interface_name, warning):
+    vlan_range_validate(vid1, vid2)
+    ctx = click.get_current_context()
 
-    vlan_range_validate(ctx, vid1, vid2)
-
-    if get_interface_naming_mode() == "alias":
+    if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    if interface_name_is_valid(db.cfgdb, interface_name) is False:
         ctx.fail("Interface name is invalid!!")
 
     vid2 = vid2+1
 
     warning_vlans_list = []
     warning_membership_list = []
-    clients = db.redis_clients["CONFIG_DB"]
+    clients = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
     pipe = clients.pipeline()
 
     for vid in range(vid1, vid2):
         vlan_name = 'Vlan{}'.format(vid)
-        vlan = db.get_entry('VLAN', vlan_name)
+        vlan = db.cfgdb.get_entry('VLAN', vlan_name)
 
         if len(vlan) == 0:
             if warning is True:
@@ -503,7 +570,7 @@ def del_vlan_member_range(ctx, vid1, vid2, interface_name, warning):
         if interface_name not in members:
             if warning is True:
                 warning_membership_list.append(vid)
-            if get_interface_naming_mode() == "alias":
+            if clicommon.get_interface_naming_mode() == "alias":
                 interface_name = interface_name_to_alias(interface_name)
                 if interface_name is None:
                     ctx.fail("'interface_name' is None!")
