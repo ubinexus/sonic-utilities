@@ -8,6 +8,7 @@ scripts/port2aliasc
 *.egg-info/
 .eggs/
 build/
+dist/
 
 # Unit test coverage
 .coverage
