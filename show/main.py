@@ -1591,11 +1591,12 @@ def policer(policer_name, verbose):
 # 'sflow command ("show sflow ...")
 #
 @cli.group(invoke_without_command=True)
+@clicommon.pass_db
 @click.pass_context
-def sflow(ctx):
+def sflow(ctx, db):
     """Show sFlow related information"""
     if ctx.invoked_subcommand is None:
-        show_sflow_global(ctx.obj.cfgdb)
+        show_sflow_global(db.cfgdb)
 
 #
 # 'sflow command ("show sflow interface ...")
