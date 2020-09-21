@@ -160,7 +160,8 @@ setup(
         'xmltodict==0.12.0'
     ],
     setup_requires= [
-        'pytest-runner'
+        'pytest-runner',
+        'wheel'
     ],
     tests_require = [
         'pytest',
