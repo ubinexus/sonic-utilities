@@ -5,14 +5,7 @@
 # under scripts/. Consider stop using scripts and use console_scripts instead
 #
 # https://stackoverflow.com/questions/18787036/difference-between-entry-points-console-scripts-and-scripts-in-setup-py
-try:
-    import fastentrypoints
-except ImportError:
-    from setuptools.command import easy_install
-    import pkg_resources
-    easy_install.main(['fastentrypoints'])
-    pkg_resources.require('fastentrypoints')
-    import fastentrypoints
+import fastentrypoints
 
 from setuptools import setup
 
