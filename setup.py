@@ -153,7 +153,6 @@ setup(
         'm2crypto',
         'natsort',
         'pexpect',
-        'sonic-config-engine',
         'sonic-py-common',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
@@ -166,7 +165,8 @@ setup(
     tests_require = [
         'pytest',
         'mock>=2.0.0',
-        'mockredispy>=2.9.3'
+        'mockredispy>=2.9.3',
+        'sonic-config-engine'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
