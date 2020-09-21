@@ -1,14 +1,20 @@
 import fcntl
 import os
 import shutil
+import sys
 import tempfile
+
+# TODO: Remove this check once we no longer support Python 2
+if sys.version_info.major == 3:
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse
 
 import click
 import netaddr
 import requests
 import urllib3
 import yaml
-from urlparse import urlparse
 
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector

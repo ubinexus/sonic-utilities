@@ -1,13 +1,13 @@
 import click
 import os
 import pexpect
+import sys
 
-try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
+# TODO: Remove this check once we no longer support Python 2
+if sys.version_info.major == 3:
     import configparser
+else:
+    import ConfigParser as configparser
 
 
 # This is from the aliases example:

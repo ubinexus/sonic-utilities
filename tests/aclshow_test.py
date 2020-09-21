@@ -1,18 +1,26 @@
 import sys
 import os
-from StringIO import StringIO
+from imp import load_source
+
+# TODO: Remove this check once we no longer support Python 2
+if sys.version_info.major == 3:
+    from io import StringIO
+else:
+    from StringIO import StringIO
+
 import mock
+
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, modules_path)
 
-from imp import load_source
 load_source('aclshow', scripts_path+'/aclshow')
 from aclshow import *
 
-import mock_tables.dbconnector
+from .mock_tables import dbconnector
+
 
 # Expected output for aclshow
 default_output = ''+ \

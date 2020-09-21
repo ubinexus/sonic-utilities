@@ -1,14 +1,16 @@
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
-
 import os
 import re
 import subprocess
 import sys
 import time
-import urllib
+
+# TODO: Remove this check once we no longer support Python 2
+if sys.version_info.major == 3:
+    import configparser
+    from urllib.request import urlopen, urlretrieve
+else:
+    import ConfigParser as configparser
+    from urllib import urlopen, urlretrieve
 
 import click
 from sonic_py_common import logger
@@ -132,7 +134,7 @@ def get_docker_tag_name(image):
 def validate_url_or_abort(url):
     # Attempt to retrieve HTTP response code
     try:
-        urlfile = urllib.urlopen(url)
+        urlfile = urlopen(url)
         response_code = urlfile.getcode()
         urlfile.close()
     except IOError:
@@ -249,7 +251,7 @@ def update_sonic_environment(click, binary_image_version):
         ])
         os.mkdir(env_dir, 0o755)
         with open(env_file, "w+") as ef:
-            print >>ef, sonic_env
+            print(sonic_env, file=ef)
         os.chmod(env_file, 0o644)
     except SonicRuntimeException as ex:
         click.secho("Warning: SONiC environment variables are not supported for this image: {0}".format(str(ex)),
@@ -289,7 +291,7 @@ def install(url, force, skip_migration=False):
         click.echo('Downloading image...')
         validate_url_or_abort(url)
         try:
-            urllib.urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
+            urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
             click.echo('')
         except Exception as e:
             click.echo("Download error", e)
@@ -481,7 +483,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         click.echo('Downloading image...')
         validate_url_or_abort(url)
         try:
-            urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
+            urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
         except Exception as e:
             click.echo("Download error", e)
             raise click.Abort()

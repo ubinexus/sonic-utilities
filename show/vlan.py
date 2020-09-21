@@ -31,7 +31,7 @@ def brief(db, verbose):
     vlan_proxy_arp_dict = {}
 
     # Parsing DHCP Helpers info
-    for key in natsorted(vlan_dhcp_helper_data.keys()):
+    for key in natsorted(list(vlan_dhcp_helper_data.keys())):
         try:
             if vlan_dhcp_helper_data[key]['dhcp_servers']:
                 vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
@@ -39,7 +39,7 @@ def brief(db, verbose):
             vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
 
     # Parsing VLAN Gateway info
-    for key in natsorted(vlan_ip_data.keys()):
+    for key in natsorted(list(vlan_ip_data.keys())):
 
         if clicommon.is_ip_prefix_in_key(key):
             interface_key = str(key[0].strip("Vlan"))
@@ -63,7 +63,7 @@ def brief(db, verbose):
     iface_alias_converter = clicommon.InterfaceAliasConverter(db)
 
     # Parsing VLAN Ports info
-    for key in natsorted(vlan_ports_data.keys()):
+    for key in natsorted(list(vlan_ports_data.keys())):
         ports_key = str(key[0].strip("Vlan"))
         ports_value = str(key[1])
         ports_tagging = vlan_ports_data[key]['tagging_mode']
@@ -83,7 +83,7 @@ def brief(db, verbose):
     # Printing the following dictionaries in tablular forms:
     # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
     # vlan_tagging_dict = {}
-    for key in natsorted(vlan_dhcp_helper_dict.keys()):
+    for key in natsorted(list(vlan_dhcp_helper_dict.keys())):
         if key not in vlan_ip_dict:
             ip_address = ""
         else:
@@ -108,7 +108,7 @@ def brief(db, verbose):
 @clicommon.pass_db
 def config(db):
     data = db.cfgdb.get_table('VLAN')
-    keys = data.keys()
+    keys = list(data.keys())
     member_data = db.cfgdb.get_table('VLAN_MEMBER')
 
     def tablelize(keys, data):

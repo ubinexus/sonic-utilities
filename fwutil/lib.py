@@ -10,17 +10,24 @@ try:
     import json
     import socket
     import subprocess
+    import sys
     import time
-    import urllib
     from collections import OrderedDict
 
+    # TODO: Remove this check once we no longer support Python 2
+    if sys.version_info.major == 3:
+        from urllib.parse import urlparse
+        from urllib.request import urlopen, urlretrieve
+    else:
+        from urllib import urlopen, urlretrieve
+        from urlparse import urlparse
+
     import click
-    from log import LogHelper
     from sonic_py_common import device_info
     from tabulate import tabulate
-    from urlparse import urlparse
 
     from . import Platform
+    from .log import LogHelper
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
 
@@ -96,7 +103,7 @@ class URL(object):
 
         # Check URL existence
         try:
-            urlfile = urllib.urlopen(self.__url)
+            urlfile = urlopen(self.__url)
             response_code = urlfile.getcode()
         except IOError:
             raise RuntimeError("Did not receive a response from remote machine")
@@ -124,7 +131,7 @@ class URL(object):
         socket.setdefaulttimeout(self.DOWNLOAD_TIMEOUT)
 
         try:
-            filename, headers = urllib.urlretrieve(
+            filename, headers = urlretrieve(
                 self.__url,
                 self.DOWNLOAD_PATH_TEMPLATE.format(basename),
                 self.__reporthook
@@ -304,7 +311,7 @@ class PlatformComponentsParser(object):
         )
 
     def __is_str(self, obj):
-        return isinstance(obj, unicode) or isinstance(obj, str)
+        return isinstance(obj, str) or isinstance(obj, str)
 
     def __is_dict(self, obj):
         return isinstance(obj, dict)
@@ -333,7 +340,7 @@ class PlatformComponentsParser(object):
 
         missing_key = None
 
-        for key1, value1 in component.items():
+        for key1, value1 in list(component.items()):
             if not self.__is_dict(value1):
                 self.__parser_component_fail("dictionary is expected: key={}".format(key1))
 
@@ -353,7 +360,7 @@ class PlatformComponentsParser(object):
                     missing_key = self.VERSION_KEY
                     break
 
-                for key2, value2 in value1.items():
+                for key2, value2 in list(value1.items()):
                     if not self.__is_str(value2):
                         self.__parser_component_fail("string is expected: key={}".format(key2))
 
@@ -377,7 +384,7 @@ class PlatformComponentsParser(object):
         if len(chassis) != 1:
             self.__parser_chassis_fail("unexpected number of records: key={}".format(self.CHASSIS_KEY))
 
-        for key, value in chassis.items():
+        for key, value in list(chassis.items()):
             if not self.__is_dict(value):
                 self.__parser_chassis_fail("dictionary is expected: key={}".format(key))
 
@@ -402,7 +409,7 @@ class PlatformComponentsParser(object):
         if not module:
             self.__parser_module_fail("dictionary is empty: key={}".format(self.MODULE_KEY))
 
-        for key, value in module.items():
+        for key, value in list(module.items()):
             if not self.__is_dict(value):
                 self.__parser_module_fail("dictionary is expected: key={}".format(key))
 
@@ -422,10 +429,10 @@ class PlatformComponentsParser(object):
         new_pairs = [ ]
 
         for key, value in pairs:
-            if isinstance(key, unicode):
+            if isinstance(key, str):
                 key = key.encode(self.UTF8_ENCODING)
 
-            if isinstance(value, unicode):
+            if isinstance(value, str):
                 value = value.encode(self.UTF8_ENCODING)
 
             new_pairs.append((key, value))
@@ -504,7 +511,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         return set(keys1) ^ set(keys2)
 
     def __validate_component_map(self, section, pdp_map, pcp_map):
-        diff_keys = self.__diff_keys(pdp_map.keys(), pcp_map.keys())
+        diff_keys = self.__diff_keys(list(pdp_map.keys()), list(pcp_map.keys()))
 
         if diff_keys:
             raise RuntimeError(
@@ -514,8 +521,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 )
             )
 
-        for key in pdp_map.keys():
-            diff_keys = self.__diff_keys(pdp_map[key].keys(), pcp_map[key].keys())
+        for key in list(pdp_map.keys()):
+            diff_keys = self.__diff_keys(list(pdp_map[key].keys()), list(pcp_map[key].keys()))
 
             if diff_keys:
                 raise RuntimeError(
@@ -545,8 +552,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
         append_module_na = not self.is_modular_chassis()
         module_name = NA
 
-        for chassis_name, chassis_component_map in self.chassis_component_map.items():
-            for chassis_component_name, chassis_component in chassis_component_map.items():
+        for chassis_name, chassis_component_map in list(self.chassis_component_map.items()):
+            for chassis_component_name, chassis_component in list(chassis_component_map.items()):
                 component = self.__pcp.chassis_component_map[chassis_name][chassis_component_name]
 
                 if component:
@@ -593,10 +600,10 @@ class ComponentUpdateProvider(PlatformDataProvider):
         chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
-            for module_name, module_component_map in self.module_component_map.items():
+            for module_name, module_component_map in list(self.module_component_map.items()):
                 append_module_name = True
 
-                for module_component_name, module_component in module_component_map.items():
+                for module_component_name, module_component in list(module_component_map.items()):
                     component = self.__pcp.module_component_map[module_name][module_component_name]
 
                     if component:
@@ -749,8 +756,8 @@ class ComponentStatusProvider(PlatformDataProvider):
         append_module_na = not self.is_modular_chassis()
         module_name = NA
 
-        for chassis_name, chassis_component_map in self.chassis_component_map.items():
-            for chassis_component_name, chassis_component in chassis_component_map.items():
+        for chassis_name, chassis_component_map in list(self.chassis_component_map.items()):
+            for chassis_component_name, chassis_component in list(chassis_component_map.items()):
                 firmware_version = chassis_component.get_firmware_version()
                 description = chassis_component.get_description()
 
@@ -774,10 +781,10 @@ class ComponentStatusProvider(PlatformDataProvider):
         chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
-            for module_name, module_component_map in self.module_component_map.items():
+            for module_name, module_component_map in list(self.module_component_map.items()):
                 append_module_name = True
 
-                for module_component_name, module_component in module_component_map.items():
+                for module_component_name, module_component in list(module_component_map.items()):
                     firmware_version = module_component.get_firmware_version()
                     description = module_component.get_description()
 

@@ -6,7 +6,7 @@ import shutil
 import subprocess
 
 from collections import defaultdict
-from filter_fdb_input.test_vectors import filterFdbEntriesTestVector
+from .filter_fdb_input.test_vectors import filterFdbEntriesTestVector
 from fdbutil.filter_fdb_entries import main as filterFdbMain
 
 class TestFilterFdbEntries(object):
@@ -116,7 +116,7 @@ class TestFilterFdbEntries(object):
 
         fdbMap = defaultdict()
         for fdb in fdbEntries:
-            for key, config in fdb.items():
+            for key, config in list(fdb.items()):
                 if "FDB_TABLE" in key:
                     fdbMap[key] = fdb
 
@@ -140,12 +140,12 @@ class TestFilterFdbEntries(object):
         if isEqual:
             for expectedFdbEntry in expectedFdbEntries:
                 fdbEntry = {}
-                for key, config in expectedFdbEntry.items():
+                for key, config in list(expectedFdbEntry.items()):
                     if "FDB_TABLE" in key:
                         fdbEntry = fdbMap[key]
 
                 isEqual = len(fdbEntry) == len(expectedFdbEntry)
-                for key, config in expectedFdbEntry.items():
+                for key, config in list(expectedFdbEntry.items()):
                     isEqual = isEqual and fdbEntry[key] == config
 
                 if not isEqual:

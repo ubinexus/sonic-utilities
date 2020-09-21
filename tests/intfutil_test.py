@@ -1,3 +1,6 @@
+# TODO: Remove this once we no longer support Python 2
+from __future__ import print_function
+
 import os
 import sys
 from click.testing import CliRunner
@@ -155,7 +158,7 @@ class TestIntfutil(TestCase):
     def test_subintf_status(self):
         # Test 'show subinterfaces status'
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], [])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
@@ -165,13 +168,13 @@ class TestIntfutil(TestCase):
 
         # Test 'intfutil status subport'
         output = subprocess.check_output('intfutil -c status -i subport', stderr=subprocess.STDOUT, shell=True)
-        print >> sys.stderr, output
+        print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 
     # Test 'show subinterfaces status --verbose'
     def test_subintf_status_verbose(self):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["--verbose"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = "Command: intfutil -c status -i subport"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
@@ -180,7 +183,7 @@ class TestIntfutil(TestCase):
     def test_single_subintf_status(self):
         # Test 'show subinterfaces status Ethernet0.10'
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
@@ -190,13 +193,13 @@ class TestIntfutil(TestCase):
 
         # Test 'intfutil status Ethernet0.10'
         output = subprocess.check_output('intfutil -c status -i Ethernet0.10', stderr=subprocess.STDOUT, shell=True)
-        print >> sys.stderr, output
+        print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 
     # Test '--verbose' status of single sub interface
     def test_single_subintf_status_verbose(self):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10", "--verbose"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = "Command: intfutil -c status -i Ethernet0.10"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
@@ -206,7 +209,7 @@ class TestIntfutil(TestCase):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
 
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["etp1.10"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
@@ -221,7 +224,7 @@ class TestIntfutil(TestCase):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
 
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["etp1.10", "--verbose"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = "Command: intfutil -c status -i Ethernet0.10"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
