@@ -152,8 +152,11 @@ setup(
         'jsondiff==1.2.0',
         'm2crypto',
         'natsort',
+        'netaddr',
+        'netifaces',
         'pexpect',
         'sonic-py-common',
+        'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0'
