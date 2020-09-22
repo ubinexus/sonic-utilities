@@ -994,7 +994,7 @@ def load_minigraph(no_service_restart):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
     # generate QoS and Buffer configs
-    run_command("{}config qos reload".format(ns_cmd_prefix), display_cmd=True)
+    run_command("config qos reload", display_cmd=True)
 
     # Write latest db version string into db
     db_migrator='/usr/bin/db_migrator.py'
