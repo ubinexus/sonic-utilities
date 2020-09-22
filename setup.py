@@ -144,7 +144,7 @@ setup(
         'ipaddress',
         'jsondiff==1.2.0',
         'm2crypto',
-        'natsort',
+        'natsort==6.2.1', # 6.2.1 is the last version which supports Python 2
         'netaddr',
         'netifaces',
         'pexpect',
