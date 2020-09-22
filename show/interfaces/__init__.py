@@ -1,13 +1,13 @@
 import json
 
 import click
-from natsort import natsorted
-from tabulate import tabulate
-
-from sonic_py_common import multi_asic
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
-import portchannel
+from natsort import natsorted
+from tabulate import tabulate
+from sonic_py_common import multi_asic
+
+from . import portchannel
 
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
