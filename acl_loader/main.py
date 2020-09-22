@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import click
-import ipaddr
+import ipaddress
 import json
 import syslog
 
