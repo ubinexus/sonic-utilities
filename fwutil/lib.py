@@ -38,6 +38,17 @@ EMPTY = ""
 NA = "N/A"
 NEWLINE = "\n"
 
+######################################################
+# TODO: Remove this once we no longer support Python 2
+import sys
+if sys.version_info.major == 3:
+    STRING_TYPE = str
+else:
+    STRING_TYPE = basestring
+# END   Remove this once we no longer support Python 2
+######################################################
+
+
 # ========================= Variables ==========================================
 
 log_helper = LogHelper()
@@ -311,7 +322,7 @@ class PlatformComponentsParser(object):
         )
 
     def __is_str(self, obj):
-        return isinstance(obj, str) or isinstance(obj, str)
+        return isinstance(obj, STRING_TYPE)
 
     def __is_dict(self, obj):
         return isinstance(obj, dict)
@@ -425,15 +436,20 @@ class PlatformComponentsParser(object):
             self.__module_component_map[key] = OrderedDict()
             self.__parse_component_section(key, value[self.COMPONENT_KEY], True)
 
+    # TODO: This function should not be necessary once we no longer support Python 2
     def __deunicodify_hook(self, pairs):
         new_pairs = [ ]
 
         for key, value in pairs:
-            if isinstance(key, str):
+            try:
                 key = key.encode(self.UTF8_ENCODING)
+            except Exception:
+                pass
 
-            if isinstance(value, str):
+            try:
                 value = value.encode(self.UTF8_ENCODING)
+            except Exception:
+                pass
 
             new_pairs.append((key, value))
 

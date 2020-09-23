@@ -2431,7 +2431,7 @@ def add(ctx, interface_name, ip_addr, gw):
             ctx.fail("'interface_name' is None!")
 
     try:
-        net = ipaddress.ip_network(str(ip_addr), strict=False)
+        net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
             ip_addr = str(net)
 
@@ -2492,7 +2492,7 @@ def remove(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is None!")
 
     try:
-        net = ipaddress.ip_network(str(ip_addr), strict=False)
+        net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
             ip_addr = str(net)
 

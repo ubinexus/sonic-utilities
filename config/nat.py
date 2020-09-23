@@ -5,6 +5,16 @@ import ipaddress
 from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
 
+######################################################
+# TODO: Remove this once we no longer support Python 2
+import sys
+if sys.version_info.major == 3:
+    STRING_TYPE = str
+else:
+    STRING_TYPE = basestring
+# END   Remove this once we no longer support Python 2
+######################################################
+
 def is_valid_ipv4_address(address):
     """Check if the given ipv4 address is valid"""
     invalid_list = ['0.0.0.0','255.255.255.255']
@@ -77,7 +87,7 @@ def isIpOverlappingWithAnyStaticEntry(ipAddress, table):
             else:
                 continue
         elif table == 'STATIC_NAT':
-            if isinstance(key, str) is True:
+            if isinstance(key, STRING_TYPE) is True:
                 global_ip = key
             else:
                 continue
@@ -111,11 +121,11 @@ def isOverlappingWithAnyDynamicEntry(ipAddress):
         global_ip = values["nat_ip"]
         ipAddr = global_ip.split('-')
         if (len(ipAddr) == 1):
-            startIp = int(ipaddress.IPv4Address(str(ipAddr[0])))
-            endIp = int(ipaddress.IPv4Address(str(ipAddr[0])))
+            startIp = int(ipaddress.IPv4Address(ipAddr[0]))
+            endIp = int(ipaddress.IPv4Address(ipAddr[0]))
         else:
-            startIp = int(ipaddress.IPv4Address(str(ipAddr[0])))
-            endIp = int(ipaddress.IPv4Address(str(ipAddr[1])))
+            startIp = int(ipaddress.IPv4Address(ipAddr[0]))
+            endIp = int(ipaddress.IPv4Address(ipAddr[1]))
 
         if ((ip >= startIp) and (ip <= endIp)):
             return True
@@ -694,7 +704,7 @@ def add_pool(ctx, pool_name, global_ip_range, global_port_range):
                 local_ip = "---"
                 nat_type = "dnat"
 
-                if isinstance(staticKey, str) is True:
+                if isinstance(staticKey, STRING_TYPE) is True:
                     global_ip = staticKey
                 else:
                     continue
@@ -707,7 +717,7 @@ def add_pool(ctx, pool_name, global_ip_range, global_port_range):
                 if nat_type == "snat":
                     global_ip = local_ip
 
-                ipAddress = int(ipaddress.IPv4Address(str(global_ip)))
+                ipAddress = int(ipaddress.IPv4Address(global_ip))
                 if (ipAddress >= ipLowLimit and ipAddress <= ipHighLimit):
                     ctx.fail("Given Ip address entry is overlapping with existing Static NAT entry !!")
 
@@ -962,7 +972,7 @@ def remove_interfaces(ctx):
         table_dict = config_db.get_table(table_name)
         if table_dict:
             for table_key_name in list(table_dict.keys()):
-                if isinstance(table_key_name, str) is False:
+                if isinstance(table_key_name, STRING_TYPE) is False:
                     continue
 
                 config_db.set_entry(table_name, table_key_name, nat_config)

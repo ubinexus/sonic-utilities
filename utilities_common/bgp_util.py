@@ -51,9 +51,9 @@ def get_dynamic_neighbor_subnet(db):
         for entry in list(neighbor_data.keys()):
             new_key = neighbor_data[entry]['ip_range'][0]
             new_value = neighbor_data[entry]['name']
-            if is_ipv4_address(str(neighbor_data[entry]['src_address'])):
+            if is_ipv4_address(neighbor_data[entry]['src_address']):
                 v4_subnet[new_key] = new_value
-            elif is_ipv6_address(str(neighbor_data[entry]['src_address'])):
+            elif is_ipv6_address(neighbor_data[entry]['src_address']):
                 v6_subnet[new_key] = new_value
         dynamic_neighbor[constants.IPV4] = v4_subnet
         dynamic_neighbor[constants.IPV6] = v6_subnet
@@ -88,17 +88,13 @@ def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
     """
     if ip in list(static_neighbors.keys()):
         return static_neighbors[ip]
-    elif is_ipv4_address(str(ip)):
+    elif is_ipv4_address(ip):
         for subnet in list(dynamic_neighbors[constants.IPV4].keys()):
-            if ipaddress.IPv4Address(
-                    str(ip)) in ipaddress.IPv4Network(
-                    str(subnet)):
+            if ipaddress.IPv4Address(ip) in ipaddress.IPv4Network(subnet):
                 return dynamic_neighbors[constants.IPV4][subnet]
-    elif is_ipv6_address(str(ip)):
+    elif is_ipv6_address(ip):
         for subnet in list(dynamic_neighbors[constants.IPV6].keys()):
-            if ipaddress.IPv6Address(
-                    str(ip)) in ipaddress.IPv6Network(
-                    str(subnet)):
+            if ipaddress.IPv6Address(ip) in ipaddress.IPv6Network(subnet):
                 return dynamic_neighbors[constants.IPV6][subnet]
     else:
         return "NotAvailable"
