@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import netaddr
 
 import click
 from natsort import natsorted
