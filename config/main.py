@@ -2737,7 +2737,7 @@ def add_vrf_vni_map(ctx, vrfname, vni):
     if not vni.isdigit():
         ctx.fail("Invalid VNI {}. Only valid VNI is accepted".format(vni))
 
-    if (int(vni) < 1) or (int(vni) > 16777215):
+    if vni_id_is_valid(int(vni)) is False:
         ctx.fail("Invalid VNI {}. Valid range [1 to 16777215].".format(vni))
 
     vxlan_table = config_db.get_table('VXLAN_TUNNEL_MAP')
@@ -3926,7 +3926,6 @@ def add_vxlan_map(ctx, vxlan_name, vlan, vni):
         ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
     if not vni.isdigit():
         ctx.fail("Invalid VNI {}. Only valid VNI is accepted".format(vni))
-    #if (int(vni) < 1) or (int(vni) > 16777215):
     if vni_id_is_valid(int(vni)) is False:
         ctx.fail("Invalid VNI {}. Valid range [1 to 16777215].".format(vni))
 
@@ -3966,7 +3965,6 @@ def del_vxlan_map(ctx, vxlan_name, vlan, vni):
         ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
     if not vni.isdigit():
         ctx.fail("Invalid VNI {}. Only valid VNI is accepted".format(vni))
-    #if (int(vni) < 1) or (int(vni) > 16777215):
     if vni_id_is_valid(int(vni)) is False:
         ctx.fail("Invalid VNI {}. Valid range [1 to 16777215].".format(vni))
 
