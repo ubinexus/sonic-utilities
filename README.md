@@ -34,7 +34,7 @@ A Debian package, containing data files needed by the utilities (bash_completion
 
 #### To build
 
-Instructions for building the sonic-utilities-data package can be found in sonic-utilities-data/README.md
+Instructions for building the sonic-utilities-data package can be found in [sonic-utilities-data/README.md](https://github.com/Azure/sonic-utilities/blob/master/sonic-utilities-data/README.md)
 
 ---
 
