@@ -5,6 +5,8 @@ import fcntl
 import os
 import shutil
 import tempfile
+import inspect
+import datetime
 
 import click
 import netaddr
@@ -29,28 +31,77 @@ KUBEADM_JOIN_CMD = "kubeadm join --discovery-file {} --node-name {}"
 
 LOCK_FILE = "/var/lock/kube_join.lock"
 
+# DB Field names
+KUBE_SERVER_TABLE_NAME = "KUBERNETES_MASTER"
+KUBE_SERVER_TABLE_KEY = "SERVER"
+KUBE_SERVER_IP = "IP"
+KUBE_SERVER_DISABLE = "disable"
+KUBE_SERVER_INSECURE = "insecure"
+
+KUBE_STATE_SERVER_CONNECTED = "connected"
+KUBE_STATE_SERVER_REACHABLE = "server_reachability"
+KUBE_STATE_SERVER_IP = "server_ip"
+KUBE_STATE_SERVER_TS = "last_update_ts"
+
+
+def _do_exit(msg):
+    m = "FATAL failure: {}. Exiting...".format(msg)
+    log.log_error("{}: {}: {}".format(inspect.stack()[1][1], inspect.stack()[1][2], m))
+    raise SystemExit(m)
+
 
 def _update_kube_server(field, val):
     config_db = ConfigDBConnector()
     config_db.connect()
-    table = "KUBERNETES_MASTER"
-    key = "SERVER"
-    db_data = Db().get_data(table, key)
+    db_data = Db().get_data(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY)
     def_data = {
-        "IP": "",
-        "insecure": "False",
-        "disable": "False"
+        KUBE_SERVER_IP: "",
+        KUBE_SERVER_INSECURE: "False",
+        KUBE_SERVER_DISABLE: "False"
     }
     for f in def_data:
         if db_data and f in db_data:
             if f == field and db_data[f] != val:
-                config_db.mod_entry(table, key, {field: val})
+                config_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {field: val})
                 log.log_info("modify kubernetes server entry {}={}".format(field,val))
         else:
             # Missing field. Set to default or given value
             v = val if f == field else def_data[f]
-            config_db.mod_entry(table, key, {f: v})
+            config_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {f: v})
             log.log_info("set kubernetes server entry {}={}".format(f,v))
+
+
+def _get_state_db():
+    state_db = ConfigDBConnector()
+    state_db.db_connect("STATE_DB", wait_for_init=False, retry_on=True)
+    return state_db
+
+
+def _get_kube_server_state(state_db):
+    def_data = {
+            KUBE_STATE_SERVER_CONNECTED: "false",
+            KUBE_STATE_SERVER_REACHABLE: "false",
+            KUBE_STATE_SERVER_IP: "",
+            KUBE_STATE_SERVER_TS: ""
+            }
+
+    tbl = state_db.get_table(KUBE_SERVER_TABLE_NAME)
+    data = dict(def_data)
+    if KUBE_SERVER_TABLE_KEY in tbl:
+        data.update(tbl[KUBE_SERVER_TABLE_KEY])
+    return data
+
+
+def _update_kube_server_state(state_db, connected, server_ip=""):
+    data = {
+            KUBE_STATE_SERVER_CONNECTED: "true" if connected else "false",
+            KUBE_STATE_SERVER_REACHABLE: "true" if connected else "false",
+            KUBE_STATE_SERVER_TS: str(datetime.datetime.now())
+            }
+    if connected:
+        data[KUBE_STATE_SERVER_IP] = server_ip
+
+    state_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, data)
 
 
 def _take_lock():
@@ -70,13 +121,17 @@ def _download_file(server, insecure):
     if insecure:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    r = requests.get(SERVER_ADMIN_URL.format(server), verify=not insecure)
+    try:
+        r = requests.get(SERVER_ADMIN_URL.format(server), verify=not insecure)
+    except requests.RequestException as err:
+        _do_exit("Download failed: {}".format(str(err)))
+
     if r.status_code == 200:
         (h, fname) = tempfile.mkstemp(suffix="_kube_join")
         os.write(h, r.text)
         os.close(h)
     else:
-        clicommon.do_exit("Failed to download {}".format(
+        _do_exit("Failed to download {}".format(
             SERVER_ADMIN_URL.format(server)))
 
     # Ensure the admin.conf has given VIP as server-IP.
@@ -88,9 +143,10 @@ def _download_file(server, insecure):
     shutil.copyfile(update_file, KUBE_ADMIN_CONF)
 
     clicommon.run_command("rm -f {} {}".format(fname, update_file))
+    clicommon.run_command("rm -f {} {}".format(fname, fname))
 
 
-def _is_connected(server=""):
+def is_connected(server=""):
     if (os.path.exists(KUBE_ADMIN_CONF) and
             os.path.exists(KUBELET_YAML) and
             os.path.exists(KUBELET_SERVICE)):
@@ -114,19 +170,20 @@ def _get_labels():
     hwsku = device_info.get_hwsku()
     version_info = device_info.get_sonic_version_info()
 
-    labels.append("sonic_version={}".format(version_info['build_version']))
-    labels.append("hwsku={}".format(hwsku))
+    labels.append(("sonic_version", version_info['build_version']))
+    labels.append(("hwsku", hwsku))
     lh = Db().get_data('DEVICE_METADATA', 'localhost')
-    labels.append("deployment_type={}".format(
-        lh['type'] if lh and 'type' in lh else "Unknown"))
-    labels.append("enable_pods=True")
+    labels.append(("deployment_type=", lh['type'] if lh and 'type' in lh else "Unknown"))
+    labels.append(("enable_pods", "True"))
 
     return labels
 
 
 def _label_node(label):
-    cmd = "kubectl --kubeconfig {} label nodes {} {}".format(
-            KUBE_ADMIN_CONF, device_info.get_hostname(), label)
+    if label[1]:
+        cmd = "/usr/bin/kube_label -n {} -v {}".format(label[0], label[1])
+    else:
+        cmd = "/usr/bin/kube_label -n {}".format(label[0])
     clicommon.run_command(cmd, ignore_error=True)
 
 
@@ -134,16 +191,16 @@ def _troubleshoot_tips():
     msg = """
 if join fails, check the following
 
-a)  Ensure both master & node run same or compatible k8s versions
+a.  Ensure both master & node run same or compatible k8s versions
 
-b)  Check if this node already exists in master
+b.  Check if this node already exists in master
     Use 'sudo kubectl --kubeconfig=/etc/kubernetes/admin.conf get nodes' to list nodes at master.
 
     If yes, delete it, as the node is attempting a new join.
     'kubectl --kubeconfig=/etc/kubernetes/admin.conf drain <node name> --ignore-daemonsets'
     'kubectl --kubeconfig=/etc/kubernetes/admin.conf delete node <node name>'
 
-c)  In Master check if all system pods are running good.
+c.  In Master check if all system pods are running good.
     'kubectl get pods --namespace kube-system'
 
     If any not running properly, say READY column has 0/1, decribe pod for more detail.
@@ -161,10 +218,8 @@ c)  In Master check if all system pods are running good.
     log.log_error("Refer file {} for troubleshooting tips".format(fname))
 
 
-def _do_join(server, insecure):
+def _do_join(state_db, server):
     try:
-        _download_file(server, insecure)
-
         clicommon.run_command("systemctl enable kubelet")
 
         clicommon.run_command("modprobe br_netfilter")
@@ -172,31 +227,28 @@ def _do_join(server, insecure):
         clicommon.run_command(KUBEADM_JOIN_CMD.format(
             KUBE_ADMIN_CONF, device_info.get_hostname()), ignore_error=True)
 
-        if _is_connected(server):
+        if is_connected(server):
             labels = _get_labels()
             for label in labels:
                 _label_node(label)
 
+            _update_kube_server_state(state_db, True, server)
+
     except requests.exceptions.RequestException as e:
-        clicommon.do_exit("Download failed: {}".format(str(e)))
+        _do_exit("Download failed: {}".format(str(e)))
 
     except OSError as e:
-        clicommon.do_exit("Download failed: {}".format(str(e)))
+        _do_exit("Download failed: {}".format(str(e)))
 
     _troubleshoot_tips()
 
 
-def kube_reset():
-    lock_fd = _take_lock()
-    if not lock_fd:
-        log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
-        return
-
+def _do_reset(state_db, purge_conf):
     # Remove a key label and drain/delete self from cluster
     # If not, the next join would fail
     #
     if os.path.exists(KUBE_ADMIN_CONF):
-        _label_node("enable_pods-")
+        _label_node(("enable_pods", None))
         clicommon.run_command(
                 "kubectl --kubeconfig {} --request-timeout 20s drain {} --ignore-daemonsets".format(
                     KUBE_ADMIN_CONF, device_info.get_hostname()),
@@ -208,9 +260,23 @@ def kube_reset():
 
     clicommon.run_command("kubeadm reset -f", ignore_error=True)
     clicommon.run_command("rm -rf /etc/cni/net.d")
-    clicommon.run_command("rm -f {}".format(KUBE_ADMIN_CONF))
+    if purge_conf:
+        clicommon.run_command("rm -f {}".format(KUBE_ADMIN_CONF))
     clicommon.run_command("systemctl stop kubelet")
     clicommon.run_command("systemctl disable kubelet")
+
+    connected =  _get_kube_server_state(state_db)[KUBE_STATE_SERVER_CONNECTED]
+    if connected.lower() != "false":
+        _update_kube_server_state(state_db, False)
+
+
+def kube_reset(skip_file_purge = False):
+    lock_fd = _take_lock()
+    if not lock_fd:
+        log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
+        return
+
+    _do_reset(_get_state_db(), True)
 
 
 def kube_join(force=False):
@@ -219,21 +285,30 @@ def kube_join(force=False):
         log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
 
-    db_data = Db().get_data('KUBERNETES_MASTER', 'SERVER')
-    if not db_data or 'IP' not in db_data or not db_data['IP']:
+    db_data = Db().get_data(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY)
+
+    if (not db_data) or (not db_data[KUBE_SERVER_IP]):
         log.log_error("Kubernetes server is not configured")
 
-    if db_data['disable'].lower() != "false":
+    if db_data[KUBE_SERVER_DISABLE].lower() != "false":
         log.log_error("kube join skipped as kubernetes server is marked disabled")
         return
 
+    state_db = _get_state_db()
+
     if not force:
-        if _is_connected(db_data['IP']):
+        if is_connected(db_data[KUBE_SERVER_IP]):
             # Already connected. No-Op
+            connected = _get_kube_server_state(state_db)[KUBE_STATE_SERVER_CONNECTED]
+            if connected.lower() != "true":
+                _update_kube_server_state(state_db, True, db_data[KUBE_SERVER_IP])
             return
 
-    kube_reset()
-    _do_join(db_data['IP'], db_data['insecure'])
+    _download_file(db_data[KUBE_SERVER_IP], db_data[KUBE_SERVER_INSECURE])
+
+    # Ensure we start in clean slate
+    _do_reset(state_db, False)
+    _do_join(state_db, db_data[KUBE_SERVER_IP])
 
 
 @click.group(cls=clicommon.AbbreviationGroup)
@@ -305,7 +380,7 @@ def add(key, val):
     if not key or not val:
         click.echo('Require key & val')
         return
-    _label_node("{}={}".format(key, val))
+    _label_node((key, val))
 
 
 # cmd kubernetes label drop <key>
@@ -316,4 +391,4 @@ def drop(key):
     if not key:
         click.echo('Require key to drop')
         return
-    _label_node("{}-".format(key))
+    _label_node((key, None))

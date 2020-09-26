@@ -10,6 +10,37 @@ def feature():
     """Configure features"""
     pass
 
+def _update_field(db, name, fld, val):
+    tbl = db.cfgdb.get_table('FEATURE')
+    if name not in tbl:
+        click.echo("Unable to retrieve {} from FEATURE table".format(name))
+    db.cfgdb.mod_entry('FEATURE', name, { fld: val })
+    
+
+#
+# 'owner' command ('config feature owner ...')
+#
+@feature.command('owner', short_help="set owner for a feature")
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('owner', metavar='<owner>', required=True, type=click.Choice(["local", "kube"]))
+@pass_db
+def feature_owner(db, name, owner):
+    """Set owner for the feature"""
+    _update_field(db, name, "set_owner", owner)
+
+
+#
+# 'fallback' command ('config feature fallback ...')
+#
+@feature.command('no-fallback', short_help="set fallback for a feature")
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('no-fallback', metavar='<no-fallback>', required=True, type=click.Choice(["on", "off"]))
+@pass_db
+def feature_fallback(db, name, no_fallback):
+    """Set no_fallback for the feature"""
+    _update_field(db, name, "no_fallback_to_local", "true" if no_fallback == "on" else "false")
+
+
 #
 # 'state' command ('config feature state ...')
 #

@@ -7,6 +7,7 @@ import click
 from sonic_py_common import device_info
 from utilities_common.db import Db
 import utilities_common.cli as clicommon
+from swsssdk import ConfigDBConnector
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"
@@ -62,9 +63,20 @@ def status():
 def server():
     """Show kube configuration"""
     kube_fvs = Db().get_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
+    state_db = ConfigDBConnector()
+    state_db.db_connect("STATE_DB", wait_for_init=False, retry_on=True)
+    state_data = state_db.get_table(REDIS_KUBE_TABLE)
     if kube_fvs:
+        print("Kubernetes server config:")
         _print_entry(kube_fvs, "{} {}".format(
             REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
     else:
         print("Kubernetes server is not configured")
+
+    if REDIS_KUBE_KEY in state_data:
+        print("\nKubernetes server state:")
+        _print_entry(state_data[REDIS_KUBE_KEY], "{} {}".format(
+                        REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
+    else:
+        print("Kubernetes server has no status info")
 
