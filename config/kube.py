@@ -34,7 +34,7 @@ LOCK_FILE = "/var/lock/kube_join.lock"
 # DB Field names
 KUBE_SERVER_TABLE_NAME = "KUBERNETES_MASTER"
 KUBE_SERVER_TABLE_KEY = "SERVER"
-KUBE_SERVER_IP = "IP"
+KUBE_SERVER_IP = "ip"
 KUBE_SERVER_DISABLE = "disable"
 KUBE_SERVER_INSECURE = "insecure"
 
@@ -173,7 +173,7 @@ def _get_labels():
     labels.append(("sonic_version", version_info['build_version']))
     labels.append(("hwsku", hwsku))
     lh = Db().get_data('DEVICE_METADATA', 'localhost')
-    labels.append(("deployment_type=", lh['type'] if lh and 'type' in lh else "Unknown"))
+    labels.append(("deployment_type", lh['type'] if lh and 'type' in lh else "Unknown"))
     labels.append(("enable_pods", "True"))
 
     return labels
@@ -358,7 +358,7 @@ def ip(vip):
     if not netaddr.IPAddress(vip):
         click.echo('Invalid IP address %s' % vip)
         return
-    _update_kube_server('IP', vip)
+    _update_kube_server(KUBE_SERVER_IP, vip)
 
 
 # cmd kubernetes server insecure
