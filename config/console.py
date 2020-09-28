@@ -3,7 +3,6 @@
 import click
 
 import utilities_common.cli as clicommon
-from swsssdk import ConfigDBConnector
 
 #
 # 'console' group ('config console ...')
