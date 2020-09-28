@@ -270,11 +270,19 @@ def _do_reset(state_db, purge_conf):
         _update_kube_server_state(state_db, False)
 
 
-def kube_reset(skip_file_purge = False):
+def kube_reset(force=False):
     lock_fd = _take_lock()
     if not lock_fd:
         log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
+
+    if not force:
+        if not is_connected():
+            # Already *not* connected. No-Op
+            connected = _get_kube_server_state(state_db)[KUBE_STATE_SERVER_CONNECTED]
+            if connected.lower() != "false":
+                _update_kube_server_state(state_db, False)
+            return
 
     _do_reset(_get_state_db(), True)
 
@@ -285,9 +293,13 @@ def kube_join(force=False):
         log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
 
-    db_data = Db().get_data(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY)
+    db_data = {
+            KUBE_SERVER_IP: "",
+            KUBE_SERVER_DISABLE: "false"
+            }
+    db_data.update(Db().get_data(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY))
 
-    if (not db_data) or (not db_data[KUBE_SERVER_IP]):
+    if (not db_data[KUBE_SERVER_IP]):
         log.log_error("Kubernetes server is not configured")
 
     if db_data[KUBE_SERVER_DISABLE].lower() != "false":
@@ -326,8 +338,9 @@ def join(force):
 
 # cmd kubernetes reset
 @kubernetes.command()
-def reset():
-    kube_reset()
+@click.option('-f', '--force', help='Force a reset', is_flag=True)
+def reset(force):
+    kube_reset(force=force)
 
 
 # cmd kubernetes server
