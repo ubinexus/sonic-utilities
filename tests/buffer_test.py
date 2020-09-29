@@ -23,24 +23,24 @@ class TestBuffer(object):
 
     def test_config_buffer_profile_headroom(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["buffer-profile"].commands["add"],
-                               ["testprofile", "-dynamic_th", "3", "-xon", "18432", "-xoff", "32768"])
+        result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
+                               ["testprofile", "--dynamic_th", "3", "--xon", "18432", "--xoff", "32768"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
     def test_config_buffer_profile_dynamic_th(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["buffer-profile"].commands["add"],
-                               ["testprofile", "-dynamic_th", "3"])
+        result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
+                               ["testprofile", "--dynamic_th", "3"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
 
     def test_config_buffer_profile_add_existing(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["buffer-profile"].commands["add"],
-                               ["headroom_profile", "-dynamic_th", "3"])
+        result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
+                               ["headroom_profile", "--dynamic_th", "3"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -48,8 +48,8 @@ class TestBuffer(object):
 
     def test_config_buffer_profile_set_non_existing(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["buffer-profile"].commands["set"],
-                               ["non_existing_profile", "-dynamic_th", "3"])
+        result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["set"],
+                               ["non_existing_profile", "--dynamic_th", "3"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -57,8 +57,8 @@ class TestBuffer(object):
 
     def test_config_buffer_profile_add_headroom_to_dynamic_profile(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["buffer-profile"].commands["set"],
-                               ["alpha_profile", "-dynamic_th", "3", "-xon", "18432", "-xoff", "32768"])
+        result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["set"],
+                               ["alpha_profile", "--dynamic_th", "3", "--xon", "18432", "--xoff", "32768"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0

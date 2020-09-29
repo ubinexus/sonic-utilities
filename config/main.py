@@ -1195,7 +1195,7 @@ def load_minigraph(db, no_service_restart):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
     # generate QoS and Buffer configs
-    clicommon.run_command("config qos reload", display_cmd=True)
+    clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
 
     # Write latest db version string into db
     db_migrator='/usr/local/bin/db_migrator.py'
@@ -1624,8 +1624,20 @@ def clear():
     log.log_info("'qos clear' executing...")
     _clear_qos()
 
+def _update_buffer_calculation_model(config_db, model):
+    """Update the buffer calculation model into CONFIG_DB"""
+    buffer_model_changed = False
+    device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
+    if device_metadata.get('buffer_model') != model:
+        buffer_model_changed = True
+    device_metadata['buffer_model'] = model
+    config_db.set_entry('DEVICE_METADATA', 'localhost', device_metadata)
+    return buffer_model_changed
+
 @qos.command('reload')
-def reload():
+@click.pass_context
+@click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
+def reload(ctx, no_dynamic_buffer):
     """Reload QoS configuration"""
     log.log_info("'qos reload' executing...")
     _clear_qos()
@@ -1636,9 +1648,13 @@ def reload():
     if multi_asic.get_num_asics() > 1:
         namespace_list = multi_asic.get_namespaces_from_linux()
 
+    buffer_model_updated = False
+    vendors_supporting_dynamic_buffer = ["mellanox"]
+
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
             asic_id_suffix = ""
+            config_db = ConfigDBConnector()
         else:
             asic_id = multi_asic.get_asic_id_from_name(ns)
             if asic_id is None:
@@ -1650,7 +1666,19 @@ def reload():
                 raise click.Abort()
             asic_id_suffix = str(asic_id)
 
-        buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+
+        config_db.connect()
+
+        if not no_dynamic_buffer and asic_type in vendors_supporting_dynamic_buffer:
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers_dynamic.json.j2")
+            buffer_model_updated |= _update_buffer_calculation_model(config_db, "dynamic")
+        else:
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
+            if asic_type in vendors_supporting_dynamic_buffer:
+                buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
         if os.path.isfile(buffer_template_file):
             qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
             if os.path.isfile(qos_template_file):
@@ -1674,6 +1702,14 @@ def reload():
             click.secho("Buffer definition template not found at {}".format(
                 buffer_template_file
             ), fg="yellow")
+
+    if buffer_model_updated:
+        print "Buffer calculation model updated, restarting swss is required to take effect"
+
+def is_dynamic_buffer_enabled(config_db):
+    """Return whether the current system supports dynamic buffer calculation"""
+    device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
+    return 'dynamic' == device_metadata.get('buffer_model')
 
 #
 # 'warm_restart' group ('config warm_restart ...')
@@ -2661,7 +2697,9 @@ def adjust_pfc_enable(ctx, interface_name, pg_map, add):
 @click.pass_context
 def buffer(ctx):
     """Set or clear buffer configuration"""
-    pass
+    config_db = ctx.obj["config_db"]
+    if not is_dynamic_buffer_enabled(config_db):
+        ctx.fail("This command can only be executed on a system with dynamic buffer enabled")
 
 
 #
@@ -2733,6 +2771,9 @@ def remove_pg(ctx, interface_name, pg_map):
 def cable_length(ctx, interface_name, length):
     """Set lossless PGs for the interface"""
     config_db = ctx.obj["config_db"]
+
+    if not is_dynamic_buffer_enabled(config_db):
+        ctx.fail("This command can only be supported on a system with dynamic buffer enabled")
 
     # Check whether port is legal
     ports = config_db.get_entry("PORT", interface_name)
@@ -3336,19 +3377,31 @@ def priority(ctx, interface_name, priority, status):
 
 @config.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
-def buffer_profile(ctx):
+def buffer(ctx):
     """Configure buffer_profile"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
-@buffer_profile.command('add')
-#@click.option('-profile', metavar='<profile>', type=str, help="Profile name", required=True)
-@click.argument('profile', metavar='<profile>', required=True)
-@click.option('-xon', metavar='<xon>', type=int, help="Set xon threshold")
-@click.option('-xoff', metavar='<xoff>', type=int, help="Set xoff threshold")
-@click.option('-headroom', metavar='<headroom>', type=int, help="Set reserved headroom size")
-@click.option('-dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
-@click.option('-pool', metavar='<pool>', type=str, help="Buffer pool")
+    if not is_dynamic_buffer_enabled(config_db):
+        ctx.fail("This command can only be supported on a system with dynamic buffer enabled")
+
+
+@buffer.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
-def add_profile(ctx, profile, xon, xoff, headroom, dynamic_th, pool):
+def profile(ctx):
+    """Configure buffer profile"""
+    pass
+
+
+@profile.command('add')
+@click.argument('profile', metavar='<profile>', required=True)
+@click.option('--xon', metavar='<xon>', type=int, help="Set xon threshold")
+@click.option('--xoff', metavar='<xoff>', type=int, help="Set xoff threshold")
+@click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
+@click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
+@click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
+@click.pass_context
+def add_profile(ctx, profile, xon, xoff, size, dynamic_th, pool):
     """Add or modify a buffer profile"""
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -3357,19 +3410,18 @@ def add_profile(ctx, profile, xon, xoff, headroom, dynamic_th, pool):
     if profile_entry:
         ctx.fail("Profile {} already exist".format(profile))
 
-    update_profile(ctx, config_db, profile, xon, xoff, headroom, dynamic_th, pool)
+    update_profile(ctx, config_db, profile, xon, xoff, size, dynamic_th, pool)
 
 
-@buffer_profile.command('set')
-#@click.option('-profile', metavar='<profile>', type=str, help="Profile name", required=True)
+@profile.command('set')
 @click.argument('profile', metavar='<profile>', required=True)
-@click.option('-xon', metavar='<xon>', type=int, help="Set xon threshold")
-@click.option('-xoff', metavar='<xoff>', type=int, help="Set xoff threshold")
-@click.option('-headroom', metavar='<headroom>', type=int, help="Set reserved headroom size")
-@click.option('-dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
-@click.option('-pool', metavar='<pool>', type=str, help="Buffer pool")
+@click.option('--xon', metavar='<xon>', type=int, help="Set xon threshold")
+@click.option('--xoff', metavar='<xoff>', type=int, help="Set xoff threshold")
+@click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
+@click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
+@click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
 @click.pass_context
-def set_profile(ctx, profile, xon, xoff, headroom, dynamic_th, pool):
+def set_profile(ctx, profile, xon, xoff, size, dynamic_th, pool):
     """Add or modify a buffer profile"""
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -3381,10 +3433,10 @@ def set_profile(ctx, profile, xon, xoff, headroom, dynamic_th, pool):
     if not 'xoff' in profile_entry.keys() and xoff:
         ctx.fail("Can't change profile {} from dynamically calculating headroom to non-dynamically one".format(profile))
 
-    update_profile(ctx, config_db, profile, xon, xoff, headroom, dynamic_th, pool, profile_entry)
+    update_profile(ctx, config_db, profile, xon, xoff, size, dynamic_th, pool, profile_entry)
 
 
-def update_profile(ctx, config_db, profile_name, xon, xoff, headroom, dynamic_th, pool, profile_entry = None):
+def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, pool, profile_entry = None):
     params = {}
     if profile_entry:
         params = profile_entry
@@ -3408,23 +3460,23 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, headroom, dynamic_th
     else:
         xoff = params.get('xoff')
 
-    if headroom:
-        params['size'] = headroom
+    if size:
+        params['size'] = size
         dynamic_calculate = False
         if xon and not xoff:
-            xoff = int(headroom) - int (xon)
+            xoff = int(size) - int (xon)
             params['xoff'] = xoff
     elif not dynamic_calculate:
         if xon and xoff:
-            headroom = int(xon) + int(xoff)
-            params['size'] = headroom
+            size = int(xon) + int(xoff)
+            params['size'] = size
         else:
-            ctx.fail("Either both xon and xoff or headroom should be provided")
+            ctx.fail("Either both xon and xoff or size should be provided")
 
     if dynamic_calculate:
         params['headroom_type'] = 'dynamic'
         if not dynamic_th:
-            ctx.fail("Either headroom information (xon, xoff, headroom) or dynamic_th needs to be provided")
+            ctx.fail("Either size information (xon, xoff, size) or dynamic_th needs to be provided")
 
     if dynamic_th:
         params['dynamic_th'] = dynamic_th
@@ -3443,7 +3495,7 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, headroom, dynamic_th
 
     config_db.set_entry("BUFFER_PROFILE", (profile_name), params)
 
-@buffer_profile.command('remove')
+@profile.command('remove')
 @click.argument('profile', metavar='<profile>', required=True)
 @click.pass_context
 def remove_profile(ctx, profile):
