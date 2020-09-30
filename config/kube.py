@@ -24,7 +24,7 @@ from .utils import log
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBELET_YAML = "/var/lib/kubelet/config.yaml"
-KUBELET_SERVICE = "/etc/systemd/system/multi-user.target.wants/kubelet.service"
+KUBELET_SERVICE = "kubelet.service"
 
 SERVER_ADMIN_URL = "https://{}/admin.conf"
 KUBEADM_JOIN_CMD = "kubeadm join --discovery-file {} --node-name {}"
@@ -48,6 +48,14 @@ def _do_exit(msg):
     m = "FATAL failure: {}. Exiting...".format(msg)
     log.log_error("{}: {}: {}".format(inspect.stack()[1][1], inspect.stack()[1][2], m))
     raise SystemExit(m)
+
+
+
+def is_systemd_active(feat): 
+    status = os.system('systemctl is-active --quiet {}'.format(feat))
+    if status != 0: 
+        debug_msg("{} systemctl not active for {}".format(inspect.stack()[1][3], feat))
+    return status == 0
 
 
 def _update_kube_server(field, val):
@@ -163,7 +171,7 @@ def _download_file(server, insecure):
 def is_connected(server=""):
     if (os.path.exists(KUBE_ADMIN_CONF) and
             os.path.exists(KUBELET_YAML) and
-            os.path.exists(KUBELET_SERVICE)):
+            is_systemd_active(KUBELET_SERVICE)):
 
         with open(KUBE_ADMIN_CONF, 'r') as s:
             d = yaml.load(s)
@@ -288,13 +296,14 @@ def kube_reset(force=False):
         log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
 
+    state_db = _get_state_db()
     if not force:
         if not is_connected():
             # Already *not* connected. No-Op. Just ensure SERVER-DB is updated
             _update_kube_server_state(state_db, False)
             return
 
-    _do_reset(_get_state_db(), True)
+    _do_reset(state_db, True)
 
 
 def kube_join(force=False):
