@@ -29,6 +29,10 @@ KUBELET_SERVICE = "kubelet.service"
 SERVER_ADMIN_URL = "https://{}/admin.conf"
 KUBEADM_JOIN_CMD = "kubeadm join --discovery-file {} --node-name {}"
 
+SONIC_TEMPLATES_DIR = "/usr/share/sonic/templates"
+CNI_NET_DIR = "/etc/cni/net.d"
+KUBE_CNI_FNAME_PREFIX = "kube_cni."
+
 LOCK_FILE = "/var/lock/kube_join.lock"
 
 # DB Field names
@@ -240,6 +244,18 @@ c.  In Master check if all system pods are running good.
     log.log_error("Refer file {} for troubleshooting tips".format(fname))
 
 
+def _copy_cni_files():
+    if not os.path.exists(CNI_NET_DIR):
+        os.makedirs(CNI_NET_DIR)
+
+    lst = os.listdir(SONIC_TEMPLATES_DIR)
+    for l in lst:
+        if l.startswith(KUBE_CNI_FNAME_PREFIX):
+            spath = os.path.join(SONIC_TEMPLATES_DIR, l)
+            dpath = os.path.join(CNI_NET_DIR, l[len(KUBE_CNI_FNAME_PREFIX):])
+            shutil.copyfile(spath, dpath)
+
+
 def _do_join(state_db, server):
     try:
         clicommon.run_command("systemctl enable kubelet")
@@ -254,6 +270,7 @@ def _do_join(state_db, server):
             for label in labels:
                 _label_node(label)
 
+            _copy_cni_files()
             _update_kube_server_state(state_db, True, server)
 
     except requests.exceptions.RequestException as e:
@@ -281,7 +298,7 @@ def _do_reset(state_db, purge_conf):
                 ignore_error=True)
 
     clicommon.run_command("kubeadm reset -f", ignore_error=True)
-    clicommon.run_command("rm -rf /etc/cni/net.d")
+    clicommon.run_command("rm -rf {}".format(CNI_NET_DIR))
     if purge_conf:
         clicommon.run_command("rm -f {}".format(KUBE_ADMIN_CONF))
     clicommon.run_command("systemctl stop kubelet")
