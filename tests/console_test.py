@@ -18,7 +18,7 @@ class TestConfigConsoleCommands(object):
         db = Db()
         db.cfgdb.set_entry("CONSOLE_PORT", 1, { "baud_rate" : "9600" })
 
-        # add a console setting which the port has exists
+        # add a console setting which the port exists
         result = runner.invoke(config.config.commands["console"].commands["add"], ["1", '--baud', "9600"], obj=db)
         print(result.exit_code)
         print(sys.stderr, result.output)
@@ -80,7 +80,7 @@ class TestConfigConsoleCommands(object):
         db = Db()
         db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
-        # add a console setting which the port has exists
+        # add a console setting which the port exists
         result = runner.invoke(config.config.commands["console"].commands["del"], ["1"], obj=db)
         print(result.exit_code)
         print(sys.stderr, result.output)
