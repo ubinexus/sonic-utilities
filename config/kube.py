@@ -89,10 +89,15 @@ def _get_kube_server_state(state_db):
     data = dict(def_data)
     if KUBE_SERVER_TABLE_KEY in tbl:
         data.update(tbl[KUBE_SERVER_TABLE_KEY])
-    return data
+        data_present = True
+    else:
+        data_present = False
+    return (data, data_present)
 
 
 def _update_kube_server_state(state_db, connected, server_ip=""):
+    # Updates server entry, if either no entry or data needs update
+    #
     data = {
             KUBE_STATE_SERVER_CONNECTED: "true" if connected else "false",
             KUBE_STATE_SERVER_REACHABLE: "true" if connected else "false",
@@ -101,7 +106,16 @@ def _update_kube_server_state(state_db, connected, server_ip=""):
     if connected:
         data[KUBE_STATE_SERVER_IP] = server_ip
 
-    state_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, data)
+    (ct_data, data_present) = _get_kube_server_state(state_db)
+    do_update = not data_present
+    if data_present:
+        for f in [KUBE_STATE_SERVER_CONNECTED, KUBE_STATE_SERVER_REACHABLE]:
+            if ct_data[f] != data[f]:
+                do_update = True
+                break
+
+    if do_update:
+        state_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, data)
 
 
 def _take_lock():
@@ -265,9 +279,7 @@ def _do_reset(state_db, purge_conf):
     clicommon.run_command("systemctl stop kubelet")
     clicommon.run_command("systemctl disable kubelet")
 
-    connected =  _get_kube_server_state(state_db)[KUBE_STATE_SERVER_CONNECTED]
-    if connected.lower() != "false":
-        _update_kube_server_state(state_db, False)
+    _update_kube_server_state(state_db, False)
 
 
 def kube_reset(force=False):
@@ -278,10 +290,8 @@ def kube_reset(force=False):
 
     if not force:
         if not is_connected():
-            # Already *not* connected. No-Op
-            connected = _get_kube_server_state(state_db)[KUBE_STATE_SERVER_CONNECTED]
-            if connected.lower() != "false":
-                _update_kube_server_state(state_db, False)
+            # Already *not* connected. No-Op. Just ensure SERVER-DB is updated
+            _update_kube_server_state(state_db, False)
             return
 
     _do_reset(_get_state_db(), True)
@@ -310,10 +320,8 @@ def kube_join(force=False):
 
     if not force:
         if is_connected(db_data[KUBE_SERVER_IP]):
-            # Already connected. No-Op
-            connected = _get_kube_server_state(state_db)[KUBE_STATE_SERVER_CONNECTED]
-            if connected.lower() != "true":
-                _update_kube_server_state(state_db, True, db_data[KUBE_SERVER_IP])
+            # Already connected. No-Op. Just ensure SERVER-DB is updated
+            _update_kube_server_state(state_db, True, db_data[KUBE_SERVER_IP])
             return
 
     _download_file(db_data[KUBE_SERVER_IP], db_data[KUBE_SERVER_INSECURE])
