@@ -201,7 +201,6 @@ def generate_fdb_entries_2(filename):
 
     #print("generate_fdb_entries_2 before fdb-key-getall" + datetime.datetime.now().strftime("%H:%M:%S.%f"))
     pipe = client.pipeline()
-    fdb_list = db.keys(db.ASIC_DB, "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
     cur, fdb_list = client.scan(cursor=0, match='ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*', count=50)
     while cur != 0:
         cur, keys = client.scan(cursor=cur, match='ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*', count=50)
