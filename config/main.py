@@ -1950,7 +1950,7 @@ def add_mac(ctx, mac, vlan, interface_name):
 
     vlan_name = 'Vlan{}'.format(vlan)
 
-    if get_interface_naming_mode() == "alias":
+    if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
