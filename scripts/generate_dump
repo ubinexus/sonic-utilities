@@ -24,7 +24,8 @@ NOOP=false
 DO_COMPRESS=true
 CMD_PREFIX=
 SINCE_DATE="@0" # default is set to January 1, 1970 at 00:00:00 GMT
-REFERENCE_FILE=/tmp/reference
+TMP_PREFIX=/var/tmp
+REFERENCE_FILE=${TMP_PREFIX}/reference
 BASE=sonic_dump_`hostname`_`date +%Y%m%d_%H%M%S`
 DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
@@ -423,12 +424,12 @@ main() {
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     if [[ "$asic" = "mellanox" ]]; then
-        local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+        local sai_dump_filename="${TMP_PREFIX}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
         ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
-        ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
+        ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf ${TMP_PREFIX}/ -
         save_file $sai_dump_filename sai_sdk_dump true
 
-        local mst_dump_filename="/tmp/mstdump"
+        local mst_dump_filename="${TMP_PREFIX}/mstdump"
         local max_dump_count="3"
         for i in $(seq 1 $max_dump_count); do
             ${CMD_PREFIX}/usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
@@ -519,8 +520,8 @@ main() {
 
     # run 'hw-management-generate-dump.sh' script and save the result file
     /usr/bin/hw-management-generate-dump.sh
-    save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
-    rm -f /tmp/hw-mgmt-dump*
+    save_file "${TMP_PREFIX}/hw-mgmt-dump*" "hw-mgmt" false
+    rm -f ${TMP_PREFIX}/hw-mgmt-dump*
 
     # clean up working tar dir before compressing
     $RM $V -rf $TARDIR
@@ -535,6 +536,9 @@ main() {
     fi
 
     echo ${TARFILE}
+    
+    # Cleanup
+    rm -f ${REFERENCE_FILE}
 }
 
 ###############################################################################

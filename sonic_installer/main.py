@@ -17,7 +17,11 @@ from sonic_py_common import logger
 from swsssdk import SonicV2Connector
 
 from .bootloader import get_bootloader
-from .common import run_command, run_command_or_raise
+from .common import (
+   TMP_PREFIX,
+   run_command,
+   run_command_or_raise   
+)
 from .exception import SonicRuntimeException
 
 SYSLOG_IDENTIFIER = "sonic-installer"
@@ -83,7 +87,6 @@ class AliasedGroup(click.Group):
         elif len(matches) == 1:
             return click.Group.get_command(self, ctx, matches[0])
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
-
 
 #
 # Helper functions
@@ -303,6 +306,8 @@ def install(url, force, skip_migration=False):
     binary_image_version = bootloader.get_binary_image_version(image_path)
     if not binary_image_version:
         click.echo("Image file does not exist or is not a valid SONiC image file")
+        if os.path.exists(image_path):
+            os.remove(image_path)
         raise click.Abort()
 
     # Is this version already installed?
@@ -310,6 +315,8 @@ def install(url, force, skip_migration=False):
         click.echo("Image {} is already installed. Setting it as default...".format(binary_image_version))
         if not bootloader.set_default_image(binary_image_version):
             click.echo('Error: Failed to set image as default')
+            if os.path.exists(image_path):
+                os.remove(image_path)
             raise click.Abort()
     else:
         # Verify that the binary image is of the same type as the running image
@@ -317,6 +324,8 @@ def install(url, force, skip_migration=False):
             click.echo("Image file '{}' is of a different type than running image.\n"
                        "If you are sure you want to install this image, use -f|--force.\n"
                        "Aborting...".format(image_path))
+            if os.path.exists(image_path):
+                os.remove(image_path)
             raise click.Abort()
 
         click.echo("Installing image {} and setting it as default...".format(binary_image_version))
@@ -327,7 +336,13 @@ def install(url, force, skip_migration=False):
         else:
             run_command('config-setup backup')
 
+<<<<<<< HEAD
         update_sonic_environment(click, binary_image_version)
+=======
+    # Clean-up by deleting downloaded file
+    if os.path.exists(image_path):
+        os.remove(image_path)
+>>>>>>> 3909818... Use /var/tmp instead of /tmp for sonic_installer and generate_dump
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
@@ -478,7 +493,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     image_latest = image_name + ":latest"
     image_id_previous = get_container_image_id(image_latest)
 
-    DEFAULT_IMAGE_PATH = os.path.join("/tmp/", image_name)
+    DEFAULT_IMAGE_PATH = os.path.join(TMP_PREFIX+"/", image_name)
     if url.startswith('http://') or url.startswith('https://'):
         click.echo('Downloading image...')
         validate_url_or_abort(url)
@@ -495,6 +510,8 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     # TODO: Verify the file is a *proper Docker image file*
     if not os.path.isfile(image_path):
         click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+        if os.path.exists(image_path):
+            os.remove(image_path)
         raise click.Abort()
 
     warm_configured = False
@@ -515,7 +532,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     # Fetch tag of current running image
     tag_previous = get_docker_tag_name(image_latest)
     # Load the new image beforehand to shorten disruption time
-    run_command("docker load < %s" % image_path)
+    run_command("docker load < %s" % image_path, image_path)
     warm_app_names = []
     # warm restart specific procssing for swss, bgp and teamd dockers.
     if warm_configured is True or warm:
@@ -617,6 +634,10 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     if warm_configured is False and warm:
         if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
             run_command("config warm_restart disable %s" % container_name)
+
+    # Clean-up by deleting downloaded file
+    if os.path.exists(image_path):
+        os.remove(image_path)
 
     if state == exp_state:
         click.echo('Done')

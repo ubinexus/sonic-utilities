@@ -18,6 +18,7 @@ from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
+   TMP_PREFIX,
    run_command,
 )
 from .bootloader import Bootloader
@@ -42,7 +43,7 @@ class AbootBootloader(Bootloader):
 
     NAME = 'aboot'
     BOOT_CONFIG_PATH = os.path.join(HOST_PATH, 'boot-config')
-    DEFAULT_IMAGE_PATH = '/tmp/sonic_image.swi'
+    DEFAULT_IMAGE_PATH = TMP_PREFIX+'/sonic_image.swi'
 
     def _boot_config_read(self, path=BOOT_CONFIG_PATH):
         config = collections.OrderedDict()
@@ -100,8 +101,8 @@ class AbootBootloader(Bootloader):
         return True
 
     def install_image(self, image_path):
-        run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
-        run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
+        run_command("/usr/bin/unzip -od %s %s boot0" % (TMP_PREFIX, image_path))
+        run_command("swipath=%s target_path=/host sonic_upgrade=1 . %s/boot0" % (image_path, TMP_PREFIX))
 
     def remove_image(self, image):
         nextimage = self.get_next_image()
