@@ -2272,11 +2272,12 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
                       remains unchanged to limit the traffic impact """
 
     click.secho("\nAfter running Logic to limit the impact", fg="cyan", underline=True)
-    matched_item = [intf for intf, speed in list(del_intf_dict.items()) if intf in list(add_intf_dict.keys()) and speed == add_intf_dict[intf]]
+    matched_items = [intf for intf, speed in list(del_intf_dict.items()) if intf in list(add_intf_dict.keys()) and speed == add_intf_dict[intf]]
 
     # Remove the interface which remains unchanged from both del_intf_dict and add_intf_dict
-    list(map(del_intf_dict.pop, matched_item))
-    list(map(add_intf_dict.pop, matched_item))
+    for item in matched_items:
+        del_intf_dict.pop(item)
+        add_intf_dict.pop(item)
 
     click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
     if len(list(add_intf_dict.keys())) == 0:
