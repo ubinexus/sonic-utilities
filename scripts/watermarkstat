@@ -185,7 +185,7 @@ class Watermarkstat(object):
         header_map = wm_type["obj_map"]
         single_key = header_map.keys()[0]
         header_len = len(header_map[single_key])
-        min_idx = sys.maxint
+        min_idx = sys.maxsize
 
         for name, counter_oid in header_map[single_key].items():
             curr_idx = int(wm_type["idx_func"](counter_oid))
