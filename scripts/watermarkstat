@@ -95,12 +95,14 @@ class Watermarkstat(object):
 
         self.port_uc_queues_map = {}
         self.port_mc_queues_map = {}
+        self.port_all_queues_map = {}
         self.port_pg_map = {}
         self.port_name_map = {}
 
         for port in self.counter_port_name_map:
             self.port_uc_queues_map[port] = {}
             self.port_mc_queues_map[port] = {}
+            self.port_all_queues_map[port] = {}
             self.port_pg_map[port] = {}
             self.port_name_map[self.counter_port_name_map[port]] = port
 
@@ -117,6 +119,9 @@ class Watermarkstat(object):
 
             elif get_queue_type(counter_queue_name_map[queue]) == QUEUE_TYPE_MC:
                 self.port_mc_queues_map[port][queue] = counter_queue_name_map[queue]
+
+            elif get_queue_type(counter_queue_name_map[queue]) == QUEUE_TYPE_ALL:
+                self.port_all_queues_map[port][queue] = counter_queue_name_map[queue]
 
         # Get PGs for each port
         counter_pg_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PG_NAME_MAP)
@@ -155,6 +160,11 @@ class Watermarkstat(object):
                                "idx_func": self.get_queue_index,
                                "wm_name" : "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES",
                                "header_prefix": "MC"},
+            "q_shared_all":   {"message" : "Egress shared pool occupancy per all queues:",
+                               "obj_map" : self.port_all_queues_map,
+                               "idx_func": self.get_queue_index,
+                               "wm_name" : "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES",
+                               "header_prefix": "ALL"},
             "buffer_pool"   : {"message": "Shared pool maximum occupancy:",
                                "wm_name": "SAI_BUFFER_POOL_STAT_WATERMARK_BYTES",
                                "header" : headerBufferPool}
@@ -254,6 +264,8 @@ def main():
 Examples:
   watermarkstat -t pg_headroom
   watermarkstat -t pg_shared
+  watermarkstat -t q_shared_all
+  watermarkstat -p -t q_shared_all
   watermarkstat -t q_shared_uni -c
   watermarkstat -t q_shared_multi -c
   watermarkstat -p -t pg_shared
@@ -266,7 +278,7 @@ Examples:
     parser.add_argument('-c', '--clear', action='store_true', help='Clear watermarks request')
     parser.add_argument('-p', '--persistent', action='store_true', help='Do the operations on the persistent watermark')
     parser.add_argument('-t', '--type', required=True, action='store',
-                        choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool'],
+                        choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool', 'q_shared_all'],
                         help='The type of watermark')
     args = parser.parse_args()
     watermarkstat = Watermarkstat()
