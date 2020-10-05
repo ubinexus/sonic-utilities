@@ -1719,7 +1719,7 @@ def warm_restart_enable(ctx, module):
 @click.pass_context
 def warm_restart_neighsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
-    if seconds not in list(range(1,9999)):
+    if seconds not in range(1, 9999):
         ctx.fail("neighsyncd warm restart timer must be in range 1-9999")
     db.mod_entry('WARM_RESTART', 'swss', {'neighsyncd_timer': seconds})
 
@@ -1728,7 +1728,7 @@ def warm_restart_neighsyncd_timer(ctx, seconds):
 @click.pass_context
 def warm_restart_bgp_timer(ctx, seconds):
     db = ctx.obj['db']
-    if seconds not in list(range(1,3600)):
+    if seconds not in range(1, 3600):
         ctx.fail("bgp warm restart timer must be in range 1-3600")
     db.mod_entry('WARM_RESTART', 'bgp', {'bgp_timer': seconds})
 
@@ -1737,7 +1737,7 @@ def warm_restart_bgp_timer(ctx, seconds):
 @click.pass_context
 def warm_restart_teamsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
-    if seconds not in list(range(1,3600)):
+    if seconds not in range(1, 3600):
         ctx.fail("teamsyncd warm restart timer must be in range 1-3600")
     db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
 
@@ -2720,7 +2720,7 @@ def add_route(ctx, command_str):
         ctx.fail("argument is incomplete, prefix not found!")
     if "nexthop" not in command_str:
         ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0,len(command_str)):
+    for i in range(0, len(command_str)):
         if "nexthop" == command_str[i]:
             prefix_str = command_str[:i]
             nexthop_str = command_str[i:]
@@ -2772,7 +2772,7 @@ def del_route(ctx, command_str):
         ctx.fail("argument is incomplete, prefix not found!")
     if "nexthop" not in command_str:
         ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0,len(command_str)):
+    for i in range(0, len(command_str)):
         if "nexthop" == command_str[i]:
             prefix_str = command_str[:i]
             nexthop_str = command_str[i:]
@@ -3457,7 +3457,7 @@ def disable(ctx):
 @click.pass_context
 def polling_int(ctx, interval):
     """Set polling-interval for counter-sampling (0 to disable)"""
-    if interval not in list(range(5, 301)) and interval != 0:
+    if interval not in range(5, 301) and interval != 0:
         click.echo("Polling interval must be between 5-300 (0 to disable)")
 
     config_db = ctx.obj['db']
@@ -3562,7 +3562,7 @@ def is_valid_collector_info(name, ip, port, vrf_name):
         click.echo("Collector name must not exceed 16 characters")
         return False
 
-    if port not in list(range(0, 65535 + 1)):
+    if port not in range(0, 65535 + 1):
         click.echo("Collector port number must be between 0 and 65535")
         return False
 
