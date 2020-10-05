@@ -751,7 +751,7 @@ def _restart_services(config_db):
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
-    for _,intf in list(vlan_member_table.keys()):
+    for _, intf in list(vlan_member_table.keys()):
         if intf == interface_name:
             return True
 
@@ -759,7 +759,7 @@ def interface_is_in_vlan(vlan_member_table, interface_name):
 
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _,intf in list(portchannel_member_table.keys()):
+    for _, intf in list(portchannel_member_table.keys()):
         if intf == interface_name:
             return True
 
@@ -767,7 +767,7 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
 def interface_has_mirror_config(mirror_table, interface_name):
     """ Check if port is already configured with mirror config """
-    for _,v in list(mirror_table.items()):
+    for _, v in list(mirror_table.items()):
         if 'src_port' in v and v['src_port'] == interface_name:
             return True
         if 'dst_port' in v and v['dst_port'] == interface_name:
@@ -1772,7 +1772,7 @@ def vrf_add_management_vrf(config_db):
     if entry and entry['mgmtVrfEnabled'] == 'true' :
         click.echo("ManagementVRF is already Enabled.")
         return None
-    config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "true"})
+    config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "true"})
     mvrf_restart_services()
 
 def vrf_delete_management_vrf(config_db):
@@ -1782,7 +1782,7 @@ def vrf_delete_management_vrf(config_db):
     if not entry or entry['mgmtVrfEnabled'] == 'false' :
         click.echo("ManagementVRF is already Disabled.")
         return None
-    config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
+    config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "false"})
     mvrf_restart_services()
 
 @config.group(cls=clicommon.AbbreviationGroup)
@@ -1856,11 +1856,11 @@ def modify_snmptrap_server(ctx, ver, serverip, port, vrf, comm):
     config_db = ctx.obj['db']
     if ver == "1":
         #By default, v1TrapDest value in snmp.yml is "NotConfigured". Modify it.
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v1TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v1TrapDest", {"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
     elif ver == "2":
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v2TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v2TrapDest", {"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
     else:
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v3TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v3TrapDest", {"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
 
     cmd="systemctl restart snmp"
     os.system (cmd)
@@ -1873,11 +1873,11 @@ def delete_snmptrap_server(ctx, ver):
 
     config_db = ctx.obj['db']
     if ver == "1":
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v1TrapDest",None)
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v1TrapDest", None)
     elif ver == "2":
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v2TrapDest",None)
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v2TrapDest", None)
     else:
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v3TrapDest",None)
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v3TrapDest", None)
     cmd="systemctl restart snmp"
     os.system (cmd)
 
@@ -2307,24 +2307,21 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         portJson = dict(); portJson['PORT'] = port_dict
 
         # breakout_Ports will abort operation on failure, So no need to check return
-        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, \
-            loadDefConfig=load_predefined_config, verbose=verbose)
+        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, 
+                       loadDefConfig=load_predefined_config, verbose=verbose)
 
         # Set Current Breakout mode in config DB
         brkout_cfg_keys = config_db.get_keys('BREAKOUT_CFG')
         if interface_name.decode("utf-8") not in  brkout_cfg_keys:
-            click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".\
-                format(interface_name), fg='red')
+            click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".format(interface_name), fg='red')
             raise click.Abort()
-        config_db.set_entry("BREAKOUT_CFG", interface_name,\
-            {'brkout_mode': target_brkout_mode})
-        click.secho("Breakout process got successfully completed.".\
-            format(interface_name),  fg="cyan", underline=True)
+        config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
+        click.secho("Breakout process got successfully completed."
+                    .format(interface_name), fg="cyan", underline=True)
         click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
     except Exception as e:
-        click.secho("Failed to break out Port. Error: {}".format(str(e)), \
-            fg='magenta')
+        click.secho("Failed to break out Port. Error: {}".format(str(e)), fg='magenta')
         sys.exit(0)
 
 def _get_all_mgmtinterface_keys():
@@ -2709,7 +2706,7 @@ def route(ctx):
     """route-related configuration tasks"""
     pass
 
-@route.command('add',context_settings={"ignore_unknown_options":True})
+@route.command('add', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
@@ -2761,7 +2758,7 @@ def add_route(ctx, command_str):
     cmd += '"'
     clicommon.run_command(cmd)
 
-@route.command('del',context_settings={"ignore_unknown_options":True})
+@route.command('del', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
@@ -3227,7 +3224,7 @@ def add_loopback(ctx, loopback_name):
         ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
                 .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
 
-    lo_intfs = [k for k,v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
+    lo_intfs = [k for k, v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
     if loopback_name in lo_intfs:
         ctx.fail("{} already exists".format(loopback_name))
 
@@ -3243,7 +3240,7 @@ def del_loopback(ctx, loopback_name):
                 .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
 
     lo_config_db = config_db.get_table('LOOPBACK_INTERFACE')
-    lo_intfs = [k for k,v in lo_config_db.items() if type(k) != tuple]
+    lo_intfs = [k for k, v in lo_config_db.items() if type(k) != tuple]
     if loopback_name not in lo_intfs:
         ctx.fail("{} does not exists".format(loopback_name))
 
