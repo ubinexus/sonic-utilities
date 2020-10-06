@@ -357,6 +357,42 @@ class SFPShow(object):
 
     def display_eeprom(self):
         click.echo(self.output)
+    @multi_asic_util.run_on_multi_asic
+    def display_summary(self, interfacename):
+        out_put = ''
+        info_table = []
+        header = ['Interface' ,'Media Name', 'Max Power(W)', 'Vendor Name','Serial Num.','Part Num.', 'QSA Adapter','Qualified' ]
+
+        if interfacename is not None:
+            if not interfacename.startswith('Ethernet'):
+                if interfacename.isnumeric():
+                    interfacename = 'Ethernet'+interfacename
+
+            sfp_info_dict = self.sdb.get_all(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interfacename))
+            if sfp_info_dict is None:
+                sfp_info_dict = dict()
+            sub = \
+                [interfacename, sfp_info_dict.get('display_name', 'N/A'), sfp_info_dict.get('power_rating_max', 'N/A'),
+                        sfp_info_dict.get('vendor_name', 'N/A'), sfp_info_dict.get('vendor_serial_number', 'N/A'),
+                        sfp_info_dict.get('vendor_part_number', 'N/A'), sfp_info_dict.get('qsa_adapter', 'N/A'), sfp_info_dict.get('qualified', 'N/A')]
+            info_table.append(sub)
+        else:
+            port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
+            sorted_table_keys = natsorted(port_table_keys)
+            for i in sorted_table_keys:
+                interface = re.split(':', i, maxsplit=1)[-1].strip()
+                if interface and interface.startswith('Ethernet'):
+                    sfp_info_dict = self.db.get_all(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
+                    if sfp_info_dict is None:
+                        sfp_info_dict = dict()
+                    sub = \
+                        [interface, sfp_info_dict.get('display_name', 'N/A'), sfp_info_dict.get('power_rating_max', 'N/A'),
+                                sfp_info_dict.get('vendor_name', 'N/A'), sfp_info_dict.get('vendor_serial_number', 'N/A'),
+                                sfp_info_dict.get('vendor_part_number', 'N/A'), sfp_info_dict.get('qsa_adapter', 'N/A'), sfp_info_dict.get('qualified', 'N/A')]
+                    info_table.append(sub)
+        click.echo("\n")
+        click.echo(tabulate(info_table, header))
+        click.echo("\n")
 
     def display_presence(self):
         header = ['Port', 'Presence']
@@ -368,6 +404,21 @@ class SFPShow(object):
 def cli():
     """sfpshow - Command line utility for display SFP transceivers information"""
     pass
+# 'summary' subcommand
+@cli.command()
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP summary data for port <port_name> only")
+@click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
+def summary(port, namespace):
+    if port and multi_asic.is_multi_asic() and namespace is None:
+        try:
+            ns = multi_asic.get_namespace_for_port(port)
+            namespace=ns
+        except Exception:
+            display_invalid_intf_eeprom(port)
+            sys.exit(1)
+
+    sfp = SFPShow(port, namespace)
+    sfp.display_summary(port)
 
 # 'eeprom' subcommand
 @cli.command()
