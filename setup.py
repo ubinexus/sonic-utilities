@@ -108,6 +108,7 @@ setup(
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
+        'scripts/crash-monitor',
         'scripts/sonic-kdump-config'
     ],
     entry_points={
