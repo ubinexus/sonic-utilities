@@ -40,7 +40,7 @@ def generate_neighbor_entries(filename, all_available_macs):
 
         ip_addr = key.split(':')[2]
         try:
-            ipaddress.IPv4Address(ip_addr)
+            ipaddress.IPv4Address(ip_addr.decode())
         except ipaddress.AddressValueError:
             #This is ipv6 address
             ip_addr = key.replace(key.split(':')[0] + ':' + key.split(':')[1] + ':', '')
