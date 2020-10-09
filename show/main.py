@@ -1820,6 +1820,59 @@ def reboot_cause():
 
 
 #
+# 'reboot-history' command ("show reboot-history")
+#
+@cli.command('reboot-history')
+def reboot_history():
+    """Show reboot history"""
+    REBOOT_CAUSE_TABLE = "REBOOT_CAUSE"
+    TABLE_NAME_SEPARATOR = '|'
+
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.STATE_DB, False)   # Make one attempt only
+
+    prefix = REBOOT_CAUSE_TABLE + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    table_keys = db.keys(db.STATE_DB, _hash)
+    table_keys.sort(reverse=True)
+
+    def remove_prefix(text, prefix):
+        if text.startswith(prefix):
+            return text[len(prefix):]
+        return text
+
+    table = []
+    for tk in table_keys:
+        entry = db.get_all(db.STATE_DB, tk)
+        r = []
+        r.append(remove_prefix(tk, prefix))
+        if 'cause' not in entry:
+            r.append("")
+        else:
+            r.append(entry['cause'])
+
+        if 'time' not in entry:
+            r.append("")
+        else:
+            r.append(entry['time'])
+
+        if 'user' not in entry:
+            r.append("")
+        else:
+            r.append(entry['user'])
+
+        if 'comment' not in entry:
+            r.append("")
+        else:
+            r.append(entry['comment'])
+
+        table.append(r)
+
+    header = ['name', 'cause', 'time', 'user', 'comment']
+    click.echo(tabulate(table, header))
+
+
+#
 # 'line' command ("show line")
 #
 @cli.command('line')
