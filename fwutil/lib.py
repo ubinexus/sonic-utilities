@@ -286,6 +286,7 @@ class PlatformComponentsParser(object):
     MODULE_KEY = "module"
     COMPONENT_KEY = "component"
     FIRMWARE_KEY = "firmware"
+    UTILITY_KEY = "utility"
     VERSION_KEY = "version"
 
     UTF8_ENCODING = "utf-8"
@@ -542,7 +543,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
             pcp.module_component_map
         )
 
-    def get_status(self):
+    def get_updates_status(self):
         status_table = [ ]
 
         append_chassis_name = self.is_chassis_has_components()
@@ -643,10 +644,23 @@ class ComponentUpdateProvider(PlatformDataProvider):
                         if append_module_name:
                             append_module_name = False
 
+        return status_table:
+
+    def get_status(self):
+        status_table = self.get_updates_status()
         if not status_table:
             return None
 
         return tabulate(status_table, self.STATUS_HEADER, tablefmt=self.FORMAT)
+
+    def get_update_available_components(self):
+        update_available_components = {}
+        status_table = self.get_updates_status()
+        for component_status in status_table:
+            if component_status[-1] is self.FW_STATUS_UPDATE_REQUIRED:
+                update_available_components.append(component_status[-4])
+
+        return update_available_components
 
     def get_notification(self, chassis_name, module_name, component_name):
         if self.is_modular_chassis():
@@ -697,6 +711,40 @@ class ComponentUpdateProvider(PlatformDataProvider):
             raise
         except Exception as e:
             log_helper.log_fw_update_end(component_path, firmware_path, False, e)
+            raise
+
+    def auto_update_firmware(self, chassis_name, module_name, component_name, boot):
+        if self.is_modular_chassis():
+            component = self.module_component_map[module_name][component_name]
+            parser = self.__pcp.module_component_map[module_name][component_name]
+
+            component_path = "{}/{}/{}".format(chassis_name, module_name, component_name)
+        else:
+            component = self.chassis_component_map[chassis_name][component_name]
+            parser = self.__pcp.chassis_component_map[chassis_name][component_name]
+
+            component_path = "{}/{}".format(chassis_name, component_name)
+
+        if not parser:
+            return
+
+        firmware_path = parser[self.__pcp.FIRMWARE_KEY]
+
+        if self.__root_path is not None:
+            firmware_path = self.__root_path + firmware_path
+
+        try:
+            click.echo("Autoupdating firmware:")
+            click.echo(TAB + firmware_path)
+            click.echo(TAB + boot)
+            log_helper.log_fw_update_start(component_path, firmware_path, boot)
+            component.auto_update_firmware(firmware_path, boot)
+            log_helper.log_fw_update_end(component_path, firmware_path, True, boot)
+        except KeyboardInterrupt:
+            log_helper.log_fw_update_end(component_path, firmware_path, False, "Keyboard interrupt", boot)
+            raise
+        except Exception as e:
+            log_helper.log_fw_update_end(component_path, firmware_path, False, e, boot)
             raise
 
     def is_firmware_update_available(self, chassis_name, module_name, component_name):
