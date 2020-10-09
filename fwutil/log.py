@@ -28,11 +28,12 @@ class LogHelper(object):
     FW_ACTION_DOWNLOAD = "download"
     FW_ACTION_INSTALL = "install"
     FW_ACTION_UPDATE = "update"
+    FW_ACTION_AUTO_UPDATE = "auto-update"
 
     STATUS_SUCCESS = "success"
     STATUS_FAILURE = "failure"
 
-    def __log_fw_action_start(self, action, component, firmware):
+    def __log_fw_action_start(self, action, component, firmware, boot=None):
         caption = "Firmware {} started".format(action)
         template = "{}: component={}, firmware={}"
 
@@ -44,41 +45,77 @@ class LogHelper(object):
             )
         )
 
-    def __log_fw_action_end(self, action, component, firmware, status, exception=None):
+    def __log_fw_action_end(self, action, component, firmware, status, exception=None, boot=None):
         caption = "Firmware {} ended".format(action)
 
         status_template = "{}: component={}, firmware={}, status={}"
+        status_boot_template = "{}: component={}, firmware={}, boot={}, status={}"
         exception_template = "{}: component={}, firmware={}, status={}, exception={}"
+        exception_template = "{}: component={}, firmware={}, boot={}, status={}, exception={}"
 
         if status:
-            log.log_info(
-                status_template.format(
-                    caption,
-                    component,
-                    firmware,
-                    self.STATUS_SUCCESS
-                )
-            )
-        else:
-            if exception is None:
-                log.log_error(
+            if boot is None:
+                log.log_info(
                     status_template.format(
                         caption,
                         component,
                         firmware,
-                        self.STATUS_FAILURE
+                        self.STATUS_SUCCESS
                     )
                 )
             else:
-                log.log_error(
-                    exception_template.format(
+                log.log_info(
+                    status_boot_template.format(
                         caption,
                         component,
                         firmware,
-                        self.STATUS_FAILURE,
-                        str(exception)
+                        boot,
+                        self.STATUS_SUCCESS
                     )
                 )
+        else:
+            if exception:
+                if boot is None:
+                    log.log_error(
+                        status_template.format(
+                            caption,
+                            component,
+                            firmware,
+                            self.STATUS_FAILURE
+                        )
+                    )
+                else:
+                    log.log_info(
+                        status_boot_template.format(
+                            caption,
+                            component,
+                            firmware,
+                            boot,
+                            self.STATUS_FAILURE
+                        )
+                    )
+            else:
+                if boot is None:
+                    log.log_error(
+                        status_template.format(
+                            caption,
+                            component,
+                            firmware,
+                            self.STATUS_FAILURE,
+                            str(exception)
+                        )
+                    )
+                else:
+                    log.log_error(
+                        exception_template.format(
+                            caption,
+                            component,
+                            firmware,
+                            boot,
+                            self.STATUS_FAILURE,
+                            str(exception)
+                        )
+                    )
 
     def log_fw_download_start(self, component, firmware):
         self.__log_fw_action_start(self.FW_ACTION_DOWNLOAD, component, firmware)
@@ -97,6 +134,12 @@ class LogHelper(object):
 
     def log_fw_update_end(self, component, firmware, status, exception=None):
         self.__log_fw_action_end(self.FW_ACTION_UPDATE, component, firmware, status, exception)
+
+    def log_fw_auto_update_start(self, component, firmware, boot):
+        self.__log_fw_action_start(self.FW_ACTION_AUTO_UPDATE, component, firmware, boot)
+
+    def log_fw_auto_update_end(self, component, firmware, status, exception=None, boot=None):
+        self.__log_fw_action_end(self.FW_ACTION_AUTO_UPDATE, component, firmware, status, exception, boot)
 
     def print_error(self, msg):
         click.echo("Error: {}.".format(msg))

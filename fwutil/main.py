@@ -10,7 +10,7 @@ try:
     import click
 
     from lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
-    from lib import URL, SquashFs
+    from lib import URL, SquashFs, FwPackage
     from log import LogHelper
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
@@ -87,6 +87,14 @@ def install(ctx):
 def update(ctx):
     """Update platform firmware"""
     ctx.obj[COMPONENT_PATH_CTX_KEY] = [ ]
+
+
+# 'auto-update' group
+@cli.group()
+@click.pass_context
+def auto-update(ctx):
+    """Auto-update platform firmware"""
+    pass
 
 
 def chassis_handler(ctx):
@@ -333,6 +341,48 @@ def fw_update(ctx, yes, force, image):
     except Exception as e:
         cli_abort(ctx, str(e))
 
+
+# 'fw' subcommand
+@auto-update.command(name='fw')
+@click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Update firmware using current/next SONiC image")
+@click.option('-i', '--boot', 'boot', type=click.Choice(["any", "cold", "fast", "warm", "none"]), default="none", show_default=True, help="Necessary boot option after the firmware update")
+@click.option('-i', '--fw-image', 'fw-image', help="Custom FW package path")
+@click.pass_context
+def fw_auto_update(ctx, yes, force, image=None, fw-image=None):
+    """Update firmware from SONiC image"""
+    component_list = {}
+    try:
+        squashfs = None
+
+        try:
+            if image == IMAGE_NEXT:
+                squashfs = SquashFs()
+
+                if squashfs.is_next_boot_set():
+                    fs_path = squashfs.mount_next_image_fs()
+                    cup = ComponentUpdateProvider(fs_path)
+                else:
+                    log_helper.print_warning("Next boot is set to current: fallback to defaults")
+                    cup = ComponentUpdateProvider()
+            else:
+                cup = ComponentUpdateProvider()
+
+            component_list = cup.get_update_available_components()
+            if component_list:
+                for component_name in component_list:
+                    log_helper.print_warning("{}: {} for {}".format(component_name, cup.FW_STATUS_UPDATE_REQUIRED, boot))
+                    cup.auto_update_firmware(chassis_name, module_name, component_name, boot)
+            else:
+                log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
+        finally:
+            if squashfs is not None:
+                squashfs.umount_next_image_fs()
+    except click.exceptions.Abort:
+        ctx.abort()
+    except click.exceptions.Exit as e:
+        ctx.exit(e.exit_code)
+    except Exception as e:
+        cli_abort(ctx, str(e))
 
 # 'show' subgroup
 @cli.group()
