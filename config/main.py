@@ -2272,7 +2272,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
                       remains unchanged to limit the traffic impact """
 
     click.secho("\nAfter running Logic to limit the impact", fg="cyan", underline=True)
-    matched_items = [intf for intf, speed in list(del_intf_dict.items()) if intf in list(add_intf_dict.keys()) and speed == add_intf_dict[intf]]
+    matched_items = [intf for intf in del_intf_dict if intf in add_intf_dict and del_intf_dict[intf] == add_intf_dict[intf]]
 
     # Remove the interface which remains unchanged from both del_intf_dict and add_intf_dict
     for item in matched_items:
