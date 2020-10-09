@@ -1813,10 +1813,15 @@ def mmu():
 
 
 #
-# 'reboot-cause' command ("show reboot-cause")
+# 'reboot' command ("show reboot")
 #
-@cli.command('reboot-cause')
-def reboot_cause():
+@cli.group(name='reboot', cls=clicommon.AliasedGroup)
+def reboot():
+    """Show reboot cause information"""
+    pass
+
+@reboot.command()
+def cause():
     """Show cause of most recent reboot"""
     PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
 
@@ -1832,11 +1837,8 @@ def reboot_cause():
         click.echo(proc.stdout.read())
 
 
-#
-# 'reboot-history' command ("show reboot-history")
-#
-@cli.command('reboot-history')
-def reboot_history():
+@reboot.command()
+def history():
     """Show reboot history"""
     REBOOT_CAUSE_TABLE = "REBOOT_CAUSE"
     TABLE_NAME_SEPARATOR = '|'
