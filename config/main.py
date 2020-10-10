@@ -2280,8 +2280,8 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         add_intf_dict.pop(item)
 
     click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
-    if len(list(add_intf_dict.keys())) == 0:
-        click.secho("[ERROR] add_intf_dict is None! No interfaces are there to be added", fg='red')
+    if not add_intf_dict:
+        click.secho("[ERROR] add_intf_dict is None or empty! No interfaces are there to be added", fg='red')
         raise click.Abort()
 
     port_dict = {}
