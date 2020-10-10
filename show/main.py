@@ -1216,7 +1216,11 @@ def techsupport(since, verbose, platform):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
     if platform:
-        cmd += " -p"
+        yes = raw_input('Proceed with PMON stop? (y/n) ')
+        if yes.lower() == 'y':
+            cmd += " -p"
+        if yes.lower() == 'n':
+            exit("Please do \'show techsupport\' without \'--platform\'")
     if since:
         cmd += " -s {}".format(since)
     run_command(cmd, display_cmd=verbose)
