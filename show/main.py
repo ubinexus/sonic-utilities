@@ -1800,78 +1800,72 @@ def mmu():
 
 
 #
-# 'reboot' command ("show reboot")
+# 'reboot-cause' command ("show reboot-cause")
 #
-@cli.group(name='reboot', cls=clicommon.AliasedGroup)
-def reboot():
-    """Show reboot cause information"""
-    pass
+@cli.command('reboot-cause')
+@click.argument('history', required=False, type=click.Choice(["history"]))
+def reboot_cause(history):
+    """Show cause of reboot"""
+    if history:
+        REBOOT_CAUSE_TABLE = "REBOOT_CAUSE"
+        TABLE_NAME_SEPARATOR = '|'
 
-@reboot.command()
-def cause():
-    """Show cause of most recent reboot"""
-    PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
+        db = SonicV2Connector(host='127.0.0.1')
+        db.connect(db.STATE_DB, False)   # Make one attempt only
 
-    # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
-    # the contents of the 'reboot cause' file as it was left when the device
-    # went down for reboot. This file should always be created at boot,
-    # but check first just in case it's not present.
-    if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
-        click.echo("Unable to determine cause of previous reboot\n")
+        prefix = REBOOT_CAUSE_TABLE + TABLE_NAME_SEPARATOR
+        _hash = '{}{}'.format(prefix, '*')
+        table_keys = db.keys(db.STATE_DB, _hash)
+        table_keys.sort(reverse=True)
+
+        def remove_prefix(text, prefix):
+            if text.startswith(prefix):
+                return text[len(prefix):]
+            return text
+
+        table = []
+        for tk in table_keys:
+            entry = db.get_all(db.STATE_DB, tk)
+            r = []
+            r.append(remove_prefix(tk, prefix))
+            if 'cause' not in entry:
+                r.append("")
+            else:
+                r.append(entry['cause'])
+
+            if 'time' not in entry:
+                r.append("")
+            else:
+                r.append(entry['time'])
+
+            if 'user' not in entry:
+                r.append("")
+            else:
+                r.append(entry['user'])
+
+            if 'comment' not in entry:
+                r.append("")
+            else:
+                r.append(entry['comment'])
+
+            table.append(r)
+
+        header = ['name', 'cause', 'time', 'user', 'comment']
+        click.echo(tabulate(table, header))
+
     else:
-        cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        click.echo(proc.stdout.read())
+        PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
 
-
-@reboot.command()
-def history():
-    """Show reboot history"""
-    REBOOT_CAUSE_TABLE = "REBOOT_CAUSE"
-    TABLE_NAME_SEPARATOR = '|'
-
-    db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.STATE_DB, False)   # Make one attempt only
-
-    prefix = REBOOT_CAUSE_TABLE + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, '*')
-    table_keys = db.keys(db.STATE_DB, _hash)
-    table_keys.sort(reverse=True)
-
-    def remove_prefix(text, prefix):
-        if text.startswith(prefix):
-            return text[len(prefix):]
-        return text
-
-    table = []
-    for tk in table_keys:
-        entry = db.get_all(db.STATE_DB, tk)
-        r = []
-        r.append(remove_prefix(tk, prefix))
-        if 'cause' not in entry:
-            r.append("")
+        # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
+        # the contents of the 'reboot cause' file as it was left when the device
+        # went down for reboot. This file should always be created at boot,
+        # but check first just in case it's not present.
+        if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
+            click.echo("Unable to determine cause of previous reboot\n")
         else:
-            r.append(entry['cause'])
-
-        if 'time' not in entry:
-            r.append("")
-        else:
-            r.append(entry['time'])
-
-        if 'user' not in entry:
-            r.append("")
-        else:
-            r.append(entry['user'])
-
-        if 'comment' not in entry:
-            r.append("")
-        else:
-            r.append(entry['comment'])
-
-        table.append(r)
-
-    header = ['name', 'cause', 'time', 'user', 'comment']
-    click.echo(tabulate(table, header))
+            cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            click.echo(proc.stdout.read())
 
 
 #
