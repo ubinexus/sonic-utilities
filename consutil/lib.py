@@ -28,7 +28,6 @@ DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
 DEFAULT_BAUD = "9600"
 
-PREV_REBOOT_CAUSE = "/host/reboot-cause/"
 DEVICE = "/usr/share/sonic/device"
 PLATFORM = '/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform'
 FILENAME = "udevprefix.conf"
