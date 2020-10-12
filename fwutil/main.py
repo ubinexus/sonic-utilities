@@ -10,7 +10,8 @@ try:
     import click
 
     from lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
-    from lib import URL, SquashFs, FwPackage
+    #from lib import URL, SquashFs, FwPackage
+    from lib import URL, SquashFs
     from log import LogHelper
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
@@ -89,10 +90,10 @@ def update(ctx):
     ctx.obj[COMPONENT_PATH_CTX_KEY] = [ ]
 
 
-# 'auto-update' group
+# 'auto_update' group
 @cli.group()
 @click.pass_context
-def auto-update(ctx):
+def auto_update(ctx):
     """Auto-update platform firmware"""
     pass
 
@@ -343,12 +344,12 @@ def fw_update(ctx, yes, force, image):
 
 
 # 'fw' subcommand
-@auto-update.command(name='fw')
+@auto_update.command(name='fw')
 @click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Update firmware using current/next SONiC image")
-@click.option('-i', '--boot', 'boot', type=click.Choice(["any", "cold", "fast", "warm", "none"]), default="none", show_default=True, help="Necessary boot option after the firmware update")
-@click.option('-i', '--fw-image', 'fw-image', help="Custom FW package path")
+@click.option('-f', '--fw_image', 'fw_image', help="Custom FW package path")
+@click.option('-b', '--boot', 'boot', type=click.Choice(["any", "cold", "fast", "warm", "none"]), default="none", show_default=True, help="Necessary boot option after the firmware update")
 @click.pass_context
-def fw_auto_update(ctx, yes, force, image=None, fw-image=None):
+def fw_auto_update(ctx, boot, image=None, fw_image=None):
     """Update firmware from SONiC image"""
     component_list = {}
     try:

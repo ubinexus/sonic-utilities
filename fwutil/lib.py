@@ -640,7 +640,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                         if append_module_name:
                             append_module_name = False
 
-        return status_table:
+        return status_table
 
     def get_status(self):
         status_table = self.get_updates_status()
