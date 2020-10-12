@@ -7,13 +7,13 @@ import utilities_common.cli as clicommon
 from collections import OrderedDict
 
 @click.group(cls=clicommon.AliasedGroup)
-def ecmp():
-    """Show ECMP information"""
+def fgnhg():
+    """Show FGNHG information"""
     pass
 
-@ecmp.command()
+@fgnhg.command()
 @click.argument('nhg', required=False)
-def fg_nhg_active_hops(nhg):
+def active_hops(nhg):
     config_db = ConfigDBConnector()
     config_db.connect()
     fg_nhg_prefix_table = {}
@@ -81,9 +81,9 @@ def fg_nhg_active_hops(nhg):
     	        click.echo(tabulate(table, header, tablefmt = "grid"))
      		 
 
-@ecmp.command()
+@fgnhg.command()
 @click.argument('nhg', required=False)
-def fg_nhg_hash_view(nhg):
+def hash_view(nhg):
     config_db = ConfigDBConnector()
     config_db.connect()
     fg_nhg_prefix_table = {}
@@ -125,7 +125,7 @@ def fg_nhg_hash_view(nhg):
 
 	    bank_dict = OrderedDict(sorted(bank_dict.items()))
 	    nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
-	    header = ["FG_NHG_PREFIX", "Active Next Hops", "Bank Ids"]
+	    header = ["FG_NHG_PREFIX", "Next Hop", "Hash bucket"]
 	  
             for nhip,val in bank_dict.items():
  	    	formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
@@ -160,7 +160,7 @@ def fg_nhg_hash_view(nhg):
 
 		nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
 		bank_dict = OrderedDict(sorted(bank_dict.items()))
-	        header = ["FG_NHG_PREFIX", "Active Next Hops", "Bank Ids"]
+	        header = ["FG_NHG_PREFIX", "Next Hop", "Hash bucket"]
 
 		for nhip,val in bank_dict.items():
  	    		formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
