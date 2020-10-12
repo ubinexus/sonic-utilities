@@ -14,8 +14,12 @@ KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"
 REDIS_KUBE_TABLE = 'KUBERNETES_MASTER'
 REDIS_KUBE_KEY = 'SERVER'
 
+KUBE_LABEL_TABLE = "KUBE_LABELS"
+KUBE_LABEL_SET_KEY = "SET"
+KUBE_LABEL_UNSET_KEY = "UNSET"
 
-def _print_entry(d, prefix):
+
+def _print_entry(d, prefix=""):
     if prefix:
         prefix += " "
 
@@ -79,4 +83,16 @@ def server():
                         REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
     else:
         print("Kubernetes server has no status info")
+
+
+@kubernetes.command()
+def labels():
+    state_db = ConfigDBConnector()
+    state_db.db_connect("STATE_DB", wait_for_init=False, retry_on=True)
+    ct_labels = state_db.get_entry(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY)
+    unset_labels = state_db.get_entry(KUBE_LABEL_TABLE, KUBE_LABEL_UNSET_KEY)
+    print("SET labels:")
+    _print_entry(ct_labels)
+    print("\nUNSET labels:")
+    _print_entry(unset_labels)
 
