@@ -1,13 +1,6 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-import fcntl
-import os
-import shutil
-import tempfile
-import inspect
-import datetime
-
 import click
 import netaddr
 
