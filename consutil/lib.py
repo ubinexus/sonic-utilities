@@ -12,6 +12,7 @@ try:
     import sys
     import os
     from swsssdk import ConfigDBConnector
+    from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -28,8 +29,6 @@ DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
 DEFAULT_BAUD = "9600"
 
-DEVICE = "/usr/share/sonic/device"
-PLATFORM = '/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform'
 FILENAME = "udevprefix.conf"
 
 # QUIET == True => picocom will not output any messages, and pexpect will wait for console
@@ -42,12 +41,8 @@ QUIET = False
 DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
 TIMEOUT_SEC = 0.2
 
-
-proc = subprocess.Popen(PLATFORM, stdout=subprocess.PIPE, shell=True, stderr=subprocess.STDOUT)
-stdout = proc.communicate()[0]
-proc.wait()
-platform = stdout.rstrip('\n')
-PLUGIN_PATH = "/".join([DEVICE, platform, "plugins", "udevprefix.conf"])
+platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+PLUGIN_PATH = "/".join([platform_path, "plugins", FILENAME])
 
 if os.path.exists(PLUGIN_PATH):
     fp = open(PLUGIN_PATH, 'r')
