@@ -57,7 +57,7 @@ class TestShowRebootCause(object):
             User issued \'{}\' command [User: {}, Time: {}]
             """.format(TEST_REBOOT_CAUSE, TEST_USER, TEST_REBOOT_TIME)
 
-        with mock.patch("show.main.read_last_reboot_cause",
+        with mock.patch("show.main.reboot_cause.read_last_reboot_cause",
                         return_value={"User issued \'warm-reboot\' command [User: admin, Time: Fri Oct  9 04:51:47 UTC 2020]"}):
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["reboot-cause"], [])
@@ -72,7 +72,7 @@ name                 cause        time                          user    comment
 2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
 """
         with mock.patch("show.main.read_reboot_cause_dbs",
-                        return_value={generate_hist_table()}):
+                        return_value={self.generate_hist_table()}):
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["reboot-cause"].commands[history], [])
             assert result.output == expected_output
