@@ -67,6 +67,7 @@ class TestSkuCreate(object):
         else:
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_file_path,model_file_path))
 
+    @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
