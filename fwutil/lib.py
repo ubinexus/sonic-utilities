@@ -545,6 +545,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
     def get_updates_status(self):
         status_table = [ ]
+        update_status_table = [ ]
 
         append_chassis_name = self.is_chassis_has_components()
         append_module_na = not self.is_modular_chassis()
@@ -581,6 +582,17 @@ class ComponentUpdateProvider(PlatformDataProvider):
                         [
                             chassis_name if append_chassis_name else EMPTY,
                             module_name if append_module_na else EMPTY,
+                            chassis_component_name,
+                            firmware_path,
+                            firmware_version,
+                            status
+                        ]
+                    )
+
+                    update_status_table.append(
+                        [
+                            chassis_name,
+                            module_name,
                             chassis_component_name,
                             firmware_path,
                             firmware_version,
@@ -638,27 +650,38 @@ class ComponentUpdateProvider(PlatformDataProvider):
                             ]
                         )
 
+                        update_status_table.append(
+                            [
+                                chassis_name,
+                                module_name,
+                                chassis_component_name,
+                                firmware_path,
+                                firmware_version,
+                                status
+                            ]
+                        )
+
                         if append_chassis_name:
                             append_chassis_name = False
 
                         if append_module_name:
                             append_module_name = False
 
-        return status_table
+        return status_table, update_status_table
 
     def get_status(self):
-        status_table = self.get_updates_status()
+        status_table, update_status_table = self.get_updates_status()
         if not status_table:
             return None
 
         return tabulate(status_table, self.STATUS_HEADER, tablefmt=self.FORMAT)
 
     def get_update_available_components(self):
-        update_available_components = {}
-        status_table = self.get_updates_status()
-        for component_status in status_table:
+        update_available_components = []
+        status_table, update_status_table = self.get_updates_status()
+        for component_status in update_status_table:
             if component_status[-1] is self.FW_STATUS_UPDATE_REQUIRED:
-                update_available_components.append(component_status[-4])
+                update_available_components.append(component_status)
 
         return update_available_components
 
@@ -713,7 +736,11 @@ class ComponentUpdateProvider(PlatformDataProvider):
             log_helper.log_fw_update_end(component_path, firmware_path, False, e)
             raise
 
-    def auto_update_firmware(self, chassis_name, module_name, component_name, boot):
+    def auto_update_firmware(self, component, boot):
+        chassis_name = component[-6]
+        module_name = component[-5]
+        component_name = component[-4]
+
         if self.is_modular_chassis():
             component = self.module_component_map[module_name][component_name]
             parser = self.__pcp.module_component_map[module_name][component_name]
@@ -734,17 +761,16 @@ class ComponentUpdateProvider(PlatformDataProvider):
             firmware_path = self.__root_path + firmware_path
 
         try:
-            click.echo("Autoupdating firmware:")
+            click.echo("Autoupdating firmware for {} with boot action {}".format(component_name, boot))
             click.echo(TAB + firmware_path)
-            click.echo(TAB + boot)
-            log_helper.log_fw_update_start(component_path, firmware_path, boot)
+            log_helper.log_fw_auto_update_start(component_path, firmware_path, boot)
             component.auto_update_firmware(firmware_path, boot)
-            log_helper.log_fw_update_end(component_path, firmware_path, True, boot)
+            log_helper.log_fw_auto_update_end(component_path, firmware_path, True, boot)
         except KeyboardInterrupt:
-            log_helper.log_fw_update_end(component_path, firmware_path, False, "Keyboard interrupt", boot)
+            log_helper.log_fw_auto_update_end(component_path, firmware_path, False, "Keyboard interrupt", boot)
             raise
         except Exception as e:
-            log_helper.log_fw_update_end(component_path, firmware_path, False, e, boot)
+            log_helper.log_fw_auto_update_end(component_path, firmware_path, False, e, boot)
             raise
 
     def is_firmware_update_available(self, chassis_name, module_name, component_name):

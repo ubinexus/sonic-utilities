@@ -351,38 +351,31 @@ def fw_update(ctx, yes, force, image):
 def fw_auto_update(ctx, boot, image=None, fw_image=None):
     """Update firmware from SONiC image"""
     component_list = {}
+    squashfs = None
+
     try:
-        squashfs = None
+        if image == IMAGE_NEXT:
+            squashfs = SquashFs()
 
-        try:
-            if image == IMAGE_NEXT:
-                squashfs = SquashFs()
-
-                if squashfs.is_next_boot_set():
-                    fs_path = squashfs.mount_next_image_fs()
-                    cup = ComponentUpdateProvider(fs_path)
-                else:
-                    log_helper.print_warning("Next boot is set to current: fallback to defaults")
-                    cup = ComponentUpdateProvider()
+            if squashfs.is_next_boot_set():
+                fs_path = squashfs.mount_next_image_fs()
+                cup = ComponentUpdateProvider(fs_path)
             else:
+                log_helper.print_warning("Next boot is set to current: fallback to defaults")
                 cup = ComponentUpdateProvider()
+        else:
+            cup = ComponentUpdateProvider()
 
-            component_list = cup.get_update_available_components()
-            if component_list:
-                for component_name in component_list:
-                    log_helper.print_warning("{}: {} for {}".format(component_name, cup.FW_STATUS_UPDATE_REQUIRED, boot))
-                    cup.auto_update_firmware(chassis_name, module_name, component_name, boot)
-            else:
-                log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
-        finally:
-            if squashfs is not None:
-                squashfs.umount_next_image_fs()
-    except click.exceptions.Abort:
-        ctx.abort()
-    except click.exceptions.Exit as e:
-        ctx.exit(e.exit_code)
-    except Exception as e:
-        cli_abort(ctx, str(e))
+        component_list = cup.get_update_available_components()
+        if component_list:
+            for component in component_list:
+                cup.auto_update_firmware(component, boot)
+        else:
+            log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
+    finally:
+        if squashfs is not None:
+            squashfs.umount_next_image_fs()
+
 
 # 'show' subgroup
 @cli.group()

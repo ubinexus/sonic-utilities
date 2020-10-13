@@ -52,7 +52,7 @@ class LogHelper(object):
         status_template = "{}: component={}, firmware={}, status={}"
         status_boot_template = "{}: component={}, firmware={}, boot={}, status={}"
         exception_template = "{}: component={}, firmware={}, status={}, exception={}"
-        exception_template = "{}: component={}, firmware={}, boot={}, status={}, exception={}"
+        exception_boot_template = "{}: component={}, firmware={}, boot={}, status={}, exception={}"
 
         if status:
             if boot is None:
@@ -108,7 +108,7 @@ class LogHelper(object):
                     )
                 else:
                     log.log_error(
-                        exception_template.format(
+                        exception_boot_template.format(
                             caption,
                             component,
                             firmware,
