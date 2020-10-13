@@ -1806,14 +1806,30 @@ def mmu():
 @click.argument('history', required=False, type=click.Choice(["history"]))
 def reboot_cause(history):
     """Show cause of reboot"""
-    if history:
-        REBOOT_CAUSE_TABLE = "REBOOT_CAUSE"
-        TABLE_NAME_SEPARATOR = '|'
+    REBOOT_CAUSE_DIR = "/host/reboot-cause/"
+    PREVIOUS_REBOOT_CAUSE_DIR = "/host/reboot-cause/previous-reboot-cause/"
+    PREVIOUS_REBOOT_CAUSE_FILE = REBOOT_CAUSE_DIR + "previous-reboot-cause.txt"
+    USER_ISSUE_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
+    REBOOT_CAUSE_UNKNOWN = "Unknown"
 
+    def read_last_reboot_cause():
+        last_reboot_cause = REBOOT_CAUSE_UNKNOWN
+        # Read the last previous reboot cause
+        if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
+            with open(PREVIOUS_REBOOT_CAUSE_FILE, "r") as last_cause_file:
+                data = json.load(last_cause_file)
+                if data['user']:
+                    last_reboot_cause = USER_ISSUE_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
+                else:
+                    last_reboot_cause = "{}".format(data['cause'])
+        return last_reboot_cause
+
+    def read_reboot_cause_dbs():
+        REBOOT_CAUSE_TABLE_NAME = "REBOOT_CAUSE"
+        TABLE_NAME_SEPARATOR = '|'
         db = SonicV2Connector(host='127.0.0.1')
         db.connect(db.STATE_DB, False)   # Make one attempt only
-
-        prefix = REBOOT_CAUSE_TABLE + TABLE_NAME_SEPARATOR
+        prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
         _hash = '{}{}'.format(prefix, '*')
         table_keys = db.keys(db.STATE_DB, _hash)
         table_keys.sort(reverse=True)
@@ -1847,25 +1863,15 @@ def reboot_cause(history):
                 r.append("")
             else:
                 r.append(entry['comment'])
-
             table.append(r)
+        return table
 
+    if not history:
+        click.echo(read_last_reboot_cause())
+    else:
+        table = read_reboot_cause_dbs()
         header = ['name', 'cause', 'time', 'user', 'comment']
         click.echo(tabulate(table, header))
-
-    else:
-        PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
-
-        # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
-        # the contents of the 'reboot cause' file as it was left when the device
-        # went down for reboot. This file should always be created at boot,
-        # but check first just in case it's not present.
-        if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
-            click.echo("Unable to determine cause of previous reboot\n")
-        else:
-            cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            click.echo(proc.stdout.read())
 
 
 #
