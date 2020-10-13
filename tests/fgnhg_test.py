@@ -208,7 +208,7 @@ class TestECMP(object):
         assert result.exit_code == 0
         assert result.output == show_fgnhg_hash_view_output
 
-     def test_show_fgnhgv4_hash_view(self):
+    def test_show_fgnhgv4_hash_view(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["fgnhg"].commands["hash-view"], ["fgnhg_v4"])
         print(result.exit_code)
@@ -232,7 +232,7 @@ class TestECMP(object):
         assert result.exit_code == 0
         assert result.output == show_fgnhg_active_hops_output
 
-     def test_show_fgnhgv4_active_hops(self):
+    def test_show_fgnhgv4_active_hops(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["fgnhg"].commands["active-hops"], ["fgnhg_v4"])
         print(result.exit_code)
@@ -240,7 +240,7 @@ class TestECMP(object):
         assert result.exit_code == 0
         assert result.output == show_fgnhgv4_active_hops_output
 
-     def test_show_fgnhgv6_active_hops(self):
+    def test_show_fgnhgv6_active_hops(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["fgnhg"].commands["active-hops"], ["fgnhg_v6"])
         print(result.exit_code)
