@@ -332,7 +332,6 @@ class SkuCreate(object):
 
         f_in.close()
 
-
     def break_in_ini(self, ini_file, port_name, port_split):
         #Function to split or unsplit a port in Port_config.ini file
         lanes_str_result = ""
