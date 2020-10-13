@@ -8,10 +8,13 @@
 try:
     import os
     import sys
+    from collections import OrderedDict
 
     import click
     from sonic_py_common import device_info, logger
+    from swsssdk import SonicV2Connector
     from tabulate import tabulate
+    import utilities_common.cli as clicommon
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -104,6 +107,150 @@ def pcie_show():
         Name = item["name"]
         Id = item["id"]
         click.echo("bus:dev.fn %s:%s.%s - dev_id=0x%s, %s" % (Bus, Dev, Fn, Id, Name))
+
+# Show PCIe AER status
+
+
+@cli.group(cls=clicommon.AliasedGroup)
+def pcie_aer():
+    '''Display PCIe AER status'''
+    pass
+
+
+@pcie_aer.command()
+def correctable():
+    '''Show PCIe AER correctable attributes'''
+
+    statedb = SonicV2Connector()
+    statedb.connect(statedb.STATE_DB)
+    header = ['AER - CORRECTABLE']
+
+    # AER - Correctable fields (9)
+    fields = ['RxErr', 'BadTLP', 'BadDLLP', 'Rollover', 'Timeout', 'NonFatalErr', 'CorrIntErr', 'HeaderOF', 'TOTAL_ERR_COR']
+    table = OrderedDict()
+    for field in fields:
+        table[field] = [field]
+
+    resultInfo = platform_pcieutil.get_pcie_check()
+    for item in resultInfo:
+        if item["result"] == "Failed":
+            continue
+
+        Bus = item["bus"]
+        Dev = item["dev"]
+        Fn = item["fn"]
+        Id = item["id"]
+
+        pcie_dev_key = "PCIE_DEVICE|0x%s|%s:%s.%s" % (Id, Bus, Dev, Fn)
+        aer_attribute = statedb.get_all(statedb.STATE_DB, pcie_dev_key)
+        if not aer_attribute:
+            continue
+
+        # Tabulate Header
+        device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
+        header.append(device_name)
+
+        # Tabulate Row
+        for field in fields:
+            key = "correctable|" + field
+            table[field].append(aer_attribute.get(key, 'NA'))
+
+    click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
+
+
+@pcie_aer.command()
+def fatal():
+    '''Show PCIe AER fatal attributes'''
+    statedb = SonicV2Connector()
+    statedb.connect(statedb.STATE_DB)
+    header = ['AER - FATAL']
+
+    # AER - Fatal fields (18)
+    fields = ['Undefined', 'DLP', 'SDES', 'TLP', 'FCP', 'CmpltTO', 'CmpltAbrt', 'UnxCmplt', 'RxOF', 'MalfTLP', 'ECRC', 'UnsupReq', 'ACSViol', 'UncorrIntErr', 'BlockedTLP', 'AtomicOpBlocked', 'TLPBlockedErr', 'TOTAL_ERR_FATAL']
+    table = OrderedDict()
+    for field in fields:
+        table[field] = [field]
+
+    resultInfo = platform_pcieutil.get_pcie_check()
+    for item in resultInfo:
+        if item["result"] == "Failed":
+            continue
+
+        Bus = item["bus"]
+        Dev = item["dev"]
+        Fn = item["fn"]
+        Id = item["id"]
+
+        pcie_dev_key = "PCIE_DEVICE|0x%s|%s:%s.%s" % (Id, Bus, Dev, Fn)
+        aer_attribute = statedb.get_all(statedb.STATE_DB, pcie_dev_key)
+        if not aer_attribute:
+            continue
+
+        # Tabulate Header
+        device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
+        header.append(device_name)
+
+        # Tabulate Row
+        for field in fields:
+            key = "fatal|" + field
+            table[field].append(aer_attribute.get(key, 'NA'))
+
+    click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
+
+
+@pcie_aer.command()
+def non_fatal():
+    '''Show PCIe AER non-fatal attributes '''
+    statedb = SonicV2Connector()
+    statedb.connect(statedb.STATE_DB)
+    aer_attribute = {}
+    header = ['AER - NONFATAL']
+
+    # AER - Non-Fatal fields (18)
+    fields = ['Undefined', 'DLP', 'SDES', 'TLP', 'FCP', 'CmpltTO', 'CmpltAbrt', 'UnxCmplt', 'RxOF', 'MalfTLP', 'ECRC', 'UnsupReq', 'ACSViol', 'UncorrIntErr', 'BlockedTLP', 'AtomicOpBlocked', 'TLPBlockedErr', 'TOTAL_ERR_NONFATAL']
+    table = OrderedDict()
+    for field in fields:
+        table[field] = [field]
+
+    resultInfo = platform_pcieutil.get_pcie_check()
+    for item in resultInfo:
+        if item["result"] == "Failed":
+            continue
+
+        Bus = item["bus"]
+        Dev = item["dev"]
+        Fn = item["fn"]
+        Id = item["id"]
+
+        pcie_dev_key = "PCIE_DEVICE|0x%s|%s:%s.%s" % (Id, Bus, Dev, Fn)
+        aer_attribute = statedb.get_all(statedb.STATE_DB, pcie_dev_key)
+        if not aer_attribute:
+            continue
+
+        # Tabulate Header
+        device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
+        header.append(device_name)
+
+        # Tabulate Row
+        for field in fields:
+            key = "non_fatal|" + field
+            table[field].append(aer_attribute.get(key, 'NA'))
+
+    click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
+
+
+@pcie_aer.command()
+@click.pass_context
+def all(ctx):
+    '''Show all PCIe AER attributes '''
+    ctx.invoke(correctable)
+    click.echo("")
+
+    ctx.invoke(fatal)
+    click.echo("")
+
+    ctx.invoke(non_fatal)
+    click.echo("")
 
 
 #  Show PCIE Vender ID and Device ID
