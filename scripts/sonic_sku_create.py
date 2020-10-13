@@ -28,7 +28,6 @@ import json
 import os
 import re
 import subprocess
-import swsssdk
 import traceback
 import sys
 import shutil
@@ -76,8 +75,6 @@ bko_dict_8 = {
     "4x10":  { "lanes":4, "speed":10000,  "step":1, "bko":1, "name": "etp" },
 }
 
-bko_dict = bko_dict_4
-
 class SkuCreate(object):
     """
     Tool for SKU creator
@@ -102,6 +99,7 @@ class SkuCreate(object):
         self.print_mode = False
         self.remove_mode = False
         self.verbose = None
+        self.bko_dict = {}
 
     def sku_def_parser(self, sku_def):
         # Parsing XML sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d> to be used to analyze split configuration
@@ -211,14 +209,13 @@ class SkuCreate(object):
                     exit(1)
                 port_bmp |= (1<<i)
                  
-        for entry in bko_dict:
-            bko_dict_entry = bko_dict[entry]
+        for entry in self.bko_dict:
+            bko_dict_entry = self.bko_dict[entry]
             pattern = '^([0-9]{1,})x([0-9]{1,})'
             m = re.match(pattern,entry)
-            bko_split = int(m.group(1))
             bko_speed = int(m.group(2))
                 
-            if (bko_speed == (int_port_speed/1000)):
+            if ((bko_speed * 1000) == int_port_speed):
                 bko_step = bko_dict_entry["step"]
                 bko_bmp = 0
                 for i in range(0,self.base_lanes,bko_step):
@@ -229,9 +226,8 @@ class SkuCreate(object):
 
     def write_json_lanes_to_ini_file(self, data, port_idx, port_split, f_out):
         #Function to write line of port_config.ini corresponding to a port
-        step = bko_dict[port_split]["step"]
+        step = self.bko_dict[port_split]["step"]
         for i in range(0,self.base_lanes,step):
-            curr_bko_entry = bko_dict[port_split]
             curr_port_str = "Ethernet{:d}".format(port_idx+i)
             curr_port_dict = data['PORT'].get(curr_port_str)
             curr_speed = curr_port_dict.get("speed")
@@ -265,10 +261,9 @@ class SkuCreate(object):
         header_str = "#name           lanes                alias       index     speed\n"
         f_out.write(header_str)
         for key, value in data['PORT'].iteritems():
-            port_str = key
             pattern = '^Ethernet([0-9]{1,})'
             m = re.match(pattern,key)
-            if m == None:
+            if m is None:
                 print("Port Name ",port_name, " is not valid, Exiting...") 
                 exit(1)
             port_idx = int(m.group(1))
@@ -343,14 +338,14 @@ class SkuCreate(object):
         lanes_str_result = ""
         pattern = '^([0-9]{1,})x([0-9]{1,})'
         m = re.match(pattern,port_split)
-        if m == None:
+        if m is None:
             print("Port split format ",port_split, " is not valid, Exiting...") 
             exit(1)
-        if port_split in bko_dict:
-            step = bko_dict[port_split]["step"]
-            speed = bko_dict[port_split]["speed"]
-            base_lanes = bko_dict[port_split]["lanes"]
-            bko = bko_dict[port_split]["bko"]
+        if port_split in self.bko_dict:
+            step = self.bko_dict[port_split]["step"]
+            speed = self.bko_dict[port_split]["speed"]
+            base_lanes = self.bko_dict[port_split]["lanes"]
+            bko = self.bko_dict[port_split]["bko"]
         else:
             print("Port split ",port_split, " is undefined for this platform, Exiting...") 
             exit(1)
@@ -358,7 +353,7 @@ class SkuCreate(object):
         port_found = False
         pattern = '^Ethernet([0-9]{1,})'
         m = re.match(pattern,port_name)
-        if m == None:
+        if m is None:
             print("Port Name ",port_name, " is not valid, Exiting...") 
             exit(1)
         port_idx = int(m.group(1))
@@ -471,12 +466,12 @@ class SkuCreate(object):
         port_inst = {}
         j = 1
         lanes_arr = lanes_str_result.split(':')
-        step = bko_dict[port_split]["step"]
+        step = self.bko_dict[port_split]["step"]
         alias_arr = ['a','b','c','d']
         pattern = '^([0-9]{1,})x([0-9]{1,})'
         m = re.match(pattern,port_split)
         speed = int(m.group(2))
-        bko = bko_dict[port_split]["bko"]
+        bko = self.bko_dict[port_split]["bko"]
 
         for i in range(0,self.base_lanes,step):
             port_str = "Ethernet{:d}".format(port_idx + i/step)
@@ -510,7 +505,7 @@ class SkuCreate(object):
         self.form_port_config_dict_from_ini(self.ini_file)
         self.platform_specific()	
         shutil.copy(new_file,self.ini_file)
-        if lanes_str_result == None:
+        if lanes_str_result is None:
             print("break_in_ini function returned empty lanes string, Exiting...")
             exit(1)
         self.break_in_cfg(self.cfg_file,port_name,port_split,lanes_str_result)
@@ -678,9 +673,7 @@ class SkuCreate(object):
         #Function that implements the check for platform restrictions of 2700 platform
         for fp, values in self.fpp_split.items():
             splt_arr = sorted(values[0])
-            idx_arr = sorted(values[1])
             splt = len(splt_arr)
-            fp=fp
             try :
                 if ((fp%2) == 1 and splt == 4):
                     next_fp = fp+1
@@ -718,7 +711,6 @@ def main():
     args = parser.parse_args()
 
     sku_name = None
-    base = None
     try:
         sku = SkuCreate()
         sku.verbose = args.verbose
@@ -750,10 +742,10 @@ def main():
 
         if sku.platform in platform_4:
             sku.base_lanes = 4
-            bko_dict = bko_dict_4
+            sku.bko_dict = bko_dict_4
         else:
             sku.base_lanes = 8
-            bko_dict = bko_dict_8
+            sku.bko_dict = bko_dict_8
 
         if args.base:
             sku.base_sku_name = args.base
