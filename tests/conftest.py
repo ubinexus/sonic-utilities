@@ -7,7 +7,7 @@ import pytest
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 
-from .mock_tables import dbconnector
+import mock_tables.dbconnector
 
 
 test_path = os.path.dirname(os.path.abspath(__file__))
