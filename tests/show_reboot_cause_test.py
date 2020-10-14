@@ -32,32 +32,13 @@ class TestShowRebootCause(object):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
-    def generate_hist_table(self):
-        table = []
-        for i in 2:
-            r = []
-            if i == 1:
-                r.append("2020_10_09_04_53_58")
-                r.append("warm-reboot")
-                r.append("Fri Oct  9 04:51:47 UTC 2020")
-                r.append("admin")
-                r.append("")
-            else:
-                r.append("2020_10_09_02_33_06")
-                r.append("reboot")
-                r.append("2020_10_09_02_33_06")
-                r.append("admin")
-                r.append("")
-            table.append(r)
-        return table
-
     # Test 'show reboot-cause'
     def test_reboot_cause(self):
         expected_output = """\
             User issued \'{}\' command [User: {}, Time: {}]
             """.format(TEST_REBOOT_CAUSE, TEST_USER, TEST_REBOOT_TIME)
 
-        with mock.patch("show.main.reboot_cause.read_last_reboot_cause",
+        with mock.patch("show.main.reboot_cause",
                         return_value={"User issued \'warm-reboot\' command [User: admin, Time: Fri Oct  9 04:51:47 UTC 2020]"}):
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["reboot-cause"], [])
@@ -71,10 +52,8 @@ name                 cause        time                          user    comment
 2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
 2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
 """
-        with mock.patch("show.main.read_reboot_cause_dbs",
-                        return_value={self.generate_hist_table()}):
             runner = CliRunner()
-            result = runner.invoke(show.cli.commands["reboot-cause"].commands[history], [])
+            result = self.runner.invoke(show.cli.commands["reboot-cause"], ["history"], obj=self.obj)
             assert result.output == expected_output
 
     @classmethod
