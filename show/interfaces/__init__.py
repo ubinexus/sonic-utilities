@@ -9,6 +9,8 @@ import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 import portchannel
 
+from swsssdk import ConfigDBConnector
+
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
 
