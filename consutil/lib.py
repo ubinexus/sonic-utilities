@@ -37,16 +37,16 @@ QUIET = False
 DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
 TIMEOUT_SEC = 0.2
 
-# runs command, exit if stderr is written to, returns stdout otherwise
-# input: cmd (str), output: output of cmd (str)
-def run_command(cmd):
+# runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise
+# input: cmd (str, bool), output: output of cmd (str) and error of cmd (str) if abort is not true
+def run_command(cmd, abort=True):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output = proc.stdout.read()
     error = proc.stderr.read()
-    if error != "":
+    if abort and error != "":
         click.echo("Command resulted in error: {}".format(error))
         sys.exit(ERR_CMD)
-    return output
+    return output if abort else (output, error)
 
 # returns a list of all lines
 def getAllLines():
@@ -63,7 +63,7 @@ def getAllLines():
 
     # Querying device directory to get all available console ports 
     cmd = "ls " + DEVICE_PREFIX + "*"
-    output = run_command(cmd)
+    output, _ = run_command(cmd, abort=False)
     availableTtys = output.split('\n')
     availableTtys = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, availableTtys))
     for tty in availableTtys:
