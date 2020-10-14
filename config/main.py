@@ -3171,29 +3171,29 @@ def chassis_modules (ctx):
     pass
 
 #
-# 'admin_down' subcommand
+# 'shutdown' subcommand
 #
-@chassis_modules.command('admin_down')
-@click.argument('chassis_module_name', metavar='<chassis_module_name>', required=True)
-@click.argument('instance_number', metavar='<instance_number>', required=True)
-@click.argument('module_type', metavar='<module_type>', required=True)
+@chassis_modules.command('shutdown')
+@click.argument('chassis_module_name', metavar='<module_name>', required=True)
 @click.pass_context
-def admin_down_chassis_module(ctx, chassis_module_name, instance_number, module_type):
-    """Chassis module admin-down of devices"""
+def shutdown_chassis_module(ctx, chassis_module_name):
+    """Chassis-module shutdown of module"""
     db = ctx.obj['db']
 
-    if not (module_type == "LINE-CARD") and not (module_type == "FABRIC-CARD"):
-        ctx.fail("'module_type' has to be 'LINE-CARD' or 'FABRIC-CARD'")
+    if not chassis_module_name.startswith("CONTROL-CARD") and not chassis_module_name.startswith("LINE-CARD") and not chassis_module_name.startswith("FABRIC-CARD"):
+        ctx.fail("'module_name' has to begin with 'CONTROL-CARD', 'LINE-CARD' or 'FABRIC-CARD'")
 
     fvs = {'admin_status': 'down'}
-    fvs['instance'] = int(instance_number)
-    fvs['module_type'] = module_type
     db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
 
-@chassis_modules.command('del')
-@click.argument('chassis_module_name', metavar='<chassis_module_name>', required=True)
+#
+# 'startup' subcommand
+#
+@chassis_modules.command('startup')
+@click.argument('chassis_module_name', metavar='<module_name>', required=True)
 @click.pass_context
-def del_chassis_module(ctx, chassis_module_name):
+def startup_chassis_module(ctx, chassis_module_name):
+    """Chassis-module startup of module"""
     db = ctx.obj['db']
     db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
 
