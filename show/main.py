@@ -1808,7 +1808,7 @@ def reboot_cause(history):
     """Show cause of reboot"""
     REBOOT_CAUSE_DIR = "/host/reboot-cause/"
     PREVIOUS_REBOOT_CAUSE_FILE = REBOOT_CAUSE_DIR + "previous-reboot-cause.json"
-    USER_ISSUE_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
+    USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
     REBOOT_CAUSE_UNKNOWN = "Unknown"
 
     def read_last_reboot_cause():
@@ -1818,7 +1818,7 @@ def reboot_cause(history):
             with open(PREVIOUS_REBOOT_CAUSE_FILE, "r") as last_cause_file:
                 data = json.load(last_cause_file)
                 if data['user']:
-                    last_reboot_cause = USER_ISSUE_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
+                    last_reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
                 else:
                     last_reboot_cause = "{}".format(data['cause'])
         return last_reboot_cause
