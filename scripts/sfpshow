@@ -357,6 +357,7 @@ class SFPShow(object):
 
     def display_eeprom(self):
         click.echo(self.output)
+        
     @multi_asic_util.run_on_multi_asic
     def display_summary(self, interfacename):
         out_put = ''
@@ -404,6 +405,7 @@ class SFPShow(object):
 def cli():
     """sfpshow - Command line utility for display SFP transceivers information"""
     pass
+
 # 'summary' subcommand
 @cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP summary data for port <port_name> only")
