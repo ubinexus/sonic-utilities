@@ -125,7 +125,7 @@ def hash_view(nhg):
 
 	    bank_dict = OrderedDict(sorted(bank_dict.items()))
 	    nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
-	    header = ["FG_NHG_PREFIX", "Next Hop", "Hash bucket"]
+	    header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 	  
             for nhip,val in bank_dict.items():
  	    	formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
@@ -160,7 +160,7 @@ def hash_view(nhg):
 
 		nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
 		bank_dict = OrderedDict(sorted(bank_dict.items()))
-	        header = ["FG_NHG_PREFIX", "Next Hop", "Hash bucket"]
+	        header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 
 		for nhip,val in bank_dict.items():
  	    		formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
