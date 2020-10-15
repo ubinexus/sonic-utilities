@@ -34,10 +34,10 @@ class TestShowRebootCause(object):
 
     # Test 'show reboot-cause'
     def test_reboot_cause(self):
-        expected_output = "Unknown"
+        expected_output = "Unknown\n"
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["reboot-cause"], [])
-        assert result.output == textwrap.dedent(expected_output)
+        assert result.output == expected_output
 
     # Test 'show reboot-cause history'
     def test_reboot_cause_history(self):
@@ -48,7 +48,7 @@ name                 cause        time                          user    comment
 2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
 """
         runner = CliRunner()
-        result = self.runner.invoke(show.cli.commands["reboot-cause"], ["history"], obj=self.obj)
+        result = runner.invoke(show.cli.commands["reboot-cause"], ["history"], obj=self.obj)
         assert result.output == expected_output
 
     @classmethod
