@@ -1820,7 +1820,7 @@ def mmu():
 def reboot_cause(history):
     """Show cause of reboot"""
     REBOOT_CAUSE_DIR = "/host/reboot-cause/"
-    PREVIOUS_REBOOT_CAUSE_FILE = REBOOT_CAUSE_DIR + "previous-reboot-cause.txt"
+    PREVIOUS_REBOOT_CAUSE_FILE = REBOOT_CAUSE_DIR + "last-reboot-cause.json"
     USER_ISSUE_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
     REBOOT_CAUSE_UNKNOWN = "Unknown"
 

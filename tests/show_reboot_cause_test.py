@@ -34,15 +34,10 @@ class TestShowRebootCause(object):
 
     # Test 'show reboot-cause'
     def test_reboot_cause(self):
-        expected_output = """\
-            User issued \'{}\' command [User: {}, Time: {}]
-            """.format(TEST_REBOOT_CAUSE, TEST_USER, TEST_REBOOT_TIME)
-
-        with mock.patch("show.main.reboot_cause",
-                        return_value={"User issued \'warm-reboot\' command [User: admin, Time: Fri Oct  9 04:51:47 UTC 2020]"}):
-            runner = CliRunner()
-            result = runner.invoke(show.cli.commands["reboot-cause"], [])
-            assert result.output == textwrap.dedent(expected_output)
+        expected_output = "Unknown"
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["reboot-cause"], [])
+        assert result.output == textwrap.dedent(expected_output)
 
     # Test 'show reboot-cause history'
     def test_reboot_cause_history(self):
