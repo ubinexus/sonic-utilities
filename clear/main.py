@@ -5,6 +5,8 @@ import sys
 
 import click
 
+import utilities_common as util_base
+
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
@@ -119,7 +121,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'Clear' command"""
-    pass
+
+    helper = util_base.UtilHelper()
+    helper.load_plugins(plugins)
 
 
 #

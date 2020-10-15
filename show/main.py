@@ -12,10 +12,11 @@ from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
+from utilities_common import util_base
 from utilities_common.db import Db
 
 from . import acl
-from . import bgp_common 
+from . import bgp_common
 from . import chassis_modules
 from . import dropcounters
 from . import feature
@@ -36,6 +37,7 @@ from . import vnet
 from . import vxlan
 from . import system_health
 from . import warm_restart
+from . import plugins
 
 
 # Global Variables
@@ -133,6 +135,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.pass_context
 def cli(ctx):
     """SONiC command line - 'show' command"""
+
+    helper = util_base.UtilHelper()
+    helper.load_plugins(plugins)
 
     ctx.obj = Db()
 
