@@ -1,6 +1,7 @@
 #! /usr/bin/python -u
 
 import json
+import netaddr
 import os
 import subprocess
 import sys
@@ -16,11 +17,14 @@ import kube
 import mlnx
 import utilities_common.cli as clicommon
 import vlan
+import system_health
+
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 import utilities_common.multi_asic as  multi_asic_util
+
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -125,6 +129,7 @@ cli.add_command(feature.feature)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
+cli.add_command(system_health.system_health)
 
 #
 # 'vrf' command ("show vrf")
@@ -755,6 +760,7 @@ def interfaces():
 
         if netifaces.AF_INET in ipaddresses:
             ifaddresses = []
+            neighbor_info = []
             for ipaddr in ipaddresses[netifaces.AF_INET]:
                 neighbor_name = 'N/A'
                 neighbor_ip = 'N/A'
@@ -766,6 +772,7 @@ def interfaces():
                     neighbor_ip = bgp_peer[local_ip][1]
                 except Exception:
                     pass
+                neighbor_info.append([neighbor_name, neighbor_ip])
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -777,10 +784,12 @@ def interfaces():
                 if clicommon.get_interface_naming_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
 
-                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                neighbor_info.pop(0)
 
-            for ifaddr in ifaddresses[1:]:
-                data.append(["", "", ifaddr[1], ""])
+                for ifaddr in ifaddresses[1:]:
+                    data.append(["", "", ifaddr[1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                    neighbor_info.pop(0)
 
     print(tabulate(data, header, tablefmt="simple", stralign='left', missingval=""))
 
@@ -1626,11 +1635,11 @@ def policer(policer_name, verbose):
 # 'sflow command ("show sflow ...")
 #
 @cli.group(invoke_without_command=True)
+@clicommon.pass_db
 @click.pass_context
-def sflow(ctx):
+def sflow(ctx, db):
     """Show sFlow related information"""
     if ctx.invoked_subcommand is None:
-        db = Db()
         show_sflow_global(db.cfgdb)
 
 #
@@ -1658,13 +1667,10 @@ def show_sflow_interface(config_db):
         click.echo("No ports configured")
         return
 
-    idx_to_port_map = {int(port_tbl[name]['index']): name for name in
-                       port_tbl.keys()}
     click.echo("\nsFlow interface configurations")
     header = ['Interface', 'Admin State', 'Sampling Rate']
     body = []
-    for idx in sorted(idx_to_port_map.keys()):
-        pname = idx_to_port_map[idx]
+    for pname in natsorted(port_tbl.keys()):
         intf_key = 'SFLOW_SESSION_TABLE:' + pname
         sess_info = sess_db.get_all(sess_db.APPL_DB, intf_key)
         if sess_info is None:
@@ -2463,7 +2469,6 @@ def tunnel():
         table.append(r)
 
     click.echo(tabulate(table, header))
-
 
 if __name__ == '__main__':
     cli()

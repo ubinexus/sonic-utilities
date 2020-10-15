@@ -108,6 +108,7 @@
 * [System State](#system-state)
   * [Processes](#processes)
   * [Services & Memory](#services--memory)
+* [System-Health](#System-Health)
 * [VLAN & FDB](#vlan--fdb)
   * [VLAN](#vlan)
     * [VLAN show commands](#vlan-show-commands)
@@ -4838,6 +4839,8 @@ Command takes two optional arguements given below.
 1) min-links  - minimum number of links required to bring up the portchannel
 2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/Azure/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
 
+A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked. 
+
 - Usage:
   ```
   config portchannel (add | del) <portchannel_name> [min-links <num_min_links>] [fallback (true | false)]
@@ -5938,6 +5941,190 @@ NOTE: This command is not working. It crashes as follows. A bug ticket is opened
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
 
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
+
+### System-Health
+
+These commands are used to monitor the system current running services and hardware state.
+
+**show system-health summary**
+
+This command displays the current status of 'Services' and 'Hardware' under monitoring.
+If any of the elements under each of these two sections is 'Not OK' a proper message will appear under the relevant section.
+
+- Usage:
+  ```
+  show system-health summary
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show system-health summary
+  System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'sflowmgrd'
+  Hardware:
+    Status: OK
+  ```
+  ```
+  admin@sonic:~$ show system-health summary
+  System status summary
+
+  System status LED  green
+  Services:
+    Status: OK
+  Hardware:
+    Status: OK
+  ```
+
+**show system-health monitor-list**
+
+This command displays a list of all current 'Services' and 'Hardware' being monitored, their status and type.
+
+- Usage:
+  ```
+  show system-health monitor-list
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show system-health monitor-list
+  System services and devices monitor list
+  
+  Name            Status    Type
+  --------------  --------  ----------
+  telemetry       Not OK    Process
+  orchagent       Not OK    Process
+  neighsyncd      OK        Process
+  vrfmgrd         OK        Process
+  dialout_client  OK        Process
+  zebra           OK        Process
+  rsyslog         OK        Process
+  snmpd           OK        Process
+  redis_server    OK        Process
+  intfmgrd        OK        Process
+  vxlanmgrd       OK        Process
+  lldpd_monitor   OK        Process
+  portsyncd       OK        Process
+  var-log         OK        Filesystem
+  lldpmgrd        OK        Process
+  syncd           OK        Process
+  sonic           OK        System
+  buffermgrd      OK        Process
+  portmgrd        OK        Process
+  staticd         OK        Process
+  bgpd            OK        Process
+  lldp_syncd      OK        Process
+  bgpcfgd         OK        Process
+  snmp_subagent   OK        Process
+  root-overlay    OK        Filesystem
+  fpmsyncd        OK        Process
+  sflowmgrd       OK        Process
+  vlanmgrd        OK        Process
+  nbrmgrd         OK        Process
+  PSU 2           OK        PSU
+  psu_1_fan_1     OK        Fan
+  psu_2_fan_1     OK        Fan
+  fan11           OK        Fan
+  fan10           OK        Fan
+  fan12           OK        Fan
+  ASIC            OK        ASIC
+  fan1            OK        Fan
+  PSU 1           OK        PSU
+  fan3            OK        Fan
+  fan2            OK        Fan
+  fan5            OK        Fan
+  fan4            OK        Fan
+  fan7            OK        Fan
+  fan6            OK        Fan
+  fan9            OK        Fan
+  fan8            OK        Fan
+  ```
+
+**show system-health detail**
+
+This command displays the current status of 'Services' and 'Hardware' under monitoring.
+If any of the elements under each of these two sections is 'Not OK' a proper message will appear under the relevant section.
+In addition, displays a list of all current 'Services' and 'Hardware' being monitored and a list of ignored elements.
+
+- Usage:
+  ```
+  show system-health detail
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show system-health detail
+  System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'orchagent'
+  Hardware:
+    Status: OK
+  
+  System services and devices monitor list
+  
+  Name            Status    Type
+  --------------  --------  ----------
+  telemetry       Not OK    Process
+  orchagent       Not OK    Process
+  neighsyncd      OK        Process
+  vrfmgrd         OK        Process
+  dialout_client  OK        Process
+  zebra           OK        Process
+  rsyslog         OK        Process
+  snmpd           OK        Process
+  redis_server    OK        Process
+  intfmgrd        OK        Process
+  vxlanmgrd       OK        Process
+  lldpd_monitor   OK        Process
+  portsyncd       OK        Process
+  var-log         OK        Filesystem
+  lldpmgrd        OK        Process
+  syncd           OK        Process
+  sonic           OK        System
+  buffermgrd      OK        Process
+  portmgrd        OK        Process
+  staticd         OK        Process
+  bgpd            OK        Process
+  lldp_syncd      OK        Process
+  bgpcfgd         OK        Process
+  snmp_subagent   OK        Process
+  root-overlay    OK        Filesystem
+  fpmsyncd        OK        Process
+  sflowmgrd       OK        Process
+  vlanmgrd        OK        Process
+  nbrmgrd         OK        Process
+  PSU 2           OK        PSU
+  psu_1_fan_1     OK        Fan
+  psu_2_fan_1     OK        Fan
+  fan11           OK        Fan
+  fan10           OK        Fan
+  fan12           OK        Fan
+  ASIC            OK        ASIC
+  fan1            OK        Fan
+  PSU 1           OK        PSU
+  fan3            OK        Fan
+  fan2            OK        Fan
+  fan5            OK        Fan
+  fan4            OK        Fan
+  fan7            OK        Fan
+  fan6            OK        Fan
+  fan9            OK        Fan
+  fan8            OK        Fan
+  
+  System services and devices ignore list
+  
+  Name         Status    Type
+  -----------  --------  ------
+  psu.voltage  Ignored   Device
+  ```
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
 
 ## VLAN & FDB
 

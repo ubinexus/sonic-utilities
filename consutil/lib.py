@@ -10,6 +10,9 @@ try:
     import re
     import subprocess
     import sys
+    import os
+    from swsssdk import ConfigDBConnector
+    from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -17,12 +20,16 @@ DEVICE_PREFIX = "/dev/ttyUSB"
 
 ERR_CMD = 1
 ERR_DEV = 2
+ERR_CFG = 3
 
 CONSOLE_PORT_TABLE = "CONSOLE_PORT"
+LINE_KEY = "LINE"
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
 DEFAULT_BAUD = "9600"
+
+FILENAME = "udevprefix.conf"
 
 # QUIET == True => picocom will not output any messages, and pexpect will wait for console
 #                  switch login or command line to let user interact with shell
@@ -34,39 +41,53 @@ QUIET = False
 DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
 TIMEOUT_SEC = 0.2
 
-# runs command, exit if stderr is written to, returns stdout otherwise
-# input: cmd (str), output: output of cmd (str)
-def run_command(cmd):
+platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+PLUGIN_PATH = "/".join([platform_path, "plugins", FILENAME])
+
+if os.path.exists(PLUGIN_PATH):
+    fp = open(PLUGIN_PATH, 'r')
+    line = fp.readlines()
+    DEVICE_PREFIX = "/dev/" + line[0]
+
+# runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise
+# input: cmd (str, bool), output: output of cmd (str) and error of cmd (str) if abort is not true
+def run_command(cmd, abort=True):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output = proc.stdout.read()
     error = proc.stderr.read()
-    if error != "":
+    if abort and error != "":
         click.echo("Command resulted in error: {}".format(error))
         sys.exit(ERR_CMD)
-    return output
+    return output if abort else (output, error)
 
-# returns a sorted list of all devices (whose name matches DEVICE_PREFIX)
-def getAllDevices():
+# returns a list of all lines
+def getAllLines():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    # Querying CONFIG_DB to get configured console ports
+    keys = config_db.get_keys(CONSOLE_PORT_TABLE)
+    lines = []
+    for k in keys:
+        line = config_db.get_entry(CONSOLE_PORT_TABLE, k)
+        line[LINE_KEY] = k
+        lines.append(line)
+
+    # Querying device directory to get all available console ports 
     cmd = "ls " + DEVICE_PREFIX + "*"
-    output = run_command(cmd)
+    output, _ = run_command(cmd, abort=False)
+    availableTtys = output.split('\n')
+    availableTtys = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, availableTtys))
+    for tty in availableTtys:
+        k = tty[len(DEVICE_PREFIX):]
+        if k not in keys:
+            line = { LINE_KEY: k }
+            lines.append(line)
+    return lines
 
-    devices = output.split('\n')
-    devices = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, devices))
-    devices.sort(key=lambda dev: int(dev[len(DEVICE_PREFIX):]))
-
-    return devices
-
-# exits if inputted line number does not correspond to a device
-# input: linenum
-def checkDevice(linenum):
-    devices = getAllDevices()
-    if DEVICE_PREFIX + str(linenum) not in devices:
-        click.echo("Line number {} does not exist".format(linenum))
-        sys.exit(ERR_DEV)
-
-# returns a dictionary of busy devices and their info
+# returns a dictionary of busy lines and their info
 #     maps line number to (pid, process start time)
-def getBusyDevices():
+def getBusyLines():
     cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
     output = run_command(cmd)
     processes = output.split('\n')
@@ -81,51 +102,33 @@ def getBusyDevices():
     regexCmd = r"\S*(?:(?:mini)|(?:pico))com .*" + DEVICE_PREFIX + r"(\d+)(?: .*)?"
     regexProcess = re.compile(r"^"+regexPid+r" "+regexDate+r" "+regexCmd+r"$")
 
-    busyDevices = {}
+    busyLines = {}
     for process in processes:
         match = regexProcess.match(process)
         if match != None:
             pid = match.group(1)
             date = match.group(2)
             linenum_key = match.group(3)
-            busyDevices[linenum_key] = (pid, date)
-    return busyDevices
+            busyLines[linenum_key] = (pid, date)
+    return busyLines
 
-# returns actual baud rate, configured baud rate,
-# and flow control settings of device corresponding to line number
-# input: linenum (str), output: (actual baud (str), configured baud (str), flow control (bool))
-def getConnectionInfo(linenum):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    entry = config_db.get_entry(CONSOLE_PORT_TABLE, str(linenum))
-
-    conf_baud = "-" if BAUD_KEY not in entry else entry[BAUD_KEY]
-    act_baud = DEFAULT_BAUD if conf_baud == "-" else conf_baud
-    flow_control = False
-    if FLOW_KEY in entry and entry[FLOW_KEY] == "1":
-        flow_control = True
-
-    return (act_baud, conf_baud, flow_control)
-
-# returns the line number corresponding to target, or exits if line number cannot be found
+# returns the target device corresponding to target, or None if line number connot be found
 # if deviceBool, interprets target as device name
 # otherwise interprets target as line number
-# input: target (str), deviceBool (bool), output: linenum (str)
-def getLineNumber(target, deviceBool):
-    if not deviceBool:
-        return target
+# input: target (str), deviceBool (bool), output: device (dict)
+def getLine(target, deviceBool=False):
+    lines = getAllLines()
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    # figure out the search key
+    searchKey = LINE_KEY
+    if deviceBool:
+        searchKey = DEVICE_KEY
 
-    devices = getAllDevices()
-    linenums = list(map(lambda dev: dev[len(DEVICE_PREFIX):], devices))
+    # identify the line number by searching configuration
+    lineNumber = None
+    for line in lines:
+        if searchKey in line and line[searchKey] == target:
+            lineNumber = line[LINE_KEY]
+            targetLine = line
 
-    for linenum in linenums:
-        entry = config_db.get_entry(CONSOLE_PORT_TABLE, linenum)
-        if DEVICE_KEY in entry and entry[DEVICE_KEY] == target:
-            return linenum
-
-    click.echo("Device {} does not exist".format(target))
-    sys.exit(ERR_DEV)
-    return ""
+    return targetLine if lineNumber else None
