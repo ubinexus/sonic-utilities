@@ -12,11 +12,6 @@ sys.path.insert(0, modules_path)
 import show.main as show
 
 
-TEST_REBOOT_CAUSE = "warm-reboot"
-TEST_USER = "admin"
-TEST_REBOOT_TIME = "Fri Oct  9 04:51:47 UTC 2020"
-
-
 """
     Note: The following 'show reboot-cause' commands simply call other SONiC
     CLI utilities, so the unit tests for the other utilities are expected
