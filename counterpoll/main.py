@@ -235,31 +235,15 @@ def show():
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
-def _update_config_db(state, filename):
+def _update_config_db(status, filename):
     """ Update counter configuration in config_db file """
     with open(filename) as config_db_file:
         config_db = json.load(config_db_file)
 
-    counters = [
-        "QUEUE_WATERMARK",
-        "BUFFER_POOL_WATERMARK",
-        "PFCWD",
-        "QUEUE",
-        "PG_WATERMARK",
-        "PORT_BUFFER_DROP",
-        "RIF",
-        "PORT",
-    ]
-
-    write_config_db = False
     if "FLEX_COUNTER_TABLE" in config_db:
-        for counter in counters:
-            if counter in config_db["FLEX_COUNTER_TABLE"] and \
-                "FLEX_COUNTER_STATUS" in config_db["FLEX_COUNTER_TABLE"][counter]:
-                config_db["FLEX_COUNTER_TABLE"][counter]["FLEX_COUNTER_STATUS"] = state
-                write_config_db = True
+        for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
+            counter_config["FLEX_COUNTER_STATUS"] = status
 
-    if write_config_db:
         with open(filename, 'w') as config_db_file:
             json.dump(config_db, config_db_file, indent=4)
 

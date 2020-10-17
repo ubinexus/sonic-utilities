@@ -70,20 +70,10 @@ class TestCounterpoll(object):
 
         with open(_get_config_db_file) as json_file:
             config_db = json.load(json_file)
-        counters = [
-            "QUEUE_WATERMARK",
-            "BUFFER_POOL_WATERMARK",
-            "PFCWD",
-            "QUEUE",
-            "PG_WATERMARK",
-            "PORT_BUFFER_DROP",
-            "RIF",
-            "PORT",
-        ]
-        for counter in counters:
-            if counter in config_db["FLEX_COUNTER_TABLE"] and \
-                "FLEX_COUNTER_STATUS" in config_db["FLEX_COUNTER_TABLE"][counter]:
-                assert config_db["FLEX_COUNTER_TABLE"][counter]["FLEX_COUNTER_STATUS"] == status
+
+        if "FLEX_COUNTER_TABLE" in config_db:
+            for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
+                assert counter_config["FLEX_COUNTER_STATUS"] == status
 
     @classmethod
     def teardown_class(cls):

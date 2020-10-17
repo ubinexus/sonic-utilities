@@ -622,7 +622,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Disable counters in config_db.json
     /usr/local/bin/counterpoll config-db disable $CONFIG_DB_FILE || COUNTERPOLL_DISABLE_RC=$?
     if [[ COUNTERPOLL_DISABLE_RC -ne 0 ]]; then
-        error "Failed to disable couterpoll. Exit code: $COUNTERPOLL_DISABLE_RC"
+        error "Failed to disable counterpoll. Exit code: $COUNTERPOLL_DISABLE_RC"
         /usr/local/bin/counterpoll config-db enable $CONFIG_DB_FILE || COUNTERPOLL_DISABLE_RC=$?
         unload_kernel
         exit "${EXIT_COUNTERPOLL_DISABLE_FAILURE}"
