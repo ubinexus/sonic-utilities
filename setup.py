@@ -146,7 +146,7 @@ setup(
         'ipaddress==1.0.23',
         'jsondiff==1.2.0',
         'm2crypto==0.31.0',
-        'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2
+        'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr==0.8.0',
         'netifaces==0.10.7',
         'pexpect==4.8.0',
@@ -155,7 +155,7 @@ setup(
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0',
-        'zipp==1.2.0'  # Need to pin this down for Python 2, for Python 3 we should be able to remove altogether
+        'zipp==1.2.0'  # importlib-resources needs zipp and seems to have a bug where it will try to install too new of a version for Python 2. Can remove altogether once we no longer support Python 2.
     ],
     setup_requires= [
         'pytest-runner',
