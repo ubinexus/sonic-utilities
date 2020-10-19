@@ -140,13 +140,12 @@ class Portstat(object):
         """
         # Get speed from APPL_DB
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        speed = PORT_RATE
         for ns in self.multi_asic.get_ns_list_based_on_options():
             self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
             speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
             if speed is not None:
                 return int(speed)//1000
-        return speed
+        return PORT_RATE
 
     def get_port_state(self, port_name):
         """
