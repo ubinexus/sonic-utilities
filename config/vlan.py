@@ -52,12 +52,19 @@ def del_vlan(db, vid):
     db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
 def restart_ndppd():
+    verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
     docker_exec_cmd = "docker exec -it swss {}"
     ndppd_config_gen_cmd = "sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf"
     ndppd_restart_cmd = "supervisorctl restart ndppd"
 
+    output = clicommon.run_command(verify_swss_running_cmd, return_cmd=True)
+
+    if output and output.strip() != "running":
+        click.echo(click.style('SWSS container is not running, changes will take effect the next time the SWSS container starts', fg='red'),)
+        return
+
     clicommon.run_command(docker_exec_cmd.format(ndppd_config_gen_cmd), display_cmd=True)
-    sleep(1)
+    sleep(3)
     clicommon.run_command(docker_exec_cmd.format(ndppd_restart_cmd), display_cmd=True)
 
 
@@ -78,6 +85,7 @@ def config_proxy_arp(db, vid, mode):
         ctx.fail("Interface {} does not exist".format(vlan))
 
     db.cfgdb.set_entry('VLAN_INTERFACE', vlan, {"proxy_arp": mode})
+    click.echo('Proxy ARP setting saved to ConfigDB')
     restart_ndppd()
 #
 # 'member' group ('config vlan member ...')
