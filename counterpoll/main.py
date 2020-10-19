@@ -240,10 +240,15 @@ def _update_config_db(status, filename):
     with open(filename) as config_db_file:
         config_db = json.load(config_db_file)
 
+    write_config_db = False
     if "FLEX_COUNTER_TABLE" in config_db:
         for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
-            counter_config["FLEX_COUNTER_STATUS"] = status
+            if "FLEX_COUNTER_STATUS" in counter_config and \
+                counter_config["FLEX_COUNTER_STATUS"] is not status:
+                counter_config["FLEX_COUNTER_STATUS"] = status
+                write_config_db = True
 
+    if write_config_db:
         with open(filename, 'w') as config_db_file:
             json.dump(config_db, config_db_file, indent=4)
 
