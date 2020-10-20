@@ -150,6 +150,8 @@ class DBMigrator():
             return
 
         keys = self.appDB.keys(self.appDB.APPL_DB, "COPP_TABLE:*")
+        if keys is None:
+            return
         for copp_key in keys:
             self.appDB.delete(self.appDB.APPL_DB, copp_key)
 
