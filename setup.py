@@ -109,6 +109,7 @@ setup(
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
+        'scripts/sonic_sku_create.py',
         'scripts/sonic-kdump-config'
     ],
     entry_points={
