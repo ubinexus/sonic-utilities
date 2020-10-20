@@ -24,6 +24,7 @@ from .utils import log
 
 
 import aaa
+import console
 import feature
 import kube
 import mlnx
@@ -750,6 +751,10 @@ def _restart_services(config_db):
 
     execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
 
+    # Reload Monit configuration to pick up new hostname in case it changed
+    click.echo("Reloading Monit configuration ...")
+    clicommon.run_command("sudo monit reload")
+
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
@@ -876,6 +881,7 @@ def config(ctx):
 # Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
@@ -980,7 +986,7 @@ def load(filename, yes):
                 file = "/etc/sonic/config_db{}.json".format(inst)
 
         # if any of the config files in linux host OR namespace is not present, return
-        if not os.path.isfile(file):
+        if not os.path.exists(file):
             click.echo("The config_db file {} doesn't exist".format(file))
             return
 
@@ -1064,7 +1070,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
                 file = "/etc/sonic/config_db{}.json".format(inst)
 
         # Check the file exists before proceeding.
-        if not os.path.isfile(file):
+        if not os.path.exists(file):
             click.echo("The config_db file {} doesn't exist".format(file))
             continue
 
@@ -1101,7 +1107,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         client.set(config_db.INIT_INDICATOR, 1)
 
         # Migrate DB contents to latest version
-        db_migrator='/usr/bin/db_migrator.py'
+        db_migrator='/usr/local/bin/db_migrator.py'
         if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
             if namespace is None:
                 command = "{} -o migrate".format(db_migrator)
@@ -1182,13 +1188,10 @@ def load_minigraph(db, no_service_restart):
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
 
-        # get the device type
-        device_type = _get_device_type()
-
-        # These commands are not run for host on multi asic platform
-        if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:
-            if device_type != 'MgmtToRRouter':
-                clicommon.run_command('{}pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
+    # get the device type
+    device_type = _get_device_type()
+    if device_type != 'MgmtToRRouter':
+        clicommon.run_command("pfcwd start_default", display_cmd=True)
 
     # Update SONiC environmnet file
     update_sonic_environment()
@@ -1200,7 +1203,7 @@ def load_minigraph(db, no_service_restart):
     clicommon.run_command("config qos reload", display_cmd=True)
 
     # Write latest db version string into db
-    db_migrator='/usr/bin/db_migrator.py'
+    db_migrator='/usr/local/bin/db_migrator.py'
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         for namespace in namespace_list:
             if namespace is DEFAULT_NAMESPACE:
@@ -1236,7 +1239,37 @@ def hostname(new_hostname):
     except SystemExit as e:
         click.echo("Restarting hostname-config  service failed with error {}".format(e))
         raise
+
+    # Reload Monit configuration to pick up new hostname in case it changed
+    click.echo("Reloading Monit configuration ...")
+    clicommon.run_command("sudo monit reload")
+
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
+
+#
+# 'synchronous_mode' command ('config synchronous_mode ...')
+#
+@config.command('synchronous_mode')
+@click.argument('sync_mode', metavar='<enable|disable>', required=True)
+def synchronous_mode(sync_mode):
+    """ Enable or disable synchronous mode between orchagent and syncd \n
+        swss restart required to apply the configuration \n
+        Options to restart swss and apply the configuration: \n
+            1. config save -y \n
+               config reload -y \n
+            2. systemctl restart swss
+    """
+    
+    if sync_mode == 'enable' or sync_mode == 'disable':
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"synchronous_mode" : sync_mode})
+        click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
+    Option 1. config save -y \n
+              config reload -y \n
+    Option 2. systemctl restart swss""" % sync_mode)
+    else:
+        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
 
 #
 # 'portchannel' group ('config portchannel ...')
@@ -2598,7 +2631,7 @@ def bind(ctx, interface_name, vrf_name):
         state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
-    while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
+    while state_db.get_all(state_db.STATE_DB, _hash) != None:
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
     config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
