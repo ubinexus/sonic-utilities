@@ -1813,18 +1813,18 @@ def mmu():
 
 
 #
-# 'reboot-cause' command ("show reboot-cause")
+# 'reboot-cause' group ("show reboot-cause")
 #
-@cli.command('reboot-cause')
-@click.argument('history', required=False, type=click.Choice(["history"]))
-def reboot_cause(history):
-    """Show cause of reboot"""
-    REBOOT_CAUSE_DIR = "/host/reboot-cause/"
-    PREVIOUS_REBOOT_CAUSE_FILE = os.path.join(REBOOT_CAUSE_DIR, "previous-reboot-cause.json")
-    USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
-    REBOOT_CAUSE_UNKNOWN = "Unknown"
+@cli.group('reboot-cause', invoke_without_command=True)
+@click.pass_context
+def reboot_cause(ctx):
+    if ctx.invoked_subcommand is None:
+        """Show cause of reboot"""
+        REBOOT_CAUSE_DIR = "/host/reboot-cause/"
+        PREVIOUS_REBOOT_CAUSE_FILE = os.path.join(REBOOT_CAUSE_DIR, "previous-reboot-cause.json")
+        USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
+        REBOOT_CAUSE_UNKNOWN = "Unknown"
 
-    def read_last_reboot_cause():
         last_reboot_cause = REBOOT_CAUSE_UNKNOWN
         # Read the last previous reboot cause
         if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
@@ -1834,56 +1834,55 @@ def reboot_cause(history):
                     last_reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
                 else:
                     last_reboot_cause = "{}".format(data['cause'])
-        return last_reboot_cause
 
-    def read_reboot_cause_dbs():
-        REBOOT_CAUSE_TABLE_NAME = "REBOOT_CAUSE"
-        TABLE_NAME_SEPARATOR = '|'
-        db = SonicV2Connector(host='127.0.0.1')
-        db.connect(db.STATE_DB, False)   # Make one attempt only
-        prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
-        _hash = '{}{}'.format(prefix, '*')
-        table_keys = db.keys(db.STATE_DB, _hash)
-        table_keys.sort(reverse=True)
+        click.echo(last_reboot_cause)
 
-        def remove_prefix(text, prefix):
-            if text.startswith(prefix):
-                return text[len(prefix):]
-            return text
+# 'history' subcommand ("show reboot-cause hostory")
+@reboot_cause.command()
+def history():
+    """Show history of reboot-cause"""
+    REBOOT_CAUSE_TABLE_NAME = "REBOOT_CAUSE"
+    TABLE_NAME_SEPARATOR = '|'
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.STATE_DB, False)   # Make one attempt only
+    prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    table_keys = db.keys(db.STATE_DB, _hash)
+    table_keys.sort(reverse=True)
 
-        table = []
-        for tk in table_keys:
-            entry = db.get_all(db.STATE_DB, tk)
-            r = []
-            r.append(remove_prefix(tk, prefix))
-            if 'cause' not in entry:
-                r.append("")
-            else:
-                r.append(entry['cause'])
+    def remove_prefix(text, prefix):
+        if text.startswith(prefix):
+            return text[len(prefix):]
+        return text
 
-            if 'time' not in entry:
-                r.append("")
-            else:
-                r.append(entry['time'])
+    table = []
+    for tk in table_keys:
+        entry = db.get_all(db.STATE_DB, tk)
+        r = []
+        r.append(remove_prefix(tk, prefix))
+        if 'cause' not in entry:
+            r.append("")
+        else:
+            r.append(entry['cause'])
 
-            if 'user' not in entry:
-                r.append("")
-            else:
-                r.append(entry['user'])
+        if 'time' not in entry:
+            r.append("")
+        else:
+            r.append(entry['time'])
 
-            if 'comment' not in entry:
-                r.append("")
-            else:
-                r.append(entry['comment'])
-            table.append(r)
-        return table
+        if 'user' not in entry:
+            r.append("")
+        else:
+            r.append(entry['user'])
 
-    if not history:
-        click.echo(read_last_reboot_cause())
-    else:
-        table = read_reboot_cause_dbs()
-        header = ['name', 'cause', 'time', 'user', 'comment']
-        click.echo(tabulate(table, header))
+        if 'comment' not in entry:
+            r.append("")
+        else:
+            r.append(entry['comment'])
+        table.append(r)
+
+    header = ['name', 'cause', 'time', 'user', 'comment']
+    click.echo(tabulate(table, header))
 
 
 #
