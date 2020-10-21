@@ -68,7 +68,6 @@ setup(
         'scripts/boot_part',
         'scripts/coredump-compress',
         'scripts/configlet',
-        'scripts/chassismodulesshow',
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',

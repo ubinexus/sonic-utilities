@@ -31,6 +31,7 @@ import mlnx
 import nat
 import vlan
 from config_mgmt import ConfigMgmtDPB
+import chassis_modules
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -886,7 +887,7 @@ config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
-
+config.add_command(chassis_modules.chassis_modules)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -3157,45 +3158,6 @@ def update(args):
         subprocess.check_call(cmd, shell=True)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)
-
-#
-# 'chassis_modules' subgroup ('config platform chassis_modules ...')
-#
-@platform.group()
-@click.pass_context
-def chassis_modules (ctx):
-    """Chassis module configuration tasks"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {'db': config_db}
-    pass
-
-#
-# 'shutdown' subcommand
-#
-@chassis_modules.command('shutdown')
-@click.argument('chassis_module_name', metavar='<module_name>', required=True)
-@click.pass_context
-def shutdown_chassis_module(ctx, chassis_module_name):
-    """Chassis-module shutdown of module"""
-    db = ctx.obj['db']
-
-    if not chassis_module_name.startswith("CONTROL-CARD") and not chassis_module_name.startswith("LINE-CARD") and not chassis_module_name.startswith("FABRIC-CARD"):
-        ctx.fail("'module_name' has to begin with 'CONTROL-CARD', 'LINE-CARD' or 'FABRIC-CARD'")
-
-    fvs = {'admin_status': 'down'}
-    db.set_entry('CHASSIS_MODULE', chassis_module_name, fvs)
-
-#
-# 'startup' subcommand
-#
-@chassis_modules.command('startup')
-@click.argument('chassis_module_name', metavar='<module_name>', required=True)
-@click.pass_context
-def startup_chassis_module(ctx, chassis_module_name):
-    """Chassis-module startup of module"""
-    db = ctx.obj['db']
-    db.set_entry('CHASSIS_MODULE', chassis_module_name, None)
 
 #
 # 'watermark' group ("show watermark telemetry interval")

@@ -1257,5 +1257,8 @@
     },
     "PFC_WD|GLOBAL": {
         "POLL_INTERVAL": "600"
+    },
+    "CHASSIS_MODULE|LINE-CARD1": {
+      "admin_status": "down"
     }
 }

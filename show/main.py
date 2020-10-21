@@ -19,6 +19,7 @@ import utilities_common.cli as clicommon
 import vlan
 import system_health
 import fgnhg
+import chassis_modules
 
 from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector, SonicV2Connector
@@ -132,6 +133,7 @@ cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
 cli.add_command(fgnhg.fgnhg)
+cli.add_command(chassis_modules.chassis_modules)
 
 #
 # 'vrf' command ("show vrf")
@@ -1779,13 +1781,6 @@ def counts(group, counter_type, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-
-# 'chassis_modules' subcommand ("show platform chassis_modules")
-@platform.command()
-def chassis_modules():
-    """Show chassis-modules information"""
-    cmd = 'chassismodulesshow'
-    run_command(cmd)
 #
 # 'ecn' command ("show ecn")
 #
