@@ -25,7 +25,7 @@ def shutdown_chassis_module(db, chassis_module_name):
 
     if not chassis_module_name.startswith("SUPERVISOR") and \
        not chassis_module_name.startswith("LINE-CARD") and \
-       not chassis_module_name.startswith("FABRIC-CARD")):
+       not chassis_module_name.startswith("FABRIC-CARD"):
         ctx.fail("'module_name' has to begin with 'SUPERVISOR', 'LINE-CARD' or 'FABRIC-CARD'")
 
     fvs = {'admin_status': 'down'}
