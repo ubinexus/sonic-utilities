@@ -29,19 +29,20 @@ def status(db, chassis_module_name):
     state_db = SonicV2Connector(host="127.0.0.1")
     state_db.connect(state_db.STATE_DB)
 
-    keys = state_db.keys(state_db.STATE_DB, CHASSIS_MODULE_INFO_TABLE + '*')
+    key_pattern = '*'
+    if chassis_module_name:
+        key_pattern = '|'+chassis_module_name
+
+    keys = state_db.keys(state_db.STATE_DB, CHASSIS_MODULE_INFO_TABLE + key_pattern)
     if not keys:
-        print('Chassis-Module Not detected\n')
+        print('Key {} not found in {} table'.format(key_pattern, CHASSIS_MODULE_INFO_TABLE))
         return
 
     table = []
     for key in natsorted(keys):
         key_list = key.split('|')
         if len(key_list) != 2: # error data in DB, log it and ignore
-            print('Warn: Invalid key in table CHASSIS_MODULE_TABLE: {}'.format(key))
-            continue
-
-        if chassis_module_name and (key_list[1] != chassis_module_name):
+            print('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MODULE_INFO_TABLE))
             continue
 
         data_dict = state_db.get_all(state_db.STATE_DB, key)
@@ -59,4 +60,4 @@ def status(db, chassis_module_name):
     if table:
         click.echo(tabulate(table, header, tablefmt='simple', stralign='right'))
     else:
-        click.echo('No chassis_module status data available\n')
+        click.echo('No data available in CHASSIS_MODULE_TABLE\n')
