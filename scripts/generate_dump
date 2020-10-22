@@ -321,6 +321,68 @@ enable_logrotate() {
     sed -i '/\/usr\/sbin\/logrotate/s/^#*//g' /etc/cron.d/logrotate
 }
 
+
+###############################################################################
+# Collect Mellanox specific information
+# Globals:
+#  CMD_PREFIX
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_mellanox() {
+    local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+    ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
+    ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
+    save_file $sai_dump_filename sai_sdk_dump true
+
+    local mst_dump_filename="/tmp/mstdump"
+    local max_dump_count="3"
+    for i in $(seq 1 $max_dump_count); do
+        ${CMD_PREFIX}/usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
+        save_file "${mst_dump_filename}${i}" mstdump true
+    done
+}
+
+###############################################################################
+# Collect Broadcom specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_broadcom() {
+    save_cmd "bcmcmd -t5 version" "broadcom.version"
+    save_cmd "bcmcmd -t5 soc" "broadcom.soc"
+    save_cmd "bcmcmd -t5 ps" "broadcom.ps"
+    save_cmd "cat /proc/bcm/knet/debug" "broadcom.knet.debug"
+    save_cmd "cat /proc/bcm/knet/dma" "broadcom.knet.dma"
+    save_cmd "cat /proc/bcm/knet/dstats" "broadcom.knet.dstats"
+    save_cmd "cat /proc/bcm/knet/link" "broadcom.knet.link"
+    save_cmd "cat /proc/bcm/knet/rate" "broadcom.knet.rate"
+    save_cmd "cat /proc/bcm/knet/stats" "broadcom.knet.stats"
+    save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
+    save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
+}
+
+###############################################################################
+# Collect Arista specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_arista() {
+    save_cmd "cat /proc/scd" "scd"
+    save_cmd "arista syseeprom" "arista.syseeprom"
+    save_cmd "arista dump" "arista.dump"
+}
+
 ###############################################################################
 # Main generate_dump routine
 # Globals:
@@ -423,37 +485,15 @@ main() {
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     if [[ "$asic" = "mellanox" ]]; then
-        local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
-        ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
-        ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
-        save_file $sai_dump_filename sai_sdk_dump true
-
-        local mst_dump_filename="/tmp/mstdump"
-        local max_dump_count="3"
-        for i in $(seq 1 $max_dump_count); do
-            ${CMD_PREFIX}/usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
-            save_file "${mst_dump_filename}${i}" mstdump true
-        done
+        collect_mellanox
     fi
 
     if [ "$asic" = "broadcom" ]; then
-        save_cmd "bcmcmd -t5 version" "broadcom.version"
-        save_cmd "bcmcmd -t5 soc" "broadcom.soc"
-        save_cmd "bcmcmd -t5 ps" "broadcom.ps"
-        save_cmd "cat /proc/bcm/knet/debug" "broadcom.knet.debug"
-        save_cmd "cat /proc/bcm/knet/dma" "broadcom.knet.dma"
-        save_cmd "cat /proc/bcm/knet/dstats" "broadcom.knet.dstats"
-        save_cmd "cat /proc/bcm/knet/link" "broadcom.knet.link"
-        save_cmd "cat /proc/bcm/knet/rate" "broadcom.knet.rate"
-        save_cmd "cat /proc/bcm/knet/stats" "broadcom.knet.stats"
-        save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
-        save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
+        collect_broadcom
     fi
 
     if $GREP -qi "aboot_platform=.*arista" /host/machine.conf; then
-        save_cmd "cat /proc/scd" "scd"
-        save_cmd "arista syseeprom" "arista.syseeprom"
-        save_cmd "arista dump" "arista.dump"
+        collect_arista
     fi
 
     $RM $V -rf $TARDIR
@@ -589,7 +629,8 @@ OPTIONS
 EOF
 }
 
-while getopts ":xnvhzs:" opt; do
+while getopts ":xnvhzas:" opt; do
+    echo $opt
     case $opt in
         x)
             # enable bash debugging
@@ -616,6 +657,7 @@ while getopts ":xnvhzs:" opt; do
             CP="echo cp"
             TOUCH="echo touch"
             NOOP=true
+            exit 0
             ;;
         z)
             DO_COMPRESS=false
@@ -624,6 +666,10 @@ while getopts ":xnvhzs:" opt; do
             SINCE_DATE="${OPTARG}"
             # validate date expression
             date --date="${SINCE_DATE}" &> /dev/null || abort "${ERROR_INVALID_ARGUMENT}" "Invalid date expression passed: '${SINCE_DATE}'"
+            ;;
+        a)
+            echo "Run comand in namespace"
+            exit 0
             ;;
         /?)
             echo "Invalid option: -$OPTARG" >&2
