@@ -1006,9 +1006,8 @@ if (version_info and version_info.get('asic_type') == 'mellanox'):
 
 # 'summary' subcommand ("show platform summary")
 @platform.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--json', is_flag=True, help="JSON output")
-def summary(verbose, json):
+def summary(json):
     """Show hardware platform information"""
 
     hw_info_dict = get_hw_info_dict()
@@ -1018,8 +1017,7 @@ def summary(verbose, json):
         click.echo("Platform: {}".format(hw_info_dict['platform']))
         click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
         click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
-        if verbose:
-            click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
+        click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
 
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
