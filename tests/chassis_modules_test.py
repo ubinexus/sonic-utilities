@@ -19,7 +19,7 @@ show_linecard0_startup_output="""\
 LINE-CARD0 line-card 1 Empty up
 """
 header_lines = 2
-warning_lines = 1
+warning_lines = 0
 
 class TestChassisModules(object):
     @classmethod

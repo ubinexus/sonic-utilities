@@ -300,10 +300,5 @@
         "desc": "fabric-card",
         "oper_status": "Offline",
         "slot": "18"
-    },
-    "CHASSIS_MODULE_TABLE FABRIC-CARD2": {
-        "desc": "fabric-card",
-        "oper_status": "Present",
-        "slot": "19"
     }
 }
