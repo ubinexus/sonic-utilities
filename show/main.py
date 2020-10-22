@@ -1837,7 +1837,7 @@ def reboot_cause(ctx):
 
         click.echo(last_reboot_cause)
 
-# 'history' subcommand ("show reboot-cause hostory")
+# 'history' subcommand ("show reboot-cause history")
 @reboot_cause.command()
 def history():
     """Show history of reboot-cause"""
