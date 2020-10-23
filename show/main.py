@@ -1012,7 +1012,9 @@ def summary(json):
 
     hw_info_dict = get_hw_info_dict()
     if json:
-        click.echo(hw_info_dict)
+        click.echo(clicommon.json_dump(
+            hw_info_dict, sort_keys=True, indent=2, ensure_ascii=False
+        ))
     else:
         click.echo("Platform: {}".format(hw_info_dict['platform']))
         click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
