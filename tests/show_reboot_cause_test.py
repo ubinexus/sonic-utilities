@@ -37,7 +37,7 @@ class TestShowRebootCause(object):
     # Test 'show reboot-cause history'
     def test_reboot_cause_history(self):
         expected_output = """\
-name                 cause        time                          user    comment
+Name                 Cause        Time                          User    Comment
 -------------------  -----------  ----------------------------  ------  ---------
 2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
 2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin

@@ -1868,7 +1868,7 @@ def history():
             r.append(entry['comment'])
         table.append(r)
 
-    header = ['name', 'cause', 'time', 'user', 'comment']
+    header = ['Name', 'Cause', 'Time', 'User', 'Comment']
     click.echo(tabulate(table, header))
 
 
