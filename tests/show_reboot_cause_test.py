@@ -43,7 +43,7 @@ name                 cause        time                          user    comment
 2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
 """
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["reboot-cause"], ["history"])
+        result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], [])
         assert result.output == expected_output
 
     @classmethod
