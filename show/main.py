@@ -695,34 +695,38 @@ def expected(interfacename):
         print("DEVICE_NEIGHBOR_METADATA information is not present.")
         return
 
-    #Swap Key and Value from interface: name to name: interface
-    device2interface_dict = {}
     for port in natsorted(neighbor_dict.keys()):
         temp_port = port
         if get_interface_mode() == "alias":
             port = iface_alias_converter.name_to_alias(port)
             neighbor_dict[port] = neighbor_dict.pop(temp_port)
-        device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
     if interfacename:
-        for device in natsorted(neighbor_metadata_dict.keys()):
-            if device2interface_dict[device]['localPort'] == interfacename:
-                body.append([device2interface_dict[device]['localPort'],
-                             device,
-                             device2interface_dict[device]['neighborPort'],
-                             neighbor_metadata_dict[device]['lo_addr'],
-                             neighbor_metadata_dict[device]['mgmt_addr'],
-                             neighbor_metadata_dict[device]['type']])
-    else:
-        for device in natsorted(neighbor_metadata_dict.keys()):
-            body.append([device2interface_dict[device]['localPort'],
+        try:
+            device = neighbor_dict[interfacename]['name']
+            body.append([interfacename,
                          device,
-                         device2interface_dict[device]['neighborPort'],
+                         neighbor_dict[interfacename]['port'],
                          neighbor_metadata_dict[device]['lo_addr'],
                          neighbor_metadata_dict[device]['mgmt_addr'],
                          neighbor_metadata_dict[device]['type']])
+        except KeyError:
+            click.echo("No neighbor information available for interface {}".format(interfacename))
+            return
+    else:
+        for port in natsorted(neighbor_dict.keys()):
+            try:
+                device = neighbor_dict[port]['name']
+                body.append([port,
+                             device,
+                             neighbor_dict[port]['port'],
+                             neighbor_metadata_dict[device]['lo_addr'],
+                             neighbor_metadata_dict[device]['mgmt_addr'],
+                             neighbor_metadata_dict[device]['type']])
+            except KeyError:
+                pass
 
     click.echo(tabulate(body, header))
 
