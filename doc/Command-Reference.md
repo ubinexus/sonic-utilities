@@ -554,7 +554,7 @@ This command displays the history of the previous reboots up to 10 entry
 - Example:
   ```
   admin@sonic:~$ show reboot-cause history
-  name                 cause        time                          user    comment
+  Name                 Cause        Time                          User    Comment
   -------------------  -----------  ----------------------------  ------  ---------
   2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
   2020_10_09_01_56_59  reboot       Fri Oct  9 01:53:49 UTC 2020  admin
