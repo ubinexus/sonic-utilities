@@ -44,10 +44,6 @@ INTF_KEY = "interfaces"
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
-SYSTEMCTL_ACTION_STOP="stop"
-SYSTEMCTL_ACTION_RESTART="restart"
-SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
-
 DEFAULT_NAMESPACE = ''
 CFG_LOOPBACK_PREFIX = "Loopback"
 CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
@@ -199,54 +195,6 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
 # Helper functions
 #
 
-# Execute action per NPU instance for multi instance services.
-def execute_systemctl_per_asic_instance(inst, event, service, action):
-    try:
-        click.echo("Executing {} of service {}@{}...".format(action, service, inst))
-        clicommon.run_command("systemctl {} {}@{}.service".format(action, service, inst))
-    except SystemExit as e:
-        log.log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
-        # Set the event object if there is a failure and exception was raised.
-        event.set()
-
-# Execute action on list of systemd services
-def execute_systemctl(list_of_services, action):
-    num_asic = multi_asic.get_num_asics()
-    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
-    if ((generated_services_list == []) and
-        (generated_multi_instance_services == [])):
-        log.log_error("Failed to get generated services")
-        return
-
-    for service in list_of_services:
-        if (service + '.service' in generated_services_list):
-            try:
-                click.echo("Executing {} of service {}...".format(action, service))
-                clicommon.run_command("systemctl {} {}".format(action, service))
-            except SystemExit as e:
-                log.log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
-                raise
-
-        if (service + '.service' in generated_multi_instance_services):
-            # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
-            if multi_asic.is_multi_asic():
-                threads = []
-                # Use this event object to co-ordinate if any threads raised exception
-                e = threading.Event()
-
-                kwargs = {'service': service, 'action': action}
-                for inst in range(num_asic):
-                    t = threading.Thread(target=execute_systemctl_per_asic_instance, args=(inst, e), kwargs=kwargs)
-                    threads.append(t)
-                    t.start()
-
-                # Wait for all the threads to finish.
-                for inst in range(num_asic):
-                    threads[inst].join()
-
-                    # Check if any of the threads have raised exception, if so exit the process.
-                    if e.is_set():
-                        sys.exit(1)
 
 def _get_device_type():
     """
@@ -664,92 +612,20 @@ def _get_disabled_services_list(config_db):
     return disabled_services_list
 
 def _stop_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be stopped
-    # on Mellanox platform pmon is stopped by syncd
-    services_to_stop = [
-        'telemetry',
-        'restapi',
-        'swss',
-        'lldp',
-        'pmon',
-        'bgp',
-        'hostcfgd',
-        'nat'
-    ]
-
-    if asic_type == 'mellanox' and 'pmon' in services_to_stop:
-        services_to_stop.remove('pmon')
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_stop:
-            services_to_stop.remove(service)
-
-    execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
+    click.echo("Stopping SONiC target ...")
+    clicommon.run_command("sudo systemctl stop sonic.target")
 
 
 def _reset_failed_services(config_db):
-    # This list is order-independent. Please keep list in alphabetical order
-    services_to_reset = [
-        'bgp',
-        'dhcp_relay',
-        'hostcfgd',
-        'hostname-config',
-        'interfaces-config',
-        'lldp',
-        'nat',
-        'ntp-config',
-        'pmon',
-        'radv',
-        'restapi',
-        'rsyslog-config',
-        'sflow',
-        'snmp',
-        'swss',
-        'syncd',
-        'teamd',
-        'telemetry'
-    ]
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_reset:
-            services_to_reset.remove(service)
-
-    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
+    out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
+    for unit in [unit.strip() for unit in out.splitlines()]:
+        click.echo("Resetting failed status on {}".format(unit))
+        clicommon.run_command("systemctl reset-failed {}".format(unit))
 
 
 def _restart_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be started
-    # on Mellanox platform pmon is started by syncd
-    services_to_restart = [
-        'hostname-config',
-        'interfaces-config',
-        'ntp-config',
-        'rsyslog-config',
-        'swss',
-        'bgp',
-        'pmon',
-        'lldp',
-        'hostcfgd',
-        'nat',
-        'sflow',
-        'restapi',
-        'telemetry'
-    ]
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_restart:
-            services_to_restart.remove(service)
-
-    if asic_type == 'mellanox' and 'pmon' in services_to_restart:
-        services_to_restart.remove('pmon')
-
-    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
+    click.echo("Restarting SONiC target ...")
+    clicommon.run_command("sudo systemctl restart sonic.target")
 
     # Reload Monit configuration to pick up new hostname in case it changed
     click.echo("Reloading Monit configuration ...")
@@ -1259,7 +1135,7 @@ def synchronous_mode(sync_mode):
                config reload -y \n
             2. systemctl restart swss
     """
-    
+
     if sync_mode == 'enable' or sync_mode == 'disable':
         config_db = ConfigDBConnector()
         config_db.connect()
