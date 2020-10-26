@@ -669,7 +669,7 @@ main() {
     $MKDIR $V -p $TARDIR
 
     # Start with this script so its obvious what code is responsible
-    $CP $V ./generate_dump $TARDIR
+    $LN $V -s /usr/local/bin/generate_dump $TARDIR	
     $TAR $V -chf $TARFILE -C $DUMPDIR $BASE
     $RM $V -f $TARDIR/sonic_dump
 
