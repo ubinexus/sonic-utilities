@@ -1847,25 +1847,10 @@ def history():
         entry = db.get_all(db.STATE_DB, tk)
         r = []
         r.append(remove_prefix(tk, prefix))
-        if 'cause' not in entry:
-            r.append("")
-        else:
-            r.append(entry['cause'])
-
-        if 'time' not in entry:
-            r.append("")
-        else:
-            r.append(entry['time'])
-
-        if 'user' not in entry:
-            r.append("")
-        else:
-            r.append(entry['user'])
-
-        if 'comment' not in entry:
-            r.append("")
-        else:
-            r.append(entry['comment'])
+        r.append(entry['cause'] if 'cause' in entry else "")
+        r.append(entry['time'] if 'time' in entry else "")
+        r.append(entry['user'] if 'user' in entry else "")
+        r.append(entry['comment'] if 'comment' in entry else "")
         table.append(r)
 
     header = ['Name', 'Cause', 'Time', 'User', 'Comment']
