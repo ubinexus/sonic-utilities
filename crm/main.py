@@ -113,10 +113,9 @@ class Crm:
         """
         # Retrieve all ACL table keys from CRM:ACL_TABLE_STATS
         crm_acl_keys = self.db.keys(self.db.COUNTERS_DB, 'CRM:ACL_TABLE_STATS*')
+        data = []
 
         for key in crm_acl_keys or [None]:
-            data = []
-
             if key:
                 id = key.replace('CRM:ACL_TABLE_STATS:', '')
 
@@ -127,6 +126,7 @@ class Crm:
                         data.append([id, res, crm_stats['crm_stats_' + res + '_used'], crm_stats['crm_stats_' + res + '_available']])
 
         return data
+
     @multi_asic_util.run_on_multi_asic
     def show_resources(self, resource):
         """
