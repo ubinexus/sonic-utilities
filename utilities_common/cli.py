@@ -467,7 +467,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
     if os.getenv("UTILITIES_UNIT_TESTING") == "1":
-        return
+        return None if not return_cmd else ""
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.

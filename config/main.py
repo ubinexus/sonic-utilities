@@ -611,19 +611,23 @@ def _get_disabled_services_list(config_db):
 
     return disabled_services_list
 
-def _stop_services(config_db):
+def _stop_services():
     click.echo("Stopping SONiC target ...")
     clicommon.run_command("sudo systemctl stop sonic.target")
 
 
-def _reset_failed_services(config_db):
+def _get_sonic_services():
     out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
-    for unit in [unit.strip() for unit in out.splitlines()]:
-        click.echo("Resetting failed status on {}".format(unit))
-        clicommon.run_command("systemctl reset-failed {}".format(unit))
+    return [unit.strip() for unit in out.splitlines()]
 
 
-def _restart_services(config_db):
+def _reset_failed_services():
+    for service in _get_sonic_services():
+        click.echo("Resetting failed status on {}".format(service))
+        clicommon.run_command("systemctl reset-failed {}".format(service))
+
+
+def _restart_services():
     click.echo("Restarting SONiC target ...")
     clicommon.run_command("sudo systemctl restart sonic.target")
 
@@ -923,7 +927,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'reload' stopping services...")
-        _stop_services(db.cfgdb)
+        _stop_services()
 
     # In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -994,9 +998,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb)
+        _reset_failed_services()
         log.log_info("'reload' restarting services...")
-        _restart_services(db.cfgdb)
+        _restart_services()
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1035,7 +1039,7 @@ def load_minigraph(db, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'load_minigraph' stopping services...")
-        _stop_services(db.cfgdb)
+        _stop_services()
 
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
@@ -1091,10 +1095,10 @@ def load_minigraph(db, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb)
+        _reset_failed_services()
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
         log.log_info("'load_minigraph' restarting services...")
-        _restart_services(db.cfgdb)
+        _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 
