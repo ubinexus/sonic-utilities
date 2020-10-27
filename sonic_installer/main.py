@@ -314,8 +314,8 @@ def install(url, force, skip_migration=False):
     else:
         # Verify that the binary image is of the same type as the running image
         if not bootloader.verify_binary_image(image_path) and not force:
-            click.echo("Image file '{}' is of a different type than running image.\n".format(url) +\
-                "If you are sure you want to install this image, use -f|--force.\n" +\
+            click.echo("Image file '{}' is of a different type than running image.\n".format(url) +
+                "If you are sure you want to install this image, use -f|--force.\n" +
                 "Aborting...")
             raise click.Abort()
 
