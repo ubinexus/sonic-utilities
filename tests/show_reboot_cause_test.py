@@ -43,7 +43,7 @@ class TestShowRebootCause(object):
     # Test 'show reboot-cause' with user issued reboot
     def test_reboot_cause_user(self):
         expected_output = """\
-            User issued reboot command [User: admin, Time: Mon Mar 25 01:02:03 UTC 2019]
+            User issued reboot command [User: admin, Time: Thu Oct 22 03:11:08 UTC 2020]
             """
         reboot_cause_user_json="""\
         {"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "reboot", "user": "admin", "time": "Thu Oct 22 03:11:08 UTC 2020"}
@@ -54,7 +54,7 @@ class TestShowRebootCause(object):
             with mock.patch("{}.open".format(BUILTINS), open_mocked):
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["reboot-cause"], [])
-                assert result.output == textwrap.dedent(reboot_cause_user_json)
+                assert result.output == textwrap.dedent(expected_output)
                 open_mocked.assert_called_once_with("/host/reboo-cause/previous-reboot-cause.json")
 
     # Test 'show reboot-cause' with non-user issue reboot (hardware reboot-cause or unknown reboot-cause)
@@ -63,7 +63,7 @@ class TestShowRebootCause(object):
             Watchdog
             """
         reboot_cause_non_user_json="""\
-        {"comment": "", "gen_time": "", "cause": "Watchdog", "user": "", "time": ""}
+        {"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "Watchdog", "user": "", "time": ""}
         """
         with mock.patch("os.path.isfile") as mock_isfile:
             mock_isfile.return_value = True
@@ -71,7 +71,7 @@ class TestShowRebootCause(object):
             with mock.patch("{}.open".format(BUILTINS), open_mocked):
                 runner = CliRunner()
                 result = runner.invoke(show.cli.commands["reboot-cause"], [])
-                assert result.output == textwrap.dedent(reboot_cause_non_user_json)
+                assert result.output == textwrap.dedent(expected_output)
                 open_mocked.assert_called_once_with("/host/reboo-cause/previous-reboot-cause.json")
 
     # Test 'show reboot-cause history'
