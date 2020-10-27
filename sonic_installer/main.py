@@ -305,6 +305,13 @@ def install(url, force, skip_migration=False):
         click.echo("Image file does not exist or is not a valid SONiC image file")
         raise click.Abort()
 
+    # Verify that the binary image is of the same type as the running image
+    if not bootloader.verify_binary_image(image_path) and not force:
+        click.echo("Image file {} is of a different type than running image.\n\
+            If you are sure you want to install this image, use -f|--force.\n\
+            Aborting...".format(image_path))
+        raise click.Abort()
+
     # Is this version already installed?
     if binary_image_version in bootloader.get_installed_images():
         click.echo("Image {} is already installed. Setting it as default...".format(binary_image_version))
@@ -312,13 +319,6 @@ def install(url, force, skip_migration=False):
             click.echo('Error: Failed to set image as default')
             raise click.Abort()
     else:
-        # Verify that the binary image is of the same type as the running image
-        if not bootloader.verify_binary_image(image_path) and not force:
-            click.echo("Image file '{}' is of a different type than running image.\n"
-                       "If you are sure you want to install this image, use -f|--force.\n"
-                       "Aborting...".format(image_path))
-            raise click.Abort()
-
         click.echo("Installing image {} and setting it as default...".format(binary_image_version))
         bootloader.install_image(image_path)
         # Take a backup of current configuration
