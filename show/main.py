@@ -1850,16 +1850,11 @@ def history():
     table_keys = db.keys(db.STATE_DB, _hash)
     table_keys.sort(reverse=True)
 
-    def remove_prefix(text, prefix):
-        if text.startswith(prefix):
-            return text[len(prefix):]
-        return text
-
     table = []
     for tk in table_keys:
         entry = db.get_all(db.STATE_DB, tk)
         r = []
-        r.append(remove_prefix(tk, prefix))
+        r.append(tk.replace(prefix,""))
         r.append(entry['cause'] if 'cause' in entry else "")
         r.append(entry['time'] if 'time' in entry else "")
         r.append(entry['user'] if 'user' in entry else "")
