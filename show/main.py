@@ -32,6 +32,7 @@ HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
+DISABLE_WARMRESTART_TIMER_VALUE = '9999'
 
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
@@ -1950,7 +1951,10 @@ def config(redis_unix_socket_path):
                     r.append("NULL")
             elif 'teamsyncd_timer' in data[k]:
                 r.append("teamsyncd_timer")
-                r.append(data[k]['teamsyncd_timer'])
+                if data[k]['teamsyncd_timer'] == DISABLE_WARMRESTART_TIMER_VALUE:
+                    r.append('disable')
+                else:
+                    r.append(data[k]['teamsyncd_timer'])
                 r.append("NULL")
             else:
                 r.append("NULL")
