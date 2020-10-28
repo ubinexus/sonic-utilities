@@ -45,7 +45,7 @@ def active_hops(nhg):
 			else:
 			    output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
                     
-	    nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
+	    nhg_prefix_report = (nhg_prefix.split("|")[1])
 	    header = ["FG_NHG_PREFIX", "Active Next Hops"]
             formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
             table.append([nhg_prefix_report, formatted_nhps])
@@ -74,7 +74,7 @@ def active_hops(nhg):
 			    else:
 			    	output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
 
-		nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
+		nhg_prefix_report = (nhg_prefix.split("|")[1])
 	        formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
 		table.append([nhg_prefix_report, formatted_nhps])
 	        header = ["FG_NHG_PREFIX", "Active Next Hops"]
@@ -124,7 +124,7 @@ def hash_view(nhg):
 			bank_dict[nh_ip.split("@")[0]] = bank_ids  
 
 	    bank_dict = OrderedDict(sorted(bank_dict.items()))
-	    nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
+	    nhg_prefix_report = (nhg_prefix.split("|")[1])
 	    header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 	  
             for nhip,val in bank_dict.items():
@@ -158,7 +158,7 @@ def hash_view(nhg):
 			    	output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
 			    bank_dict[nh_ip.split("@")[0]] = bank_ids  
 
-		nhg_prefix_report = ("NHG_PREFIX: " + nhg_prefix.split("|")[1])
+		nhg_prefix_report = (nhg_prefix.split("|")[1])
 		bank_dict = OrderedDict(sorted(bank_dict.items()))
 	        header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 
