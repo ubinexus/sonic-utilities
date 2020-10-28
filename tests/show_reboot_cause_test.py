@@ -3,6 +3,7 @@ import sys
 import textwrap
 
 import mock
+
 from click.testing import CliRunner
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -46,11 +47,13 @@ class TestShowRebootCause(object):
             {"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "reboot", "user": "admin", "time": "Thu Oct 22 03:11:08 UTC 2020"}
             """
         runner = CliRunner()
-        with mock.patch('%s.open' % module_, mock.mock_open(read_data=textwrap.dedent(reboot_cause_user_json))):
-            with open(reboot_cause_json_file) as f:
-                print(f.read())
-            result = runner.invoke(show.cli.commands["reboot-cause"], [])
-            assert result.output == textwrap.dedent(expected_output)
+        with mock.patch("os.path.isfile") as mock_isfile:
+            mock_isfile.return_value = True
+            open_mocked = mock.mock_open(read_data=textwrap.dedent(reboot_cause_user_json))
+            with mock.patch("{}.open".format(module_), open_mocked):
+                result = runner.invoke(show.cli.commands["reboot-cause"], [])
+                assert result == textwrap.dedent(expected_output)
+                open_mocked.assert_called_once_with(reboot_cause_json_file)
 
     # Test 'show reboot-cause' with non-user issue reboot (hardware reboot-cause or unknown reboot-cause)
     def test_reboot_cause_non_user(self):
@@ -59,11 +62,13 @@ class TestShowRebootCause(object):
             {"comment": "", "gen_time": "2020_10_22_03_15_08", "cause": "Watchdog", "user": "", "time": ""}
             """
         runner = CliRunner()
-        with mock.patch('%s.open' % module_, mock.mock_open(read_data=textwrap.dedent(reboot_cause_watchdog_json)):
-            with open(reboot_cause_json_file) as f:
-                print(f.read())
-            result = runner.invoke(show.cli.commands["reboot-cause"], [])
-            assert result.output == textwrap.dedent(expected_output)
+        with mock.patch("os.path.isfile") as mock_isfile:
+            mock_isfile.return_value = True
+            open_mocked = mock.mock_open(read_data=reboot_cause_watchdog_json)
+            with mock.patch("{}.open".format(module_), open_mocked):
+                result = runner.invoke(show.cli.commands["reboot-cause"], [])
+                assert result == textwrap.dedent(expected_output)
+                open_mocked.assert_called_once_with(reboot_cause_json_file)
 
     # Test 'show reboot-cause history'
     def test_reboot_cause_history(self):
