@@ -40,9 +40,7 @@ class TestShowRebootCause(object):
 
     # Test 'show reboot-cause' with user issued reboot
     def test_reboot_cause_user(self):
-        expected_output = """\
-            User issued reboot command [User: admin, Time: Thu Oct 22 03:11:08 UTC 2020]
-            """
+        expected_output = "User issued reboot command [User: admin, Time: Thu Oct 22 03:11:08 UTC 2020]\n"
         reboot_cause_user_json = """\
             {"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "reboot", "user": "admin", "time": "Thu Oct 22 03:11:08 UTC 2020"}
             """
@@ -52,7 +50,7 @@ class TestShowRebootCause(object):
             open_mocked = mock.mock_open(read_data=textwrap.dedent(reboot_cause_user_json))
             with mock.patch("{}.open".format(module_), open_mocked):
                 result = runner.invoke(show.cli.commands["reboot-cause"], [])
-                assert result == textwrap.dedent(expected_output)
+                assert result == expected_output
                 open_mocked.assert_called_once_with(reboot_cause_json_file)
 
     # Test 'show reboot-cause' with non-user issue reboot (hardware reboot-cause or unknown reboot-cause)
@@ -67,7 +65,7 @@ class TestShowRebootCause(object):
             open_mocked = mock.mock_open(read_data=reboot_cause_watchdog_json)
             with mock.patch("{}.open".format(module_), open_mocked):
                 result = runner.invoke(show.cli.commands["reboot-cause"], [])
-                assert result == textwrap.dedent(expected_output)
+                assert result == expected_output
                 open_mocked.assert_called_once_with(reboot_cause_json_file)
 
     # Test 'show reboot-cause history'
