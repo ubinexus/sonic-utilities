@@ -9,7 +9,6 @@ import os
 import re
 import subprocess
 import sys
-import threading
 import time
 
 from minigraph import parse_device_desc_xml
