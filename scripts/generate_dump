@@ -182,7 +182,7 @@ save_vtysh() {
 #  None
 ###############################################################################
 save_ip() {
-    local ip_args=""$1
+    local ip_args=$1
     local filename="ip.$2"
     local do_gzip=${3:-false}
     save_cmd_all_ns "ip $ip_args" "$filename" "$do_gzip"
@@ -411,7 +411,6 @@ save_platform_info() {
     save_platform "ssdhealth" "platform"
     save_platform "temperature" "platform"
     save_platform "fan" "platform"
-
 }
 
 ###############################################################################
@@ -628,7 +627,6 @@ save_crash_files() {
             fi
         fi
     done
-
 }
 
 ###############################################################################
@@ -669,7 +667,7 @@ main() {
     $MKDIR $V -p $TARDIR
 
     # Start with this script so its obvious what code is responsible
-    $LN $V -s /usr/local/bin/generate_dump $TARDIR	
+    $LN $V -s /usr/local/bin/generate_dump $TARDIR
     $TAR $V -chf $TARFILE -C $DUMPDIR $BASE
     $RM $V -f $TARDIR/sonic_dump
 
