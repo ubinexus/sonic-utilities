@@ -349,10 +349,10 @@ ASIC1
 
 Table ID         Resource Name      Used Count    Available Count
 ---------------  ---------------  ------------  -----------------
-0x700000000063f  acl_entry                   0               2048
-0x700000000063f  acl_counter                 0               2048
 0x7000000000670  acl_entry                   0               1024
 0x7000000000670  acl_counter                 0               1280
+0x700000000063f  acl_entry                   0               2048
+0x700000000063f  acl_counter                 0               2048
 
 """
 
@@ -454,10 +454,10 @@ ASIC1
 
 Table ID         Resource Name      Used Count    Available Count
 ---------------  ---------------  ------------  -----------------
-0x700000000063f  acl_entry                   0               2048
-0x700000000063f  acl_counter                 0               2048
 0x7000000000670  acl_entry                   0               1024
 0x7000000000670  acl_counter                 0               1280
+0x700000000063f  acl_entry                   0               2048
+0x700000000063f  acl_counter                 0               2048
 
 """
 
@@ -900,3 +900,4 @@ class TestCrmMultiAsic(object):
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        import mock_tables.mock_single_asic

@@ -870,6 +870,12 @@
     "COUNTERS_DEBUG_NAME_SWITCH_STAT_MAP": {
         "DEBUG_1": "SAI_SWITCH_STAT_IN_DROP_REASON_RANGE_BASE"
     },
+    "CRM:ACL_STATS:INGRESS:VLAN":{
+        "crm_stats_acl_table_used":"0",
+        "crm_stats_acl_group_available":"232",
+        "crm_stats_acl_table_available":"6",
+        "crm_stats_acl_group_used":"0"
+    },
     "CRM:STATS":{
         "crm_stats_ipv4_neighbor_used":"8",
         "crm_stats_ipv4_route_available":"98246",
