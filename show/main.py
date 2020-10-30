@@ -1,5 +1,5 @@
 import json
-import netaddr
+#import netaddr
 import os
 import subprocess
 import sys
@@ -9,7 +9,6 @@ import netifaces
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
-from pkg_resources import parse_version
 from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
@@ -56,7 +55,7 @@ def get_routing_stack():
 
 
 # Global Routing-Stack variable
-routing_stack = get_routing_stack()
+routing_stack = "frr"
 
 # Read given JSON file
 def readJsonFile(fileName):
@@ -717,6 +716,7 @@ def get_if_master(iface):
 @ip.command()
 def interfaces():
     """Show interfaces IPv4 address"""
+    import netaddr
     header = ['Interface', 'Master', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     bgp_peer = get_bgp_peer()
@@ -1387,6 +1387,7 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ntp(ctx, verbose):
     """Show NTP information"""
+    from pkg_resources import parse_version
     ntpstat_cmd = "ntpstat"
     ntpcmd = "ntpq -p -n"
     if is_mgmt_vrf_enabled(ctx) is True:
