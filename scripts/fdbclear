@@ -15,7 +15,6 @@ import argparse
 import json
 import sys
 
-from swsssdk import SonicV2Connector
 
 class FdbClear(object):
 
@@ -31,6 +30,8 @@ class FdbClear(object):
         msg = json.dumps(opdata,separators=(',',':'))
         self.db.publish('APPL_DB','FLUSHFDBREQUEST', msg)
         return
+
+from swsscommon.swsscommon import SonicV2Connector
 
 def main():
 
