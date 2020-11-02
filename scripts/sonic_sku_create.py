@@ -7,7 +7,7 @@ Create a new SKU
 
 optional arguments:
   -h, --help            Show this help message and exit
-  -v, --version         show program's version number and exit
+  -v, --version         Show program's version number and exit
   -f FILE, --file FILE  SKU definition from xml file. -f OR -m must be provided when creating a new SKU
   -m [MINIGRAPH_FILE], --minigraph_file [MINIGRAPH_FILE]
                         SKU definition from minigraph file. -f OR -m must be provided when creating a new SKU
@@ -41,12 +41,6 @@ from lxml.etree import QName
 minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
 minigraph_ns1 = "http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"
 INTERFACE_KEY = "Ethernet"
-
-test_envir = None
-try:
-    test_envir = os.environ.get('UTILITIES_UNIT_TESTING')
-except KeyError:
-    print("Not Runing on unit test envir", file=sys.stderr)
 
 ### port_config.ini header
 PORTCONFIG_HEADER = ["# name", "lanes", "alias", "index", "speed"]
@@ -149,11 +143,11 @@ class SkuCreate(object):
                     idx +=1
 
         if match is None :
-            raise ValueError("Couldn't find a SKU ",hwsku, "in minigraph file")
+            raise ValueError("Couldn't find a SKU ", hwsku, "in minigraph file")
 
 
     def minigraph_parser(self, minigraph_file):
-        #Function to parse minigrpah XML file and generate SKU file (port_config.ini) by populating information regarding the ports that are extracted 
+        # Function to parse minigrpah XML file and generate SKU file (port_config.ini) by populating information regarding the ports that are extracted 
         #from minigraph file
         root = ET.parse(minigraph_file).getroot()
         if (self.verbose):
@@ -171,10 +165,10 @@ class SkuCreate(object):
             if (self.verbose):
                 print( "tag=%s, attrib=%s" % (child.tag, child.attrib))
             if child.tag == str(QName(minigraph_ns, "DeviceInfos")):
-                self.parse_deviceinfo(child,hwsku)
+                self.parse_deviceinfo(child, hwsku)
 
     def check_json_lanes_with_bko(self, data, port_idx):
-        #Function to find matching entry in bko_dict that matches Port details from config_db.json file
+        # Function to find matching entry in bko_dict that matches Port details from config_db.json file
         port_str = "Ethernet{:d}".format(port_idx)
         port_dict = []
         port_bmp = 1
@@ -183,7 +177,7 @@ class SkuCreate(object):
             port_speed = port_dict.get("speed")
             int_port_speed = int(port_speed)
         else:
-            print(port_str, "does not contain speed key, Exiting...")
+            print(port_str, "does not contain speed key, Exiting...", file=sys.stderr)
             exit(1)
         for i in range(1,self.base_lanes):
             curr_port_str = "Ethernet{:d}".format(port_idx+i)
@@ -192,20 +186,20 @@ class SkuCreate(object):
                 if "speed" in curr_port_dict:
                     curr_speed = curr_port_dict.get("speed")
                 else:
-                    print(curr_port_str, "does not contain speed key, Exiting...")
+                    print(curr_port_str, "does not contain speed key, Exiting...", file=sys.stderr)
                     exit(1)
                 if port_speed != curr_speed:
-                    print(curr_port_str, "speed is different from that of ",port_str,", Exiting...")
+                    print(curr_port_str, "speed is different from that of ",port_str,", Exiting...", file=sys.stderr)
                     exit(1)
                 if "alias" in curr_port_dict:
                     curr_alias = curr_port_dict.get("alias")
                 else:
-                    print(curr_port_str, "does not contain alias key, Exiting...")
+                    print(curr_port_str, "does not contain alias key, Exiting...", file=sys.stderr)
                     exit(1)
                 if "lanes" in curr_port_dict:
                     curr_lanes = curr_port_dict.get("lanes")
                 else:
-                    print(curr_port_str, "does not contain lanes key, Exiting...")
+                    print(curr_port_str, "does not contain lanes key, Exiting...", file=sys.stderr)
                     exit(1)
                 port_bmp |= (1<<i)
                  
@@ -225,7 +219,7 @@ class SkuCreate(object):
         return None
 
     def write_json_lanes_to_ini_file(self, data, port_idx, port_split, f_out):
-        #Function to write line of port_config.ini corresponding to a port
+        # Function to write line of port_config.ini corresponding to a port
         step = self.bko_dict[port_split]["step"]
         for i in range(0,self.base_lanes,step):
             curr_port_str = "Ethernet{:d}".format(port_idx+i)
@@ -244,7 +238,7 @@ class SkuCreate(object):
         return
 
     def json_file_parser(self, json_file):
-        #Function to generate SKU file from config_db.json file by extracting port related information from the config_db.json file
+        # Function to generate SKU file from config_db.json file by extracting port related information from the config_db.json file
         with open(json_file) as f:
             data = json.load(f,object_pairs_hook=OrderedDict)
         meta_dict = data['DEVICE_METADATA']['localhost']
@@ -264,7 +258,7 @@ class SkuCreate(object):
             pattern = '^Ethernet([0-9]{1,})'
             m = re.match(pattern,key)
             if m is None:
-                print("Port Name ",port_name, " is not valid, Exiting...") 
+                print("Port Name ",port_name, " is not valid, Exiting...", file=sys.stderr) 
                 exit(1)
             port_idx = int(m.group(1))
 
@@ -327,18 +321,18 @@ class SkuCreate(object):
                 self.portconfig_dict[idx] = ["Ethernet"+str(idx),[1,2,3,4], line_arr[2],  str(idx), line_arr[4]]
                 idx += 1
             else:
-                print("port_config.ini file does not contain all fields, Exiting...") 
+                print("port_config.ini file does not contain all fields, Exiting...", file=sys.stderr) 
                 exit(1)
 
         f_in.close()
 
     def break_in_ini(self, ini_file, port_name, port_split):
-        #Function to split or unsplit a port in Port_config.ini file
+        # Function to split or unsplit a port in Port_config.ini file
         lanes_str_result = ""
         pattern = '^([0-9]{1,})x([0-9]{1,})'
         m = re.match(pattern,port_split)
         if m is None:
-            print("Port split format ",port_split, " is not valid, Exiting...") 
+            print("Port split format ",port_split, " is not valid, Exiting...", file=sys.stderr) 
             exit(1)
         if port_split in self.bko_dict:
             step = self.bko_dict[port_split]["step"]
@@ -346,18 +340,18 @@ class SkuCreate(object):
             base_lanes = self.bko_dict[port_split]["lanes"]
             bko = self.bko_dict[port_split]["bko"]
         else:
-            print("Port split ",port_split, " is undefined for this platform, Exiting...") 
+            print("Port split ",port_split, " is undefined for this platform, Exiting...", file=sys.stderr) 
             exit(1)
 
         port_found = False
         pattern = '^Ethernet([0-9]{1,})'
         m = re.match(pattern,port_name)
         if m is None:
-            print("Port Name ",port_name, " is not valid, Exiting...") 
+            print("Port Name ",port_name, " is not valid, Exiting...", file=sys.stderr) 
             exit(1)
         port_idx = int(m.group(1))
         if port_idx % base_lanes != 0:
-            print(port_name, " is not base port, Exiting...")
+            print(port_name, " is not base port, Exiting...", file=sys.stderr)
             exit(1)
 
         bak_file = ini_file + ".bak"
@@ -432,7 +426,7 @@ class SkuCreate(object):
         return lanes_str_result
 
     def break_in_cfg(self, cfg_file, port_name, port_split, lanes_str_result):
-        #Function to split or unsplit a port in config_db.json file
+        # Function to split or unsplit a port in config_db.json file
         if not os.access(os.path.dirname(cfg_file), os.W_OK):
             print("Skipping config_db.json updates for a write permission issue")
             return
@@ -497,7 +491,7 @@ class SkuCreate(object):
         print("--------------------------------------------------------")
 
     def break_a_port(self, port_name, port_split):
-        #Function to split or unsplit a port based on user input in both port_config.ini file and config_db.json file
+        # Function to split or unsplit a port based on user input in both port_config.ini file and config_db.json file
         new_file = self.ini_file + ".new"
         lanes_str_result = self.break_in_ini(self.ini_file,port_name,port_split)
         self.port_config_split_analyze(self.ini_file)
@@ -505,7 +499,7 @@ class SkuCreate(object):
         self.platform_specific()	
         shutil.copy(new_file,self.ini_file)
         if lanes_str_result is None:
-            print("break_in_ini function returned empty lanes string, Exiting...")
+            print("break_in_ini function returned empty lanes string, Exiting...", file=sys.stderr)
             exit(1)
         self.break_in_cfg(self.cfg_file,port_name,port_split,lanes_str_result)
 
@@ -641,8 +635,7 @@ class SkuCreate(object):
 
     def remove_sku_dir(self):
         # remove SKU directory 
-        DEFAULT_BASE_PATH = self.default_sku_path + '/' + "ACS-MSN2700/"
-        if (self.new_sku_dir in [self.base_sku_dir,DEFAULT_BASE_PATH]):
+        if (self.new_sku_dir == self.base_sku_dir):
             print("Removing the base SKU" + self.new_sku_dir + " is not allowed", file=sys.stderr)
             exit(1)
         try:
@@ -663,13 +656,13 @@ class SkuCreate(object):
             print(e.message, file=sys.stderr) 
 
     def platform_specific(self):
-        #Function that checks for Platform specific restrictions
+        # Function that checks for Platform specific restrictions
         func = self.platform_specific_dict.get(self.platform, lambda: "nothing")
         return func()
 
 
     def msn2700_specific(self):
-        #Function that implements the check for platform restrictions of 2700 platform
+        # Function that implements the check for platform restrictions of 2700 platform
         for fp, values in self.fpp_split.items():
             splt_arr = sorted(values[0])
             splt = len(splt_arr)
@@ -693,7 +686,7 @@ class SkuCreate(object):
                 exit(1)
 
 
-def main():
+def main(argv):
     parser = argparse.ArgumentParser(description='Create a new SKU',
                                                 version='1.0.0',
                                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -707,6 +700,9 @@ def main():
     parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
     parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
+    parser.add_argument('-d', '--default_sku_path', action='store',nargs=1, help='Specify Default SKU path', default=None)
+    parser.add_argument('-pl', '--platform', action='store',nargs=1, help='Specify the Platform', default=None)
+
     args = parser.parse_args()
 
     sku_name = None
@@ -716,28 +712,28 @@ def main():
         if (args.verbose):
             print("ARGS: ", args)
 
-        if (test_envir == "1"):
+        if args.platform:
             sku.platform = "x86_64-mlnx_msn2700-r0"
-
-            if args.file:
-                sku.default_sku_path = os.path.dirname(args.file[0])
-            elif args.minigraph_file:
-                sku.default_sku_path = os.path.dirname(args.minigraph_file)
-            elif args.json_file:
-                sku.default_sku_path = os.path.dirname(args.json_file[0])
-            elif args.port_split:
-                path = os.path.dirname(os.path.realpath(sys.argv[0]))
-                sku.default_sku_path = os.path.dirname(path) + "/sonic-utilities-tests/sku_create_input"
         else:
              try:
                  sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
                  sku.platform = sku.platform.rstrip()
-
              except KeyError:
                  print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
                  exit(1)
 
-             sku.default_sku_path = '/usr/share/sonic/device/' + sku.platform
+        if args.default_sku_path:
+            sku.default_sku_path = args.default_sku_path[0]
+        else:
+            sku.default_sku_path = '/usr/share/sonic/device/' + sku.platform
+            try:
+                sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
+            except KeyError:
+                print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
+                exit(1)
+            sku.ini_file = sku.default_sku_path + "/" + sku_name + "/port_config.ini"
+            sku.cfg_file = "/etc/sonic/config_db.json"
+
 
         if sku.platform in platform_4:
             sku.base_lanes = 4
@@ -745,6 +741,7 @@ def main():
         else:
             sku.base_lanes = 8
             sku.bko_dict = bko_dict_8
+
 
         if args.base:
             sku.base_sku_name = args.base
@@ -755,22 +752,9 @@ def main():
         sku.base_sku_dir = sku.default_sku_path + '/' + sku.base_sku_name + '/'
         sku.base_file_path = sku.base_sku_dir + "port_config.ini"
 
-        if (test_envir == "1"):
-            sku.ini_file = sku.default_sku_path + "/Mellanox-SN2700-D48C8/port_config.ini"
-            sku.cfg_file = sku.default_sku_path + "/config_db.json"
-        else:
-            try:
-                sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
-            except KeyError:
-                print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
-                exit(1)
-            sku.ini_file = sku.default_sku_path + "/" + sku_name + "/port_config.ini"
-            sku.cfg_file = "/etc/sonic/config_db.json"
-
-
         if args.file:
             sku.sku_def_parser(args.file[0])
-        elif args.minigraph_file :
+        elif args.minigraph_file:
             sku.minigraph_parser(args.minigraph_file)
         elif args.json_file:
             if args.remove:
@@ -802,4 +786,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)
