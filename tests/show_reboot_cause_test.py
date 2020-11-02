@@ -12,10 +12,6 @@ sys.path.insert(0, modules_path)
 
 import show.main as show
 
-module_ = "builtins"
-module_ = module_ if module_ in sys.modules else '__builtin__'
-
-reboot_cause_json_file="/host/reboot-cause/previous-reboot-cause.json"
 """
     Note: The following 'show reboot-cause' commands simply call other SONiC
     CLI utilities, so the unit tests for the other utilities are expected
@@ -33,40 +29,29 @@ class TestShowRebootCause(object):
 
     # Test 'show reboot-cause' without previous-reboot-cause.json 
     def test_reboot_cause_no_history_file(self):
-        expected_output = "Unknown\n"
+        expected_output = ""
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["reboot-cause"], [])
         assert result.output == expected_output
 
     # Test 'show reboot-cause' with user issued reboot
     def test_reboot_cause_user(self):
-        expected_output = "User issued reboot command [User: admin, Time: Thu Oct 22 03:11:08 UTC 2020]\n"
-        reboot_cause_user_json = """\
-            {"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "reboot", "user": "admin", "time": "Thu Oct 22 03:11:08 UTC 2020"}
-            """
-        runner = CliRunner()
-        with mock.patch("os.path.isfile") as mock_isfile:
-            mock_isfile.return_value = True
-            open_mocked = mock.mock_open(read_data=textwrap.dedent(reboot_cause_user_json))
-            with mock.patch("{}.open".format(module_), open_mocked):
-                result = runner.invoke(show.cli.commands["reboot-cause"], [])
-                assert result == expected_output
-                open_mocked.assert_called_once_with(reboot_cause_json_file)
+        expected_output = "User issued 'reboot' command [User: admin, Time: Thu Oct 22 03:11:08 UTC 2020]\n"
+
+        with mock.patch("show.main.readRebootCauseFile", return_value={"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "reboot", "user": "admin", "time": "Thu Oct 22 03:11:08 UTC 2020"}):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["reboot-cause"], [])
+            assert result.output == expected_output
+
 
     # Test 'show reboot-cause' with non-user issue reboot (hardware reboot-cause or unknown reboot-cause)
     def test_reboot_cause_non_user(self):
         expected_output = "Watchdog\n"
-        reboot_cause_watchdog_json = """\
-            {"comment": "", "gen_time": "2020_10_22_03_15_08", "cause": "Watchdog", "user": "", "time": ""}
-            """
-        runner = CliRunner()
-        with mock.patch("os.path.isfile") as mock_isfile:
-            mock_isfile.return_value = True
-            open_mocked = mock.mock_open(read_data=reboot_cause_watchdog_json)
-            with mock.patch("{}.open".format(module_), open_mocked):
-                result = runner.invoke(show.cli.commands["reboot-cause"], [])
-                assert result == expected_output
-                open_mocked.assert_called_once_with(reboot_cause_json_file)
+
+        with mock.patch("show.main.readRebootCauseFile", return_value={"comment": "", "gen_time": "2020_10_22_03_15_08", "cause": "Watchdog", "user": "", "time": ""}):
+            runner = CliRunner()
+            result = runner.invoke(show.cli.commands["reboot-cause"], [])
+            assert result.output == expected_output
 
     # Test 'show reboot-cause history'
     def test_reboot_cause_history(self):
