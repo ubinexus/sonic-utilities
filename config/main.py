@@ -1312,8 +1312,12 @@ def remove_portchannel(ctx, portchannel_name):
     db = ctx.obj['db']
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
+    elif len([(k, v) for k, v in db.get_table('PORTCHANNEL_INTERFACE').items() if type(k)==tuple and k[0]==portchannel_name]) != 0:
+                click.echo("Error: Portchannel {} contains ip. Remove ip before deleting Portchannel!".format(portchannel_name))
     else:
         db.set_entry('PORTCHANNEL', portchannel_name, None)
+        # Remove junk portchannel interface
+        db.set_entry('PORTCHANNEL_INTERFACE', portchannel_name, None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
