@@ -45,7 +45,7 @@ class TestShowRebootCause(object):
     def test_reboot_cause_user(self):
         expected_output = "User issued 'reboot' command [User: admin, Time: Thu Oct 22 03:11:08 UTC 2020]\n"
 
-        with mock.patch("show.main.readRebootCauseFile", return_value={"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "reboot", "user": "admin", "time": "Thu Oct 22 03:11:08 UTC 2020"}):
+        with mock.patch("show.main.readRebootCauseFile", return_value={"comment": "", "gen_time": "2020_10_22_03_14_07", "cause": "reboot", "user": "admin", "time": "Thu Oct 22 03:11:08 UTC 2020"}): 
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["reboot-cause"], [])
             assert result.output == expected_output
@@ -57,7 +57,7 @@ class TestShowRebootCause(object):
         REBOOT_CAUSE_WATCHDOG_JSON = """\
 {"comment": "", "gen_time": "2020_10_22_03_15_08", "cause": "Watchdog", "user": "", "time": ""}"""
 
-        with mock.patch("show.main.readRebootCauseFile", return_value={"comment": "", "gen_time": "2020_10_22_03_15_08", "cause": "Watchdog", "user": "", "time": ""}):
+        with mock.patch("show.main.readRebootCauseFile", return_value={"comment": "", "gen_time": "2020_10_22_03_15_08", "cause": "Watchdog", "user": "", "time": ""}): 
             runner = CliRunner()
             result = runner.invoke(show.cli.commands["reboot-cause"], [])
             assert result.output == expected_output
