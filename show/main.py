@@ -28,6 +28,9 @@ PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
 
+PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.json"
+USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
+
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 # To be enhanced. Routing-stack information should be collected from a global
@@ -1802,25 +1805,29 @@ def mmu():
 #
 # 'reboot-cause' group ("show reboot-cause")
 #
+def readRebootCauseFile():
+    result=""
+    try:
+        if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
+            with open(PREVIOUS_REBOOT_CAUSE_FILE) as f:
+                result = json.load(f)
+    except Exception as e:
+        click.echo(str(e))
+        raise click.Abort()
+    return result
+
 @cli.group('reboot-cause', invoke_without_command=True)
 @click.pass_context
 def reboot_cause(ctx):
     if ctx.invoked_subcommand is None:
         """Show cause of reboot"""
-        REBOOT_CAUSE_DIR = "/host/reboot-cause/"
-        PREVIOUS_REBOOT_CAUSE_FILE = os.path.join(REBOOT_CAUSE_DIR, "previous-reboot-cause.json")
-        USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
-        REBOOT_CAUSE_UNKNOWN = "Unknown"
-
-        last_reboot_cause = REBOOT_CAUSE_UNKNOWN
+        last_reboot_cause = ""
         # Read the last previous reboot cause
-        if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
-            with open(PREVIOUS_REBOOT_CAUSE_FILE, "r") as last_cause_file:
-                data = json.load(last_cause_file)
-                if data['user']:
-                    last_reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
-                else:
-                    last_reboot_cause = "{}".format(data['cause'])
+        data = readRebootCauseFile()
+        if data['user']:
+            last_reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
+        else:
+            last_reboot_cause = "{}".format(data['cause'])
 
         click.echo(last_reboot_cause)
 
