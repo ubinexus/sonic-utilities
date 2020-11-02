@@ -247,10 +247,14 @@ function backup_database()
             end
         end
     " 0 > /dev/null
-    sonic-db-cli SAVE > /dev/null
-    #TODO : need a script to copy all rdb files if there is multiple db instances config
-    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/redis/$REDIS_FILE
+
+    # move all db data into instances where APPL_DB locates
+    migrate_warmboot_database APPL_DB
+
+    inst=`/usr/bin/python -c "import swsssdk; print(swsssdk.SonicDBConfig.get_instancename('APPL_DB'))"`
+    # Dump redis content to a file 'dump.rdb' in warmboot directory
+    docker cp database:/var/lib/$inst/$REDIS_FILE $WARM_DIR
+    docker exec -i database rm /var/lib/$inst/$REDIS_FILE
 }
 
 function setup_control_plane_assistant()
