@@ -130,8 +130,8 @@ def hash_view(nhg):
             nhg_prefix_report = (nhg_prefix.split("|")[1])
             header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 
-            for nhip,val in bank_dict.items():
-                formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
+            for nhip, val in bank_dict.items():
+                formatted_banks = ','.replace(',', '\n').join(bank_dict[nhip])
                 table.append([nhg_prefix_report, nhip, formatted_banks])
 
             click.echo(tabulate(table, header, tablefmt="grid"))
@@ -165,8 +165,8 @@ def hash_view(nhg):
                 bank_dict = OrderedDict(sorted(bank_dict.items()))
                 header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 
-                for nhip,val in bank_dict.items():
-                    formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
+                for nhip, val in bank_dict.items():
+                    formatted_banks = ','.replace(',', '\n').join(bank_dict[nhip])
                     table.append([nhg_prefix_report, nhip, formatted_banks])
 
                 click.echo(tabulate(table, header, tablefmt="grid"))
