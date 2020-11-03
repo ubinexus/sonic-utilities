@@ -12,8 +12,6 @@ try:
     import pexpect
     import sys
     import os
-    from swsssdk import ConfigDBConnector
-    from swsssdk import SonicV2Connector
     from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -175,11 +173,11 @@ class ConsolePortInfo(object):
         if index == 0:
             return self._session
         elif index == 1:
+            self._session = None
             raise LineBusyError
         else:
+            self._session = None
             raise ConnectionFailedError
-
-        self._session = None
 
     def clear_session(self):
         """Clear existing session on current line, returns True if the line has been clear"""
