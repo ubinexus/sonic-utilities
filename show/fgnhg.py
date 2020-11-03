@@ -53,7 +53,7 @@ def active_hops(nhg):
             formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
             table.append([nhg_prefix_report, formatted_nhps])
 
-            click.echo(tabulate(table, header, tablefmt = "grid"))
+            click.echo(tabulate(table, header, tablefmt="grid"))
 
     else:
         for nhg_prefix, alias in fg_nhg_alias.items():
@@ -81,7 +81,7 @@ def active_hops(nhg):
                 formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
                 table.append([nhg_prefix_report, formatted_nhps])
                 header = ["FG_NHG_PREFIX", "Active Next Hops"]
-                click.echo(tabulate(table, header, tablefmt = "grid"))
+                click.echo(tabulate(table, header, tablefmt="grid"))
 
 
 @fgnhg.command()
@@ -110,7 +110,7 @@ def hash_view(nhg):
     bank_dict = {}
 
     if nhg is None:
-        for nhg_prefix in table_keys :
+        for nhg_prefix in table_keys:
             bank_dict = {}
             t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
             vals = sorted(set([val for val in t_dict.values()]))
@@ -134,7 +134,7 @@ def hash_view(nhg):
                 formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
                 table.append([nhg_prefix_report, nhip, formatted_banks])
 
-            click.echo(tabulate(table, header, tablefmt = "grid"))
+            click.echo(tabulate(table, header, tablefmt="grid"))
 
     else:
         for nhg_prefix, alias in fg_nhg_alias.items():
@@ -169,4 +169,4 @@ def hash_view(nhg):
                     formatted_banks =  ','.replace(',', '\n').join(bank_dict[nhip])
                     table.append([nhg_prefix_report, nhip, formatted_banks])
 
-                click.echo(tabulate(table, header, tablefmt = "grid"))
+                click.echo(tabulate(table, header, tablefmt="grid"))
