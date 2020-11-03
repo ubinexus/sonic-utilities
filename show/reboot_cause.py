@@ -20,7 +20,7 @@ def read_reboot_cause_file():
             result = json.load(f)
     return result
 
-@cli.group('reboot-cause', short_help='Show cause of most recent reboot', invoke_without_command=True)
+@click.group(name='reboot-cause', short_help='Show cause of most recent reboot'', cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.pass_context
 def reboot_cause(ctx):
     if ctx.invoked_subcommand is None:
