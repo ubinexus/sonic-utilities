@@ -7,10 +7,12 @@ from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
 
+
 @click.group(cls=clicommon.AliasedGroup)
 def fgnhg():
     """Show FGNHG information"""
     pass
+
 
 @fgnhg.command()
 @click.argument('nhg', required=False)
@@ -37,21 +39,21 @@ def active_hops(nhg):
     output_dict = {}
 
     if nhg is None:
-    for nhg_prefix in table_keys:
-        t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-        vals = sorted(set([val for val in t_dict.values()]))
-        for nh_ip in vals:
-            if nhg_prefix in output_dict:
-                output_dict[nhg_prefix].append(nh_ip.split("@")[0])
-            else:
-                output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
+        for nhg_prefix in table_keys:
+            t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
+            vals = sorted(set([val for val in t_dict.values()]))
+            for nh_ip in vals:
+                if nhg_prefix in output_dict:
+                    output_dict[nhg_prefix].append(nh_ip.split("@")[0])
+                else:
+                    output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
 
-        nhg_prefix_report = (nhg_prefix.split("|")[1])
-        header = ["FG_NHG_PREFIX", "Active Next Hops"]
-        formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
-        table.append([nhg_prefix_report, formatted_nhps])
+            nhg_prefix_report = (nhg_prefix.split("|")[1])
+            header = ["FG_NHG_PREFIX", "Active Next Hops"]
+            formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
+            table.append([nhg_prefix_report, formatted_nhps])
 
-        click.echo(tabulate(table, header, tablefmt = "grid"))
+            click.echo(tabulate(table, header, tablefmt = "grid"))
 
     else:
         for nhg_prefix, alias in fg_nhg_alias.items():
