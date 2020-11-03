@@ -32,6 +32,9 @@ PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
 
+PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.json"
+USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
+
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 # To be enhanced. Routing-stack information should be collected from a global
@@ -1813,23 +1816,55 @@ def mmu():
 
 
 #
-# 'reboot-cause' command ("show reboot-cause")
+# 'reboot-cause' group ("show reboot-cause")
 #
-@cli.command('reboot-cause')
-def reboot_cause():
-    """Show cause of most recent reboot"""
-    PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
+def readRebootCauseFile():
+    result=""
+    if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
+        with open(PREVIOUS_REBOOT_CAUSE_FILE) as f:
+            result = json.load(f)
+    return result
 
-    # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
-    # the contents of the 'reboot cause' file as it was left when the device
-    # went down for reboot. This file should always be created at boot,
-    # but check first just in case it's not present.
-    if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
-        click.echo("Unable to determine cause of previous reboot\n")
-    else:
-        cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        click.echo(proc.stdout.read())
+@cli.group('reboot-cause', short_help='Show cause of most recent reboot', invoke_without_command=True)
+@click.pass_context
+def reboot_cause(ctx):
+    if ctx.invoked_subcommand is None:
+        last_reboot_cause = ""
+        # Read the last previous reboot cause
+        data = readRebootCauseFile()
+        if data['user']:
+            last_reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
+        else:
+            last_reboot_cause = "{}".format(data['cause'])
+
+        click.echo(last_reboot_cause)
+
+# 'history' subcommand ("show reboot-cause history")
+@reboot_cause.command()
+def history():
+    """Show history of reboot-cause"""
+    REBOOT_CAUSE_TABLE_NAME = "REBOOT_CAUSE"
+    TABLE_NAME_SEPARATOR = '|'
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.STATE_DB, False)   # Make one attempt only
+    prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    table_keys = db.keys(db.STATE_DB, _hash)
+    table_keys.sort(reverse=True)
+
+    table = []
+    for tk in table_keys:
+        entry = db.get_all(db.STATE_DB, tk)
+        r = []
+        r.append(tk.replace(prefix,""))
+        r.append(entry['cause'] if 'cause' in entry else "")
+        r.append(entry['time'] if 'time' in entry else "")
+        r.append(entry['user'] if 'user' in entry else "")
+        r.append(entry['comment'] if 'comment' in entry else "")
+        table.append(r)
+
+    header = ['Name', 'Cause', 'Time', 'User', 'Comment']
+    click.echo(tabulate(table, header))
 
 
 #
