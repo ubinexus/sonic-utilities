@@ -1,10 +1,11 @@
-import click
 import ipaddress
-from tabulate import tabulate
+from collections import OrderedDict
+
+import click
+import utilities_common.cli as clicommon
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
-import utilities_common.cli as clicommon
-from collections import OrderedDict
+from tabulate import tabulate
 
 @click.group(cls=clicommon.AliasedGroup)
 def fgnhg():
