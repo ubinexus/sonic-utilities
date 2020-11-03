@@ -401,8 +401,8 @@ def install(url, force, skip_migration=False, skip_package_migration=False):
 
         update_sonic_environment(click, binary_image_version)
 
-    if not skip_package_migration:
-        migrate_sonic_packages(binary_image_version)
+        if not skip_package_migration:
+            migrate_sonic_packages(binary_image_version)
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
