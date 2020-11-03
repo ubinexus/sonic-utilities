@@ -313,7 +313,7 @@ def migrate_sonic_packages(image_version):
     try:
         packages_file = "packages.json"
         packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
-        tmp_dir = "/tmp"
+        tmp_dir = "tmp"
         mount_squash_fs(new_image_squashfs_path, new_image_mount)
         # make sure upper dir and work dir exist
         run_command_or_raise(["mkdir", "-p", new_image_upper_dir])
@@ -325,7 +325,7 @@ def migrate_sonic_packages(image_version):
         run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
         run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
         run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
-                              "{}".format(os.path.join(tmp_dir, packages_file)), "-y"])
+                              "{}".format(os.path.join("/", tmp_dir, packages_file)), "-y"])
     finally:
         run_command("chroot {} {} stop".format(new_image_mount, DOCKER_CTL_SCRIPT))
         umount(new_image_mount, recursive=True, read_only=False, remove_dir=False)
