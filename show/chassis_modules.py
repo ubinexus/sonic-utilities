@@ -23,7 +23,7 @@ def chassis_modules():
 def status(db, chassis_module_name):
     """Show chassis-modules status"""
 
-    header = ['Name', 'Description', 'Slot', 'Oper-Status', 'Admin-Status']
+    header = ['Name', 'Description', 'Physical-Slot', 'Oper-Status', 'Admin-Status']
     chassis_cfg_table = db.cfgdb.get_table('CHASSIS_MODULE')
 
     state_db = SonicV2Connector(host="127.0.0.1")
