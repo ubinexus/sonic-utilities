@@ -1210,17 +1210,21 @@ def users(verbose):
 
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
-@click.option('--platform', is_flag=True, help="Enable platform specific output")
+@click.option('--force', is_flag=True, help="Enable hardware register dump even with system interruption")
+@click.option('--yes', is_flag=True, help="Enable force generating dump option")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def techsupport(since, verbose, platform):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
-    if platform:
-        yes = raw_input('Proceed with PMON stop? (y/n) ')
-        if yes.lower() == 'y':
-            cmd += " -p"
-        if yes.lower() == 'n':
-            exit("Please do \'show techsupport\' without \'--platform\'")
+    if force:
+        if yes:
+           cmd += " -f" 
+        else:
+            yes = raw_input('Proceed with any system interruption? (y/n) ')
+            if yes.lower() == 'y':
+                cmd += " -f"
+            if yes.lower() == 'n':
+                exit("Please do \'show techsupport\' without \'--force\'")
     if since:
         cmd += " -s {}".format(since)
     run_command(cmd, display_cmd=verbose)

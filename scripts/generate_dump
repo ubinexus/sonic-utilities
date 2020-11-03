@@ -20,7 +20,7 @@ MV=mv
 GREP=grep
 TOUCH=touch
 V=
-P_DUMP=
+FORCE=
 NOOP=false
 DO_COMPRESS=true
 CMD_PREFIX=
@@ -518,13 +518,8 @@ main() {
         fi
     done
 
-    local platform="$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)"
-    if [ -x /usr/share/sonic/device/$platform/platform_hw_regs_dump.sh ]; then
-        /usr/share/sonic/device/$platform/platform_hw_regs_dump.sh $P_DUMP
-    fi
-
     # run 'hw-management-generate-dump.sh' script and save the result file
-    /usr/bin/hw-management-generate-dump.sh
+    /usr/bin/hw-management-generate-dump.sh $FORCE
     save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
     rm -f /tmp/hw-mgmt-dump*
 
@@ -626,8 +621,8 @@ while getopts ":xnvhzsp:" opt; do
         z)
             DO_COMPRESS=false
             ;;
-        p)
-            P_DUMP="-p"
+        f)
+            FORCE="-f"
             ;;
         s)
             SINCE_DATE="${OPTARG}"
