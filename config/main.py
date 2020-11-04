@@ -3438,6 +3438,12 @@ def enable(ctx):
 
     if out != "active":
         log.log_info("sflow service is not enabled. Starting sflow docker...")
+        ##make sure sflow unmask before enable and start
+        maskinfo=os.popen('systemctl list-unit-files | grep masked')
+        readinfo="".join(maskinfo.readlines())
+        if 'sflow' in readinfo:
+            clicommon.run_command("sudo systemctl unmask sflow >/dev/null")
+
         clicommon.run_command("sudo systemctl enable sflow")
         clicommon.run_command("sudo systemctl start sflow")
 
