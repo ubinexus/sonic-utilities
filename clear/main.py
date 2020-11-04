@@ -122,9 +122,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli():
     """SONiC command line - 'Clear' command"""
 
-    helper = util_base.UtilHelper()
-    helper.load_plugins(plugins)
-
+    pass
 
 #
 # 'ip' group ###
@@ -425,6 +423,13 @@ def translations():
 
     cmd = "natclear -t"
     run_command(cmd)
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    plugin.register(cli)
+
 
 if __name__ == '__main__':
     cli()

@@ -136,9 +136,6 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli(ctx):
     """SONiC command line - 'show' command"""
 
-    helper = util_base.UtilHelper()
-    helper.load_plugins(plugins)
-
     ctx.obj = Db()
 
 
@@ -1536,6 +1533,13 @@ def ztp(status, verbose):
     if verbose:
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    plugin.register(cli)
+
 
 if __name__ == '__main__':
     cli()

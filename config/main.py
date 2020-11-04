@@ -864,9 +864,6 @@ def config(ctx):
     except (KeyError, TypeError):
         raise click.Abort()
 
-    helper = util_base.UtilHelper()
-    helper.load_plugins(plugins)
-
     # Load the global config file database_global.json once.
     SonicDBConfig.load_sonic_global_db_config()
 
@@ -4154,6 +4151,13 @@ def delete(ctx):
 
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    plugin.register(config)
+
 
 if __name__ == '__main__':
     config()
