@@ -276,7 +276,7 @@ class SysInfoProvider(object):
         cmd = "ls " + SysInfoProvider.DEVICE_PREFIX + "*"
         output, _ = SysInfoProvider.run_command(cmd, abort=False)
         ttys = output.split('\n')
-        ttys = list(filter(lambda dev: re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None, ttys))
+        ttys = list([dev for dev in ttys if re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None])
         return ttys
 
     @staticmethod
@@ -292,8 +292,8 @@ class SysInfoProvider(object):
         cmd = 'ps -p {} -o pid,lstart,cmd | grep -E "(mini|pico)com"'.format(pid)
         output = SysInfoProvider.run_command(cmd)
         processes = SysInfoProvider._parse_processes_info(output)
-        if len(processes.keys()) == 1:
-            return (processes.keys()[0],) + list(processes.values())[0]
+        if len(list(processes.keys())) == 1:
+            return (list(processes.keys())[0],) + list(processes.values())[0]
         else:
             return None
 
