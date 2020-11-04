@@ -71,7 +71,7 @@ def feature_status(db, feature_name):
             if key in state_table:
                 data.update(state_table[key])
             body.append(make_body(key, field_names, field_defaults, data))
-    click.echo(tabulate(body, header))
+    click.echo(tabulate(body, header, disable_numparse=True))
 
 #
 # 'config' subcommand (show feature config)
