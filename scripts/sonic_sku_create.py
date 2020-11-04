@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 """
 usage: sonic_sku_create.py [-h] [-v] [-f FILE] [-m [MINIGRAPH_FILE]] [-b BASE]
                            [-r] [-k HWSKU]
@@ -694,14 +694,13 @@ def main(argv):
     group.add_argument('-f', '--file', action='store', nargs=1, help='SKU definition from xml file. -f OR -m or -j must be provided when creating a new SKU', default=None)
     group.add_argument('-m', '--minigraph_file', action='store', nargs='?', help='SKU definition from minigraph file. -f OR -m or -j must be provided when creating a new SKU', const="/etc/sonic/minigraph.xml")
     group.add_argument('-j', '--json_file', action='store', nargs=1, help='SKU definition from config_db.json file. -f OR -m OR -j must be provided when creating a new SKU', default=None)
-    group.add_argument('-pp', '--port_split', action='store', nargs=2, help='port name and split', default=None)
+    group.add_argument('-s', '--port_split', action='store', nargs=2, help='port name and split', default=None)
     parser.add_argument('-b', '--base', action='store', help='SKU base definition', default=None)
     parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
     parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
     parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
-    parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-d', '--default_sku_path', action='store',nargs=1, help='Specify Default SKU path', default=None)
-    parser.add_argument('-pl', '--platform', action='store',nargs=1, help='Specify the Platform', default=None)
 
     args = parser.parse_args()
 
@@ -712,35 +711,22 @@ def main(argv):
         if (args.verbose):
             print("ARGS: ", args)
 
-        if args.platform:
-            sku.platform = "x86_64-mlnx_msn2700-r0"
-        else:
-             try:
-                 sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
-                 sku.platform = sku.platform.rstrip()
-             except KeyError:
-                 print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
-                 exit(1)
 
         if args.default_sku_path:
             sku.default_sku_path = args.default_sku_path[0]
         else:
+            try:
+                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
+                sku.platform = sku.platform.rstrip()
+            except KeyError:
+                print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
+                exit(1)
             sku.default_sku_path = '/usr/share/sonic/device/' + sku.platform
             try:
                 sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
             except KeyError:
                 print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
                 exit(1)
-            sku.ini_file = sku.default_sku_path + "/" + sku_name + "/port_config.ini"
-            sku.cfg_file = "/etc/sonic/config_db.json"
-
-
-        if sku.platform in platform_4:
-            sku.base_lanes = 4
-            sku.bko_dict = bko_dict_4
-        else:
-            sku.base_lanes = 8
-            sku.bko_dict = bko_dict_8
 
 
         if args.base:
@@ -757,10 +743,18 @@ def main(argv):
         elif args.minigraph_file:
             sku.minigraph_parser(args.minigraph_file)
         elif args.json_file:
+            if sku.platform in platform_4:
+                sku.base_lanes = 4
+                sku.bko_dict = bko_dict_4
+            else:
+                sku.base_lanes = 8
+                sku.bko_dict = bko_dict_8
+
             if args.remove:
                 sku.remove_mode = True
             if args.print:
                 sku.print_mode = True
+            sku.cfg_file = "/etc/sonic/config_db.json"
             sku.json_file_parser(args.json_file[0])
             return
         elif args.port_split:

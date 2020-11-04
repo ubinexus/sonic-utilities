@@ -49,7 +49,7 @@ class TestSkuCreate(object):
         return True
     
     def test_no_param(self):
-        my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + input_path + " -pl " + "x86_64-mlnx_msn2700-r0"
+        my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + input_path
 
         #Test case execution without stdout
         result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
