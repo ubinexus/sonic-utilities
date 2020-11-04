@@ -704,7 +704,6 @@ def main(argv):
 
     args = parser.parse_args()
 
-    sku_name = None
     try:
         sku = SkuCreate()
         sku.verbose = args.verbose
@@ -722,12 +721,6 @@ def main(argv):
                 print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
                 exit(1)
             sku.default_sku_path = '/usr/share/sonic/device/' + sku.platform
-            try:
-                sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
-            except KeyError:
-                print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
-                exit(1)
-
 
         if args.base:
             sku.base_sku_name = args.base
