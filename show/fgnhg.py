@@ -8,6 +8,16 @@ from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 
+######################################################
+# TODO: Remove this once we no longer support Python 2
+import sys
+if sys.version_info.major == 3:
+    UNICODE_TYPE = str
+else:
+    UNICODE_TYPE = unicode
+# END   Remove this once we no longer support Python 2
+######################################################
+
 @click.group(cls=clicommon.AliasedGroup)
 def fgnhg():
     """Show FGNHG information"""
@@ -41,7 +51,7 @@ def active_hops(nhg):
     if nhg is None:
         for nhg_prefix in table_keys:
             t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-            vals = sorted(set([val for val in t_dict.values()]))
+            vals = sorted(set([val for val in list(t_dict.values())]))
             for nh_ip in vals:
                 if nhg_prefix in output_dict:
                     output_dict[nhg_prefix].append(nh_ip.split("@")[0])
@@ -62,14 +72,14 @@ def active_hops(nhg):
                     for key in table_keys:
                         mod_key = key.split("|")[1].split("/")[0]
                         mod_nhg_prefix = nhg_prefix.split("/")[0]
-                        if ipaddress.ip_address(unicode(mod_key)).exploded == ipaddress.ip_address(unicode(mod_nhg_prefix)).exploded:
+                        if ipaddress.ip_address(UNICODE_TYPE(mod_key)).exploded == ipaddress.ip_address(UNICODE_TYPE(mod_nhg_prefix)).exploded:
                             t_dict = state_db.get_all(state_db.STATE_DB, key)
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                 else:
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                     t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
 
-                vals = sorted(set([val for val in t_dict.values()]))
+                vals = sorted(set([val for val in list(t_dict.values())]))
 
                 for nh_ip in vals:
                     if nhg_prefix in output_dict:
@@ -113,7 +123,7 @@ def hash_view(nhg):
         for nhg_prefix in table_keys:
             bank_dict = {}
             t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-            vals = sorted(set([val for val in t_dict.values()]))
+            vals = sorted(set([val for val in list(t_dict.values())]))
 
             for nh_ip in vals:
                 bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])
@@ -143,14 +153,14 @@ def hash_view(nhg):
                     for key in table_keys:
                         mod_key = key.split("|")[1].split("/")[0]
                         mod_nhg_prefix = nhg_prefix.split("/")[0]
-                        if ipaddress.ip_address(unicode(mod_key)).exploded == ipaddress.ip_address(unicode(mod_nhg_prefix)).exploded:
+                        if ipaddress.ip_address(UNICODE_TYPE(mod_key)).exploded == ipaddress.ip_address(UNICODE_TYPE(mod_nhg_prefix)).exploded:
                             t_dict = state_db.get_all(state_db.STATE_DB, key)
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                 else:
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                     t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
 
-                vals = sorted(set([val for val in t_dict.values()]))
+                vals = sorted(set([val for val in list(t_dict.values())]))
 
                 for nh_ip in vals:
                     bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])
