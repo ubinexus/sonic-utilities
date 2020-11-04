@@ -57,7 +57,7 @@ class ConsolePortProvider(object):
         self._db = db
         self._configured_only = configured_only
         self._ports = []
-        self._refresh_all()
+        self._init_all()
 
     def get_all(self):
         """Gets all console ports information"""
@@ -78,7 +78,7 @@ class ConsolePortProvider(object):
 
         raise LineNotFoundError
 
-    def _refresh_all(self):
+    def _init_all(self):
         config_db = self._db.cfgdb
         state_db = self._db.db
 
