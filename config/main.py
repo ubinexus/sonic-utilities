@@ -663,6 +663,11 @@ def _get_disabled_services_list(config_db):
 
     return disabled_services_list
 
+def _get_mask_services_list():
+    mask_service_list = os.popen('systemctl list-unit-files | grep masked')
+    mask_service_list_str = "".join(mask_service_list.readlines())
+    return mask_service_list_str
+
 def _stop_services(config_db):
     # This list is order-dependent. Please add services in the order they should be stopped
     # on Mellanox platform pmon is stopped by syncd
@@ -741,6 +746,7 @@ def _restart_services(config_db):
     ]
 
     disabled_services = _get_disabled_services_list(config_db)
+    mask_services = _get_mask_services_list()
 
     for service in disabled_services:
         if service in services_to_restart:
@@ -748,6 +754,11 @@ def _restart_services(config_db):
 
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
+
+    # restart unmasked service
+    for service in services_to_restart:
+        if service in mask_services:
+            services_to_restart.remove(service)
 
     execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
 
