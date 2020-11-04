@@ -53,7 +53,7 @@ def active_hops(nhg):
             formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
             table.append([nhg_prefix_report, formatted_nhps])
 
-            click.echo(tabulate(table, header, tablefmt="grid"))
+        click.echo(tabulate(table, header, tablefmt="grid"))
 
     else:
         for nhg_prefix, alias in fg_nhg_alias.items():
@@ -134,7 +134,7 @@ def hash_view(nhg):
                 formatted_banks = ','.replace(',', '\n').join(bank_dict[nhip])
                 table.append([nhg_prefix_report, nhip, formatted_banks])
 
-            click.echo(tabulate(table, header, tablefmt="grid"))
+        click.echo(tabulate(table, header, tablefmt="grid"))
 
     else:
         for nhg_prefix, alias in fg_nhg_alias.items():
