@@ -580,6 +580,8 @@ OPTIONS
         passed to them
     -n
         Noop mode. Don't actually create anything, just echo what would happen
+    -f
+        Force mode. This allows any system interruption to correct any platform HW registers status.
     -z
         Don't compress the tar at the end.
     -s DATE
@@ -590,7 +592,7 @@ OPTIONS
 EOF
 }
 
-while getopts ":xnvhzsp:" opt; do
+while getopts ":xnvhzsf:" opt; do
     case $opt in
         x)
             # enable bash debugging

@@ -1213,7 +1213,7 @@ def users(verbose):
 @click.option('--force', is_flag=True, help="Enable hardware register dump even with system interruption")
 @click.option('--yes', is_flag=True, help="Enable force generating dump option")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(since, verbose, platform):
+def techsupport(since, verbose, force, yes):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
     if force:
