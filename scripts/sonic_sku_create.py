@@ -699,7 +699,7 @@ def main(argv):
     parser.add_argument('-r', '--remove', action='store_true', help='Remove SKU folder')
     parser.add_argument('-k', '--hwsku', action='store', help='SKU name to be used when creating a new SKU or for  L2 configuration mode', default=None)
     parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output', default=False)
+    parser.add_argument('--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-d', '--default_sku_path', action='store',nargs=1, help='Specify Default SKU path', default=None)
 
     args = parser.parse_args()
