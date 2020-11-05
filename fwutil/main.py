@@ -352,29 +352,47 @@ def fw_auto_update(ctx, boot, image=None, fw_image=None):
     """Update firmware from SONiC image"""
     component_list = {}
     squashfs = None
+    fwpackage = None
+    cup = None
 
     try:
-        if image == IMAGE_NEXT:
-            squashfs = SquashFs()
 
-            if squashfs.is_next_boot_set():
-                fs_path = squashfs.mount_next_image_fs()
+        if fw_image is not None:
+            fwpackage = FWPackage(fw_image)
+
+            if fwpackage.untar_fwpackage():
+                fs_path = fwpackage.get_fw_package_path()
                 cup = ComponentUpdateProvider(fs_path)
             else:
-                log_helper.print_warning("Next boot is set to current: fallback to defaults")
-                cup = ComponentUpdateProvider()
+                log_helper.print_warning("Cannot open the firmware package")
         else:
-            cup = ComponentUpdateProvider()
+            if image == IMAGE_NEXT:
+                squashfs = SquashFs()
 
-        component_list = cup.get_update_available_components()
-        if component_list:
-            for component in component_list:
-                cup.auto_update_firmware(component, boot)
+                if squashfs.is_next_boot_set():
+                    fs_path = squashfs.mount_next_image_fs()
+                    cup = ComponentUpdateProvider(fs_path)
+                else:
+                    log_helper.print_warning("Next boot is set to current: fallback to defaults")
+                    cup = ComponentUpdateProvider()
+            else:
+                cup = ComponentUpdateProvider()
+
+        if cup is not None:
+            if cup.is_first_auto_update(boot):
+                component_list = cup.get_update_available_components()
+                if component_list:
+                    for component in component_list:
+                        cup.auto_update_firmware(component, boot)
+                else:
+                    log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
         else:
-            log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
+            log_helper.print_warning("compoenet update package is not available")
     finally:
         if squashfs is not None:
             squashfs.umount_next_image_fs()
+        if fwpackage is not None:
+            fwpackage.cleanup_tmp_fwpackage()
 
 
 # 'show' subgroup
@@ -387,24 +405,36 @@ def show():
 # 'updates' subcommand
 @show.command()
 @click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Show updates using current/next SONiC image")
+@click.option('-f', '--fw_image', 'fw_image', help="Custom FW package path")
 @click.pass_context
-def updates(ctx, image):
+def updates(ctx, image=None, fw_image=None):
     """Show available updates"""
     try:
         squashfs = None
+        fwpackage = None
+        cup = None
 
         try:
-            if image == IMAGE_NEXT:
-                squashfs = SquashFs()
+            if fw_image is not None:
+                fwpackage = FWPackage(fw_image)
 
-                if squashfs.is_next_boot_set():
-                    fs_path = squashfs.mount_next_image_fs()
+                if fwpackage.untar_fwpackage():
+                    fs_path = fwpackage.get_fw_package_path()
                     cup = ComponentUpdateProvider(fs_path)
                 else:
-                    log_helper.print_warning("Next boot is set to current: fallback to defaults")
-                    cup = ComponentUpdateProvider()
+                    log_helper.print_warning("Cannot open the firmware package")
             else:
-                cup = ComponentUpdateProvider()
+                if image == IMAGE_NEXT:
+                    squashfs = SquashFs()
+
+                    if squashfs.is_next_boot_set():
+                        fs_path = squashfs.mount_next_image_fs()
+                        cup = ComponentUpdateProvider(fs_path)
+                    else:
+                        log_helper.print_warning("Next boot is set to current: fallback to defaults")
+                        cup = ComponentUpdateProvider()
+                else:
+                    cup = ComponentUpdateProvider()
 
             status = cup.get_status()
             if status is not None:

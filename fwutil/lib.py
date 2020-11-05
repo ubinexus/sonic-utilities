@@ -7,9 +7,11 @@
 try:
     import os
     import json
+    import shutil
     import socket
     import subprocess
     import time
+    import tarfile
     from collections import OrderedDict
     from urllib.parse import urlparse
     from urllib.request import urlopen, urlretrieve
@@ -29,6 +31,9 @@ TAB = "    "
 EMPTY = ""
 NA = "N/A"
 NEWLINE = "\n"
+PLATFORM_COMPONENTS_FILE = "platform_components.json"
+FWUPDATE_FWUPDATE_DIR = "/tmp/firmwareupdate/"
+FWUPDATE_FWPACKAGE_DIR = os.path.join(FWUPDATE_FWUPDATE_DIR, "fwpackage/")
 
 # ========================= Variables ==========================================
 
@@ -275,12 +280,48 @@ class SquashFs(object):
     next_image = property(fget=get_next_image)
 
 
+class FWPackage(object):
+    """
+    FWPackage
+    """
+    fwupdate_fwimage_dir = None
+    fwupdate_package_name = None
+
+    def __init__(self, fwpackage):
+        self.fwupdate_package_name = fwpackage
+        if not os.path.isdir(FWUPDATE_FWUPDATE_DIR):
+            os.mkdir(FWUPDATE_FWUPDATE_DIR)
+        if os.path.isdir(FWUPDATE_FWPACKAGE_DIR):
+            shutil.rmtree(FWUPDATE_FWPACKAGE_DIR)
+        os.mkdir(FWUPDATE_FWPACKAGE_DIR)
+
+    def untar_fwpackage(self):
+        if self.fwupdate_package_name is not None:
+            fwupdate_tar = tarfile.open(self.fwupdate_package_name)
+            fwupdate_tar.extractall(FWUPDATE_FWPACKAGE_DIR)
+            fwupdate_tar.close()
+            return True
+        return False
+
+    def get_fw_package_path(self):
+        for r, d, f in os.walk(FWUPDATE_FWPACKAGE_DIR):
+            for file in f:
+                if PLATFORM_COMPONENTS_FILE in file:
+                    self.fwupdate_fwimage_dir = os.path.join(r, os.path.dirname(file))
+        click.echo("fwupdate_fwimage_dir: {}".format(self.fwupdate_fwimage_dir))
+        return self.fwupdate_fwimage_dir
+
+    def cleanup_tmp_fwpackage(self):
+        shutil.rmtree(FWUPDATE_FWPACKAGE_DIR)
+        return
+
+
 class PlatformComponentsParser(object):
     """
     PlatformComponentsParser
     """
-    PLATFORM_COMPONENTS_FILE = "platform_components.json"
     PLATFORM_COMPONENTS_PATH_TEMPLATE = "{}/usr/share/sonic/device/{}/{}"
+    PLATFORM_COMPONENTS_FILE_PATH = None
 
     CHASSIS_KEY = "chassis"
     MODULE_KEY = "module"
@@ -297,11 +338,15 @@ class PlatformComponentsParser(object):
         self.__module_component_map = OrderedDict()
 
     def __get_platform_components_path(self, root_path):
-        return self.PLATFORM_COMPONENTS_PATH_TEMPLATE.format(
-            root_path,
-            device_info.get_platform(),
-            self.PLATFORM_COMPONENTS_FILE
-        )
+        if "{}".format(root_path).startswith(FWUPDATE_FWPACKAGE_DIR):
+            self.PLATFORM_COMPONENTS_FILE_PATH = os.path.join(root_path, PLATFORM_COMPONENTS_FILE)
+        else:
+            self.PLATFORM_COMPONENTS_FILE_PATH = self.PLATFORM_COMPONENTS_PATH_TEMPLATE.format(
+                root_path,
+                device_info.get_platform(),
+                PLATFORM_COMPONENTS_FILE
+            )
+        return self.PLATFORM_COMPONENTS_FILE_PATH
 
     def __is_str(self, obj):
         return isinstance(obj, str)
@@ -310,7 +355,7 @@ class PlatformComponentsParser(object):
         return isinstance(obj, dict)
 
     def __parser_fail(self, msg):
-        raise RuntimeError("Failed to parse \"{}\": {}".format(self.PLATFORM_COMPONENTS_FILE, msg))
+        raise RuntimeError("Failed to parse \"{}\": {}".format(PLATFORM_COMPONENTS_FILE, msg))
 
     def __parser_platform_fail(self, msg):
         self.__parser_fail("invalid platform schema: {}".format(msg))
@@ -545,11 +590,13 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
     def get_updates_status(self):
         status_table = [ ]
-        update_status_table = [ ]
+        auto_update_status_table = [ ]
 
         append_chassis_name = self.is_chassis_has_components()
         append_module_na = not self.is_modular_chassis()
         module_name = NA
+        update_utility = NA
+        is_chassis_component = True
 
         for chassis_name, chassis_component_map in self.chassis_component_map.items():
             for chassis_component_name, chassis_component in chassis_component_map.items():
@@ -578,6 +625,9 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     else:
                         status = self.FW_STATUS_UP_TO_DATE
 
+                    if self.__pcp.UTILITY_KEY in component:
+                        update_utility = component[self.__pcp.UTILITY_KEY]
+
                     status_table.append(
                         [
                             chassis_name if append_chassis_name else EMPTY,
@@ -589,13 +639,15 @@ class ComponentUpdateProvider(PlatformDataProvider):
                         ]
                     )
 
-                    update_status_table.append(
+                    auto_update_status_table.append(
                         [
+                            is_chassis_component,
                             chassis_name,
                             module_name,
                             chassis_component_name,
                             firmware_path,
                             firmware_version,
+                            update_utility,
                             status
                         ]
                     )
@@ -610,6 +662,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
+            is_chassis_component = False
             for module_name, module_component_map in self.module_component_map.items():
                 append_module_name = True
 
@@ -639,6 +692,9 @@ class ComponentUpdateProvider(PlatformDataProvider):
                         else:
                             status = self.FW_STATUS_UP_TO_DATE
 
+                        if self.__pcp.UTILITY_KEY in component:
+                            update_utility = component[self.__pcp.UTILITY_KEY]
+
                         status_table.append(
                             [
                                 chassis_name if append_chassis_name else EMPTY,
@@ -650,13 +706,15 @@ class ComponentUpdateProvider(PlatformDataProvider):
                             ]
                         )
 
-                        update_status_table.append(
+                        auto_update_status_table.append(
                             [
+                                is_chassis_component,
                                 chassis_name,
                                 module_name,
-                                chassis_component_name,
+                                module_component_name,
                                 firmware_path,
                                 firmware_version,
+                                update_utility,
                                 status
                             ]
                         )
@@ -667,10 +725,10 @@ class ComponentUpdateProvider(PlatformDataProvider):
                         if append_module_name:
                             append_module_name = False
 
-        return status_table, update_status_table
+        return status_table, auto_update_status_table
 
     def get_status(self):
-        status_table, update_status_table = self.get_updates_status()
+        status_table, auto_update_status_table = self.get_updates_status()
         if not status_table:
             return None
 
@@ -678,8 +736,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
     def get_update_available_components(self):
         update_available_components = []
-        status_table, update_status_table = self.get_updates_status()
-        for component_status in update_status_table:
+        status_table, auto_update_status_table = self.get_updates_status()
+        for component_status in auto_update_status_table:
             if component_status[-1] is self.FW_STATUS_UPDATE_REQUIRED:
                 update_available_components.append(component_status)
 
@@ -737,40 +795,51 @@ class ComponentUpdateProvider(PlatformDataProvider):
             raise
 
     def auto_update_firmware(self, component, boot):
+        is_chassis_component = component[-7]
         chassis_name = component[-6]
         module_name = component[-5]
         component_name = component[-4]
 
-        if self.is_modular_chassis():
-            component = self.module_component_map[module_name][component_name]
-            parser = self.__pcp.module_component_map[module_name][component_name]
-
-            component_path = "{}/{}/{}".format(chassis_name, module_name, component_name)
-        else:
+        if is_chassis_component:
             component = self.chassis_component_map[chassis_name][component_name]
             parser = self.__pcp.chassis_component_map[chassis_name][component_name]
-
             component_path = "{}/{}".format(chassis_name, component_name)
+        else:
+            component = self.module_component_map[module_name][component_name]
+            parser = self.__pcp.module_component_map[module_name][component_name]
+            component_path = "{}/{}/{}".format(chassis_name, module_name, component_name)
 
         if not parser:
             return
 
         firmware_path = parser[self.__pcp.FIRMWARE_KEY]
+        utility = parser[self.__pcp.UTILITY_KEY]
 
         if self.__root_path is not None:
             firmware_path = self.__root_path + firmware_path
 
+        if self.__root_path is not None:
+            utility = self.__root_path + utility
+
         try:
-            click.echo("Autoupdating firmware for {} with boot action {}".format(component_name, boot))
-            click.echo(TAB + firmware_path)
+            click.echo("{} firmware auto-update: {} with boot_type {}".format(component, firmware_path, boot))
             log_helper.log_fw_auto_update_start(component_path, firmware_path, boot)
-            component.auto_update_firmware(firmware_path, boot)
-            log_helper.log_fw_auto_update_end(component_path, firmware_path, True, boot)
+            if os.path.isfile(utility) and os.access(utility, os.X_OK):
+                cmd = "{} -a {} {}".format(
+                    utility,
+                    firmware_path,
+                    boot
+                )
+                status, info = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode(sys.stdout.encoding).strip().split(":")
+            else:
+                status, info = component.auto_update_firmware(firmware_path, boot).decode(sys.stdout.encoding).strip().split(":")
+            click.echo("{} firmware auto-update status : {} with {}".format(component_name, status, info))
+            log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, status, info)
         except KeyboardInterrupt:
-            log_helper.log_fw_auto_update_end(component_path, firmware_path, False, "Keyboard interrupt", boot)
+            log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, False, "Keyboard interrupt")
             raise
         except Exception as e:
-            log_helper.log_fw_auto_update_end(component_path, firmware_path, False, e, boot)
+            log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, False, e)
             raise
 
     def is_firmware_update_available(self, chassis_name, module_name, component_name):
