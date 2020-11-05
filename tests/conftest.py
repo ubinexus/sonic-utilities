@@ -71,9 +71,9 @@ def setup_single_broacom_asic():
 
 @pytest.fixture
 def setup_t1_topo():
-    mock_tables.dbconnector.topo = "t1"
+    dbconnector.topo = "t1"
     yield
-    mock_tables.dbconnector.topo = None
+    dbconnector.topo = None
 
 @pytest.fixture
 def setup_single_bgp_instance(request):
