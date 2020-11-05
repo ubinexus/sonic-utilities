@@ -138,5 +138,4 @@ swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keys
 mockredis.MockRedis.config_set = config_set
 redis.StrictRedis = SwssSyncClient
 SonicV2Connector.connect = connect_SonicV2Connector
-swsssdk.SonicV2Connector = SonicV2Connector
 swsscommon.SonicV2Connector = SonicV2Connector
