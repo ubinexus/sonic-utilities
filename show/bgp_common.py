@@ -1,13 +1,9 @@
-import commands
 import copy
 import ipaddress
 import json
-import re
 
-import click
 import utilities_common.multi_asic as multi_asic_util
 from sonic_py_common import multi_asic
-from utilities_common import constants
 
 # show ip(v6) route helper methods start
 # Helper routines to support print_ip_routes()
@@ -19,15 +15,10 @@ def get_status_output_char(info, nhp_i):
     elif "failed" in info:
         return "r"
     elif "installed" in info:
-        #print "info: {}, nhp_i:{}".format(info, nhp_i)
-        try:
-            if info['nexthops'][nhp_i]['flags'] & (1 << NH_F_IS_RECURSIVE) or info['nexthops'][nhp_i]['flags'] & (1 << NH_F_IS_DUPLICATE):
-                return " "
-            else:
-                return "*"
-        except:
-            print "info: {}, nhp_i:{}".format(info, nhp_i)
-            exit()
+        if info['nexthops'][nhp_i]['flags'] & (1 << NH_F_IS_RECURSIVE) or info['nexthops'][nhp_i]['flags'] & (1 << NH_F_IS_DUPLICATE):
+            return " "
+        else:
+            return "*"
 
     return ""
 
@@ -309,11 +300,11 @@ def show_routes(args, namespace, display, verbose, ipver):
     device = multi_asic_util.MultiAsic(display, namespace)
     arg_strg = ""
     found_json = 0
-    del_cnt = 0
     ns_l = []
     print_ns_str = False
     filter_back_end = False
     filter_by_ip = False
+    asic_cnt = 0
     if is_multi_asic:
         # handling multi-ASIC by gathering the output from specified/all name space into a dictionary via
         # jason option and then filter out the json entries (by removing those next Hop that are
@@ -326,10 +317,9 @@ def show_routes(args, namespace, display, verbose, ipver):
         # without any filtering.  But if display is for front-end only, then do filter and combine all output(merge same
         # routes from all namespace as additional nexthops)
         # This code is based on FRR 7.2 branch. If we moved to a new version we may need to change here as well
-        asic_cnt = multi_asic.get_num_asics()
         if display != "all":
             filter_back_end = True
-        if namespace == None:
+        if namespace is None:
             for name_s in device.get_ns_list_based_on_options():
                 ns_l.append(name_s)
             asic_cnt = len(ns_l)
@@ -340,7 +330,6 @@ def show_routes(args, namespace, display, verbose, ipver):
             ns_l.append(namespace)
             asic_cnt = 1
     else:
-        asic_cnt = 1
         ns_l.append(0)
 
     # build the filter set only if necessary
@@ -355,8 +344,7 @@ def show_routes(args, namespace, display, verbose, ipver):
             found_json = 1
         else:
             try:
-                temp = ipaddress.ip_network(arg)
-                filter_by_ip = True
+                filter_by_ip = ipaddress.ip_network(arg)
             except ValueError:
                 # Not ip address just ignore it
                 pass
