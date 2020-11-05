@@ -446,7 +446,7 @@ class TestConsutilLib(object):
     def test_sys_info_provider_list_active_console_processes(self):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         procs = SysInfoProvider.list_active_console_processes()
-        assert len(procs.keys()) == 1
+        assert len(list(procs.keys())) == 1
         assert "0" in procs.keys()
         assert procs["0"] == ("8", "Mon Nov  2 04:29:41 2020")
 

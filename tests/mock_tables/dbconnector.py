@@ -110,7 +110,7 @@ class SwssSyncClient(mockredis.MockRedis):
             with open(fname) as f:
                 js = json.load(f)
                 for k, v in js.items():
-                    if v.has_key('expireat') and v.has_key('ttl') and v.has_key('type') and v.has_key('value'):
+                    if 'expireat' in v and 'ttl' in v and 'type' in v and 'value' in v:
                         # database is in redis-dump format
                         if v['type'] == 'hash':
                             # ignore other types for now since sonic has hset keys only in the db
@@ -150,7 +150,7 @@ class SwssSyncClient(mockredis.MockRedis):
         regex = re.compile(regex)
 
         # Find every key that matches the pattern
-        return [key for key in self.redis.keys() if regex.match(key)]
+        return [key for key in list(self.redis.keys()) if regex.match(key)]
 
 
 swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification

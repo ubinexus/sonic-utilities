@@ -1647,7 +1647,7 @@ def show_sflow_interface(config_db):
     click.echo("\nsFlow interface configurations")
     header = ['Interface', 'Admin State', 'Sampling Rate']
     body = []
-    for pname in natsorted(port_tbl.keys()):
+    for pname in natsorted(list(port_tbl.keys())):
         intf_key = 'SFLOW_SESSION_TABLE:' + pname
         sess_info = sess_db.get_all(sess_db.APPL_DB, intf_key)
         if sess_info is None:

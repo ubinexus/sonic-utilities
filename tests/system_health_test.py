@@ -3,7 +3,7 @@ import os
 
 import click
 from click.testing import CliRunner
-import mock_tables.dbconnector
+from . import mock_tables.dbconnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
