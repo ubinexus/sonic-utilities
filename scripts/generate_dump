@@ -326,7 +326,7 @@ save_redis_info() {
 save_proc() {
     local procfiles="$@"
     $MKDIR $V -p $TARDIR/proc \
-	    && (for f in $procfiles; do ( [ -e $f ] && $CP $V -r $f $TARDIR/proc ) || echo "$f not found" > $TARDIR/$f; done) \
+        && (for f in $procfiles; do ( [ -e $f ] && $CP $V -r $f $TARDIR/proc ) || echo "$f not found" > $TARDIR/$f; done) \
         && $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc \
         && $RM $V -rf $TARDIR/proc
 }
