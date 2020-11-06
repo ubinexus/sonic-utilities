@@ -15,6 +15,7 @@ import feature
 import interfaces
 import kube
 import mlnx
+import muxcable
 import utilities_common.cli as clicommon
 import vlan
 import system_health
@@ -129,6 +130,7 @@ def cli(ctx):
 cli.add_command(feature.feature)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
+cli.add_command(muxcable.muxcable)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
 cli.add_command(fgnhg.fgnhg)

@@ -28,6 +28,7 @@ import console
 import feature
 import kube
 import mlnx
+import mmuxcable
 import nat
 import vlan
 from config_mgmt import ConfigMgmtDPB
@@ -884,6 +885,7 @@ config.add_command(aaa.tacacs)
 config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
+config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 
