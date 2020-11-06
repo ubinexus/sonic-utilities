@@ -156,5 +156,3 @@ def summary():
             port_status_dict["mux_cable"][key] = {"status": status_value}
 
     click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
-
-

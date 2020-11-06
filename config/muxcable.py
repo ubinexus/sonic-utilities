@@ -66,10 +66,9 @@ def muxcable():
 
 
 @muxcable.command()
-@click.argument('all', metavar='<operation_status>', required=False)
 @click.argument('status', metavar='<operation_status>', required=True, type=click.Choice(["standby", "active", "auto"]))
 @click.argument('port', metavar='<port_name>', required=False, default=None)
-def mode(all, status, port):
+def mode(status, port):
     """Show muxcable summary information"""
 
     state_db = {}
