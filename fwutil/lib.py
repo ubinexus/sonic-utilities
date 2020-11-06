@@ -5,6 +5,7 @@
 #
 
 try:
+    import glob
     import os
     import json
     import shutil
@@ -34,6 +35,7 @@ NEWLINE = "\n"
 PLATFORM_COMPONENTS_FILE = "platform_components.json"
 FWUPDATE_FWUPDATE_DIR = "/tmp/firmwareupdate/"
 FWUPDATE_FWPACKAGE_DIR = os.path.join(FWUPDATE_FWUPDATE_DIR, "fwpackage/")
+FWUPDATE_AU_TASK_FILE = "*_fw_auto_update"
 
 # ========================= Variables ==========================================
 
@@ -795,11 +797,13 @@ class ComponentUpdateProvider(PlatformDataProvider):
             raise
 
     def auto_update_firmware(self, component, boot):
-        is_chassis_component = component[-7]
-        chassis_name = component[-6]
-        module_name = component[-5]
-        component_name = component[-4]
+        is_chassis_component = component[0]
+        chassis_name = component[1]
+        module_name = component[2]
+        component_name = component[3]
+        utility = component[6]
 
+        click.echo("{} {} {} {}".format(is_chassis_component, chassis_name, module_name, boot))
         if is_chassis_component:
             component = self.chassis_component_map[chassis_name][component_name]
             parser = self.__pcp.chassis_component_map[chassis_name][component_name]
@@ -813,12 +817,11 @@ class ComponentUpdateProvider(PlatformDataProvider):
             return
 
         firmware_path = parser[self.__pcp.FIRMWARE_KEY]
-        utility = parser[self.__pcp.UTILITY_KEY]
 
         if self.__root_path is not None:
             firmware_path = self.__root_path + firmware_path
 
-        if self.__root_path is not None:
+        if self.__root_path is not None and utility is not None:
             utility = self.__root_path + utility
 
         try:
@@ -841,6 +844,15 @@ class ComponentUpdateProvider(PlatformDataProvider):
         except Exception as e:
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, False, e)
             raise
+
+    def is_first_auto_update(self, boot):
+        task_file = None
+        for task_file in glob.glob(os.path.join(FWUPDATE_FWUPDATE_DIR, FWUPDATE_AU_TASK_FILE)):
+            if task_file is not None:
+                click.echo("{} firmware auto-update is already performed, {} firmware auto update is not allowed any more".format(task_file, boot))
+                return False
+        click.echo("firmware auto-update for boot_type {} is allowed".format(boot))
+        return True
 
     def is_firmware_update_available(self, chassis_name, module_name, component_name):
         if self.is_modular_chassis():
