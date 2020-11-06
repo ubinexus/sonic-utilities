@@ -158,6 +158,3 @@ def summary():
     click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
 
 
-@muxcable.command()
-@click.argument('port', required=False, default=None)
-def config(port):
