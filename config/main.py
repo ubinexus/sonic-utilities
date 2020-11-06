@@ -1314,6 +1314,10 @@ def remove_portchannel(ctx, portchannel_name):
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
         db.set_entry('PORTCHANNEL', portchannel_name, None)
+        # VLAN_MEMBER will contain portchannel also
+        keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if v == portchannel_name ]
+        for k in keys:
+            db.set_entry('VLAN_MEMBER', k, None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
