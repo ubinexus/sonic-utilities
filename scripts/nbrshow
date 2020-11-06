@@ -49,7 +49,7 @@ class NbrBase(object):
 
     def __init__(self, cmd):
         super(NbrBase, self).__init__()
-        self.db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+        self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
