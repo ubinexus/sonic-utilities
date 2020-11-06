@@ -59,7 +59,7 @@ class TestSkuCreate(object):
 
         #Test case execution without stdout
         result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
-        print result
+        print(result)
 
         #Check if the Output file exists
         if (os.path.exists(output_file_path)):
