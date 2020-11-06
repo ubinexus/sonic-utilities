@@ -28,7 +28,7 @@ import console
 import feature
 import kube
 import mlnx
-import mmuxcable
+import muxcable
 import nat
 import vlan
 from config_mgmt import ConfigMgmtDPB
