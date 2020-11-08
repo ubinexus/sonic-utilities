@@ -31,6 +31,11 @@
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
+* [Console](#console)
+  * [Console show commands](#console-show-commands)
+  * [Console config commands](#console-config-commands)
+  * [Console connect commands](#console-connect-commands)
+  * [Console clear commands](#console-clear-commands)
 * [Container Auto-restart](#container-auto-restart)
   * [Container Auto-restart show commands](#container-auto-restart-show-commands)
   * [Container Auto-restart config command](#container-auto-restart-config-command)
@@ -108,6 +113,7 @@
 * [System State](#system-state)
   * [Processes](#processes)
   * [Services & Memory](#services--memory)
+* [System-Health](#System-Health)
 * [VLAN & FDB](#vlan--fdb)
   * [VLAN](#vlan)
     * [VLAN show commands](#vlan-show-commands)
@@ -139,6 +145,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
 | v3 | Jun-26-2019 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
 | v2 | Apr-22-2019 | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
@@ -1900,6 +1907,177 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
+
+## Console
+
+This section explains all Console show commands and configuration options that are supported in SONiC.
+
+All commands are used only when SONiC is used as console switch.
+
+All commands under this section are not applicable when SONiC used as regular switch.
+
+### Console show commands
+
+**show line**
+
+This command displays serial port or a virtual network connection status.
+
+- Usage:
+  ```
+  show line (-b|--breif)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show line
+  Line    Baud    PID    Start Time    Device
+  ------  ------  -----  ------------  --------
+      0       -      -             -
+      1    9600      -             -   switch1
+      2       -      -             -
+      3       -      -             -
+      4       -      -             -
+  ```
+
+Optionally, you can display configured console ports only by specifying the `-b` or `--breif` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ show line -b
+    Line    Baud    PID    Start Time    Device
+  ------  ------  -----  ------------  --------
+       1    9600      -             -   switch1
+  ```
+
+## Console config commands
+
+This sub-section explains the list of configuration options available for console management module.
+
+**config console add**
+
+This command is used to add a console port setting.
+
+- Usage:
+  ```
+  config console add <port_name> [--baud|-b <baud_rate>] [--flowcontrol|-f] [--devicename|-d <remote_device>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config console add 1 --baud 9600 --devicename switch1
+  ```
+
+**config console del**
+
+This command is used to remove a console port setting.
+
+- Usage:
+  ```
+  config console del <port_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console del 1
+  ```
+
+**config console remote_device**
+
+This command is used to update the remote device name for a console port.
+
+- Usage:
+  ```
+  config console remote_device <port_name> <remote_device>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console remote_device 1 switch1
+  ```
+
+**config console baud**
+
+This command is used to update the baud rate for a console port.
+
+- Usage:
+  ```
+  config console baud <port_name> <baud_rate>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console baud 1 9600
+  ```
+
+**config console flow_control**
+
+This command is used to enable or disable flow control feature for a console port.
+
+- Usage:
+  ```
+  config console flow_control {enable|disable} <port_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console flow_control enable 1
+  ```
+
+### Console connect commands
+
+**connect line**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  connect line <target> (-d|--devicename)
+  ```
+
+By default, the target is `port_name`.
+
+- Example:
+  ```
+  admin@sonic:~$ connect line 1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
+Optionally, you can connect with a remote device name by specifying the `-d` or `--devicename` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ connect line --devicename switch1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
+### Console clear commands
+
+**sonic-clear line**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  sonc-clear line <target> (-d|--devicename)
+  ```
+
+By default, the target is `port_name`.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear line 1
+  ```
+
+Optionally, you can clear with a remote device name by specifying the `-d` or `--devicename` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear --devicename switch1
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#console)
 
 ## Container Auto-restart
 
@@ -5921,25 +6099,192 @@ This command displays virtual address to the physical address translation status
   ----------  -----------------------------------
   ```
 
-**show line**
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
 
-This command displays serial port or a virtual network connection status.
-This command is used only when SONiC is used as console switch.
-This command is not applicable when SONiC used as regular switch.
-NOTE: This command is not working. It crashes as follows. A bug ticket is opened for this issue.
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
+
+### System-Health
+
+These commands are used to monitor the system current running services and hardware state.
+
+**show system-health summary**
+
+This command displays the current status of 'Services' and 'Hardware' under monitoring.
+If any of the elements under each of these two sections is 'Not OK' a proper message will appear under the relevant section.
 
 - Usage:
   ```
-  show line
+  show system-health summary
   ```
 
 - Example:
   ```
-  admin@sonic:~$ show line
+  admin@sonic:~$ show system-health summary
+  System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'sflowmgrd'
+  Hardware:
+    Status: OK
+  ```
+  ```
+  admin@sonic:~$ show system-health summary
+  System status summary
+
+  System status LED  green
+  Services:
+    Status: OK
+  Hardware:
+    Status: OK
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
+**show system-health monitor-list**
 
+This command displays a list of all current 'Services' and 'Hardware' being monitored, their status and type.
+
+- Usage:
+  ```
+  show system-health monitor-list
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show system-health monitor-list
+  System services and devices monitor list
+  
+  Name            Status    Type
+  --------------  --------  ----------
+  telemetry       Not OK    Process
+  orchagent       Not OK    Process
+  neighsyncd      OK        Process
+  vrfmgrd         OK        Process
+  dialout_client  OK        Process
+  zebra           OK        Process
+  rsyslog         OK        Process
+  snmpd           OK        Process
+  redis_server    OK        Process
+  intfmgrd        OK        Process
+  vxlanmgrd       OK        Process
+  lldpd_monitor   OK        Process
+  portsyncd       OK        Process
+  var-log         OK        Filesystem
+  lldpmgrd        OK        Process
+  syncd           OK        Process
+  sonic           OK        System
+  buffermgrd      OK        Process
+  portmgrd        OK        Process
+  staticd         OK        Process
+  bgpd            OK        Process
+  lldp_syncd      OK        Process
+  bgpcfgd         OK        Process
+  snmp_subagent   OK        Process
+  root-overlay    OK        Filesystem
+  fpmsyncd        OK        Process
+  sflowmgrd       OK        Process
+  vlanmgrd        OK        Process
+  nbrmgrd         OK        Process
+  PSU 2           OK        PSU
+  psu_1_fan_1     OK        Fan
+  psu_2_fan_1     OK        Fan
+  fan11           OK        Fan
+  fan10           OK        Fan
+  fan12           OK        Fan
+  ASIC            OK        ASIC
+  fan1            OK        Fan
+  PSU 1           OK        PSU
+  fan3            OK        Fan
+  fan2            OK        Fan
+  fan5            OK        Fan
+  fan4            OK        Fan
+  fan7            OK        Fan
+  fan6            OK        Fan
+  fan9            OK        Fan
+  fan8            OK        Fan
+  ```
+
+**show system-health detail**
+
+This command displays the current status of 'Services' and 'Hardware' under monitoring.
+If any of the elements under each of these two sections is 'Not OK' a proper message will appear under the relevant section.
+In addition, displays a list of all current 'Services' and 'Hardware' being monitored and a list of ignored elements.
+
+- Usage:
+  ```
+  show system-health detail
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show system-health detail
+  System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'orchagent'
+  Hardware:
+    Status: OK
+  
+  System services and devices monitor list
+  
+  Name            Status    Type
+  --------------  --------  ----------
+  telemetry       Not OK    Process
+  orchagent       Not OK    Process
+  neighsyncd      OK        Process
+  vrfmgrd         OK        Process
+  dialout_client  OK        Process
+  zebra           OK        Process
+  rsyslog         OK        Process
+  snmpd           OK        Process
+  redis_server    OK        Process
+  intfmgrd        OK        Process
+  vxlanmgrd       OK        Process
+  lldpd_monitor   OK        Process
+  portsyncd       OK        Process
+  var-log         OK        Filesystem
+  lldpmgrd        OK        Process
+  syncd           OK        Process
+  sonic           OK        System
+  buffermgrd      OK        Process
+  portmgrd        OK        Process
+  staticd         OK        Process
+  bgpd            OK        Process
+  lldp_syncd      OK        Process
+  bgpcfgd         OK        Process
+  snmp_subagent   OK        Process
+  root-overlay    OK        Filesystem
+  fpmsyncd        OK        Process
+  sflowmgrd       OK        Process
+  vlanmgrd        OK        Process
+  nbrmgrd         OK        Process
+  PSU 2           OK        PSU
+  psu_1_fan_1     OK        Fan
+  psu_2_fan_1     OK        Fan
+  fan11           OK        Fan
+  fan10           OK        Fan
+  fan12           OK        Fan
+  ASIC            OK        ASIC
+  fan1            OK        Fan
+  PSU 1           OK        PSU
+  fan3            OK        Fan
+  fan2            OK        Fan
+  fan5            OK        Fan
+  fan4            OK        Fan
+  fan7            OK        Fan
+  fan6            OK        Fan
+  fan9            OK        Fan
+  fan8            OK        Fan
+  
+  System services and devices ignore list
+  
+  Name         Status    Type
+  -----------  --------  ------
+  psu.voltage  Ignored   Device
+  ```
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
 
 ## VLAN & FDB
 
@@ -5949,7 +6294,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#System
 
 **show vlan brief**
 
-This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode and the DHCP Helper Address.
+This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode, the DHCP Helper Address, and the proxy ARP status
 
 - Usage:
   ```
@@ -5960,13 +6305,13 @@ This command displays brief information about all the vlans configured in the de
   ```
   admin@sonic:~$ show vlan brief
 
-  +-----------+--------------+-----------+----------------+-----------------------+
-  |   VLAN ID | IP Address   | Ports     | Port Tagging   | DHCP Helper Address   |
-  +===========+==============+===========+================+=======================+
-  |       100 | 1.1.2.2/16   | Ethernet0 | tagged         | 192.0.0.1             |
-  |           |              | Ethernet4 | tagged         | 192.0.0.2             |
-  |           |              |           |                | 192.0.0.3             |
-  +-----------+--------------+-----------+----------------+-----------------------+
+  +-----------+--------------+-----------+----------------+-----------------------+-------------+
+  |   VLAN ID | IP Address   | Ports     | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
+  +===========+==============+===========+================+=======================+=============+
+  |       100 | 1.1.2.2/16   | Ethernet0 | tagged         | 192.0.0.1             | disabled    |
+  |           |              | Ethernet4 | tagged         | 192.0.0.2             |             |
+  |           |              |           |                | 192.0.0.3             |             |
+  +-----------+--------------+-----------+----------------+-----------------------+-------------+
   ```
 
 **show vlan config**
@@ -6025,6 +6370,21 @@ This command is to add or delete a member port into the already created vlan.
 
   admin@sonic:~$ sudo config vlan member add 100 Ethernet4
   This command will add Ethernet4 as member of the vlan 100.
+  ```
+
+**config proxy_arp enabled/disabled**
+
+This command is used to enable or disable proxy ARP for a VLAN interface
+
+- Usage:
+  ```
+  config vlan proxy_arp <vlan_id> enabled/disabled
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config vlan proxy_arp 1000 enabled
+  This command will enable proxy ARP for the interface 'Vlan1000'
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)

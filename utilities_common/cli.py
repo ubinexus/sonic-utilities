@@ -1,10 +1,12 @@
 import os
 import re
-import sys
-import netaddr
 import subprocess
+import sys
 
 import click
+import json
+import netaddr
+
 from natsort import natsorted
 
 from utilities_common.db import Db
@@ -126,7 +128,7 @@ class InterfaceAliasConverter(object):
             self.config_db = db.cfgdb
             self.port_dict = self.config_db.get_table('PORT')
         self.alias_max_length = 0
-        
+
 
         if not self.port_dict:
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
@@ -261,6 +263,10 @@ def interface_is_in_vlan(vlan_member_table, interface_name):
             return True
 
     return False
+
+def is_valid_vlan_interface(config_db, interface):
+    """ Check an interface is a valid VLAN interface """
+    return interface in config_db.get_table("VLAN_INTERFACE")
 
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
@@ -499,3 +505,12 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     rc = proc.poll()
     if rc != 0:
         sys.exit(rc)
+
+
+def json_dump(data):
+    """
+    Dump data in JSON format
+    """
+    return json.dumps(
+        data, sort_keys=True, indent=2, ensure_ascii=False
+    )

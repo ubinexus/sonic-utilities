@@ -5,14 +5,7 @@
 # under scripts/. Consider stop using scripts and use console_scripts instead
 #
 # https://stackoverflow.com/questions/18787036/difference-between-entry-points-console-scripts-and-scripts-in-setup-py
-try:
-    import fastentrypoints
-except ImportError:
-    from setuptools.command import easy_install
-    import pkg_resources
-    easy_install.main(['fastentrypoints'])
-    pkg_resources.require('fastentrypoints')
-    import fastentrypoints
+import fastentrypoints
 
 from setuptools import setup
 
@@ -60,12 +53,14 @@ setup(
         'show': ['aliases.ini'],
         'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
+                  'counterpoll_input/*',
                   'mock_tables/*.py',
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
                   'mock_tables/asic1/*.json',
                   'filter_fdb_input/*',
-                  'pfcwd_input/*']
+                  'pfcwd_input/*',
+                  'wm_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -147,25 +142,30 @@ setup(
         ]
     },
     install_requires=[
-        'click',
-        'ipaddress',
+        'click==7.0',
+        'ipaddress==1.0.23',
         'jsondiff==1.2.0',
-        'm2crypto',
-        'natsort',
-        'pexpect',
-        'sonic-config-engine',
+        'm2crypto==0.31.0',
+        'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2
+        'netaddr==0.8.0',
+        'netifaces==0.10.7',
+        'pexpect==4.8.0',
         'sonic-py-common',
+        'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
-        'xmltodict==0.12.0'
+        'xmltodict==0.12.0',
+        'zipp==1.2.0'  # Need to pin this down for Python 2, for Python 3 we should be able to remove altogether
     ],
     setup_requires= [
-        'pytest-runner'
+        'pytest-runner',
+        'wheel'
     ],
     tests_require = [
         'pytest',
         'mock>=2.0.0',
-        'mockredispy>=2.9.3'
+        'mockredispy>=2.9.3',
+        'sonic-config-engine'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
