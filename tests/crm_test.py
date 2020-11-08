@@ -3,6 +3,7 @@ import sys
 
 from click.testing import CliRunner
 import crm.main as crm
+from utilities_common.db import Db
 
 # Expected output for CRM
 
@@ -117,6 +118,100 @@ crm_show_thresholds_nexthop_group_object = """\
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 nexthop_group    percentage                     70                85
+
+"""
+
+crm_new_show_summary = """\
+
+Polling Interval: 30 second(s)
+
+"""
+
+crm_new_show_thresholds_acl_group = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+acl_group        percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_acl_table = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+acl_table        percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_fdb = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+fdb_entry        percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipv4_neighbor = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipv4_neighbor    percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipv4_nexthop = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipv4_nexthop     percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipv4_route = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipv4_route       percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipv6_neighbor = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipv6_neighbor    percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipv6_nexthop = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipv6_nexthop     percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipv6_route= """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipv6_route       percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_nexthop_group_member = """\
+
+Resource Name         Threshold Type      Low Threshold    High Threshold
+--------------------  ----------------  ---------------  ----------------
+nexthop_group_member  percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_nexthop_group_object = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+nexthop_group    percentage                     60                90
 
 """
 
@@ -622,24 +717,49 @@ class TestCrm(object):
 
     def test_crm_show_summary(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'summary'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'summary'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_summary
+        result = runner.invoke(crm.cli, ['config', 'polling', 'interval', '30'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'summary'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_summary
 
     def test_crm_show_thresholds_acl_group(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'group'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'group'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_acl_group
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'group', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'group', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'group'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_acl_group
 
     def test_crm_show_thresholds_acl_table(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'table'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'table'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_acl_table
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'table', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'table', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'table'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_acl_table
 
     def test_crm_show_thresholds_all(self):
         runner = CliRunner()
@@ -650,66 +770,147 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_fdb(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'fdb'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'fdb'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_fdb
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'fdb', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'fdb', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'fdb'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_fdb
 
     def test_crm_show_thresholds_ipv4_neighbor(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'neighbor'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'neighbor'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_ipv4_neighbor
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'neighbor', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'neighbor', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'neighbor'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv4_neighbor
 
     def test_crm_show_thresholds_ipv4_nexthop(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'nexthop'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'nexthop'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_ipv4_nexthop
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'nexthop', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'nexthop', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv4_nexthop
 
     def test_crm_show_thresholds_ipv4_route(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'route'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'route'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_ipv4_route
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'route', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'route', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'route'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv4_route
 
     def test_crm_show_thresholds_ipv6_neighbor(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'neighbor'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'neighbor'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_ipv6_neighbor
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'neighbor', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'neighbor', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'neighbor'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv6_neighbor
 
     def test_crm_show_thresholds_ipv6_nexthop(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'nexthop'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'nexthop'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_ipv6_nexthop
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'nexthop', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'nexthop', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv6_nexthop
 
     def test_crm_show_thresholds_ipv6_route(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'route'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'route'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_ipv6_route
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'route', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'route', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'route'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv6_route
 
     def test_crm_show_thresholds_nexthop_group_member(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'member'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'member'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_nexthop_group_member
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'member', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'member', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'member'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_nexthop_group_member
 
     def test_crm_show_thresholds_nexthop_group_object(self):
         runner = CliRunner()
-        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'object'])
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'object'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_thresholds_nexthop_group_object
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'object', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'object', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'object'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_nexthop_group_object
 
     def test_crm_show_resources_acl_group(self):
         runner = CliRunner()
@@ -809,6 +1010,203 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         import mock_tables.mock_multi_asic
         mock_tables.dbconnector.load_namespace_config()
+
+    def test_crm_show_summary(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'summary'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_summary
+        result = runner.invoke(crm.cli, ['config', 'polling', 'interval', '30'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'summary'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_summary
+
+    def test_crm_show_thresholds_acl_group(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'group'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_acl_group
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'group', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'group', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'group'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_acl_group
+
+    def test_crm_show_thresholds_acl_table(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'table'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_acl_table
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'table', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'acl', 'table', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'table'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_acl_table
+
+    def test_crm_show_thresholds_all(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'all'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_all
+
+    def test_crm_show_thresholds_fdb(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'fdb'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_fdb
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'fdb', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'fdb', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'fdb'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_fdb
+
+    def test_crm_show_thresholds_ipv4_neighbor(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'neighbor'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipv4_neighbor
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'neighbor', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'neighbor', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'neighbor'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv4_neighbor
+
+    def test_crm_show_thresholds_ipv4_nexthop(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipv4_nexthop
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'nexthop', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'nexthop', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv4_nexthop
+
+    def test_crm_show_thresholds_ipv4_route(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'route'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipv4_route
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'route', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv4', 'route', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'route'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv4_route
+
+    def test_crm_show_thresholds_ipv6_neighbor(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'neighbor'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipv6_neighbor
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'neighbor', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'neighbor', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'neighbor'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv6_neighbor
+
+    def test_crm_show_thresholds_ipv6_nexthop(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipv6_nexthop
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'nexthop', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'nexthop', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv6_nexthop
+
+    def test_crm_show_thresholds_ipv6_route(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'route'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipv6_route
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'route', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipv6', 'route', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'route'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipv6_route
+
+    def test_crm_show_thresholds_nexthop_group_member(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'member'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_nexthop_group_member
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'member', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'member', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'member'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_nexthop_group_member
+
+    def test_crm_show_thresholds_nexthop_group_object(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'object'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_nexthop_group_object
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'object', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'nexthop', 'group', 'object', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'object'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_nexthop_group_object
 
     def test_crm_multi_asic_show_resources_acl_group(self):
         runner = CliRunner()

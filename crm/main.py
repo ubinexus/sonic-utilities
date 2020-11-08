@@ -7,12 +7,12 @@ from utilities_common import multi_asic as multi_asic_util
 from sonic_py_common import multi_asic
 
 class Crm:
-    def __init__(self):
+    def __init__(self, db=None):
         self.cli_mode = None
         self.addr_family = None
         self.res_type = None
         self.db = None
-        self.config_db = None
+        self.cfgdb = db
         self.multi_asic = multi_asic_util.MultiAsic()
 
     @multi_asic_util.run_on_multi_asic
@@ -20,6 +20,8 @@ class Crm:
         """
         CRM handler for 'config' CLI commands.
         """
+        if self.cfgdb:
+            self.config_db = self.cfgdb
         self.config_db.mod_entry("CRM", 'Config', {attr: val})
 
     def show_summary(self):
@@ -27,11 +29,13 @@ class Crm:
         CRM Handler to display general information.
         """
 
-        # Get the namespace list
-        namespaces = multi_asic.get_namespace_list()
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
 
-        configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
-        configdb.connect()
+            configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         crm_info = configdb.get_entry('CRM', 'Config')
 
@@ -45,11 +49,13 @@ class Crm:
         CRM Handler to display thresholds information.
         """
 
-        # Get the namespace list
-        namespaces = multi_asic.get_namespace_list()
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
 
-        configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
-        configdb.connect()
+            configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         crm_info = configdb.get_entry('CRM', 'Config')
 
@@ -190,8 +196,11 @@ def cli(ctx):
     """
     Utility entry point.
     """
+    # Use the db object if given as input.
+    db = None if ctx.obj is None else ctx.obj.cfgdb
+
     context = {
-        "crm": Crm()
+        "crm": Crm(db)
     }
 
     ctx.obj = context
