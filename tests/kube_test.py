@@ -1,5 +1,3 @@
-import os
-import sys
 from click.testing import CliRunner
 from utilities_common.db import Db
 
@@ -65,7 +63,6 @@ class TestKube(object):
 
     def test_kube_server(self, get_cmd_module):
         (config, show) = get_cmd_module
-        db = Db()
         runner = CliRunner()
 
         # Check server not configured
