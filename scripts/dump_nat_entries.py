@@ -9,7 +9,7 @@ import subprocess
 
 def main():
     ctdumpcmd = 'conntrack -L -j > /host/warmboot/nat/nat_entries.dump'
-    p = subprocess.Popen(ctdumpcmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(ctdumpcmd, shell=True, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (output, err) = p.communicate()
     rc = p.wait()
     
