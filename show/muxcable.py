@@ -22,10 +22,10 @@ def load_platform_sfputil():
     global platform_sfputil
 
     try:
-	import sonic_platform_base.sonic_sfp.sfputilhelper
-	platform_sfputil = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper()
+        import sonic_platform_base.sonic_sfp.sfputilhelper
+        platform_sfputil = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper()
     except Exception as e:
-	click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
+        click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
         return -1
 
 
@@ -91,22 +91,22 @@ def status(port, json_flag):
 
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
-	asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-	state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
-	y_cable_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "HW_MUX_CABLE_TABLE_NAME")
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
+        y_cable_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "HW_MUX_CABLE_TABLE_NAME")
         port_table_keys[asic_id] = y_cable_tbl[asic_id].getKeys()
 
     if port is not None:
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         click.echo("asic_index {} {} \n".format(asic_index, port))
-	if asic_index is None:
-	    click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+        if asic_index is None:
+            click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
             return
 
         y_cable_asic_table = y_cable_tbl.get(asic_index, None)
         if y_cable_asic_table is not None:
             y_cable_asic_table_keys = y_cable_asic_table.getKeys()
-	    if port in y_cable_asic_table_keys:
+            if port in y_cable_asic_table_keys:
 
                 if json_flag:
                     port_status_dict = {}
@@ -126,9 +126,9 @@ def status(port, json_flag):
 
                     click.echo(tabulate(data, headers=headers))
             else:
-		click.echo("this is not a valid port present on mux_cable".format(port))
-	else:
-	    click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+                click.echo("this is not a valid port present on mux_cable".format(port))
+        else:
+            click.echo("there is not a valid asic table for this asic_index".format(asic_index))
 
     else:
 
@@ -170,20 +170,20 @@ def config(port, json_flag):
 
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
-	asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-	config_db[asic_id] = swsscommon.DBConnector("CONFIG_DB", REDIS_TIMEOUT_MSECS, True, namespace)
-	#mux_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_MUX_CABLE_TABLE_NAME)
-	mux_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], "MUX_CABLE")
-	peer_switch_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], "PEER_SWITCH")
-	#peer_switch_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_PEER_SWITCH_TABLE_NAME)
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        config_db[asic_id] = swsscommon.DBConnector("CONFIG_DB", REDIS_TIMEOUT_MSECS, True, namespace)
+        #mux_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_MUX_CABLE_TABLE_NAME)
+        mux_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], "MUX_CABLE")
+        peer_switch_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], "PEER_SWITCH")
+        #peer_switch_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_PEER_SWITCH_TABLE_NAME)
         port_mux_tbl_keys[asic_id] = mux_tbl_cfg_db[asic_id].getKeys()
 
 
     if port is not None:
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         click.echo("asic_index {} {} \n".format(asic_index, port))
-	if asic_index is None:
-	    click.echo("Got invalid asic index for port {}, cant retreive mux config".format(port))
+        if asic_index is None:
+            click.echo("Got invalid asic index for port {}, cant retreive mux config".format(port))
             return
 
         port_status_dict = {}
@@ -193,7 +193,7 @@ def config(port, json_flag):
         port_mux_asic_table = mux_tbl_cfg_db.get(asic_index, None)
         if port_mux_asic_table is not None:
             port_mux_asic_table_keys = port_mux_asic_table.getKeys()
-	    if port in port_mux_asic_table_keys:
+            if port in port_mux_asic_table_keys:
 
                 if json_flag:
 
@@ -219,9 +219,9 @@ def config(port, json_flag):
 
                     click.echo(tabulate(data, headers=headers))
             else:
-		click.echo("this is not a valid port present on mux_cable".format(port))
-	else:
-	    click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+                click.echo("this is not a valid port present on mux_cable".format(port))
+        else:
+            click.echo("there is not a valid asic table for this asic_index".format(asic_index))
 
     else:
 
