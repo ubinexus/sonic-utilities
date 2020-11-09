@@ -78,7 +78,6 @@ def mode(state, port, json_flag):
     appl_db = {}
     y_cable_tbl = {}
     port_table_keys = {}
-    y_cable_response_tbl = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
 

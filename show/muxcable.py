@@ -198,7 +198,7 @@ def config(port, json_flag):
                 if json_flag:
 
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "state")
-                    port_status_dict["mux_cable"][port]= {"status":status_value}
+                    port_status_dict["mux_cable"][port]= {"status":state_value}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv4")
                     port_status_dict["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv6")
@@ -209,7 +209,7 @@ def config(port, json_flag):
                     print_data = {}
 
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "state")
-                    print_data["mux_cable"][port]= {"status":status_value}
+                    print_data["mux_cable"][port]= {"status":state_value}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv4")
                     print_data["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv6")
@@ -232,7 +232,7 @@ def config(port, json_flag):
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_mux_tbl_keys[asic_id]:
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "state")
-                    port_status_dict["mux_cable"][port]= {"status":status_value}
+                    port_status_dict["mux_cable"][port]= {"status":state_value}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv4")
                     port_status_dict["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv6")
@@ -245,7 +245,7 @@ def config(port, json_flag):
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_mux_tbl_keys[asic_id]:
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "state")
-                    print_data["mux_cable"][port]= {"status":status_value}
+                    print_data["mux_cable"][port]= {"status":state_value}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv4")
                     print_data["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv6")
