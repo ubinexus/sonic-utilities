@@ -1,9 +1,10 @@
-import sys
 import os
-import pytest
-import subprocess
 import re
 import shutil
+import subprocess
+import sys
+
+import pytest
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
