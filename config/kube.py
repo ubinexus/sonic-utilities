@@ -6,7 +6,6 @@ import netaddr
 
 from utilities_common.cli import AbbreviationGroup, pass_db
 from swsssdk import ConfigDBConnector
-from utilities_common.db import Db
 
 from .utils import log
 

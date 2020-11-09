@@ -4,7 +4,7 @@
 import os
 import click
 
-from utilities_common.cli import AbbreviationGroup, pass_db, run_command
+from utilities_common.cli import pass_db, run_command
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 
