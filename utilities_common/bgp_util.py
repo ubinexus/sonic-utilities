@@ -15,7 +15,7 @@ from utilities_common import constants
 def is_ipv4_address(ip_address):
     """
     Checks if given ip is ipv4
-    :param ip_address: unicode ipv4
+    :param ip_address: str ipv4
     :return: bool
     """
     try:
@@ -28,7 +28,7 @@ def is_ipv4_address(ip_address):
 def is_ipv6_address(ip_address):
     """
     Checks if given ip is ipv6
-    :param ip_address: unicode ipv6
+    :param ip_address: str ipv6
     :return: bool
     """
     try:
@@ -81,7 +81,7 @@ def get_bgp_neighbors_dict(namespace=multi_asic.DEFAULT_NAMESPACE):
 def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
     """
     return neighbor name for the ip provided
-    :param ip: ip address unicode
+    :param ip: ip address str
     :param static_neighbors: statically defined bgp neighbors dict
     :param dynamic_neighbors: subnet of dynamically defined neighbors dict
     :return: name of neighbor

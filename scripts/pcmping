@@ -14,6 +14,17 @@ import ipaddr as ipaddress
 import sys
 import swsssdk
 
+######################################################
+# TODO: Remove this once we no longer support Python 2
+import sys
+if sys.version_info.major == 3:
+    UNICODE_TYPE = str
+else:
+    UNICODE_TYPE = unicode
+# END   Remove this once we no longer support Python 2
+######################################################
+
+
 RCV_SIZE = 20480
 RCV_TIMEOUT = 10000
 SELECT_TIMEOUT = 2
@@ -50,11 +61,11 @@ def find_probe_packet(interface, dst_out, dst_in, sockets, exp_socket, max_iter)
     for x in range(0, max_iter):
         print("---------- Attempting to create probe packet that goes through %s, iteration: %d ---------" % (interface, x))
         ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
-        ip_src =ipaddress.IPv4Address(unicode(ip_src,'utf-8'))
-        while ip_src == ipaddress.IPv4Address(unicode(dst_in,'utf-8')) or \
+        ip_src =ipaddress.IPv4Address(UNICODE_TYPE(ip_src,'utf-8'))
+        while ip_src == ipaddress.IPv4Address(UNICODE_TYPE(dst_in,'utf-8')) or \
               ip_src.is_multicast or ip_src.is_private or ip_src.is_reserved:
             ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
-            ip_src = ipaddress.IPv4Address(unicode(ip_src,'utf-8'))
+            ip_src = ipaddress.IPv4Address(UNICODE_TYPE(ip_src,'utf-8'))
         inner_pkt = IP(src=ip_src, dst=dst_in, tos=tos, ttl=64, id=1, ihl=None,proto=4)/ICMP()
         inner_pkt = inner_pkt/("".join([chr(x%256) for x in xrange(PROBE_PACKET_LEN - len(inner_pkt))]))
         pkt = IP(src=src_out, dst=dst_out, tos=tos)/inner_pkt

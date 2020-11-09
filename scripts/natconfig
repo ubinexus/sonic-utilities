@@ -44,6 +44,16 @@ import sys
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
 
+######################################################
+# TODO: Remove this once we no longer support Python 2
+import sys
+if sys.version_info.major == 3:
+    UNICODE_TYPE = str
+else:
+    UNICODE_TYPE = unicode
+# END   Remove this once we no longer support Python 2
+######################################################
+
 class NatConfig(object):
 
     def __init__(self):
@@ -70,7 +80,7 @@ class NatConfig(object):
             nat_type = "dnat"
             twice_nat_id = "---"
 
-            if isinstance(key, unicode) is True:
+            if isinstance(key, UNICODE_TYPE) is True:
                 global_ip = key
             else:
                 continue
@@ -145,7 +155,7 @@ class NatConfig(object):
         for key,values in nat_pool_dict.items():
             global_port = "---"
 
-            if isinstance(key, unicode) is True:
+            if isinstance(key, UNICODE_TYPE) is True:
                 pool_name = key
             else:
                 continue
@@ -176,7 +186,7 @@ class NatConfig(object):
             nat_type = "snat"
             twice_nat_id = "---"
 
-            if isinstance(key, unicode) is True:
+            if isinstance(key, UNICODE_TYPE) is True:
                 binding_name = key
             else:
                 continue
@@ -214,7 +224,7 @@ class NatConfig(object):
             for key,values in interface_zone_dict.items():
                 zone = "0"
 
-                if isinstance(key, unicode) is False:
+                if isinstance(key, UNICODE_TYPE) is False:
                     continue
 
                 if "nat_zone" in values:

@@ -37,6 +37,16 @@ from swsssdk import port_util
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
+######################################################
+# TODO: Remove this once we no longer support Python 2
+import sys
+if sys.version_info.major == 3:
+    UNICODE_TYPE = str
+else:
+    UNICODE_TYPE = unicode
+# END   Remove this once we no longer support Python 2
+######################################################
+
 """
    Base class for v4 and v6 neighbor.
 """
@@ -130,7 +140,7 @@ class NbrBase(object):
             vlan = '-'
             if 'Vlan' in ent[2]:
                 vlanid = int(re.search(r'\d+', ent[2]).group())
-                mac = unicode(ent[1].upper())
+                mac = UNICODE_TYPE(ent[1].upper())
                 fdb_ent = next((fdb for fdb in self.bridge_mac_list[:]
                                if fdb[0] == vlanid and fdb[1] == mac), None)
                 vlan = vlanid
