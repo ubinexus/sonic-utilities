@@ -66,16 +66,16 @@ def muxcable():
 
     return
 
-# 'muxcable' command ("config muxcable mode <port> active|auto")
+# 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
-@click.argument('port', metavar='<port_name>', required= False, default = None)
-@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["standby","active","auto"]))
+@click.argument('port', metavar='<port_name>', required= True, default = None)
+@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active","auto"]))
 @click.option('--json','json_flag', required=False, is_flag=True, type=click.BOOL)
 def mode(state, port, json_flag):
     """Show muxcable summary information"""
 
     config_db = {}
-    appl_db = {}
+    state_db = {}
     y_cable_tbl = {}
     port_table_keys = {}
 
@@ -85,12 +85,14 @@ def mode(state, port, json_flag):
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
         config_db[asic_id] = swsscommon.DBConnector("CONFIG_DB", REDIS_TIMEOUT_MSECS, True, namespace)
-        appl_db[asic_id] = swsscommon.DBConnector("APPL_DB", REDIS_TIMEOUT_MSECS, True, namespace)
-        y_cable_tbl[asic_id] = swsscommon.Table(config_db[asic_id], "MUX_CABLE")
+        state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
+        #replace these with correct macros
+        y_cable_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "MUX_CABLE_TABLE")
+        y_cable_update_tbl[asic_id] = swsscommon.Table(config_db[asic_id], "MUX_CABLE")
         port_table_keys[asic_id] = y_cable_tbl[asic_id].getKeys()
 
 
-    if port is not None:
+    if port is not None and port != "all":
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         click.echo("asic_index {} \n".format(asic_index))
         if asic_index is None:
@@ -106,21 +108,21 @@ def mode(state, port, json_flag):
                 if status is not True:
                     click.echo("could not retrieve port values for port".format(port))
                 fvp = dict(fvs)
-                status_value = fvp.get("status",None)
-                if state == "active" and status_value == "active":
+                state_value = fvp.get("state",None)
+                if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active"):
                     # status is already active, so right back ok
                     fvs = swsscommon.FieldValuePairs([('status', 'Ok')])
-                    y_cable_tbl[asic_index].set(logical_port_name, fvs)
+                    y_cable_update_tbl[asic_index].set(logical_port_name, fvs)
                     port_status_dict = {'status': 'Ok'}
-                elif state == "active" and status_value == "standby":
+                elif state == "active" and state_value == "standby":
                     # Change of status recived, right back inprogress
                     fvs = swsscommon.FieldValuePairs([('status', 'inprogress')])
-                    y_cable_tbl[asic_index].set(logical_port_name, fvs)
+                    y_cable_update_tbl[asic_index].set(logical_port_name, fvs)
                     port_status_dict = {'status': 'inprogress'}
                 else:
                     #Everything else to be treated as failure
                     fvs = swsscommon.FieldValuePairs([('status', 'Failed')])
-                    y_cable_tbl[asic_index].set(logical_port_name, fvs)
+                    y_cable_update_tbl[asic_index].set(logical_port_name, fvs)
                     port_status_dict = {'status': 'Failed'}
 
                 if json_flag:
@@ -136,7 +138,7 @@ def mode(state, port, json_flag):
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
 
 
-    else:
+    elif port == "all" and port is not None:
 
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
@@ -146,21 +148,21 @@ def mode(state, port, json_flag):
                 if status is not True:
                     click.echo("could not retrieve port values for port".format(logical_port))
                 fvp = dict(fvs)
-                status_value = fvp.get("status",None)
-                if status == "active" and status_value == "active":
+                state_value = fvp.get("state",None)
+                if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active"):
                     # status is already active, so right back ok
                     fvs = swsscommon.FieldValuePairs([('status', 'Ok')])
-                    y_cable_tbl[asic_id].set(logical_port, fvs)
+                    y_cable_update_tbl[asic_id].set(logical_port, fvs)
                     port_status_dict[logical_port] = {'status': 'Ok'}
-                elif status == "active" and status_value == "standby":
+                elif state == "active" and state_value == "standby":
                     # Change of status recived, right back inprogress
                     fvs = swsscommon.FieldValuePairs([('status', 'inprogress')])
-                    y_cable_tbl[asic_id].set(logical_port, fvs)
+                    y_cable_update_tbl[asic_id].set(logical_port, fvs)
                     port_status_dict[logical_port] = {'status': 'inprogress'}
                 else:
                     #Everything else to be treated as failure
                     fvs = swsscommon.FieldValuePairs([('status', 'Failed')])
-                    y_cable_tbl[asic_id].set(logical_port, fvs)
+                    y_cable_update_tbl[asic_id].set(logical_port, fvs)
                     port_status_dict[logical_port] = {'status': 'Failed'}
 
                 if json_flag:
