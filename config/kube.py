@@ -4,9 +4,9 @@
 import click
 import netaddr
 
+from utilities_common.cli import AbbreviationGroup, pass_db
 from swsssdk import ConfigDBConnector
 from utilities_common.db import Db
-import utilities_common.cli as clicommon
 
 from .utils import log
 
@@ -28,10 +28,8 @@ KUBE_LABEL_SET_KEY = "SET"
 KUBE_LABEL_UNSET_KEY = "UNSET"
 
 
-def _update_kube_server(field, val):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    db_data = Db().get_data(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY)
+def _update_kube_server(db, field, val):
+    db_data = db.cfgdb.get_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY)
     def_data = {
         KUBE_SERVER_IP: "",
         KUBE_SERVER_PORT: "6443",
@@ -41,12 +39,12 @@ def _update_kube_server(field, val):
     for f in def_data:
         if db_data and f in db_data:
             if f == field and db_data[f] != val:
-                config_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {field: val})
+                db.cfgdb.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {field: val})
                 log.log_info("modify kubernetes server entry {}={}".format(field,val))
         else:
             # Missing field. Set to default or given value
             v = val if f == field else def_data[f]
-            config_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {f: v})
+            db.cfgdb.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {f: v})
             log.log_info("set kubernetes server entry {}={}".format(f,v))
 
 
@@ -75,7 +73,7 @@ def _label_node(name, val=""):
                     {name: "" })
 
 
-@click.group(cls=clicommon.AbbreviationGroup)
+@click.group(cls=AbbreviationGroup)
 def kubernetes():
     """kubernetes command line"""
     pass
@@ -91,40 +89,44 @@ def server():
 # cmd kubernetes server IP
 @server.command()
 @click.argument('vip')
-def ip(vip):
+@pass_db
+def ip(db, vip):
     """Specify a kubernetes cluster VIP"""
     if vip and not netaddr.IPAddress(vip):
         click.echo('Invalid IP address %s' % vip)
         return
-    _update_kube_server(KUBE_SERVER_IP, vip)
+    _update_kube_server(db, KUBE_SERVER_IP, vip)
 
 
 # cmd kubernetes server Port
 @server.command()
-@click.argument('port')
-def port(p):
+@click.argument('portval')
+@pass_db
+def port(db, portval):
     """Specify a kubernetes Service port"""
-    val = int(p)
+    val = int(portval)
     if (val <= 0) or (val >= (64 << 10)):
-        click.echo('Invalid port value %s' % p)
+        click.echo('Invalid port value %s' % portval)
         return
-    _update_kube_server(KUBE_SERVER_PORT, p)
+    _update_kube_server(db, KUBE_SERVER_PORT, portval)
 
 
 # cmd kubernetes server insecure
 @server.command()
 @click.argument('option', type=click.Choice(["on", "off"]))
-def insecure(option):
+@pass_db
+def insecure(db, option):
     """Specify a kubernetes cluster VIP access as insecure or not"""
-    _update_kube_server('insecure', option == "on")
+    _update_kube_server(db, 'insecure', option == "on")
 
 
 # cmd kubernetes server disable
 @server.command()
 @click.argument('option', type=click.Choice(["on", "off"]))
-def disable(option):
+@pass_db
+def disable(db, option):
     """Specify a kubernetes cluster VIP access is disabled or not"""
-    _update_kube_server('disable', option == "on")
+    _update_kube_server(db, 'disable', option == "on")
 
 
 # cmd kubernetes label

@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 import click
+
+from utilities_common.cli import AbbreviationGroup, pass_db, run_command
 from sonic_py_common import device_info
-from utilities_common.db import Db
-import utilities_common.cli as clicommon
 from swsssdk import ConfigDBConnector
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
@@ -32,7 +31,7 @@ def _print_entry(d, prefix=""):
 
 def run_kube_command(cmd):
     if os.path.exists(KUBE_ADMIN_CONF):
-        clicommon.run_command(KUBECTL_CMD.format(cmd))
+        run_command(KUBECTL_CMD.format(cmd))
     else:
         print("System not connected to cluster yet")
 
@@ -64,9 +63,10 @@ def status():
 
 
 @kubernetes.command()
-def server():
+@pass_db
+def server(db):
     """Show kube configuration"""
-    kube_fvs = Db().get_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
+    kube_fvs = db.cfgdb.get_entry(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
     state_db = ConfigDBConnector()
     state_db.db_connect("STATE_DB", wait_for_init=False, retry_on=True)
     state_data = state_db.get_table(REDIS_KUBE_TABLE)
