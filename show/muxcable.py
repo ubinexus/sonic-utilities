@@ -254,5 +254,3 @@ def config(port, json_flag):
             headers = ['port', 'status']
             data = sorted([(k,v) for k,v in print_data.items()])
             click.echo(tabulate(data, headers=headers))
-
-
