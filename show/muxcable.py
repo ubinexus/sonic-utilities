@@ -28,7 +28,6 @@ def load_platform_sfputil():
         click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
         return -1
 
-
     return 0
 
 
@@ -66,20 +65,21 @@ def muxcable():
 
     return
 
+
 def get_value_for_key_in_tbl(asic_table, port, key):
     (status, fvs) = asic_table.get(str(port))
     if status is not True:
         click.echo("could not retrieve port values for port".format(port))
         return None
     fvp = dict(fvs)
-    value = fvp.get(key,None)
+    value = fvp.get(key, None)
 
     return value
 
 
 @muxcable.command()
-@click.argument('port', required= False, default=None)
-@click.option('--json','json_flag', required=False, is_flag=True, type=click.BOOL)
+@click.argument('port', required=False, default=None)
+@click.option('--json', 'json_flag', required=False, is_flag=True, type=click.BOOL)
 def status(port, json_flag):
     """Show muxcable summary information"""
 
@@ -113,7 +113,7 @@ def status(port, json_flag):
                     port_status_dict["mux_cable"] = {}
 
                     status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
-                    port_status_dict["mux_cable"][port]= {"status":status_value}
+                    port_status_dict["mux_cable"][port] = {"status": status_value}
 
                     click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
                 else:
@@ -122,7 +122,7 @@ def status(port, json_flag):
                     status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
                     print_data[port] = status_value
                     headers = ['port', 'status']
-                    data = sorted([(k,v) for k,v in print_data.items()])
+                    data = sorted([(k, v) for k, v in print_data.items()])
 
                     click.echo(tabulate(data, headers=headers))
             else:
@@ -139,7 +139,7 @@ def status(port, json_flag):
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_table_keys[asic_id]:
                     status_value = get_value_for_key_in_tbl(y_cable_tbl[asic_id], port, "status")
-                    port_status_dict["mux_cable"][port]= {"status":status_value}
+                    port_status_dict["mux_cable"][port] = {"status": status_value}
 
             click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
         else:
@@ -151,13 +151,13 @@ def status(port, json_flag):
                     print_data[port] = status_value
 
             headers = ['port', 'status']
-            data = sorted([(k,v) for k,v in print_data.items()])
+            data = sorted([(k, v) for k, v in print_data.items()])
             click.echo(tabulate(data, headers=headers))
 
 
 @muxcable.command()
-@click.argument('port', required= False, default=None)
-@click.option('--json','json_flag', required=False, is_flag=True, type=click.BOOL)
+@click.argument('port', required=False, default=None)
+@click.option('--json', 'json_flag', required=False, is_flag=True, type=click.BOOL)
 def config(port, json_flag):
     click.echo("running config")
 
@@ -178,7 +178,6 @@ def config(port, json_flag):
         #peer_switch_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_PEER_SWITCH_TABLE_NAME)
         port_mux_tbl_keys[asic_id] = mux_tbl_cfg_db[asic_id].getKeys()
 
-
     if port is not None:
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         click.echo("asic_index {} {} \n".format(asic_index, port))
@@ -188,8 +187,9 @@ def config(port, json_flag):
 
         port_status_dict = {}
         port_status_dict["mux_cable"] = {}
+        port_status_dict["mux_cable"]["peer_switch"] = {}
         peer_switch_value = get_value_for_key_in_tbl(peer_switch_tbl_cfg_db[asic_index], port, "peer_switch")
-        port_status_dict["peer_switch"] = peer_switch_value
+        port_status_dict["mux_cable"]["peer_switch"] = peer_switch_value
         port_mux_asic_table = mux_tbl_cfg_db.get(asic_index, None)
         if port_mux_asic_table is not None:
             port_mux_asic_table_keys = port_mux_asic_table.getKeys()
@@ -197,27 +197,33 @@ def config(port, json_flag):
 
                 if json_flag:
 
+                    port_status_dict = {}
+                    port_status_dict["mux_cable"] = {}
+                    port_status_dict["mux_cable"]["PORTS"] = {}
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "state")
-                    port_status_dict["mux_cable"][port]= {"status":state_value}
+                    port_status_dict["mux_cable"]["PORTS"][port] = {"state": state_value}
+                    port_status_dict["mux_cable"]["PORTS"][port]["server"] = {}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv4")
-                    port_status_dict["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
+                    port_status_dict["mux_cable"]["PORTS"][port]["server"]["IPv4"] = ipv4_value
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv6")
-                    port_status_dict["mux_cable"][port]["server"]= {"IPv6":ipv6_value}
+                    port_status_dict["mux_cable"]["PORTS"][port]["server"]["IPv6"] = ipv6_value
 
                     click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
                 else:
-                    print_data = {}
-
+                    print_data = []
+                    port_list = []
+                    port_list.append(port)
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "state")
-                    print_data["mux_cable"][port]= {"status":state_value}
+                    port_list.append(state_value)
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv4")
-                    print_data["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
+                    port_list.append(ipv4_value)
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv6")
-                    print_data["mux_cable"][port]["server"]= {"IPv6":ipv6_value}
-                    headers = ['port', 'status']
-                    data = sorted([(k,v) for k,v in print_data.items()])
+                    port_list.append(ipv6_value)
+                    print_data.append(port_list)
 
-                    click.echo(tabulate(data, headers=headers))
+                    headers = ['port', 'state', 'ipv4', 'ipv6']
+                    click.echo(tabulate(print_data, headers=headers))
+
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
         else:
@@ -228,29 +234,33 @@ def config(port, json_flag):
         if json_flag:
             port_status_dict = {}
             port_status_dict["mux_cable"] = {}
+            port_status_dict["mux_cable"]["PORTS"] = {}
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_mux_tbl_keys[asic_id]:
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "state")
-                    port_status_dict["mux_cable"][port]= {"status":state_value}
+                    port_status_dict["mux_cable"]["PORTS"][port] = {"state": state_value}
+                    port_status_dict["mux_cable"]["PORTS"][port]["server"] = {}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv4")
-                    port_status_dict["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
+                    port_status_dict["mux_cable"]["PORTS"][port]["server"]["IPv4"] = ipv4_value
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv6")
-                    port_status_dict["mux_cable"][port]["server"]= {"IPv6":ipv6_value}
+                    port_status_dict["mux_cable"]["PORTS"][port]["server"]["IPv6"] = ipv6_value
 
             click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
         else:
-            print_data = {}
+            print_data = []
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_mux_tbl_keys[asic_id]:
+                    port_list = []
+                    port_list.append(port)
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "state")
-                    print_data["mux_cable"][port]= {"status":state_value}
+                    port_list.append(state_value)
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv4")
-                    print_data["mux_cable"][port]["server"]= {"IPv4":ipv4_value}
+                    port_list.append(ipv4_value)
                     ipv6_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv6")
-                    print_data["mux_cable"][port]["server"]= {"IPv6":ipv6_value}
+                    port_list.append(ipv6_value)
+                    print_data.append(port_list)
 
-            headers = ['port', 'status']
-            data = sorted([(k,v) for k,v in print_data.items()])
-            click.echo(tabulate(data, headers=headers))
+            headers = ['port', 'state', 'ipv4', 'ipv6']
+            click.echo(tabulate(print_data, headers=headers))
