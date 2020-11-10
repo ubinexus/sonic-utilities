@@ -205,9 +205,24 @@ class DBMigrator():
 
     def version_1_0_4(self):
         """
-        Current latest version. Nothing to do here.
+        Version 1_0_4.
         """
         log.log_info('Handling version_1_0_4')
+
+        # Check ASIC type, if Mellanox platform then need DB migration
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_4', 'version_1_0_5') and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_4', 'version_1_0_5'):
+                self.set_version('version_1_0_5')
+        else:
+            self.set_version('version_1_0_5')
+
+        return 'version_1_0_5'
+
+    def version_1_0_5(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_1_0_5')
 
         return None
 
