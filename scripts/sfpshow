@@ -232,12 +232,17 @@ class SFPShow(object):
                 out_put_dom = out_put_dom + out_put_channel
 
             #Channel Threshold
+            if sfp_type.startswith('QSFP-DD'):
+                dom_map = sfp_dom_channel_threshold_map
+            else:
+                dom_map = qsfp_dom_channel_threshold_map
+
             out_put_dom = (out_put_dom + ident + 'ChannelThresholdValues'
                                                              + newline_ident)
-            sorted_key_table = natsorted(qsfp_dom_channel_threshold_map)
+            sorted_key_table = natsorted(dom_map)
             out_put_channel_threshold = self.format_dict_value_to_string(
                                          sorted_key_table, dom_info_dict,
-                                         qsfp_dom_channel_threshold_map,
+                                         dom_map,
                                          dom_channel_threshold_unit_map,
                                          channel_threshold_align)
             out_put_dom = out_put_dom + out_put_channel_threshold
