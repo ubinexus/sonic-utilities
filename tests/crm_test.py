@@ -1007,8 +1007,9 @@ class TestCrmMultiAsic(object):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
-        import mock_tables.mock_multi_asic
-        mock_tables.dbconnector.load_namespace_config()
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        dbconnector.load_namespace_config()
 
     def test_crm_show_summary(self):
         runner = CliRunner()
@@ -1296,4 +1297,4 @@ class TestCrmMultiAsic(object):
         print("TEARDOWN")
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
-        import mock_tables.mock_single_asic
+        from .mock_tables import mock_single_asic
