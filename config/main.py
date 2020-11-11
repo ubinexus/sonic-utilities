@@ -3569,7 +3569,7 @@ def collector(ctx):
     """Add/Delete a sFlow collector"""
     pass
 
-def is_valid_collector_info(name, ip, port):
+def is_valid_collector_info(name, ip, port, vrf_name):
     if len(name) > 16:
         click.echo("Collector name must not exceed 16 characters")
         return False
@@ -3582,6 +3582,10 @@ def is_valid_collector_info(name, ip, port):
         click.echo("Invalid IP address")
         return False
 
+    if vrf_name != 'default' or vrf_name != 'mgmt':
+        click.echo("Only 'default' and 'mgmt' VRF are supported")
+        return false
+
     return True
 
 #
@@ -3590,6 +3594,8 @@ def is_valid_collector_info(name, ip, port):
 @collector.command()
 @click.option('--port', required=False, type=int, default=6343,
               help='Collector port number')
+@click.option('--vrf', required=False, type=str, default='default',
+              help='Collector VRF')
 @click.argument('name', metavar='<collector_name>', required=True)
 @click.argument('ipaddr', metavar='<IPv4/v6_address>', required=True)
 @click.pass_context
@@ -3597,7 +3603,7 @@ def add(ctx, name, ipaddr, port):
     """Add a sFlow collector"""
     ipaddr = ipaddr.lower()
 
-    if not is_valid_collector_info(name, ipaddr, port):
+    if not is_valid_collector_info(name, ipaddr, port, vrf):
         return
 
     config_db = ctx.obj['db']
@@ -3608,7 +3614,8 @@ def add(ctx, name, ipaddr, port):
         return
 
     config_db.mod_entry('SFLOW_COLLECTOR', name,
-                        {"collector_ip": ipaddr,  "collector_port": port})
+                        {"collector_ip": ipaddr,  "collector_port": port,
+                         "collector_vrf": vrf})
     return
 
 #
