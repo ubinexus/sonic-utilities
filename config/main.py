@@ -410,6 +410,16 @@ def interface_ipaddr_dependent_on_interface(config_db, interface_name):
             data.append(key)
     return data
 
+def get_intf_vrf_bind_unique_ip(db, interface_name, interface_type):
+    intfvrf = db.get_table(interface_type)
+    if interface_name in intfvrf:
+        if 'vrf_name' in intfvrf[interface_name]:
+            return intfvrf[interface_name]['vrf_name']
+        else:
+            return ""
+    else:
+        return ""
+
 def is_interface_bind_to_vrf(config_db, interface_name):
     """Get interface if bind to vrf or not
     """
