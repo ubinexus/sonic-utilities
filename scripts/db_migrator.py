@@ -217,6 +217,7 @@ class DBMigrator():
                 self.set_version('version_1_0_4')
         else:
             self.set_version('version_1_0_4')
+
         return 'version_1_0_4'
 
     def version_1_0_4(self):
