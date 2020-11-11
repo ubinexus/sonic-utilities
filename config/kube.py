@@ -47,29 +47,16 @@ def _update_kube_server(db, field, val):
             log.log_info("set kubernetes server entry {}={}".format(f,v))
 
 
-def _label_node(name, val=""):
-    state_db = ConfigDBConnector()
-    state_db.db_connect("STATE_DB", wait_for_init=False, retry_on=True)
-    ct_labels = state_db.get_entry(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY)
-    unset_labels = state_db.get_entry(KUBE_LABEL_TABLE, KUBE_LABEL_UNSET_KEY)
+def _label_node(dbconn, name, val=""):
+    set_key = "{}|{}".format(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY)
+    unset_key = "{}|{}".format(KUBE_LABEL_TABLE, KUBE_LABEL_UNSET_KEY)
+    client = dbconn.get_redis_client(dbconn.STATE_DB)
     if val:
-        if name not in ct_labels:
-            state_db.mod_entry(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY,
-                    {name: val})
-        elif (ct_labels[name] != val):
-            click.echo("Label value can't change.")
-            raise click.Abort()
-        if name in unset_labels:
-            del unset_labels[name]
-            state_db.set_entry(KUBE_LABEL_TABLE, KUBE_LABEL_UNSET_KEY,
-                    unset_labels)
+        client.hset(set_key, name, val)
+        client.hdel(unset_key, name)
     else:
-        if name in ct_labels:
-            del ct_labels[name]
-            state_db.set_entry(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY, ct_labels)
-        if name not in unset_labels:
-            state_db.mod_entry(KUBE_LABEL_TABLE, KUBE_LABEL_UNSET_KEY,
-                    {name: "" })
+        client.hdel(set_key, name)
+        client.hset(unset_key, name, "")
 
 
 @click.group(cls=AbbreviationGroup)
@@ -139,20 +126,22 @@ def label():
 @label.command()
 @click.argument('key', required=True)
 @click.argument('val', required=True)
-def add(key, val):
+@pass_db
+def add(db, key, val):
     """Add a label to this node"""
     if not key or not val:
         click.echo('Require key & val')
         return
-    _label_node(key, val)
+    _label_node(db.db, key, val)
 
 
 # cmd kubernetes label drop <key>
 @label.command()
 @click.argument('key', required=True)
-def drop(key):
+@pass_db
+def drop(db, key):
     """Drop a label from this node"""
     if not key:
         click.echo('Require key to drop')
         return
-    _label_node(key)
+    _label_node(db.db, key)
