@@ -301,6 +301,66 @@ def is_port_mirror_dst_port(config_db, port):
 
     return False
 
+#
+# Use this method to validate unicast IPv4 address
+#
+def is_ip4_addr_valid(addr, display):
+    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
+    try:
+        ip = ipaddress.ip_address(unicode(addr))
+        if (ip.version == 4):
+            if (ip.is_reserved):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 reserved address range.".format(addr))
+                return False
+            elif (ip.is_multicast):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 Multicast address range.".format(addr))
+                return False
+            elif (ip in v4_invalid_list):
+                if display:
+                    click.echo ("{} Not Valid.".format(addr))
+                return False
+            else:
+                return True
+
+        else:
+            if display:
+                click.echo ("{} Not Valid, Reason: Not an IPv4 address".format(addr))
+            return False
+
+    except ValueError:
+        return False
+
+def vni_id_is_valid(vni):
+    """Check if the vni id is in acceptable range (between 1 and 2^24)
+    """
+
+    if (vni < 1) or (vni > 16777215):
+        return False
+
+    return True
+
+def is_vni_vrf_mapped(ctx, vni):
+    """Check if the vni is mapped to vrf
+    """
+
+    found = 0
+    db = ctx.obj['db']
+    vrf_table = db.get_table('VRF')
+    vrf_keys = vrf_table.keys()
+    if vrf_keys is not None:
+      for vrf_key in vrf_keys:
+        if ('vni' in vrf_table[vrf_key] and vrf_table[vrf_key]['vni'] == vni):
+           found = 1
+           break
+
+    if (found == 1):
+        print "VNI {} mapped to Vrf {}, Please remove VRF VNI mapping".format(vni, vrf_key)
+        return False
+
+    return True
+
 def interface_has_mirror_config(mirror_table, interface_name):
     """Check if port is already configured with mirror config """
     for _,v in mirror_table.items():
