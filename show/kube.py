@@ -1,12 +1,9 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 
-import os
 import click
 
-from utilities_common.cli import pass_db, run_command
-from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector
+from utilities_common.cli import pass_db
 
 REDIS_KUBE_TABLE = 'KUBERNETES_MASTER'
 REDIS_KUBE_KEY = 'SERVER'
@@ -24,7 +21,7 @@ def _print_entry(d, prefix=""):
         for k in d:
             _print_entry(d[k], prefix + k)
     else:
-        print(prefix + str(d))
+        print((prefix + str(d)).strip())
 
 
 #

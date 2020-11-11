@@ -90,7 +90,7 @@ class TestKube(object):
         # Add IP & test show
         result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["ip", "10.10.10.11"], obj=db)
         self.__check_res(result, "set server IP", "")
-        
+
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
         self.__check_res(result, "check server IP", show_server_output_1)
 
@@ -103,7 +103,7 @@ class TestKube(object):
         # set insecure as True & test show
         result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["insecure", "off"], obj=db)
         self.__check_res(result, "set server insecure", "")
-        
+
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
         self.__check_res(result, "check server IP", show_server_output_2)
 
@@ -116,11 +116,11 @@ class TestKube(object):
         # set disable as True & test show
         result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["disable", "on"], obj=db)
         self.__check_res(result, "set server disable", "")
-        
+
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
         self.__check_res(result, "check server IP", show_server_output_3)
 
-    
+
     def test_set_port(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -129,11 +129,11 @@ class TestKube(object):
         # set port  to a different value & test show
         result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["port", "7777"], obj=db)
         self.__check_res(result, "set server port", "")
-        
+
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
         self.__check_res(result, "check server IP", show_server_output_4)
 
-    
+
     def test_kube_labels(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
@@ -150,12 +150,12 @@ class TestKube(object):
 
         # Add a label
         result = runner.invoke(config.config.commands["kubernetes"].commands["label"].commands["add"], ["hwsku", "Force10-S6000"], obj=db)
-        self.__check_res(result, "set server IP", "")
-        
+        self.__check_res(result, "set add label", "")
+
         # Drop a label
         result = runner.invoke(config.config.commands["kubernetes"].commands["label"].commands["drop"], ["teamd_enabled"], obj=db)
-        self.__check_res(result, "set server IP", "")
-        
+        self.__check_res(result, "set drop label", "")
+
         result = runner.invoke(show.cli.commands["kubernetes"].commands["labels"], [], obj=db)
         self.__check_res(result, "init server config test", non_empty_labels)
 

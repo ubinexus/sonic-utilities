@@ -5,7 +5,6 @@ import click
 import netaddr
 
 from utilities_common.cli import AbbreviationGroup, pass_db
-from swsssdk import ConfigDBConnector
 
 from .utils import log
 
