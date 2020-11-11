@@ -215,8 +215,8 @@ class DBMigrator():
         if self.asic_type == "mellanox":
             if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_3', 'version_1_0_4'):
                 self.set_version('version_1_0_4')
-
-        self.set_version('version_1_0_4')
+        else:
+            self.set_version('version_1_0_4')
         return 'version_1_0_4'
 
     def version_1_0_4(self):
@@ -224,6 +224,7 @@ class DBMigrator():
         Current latest version. Nothing to do here.
         """
         log.log_info('Handling version_1_0_4')
+
         return None
 
     def get_version(self):
