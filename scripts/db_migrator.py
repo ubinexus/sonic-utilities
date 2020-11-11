@@ -221,10 +221,9 @@ class DBMigrator():
 
     def version_1_0_4(self):
         """
-        Current latest version. Always perform copp table migration at current latest version
+        Current latest version. Nothing to do here.
         """
         log.log_info('Handling version_1_0_4')
-        self.migrate_copp_table()
         return None
 
     def get_version(self):
@@ -259,6 +258,7 @@ class DBMigrator():
             # Update all tables that do not exist in configDB but are present in INIT_CFG
             for init_table_key, init_table_val in table_val.items():
                 self.configDB.set_entry(init_cfg_table, init_table_key, init_table_val)
+        self.migrate_copp_table()
 
     def migrate(self):
         version = self.get_version()
