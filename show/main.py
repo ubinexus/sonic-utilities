@@ -126,13 +126,13 @@ def cli(ctx):
 
 
 # Add groups from other modules
+cli.add_command(chassis_modules.chassis_modules)
 cli.add_command(feature.feature)
+cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
-cli.add_command(fgnhg.fgnhg)
-cli.add_command(chassis_modules.chassis_modules)
 
 #
 # 'vrf' command ("show vrf")

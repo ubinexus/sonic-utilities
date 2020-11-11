@@ -874,12 +874,12 @@ def config(ctx):
 # Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(chassis_modules.chassis_modules)
 config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
-config.add_command(chassis_modules.chassis_modules)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
