@@ -3582,9 +3582,9 @@ def is_valid_collector_info(name, ip, port, vrf_name):
         click.echo("Invalid IP address")
         return False
 
-    if vrf_name != 'default' or vrf_name != 'mgmt':
+    if vrf_name != 'default' and vrf_name != 'mgmt':
         click.echo("Only 'default' and 'mgmt' VRF are supported")
-        return false
+        return False
 
     return True
 
@@ -3599,7 +3599,7 @@ def is_valid_collector_info(name, ip, port, vrf_name):
 @click.argument('name', metavar='<collector_name>', required=True)
 @click.argument('ipaddr', metavar='<IPv4/v6_address>', required=True)
 @click.pass_context
-def add(ctx, name, ipaddr, port):
+def add(ctx, name, ipaddr, port, vrf):
     """Add a sFlow collector"""
     ipaddr = ipaddr.lower()
 
