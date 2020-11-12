@@ -86,6 +86,7 @@ def mock_func(breakout_cfg_file, sonic_db):
     @Param: sonic_db [PyFixture], db.cfgdb -> Config DB.
     '''
     # stored mock funcs
+    print("We are mocking")
     mock_funcs[0] = config.device_info.get_path_to_port_config_file
     mock_funcs[1] = config.load_ConfigMgmt
     mock_funcs[2] = config.breakout_warnUser_extraTables
@@ -137,11 +138,10 @@ def config_mgmt_dpb(cfgdb):
     writeJson(portBreakOutConfigDbJson, config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE)
     cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
     # mock funcs
-    cmdpb.writeConfigDB = mock.MagicMock(return_value=True)
     cmdpb._verifyAsicDB = mock.MagicMock(return_value=True)
     return cmdpb
 
-class TestShowSflow(object):
+class TestConfigDPB(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
