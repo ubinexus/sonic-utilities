@@ -1,9 +1,9 @@
-import os
-import pytest
-import mock
 import json
-
+import os
 from imp import load_source
+
+import mock
+import pytest
 from click.testing import CliRunner
 from utilities_common.db import Db
 
