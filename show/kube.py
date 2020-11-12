@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import click
+from tabulate import tabulate
 
 from utilities_common.cli import pass_db
 
@@ -13,15 +14,15 @@ KUBE_LABEL_SET_KEY = "SET"
 KUBE_LABEL_UNSET_KEY = "UNSET"
 
 
-def _print_entry(d, prefix=""):
-    if prefix:
-        prefix += " "
+def _print_entry(data, fields):
+    header = []
+    body = []
 
-    if isinstance(d, dict):
-        for k in d:
-            _print_entry(d[k], prefix + k)
-    else:
-        print((prefix + str(d)).strip())
+    for (h, f, d) in fields:
+        header.append(h)
+        body.append(data[f] if f in data else d)
+
+    click.echo(tabulate([body,], header, disable_numparse=True)) 
 
 
 #
@@ -43,10 +44,18 @@ def server():
 @pass_db
 def config(db):
     """Show kube configuration"""
+
+    server_cfg_fields = [
+            # (<header name>, <field name>, <default val>)
+            ("ip", "ip" "", False),
+            ("port", "port", "6443"),
+            ("insecure", "insecure", "False"),
+            ("disable","disable", "False")
+            ]
+
     kube_fvs = db.cfgdb.get_entry(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
     if kube_fvs:
-        _print_entry(kube_fvs, "{} {}".format(
-            REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
+        _print_entry(kube_fvs, server_cfg_fields)
     else:
         print("Kubernetes server is not configured")
 
@@ -55,11 +64,19 @@ def config(db):
 @pass_db
 def status(db):
     """Show kube configuration"""
+    server_state_fields = [
+            # (<header name>, <field name>,  <default val>)
+            ("ip", "ip" "", False),
+            ("port", "port", "6443"),
+            ("connected", "connected", ""),
+            ("update-time", "update_time", "")
+            ]
+
+
     kube_fvs = db.db.get_all(db.db.STATE_DB,
             "{}|{}".format(REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
     if kube_fvs:
-        _print_entry(kube_fvs, "{} {}".format(
-            REDIS_KUBE_TABLE, REDIS_KUBE_KEY))
+        _print_entry(kube_fvs, server_state_fields)
     else:
         print("Kubernetes server has no status info")
 
@@ -67,12 +84,13 @@ def status(db):
 @kubernetes.command()
 @pass_db
 def labels(db):
-    ct_labels = db.db.get_all(db.db.STATE_DB,
+    label_hdr_fields = ["name", "value"]
+
+    body = []
+    labels = db.db.get_all(db.db.STATE_DB,
             "{}|{}".format(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY))
-    unset_labels = db.db.get_all(db.db.STATE_DB,
-            "{}|{}".format(KUBE_LABEL_TABLE, KUBE_LABEL_UNSET_KEY))
-    print("SET labels:")
-    _print_entry(ct_labels)
-    print("\nUNSET labels:")
-    _print_entry(unset_labels)
+    for (n,v) in labels.items():
+        body.append([n, v])
+
+    click.echo(tabulate([body,], label_hdr_fields, disable_numparse=True)) 
 

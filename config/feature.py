@@ -32,13 +32,13 @@ def feature_owner(db, name, owner):
 #
 # 'fallback' command ('config feature fallback ...')
 #
-@feature.command('no-fallback', short_help="set fallback for a feature")
+@feature.command('fallback', short_help="set fallback for a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
-@click.argument('no-fallback', metavar='<no-fallback>', required=True, type=click.Choice(["on", "off"]))
+@click.argument('fallback', metavar='<fallback>', required=True, type=click.Choice(["on", "off"]))
 @pass_db
-def feature_fallback(db, name, no_fallback):
-    """Set no_fallback for the feature"""
-    _update_field(db, name, "no_fallback_to_local", "true" if no_fallback == "on" else "false")
+def feature_fallback(db, name, fallback):
+    """Set fallback for the feature"""
+    _update_field(db, name, "no_fallback_to_local", "false" if fallback == "on" else "true")
 
 
 #
