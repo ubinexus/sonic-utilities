@@ -379,13 +379,15 @@ def fw_auto_update(ctx, boot, image=None, fw_image=None):
                 cup = ComponentUpdateProvider()
 
         if cup is not None:
-            if cup.is_first_auto_update(boot):
-                component_list = cup.get_update_available_components()
-                if component_list:
-                    for component in component_list:
-                        cup.auto_update_firmware(component, boot)
-                else:
-                    log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
+            au_component_list = cup.get_update_available_components()
+            if au_component_list:
+                if cup.is_first_auto_update(boot):
+                    for au_component in au_component_list:
+                        cup.auto_update_firmware(au_component, boot)
+                    log_helper.print_warning("All firmware auto-update has been performed")
+                    click.echo("All firmware auto-update has been performed")
+            else:
+                log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
         else:
             log_helper.print_warning("compoenet update package is not available")
     finally:
@@ -456,6 +458,18 @@ def status(ctx):
     try:
         csp = ComponentStatusProvider()
         click.echo(csp.get_status())
+    except Exception as e:
+        cli_abort(ctx, str(e))
+
+
+# 'auto_update_status' subcommand
+@show.command()
+@click.pass_context
+def auto_update_status(ctx):
+    """Show platform components auto firmware update status"""
+    try:
+        cup = ComponentUpdateProvider()
+        click.echo(cup.get_au_status())
     except Exception as e:
         cli_abort(ctx, str(e))
 
