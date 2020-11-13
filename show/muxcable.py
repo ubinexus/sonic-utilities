@@ -1,5 +1,4 @@
 import json
-import os
 import sys
 
 import click
@@ -27,6 +26,7 @@ def load_platform_sfputil():
     except Exception as e:
         click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
         return -1
+
 
     return 0
 
@@ -61,30 +61,29 @@ def muxcable():
 
     return
 
-
 def get_value_for_key_in_tbl(asic_table, port, key):
     (status, fvs) = asic_table.get(str(port))
     if status is not True:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, asic_table.getTableName))
-        return None
+        sys.exit(1)
     fvp = dict(fvs)
-    value = fvp.get(key, None)
+    value = fvp.get(key,None)
 
     return value
-
 
 def get_switch_name(config_db):
     metadata = swsscommon.Table(config_db, 'DEVICE_METADATA')
     switch_name = get_value_for_key_in_tbl(metadata, "localhost", "hostname")
     if switch_name is not None:
         return switch_name
-    return None
-
+    else:
+        click.echo("could not retreive switch name")
+        sys.exit(1)
 
 @muxcable.command()
-@click.argument('port', required=False, default=None)
-@click.option('--json', 'json_flag', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
-def status(port, json_flag):
+@click.argument('port', required= False, default=None)
+@click.option('--json','json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+def status(port, json_output):
     """Show muxcable status information"""
 
     state_db = {}
@@ -104,64 +103,78 @@ def status(port, json_flag):
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-            return
+            sys.exit(1)
 
         y_cable_asic_table = y_cable_tbl.get(asic_index, None)
         if y_cable_asic_table is not None:
             y_cable_asic_table_keys = y_cable_asic_table.getKeys()
             if port in y_cable_asic_table_keys:
 
-                if json_flag:
+                if json_output:
                     port_status_dict = {}
-                    port_status_dict["mux_cable"] = {}
+                    port_status_dict["MUX_CABLE"] = {}
 
                     status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
-                    port_status_dict["mux_cable"][port] = {"status": status_value}
+                    port_status_dict["MUX_CABLE"][port] = {}
+                    port_status_dict["MUX_CABLE"][port]["STATUS"] = status_value
+                    #TODO : Fix the health status of the port
+                    port_status_dict["MUX_CABLE"][port]["HEALTH"] = "HEALTHY"
 
                     click.echo("muxcable Ports status : \n{}".format(json.dumps(port_status_dict, indent=4)))
                 else:
-                    print_data = {}
+                    print_data = []
+                    print_port_data = []
 
                     status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
-                    print_data[port] = status_value
-                    headers = ['port', 'status']
-                    data = sorted([(k, v) for k, v in print_data.items()])
+                    print_port_data.append(port)
+                    print_port_data.append(status_value)
+                    print_port_data.append("HEALTHY")
+                    print_data.append(print_port_data)
 
-                    click.echo(tabulate(data, headers=headers))
+                    headers = ['PORT', 'STATUS', 'HEALTHY']
+
+                    click.echo(tabulate(print_data, headers=headers))
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
+                sys.exit(1)
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+            sys.exit(1)
 
     else:
 
-        if json_flag:
+        if json_output:
             port_status_dict = {}
-            port_status_dict["mux_cable"] = {}
+            port_status_dict["MUX_CABLE"] = {}
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_table_keys[asic_id]:
                     status_value = get_value_for_key_in_tbl(y_cable_tbl[asic_id], port, "status")
-                    port_status_dict["mux_cable"][port] = {"status": status_value}
+                    port_status_dict["MUX_CABLE"][port] = {}
+                    port_status_dict["MUX_CABLE"][port]["STATUS"] = status_value
+                    port_status_dict["MUX_CABLE"][port]["HEALTH"] = "HEALTHY"
 
             click.echo("muxcable Ports status : \n{}".format(json.dumps(port_status_dict, indent=4)))
         else:
-            print_data = {}
+            print_data = []
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_table_keys[asic_id]:
                     status_value = get_value_for_key_in_tbl(y_cable_tbl[asic_id], port, "status")
-                    print_data[port] = status_value
+                    print_port_data = []
+                    print_port_data.append(port)
+                    print_port_data.append(status_value)
+                    print_port_data.append("HEALTHY")
+                    print_data.append(print_port_data)
 
-            headers = ['port', 'status']
-            data = sorted([(k, v) for k, v in print_data.items()])
-            click.echo(tabulate(data, headers=headers))
+            headers = ['PORT', 'STATUS', 'HEALTHY']
+            click.echo(tabulate(print_data, headers=headers))
 
 
 @muxcable.command()
-@click.argument('port', required=False, default=None)
-@click.option('--json', 'json_flag', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
-def config(port, json_flag):
+@click.argument('port', required= False, default=None)
+@click.option('--json','json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+def config(port, json_output):
     """Show muxcable config information"""
 
     config_db = {}
@@ -184,33 +197,31 @@ def config(port, json_flag):
         #peer_switch_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_PEER_SWITCH_TABLE_NAME)
         port_mux_tbl_keys[asic_id] = mux_tbl_cfg_db[asic_id].getKeys()
 
+
     if port is not None:
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
-        click.echo("asic_index {} {} \n".format(asic_index, port))
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant retreive mux config".format(port))
-            return
+            sys.exit(1)
 
         port_status_dict = {}
         port_status_dict["MUX_CABLE"] = {}
         port_status_dict["MUX_CABLE"]["PEER_SWITCH"] = {}
         switch_name = get_switch_name(config_db[asic_start_idx])
-        click.echo(switch_name)
-        peer_switch_value = get_value_for_key_in_tbl(
-            peer_switch_tbl_cfg_db[asic_start_idx], switch_name, "address_ipv4")
+        peer_switch_value = get_value_for_key_in_tbl(peer_switch_tbl_cfg_db[asic_start_idx], switch_name, "address_ipv4")
         port_status_dict["MUX_CABLE"]["PEER_SWITCH"] = peer_switch_value
         port_mux_asic_table = mux_tbl_cfg_db.get(asic_index, None)
         if port_mux_asic_table is not None:
             port_mux_asic_table_keys = port_mux_asic_table.getKeys()
             if port in port_mux_asic_table_keys:
 
-                if json_flag:
-
+                if json_output:
+                    
                     port_status_dict = {}
                     port_status_dict["MUX_CABLE"] = {}
                     port_status_dict["MUX_CABLE"]["PORTS"] = {}
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "state")
-                    port_status_dict["MUX_CABLE"]["PORTS"][port] = {"STATE": state_value}
+                    port_status_dict["MUX_CABLE"]["PORTS"][port] = {"STATE":state_value}
                     port_status_dict["MUX_CABLE"]["PORTS"][port]["SERVER"] = {}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_index], port, "server_ipv4")
                     port_status_dict["MUX_CABLE"]["PORTS"][port]["SERVER"]["IPv4"] = ipv4_value
@@ -242,8 +253,10 @@ def config(port, json_flag):
 
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
+                sys.exit(1)
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+            sys.exit(1)
 
     else:
 
@@ -251,18 +264,16 @@ def config(port, json_flag):
         port_status_dict["MUX_CABLE"] = {}
         port_status_dict["MUX_CABLE"]["PEER_TOR"] = {}
         switch_name = get_switch_name(config_db[asic_start_idx])
-        click.echo(switch_name)
         if asic_start_idx is not None:
-            peer_switch_value = get_value_for_key_in_tbl(
-                peer_switch_tbl_cfg_db[asic_start_idx], switch_name, "address_ipv4")
+            peer_switch_value = get_value_for_key_in_tbl(peer_switch_tbl_cfg_db[asic_start_idx], switch_name, "address_ipv4")
             port_status_dict["MUX_CABLE"]["PEER_TOR"] = peer_switch_value
-        if json_flag:
+        if json_output:
             port_status_dict["MUX_CABLE"]["PORTS"] = {}
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in port_mux_tbl_keys[asic_id]:
                     state_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "state")
-                    port_status_dict["MUX_CABLE"]["PORTS"][port] = {"STATE": state_value}
+                    port_status_dict["MUX_CABLE"]["PORTS"][port] = {"STATE":state_value}
                     port_status_dict["MUX_CABLE"]["PORTS"][port]["SERVER"] = {}
                     ipv4_value = get_value_for_key_in_tbl(mux_tbl_cfg_db[asic_id], port, "server_ipv4")
                     port_status_dict["MUX_CABLE"]["PORTS"][port]["SERVER"]["IPv4"] = ipv4_value

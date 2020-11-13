@@ -28,13 +28,26 @@ def load_platform_sfputil():
         click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
         return -1
 
-
     return 0
 
+# Helper functions
+
+
+def get_value_for_key_in_tbl(asic_table, port, key):
+    (status, fvs) = asic_table.get(str(port))
+    if status is not True:
+        click.echo("could not retrieve key {} value for key {} inside table {}".format(key, port, asic_table.getTableName))
+        sys.exit(1)
+    fvp = dict(fvs)
+    value = fvp.get(key, None)
+
+    return value
 
 #
 # 'muxcable' command ("config muxcable")
 #
+
+
 @click.group(name='muxcable', cls=clicommon.AliasedGroup)
 def muxcable():
     """SONiC command line - 'show muxcable' command"""
@@ -66,17 +79,40 @@ def muxcable():
 
     return
 
+
+def lookup_statedb_and_update_configdb(y_cable_asic_table, y_cable_update_tbl, port, state_value, port_status_dict):
+
+    state = get_value_for_key_in_tbl(y_cable_asic_table, port, "state")
+    click.echo("state_value = {} {}".format(state_value, state))
+    if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active"):
+        # status is already active, so right back ok
+        fvs = swsscommon.FieldValuePairs([('state', 'Ok')])
+        y_cable_update_tbl.set(port, fvs)
+        port_status_dict[port] = 'OK'
+    elif state == "active" and state_value == "standby":
+        # Change of status recived, right back inprogress
+        fvs = swsscommon.FieldValuePairs([('state', 'inprogress')])
+        y_cable_update_tbl.set(port, fvs)
+        port_status_dict[port] = 'INPROGRESS'
+    else:
+        # Everything else to be treated as failure
+        fvs = swsscommon.FieldValuePairs([('state', 'Failed')])
+        y_cable_update_tbl.set(port, fvs)
+        port_status_dict[port] = 'FAILED'
+
+
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
-@click.argument('port', metavar='<port_name>', required= True, default = None)
-@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active","auto"]))
-@click.option('--json','json_flag', required=False, is_flag=True, type=click.BOOL)
+@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto"]))
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_flag', required=False, is_flag=True, type=click.BOOL)
 def mode(state, port, json_flag):
     """Show muxcable summary information"""
 
     config_db = {}
     state_db = {}
     y_cable_tbl = {}
+    y_cable_update_tbl = {}
     port_table_keys = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
@@ -86,57 +122,39 @@ def mode(state, port, json_flag):
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
         config_db[asic_id] = swsscommon.DBConnector("CONFIG_DB", REDIS_TIMEOUT_MSECS, True, namespace)
         state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
-        #replace these with correct macros
+        # replace these with correct macros
         y_cable_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "MUX_CABLE_TABLE")
         y_cable_update_tbl[asic_id] = swsscommon.Table(config_db[asic_id], "MUX_CABLE")
         port_table_keys[asic_id] = y_cable_tbl[asic_id].getKeys()
-
 
     if port is not None and port != "all":
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         click.echo("asic_index {} \n".format(asic_index))
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-            return
+            sys.exit(1)
 
         y_cable_asic_table = y_cable_tbl.get(asic_index, None)
         if y_cable_asic_table is not None:
             y_cable_asic_table_keys = y_cable_asic_table.getKeys()
             if port in y_cable_asic_table_keys:
                 port_status_dict = {}
-                (status, fvs) = y_cable_asic_table.get(str(port))
-                if status is not True:
-                    click.echo("could not retrieve port values for port".format(port))
-                fvp = dict(fvs)
-                state_value = fvp.get("state",None)
-                if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active"):
-                    # status is already active, so right back ok
-                    fvs = swsscommon.FieldValuePairs([('status', 'Ok')])
-                    y_cable_update_tbl[asic_index].set(logical_port_name, fvs)
-                    port_status_dict = {'status': 'Ok'}
-                elif state == "active" and state_value == "standby":
-                    # Change of status recived, right back inprogress
-                    fvs = swsscommon.FieldValuePairs([('status', 'inprogress')])
-                    y_cable_update_tbl[asic_index].set(logical_port_name, fvs)
-                    port_status_dict = {'status': 'inprogress'}
-                else:
-                    #Everything else to be treated as failure
-                    fvs = swsscommon.FieldValuePairs([('status', 'Failed')])
-                    y_cable_update_tbl[asic_index].set(logical_port_name, fvs)
-                    port_status_dict = {'status': 'Failed'}
+                lookup_statedb_and_update_configdb(
+                    y_cable_asic_table, y_cable_update_tbl[asic_index], port, state, port_status_dict)
 
                 if json_flag:
-                    click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
+                    click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                 else:
-                    headers = ['port', 'status']
-                    data = sorted([(k,v) for k,v in port_status_dict.items()])
+                    headers = ['port', 'state']
+                    data = sorted([(k, v) for k, v in port_status_dict.items()])
                     click.echo(tabulate(data, headers=headers))
 
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
+                sys.exit(1)
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
-
+            sys.exit(1)
 
     elif port == "all" and port is not None:
 
@@ -144,32 +162,12 @@ def mode(state, port, json_flag):
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for logical_port in port_table_keys[asic_id]:
                 port_status_dict = {}
-                (status, fvs) = y_cable_asic_table.get(str(logical_port))
-                if status is not True:
-                    click.echo("could not retrieve port values for port".format(logical_port))
-                fvp = dict(fvs)
-                state_value = fvp.get("state",None)
-                if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active"):
-                    # status is already active, so right back ok
-                    fvs = swsscommon.FieldValuePairs([('status', 'Ok')])
-                    y_cable_update_tbl[asic_id].set(logical_port, fvs)
-                    port_status_dict[logical_port] = {'status': 'Ok'}
-                elif state == "active" and state_value == "standby":
-                    # Change of status recived, right back inprogress
-                    fvs = swsscommon.FieldValuePairs([('status', 'inprogress')])
-                    y_cable_update_tbl[asic_id].set(logical_port, fvs)
-                    port_status_dict[logical_port] = {'status': 'inprogress'}
-                else:
-                    #Everything else to be treated as failure
-                    fvs = swsscommon.FieldValuePairs([('status', 'Failed')])
-                    y_cable_update_tbl[asic_id].set(logical_port, fvs)
-                    port_status_dict[logical_port] = {'status': 'Failed'}
+                lookup_statedb_and_update_configdb(
+                    y_cable_tbl[asic_id], y_cable_update_tbl[asic_id], logical_port, state, port_status_dict)
 
                 if json_flag:
-                    click.echo("muxcable Ports status : \n {}".format(json.dumps(port_status_dict, indent=4)))
+                    click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                 else:
-                    headers = ['port', 'status']
-                    data = sorted([(k,v) for k,v in port_status_dict.items()])
+                    headers = ['port', 'state']
+                    data = sorted([(k, v) for k, v in port_status_dict.items()])
                     click.echo(tabulate(data, headers=headers))
-
-
