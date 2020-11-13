@@ -1,6 +1,6 @@
-import click
 import sys
 
+import click
 from utilities_common.cli import AbbreviationGroup, pass_db
 
 #
