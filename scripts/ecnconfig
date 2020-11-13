@@ -232,7 +232,6 @@ def main():
     parser = argparse.ArgumentParser(description='Show and change:\n'
                                                  '1) ECN WRED configuration\n'
                                                  '2) ECN on/off status on queues',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('-l', '--list', action='store_true', help='show ECN WRED configuration')
@@ -246,6 +245,7 @@ def main():
     parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set max drop/mark probability for packets marked \'green\'', default=None)
     parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set max drop/mark probability for packets marked \'yellow\'', default=None)
     parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set max drop/mark probability for packets marked \'red\'', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
 
     parser.add_argument('command', nargs='?', choices=['on', 'off'], type=str, help='turn on/off ecn', default=None)

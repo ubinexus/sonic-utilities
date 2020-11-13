@@ -70,13 +70,13 @@ class portconfig(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',
-                         version='1.0.0',
                          formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--port', type=str, help='port name (e.g. Ethernet0)', required=True, default=None)
     parser.add_argument('-l', '--list', action='store_true', help='list port parametars', default=False)
     parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
     parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
     parser.add_argument('-m', '--mtu', type=int, help='port mtu value in bytes', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
                         help = 'The asic namespace whose DB instance we need to connect', default=None)

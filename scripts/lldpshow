@@ -177,7 +177,6 @@ class Lldpshow(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Display the LLDP neighbors',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
                                       Examples:
@@ -189,6 +188,7 @@ def main():
 
     parser.add_argument('-d', '--detail', action='store_true', help='LLDP neighbors detail information', default=False)
     parser.add_argument('-p', '--port', type=str, help='LLDP neighbors detail information for given port', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     lldp_detail_info = args.detail

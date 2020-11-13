@@ -196,12 +196,12 @@ class AclStat(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Display SONiC switch Acl Rules and Counters',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--all', action='store_true', help='Show all ACL counters')
     parser.add_argument('-c', '--clear', action='store_true', help='Clear ACL counters statistics')
     parser.add_argument('-r', '--rules', type=str, help='action by specific rules list: Rule1_Name,Rule2_Name', default=None)
     parser.add_argument('-t', '--tables', type=str, help='action by specific tables list: Table1_Name,Table2_Name', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     args = parser.parse_args()
 

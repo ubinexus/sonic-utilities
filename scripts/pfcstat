@@ -188,7 +188,6 @@ class Pfcstat(object):
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the pfc counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -211,6 +210,7 @@ Examples:
     parser.add_argument('-n', '--namespace', default=None,
         help='Display interfaces for specific namespace'
     )
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear

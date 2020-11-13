@@ -142,7 +142,6 @@ def print_statistics(interface, total_count, recv_count):
 
 def main():
     parser = argparse.ArgumentParser(description='Check portchannel member link state',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog=""" 
     Example:
@@ -156,6 +155,7 @@ def main():
     parser.add_argument('-ip','--decapip', type=str, required=True, help='Neighbor decap ip (usually same as neighbor loopback ip)') 
     parser.add_argument('-c', '--count', type=int, help='Number of decap packets to be sent.', default=0)
     parser.add_argument('-t', '--trial', type=int, help='Maximum attempt times to create probe packet.\nPlease increase the value as the number of portchannel members increases', default=20)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
     
     interface = args.interface

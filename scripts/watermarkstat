@@ -260,7 +260,6 @@ class Watermarkstat(object):
 def main():
 
     parser = argparse.ArgumentParser(description='Display the watermark counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -280,6 +279,7 @@ Examples:
     parser.add_argument('-t', '--type', required=True, action='store',
                         choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool'],
                         help='The type of watermark')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
     watermarkstat = Watermarkstat()
    

@@ -328,12 +328,14 @@ def deserialize_reason_list(list_str):
 
 def main():
     parser = argparse.ArgumentParser(description='Manage drop counters',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
 Examples:
   dropconfig
 """)
+
+    # Version
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     # Actions
     parser.add_argument('-c', '--command', type=str, help='Desired action to perform')

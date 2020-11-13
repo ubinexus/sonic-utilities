@@ -86,12 +86,12 @@ class MmuConfig(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Show and change: mmu configuration',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('-l', '--list', action='store_true', help='show mmu configuration')
     parser.add_argument('-p', '--profile', type=str, help='specify buffer profile name', default=None)
     parser.add_argument('-a', '--alpha', type=str, help='set n for dyanmic threshold alpha 2^(n)', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='verbose output', default=False)
 
     args = parser.parse_args()

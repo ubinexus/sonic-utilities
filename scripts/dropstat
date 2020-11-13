@@ -382,12 +382,14 @@ class DropStat(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Display drop counters',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
 Examples:
   dropstat
 """)
+
+    # Version
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     # Actions
     parser.add_argument('-c', '--command', type=str, help='Desired action to perform')

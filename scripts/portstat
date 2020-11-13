@@ -326,7 +326,6 @@ class Portstat(object):
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the ports state and counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Port state: (U)-Up (D)-Down (X)-Disabled
@@ -354,7 +353,8 @@ Examples:
     parser.add_argument('-p', '--period', type=int, help='Display stats over a specified period (in seconds).', default=0)
     parser.add_argument('-i', '--interface', type=str, help='Display stats for interface lists.', default=None)
     parser.add_argument('-s','--show',   default=constants.DISPLAY_EXTERNAL, help='Display all interfaces or only external interfaces')
-    parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
+    parser.add_argument('-n','--namespace', default=None, help='Display interfaces for specific namespace')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
