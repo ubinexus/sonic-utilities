@@ -1329,8 +1329,13 @@ def portchannel_member(ctx):
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
     db = ctx.obj['db']
+    portchannel_member_table = db.get_table('PORTCHANNEL_MEMBER')
     if clicommon.is_port_mirror_dst_port(db, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
+
+    # Check if the member interface given by user is already used. 
+    if interface_is_in_portchannel(portchannel_member_table, port_name) is True:
+         ctx.fail("Interface is already member of portchannel!")
 
     # Check if the member interface given by user is valid in the namespace.
     if interface_name_is_valid(db, port_name) is False:
