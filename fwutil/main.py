@@ -350,7 +350,6 @@ def fw_update(ctx, yes, force, image):
 @click.pass_context
 def fw_auto_update(ctx, boot, image=None, fw_image=None):
     """Update firmware from SONiC image"""
-    component_list = {}
     squashfs = None
     fwpackage = None
     cup = None
