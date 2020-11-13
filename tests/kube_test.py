@@ -1,59 +1,59 @@
 from click.testing import CliRunner
 from utilities_common.db import Db
 
+show_no_server_output="""\
+Kubernetes server is not configured
+"""
 show_server_output_0="""\
-KUBERNETES_MASTER SERVER ip 10.3.157.24
-KUBERNETES_MASTER SERVER insecure True
-KUBERNETES_MASTER SERVER disable False
-KUBERNETES_MASTER SERVER port 6443
+ip           port    insecure    disable
+-----------  ------  ----------  ---------
+10.3.157.24  6443    True        False
 """
 
 show_server_output_1="""\
-KUBERNETES_MASTER SERVER ip 10.10.10.11
-KUBERNETES_MASTER SERVER insecure True
-KUBERNETES_MASTER SERVER disable False
-KUBERNETES_MASTER SERVER port 6443
+ip           port    insecure    disable
+-----------  ------  ----------  ---------
+10.10.10.11  6443    True        False
 """
 
 show_server_output_2="""\
-KUBERNETES_MASTER SERVER ip 10.3.157.24
-KUBERNETES_MASTER SERVER insecure False
-KUBERNETES_MASTER SERVER disable False
-KUBERNETES_MASTER SERVER port 6443
+ip           port    insecure    disable
+-----------  ------  ----------  ---------
+10.3.157.24  6443    False       False
 """
 
 show_server_output_3="""\
-KUBERNETES_MASTER SERVER ip 10.3.157.24
-KUBERNETES_MASTER SERVER insecure True
-KUBERNETES_MASTER SERVER disable True
-KUBERNETES_MASTER SERVER port 6443
+ip           port    insecure    disable
+-----------  ------  ----------  ---------
+10.3.157.24  6443    True        True
 """
 
 show_server_output_4="""\
-KUBERNETES_MASTER SERVER ip 10.3.157.24
-KUBERNETES_MASTER SERVER insecure True
-KUBERNETES_MASTER SERVER disable False
-KUBERNETES_MASTER SERVER port 7777
+ip           port    insecure    disable
+-----------  ------  ----------  ---------
+10.3.157.24  7777    True        False
 """
 
 empty_server_status="""\
 Kubernetes server has no status info
 """
 
-empty_labels="""\
-SET labels:
-None
+non_empty_server_status="""\
+ip           port    connected    update-time
+-----------  ------  -----------  -------------------
+10.3.157.24  6443    false        2020-11-13 00:49:05
+"""
 
-UNSET labels:
-None
+empty_labels="""\
+name    value
+------  -------
 """
 
 non_empty_labels="""\
-SET labels:
-hwsku Force10-S6000
-
-UNSET labels:
-teamd_enabled
+name           value
+-------------  -------------
+hwsku          Force10-S6000
+teamd_enabled  false
 """
 
 class TestKube(object):
@@ -65,8 +65,8 @@ class TestKube(object):
     def __check_res(self, result, info, op):
         print("Running test: {}".format(info))
         print result.exit_code
-        print result.output
         assert result.exit_code == 0
+        print result.output
         assert result.output == op
 
 
@@ -80,6 +80,31 @@ class TestKube(object):
 
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["status"])
         self.__check_res(result, "init server status test", empty_server_status)
+
+    def test_no_kube_server(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        db = Db()
+
+        db.cfgdb.delete_table("KUBERNETES_MASTER")
+
+        # Check server not configured
+        result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
+        self.__check_res(result, "null server config test", show_no_server_output)
+
+
+    def test_kube_server_status(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        db = Db()
+        dbconn = db.db
+
+        for (k, v) in [ ("ip", "10.3.157.24"), ("port", "6443"),
+                ("connected", "false"), ("update_time", "2020-11-13 00:49:05")]:
+            dbconn.set(dbconn.STATE_DB, "KUBERNETES_MASTER|SERVER", k, v)
+
+        result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["status"], [], obj=db)
+        self.__check_res(result, "init server status test", non_empty_server_status)
 
 
     def test_set_server_ip(self, get_cmd_module):
@@ -138,9 +163,9 @@ class TestKube(object):
         (config, show) = get_cmd_module
         runner = CliRunner()
 
-        # Check server not configured
+        # Check for no labels
         result = runner.invoke(show.cli.commands["kubernetes"].commands["labels"])
-        self.__check_res(result, "init server config test", empty_labels)
+        self.__check_res(result, "no labels", empty_labels)
 
 
     def test_set_kube_labels(self, get_cmd_module):
@@ -157,7 +182,7 @@ class TestKube(object):
         self.__check_res(result, "set drop label", "")
 
         result = runner.invoke(show.cli.commands["kubernetes"].commands["labels"], [], obj=db)
-        self.__check_res(result, "init server config test", non_empty_labels)
+        self.__check_res(result, "Test labels", non_empty_labels)
 
 
     @classmethod

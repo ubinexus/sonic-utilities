@@ -23,7 +23,6 @@ KUBE_STATE_SERVER_TS = "last_update_ts"
 
 KUBE_LABEL_TABLE = "KUBE_LABELS"
 KUBE_LABEL_SET_KEY = "SET"
-KUBE_LABEL_UNSET_KEY = "UNSET"
 
 
 def _update_kube_server(db, field, val):
@@ -46,16 +45,10 @@ def _update_kube_server(db, field, val):
             log.log_info("set kubernetes server entry {}={}".format(f,v))
 
 
-def _label_node(dbconn, name, val=""):
+def _label_node(dbconn, name, val=None):
     set_key = "{}|{}".format(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY)
-    unset_key = "{}|{}".format(KUBE_LABEL_TABLE, KUBE_LABEL_UNSET_KEY)
     client = dbconn.get_redis_client(dbconn.STATE_DB)
-    if val:
-        client.hset(set_key, name, val)
-        client.hdel(unset_key, name)
-    else:
-        client.hdel(set_key, name)
-        client.hset(unset_key, name, "")
+    client.hset(set_key, name, val if val else "false")
 
 
 @click.group(cls=AbbreviationGroup)
@@ -79,7 +72,7 @@ def ip(db, vip):
     """Specify a kubernetes cluster VIP"""
     if vip and not netaddr.IPAddress(vip):
         click.echo('Invalid IP address %s' % vip)
-        return
+        sys.exit(1)
     _update_kube_server(db, KUBE_SERVER_IP, vip)
 
 
@@ -92,7 +85,7 @@ def port(db, portval):
     val = int(portval)
     if (val <= 0) or (val >= (64 << 10)):
         click.echo('Invalid port value %s' % portval)
-        return
+        sys.exit(1)
     _update_kube_server(db, KUBE_SERVER_PORT, portval)
 
 
@@ -128,9 +121,6 @@ def label():
 @pass_db
 def add(db, key, val):
     """Add a label to this node"""
-    if not key or not val:
-        click.echo('Require key & val')
-        return
     _label_node(db.db, key, val)
 
 
@@ -140,7 +130,4 @@ def add(db, key, val):
 @pass_db
 def drop(db, key):
     """Drop a label from this node"""
-    if not key:
-        click.echo('Require key to drop')
-        return
     _label_node(db.db, key)

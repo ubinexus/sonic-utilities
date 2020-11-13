@@ -14,6 +14,7 @@ def _update_field(db, name, fld, val):
     tbl = db.cfgdb.get_table('FEATURE')
     if name not in tbl:
         click.echo("Unable to retrieve {} from FEATURE table".format(name))
+        sys.exit(1)
     db.cfgdb.mod_entry('FEATURE', name, { fld: val })
     
 

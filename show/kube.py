@@ -11,7 +11,6 @@ REDIS_KUBE_KEY = 'SERVER'
 
 KUBE_LABEL_TABLE = "KUBE_LABELS"
 KUBE_LABEL_SET_KEY = "SET"
-KUBE_LABEL_UNSET_KEY = "UNSET"
 
 
 def _print_entry(data, fields):
@@ -84,13 +83,13 @@ def status(db):
 @kubernetes.command()
 @pass_db
 def labels(db):
-    label_hdr_fields = ["name", "value"]
+    header = ["name", "value"]
 
     body = []
     labels = db.db.get_all(db.db.STATE_DB,
             "{}|{}".format(KUBE_LABEL_TABLE, KUBE_LABEL_SET_KEY))
-    for (n,v) in labels.items():
-        body.append([n, v])
-
-    click.echo(tabulate([body,], label_hdr_fields, disable_numparse=True)) 
+    if labels:
+        for (n,v) in labels.items():
+            body.append([n, v])
+    click.echo(tabulate(body, header, disable_numparse=True)) 
 
