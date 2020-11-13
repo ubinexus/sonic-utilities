@@ -117,7 +117,7 @@ class TestFilterFdbEntries(object):
 
         fdbMap = defaultdict()
         for fdb in fdbEntries:
-            for key, config in list(fdb.items()):
+            for key, config in fdb.items():
                 if "FDB_TABLE" in key:
                     fdbMap[key] = fdb
 
@@ -141,12 +141,12 @@ class TestFilterFdbEntries(object):
         if isEqual:
             for expectedFdbEntry in expectedFdbEntries:
                 fdbEntry = {}
-                for key, config in list(expectedFdbEntry.items()):
+                for key, config in expectedFdbEntry.items():
                     if "FDB_TABLE" in key:
                         fdbEntry = fdbMap[key]
 
                 isEqual = len(fdbEntry) == len(expectedFdbEntry)
-                for key, config in list(expectedFdbEntry.items()):
+                for key, config in expectedFdbEntry.items():
                     isEqual = isEqual and fdbEntry[key] == config
 
                 if not isEqual:

@@ -85,7 +85,7 @@ def _get_breakout_options(ctx, args, incomplete):
     else:
         breakout_file_input = readJsonFile(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
-            breakout_mode_list = [v["breakout_modes"] for i, v in list(breakout_file_input[INTF_KEY].items()) if i == interface_name][0]
+            breakout_mode_list = [v["breakout_modes"] for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
             breakout_mode_options = []
             for i in breakout_mode_list.split(','):
                     breakout_mode_options.append(i)
