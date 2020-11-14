@@ -1,5 +1,4 @@
-#!/usr/bin/env python -u
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3 -u
 
 import click
 

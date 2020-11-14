@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """"
 Description: dump_nat_entries.py -- dump conntrack nat entries from kernel into a file
