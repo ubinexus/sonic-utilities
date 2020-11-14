@@ -118,7 +118,7 @@ class Queuestat(object):
             fields[0] = get_queue_index(table_id)
             fields[1] = get_queue_type(table_id)
 
-            for counter_name, pos in counter_bucket_dict.iteritems():
+            for counter_name, pos in counter_bucket_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
                 if counter_data is None:
@@ -143,7 +143,7 @@ class Queuestat(object):
         """
         table = []
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
                 continue
             table.append((port, data.queuetype + str(data.queueindex),
@@ -159,7 +159,7 @@ class Queuestat(object):
         """
         table = []
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 continue
             old_cntr = None

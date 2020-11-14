@@ -132,7 +132,7 @@ class Intfstat(object):
         """
         table = []
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
                 continue
 
@@ -152,7 +152,7 @@ class Intfstat(object):
 
         table = []
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
                 time_gap = time_gap.total_seconds()

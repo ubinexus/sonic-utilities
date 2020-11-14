@@ -242,7 +242,7 @@ def po_speed_dict(po_int_dict, appl_db):
     """
     if po_int_dict:
         po_list = []
-        for key, value in po_int_dict.iteritems():
+        for key, value in po_int_dict.items():
             agg_speed_list =  []
             po_list.append(key)
             if len(value) == 1:
@@ -393,7 +393,7 @@ class IntfStatus(object):
                                 state_db_port_optics_get(self.db, key, PORT_OPTICS_TYPE),
                                 appl_db_port_status_get(self.db, key, PORT_PFC_ASYM_STATUS)))
 
-            for po, value in self.portchannel_speed_dict.iteritems():
+            for po, value in self.portchannel_speed_dict.items():
                 if po:
                     if self.multi_asic.skip_display(constants.PORT_CHANNEL_OBJ, po):
                         continue

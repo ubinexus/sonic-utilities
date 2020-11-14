@@ -91,7 +91,7 @@ def get_portchannel(interface):
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     portchannels = configdb.get_table("PORTCHANNEL")
-    for key, value in portchannels.iteritems():
+    for key, value in portchannels.items():
         if interface in value['members']:
             return key, value
     sys.stderr.write("Interface %s is not a portchannel member. Please Check!\n" % interface)

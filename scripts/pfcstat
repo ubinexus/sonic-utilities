@@ -89,7 +89,7 @@ class Pfcstat(object):
                 bucket_dict = counter_bucket_rx_dict
             else:
                 bucket_dict = counter_bucket_tx_dict
-            for counter_name, pos in bucket_dict.iteritems():
+            for counter_name, pos in bucket_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(
                     self.db.COUNTERS_DB, full_table_id, counter_name
@@ -137,7 +137,7 @@ class Pfcstat(object):
         """
         table = []
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
                 continue
             table.append((key,
@@ -157,7 +157,7 @@ class Pfcstat(object):
         """
         table = []
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 continue
             old_cntr = None

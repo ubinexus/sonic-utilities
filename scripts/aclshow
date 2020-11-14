@@ -94,7 +94,7 @@ class AclStat(object):
         """
 
         def lowercase_keys(dictionary):
-            return dict((k.lower(), v) for k,v in dictionary.iteritems()) if dictionary else None
+            return dict((k.lower(), v) for k, v in dictionary.items()) if dictionary else None
 
         def fetch_acl_tables():
             """
@@ -189,7 +189,7 @@ class AclStat(object):
         clear counters -- write current counters to file in /tmp
         """
         def remap_keys(dict):
-            return [{'key':k, 'value': v} for k, v in dict.iteritems()]
+            return [{'key': k, 'value': v} for k, v in dict.items()]
 
         with open(COUNTER_POSITION, 'wb') as fp:
             json.dump(remap_keys(self.acl_counters), fp)

@@ -111,7 +111,7 @@ class Portstat(object):
                 Get the counters from specific table.
             """
             fields = ["0","0","0","0","0","0","0","0","0","0"]
-            for counter_name, pos in counter_bucket_dict.iteritems():
+            for counter_name, pos in counter_bucket_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
                 if counter_data is None:
@@ -177,7 +177,7 @@ class Portstat(object):
         table = []
         header = None
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
                 continue
             if intf_list and key not in intf_list:
@@ -221,7 +221,7 @@ class Portstat(object):
         table = []
         header = None
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
                 time_gap = time_gap.total_seconds()
