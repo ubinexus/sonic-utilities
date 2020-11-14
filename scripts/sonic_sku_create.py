@@ -523,7 +523,7 @@ class SkuCreate(object):
         #Internal function to get lanes of the ports accroding to the base default SKU 
         try:
             with open(self.base_file_path,"r") as f:
-                line_header = f.next().split() # get the file header split into columns 
+                line_header = next(f).split() # get the file header split into columns
                 if line_header[0] == "#" : del line_header[0] # if hashtag is in a different column, remove it to align column header and data
                 alias_index = line_header.index('alias')
                 lanes_index = line_header.index('lanes')
