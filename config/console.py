@@ -1,7 +1,4 @@
-#!/usr/bin/env python3
-
 import click
-
 import utilities_common.cli as clicommon
 
 #

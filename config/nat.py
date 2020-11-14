@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import ipaddress
 
 import click
@@ -1077,7 +1075,3 @@ def udp_timeout(ctx):
     seconds = 300
 
     config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_udp_timeout": seconds})
-
-if __name__ == "__main__":
-    nat()
-
