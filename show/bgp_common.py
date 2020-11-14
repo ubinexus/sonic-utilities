@@ -4,9 +4,12 @@ import json
 
 import utilities_common.multi_asic as multi_asic_util
 from sonic_py_common import multi_asic
+from utilities_common import constants
 
-# show ip(v6) route helper methods start
-# Helper routines to support print_ip_routes()
+'''
+ show ip(v6) route helper methods start
+ Helper routines to support print_ip_routes()
+'''
 def get_status_output_char(info, nhp_i):
     NH_F_IS_RECURSIVE = 2
     NH_F_IS_DUPLICATE = 5
@@ -127,15 +130,15 @@ def print_ip_routes(route_info, filter_by_ip):
       Known via "kernel", distance 210, metric 0
         Last update 03:46:36 ago
         * 240.127.1.1, via eth0
+
+    This method is following what zebra_vty.c does when handling the route parsing printing
+    The route_info is a json file which is treated as a dictionary of a bunch of route + info
+    This interpretation is based on FRR 7.2 branch. If we later moved on to a new branch, we may
+    have to rexamine if there are any changes made that may impact the parsing logic
     """
-    # This method is following what zebra_vty.c does when handling the route parsing printing
-    # The route_info is a json file which is treated as a dictionary of a bunch of route + info
-    # This interpretation is based on FRR 7.2 branch. If we later moved on to a new branch, we may
-    # have to rexamine if there are any changes made that may impact the parsing logic
     proto_code = {"system":'X', "kernel":'K', "connected":'C', "static":'S',
                   "rip":'R', "ripng":'R', "ospf":'O', "ospf6":'O', "isis":'I',
                   "bgp":'B', "pim":'P', "hsls":'H', "olsr":'o', "babel":'A'}
-    #for route, info in sorted(route_info.items()):
     for route, info in sorted(route_info.items(), key=get_ip_value):
         for i in range(0, len(info)):
             if filter_by_ip:
@@ -296,7 +299,17 @@ def print_show_ip_route_hdr():
 def show_routes(args, namespace, display, verbose, ipver):
     import utilities_common.bgp_util as bgp_util
     """Show IPv4/IPV6 routing table"""
-    is_multi_asic = multi_asic.is_multi_asic()
+    if display is None:
+        if multi_asic.is_multi_asic():
+            display = constants.DISPLAY_EXTERNAL
+    else:
+        if multi_asic.is_multi_asic():
+            if display not in multi_asic_util.multi_asic_display_choices():
+                print "dislay option '{}' is not a valid option.".format(display)
+                return
+        else:
+            print "dislay option '{}' is not a valid option.".format(display)
+            return
     device = multi_asic_util.MultiAsic(display, namespace)
     arg_strg = ""
     found_json = 0
@@ -305,31 +318,38 @@ def show_routes(args, namespace, display, verbose, ipver):
     filter_back_end = False
     filter_by_ip = False
     asic_cnt = 0
-    if is_multi_asic:
-        # handling multi-ASIC by gathering the output from specified/all name space into a dictionary via
-        # jason option and then filter out the json entries (by removing those next Hop that are
-        # back-end ASIC if display is for front-end only). If the entry itself has no more next Hop after filtering,
-        # then skip over that particular route entry.  Once completed, if the user chose "json" option,
-        # then just print out the dictionary in Json format accordingly. But if no "json" option specified,
-        # then print out the header and the decoded entry representation for each route accordingly.
-        # if user specified a namespace, then print everything.
-        # if user did not specify name space but specified display for all (include backend), then print each namespace
-        # without any filtering.  But if display is for front-end only, then do filter and combine all output(merge same
-        # routes from all namespace as additional nexthops)
-        # This code is based on FRR 7.2 branch. If we moved to a new version we may need to change here as well
-        if display != "all":
+    if multi_asic.is_multi_asic():
+        '''
+        handling multi-ASIC by gathering the output from specified/all name space into a dictionary via
+        jason option and then filter out the json entries (by removing those next Hop that are
+        back-end ASIC if display is for front-end only). If the entry itself has no more next Hop after filtering,
+        then skip over that particular route entry.  Once completed, if the user chose "json" option,
+        then just print out the dictionary in Json format accordingly. But if no "json" option specified,
+        then print out the header and the decoded entry representation for each route accordingly.
+        if user specified a namespace, then print everything.
+        if user did not specify name space but specified display for all (include backend), then print each namespace
+        without any filtering.  But if display is for front-end only, then do filter and combine all output(merge same
+        routes from all namespace as additional nexthops)
+        This code is based on FRR 7.2 branch. If we moved to a new version we may need to change here as well
+        '''
+        if display != constants.DISPLAY_ALL:
             filter_back_end = True
-        if namespace is None:
+        try:
             for name_s in device.get_ns_list_based_on_options():
                 ns_l.append(name_s)
             asic_cnt = len(ns_l)
-            if display == "all":
+            if asic_cnt > 1 and display == constants.DISPLAY_ALL:
                 print_ns_str = True
-        else:
-            # -n asic0|asic1|...|asicN    So skip the first 4 chars to get the namespace number only
-            ns_l.append(namespace)
-            asic_cnt = 1
+        except ValueError:
+            print "namespace '{}' is not valid. valid name spaces are:\n{}".format(namespace, multi_asic_util.multi_asic_ns_choices())
+            return
     else:
+        if namespace is not None:
+            print "namespace option is not applicable for non-multi-asic platform"
+            return
+        if display is not None:
+            print "display option is not applicable for non-multi-asic platform"
+            return
         ns_l.append(0)
 
     # build the filter set only if necessary
@@ -355,7 +375,7 @@ def show_routes(args, namespace, display, verbose, ipver):
         # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
         # If not MultiASIC, skip namespace argument
         cmd = "show {} route {}".format(ipver, arg_strg)
-        if is_multi_asic:
+        if multi_asic.is_multi_asic():
             output = bgp_util.run_bgp_command(cmd, ns)
         else:
             output = bgp_util.run_bgp_command(cmd)
@@ -366,7 +386,11 @@ def show_routes(args, namespace, display, verbose, ipver):
             return
         if output[0] == "%":
             # remove the "json" keyword that was added by this handler to show original cmd user specified 
-            error_msg = output[:-5]
+            json_str = output[-5:-1]
+            if json_str == "json":
+                error_msg = output[:-5]
+            else:
+                error_msg = output
             print error_msg
             return
         route_info = json.loads(output)
@@ -391,4 +415,6 @@ def show_routes(args, namespace, display, verbose, ipver):
         new_string = json.dumps(combined_route,sort_keys=True, indent=4)
         print(new_string)
 
-# show ip(v6) route helper methods end
+'''
+ show ip(v6) route helper methods end
+'''

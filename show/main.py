@@ -787,7 +787,8 @@ def get_bgp_peer():
 
 @ip.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
-@multi_asic_util.multi_asic_click_options
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route(args, namespace, display, verbose):
     """Show IP (IPv4) routing table"""
@@ -905,7 +906,8 @@ def interfaces():
 
 @ipv6.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
-@multi_asic_util.multi_asic_click_options
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route(args, namespace, display, verbose):
     """Show IPv6 routing table"""

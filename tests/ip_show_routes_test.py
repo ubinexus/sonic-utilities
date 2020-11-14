@@ -3,6 +3,9 @@ import os
 import pytest
 
 from click.testing import CliRunner
+test_path = os.path.dirname(os.path.abspath(__file__))
+modules_path = os.path.dirname(test_path)
+scripts_path = os.path.join(modules_path, "scripts")
 
 show_ip_route_expected_output = """\
 Codes: K - kernel route, C - connected, S - static, R - RIP,
@@ -96,6 +99,68 @@ Routing entry for 192.168.0.1/32
 
 """
 
+show_special_ip_route_expected_output = """\
+Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route, q - queued route, r - rejected route
+
+C>*10.3.0.4/31 (blackhole)(vrf 2, PortChannel1014, inactive (recursive) 2d22h02m
+C>*10.5.0.4/31 (ICMP unreachable) inactive 2d22h02m
+C>*10.5.0.8/31 (ICMP admin-prohibited) inactive onlink, src 10.2.3.4 2d22h02m
+C> 10.6.0.8/31 inactive 2d22h02m
+C>q10.6.5.0/31 inactive 2d22h02m
+C>r10.6.5.3/31 inactive 2d22h02m
+C>*10.7.0.8/31 (ICMP admin-prohibited) inactive onlink, src 10.2.3.4, label IPv4 Explicit Null/OAM Alert/Extension/1212 2d22h02m
+"""
+
+
+show_ipv6_route_err_expected_output = """\
+% Unknown command: show ipv6 route garbage
+"""
+
+show_ipv6_route_single_json_expected_output = """\
+{
+    "20c0:a8c7:0:81::/64": [
+        {
+            "destSelected": true, 
+            "distance": 20, 
+            "installed": true, 
+            "internalFlags": 8, 
+            "internalNextHopActiveNum": 2, 
+            "internalNextHopNum": 2, 
+            "internalStatus": 16, 
+            "metric": 0, 
+            "nexthops": [
+                {
+                    "active": true, 
+                    "afi": "ipv6", 
+                    "fib": true, 
+                    "flags": 3, 
+                    "interfaceIndex": 928, 
+                    "interfaceName": "PortChannel0011", 
+                    "ip": "fc00::e"
+                }, 
+                {
+                    "active": true, 
+                    "afi": "ipv6", 
+                    "fib": true, 
+                    "flags": 3, 
+                    "interfaceIndex": 927, 
+                    "interfaceName": "PortChannel0008", 
+                    "ip": "fc00::a"
+                }
+            ], 
+            "prefix": "20c0:a8c7:0:81::/64", 
+            "protocol": "bgp", 
+            "selected": true, 
+            "table": 254, 
+            "uptime": "2d13h40m"
+        }
+    ]
+}
+"""
 
 show_ipv6_route_expected_output = """\
 Codes: K - kernel route, C - connected, S - static, R - RIP,
@@ -257,6 +322,10 @@ class TestShowIpRouteCommands(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        #in case someone did not clean up properly so undo the multi-asic mock here
+        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         import mock_tables.dbconnector
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
@@ -288,6 +357,34 @@ class TestShowIpRouteCommands(object):
         assert result.output == show_specific_ip_route_expected_output
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['ip_special_route'], indirect=['setup_single_bgp_instance'])
+    def test_show_special_ip_route(
+            self,
+            setup_ip_route_commands,
+            setup_single_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["route"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_special_ip_route_expected_output
+
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['ipv6_specific_route'], indirect=['setup_single_bgp_instance'])
+    def test_show_specific_ipv6_route_json(
+            self,
+            setup_ip_route_commands,
+            setup_single_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["route"], ["20c0:a8c7:0:81::", "json"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv6_route_single_json_expected_output
+
+    @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['ipv6_route'], indirect=['setup_single_bgp_instance'])
     def test_show_ipv6_route(
             self,
@@ -300,3 +397,17 @@ class TestShowIpRouteCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_ipv6_route_expected_output
+
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['ipv6_route_err'], indirect=['setup_single_bgp_instance'])
+    def test_show_ipv6_route_err(
+            self,
+            setup_ip_route_commands,
+            setup_single_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["route"], ["garbage"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv6_route_err_expected_output
