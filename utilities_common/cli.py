@@ -1,5 +1,4 @@
 import configparser
-import netaddr
 import os
 import re
 import subprocess
