@@ -444,10 +444,10 @@ ASIC1
 
 Table ID         Resource Name      Used Count    Available Count
 ---------------  ---------------  ------------  -----------------
-0x7000000000670  acl_entry                   0               1024
-0x7000000000670  acl_counter                 0               1280
 0x700000000063f  acl_entry                   0               2048
 0x700000000063f  acl_counter                 0               2048
+0x7000000000670  acl_entry                   0               1024
+0x7000000000670  acl_counter                 0               1280
 
 """
 
@@ -549,10 +549,10 @@ ASIC1
 
 Table ID         Resource Name      Used Count    Available Count
 ---------------  ---------------  ------------  -----------------
-0x7000000000670  acl_entry                   0               1024
-0x7000000000670  acl_counter                 0               1280
 0x700000000063f  acl_entry                   0               2048
 0x700000000063f  acl_counter                 0               2048
+0x7000000000670  acl_entry                   0               1024
+0x7000000000670  acl_counter                 0               1280
 
 """
 
