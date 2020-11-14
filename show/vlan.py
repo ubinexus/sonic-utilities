@@ -120,7 +120,7 @@ def config(db):
                 if vlan == k:
                     members.add(interface_name)
 
-            for m in members:
+            for m in natsorted(list(members)):
                 r = []
                 r.append(k)
                 r.append(data[k]['vlanid'])
