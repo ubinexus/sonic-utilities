@@ -153,7 +153,7 @@ class Aclshow():
         if exist in /tmp/.counters_acl.p (by default).
         """
         if os.path.isfile(COUNTER_POSITION):
-            with open(COUNTER_POSITION, 'wb') as fp:
+            with open(COUNTER_POSITION, 'w') as fp:
                 json.dump([], fp)
 
     def runTest(self):

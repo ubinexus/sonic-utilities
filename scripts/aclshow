@@ -191,7 +191,7 @@ class AclStat(object):
         def remap_keys(dict):
             return [{'key': k, 'value': v} for k, v in dict.items()]
 
-        with open(COUNTER_POSITION, 'wb') as fp:
+        with open(COUNTER_POSITION, 'w') as fp:
             json.dump(remap_keys(self.acl_counters), fp)
 
 def main():
