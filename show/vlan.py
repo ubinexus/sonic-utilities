@@ -34,23 +34,23 @@ def brief(db, verbose):
     for key in natsorted(list(vlan_dhcp_helper_data.keys())):
         try:
             if vlan_dhcp_helper_data[key]['dhcp_servers']:
-                vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
+                vlan_dhcp_helper_dict[key.strip('Vlan')] = vlan_dhcp_helper_data[key]['dhcp_servers']
         except KeyError:
-            vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
+            vlan_dhcp_helper_dict[key.strip('Vlan')] = " "
 
     # Parsing VLAN Gateway info
     for key in natsorted(list(vlan_ip_data.keys())):
 
         if clicommon.is_ip_prefix_in_key(key):
-            interface_key = str(key[0].strip("Vlan"))
-            interface_value = str(key[1])
+            interface_key = key[0].strip("Vlan")
+            interface_value = key[1]
 
             if interface_key in vlan_ip_dict:
                 vlan_ip_dict[interface_key].append(interface_value)
             else:
                 vlan_ip_dict[interface_key] = [interface_value]
         else:
-            interface_key = str(key.strip("Vlan"))
+            interface_key = key.strip("Vlan")
             if 'proxy_arp' in vlan_ip_data[key]:
                 proxy_arp_status = vlan_ip_data[key]['proxy_arp'] 
             else:
@@ -64,8 +64,8 @@ def brief(db, verbose):
 
     # Parsing VLAN Ports info
     for key in natsorted(list(vlan_ports_data.keys())):
-        ports_key = str(key[0].strip("Vlan"))
-        ports_value = str(key[1])
+        ports_key = key[0].strip("Vlan")
+        ports_value = key[1]
         ports_tagging = vlan_ports_data[key]['tagging_mode']
         if ports_key in vlan_ports_dict:
             if clicommon.get_interface_naming_mode() == "alias":
