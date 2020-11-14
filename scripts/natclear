@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
     Script to clear nat dynamic entries from Hardware and also to clear the nat statistics
 
@@ -13,7 +14,7 @@ import argparse
 import json
 import sys
 
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 
 class NatClear(object):
 

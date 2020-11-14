@@ -16,7 +16,8 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
-from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
+from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -32,6 +33,7 @@ import muxcable
 import nat
 import vlan
 from config_mgmt import ConfigMgmtDPB
+import chassis_modules
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -490,28 +492,19 @@ def set_interface_naming_mode(mode):
     click.echo("Please logout and log back in for changes take effect.")
 
 
-# Get the local BGP ASN from DEVICE_METADATA
-def get_local_bgp_asn(config_db):
-    metadata = config_db.get_table('DEVICE_METADATA')
-    return metadata['localhost']['bgp_asn']
-
 def _is_neighbor_ipaddress(config_db, ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
     """
     entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress)
     return True if entry else False
 
-def _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=False):
+def _get_all_neighbor_ipaddresses(config_db):
     """Returns list of strings containing IP addresses of all BGP neighbors
-       if the flag ignore_local_hosts is set to True, additional check to see if
-       if the BGP neighbor AS number is same as local BGP AS number, if so ignore that neigbor.
     """
     addrs = []
     bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
-    local_as = get_local_bgp_asn(config_db)
     for addr, session in bgp_sessions.iteritems():
-        if not ignore_local_hosts or (ignore_local_hosts and local_as != session['asn']):
-            addrs.append(addr)
+        addrs.append(addr)
     return addrs
 
 def _get_neighbor_ipaddress_list_by_hostname(config_db, hostname):
@@ -888,7 +881,7 @@ config.add_command(kube.kubernetes)
 config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
-
+config.add_command(chassis_modules.chassis_modules)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1961,19 +1954,17 @@ def all(verbose):
     """
     log.log_info("'bgp shutdown all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
-    ignore_local_hosts = False
 
     if multi_asic.is_multi_asic():
         ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns']
-        ignore_local_hosts = True
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
-        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db)
         for ipaddress in bgp_neighbor_ip_list:
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'down', verbose)
 
@@ -2018,19 +2009,17 @@ def all(verbose):
     """
     log.log_info("'bgp startup all' executing...")
     namespaces = [DEFAULT_NAMESPACE]
-    ignore_local_hosts = False
 
     if multi_asic.is_multi_asic():
         ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns']
-        ignore_local_hosts = True
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
     # namespaces (in case of multi ASIC) and do the sepcified "action" on the BGP neighbor(s)
     for namespace in namespaces:
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
-        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
+        bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db)
         for ipaddress in bgp_neighbor_ip_list:
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'up', verbose)
 
@@ -3569,7 +3558,7 @@ def collector(ctx):
     """Add/Delete a sFlow collector"""
     pass
 
-def is_valid_collector_info(name, ip, port):
+def is_valid_collector_info(name, ip, port, vrf_name):
     if len(name) > 16:
         click.echo("Collector name must not exceed 16 characters")
         return False
@@ -3582,6 +3571,10 @@ def is_valid_collector_info(name, ip, port):
         click.echo("Invalid IP address")
         return False
 
+    if vrf_name != 'default' and vrf_name != 'mgmt':
+        click.echo("Only 'default' and 'mgmt' VRF are supported")
+        return False
+
     return True
 
 #
@@ -3590,14 +3583,16 @@ def is_valid_collector_info(name, ip, port):
 @collector.command()
 @click.option('--port', required=False, type=int, default=6343,
               help='Collector port number')
+@click.option('--vrf', required=False, type=str, default='default',
+              help='Collector VRF')
 @click.argument('name', metavar='<collector_name>', required=True)
 @click.argument('ipaddr', metavar='<IPv4/v6_address>', required=True)
 @click.pass_context
-def add(ctx, name, ipaddr, port):
+def add(ctx, name, ipaddr, port, vrf):
     """Add a sFlow collector"""
     ipaddr = ipaddr.lower()
 
-    if not is_valid_collector_info(name, ipaddr, port):
+    if not is_valid_collector_info(name, ipaddr, port, vrf):
         return
 
     config_db = ctx.obj['db']
@@ -3608,7 +3603,8 @@ def add(ctx, name, ipaddr, port):
         return
 
     config_db.mod_entry('SFLOW_COLLECTOR', name,
-                        {"collector_ip": ipaddr,  "collector_port": port})
+                        {"collector_ip": ipaddr,  "collector_port": port,
+                         "collector_vrf": vrf})
     return
 
 #

@@ -1,5 +1,3 @@
-#! /usr/bin/python -u
-
 import json
 import netaddr
 import os
@@ -20,9 +18,11 @@ import utilities_common.cli as clicommon
 import vlan
 import system_health
 import fgnhg
+import chassis_modules
 
 from sonic_py_common import device_info, multi_asic
-from swsssdk import ConfigDBConnector, SonicV2Connector
+from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 import utilities_common.multi_asic as multi_asic_util
@@ -134,6 +134,7 @@ cli.add_command(muxcable.muxcable)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
 cli.add_command(fgnhg.fgnhg)
+cli.add_command(chassis_modules.chassis_modules)
 
 #
 # 'vrf' command ("show vrf")
@@ -773,13 +774,16 @@ def get_bgp_peer():
     """
     config_db = ConfigDBConnector()
     config_db.connect()
-    data = config_db.get_table('BGP_NEIGHBOR')
     bgp_peer = {}
+    bgp_neighbor_tables = ['BGP_NEIGHBOR', 'BGP_INTERNAL_NEIGHBOR']
 
-    for neighbor_ip in data.keys():
-        local_addr = data[neighbor_ip]['local_addr']
-        neighbor_name = data[neighbor_ip]['name']
-        bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
+    for table in bgp_neighbor_tables:
+        data = config_db.get_table(table)
+        for neighbor_ip in data.keys():
+            local_addr = data[neighbor_ip]['local_addr']
+            neighbor_name = data[neighbor_ip]['name']
+            bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
+
     return bgp_peer
 
 #
@@ -1683,9 +1687,12 @@ def show_sflow_global(config_db):
     sflow_info = config_db.get_table('SFLOW_COLLECTOR')
     click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
     for collector_name in sorted(sflow_info.keys()):
+        vrf_name = (sflow_info[collector_name]['collector_vrf']
+                    if 'collector_vrf' in sflow_info[collector_name] else 'default')
         click.echo("    Name: {}".format(collector_name).ljust(30) +
                    "IP addr: {} ".format(sflow_info[collector_name]['collector_ip']).ljust(25) +
-                   "UDP port: {}".format(sflow_info[collector_name]['collector_port']))
+                   "UDP port: {}".format(sflow_info[collector_name]['collector_port']).ljust(17) +
+                   "VRF: {}".format(vrf_name))
 
 
 #
@@ -1780,7 +1787,6 @@ def counts(group, counter_type, verbose):
         cmd += " -t '{}'".format(counter_type)
 
     run_command(cmd, display_cmd=verbose)
-
 
 #
 # 'ecn' command ("show ecn")

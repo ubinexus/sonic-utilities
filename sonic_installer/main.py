@@ -1,5 +1,3 @@
-#! /usr/bin/python -u
-
 try:
     import ConfigParser as configparser
 except ImportError:
@@ -14,7 +12,7 @@ import urllib
 
 import click
 from sonic_py_common import logger
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 
 from .bootloader import get_bootloader
 from .common import run_command, run_command_or_raise

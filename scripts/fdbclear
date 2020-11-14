@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
     Script to clear MAC/FDB entries learnt in Hardware
 
@@ -15,7 +16,7 @@ import argparse
 import json
 import sys
 
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 
 class FdbClear(object):
 
