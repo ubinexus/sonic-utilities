@@ -1,8 +1,8 @@
 import json
 import os
 import sys
+from unittest import mock
 
-import mock
 import pytest
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector

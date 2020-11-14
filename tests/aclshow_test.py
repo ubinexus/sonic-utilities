@@ -1,14 +1,8 @@
 import sys
 import os
 from imp import load_source
-
-# TODO: Remove this check once we no longer support Python 2
-if sys.version_info.major == 3:
-    from io import StringIO
-else:
-    from StringIO import StringIO
-
-import mock
+from io import StringIO
+from unittest import mock
 
 
 test_path = os.path.dirname(os.path.abspath(__file__))

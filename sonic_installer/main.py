@@ -1,18 +1,10 @@
-from __future__ import print_function
-
+import configparser
 import os
 import re
 import subprocess
 import sys
 import time
-
-# TODO: Remove this check once we no longer support Python 2
-if sys.version_info.major == 3:
-    import configparser
-    from urllib.request import urlopen, urlretrieve
-else:
-    import ConfigParser as configparser
-    from urllib import urlopen, urlretrieve
+from urllib.request import urlopen, urlretrieve
 
 import click
 from sonic_py_common import logger

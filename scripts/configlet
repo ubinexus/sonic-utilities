@@ -75,10 +75,10 @@ A sample for update:
 
 """
 
-from __future__ import print_function
 import argparse
 import json
 import time
+
 from swsssdk import ConfigDBConnector
 
 test_only = False

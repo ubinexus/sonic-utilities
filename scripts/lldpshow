@@ -19,8 +19,6 @@
     Total entries displayed:  33
 """
 
-from __future__ import print_function
-
 import argparse
 import re
 import subprocess

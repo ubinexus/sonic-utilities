@@ -254,97 +254,50 @@ class TestConfigMgmt(TestCase):
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=True, loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
-        # TODO: Remove this check once we no longer support Python 2
-        if sys.version_info.major == 3:
-            delConfig = {
-                'PORT': {
-                    'Ethernet8': None
+        delConfig = {
+            'PORT': {
+                'Ethernet8': None
+            }
+        }
+        addConfig = {
+            'ACL_TABLE': {
+                'NO-NSW-PACL-V4': {
+                    'ports': ['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
+                },
+                'NO-NSW-PACL-TEST': {
+                    'ports': ['Ethernet11']
+                }
+            },
+            'INTERFACE': {
+                'Ethernet11|2a04:1111:40:a709::1/126': {
+                    'scope': 'global',
+                    'family': 'IPv6'
+                },
+                'Ethernet11': {}
+            },
+            'VLAN_MEMBER': {
+                'Vlan100|Ethernet8': {
+                    'tagging_mode': 'untagged'
+                },
+                'Vlan100|Ethernet11': {
+                    'tagging_mode': 'untagged'
+                }
+            },
+            'PORT': {
+                'Ethernet8': {
+                    'speed': '50000',
+                    'lanes': '73,74'
+                },
+                'Ethernet10': {
+                    'speed': '25000',
+                    'lanes': '75'
+                },
+                'Ethernet11': {
+                    'speed': '25000',
+                    'lanes': '76'
                 }
             }
-            addConfig = {
-                'ACL_TABLE': {
-                    'NO-NSW-PACL-V4': {
-                        'ports': ['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
-                    },
-                    'NO-NSW-PACL-TEST': {
-                        'ports': ['Ethernet11']
-                    }
-                },
-                'INTERFACE': {
-                    'Ethernet11|2a04:1111:40:a709::1/126': {
-                        'scope': 'global',
-                        'family': 'IPv6'
-                    },
-                    'Ethernet11': {}
-                },
-                'VLAN_MEMBER': {
-                    'Vlan100|Ethernet8': {
-                        'tagging_mode': 'untagged'
-                    },
-                    'Vlan100|Ethernet11': {
-                        'tagging_mode': 'untagged'
-                    }
-                },
-                'PORT': {
-                    'Ethernet8': {
-                        'speed': '50000',
-                        'lanes': '73,74'
-                    },
-                    'Ethernet10': {
-                        'speed': '25000',
-                        'lanes': '75'
-                    },
-                    'Ethernet11': {
-                        'speed': '25000',
-                        'lanes': '76'
-                    }
-                }
-            }
-        else:
-            delConfig = {
-                u'PORT': {
-                    u'Ethernet8': None
-                }
-            }
-            addConfig = {
-                u'ACL_TABLE': {
-                    u'NO-NSW-PACL-V4': {
-                        u'ports': ['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
-                    },
-                    u'NO-NSW-PACL-TEST': {
-                        u'ports': ['Ethernet11']
-                    }
-                },
-                u'INTERFACE': {
-                    u'Ethernet11|2a04:1111:40:a709::1/126': {
-                        u'scope': 'global',
-                        u'family': 'IPv6'
-                    },
-                    u'Ethernet11': {}
-                },
-                u'VLAN_MEMBER': {
-                    u'Vlan100|Ethernet8': {
-                        u'tagging_mode': 'untagged'
-                    },
-                    u'Vlan100|Ethernet11': {
-                        u'tagging_mode': 'untagged'
-                    }
-                },
-                u'PORT': {
-                    u'Ethernet8': {
-                        u'speed': '50000',
-                        u'lanes': '73,74'
-                    },
-                    u'Ethernet10': {
-                        u'speed': '25000',
-                        u'lanes': '75'
-                    },
-                    u'Ethernet11': {
-                        u'speed': '25000',
-                        u'lanes': '76'
-                    }
-                }
-            }
+        }
         self.checkResult(cmdpb, delConfig, addConfig)
         self.postUpdateConfig(curConfig, delConfig, addConfig)
         return
@@ -367,25 +320,14 @@ class TestConfigMgmt(TestCase):
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=False, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
-        # TODO: Remove this check once we no longer support Python 2
-        if sys.version_info.major == 3:
-            delConfig = {
-                'PORT': {
-                    'Ethernet8': None,
-                    'Ethernet9': None,
-                    'Ethernet10': None,
-                    'Ethernet11': None
-                }
+        delConfig = {
+            'PORT': {
+                'Ethernet8': None,
+                'Ethernet9': None,
+                'Ethernet10': None,
+                'Ethernet11': None
             }
-        else:
-            delConfig = {
-                u'PORT': {
-                    u'Ethernet8': None,
-                    u'Ethernet9': None,
-                    u'Ethernet10': None,
-                    u'Ethernet11': None
-                }
-            }
+        }
         addConfig = pJson
         self.checkResult(cmdpb, delConfig, addConfig)
         self.postUpdateConfig(curConfig, delConfig, addConfig)
@@ -408,19 +350,11 @@ class TestConfigMgmt(TestCase):
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=False, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
-        # TODO: Remove this check once we no longer support Python 2
-        if sys.version_info.major == 3:
-            delConfig = {
-                'PORT': {
-                    'Ethernet8': None
-                }
+        delConfig = {
+            'PORT': {
+                'Ethernet8': None
             }
-        else:
-            delConfig = {
-                u'PORT': {
-                    u'Ethernet8': None
-                }
-            }
+        }
         addConfig = pJson
         self.checkResult(cmdpb, delConfig, addConfig)
         self.postUpdateConfig(curConfig, delConfig, addConfig)
@@ -444,37 +378,20 @@ class TestConfigMgmt(TestCase):
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
             force=True, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
-        # TODO: Remove this check once we no longer support Python 2
-        if sys.version_info.major == 3:
-            delConfig = {
-                'ACL_TABLE': {
-                    'NO-NSW-PACL-V4': {
-                        'ports': ['Ethernet0', 'Ethernet4']
-                    }
-                },
-                'VLAN_MEMBER': {
-                    'Vlan100|Ethernet8': None
-                },
-                'PORT': {
-                    'Ethernet8': None,
-                    'Ethernet10': None
+        delConfig = {
+            'ACL_TABLE': {
+                'NO-NSW-PACL-V4': {
+                    'ports': ['Ethernet0', 'Ethernet4']
                 }
+            },
+            'VLAN_MEMBER': {
+                'Vlan100|Ethernet8': None
+            },
+            'PORT': {
+                'Ethernet8': None,
+                'Ethernet10': None
             }
-        else:
-            delConfig = {
-                u'ACL_TABLE': {
-                    u'NO-NSW-PACL-V4': {
-                        u'ports': ['Ethernet0', 'Ethernet4']
-                    }
-                },
-                u'VLAN_MEMBER': {
-                    u'Vlan100|Ethernet8': None
-                },
-                u'PORT': {
-                    u'Ethernet8': None,
-                    u'Ethernet10': None
-                }
-            }
+        }
         addConfig = pJson
         self.checkResult(cmdpb, delConfig, addConfig)
         self.postUpdateConfig(curConfig, delConfig, addConfig)
@@ -519,95 +436,49 @@ class TestConfigMgmt(TestCase):
         cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True, \
             loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
-        # TODO: Remove this check once we no longer support Python 2
-        if sys.version_info.major == 3:
-            delConfig = {
-                'ACL_TABLE': {
-                    'NO-NSW-PACL-V4': {
-                        'ports': ['Ethernet0', 'Ethernet4']
-                    },
-                    'NO-NSW-PACL-TEST': {
-                        'ports': None
-                    }
+        delConfig = {
+            'ACL_TABLE': {
+                'NO-NSW-PACL-V4': {
+                    'ports': ['Ethernet0', 'Ethernet4']
                 },
-                'INTERFACE': None,
-                'VLAN_MEMBER': {
-                    'Vlan100|Ethernet8': None,
-                    'Vlan100|Ethernet11': None
+                'NO-NSW-PACL-TEST': {
+                    'ports': None
+                }
+            },
+            'INTERFACE': None,
+            'VLAN_MEMBER': {
+                'Vlan100|Ethernet8': None,
+                'Vlan100|Ethernet11': None
+            },
+            'PORT': {
+                'Ethernet8': None,
+                'Ethernet9': None,
+                'Ethernet10': None,
+                'Ethernet11': None
+            }
+        }
+        addConfig = {
+            'ACL_TABLE': {
+                'NO-NSW-PACL-V4': {
+                    'ports': ['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
+                }
+            },
+            'VLAN_MEMBER': {
+                'Vlan100|Ethernet8': {
+                    'tagging_mode': 'untagged'
+                }
+            },
+            'PORT': {
+                'Ethernet8': {
+                    'speed': '50000',
+                    'lanes': '73,74'
                 },
-                'PORT': {
-                    'Ethernet8': None,
-                    'Ethernet9': None,
-                    'Ethernet10': None,
-                    'Ethernet11': None
+                'Ethernet10': {
+                    'speed': '50000',
+                    'lanes': '75,76'
                 }
             }
-            addConfig = {
-                'ACL_TABLE': {
-                    'NO-NSW-PACL-V4': {
-                        'ports': ['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
-                    }
-                },
-                'VLAN_MEMBER': {
-                    'Vlan100|Ethernet8': {
-                        'tagging_mode': 'untagged'
-                    }
-                },
-                'PORT': {
-                    'Ethernet8': {
-                        'speed': '50000',
-                        'lanes': '73,74'
-                    },
-                    'Ethernet10': {
-                        'speed': '50000',
-                        'lanes': '75,76'
-                    }
-                }
-            }
-        else:
-            delConfig = {
-                u'ACL_TABLE': {
-                    u'NO-NSW-PACL-V4': {
-                        u'ports': ['Ethernet0', 'Ethernet4']
-                    },
-                    u'NO-NSW-PACL-TEST': {
-                        u'ports': None
-                    }
-                },
-                u'INTERFACE': None,
-                u'VLAN_MEMBER': {
-                    u'Vlan100|Ethernet8': None,
-                    u'Vlan100|Ethernet11': None
-                },
-                u'PORT': {
-                    u'Ethernet8': None,
-                    u'Ethernet9': None,
-                    u'Ethernet10': None,
-                    u'Ethernet11': None
-                }
-            }
-            addConfig = {
-                u'ACL_TABLE': {
-                    u'NO-NSW-PACL-V4': {
-                        u'ports': ['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
-                    }
-                },
-                u'VLAN_MEMBER': {
-                    u'Vlan100|Ethernet8': {
-                        u'tagging_mode': 'untagged'
-                    }
-                },
-                u'PORT': {
-                    u'Ethernet8': {
-                        u'speed': '50000',
-                        u'lanes': '73,74'
-                    },
-                    u'Ethernet10': {
-                        u'speed': '50000',
-                        u'lanes': '75,76'
-                    }
-                }
-            }
+        }
         assert cmdpb.writeConfigDB.call_count == 2
         self.checkResult(cmdpb, delConfig, addConfig)
         self.postUpdateConfig(curConfig, delConfig, addConfig)
@@ -631,69 +502,36 @@ class TestConfigMgmt(TestCase):
         cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True, \
             loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
-        # TODO: Remove this check once we no longer support Python 2
-        if sys.version_info.major == 3:
-            delConfig = {
-                'ACL_TABLE': {
-                    'NO-NSW-PACL-V4': {
-                        'ports': ['Ethernet0', 'Ethernet8', 'Ethernet10']
-                    }
+        delConfig = {
+            'ACL_TABLE': {
+                'NO-NSW-PACL-V4': {
+                    'ports': ['Ethernet0', 'Ethernet8', 'Ethernet10']
+                }
+            },
+            'PORT': {
+                'Ethernet4': None,
+                'Ethernet5': None,
+                'Ethernet6': None,
+                'Ethernet7': None
+            }
+        }
+        addConfig = {
+            'ACL_TABLE': {
+                'NO-NSW-PACL-V4': {
+                    'ports': ['Ethernet0', 'Ethernet8', 'Ethernet10', 'Ethernet4']
+                }
+            },
+            'PORT': {
+                'Ethernet4': {
+                    'speed': '50000',
+                    'lanes': '69,70'
                 },
-                'PORT': {
-                    'Ethernet4': None,
-                    'Ethernet5': None,
-                    'Ethernet6': None,
-                    'Ethernet7': None
+                'Ethernet6': {
+                    'speed': '50000',
+                    'lanes': '71,72'
                 }
             }
-            addConfig = {
-                'ACL_TABLE': {
-                    'NO-NSW-PACL-V4': {
-                        'ports': ['Ethernet0', 'Ethernet8', 'Ethernet10', 'Ethernet4']
-                    }
-                },
-                'PORT': {
-                    'Ethernet4': {
-                        'speed': '50000',
-                        'lanes': '69,70'
-                    },
-                    'Ethernet6': {
-                        'speed': '50000',
-                        'lanes': '71,72'
-                    }
-                }
-            }
-        else:
-            delConfig = {
-                u'ACL_TABLE': {
-                    u'NO-NSW-PACL-V4': {
-                        u'ports': ['Ethernet0', 'Ethernet8', 'Ethernet10']
-                    }
-                },
-                u'PORT': {
-                    u'Ethernet4': None,
-                    u'Ethernet5': None,
-                    u'Ethernet6': None,
-                    u'Ethernet7': None
-                }
-            }
-            addConfig = {
-                u'ACL_TABLE': {
-                    u'NO-NSW-PACL-V4': {
-                        u'ports': ['Ethernet0', 'Ethernet8', 'Ethernet10', 'Ethernet4']
-                    }
-                },
-                u'PORT': {
-                    u'Ethernet4': {
-                        u'speed': '50000',
-                        u'lanes': '69,70'
-                    },
-                    u'Ethernet6': {
-                        u'speed': '50000',
-                        u'lanes': '71,72'
-                    }
-                }
-            }
+        }
         self.checkResult(cmdpb, delConfig, addConfig)
         self.postUpdateConfig(curConfig, delConfig, addConfig)
         return

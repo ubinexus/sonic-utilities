@@ -17,8 +17,6 @@ optional arguments:
   -t TABLES, --tables TABLES  action by specific tables list: Table_1,Table_2
 """
 
-from __future__ import print_function
-
 import argparse
 import json
 import os

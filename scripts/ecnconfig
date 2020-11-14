@@ -47,11 +47,10 @@ $ecnconfig -q 3
 ECN status:
 queue 3: on
 """
-from __future__ import print_function
-
+import argparse
 import os
 import sys
-import argparse
+
 import swsssdk
 from tabulate import tabulate
 

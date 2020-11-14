@@ -2,8 +2,8 @@
 import json
 import os
 import sys
+from unittest import mock
 
-import mock
 import mockredis
 import redis
 import swsssdk

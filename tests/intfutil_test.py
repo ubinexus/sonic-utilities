@@ -1,6 +1,3 @@
-# TODO: Remove this once we no longer support Python 2
-from __future__ import print_function
-
 import os
 import sys
 from click.testing import CliRunner

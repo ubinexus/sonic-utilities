@@ -22,9 +22,6 @@ optional arguments:
 
 """
 
-# TODO: Remove this once we no longer support Python 2
-from __future__ import print_function
-
 import argparse
 import json
 import os
@@ -40,9 +37,6 @@ from tabulate import tabulate
 from lxml import etree as ET
 from lxml.etree import QName
 
-# TODO: Remove this check once we no longer support Python 2
-if sys.version_info.major == 2:
-    input = raw_input
 
 minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
 minigraph_ns1 = "http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"

@@ -2,8 +2,8 @@ import os
 import sys
 import subprocess
 import pexpect
+from unittest import mock
 
-import mock
 import pytest
 
 import config.main as config

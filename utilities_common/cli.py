@@ -1,14 +1,9 @@
+import configparser
 import netaddr
 import os
 import re
 import subprocess
 import sys
-
-# TODO: Remove this check once we no longer support Python 2
-if sys.version_info.major == 3:
-    import configparser
-else:
-    import ConfigParser as configparser
 
 import click
 import json

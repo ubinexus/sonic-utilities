@@ -17,8 +17,6 @@ optional arguments:
   -m     --mtu                 port mtu in bytes
   -n     --namesapce           Namespace name
 """
-from __future__ import print_function
-
 import sys
 import argparse
 import swsssdk

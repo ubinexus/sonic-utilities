@@ -10,17 +10,10 @@ try:
     import json
     import socket
     import subprocess
-    import sys
     import time
     from collections import OrderedDict
-
-    # TODO: Remove this check once we no longer support Python 2
-    if sys.version_info.major == 3:
-        from urllib.parse import urlparse
-        from urllib.request import urlopen, urlretrieve
-    else:
-        from urllib import urlopen, urlretrieve
-        from urlparse import urlparse
+    from urllib.parse import urlparse
+    from urllib.request import urlopen, urlretrieve
 
     import click
     from sonic_py_common import device_info
@@ -37,17 +30,6 @@ TAB = "    "
 EMPTY = ""
 NA = "N/A"
 NEWLINE = "\n"
-
-######################################################
-# TODO: Remove this once we no longer support Python 2
-import sys
-if sys.version_info.major == 3:
-    STRING_TYPE = str
-else:
-    STRING_TYPE = basestring
-# END   Remove this once we no longer support Python 2
-######################################################
-
 
 # ========================= Variables ==========================================
 
@@ -322,7 +304,7 @@ class PlatformComponentsParser(object):
         )
 
     def __is_str(self, obj):
-        return isinstance(obj, STRING_TYPE)
+        return isinstance(obj, str)
 
     def __is_dict(self, obj):
         return isinstance(obj, dict)

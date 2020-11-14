@@ -155,7 +155,6 @@ setup(
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0',
-        'zipp==1.2.0'  # importlib-resources needs zipp and seems to have a bug where it will try to install too new of a version for Python 2. Can remove altogether once we no longer support Python 2.
     ],
     setup_requires= [
         'pytest-runner',
@@ -163,7 +162,6 @@ setup(
     ],
     tests_require = [
         'pytest',
-        'mock>=2.0.0',
         'mockredispy>=2.9.3',
         'sonic-config-engine'
     ],
@@ -176,7 +174,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC utilities command line cli CLI',
