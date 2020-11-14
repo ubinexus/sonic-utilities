@@ -94,6 +94,9 @@ class TestMultiAsicPfcwdShow(object):
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+        import mock_tables.mock_multi_asic
+        imp.reload(mock_tables.mock_multi_asic)
+        mock_tables.dbconnector.load_namespace_config()
         import pfcwd.main
         imp.reload(pfcwd.main)
 
@@ -151,3 +154,5 @@ class TestMultiAsicPfcwdShow(object):
         )
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        import mock_tables.mock_single_asic
+        imp.reload(mock_tables.mock_single_asic)

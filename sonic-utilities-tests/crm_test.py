@@ -15,21 +15,26 @@ Polling Interval: 300 second(s)
 
 crm_show_thresholds_acl_group = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 acl_group        percentage                     70                85
+
 
 """
 
 crm_show_thresholds_acl_table = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 acl_table        percentage                     70                85
 
+
 """
 
 crm_show_thresholds_all = """\
+
 
 Resource Name         Threshold Type      Low Threshold    High Threshold
 --------------------  ----------------  ---------------  ----------------
@@ -47,77 +52,96 @@ acl_entry             percentage                     70                85
 acl_counter           percentage                     70                85
 fdb_entry             percentage                     70                85
 
+
 """
 
 crm_show_thresholds_fdb = """\
+
 
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 fdb_entry        percentage                     70                85
 
+
 """
 
 crm_show_thresholds_ipv4_neighbor = """\
+
 
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv4_neighbor    percentage                     70                85
 
+
 """
 
 crm_show_thresholds_ipv4_nexthop = """\
+
 
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv4_nexthop     percentage                     70                85
 
+
 """
 
 crm_show_thresholds_ipv4_route = """\
+
 
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv4_route       percentage                     70                85
 
+
 """
 
 crm_show_thresholds_ipv6_neighbor = """\
+
 
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv6_neighbor    percentage                     70                85
 
+
 """
 
 crm_show_thresholds_ipv6_nexthop = """\
+
 
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv6_nexthop     percentage                     70                85
 
+
 """
 
 crm_show_thresholds_ipv6_route= """\
+
 
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv6_route       percentage                     70                85
 
+
 """
 
 crm_show_thresholds_nexthop_group_member = """\
+
 
 Resource Name         Threshold Type      Low Threshold    High Threshold
 --------------------  ----------------  ---------------  ----------------
 nexthop_group_member  percentage                     70                85
 
+
 """
 
 crm_show_thresholds_nexthop_group_object = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 nexthop_group    percentage                     70                85
+
 
 """
 
@@ -129,89 +153,111 @@ Polling Interval: 30 second(s)
 
 crm_new_show_thresholds_acl_group = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 acl_group        percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_acl_table = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 acl_table        percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_fdb = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 fdb_entry        percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_ipv4_neighbor = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv4_neighbor    percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_ipv4_nexthop = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv4_nexthop     percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_ipv4_route = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv4_route       percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_ipv6_neighbor = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv6_neighbor    percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_ipv6_nexthop = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv6_nexthop     percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_ipv6_route= """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipv6_route       percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_nexthop_group_member = """\
 
+
 Resource Name         Threshold Type      Low Threshold    High Threshold
 --------------------  ----------------  ---------------  ----------------
 nexthop_group_member  percentage                     60                90
+
 
 """
 
 crm_new_show_thresholds_nexthop_group_object = """\
 
+
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 nexthop_group    percentage                     60                90
+
 
 """
 
