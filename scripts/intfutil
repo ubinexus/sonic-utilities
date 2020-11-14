@@ -51,7 +51,7 @@ SUB_PORT = "subport"
 def get_frontpanel_port_list(config_db):
     ports_dict = config_db.get_table('PORT')
     front_panel_ports_list = []
-    for port in ports_dict.iterkeys():
+    for port in ports_dict.keys():
         front_panel_ports_list.append(port)
     return front_panel_ports_list
 

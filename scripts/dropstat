@@ -198,7 +198,7 @@ class DropStat(object):
         counter_names = self.get_reverse_stat_lookup(object_stat_map)
 
         for counter in counters:
-            if counter in std_port_headers_map.iterkeys():
+            if counter in list(std_port_headers_map.keys()):
                 headers.append(std_port_headers_map[counter])
             else:
                 headers.append(self.get_alias(counter_names[counter]))
@@ -288,7 +288,7 @@ class DropStat(object):
         if not counters:
             return configured_counters
 
-        return [ctr for ctr in counters.itervalues()]
+        return list(counters.values())
 
     def get_counter_name(self, object_stat_map, counter_stat):
         """
