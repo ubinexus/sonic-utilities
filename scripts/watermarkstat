@@ -193,7 +193,7 @@ class Watermarkstat(object):
 
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
-        single_key = header_map.keys()[0]
+        single_key = list(header_map.keys())[0]
         header_len = len(header_map[single_key])
         min_idx = sys.maxsize
 
