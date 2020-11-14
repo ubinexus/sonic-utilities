@@ -86,7 +86,7 @@ def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
     :param dynamic_neighbors: subnet of dynamically defined neighbors dict
     :return: name of neighbor
     """
-    if ip in list(static_neighbors.keys()):
+    if ip in static_neighbors:
         return static_neighbors[ip]
     elif is_ipv4_address(ip):
         for subnet in list(dynamic_neighbors[constants.IPV4].keys()):
@@ -142,7 +142,7 @@ def get_neighbor_dict_from_table(db, table_name):
     try:
         for entry in list(neighbor_data.keys()):
             neighbor_dict[entry] = neighbor_data[entry].get(
-                'name') if 'name' in list(neighbor_data[entry].keys()) else 'NotAvailable'
+                'name') if 'name' in neighbor_data[entry] else 'NotAvailable'
         return neighbor_dict
     except Exception:
         return neighbor_dict

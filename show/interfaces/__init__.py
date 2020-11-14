@@ -48,7 +48,7 @@ def alias(interfacename, namespace, display):
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         # If we're given an interface name, output name and alias for that interface only
-        if interfacename in list(port_dict.keys()):
+        if interfacename in port_dict:
             if 'alias' in port_dict[interfacename]:
                 body.append([interfacename, port_dict[interfacename]['alias']])
             else:

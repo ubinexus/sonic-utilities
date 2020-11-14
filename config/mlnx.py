@@ -187,7 +187,7 @@ def sdk_sniffer_enable():
                                      ENV_VARIABLE_SX_SNIFFER_TARGET: sdk_sniffer_filename}
     sdk_sniffer_env_variable_string = "environment="
 
-    for env_variable_name, env_variable_value in list(sdk_sniffer_env_variable_dict.items()):
+    for env_variable_name, env_variable_value in sdk_sniffer_env_variable_dict.items():
         sdk_sniffer_env_variable_string += (env_variable_name + "=" + env_variable_value)
 
     sdk_sniffer_env_variable_string += "\n"

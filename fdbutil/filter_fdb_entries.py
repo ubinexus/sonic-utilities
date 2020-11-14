@@ -27,7 +27,7 @@ def get_vlan_cidr_map(filename):
         config_db_entries = json.load(fp)
 
     vlan_cidr = defaultdict()
-    if "VLAN_INTERFACE" in list(config_db_entries.keys()) and "VLAN" in list(config_db_entries.keys()):
+    if "VLAN_INTERFACE" in config_db_entries and "VLAN" in config_db_entries:
         for vlan_key in list(config_db_entries["VLAN_INTERFACE"].keys()):
             if '|' not in vlan_key:
                 continue
@@ -60,13 +60,13 @@ def get_arp_entries_map(arp_filename, config_db_filename):
 
     arp_map = defaultdict()
     for arp in arp_entries:
-        for key, config in list(arp.items()):
+        for key, config in arp.items():
             if "NEIGH_TABLE" not in key:
                 continue
             table, vlan, ip = tuple(key.split(':'))
-            if "NEIGH_TABLE" in table and vlan in list(vlan_cidr.keys()) \
+            if "NEIGH_TABLE" in table and vlan in vlan_cidr \
                 and ip_address(ip) in ip_network(vlan_cidr[vlan][ip_interface(ip).version]) \
-                and "neigh" in list(config.keys()):
+                and "neigh" in config:
                 arp_map[config["neigh"].replace(':', '-').upper()] = ""
 
     return arp_map
@@ -93,7 +93,7 @@ def filter_fdb_entries(fdb_filename, arp_filename, config_db_filename, backup_fi
         fdb_entries = json.load(fp)
 
     def filter_fdb_entry(fdb_entry):
-        for key, _ in list(fdb_entry.items()):
+        for key, _ in fdb_entry.items():
             if 'FDB_TABLE' in key:
                 return key.split(':')[-1].upper() in arp_map
 

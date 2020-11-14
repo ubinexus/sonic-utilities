@@ -304,7 +304,7 @@ class MellanoxBufferMigrator():
         This is to migrate BUFFER_PROFILE configuration
         """
         device_data = self.configDB.get_table('DEVICE_METADATA')
-        if 'localhost' in list(device_data.keys()):
+        if 'localhost' in device_data:
             platform = device_data['localhost']['platform']
         else:
             log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
@@ -334,7 +334,7 @@ class MellanoxBufferMigrator():
 
         if default_lossless_profiles and new_lossless_profiles:
             for name, profile in buffer_profile_conf.items():
-                if name in list(default_lossless_profiles.keys()):
+                if name in default_lossless_profiles:
                     default_profile = default_lossless_profiles.get(name)
                     new_profile = new_lossless_profiles.get(name)
                     if not default_profile or not new_profile:
@@ -354,7 +354,7 @@ class MellanoxBufferMigrator():
             return True
 
         for name, profile in buffer_profile_old_configure.items():
-            if name in list(buffer_profile_conf.keys()) and profile == buffer_profile_conf[name]:
+            if name in buffer_profile_conf and profile == buffer_profile_conf[name]:
                 continue
             # return if any default profile isn't in cofiguration
             log.log_notice("Default profile {} isn't in database or doesn't match default value".format(name))

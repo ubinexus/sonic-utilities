@@ -66,7 +66,7 @@ def isIpOverlappingWithAnyStaticEntry(ipAddress, table):
     if not static_dict:
         return False
 
-    for key,values in list(static_dict.items()):
+    for key,values in static_dict.items():
         global_ip = "---"
         nat_type = "dnat"
 
@@ -136,7 +136,7 @@ def getTwiceNatIdCountWithStaticEntries(twice_nat_id, table, count):
     if not static_dict:
         return twice_id_count
 
-    for key,values in list(static_dict.items()):
+    for key,values in static_dict.items():
         twice_id = 0
 
         if "twice_nat_id" in values:
@@ -161,7 +161,7 @@ def getTwiceNatIdCountWithDynamicBinding(twice_nat_id, count, dynamic_key):
     if not nat_binding_dict:
         return twice_id_count
 
-    for key, values in list(nat_binding_dict.items()):
+    for key, values in nat_binding_dict.items():
         nat_pool_data = config_db.get_entry('NAT_POOL',values["nat_pool"])
         twice_id = 0
 
@@ -691,7 +691,7 @@ def add_pool(ctx, pool_name, global_ip_range, global_port_range):
     if entryFound == False:
         static_dict = config_db.get_table('STATIC_NAT')
         if static_dict:
-            for staticKey,staticValues in list(static_dict.items()):
+            for staticKey, staticValues in static_dict.items():
                 global_ip = "---"
                 local_ip = "---"
                 nat_type = "dnat"
@@ -804,7 +804,7 @@ def remove_pool(ctx, pool_name):
 
     binding_dict = config_db.get_table('NAT_BINDINGS')
     if binding_dict and entryFound == False:    
-        for binding_name, binding_values in list(binding_dict.items()):
+        for binding_name, binding_values in binding_dict.items():
             if binding_values['nat_pool'] == pool_name:
                 click.echo("Pool is not removed, as it is mapped to Binding {}, remove the pool binding first !!".format(binding_name))
                 entryFound = True
@@ -832,7 +832,7 @@ def remove_pools(ctx):
     if pool_dict:
         for pool_key_name in list(pool_dict.keys()):
             entryFound = False
-            for binding_name, binding_values in list(binding_dict.items()):
+            for binding_name, binding_values in binding_dict.items():
                 if binding_values['nat_pool'] == pool_key_name:
                     click.echo("Pool {} is not removed, as it is mapped to Binding {}, remove the pool binding first !!".format(pool_key_name,binding_name))
                     entryFound = True

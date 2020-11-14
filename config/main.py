@@ -111,7 +111,7 @@ def shutdown_interfaces(ctx, del_intf_dict):
             click.echo("port_dict is None!")
             return False
 
-        if intf in list(port_dict.keys()):
+        if intf in port_dict:
             config_db.mod_entry("PORT", intf, {"admin_status": "down"})
         else:
             click.secho("[ERROR] Could not get the correct interface name, exiting", fg='red')
@@ -141,7 +141,7 @@ def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brko
         return False
 
     # Check whether the  user-selected interface is part of  'port' table in config db.
-    if interface_name not in list(port_dict.keys()):
+    if interface_name not in port_dict:
         click.secho("[ERROR] {} is not in port_dict".format(interface_name))
         return False
     click.echo("\nRunning Breakout Mode : {} \nTarget Breakout Mode : {}".format(cur_brkout_mode, target_brkout_mode))
@@ -750,7 +750,7 @@ def _restart_services(config_db):
 
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
-    """ Check if an interface  is in a vlan """
+    """ Check if an interface is in a vlan """
     for _, intf in list(vlan_member_table.keys()):
         if intf == interface_name:
             return True
@@ -767,7 +767,7 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
 def interface_has_mirror_config(mirror_table, interface_name):
     """ Check if port is already configured with mirror config """
-    for _, v in list(mirror_table.items()):
+    for _, v in mirror_table.items():
         if 'src_port' in v and v['src_port'] == interface_name:
             return True
         if 'dst_port' in v and v['dst_port'] == interface_name:
@@ -2286,7 +2286,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     port_dict = {}
     for intf in add_intf_dict:
-        if intf in list(add_ports.keys()):
+        if intf in add_ports:
             port_dict[intf] = add_ports[intf]
 
     # writing JSON object
@@ -3493,7 +3493,7 @@ def enable(ctx, ifname):
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
-    if intf_dict and ifname in list(intf_dict.keys()):
+    if intf_dict and ifname in intf_dict:
         intf_dict[ifname]['admin_state'] = 'up'
         config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
@@ -3513,7 +3513,7 @@ def disable(ctx, ifname):
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
-    if intf_dict and ifname in list(intf_dict.keys()):
+    if intf_dict and ifname in intf_dict:
         intf_dict[ifname]['admin_state'] = 'down'
         config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
@@ -3538,7 +3538,7 @@ def sample_rate(ctx, ifname, rate):
 
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
-    if sess_dict and ifname in list(sess_dict.keys()):
+    if sess_dict and ifname in sess_dict:
         sess_dict[ifname]['sample_rate'] = rate
         config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
     else:
@@ -3594,7 +3594,7 @@ def add(ctx, name, ipaddr, port, vrf):
     config_db = ctx.obj['db']
     collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
-    if (collector_tbl and name not in list(collector_tbl.keys()) and len(collector_tbl) == 2):
+    if (collector_tbl and name not in collector_tbl and len(collector_tbl) == 2):
         click.echo("Only 2 collectors can be configured, please delete one")
         return
 
@@ -3614,7 +3614,7 @@ def del_collector(ctx, name):
     config_db = ctx.obj['db']
     collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
-    if name not in list(collector_tbl.keys()):
+    if name not in collector_tbl:
         click.echo("Collector: {} not configured".format(name))
         return
 
@@ -3647,7 +3647,7 @@ def add(ctx, ifname):
     if not sflow_tbl:
         sflow_tbl = {'global': {'admin_state': 'down'}}
 
-    if 'agent_id' in list(sflow_tbl['global'].keys()):
+    if 'agent_id' in sflow_tbl['global']:
         click.echo("Agent already configured. Please delete it first.")
         return
 
@@ -3667,7 +3667,7 @@ def delete(ctx):
     if not sflow_tbl:
         sflow_tbl = {'global': {'admin_state': 'down'}}
 
-    if 'agent_id' not in list(sflow_tbl['global'].keys()):
+    if 'agent_id' not in sflow_tbl['global']:
         click.echo("sFlow agent not configured.")
         return
 

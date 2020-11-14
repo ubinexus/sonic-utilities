@@ -164,7 +164,7 @@ def vrf(vrf_name):
         vrfs = []
         if vrf_name is None:
             vrfs = list(vrf_dict.keys())
-        elif vrf_name in list(vrf_dict.keys()):
+        elif vrf_name in vrf_dict:
             vrfs = [vrf_name]
         for vrf in vrfs:
             intfs = get_interface_bind_to_vrf(config_db, vrf)
@@ -1671,13 +1671,13 @@ def show_sflow_global(config_db):
 
 
     click.echo("  sFlow Polling Interval:".ljust(30), nl=False)
-    if (sflow_info and 'polling_interval' in list(sflow_info['global'].keys())):
+    if (sflow_info and 'polling_interval' in sflow_info['global']):
         click.echo("{}".format(sflow_info['global']['polling_interval']))
     else:
         click.echo("default")
 
     click.echo("  sFlow AgentID:".ljust(30), nl=False)
-    if (sflow_info and 'agent_id' in list(sflow_info['global'].keys())):
+    if (sflow_info and 'agent_id' in sflow_info['global']):
         click.echo("{}".format(sflow_info['global']['agent_id']))
     else:
         click.echo("default")
@@ -2233,7 +2233,7 @@ def interfaces():
     vlan_intfs_data = config_db.get_table("VLAN_INTERFACE")
 
     vnet_intfs = {}
-    for k, v in list(intfs_data.items()):
+    for k, v in intfs_data.items():
         if 'vnet_name' in v:
             vnet_name = v['vnet_name']
             if vnet_name in vnet_intfs:
@@ -2241,7 +2241,7 @@ def interfaces():
             else:
                 vnet_intfs[vnet_name] = [k]
 
-    for k, v in list(vlan_intfs_data.items()):
+    for k, v in vlan_intfs_data.items():
         if 'vnet_name' in v:
             vnet_name = v['vnet_name']
             if vnet_name in vnet_intfs:
@@ -2250,7 +2250,7 @@ def interfaces():
                 vnet_intfs[vnet_name] = [k]
 
     table = []
-    for k, v in list(vnet_intfs.items()):
+    for k, v in vnet_intfs.items():
         r = []
         r.append(k)
         r.append(",".join(natsorted(v)))
@@ -2271,7 +2271,7 @@ def neighbors():
     vlan_intfs_data = config_db.get_table("VLAN_INTERFACE")
 
     vnet_intfs = {}
-    for k, v in list(intfs_data.items()):
+    for k, v in intfs_data.items():
         if 'vnet_name' in v:
             vnet_name = v['vnet_name']
             if vnet_name in vnet_intfs:
@@ -2279,7 +2279,7 @@ def neighbors():
             else:
                 vnet_intfs[vnet_name] = [k]
 
-    for k, v in list(vlan_intfs_data.items()):
+    for k, v in vlan_intfs_data.items():
         if 'vnet_name' in v:
             vnet_name = v['vnet_name']
             if vnet_name in vnet_intfs:
@@ -2302,7 +2302,7 @@ def neighbors():
             nbrs_data[intf] = [(ip, mac)]
 
     table = []
-    for k, v in list(vnet_intfs.items()):
+    for k, v in vnet_intfs.items():
         v = natsorted(v)
         header[0] = k
         table = []

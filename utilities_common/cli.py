@@ -213,7 +213,7 @@ def is_valid_port(config_db, port):
     """Check if port is in PORT table"""
 
     port_table = config_db.get_table('PORT')
-    if port in list(port_table.keys()):
+    if port in port_table:
         return True
 
     return False
@@ -222,7 +222,7 @@ def is_valid_portchannel(config_db, port):
     """Check if port is in PORT_CHANNEL table"""
 
     pc_table = config_db.get_table('PORTCHANNEL')
-    if port in list(pc_table.keys()):
+    if port in pc_table:
         return True
 
     return False
@@ -296,7 +296,7 @@ def is_pc_router_interface(config_db, pc):
 def is_port_mirror_dst_port(config_db, port):
     """Check if port is already configured as mirror destination port """
     mirror_table = config_db.get_table('MIRROR_SESSION')
-    for _,v in list(mirror_table.items()):
+    for _,v in mirror_table.items():
         if 'dst_port' in v and v['dst_port'] == port:
             return True
 
@@ -304,7 +304,7 @@ def is_port_mirror_dst_port(config_db, port):
 
 def interface_has_mirror_config(mirror_table, interface_name):
     """Check if port is already configured with mirror config """
-    for _,v in list(mirror_table.items()):
+    for _,v in mirror_table.items():
         if 'src_port' in v and v['src_port'] == interface_name:
             return True
         if 'dst_port' in v and v['dst_port'] == interface_name:

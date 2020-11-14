@@ -98,7 +98,7 @@ def get_map_bridge_port_id_2_iface_name(db):
 
     bridge_port_id_2_iface_name = {}
 
-    for bridge_port_id, port_id in list(bridge_port_id_2_port_id.items()):
+    for bridge_port_id, port_id in bridge_port_id_2_port_id.items():
         if port_id in port_id_2_iface:
             bridge_port_id_2_iface_name[bridge_port_id] = port_id_2_iface[port_id]
         else:

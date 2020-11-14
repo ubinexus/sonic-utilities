@@ -332,7 +332,7 @@ class PlatformComponentsParser(object):
 
         missing_key = None
 
-        for key1, value1 in list(component.items()):
+        for key1, value1 in component.items():
             if not self.__is_dict(value1):
                 self.__parser_component_fail("dictionary is expected: key={}".format(key1))
 
@@ -352,7 +352,7 @@ class PlatformComponentsParser(object):
                     missing_key = self.VERSION_KEY
                     break
 
-                for key2, value2 in list(value1.items()):
+                for key2, value2 in value1.items():
                     if not self.__is_str(value2):
                         self.__parser_component_fail("string is expected: key={}".format(key2))
 
@@ -376,7 +376,7 @@ class PlatformComponentsParser(object):
         if len(chassis) != 1:
             self.__parser_chassis_fail("unexpected number of records: key={}".format(self.CHASSIS_KEY))
 
-        for key, value in list(chassis.items()):
+        for key, value in chassis.items():
             if not self.__is_dict(value):
                 self.__parser_chassis_fail("dictionary is expected: key={}".format(key))
 
@@ -401,7 +401,7 @@ class PlatformComponentsParser(object):
         if not module:
             self.__parser_module_fail("dictionary is empty: key={}".format(self.MODULE_KEY))
 
-        for key, value in list(module.items()):
+        for key, value in module.items():
             if not self.__is_dict(value):
                 self.__parser_module_fail("dictionary is expected: key={}".format(key))
 
@@ -549,8 +549,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
         append_module_na = not self.is_modular_chassis()
         module_name = NA
 
-        for chassis_name, chassis_component_map in list(self.chassis_component_map.items()):
-            for chassis_component_name, chassis_component in list(chassis_component_map.items()):
+        for chassis_name, chassis_component_map in self.chassis_component_map.items():
+            for chassis_component_name, chassis_component in chassis_component_map.items():
                 component = self.__pcp.chassis_component_map[chassis_name][chassis_component_name]
 
                 if component:
@@ -597,10 +597,10 @@ class ComponentUpdateProvider(PlatformDataProvider):
         chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
-            for module_name, module_component_map in list(self.module_component_map.items()):
+            for module_name, module_component_map in self.module_component_map.items():
                 append_module_name = True
 
-                for module_component_name, module_component in list(module_component_map.items()):
+                for module_component_name, module_component in module_component_map.items():
                     component = self.__pcp.module_component_map[module_name][module_component_name]
 
                     if component:
@@ -753,8 +753,8 @@ class ComponentStatusProvider(PlatformDataProvider):
         append_module_na = not self.is_modular_chassis()
         module_name = NA
 
-        for chassis_name, chassis_component_map in list(self.chassis_component_map.items()):
-            for chassis_component_name, chassis_component in list(chassis_component_map.items()):
+        for chassis_name, chassis_component_map in self.chassis_component_map.items():
+            for chassis_component_name, chassis_component in chassis_component_map.items():
                 firmware_version = chassis_component.get_firmware_version()
                 description = chassis_component.get_description()
 
@@ -778,10 +778,10 @@ class ComponentStatusProvider(PlatformDataProvider):
         chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
-            for module_name, module_component_map in list(self.module_component_map.items()):
+            for module_name, module_component_map in self.module_component_map.items():
                 append_module_name = True
 
-                for module_component_name, module_component in list(module_component_map.items()):
+                for module_component_name, module_component in module_component_map.items():
                     firmware_version = module_component.get_firmware_version()
                     description = module_component.get_description()
 
