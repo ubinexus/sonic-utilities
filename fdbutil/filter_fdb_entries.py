@@ -34,7 +34,7 @@ def get_vlan_cidr_map(filename):
             vlan, cidr = tuple(vlan_key.split('|'))
             if vlan in config_db_entries["VLAN"]:
                 if vlan not in vlan_cidr:
-                    vlan_cidr[vlan] = {4: ip_address("0.0.0.0".decode()), 6: ip_address("::".decode())}
+                    vlan_cidr[vlan] = {4: ip_address("0.0.0.0"), 6: ip_address("::")}
                 vlan_cidr[vlan][ip_interface(cidr).version] = ip_interface(cidr).network
 
     return vlan_cidr
