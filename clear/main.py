@@ -77,7 +77,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                universal_newlines=True,
+                                text=True,
                                 stderr=subprocess.STDOUT)
         stdout = proc.communicate()[0]
         proc.wait()
@@ -95,7 +95,7 @@ routing_stack = get_routing_stack()
 
 def run_command(command, pager=False, return_output=False):
     # Provide option for caller function to Process the output.
-    proc = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     if return_output:
         return proc.communicate()
     elif pager:

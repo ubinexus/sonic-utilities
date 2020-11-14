@@ -324,7 +324,7 @@ class SysInfoProvider(object):
     @staticmethod
     def run_command(cmd, abort=True):
         """runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise"""
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
         output = proc.stdout.read()
         error = proc.stderr.read()
         if abort and error != "":

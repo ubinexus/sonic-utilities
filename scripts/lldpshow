@@ -79,7 +79,7 @@ class Lldpshow(object):
             # and in table format we will get xml output
             lldp_cmd = 'sudo docker exec -i lldp{} lldpctl '.format(self.lldp_instance[lldp_instace_num]) + (
                 '-f xml' if not lldp_detail_info else lldp_interface_list)
-            p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+            p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True, text=True)
             (output, err) = p.communicate()
             ## Wait for end of command. Get return returncode ##
             returncode = p.wait()

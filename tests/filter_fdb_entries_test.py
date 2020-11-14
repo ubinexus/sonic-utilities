@@ -92,7 +92,7 @@ class TestFilterFdbEntries(object):
         process = subprocess.Popen(
             cmds,
             shell=False,
-            universal_newlines=True,
+            text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )

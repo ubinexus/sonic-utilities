@@ -258,7 +258,7 @@ def _get_device_type():
     """
 
     command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
-    proc = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     device_type, err = proc.communicate()
     if err:
         click.echo("Could not get the device type from minigraph, setting device type to Unknown")
@@ -1029,7 +1029,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
 
     if load_sysinfo:
         command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
-        proc = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
         cfg_hwsku, err = proc.communicate()
         if err:
             click.echo("Could not get the HWSKU from config file, exiting")
@@ -3418,7 +3418,7 @@ def enable(ctx):
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
     try:
-        proc = subprocess.Popen("systemctl is-active sflow", shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("systemctl is-active sflow", shell=True, text=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
     except SystemExit as e:
         ctx.fail("Unable to check sflow status {}".format(e))

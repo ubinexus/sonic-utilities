@@ -113,7 +113,7 @@ def reporthook(count, block_size, total_size):
 def get_docker_tag_name(image):
     # Try to get tag name from label metadata
     cmd = "docker inspect --format '{{.ContainerConfig.Labels.Tag}}' " + image
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     (out, _) = proc.communicate()
     if proc.returncode != 0:
         return "unknown"
@@ -153,7 +153,7 @@ def abort_if_false(ctx, param, value):
 def get_container_image_name(container_name):
     # example image: docker-lldp-sv2:latest
     cmd = "docker inspect --format '{{.Config.Image}}' " + container_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     (out, _) = proc.communicate()
     if proc.returncode != 0:
         sys.exit(proc.returncode)
@@ -161,7 +161,7 @@ def get_container_image_name(container_name):
 
     # example image_name: docker-lldp-sv2
     cmd = "echo " + image_latest + " | cut -d ':' -f 1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     image_name = proc.stdout.read().rstrip()
     return image_name
 
@@ -170,7 +170,7 @@ def get_container_image_id(image_tag):
     # TODO: extract commond docker info fetching functions
     # this is image_id for image with tag, like 'docker-teamd:latest'
     cmd = "docker images --format '{{.ID}}' " + image_tag
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     image_id = proc.stdout.read().rstrip()
     return image_id
 
@@ -178,7 +178,7 @@ def get_container_image_id(image_tag):
 def get_container_image_id_all(image_name):
     # All images id under the image name like 'docker-teamd'
     cmd = "docker images --format '{{.ID}}' " + image_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     image_id_all = proc.stdout.read()
     image_id_all = image_id_all.splitlines()
     image_id_all = set(image_id_all)
@@ -521,7 +521,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
             cmd = "docker exec -i swss orchagent_restart_check -w 2000 -r 5 " + skipPendingTaskCheck
 
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
             (out, err) = proc.communicate()
             if proc.returncode != 0:
                 if not skip_check:

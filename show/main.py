@@ -43,7 +43,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                universal_newlines=True,
+                                text=True,
                                 stderr=subprocess.STDOUT)
         stdout = proc.communicate()[0]
         proc.wait()
@@ -78,7 +78,7 @@ def run_command(command, display_cmd=False, return_cmd=False):
         clicommon.run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     while True:
         if return_cmd:
@@ -226,7 +226,7 @@ def is_mgmt_vrf_enabled(ctx):
     if ctx.invoked_subcommand is None:
         cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
 
-        p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try :
             mvrf_dict = json.loads(p.stdout.read())
         except ValueError:
@@ -1142,9 +1142,9 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE)
     sys_uptime_cmd = "uptime"
-    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
@@ -1158,7 +1158,7 @@ def version(verbose):
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
-    p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
 #
@@ -1366,7 +1366,7 @@ def startupconfiguration():
 def bgp(verbose):
     """Show BGP startup configuration"""
     cmd = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     result = proc.stdout.read().rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
@@ -1513,14 +1513,14 @@ def log(record, lines):
 def services():
     """Show all daemon services"""
     cmd = "sudo docker ps --format '{{.Names}}'"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     while True:
         line = proc.stdout.readline()
         if line != '':
                 print(line.rstrip()+'\t'+"docker")
                 print("---------------------------")
                 cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
-                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
                 print(proc1.stdout.read())
         else:
                 break
@@ -1793,7 +1793,7 @@ def counts(group, counter_type, verbose):
 def ecn():
     """Show ECN configuration"""
     cmd = "ecnconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
 
 
@@ -1804,7 +1804,7 @@ def ecn():
 def boot():
     """Show boot configuration"""
     cmd = "sudo sonic-installer list"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
 
 
@@ -1814,7 +1814,7 @@ def boot():
 def mmu():
     """Show mmu configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
 
 
@@ -1834,7 +1834,7 @@ def reboot_cause():
         click.echo("Unable to determine cause of previous reboot\n")
     else:
         cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, universal_newlines=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
         click.echo(proc.stdout.read())
 
 

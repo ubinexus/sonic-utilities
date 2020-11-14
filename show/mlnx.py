@@ -30,7 +30,7 @@ def run_command(command, display_cmd=False, ignore_error=False, print_to_console
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
-    proc = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     (out, err) = proc.communicate()
 
     if len(out) > 0 and print_to_console:

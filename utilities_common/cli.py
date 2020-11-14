@@ -350,7 +350,7 @@ def run_command_in_alias_mode(command):
        in output with vendor-sepecific interface aliases.
     """
 
-    process = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    process = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     while True:
         output = process.stdout.readline()
@@ -474,7 +474,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, universal_newlines=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
         output = proc.communicate()[0].decode("utf-8")
