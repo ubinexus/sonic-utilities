@@ -1,5 +1,3 @@
-#! /usr/bin/python -u
-
 import click
 import os
 import subprocess
@@ -368,10 +366,11 @@ def clear_vlan_fdb(vlanid):
 # 'line' command
 #
 @cli.command('line')
-@click.argument('linenum')
-def line(linenum):
+@click.argument('target')
+@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
+def line(target, devicename):
     """Clear preexisting connection to line"""
-    cmd = "consutil clear " + str(linenum)
+    cmd = "consutil clear {}".format("--devicename " if devicename else "") + str(target)
     run_command(cmd)
 
 #

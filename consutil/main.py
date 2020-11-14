@@ -19,9 +19,6 @@ except ImportError as e:
 @click.group()
 def consutil():
     """consutil - Command-line utility for interacting with switches via console device"""
-    if os.geteuid() != 0:
-        click.echo("Root privileges are required for this operation")
-        sys.exit(ERR_CMD)
     SysInfoProvider.init_device_prefix()
 
 # 'show' subcommand
@@ -52,9 +49,13 @@ def show(db, brief):
 @consutil.command()
 @clicommon.pass_db
 @click.argument('target')
-@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret linenum as device name instead")
+@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
 def clear(db, target, devicename):
     """Clear preexisting connection to line"""
+    if os.geteuid() != 0:
+        click.echo("Root privileges are required for this operation")
+        sys.exit(ERR_CMD)
+
     # identify the target line
     port_provider = ConsolePortProvider(db, configured_only=False)
     try:
@@ -70,7 +71,7 @@ def clear(db, target, devicename):
 @consutil.command()
 @clicommon.pass_db
 @click.argument('target')
-@click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret linenum as device name instead")
+@click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret target as device name instead")
 def connect(db, target, devicename):
     """Connect to switch via console device - TARGET is line number or device name of switch"""
     # identify the target line
@@ -87,7 +88,7 @@ def connect(db, target, devicename):
     try:
         session = target_port.connect()
     except LineBusyError:
-        click.echo("Cannot connect: line {} is busy".format(line_num))
+        click.echo("Cannot connect: line [{}] is busy".format(line_num))
         sys.exit(ERR_BUSY)
     except InvalidConfigurationError as cfg_err:
         click.echo("Cannot connect: {}".format(cfg_err.message))
@@ -97,7 +98,7 @@ def connect(db, target, devicename):
         sys.exit(ERR_DEV)
 
     # interact
-    click.echo("Successful connection to line {}\nPress ^A ^X to disconnect".format(line_num))
+    click.echo("Successful connection to line [{}]\nPress ^A ^X to disconnect".format(line_num))
     session.interact()
 
 if __name__ == '__main__':

@@ -12,27 +12,27 @@ from tabulate import tabulate
 from utilities_common import constants
 
 
-def is_ipv4_address(ipaddress):
+def is_ipv4_address(ip_address):
     """
     Checks if given ip is ipv4
-    :param ipaddress: unicode ipv4
+    :param ip_address: unicode ipv4
     :return: bool
     """
     try:
-        ipaddress.IPv4Address(ipaddress)
+        ipaddress.IPv4Address(ip_address)
         return True
     except ipaddress.AddressValueError as err:
         return False
 
 
-def is_ipv6_address(ipaddress):
+def is_ipv6_address(ip_address):
     """
     Checks if given ip is ipv6
-    :param ipaddress: unicode ipv6
+    :param ip_address: unicode ipv6
     :return: bool
     """
     try:
-        ipaddress.IPv6Address(ipaddress)
+        ipaddress.IPv6Address(ip_address)
         return True
     except ipaddress.AddressValueError as err:
         return False
@@ -70,6 +70,8 @@ def get_bgp_neighbors_dict(namespace=multi_asic.DEFAULT_NAMESPACE):
     dynamic_neighbors = {}
     config_db = multi_asic.connect_config_db_for_ns(namespace)
     static_neighbors = get_neighbor_dict_from_table(config_db, 'BGP_NEIGHBOR')
+    static_internal_neighbors = get_neighbor_dict_from_table(config_db, 'BGP_INTERNAL_NEIGHBOR')
+    static_neighbors.update(static_internal_neighbors)
     bgp_monitors = get_neighbor_dict_from_table(config_db, 'BGP_MONITORS')
     static_neighbors.update(bgp_monitors)
     dynamic_neighbors = get_dynamic_neighbor_subnet(config_db)

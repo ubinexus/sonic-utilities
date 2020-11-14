@@ -1,5 +1,3 @@
-#! /usr/bin/python -u
-
 try:
     import ConfigParser as configparser
 except ImportError:
@@ -14,7 +12,7 @@ import urllib
 
 import click
 from sonic_py_common import logger
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 
 from .bootloader import get_bootloader
 from .common import run_command, run_command_or_raise
@@ -314,9 +312,9 @@ def install(url, force, skip_migration=False):
     else:
         # Verify that the binary image is of the same type as the running image
         if not bootloader.verify_binary_image(image_path) and not force:
-            click.echo("Image file '{}' is of a different type than running image.\n"
-                       "If you are sure you want to install this image, use -f|--force.\n"
-                       "Aborting...".format(image_path))
+            click.echo("Image file '{}' is of a different type than running image.\n".format(url) +
+                "If you are sure you want to install this image, use -f|--force.\n" +
+                "Aborting...")
             raise click.Abort()
 
         click.echo("Installing image {} and setting it as default...".format(binary_image_version))
