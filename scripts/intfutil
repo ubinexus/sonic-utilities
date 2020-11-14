@@ -354,10 +354,10 @@ class IntfStatus(object):
     def display_intf_status(self):
         self.get_intf_status()
         sorted_table = natsorted(self.table)
-        print tabulate(sorted_table,
+        print(tabulate(sorted_table,
                        header_stat if not self.sub_intf_only else header_stat_sub_intf,
                        tablefmt="simple",
-                       stralign='right')
+                       stralign='right'))
 
     def generate_intf_status(self):
         """
@@ -467,7 +467,7 @@ class IntfDescription(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(self.table)
-        print tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right')
+        print(tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right'))
 
     def generate_intf_description(self):
         """
