@@ -421,7 +421,7 @@ class TestConsutilLib(object):
     @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     @mock.patch('os.path.exists', mock.MagicMock(return_value=True))
     def test_sys_info_provider_init_device_prefix_plugin(self):
-        with mock.patch("__builtin__.open", mock.mock_open(read_data="C0-")):
+        with mock.patch("builtins.open", mock.mock_open(read_data="C0-")):
             SysInfoProvider.init_device_prefix()
             assert SysInfoProvider.DEVICE_PREFIX == "/dev/C0-"
             SysInfoProvider.DEVICE_PREFIX = "/dev/ttyUSB"
