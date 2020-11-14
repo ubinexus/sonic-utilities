@@ -6,11 +6,11 @@
 #
 #####################################################################
 
-import sys
+import _pickle as pickle
 import argparse
-import cPickle as pickle
 import datetime
 import os.path
+import sys
 
 from collections import namedtuple, OrderedDict
 from copy import deepcopy
@@ -261,8 +261,8 @@ Examples:
 
     if save_fresh_stats:
         try:
-            pickle.dump(cnstat_dict_rx, open(cnstat_fqn_file_rx, 'w'))
-            pickle.dump(cnstat_dict_tx, open(cnstat_fqn_file_tx, 'w'))
+            pickle.dump(cnstat_dict_rx, open(cnstat_fqn_file_rx, 'wb'))
+            pickle.dump(cnstat_dict_tx, open(cnstat_fqn_file_tx, 'wb'))
         except IOError as e:
             print(e.errno, e)
             sys.exit(e.errno)
@@ -276,7 +276,7 @@ Examples:
     """
     if os.path.isfile(cnstat_fqn_file_rx):
         try:
-            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_rx, 'r'))
+            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_rx, 'rb'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_rx, cnstat_cached_dict, True)
         except IOError as e:
@@ -291,7 +291,7 @@ Examples:
     """
     if os.path.isfile(cnstat_fqn_file_tx):
         try:
-            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'r'))
+            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'rb'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_tx, cnstat_cached_dict, False)
         except IOError as e:

@@ -11,16 +11,16 @@
 # - Refactor calls to COUNTERS_DB to reduce redundancy
 # - Cache DB queries to reduce # of expensive queries
 
+import _pickle as pickle
 import argparse
-import swsssdk
 import os
-import sys
-import cPickle as pickle
 import socket
+import sys
 
-from tabulate import tabulate
+import swsssdk
 from collections import OrderedDict
 from natsort import natsorted
+from tabulate import tabulate
 
 # mock the redis for unit test purposes #
 try:
@@ -112,9 +112,9 @@ class DropStat(object):
 
         try:
             pickle.dump(self.get_counts_table(self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP), COUNTERS_PORT_NAME_MAP),
-                        open(self.port_drop_stats_file, 'w+'))
+                        open(self.port_drop_stats_file, 'wb+'))
             pickle.dump(self.get_counts(self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP), self.get_switch_id()),
-                        open(self.switch_drop_stats_file, 'w+'))
+                        open(self.switch_drop_stats_file, 'wb+'))
         except IOError as e:
             print(e)
             sys.exit(e.errno)
@@ -129,7 +129,7 @@ class DropStat(object):
 
         # Grab the latest clear checkpoint, if it exists
         if os.path.isfile(self.port_drop_stats_file):
-            port_drop_ckpt = pickle.load(open(self.port_drop_stats_file, 'r'))
+            port_drop_ckpt = pickle.load(open(self.port_drop_stats_file, 'rb'))
 
         counters = self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP, group, counter_type)
         headers = std_port_description_header + self.gather_headers(counters, DEBUG_COUNTER_PORT_STAT_MAP)
@@ -156,7 +156,7 @@ class DropStat(object):
 
         # Grab the latest clear checkpoint, if it exists
         if os.path.isfile(self.switch_drop_stats_file):
-            switch_drop_ckpt = pickle.load(open(self.switch_drop_stats_file, 'r'))
+            switch_drop_ckpt = pickle.load(open(self.switch_drop_stats_file, 'rb'))
 
         counters = self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP, group, counter_type)
         headers = std_switch_description_header + self.gather_headers(counters, DEBUG_COUNTER_SWITCH_STAT_MAP)

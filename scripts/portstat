@@ -6,8 +6,8 @@
 #
 #####################################################################
 
+import _pickle as pickle
 import argparse
-import cPickle as pickle
 import datetime
 import os.path
 import sys
@@ -430,7 +430,7 @@ Examples:
 
     if save_fresh_stats:
         try:
-            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'w'))
+            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'wb'))
         except IOError as e:
             sys.exit(e.errno)
         else:
@@ -441,7 +441,7 @@ Examples:
         cnstat_cached_dict = OrderedDict()
         if os.path.isfile(cnstat_fqn_file):
             try:
-                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))
+                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
                 print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, intf_list, use_json, print_all, errors_only, rates_only)
             except IOError as e:

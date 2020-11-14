@@ -6,8 +6,8 @@
 #
 #####################################################################
 
+import _pickle as pickle
 import argparse
-import cPickle as pickle
 import datetime
 import sys
 import os
@@ -304,7 +304,7 @@ def main():
 
     if save_fresh_stats:
         try:
-            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'w'))
+            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'wb'))
         except IOError as e:
             sys.exit(e.errno)
         else:
@@ -314,7 +314,7 @@ def main():
     if wait_time_in_seconds == 0:
         if os.path.isfile(cnstat_fqn_file):
             try:
-                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))
+                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
                 print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 if interface_name:
                     intfstat.cnstat_single_interface(interface_name, cnstat_dict, cnstat_cached_dict)
