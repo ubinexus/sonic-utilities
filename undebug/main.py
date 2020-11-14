@@ -22,7 +22,7 @@ def cli():
     pass
 
 
-p = subprocess.check_output(["sudo vtysh -c 'show version'"], shell=True)
+p = subprocess.check_output(["sudo vtysh -c 'show version'"], shell=True, text=True)
 if 'FRRouting' in p:
     #
     # 'bgp' group for FRR ###

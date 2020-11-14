@@ -83,7 +83,7 @@ class TestIntfutil(TestCase):
         assert result.output == show_interface_status_output
 
         # Test 'intfutil status'
-        output = subprocess.check_output('intfutil -c status', stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output('intfutil -c status', stderr=subprocess.STDOUT, shell=True, text=True)
         print(output)
         assert result.output == show_interface_status_output
 
@@ -164,7 +164,7 @@ class TestIntfutil(TestCase):
         self.assertEqual(result.output.strip(), expected_output)
 
         # Test 'intfutil status subport'
-        output = subprocess.check_output('intfutil -c status -i subport', stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output('intfutil -c status -i subport', stderr=subprocess.STDOUT, shell=True, text=True)
         print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 
@@ -189,7 +189,7 @@ class TestIntfutil(TestCase):
         self.assertEqual(result.output.strip(), expected_output)
 
         # Test 'intfutil status Ethernet0.10'
-        output = subprocess.check_output('intfutil -c status -i Ethernet0.10', stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output('intfutil -c status -i Ethernet0.10', stderr=subprocess.STDOUT, shell=True, text=True)
         print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 

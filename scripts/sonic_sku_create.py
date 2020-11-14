@@ -715,7 +715,7 @@ def main(argv):
             sku.default_sku_path = args.default_sku_path[0]
         else:
             try:
-                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
+                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True, text=True) #self.metadata['platform']
                 sku.platform = sku.platform.rstrip()
             except KeyError:
                 print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
