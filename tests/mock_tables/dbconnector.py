@@ -12,12 +12,6 @@ from swsssdk import SonicDBConfig, SonicV2Connector
 from swsscommon import swsscommon
 
 
-if sys.version_info >= (3, 0):
-    long = int
-    xrange = range
-    basestring = str
-    from functools import reduce
-
 topo = None
 
 def clean_up_config():
@@ -127,11 +121,11 @@ class SwssSyncClient(mockredis.MockRedis):
         "Return a bytestring representation of the value. Taken from redis-py connection.py"
         if isinstance(value, bytes):
             return value
-        elif isinstance(value, (int, long)):
+        elif isinstance(value, int):
             value = str(value).encode('utf-8')
         elif isinstance(value, float):
             value = repr(value).encode('utf-8')
-        elif not isinstance(value, basestring):
+        elif not isinstance(value, str):
             value = str(value).encode('utf-8')
         elif not self.decode_responses:
             value = value.encode('utf-8', 'strict')

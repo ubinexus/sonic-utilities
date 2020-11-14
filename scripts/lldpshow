@@ -157,20 +157,20 @@ class Lldpshow(object):
             lldp_output = ''
             for lldp_detail_output in self.lldpraw:
                 lldp_output += lldp_detail_output
-            print (lldp_output)
+            print(lldp_output)
         elif self.lldpraw:
             lldpstatus = []
-            print ('Capability codes: (R) Router, (B) Bridge, (O) Other')
+            print('Capability codes: (R) Router, (B) Bridge, (O) Other')
             header = ['LocalPort', 'RemoteDevice', 'RemotePortID', 'Capability', 'RemotePortDescr']
             sortedsum = self.sort_sum(self.lldpsum)
             for key in sortedsum:
                 lldpstatus.append([key, self.lldpsum[key]['r_name'], self.lldpsum[key]['r_portid'],
                                    self.lldpsum[key]['capability'], self.lldpsum[key]['r_portname']])
-            print (tabulate(lldpstatus, header))
-            print ('-'.rjust(50, '-'))
-            print ('Total entries displayed: ', len(self.lldpsum))
+            print(tabulate(lldpstatus, header))
+            print('-'.rjust(50, '-'))
+            print('Total entries displayed: ', len(self.lldpsum))
         elif self.err is not None:
-            print ('Error:', self.err)
+            print('Error:', self.err)
 
 
 def main():

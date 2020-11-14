@@ -446,8 +446,8 @@ class TestConsutilLib(object):
     def test_sys_info_provider_list_active_console_processes(self):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         procs = SysInfoProvider.list_active_console_processes()
-        assert len(list(procs.keys())) == 1
-        assert "0" in procs.keys()
+        assert len(procs) == 1
+        assert "0" in procs
         assert procs["0"] == ("8", "Mon Nov  2 04:29:41 2020")
 
     active_process_output = "13751 Wed Mar  6 08:31:35 2019 /usr/bin/sudo picocom -b 9600 -f n /dev/ttyUSB1"
