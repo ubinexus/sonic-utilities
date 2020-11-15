@@ -90,15 +90,15 @@ Feature    State     AutoRestart    SetOwner
 bgp        disabled  enabled        local
 """
 show_feature_snmp_config_owner_output="""\
-Feature    State    AutoRestart    Owner
----------  -------  -------------  -------
-snmp       enabled  enabled        local
+Feature    State    AutoRestart    Owner    fallback
+---------  -------  -------------  -------  ----------
+snmp       enabled  enabled        local    true
 """
 
 show_feature_snmp_config_fallback_output="""\
 Feature    State    AutoRestart    Owner    fallback
 ---------  -------  -------------  -------  ----------
-snmp       enabled  enabled        kube     true
+snmp       enabled  enabled        kube     false
 """
 
 show_feature_autorestart_output="""\
