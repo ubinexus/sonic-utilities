@@ -4,7 +4,7 @@
 import click
 from tabulate import tabulate
 
-from utilities_common.cli import pass_db
+from utilities_common.cli import AbbreviationGroup, pass_db
 
 REDIS_KUBE_TABLE = 'KUBERNETES_MASTER'
 REDIS_KUBE_KEY = 'SERVER'
@@ -27,7 +27,7 @@ def _print_entry(data, fields):
 #
 # kubernetes group ("show kubernetes ...")
 #
-@click.group()
+@click.group(cls=AbbreviationGroup, name='kubernetes', invoke_without_command=False)
 def kubernetes():
     pass
 

@@ -92,6 +92,11 @@ class TestKube(object):
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
         self.__check_res(result, "null server config test", show_no_server_output)
 
+        # Add IP when not configured
+        result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["ip", "10.10.10.11"], obj=db)
+        self.__check_res(result, "set server IP when none", "")
+
+
 
     def test_kube_server_status(self, get_cmd_module):
         (config, show) = get_cmd_module
@@ -118,6 +123,21 @@ class TestKube(object):
 
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
         self.__check_res(result, "check server IP", show_server_output_1)
+
+
+    def test_set_server_invalid_ip_port(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        # test invalid IP
+        result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["ip", "10101011"], obj=db)
+        assert result.exit_code == 1
+
+        # test invalid port
+        result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["port", "10101011"], obj=db)
+        assert result.exit_code == 1
+
 
 
     def test_set_insecure(self, get_cmd_module):

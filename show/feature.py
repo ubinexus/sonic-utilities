@@ -115,7 +115,7 @@ def feature_config(db, feature_name):
             ('fallback', 'no_fallback_to_local', "")
             ]
 
-    update_list = { "fallback" : _negate_bool_str }
+    update_list = { "no_fallback_to_local" : _negate_bool_str }
 
     cfg_table = db.cfgdb.get_table('FEATURE')
     ordered_data = []

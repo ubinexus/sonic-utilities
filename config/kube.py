@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import click
-import netaddr
+import socket
 
 from utilities_common.cli import AbbreviationGroup, pass_db
 
@@ -23,6 +23,21 @@ KUBE_STATE_SERVER_TS = "last_update_ts"
 
 KUBE_LABEL_TABLE = "KUBE_LABELS"
 KUBE_LABEL_SET_KEY = "SET"
+
+def is_valid_ip4_addr(address):
+    try:
+        socket.inet_pton(socket.AF_INET, address)
+    except socket.error:  # not a valid address
+        return False
+    return True
+
+
+def is_valid_ip6_addr(address):
+    try:
+        socket.inet_pton(socket.AF_INET6, address)
+    except socket.error:  # not a valid address
+        return False
+    return True
 
 
 def _update_kube_server(db, field, val):
@@ -66,11 +81,11 @@ def server():
 
 # cmd kubernetes server IP
 @server.command()
-@click.argument('vip')
+@click.argument('vip', required=True)
 @pass_db
 def ip(db, vip):
     """Specify a kubernetes cluster VIP"""
-    if vip and not netaddr.IPAddress(vip):
+    if vip and not is_valid_ip4_addr(vip) and not is_valid_ip6_addr(vip):
         click.echo('Invalid IP address %s' % vip)
         sys.exit(1)
     _update_kube_server(db, KUBE_SERVER_IP, vip)
@@ -78,7 +93,7 @@ def ip(db, vip):
 
 # cmd kubernetes server Port
 @server.command()
-@click.argument('portval')
+@click.argument('portval', required=True)
 @pass_db
 def port(db, portval):
     """Specify a kubernetes Service port"""

@@ -156,6 +156,10 @@ class TestFeature(object):
                 ("container_version", "20201230.100"), ("remote_state", "kube")]:
             dbconn.set(dbconn.STATE_DB, "FEATURE|snmp", key, val)
         runner = CliRunner()
+        result = runner.invoke(show.cli.commands["feature"].commands["status"], ["snmp"], obj=db)
+        print(result.exit_code)
+        assert result.exit_code == 0
+
         result = runner.invoke(show.cli.commands["feature"].commands["status"], [], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -209,6 +213,25 @@ class TestFeature(object):
         assert result.exit_code == 0
         assert result.output == show_feature_autorestart_output
 
+    def test_fail_autorestart(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        db = Db()
+
+        # Try setting auto restart for non-existing feature
+        result = runner.invoke(config.config.commands["feature"].commands["autorestart"], ["foo", "disabled"])
+        print(result.exit_code)
+        assert result.exit_code == 1
+
+        # Delete Feature table
+        db.cfgdb.delete_table("FEATURE")
+
+        # Try setting auto restart when no FEATURE table
+        result = runner.invoke(config.config.commands["feature"].commands["autorestart"], ["bgp", "disabled"], obj=db)
+        print(result.exit_code)
+        assert result.exit_code == 1
+
+
     def test_show_bgp_autorestart_status(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
@@ -246,7 +269,15 @@ class TestFeature(object):
         result = runner.invoke(config.config.commands["feature"].commands["owner"], ["snmp", "local"], obj=db)
         print(result.exit_code)
         print(result.output)
+        result = runner.invoke(config.config.commands["feature"].commands["fallback"], ["snmp", "on"], obj=db)
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
+
+        result = runner.invoke(show.cli.commands["feature"].commands["config"], ["foo"], obj=db)
+        print(result.exit_code)
+        assert result.exit_code == 1
+
         result = runner.invoke(show.cli.commands["feature"].commands["config"], ["snmp"], obj=db)
         print(result.output)
         assert result.exit_code == 0
@@ -291,6 +322,7 @@ class TestFeature(object):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["feature"].commands['state'], ["foo", "enabled"])
         print(result.output)
+        print(result.exit_code)
         assert result.exit_code == 1
 
     @classmethod
