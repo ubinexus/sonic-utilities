@@ -1,6 +1,3 @@
-#!/usr/bin/python -u
-# -*- coding: utf-8 -*-
-
 import click
 from tabulate import tabulate
 
