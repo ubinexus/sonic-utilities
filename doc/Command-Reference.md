@@ -48,6 +48,9 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Feature](#feature)
+  * [Feature show commands](#feature-show-commands)
+  * [Feature config commands](#feature-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -62,6 +65,9 @@
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
+* [Kubernetes](#Kubernetes)
+  * [Kubernetes show commands](#Kubernetes-show-commands)
+  * [Kubernetes config commands](#Kubernetes-config-commands)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -282,9 +288,11 @@ This command lists all the possible configuration commands at the top level.
     acl                    ACL-related configuration tasks
     bgp                    BGP-related configuration tasks
     ecn                    ECN-related configuration tasks
+    feature                Feature related configuration tasks
     hostname               Change device hostname without impacting traffic
     interface              Interface-related configuration tasks
     interface_naming_mode  Modify interface naming mode for interacting...
+    kubernetes             Kubernetes server related configuration
     load                   Import a previous saved config DB dump file.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
@@ -336,6 +344,7 @@ This command displays the full list of show commands available in the software; 
     interfaces            Show details of the network interfaces
     ip                    Show IP (IPv4) commands
     ipv6                  Show IPv6 commands
+    kubernetes            Show kubernetes commands
     line                  Show all /dev/ttyUSB lines and their info
     lldp                  LLDP (Link Layer Discovery Protocol)...
     logging               Show system log
@@ -2437,6 +2446,96 @@ The list of the WRED profile fields that are configurable is listed in the below
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
 
+## Feature 
+This sub-section contains the configuration commands that can configure the features, like swss, snmp, bgp, ...
+
+### Feature show commands
+
+**show feature config [<feature name>]
+Shows the config of given feature or all if no feature is given. The "fallback" defaults to "true" when not configured.
+
+- Usage:
+  ```
+  show feature config [<feature name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature config
+  Feature         State     AutoRestart    Owner    fallback
+  --------------  --------  -------------  -------  ----------
+  bgp             enabled   enabled        local
+  database        enabled   disabled       local
+  dhcp_relay      enabled   enabled        kube
+  lldp            enabled   enabled        kube     true
+  mgmt-framework  enabled   enabled        local
+  nat             disabled  enabled        local
+  pmon            enabled   enabled        kube
+  radv            enabled   enabled        kube
+  sflow           disabled  enabled        local
+  snmp            enabled   enabled        kube
+  swss            enabled   enabled        local
+  syncd           enabled   enabled        local
+  teamd           enabled   enabled        local
+  telemetry       enabled   enabled        kube
+  ```
+
+**show feature status [<feature name>]
+Shows the status of given feature or all if no feature is given. The "fallback" defaults to "true" when not configured.
+The subset of features are configurable for remote management and only those report additional data.
+
+- Usage:
+  ```
+  show feature status [<feature name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature status
+  Feature         State     AutoRestart    SystemState    UpdateTime           ContainerId    ContainerVersion    SetOwner    CurrentOwner    RemoteState
+  --------------  --------  -------------  -------------  -------------------  -------------  ------------------  ----------  --------------  -------------
+  bgp             enabled   enabled        up                                                                     local       local           none
+  database        enabled   disabled                                                                              local
+  dhcp_relay      enabled   enabled        up             2020-11-15 18:21:09  249e70102f55   20201230.100        kube        local
+  lldp            enabled   enabled        up             2020-11-15 18:21:09  779c2d55ee12   20201230.100        kube        local
+  mgmt-framework  enabled   enabled        up                                                                     local       local           none
+  nat             disabled  enabled                                                                               local
+  pmon            enabled   enabled        up             2020-11-15 18:20:27  a2b9ffa8aba3   20201230.100        kube        local
+  radv            enabled   enabled        up             2020-11-15 18:21:05  d8ff27dcfe46   20201230.100        kube        local
+  sflow           disabled  enabled                                                                               local
+  snmp            enabled   enabled        up             2020-11-15 18:25:51  8b7d5529e306   20201230.111        kube        kube            running
+  swss            enabled   enabled        up                                                                     local       local           none
+  syncd           enabled   enabled        up                                                                     local       local           none
+  teamd           enabled   enabled        up                                                                     local       local           none
+  telemetry       enabled   enabled        down           2020-11-15 18:24:59                 20201230.100        kube        none
+  ```
+
+**config feature owner [<feature name>] [local/kube]
+Configures the owner for a feature as "local" or  "kube". The "local" implies starting feature container from local image. The "kube" implies that kubernetes server is made eligible to deploy the feature. The deployment of a feature by kubernetes is conditional based on many factors like, whether the kube server is configured or not, connected-to-kube-server or not and if that master has manifest for this feature for this switch or not and more. At some point in future, the deployment *could* happen and till that point the feature can run from local image, called "fallback". The fallback is allowed by default and it could be toggled to "not allowed". When fallback is not allowed, the feature would run only upon deployment by kubernetes master.
+
+- Usage:
+  ```
+  config feature owner [<feature name>] [local/kube]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature owner snmp kube
+  ```
+
+**config feature fallback [<feature name>] [on/off]
+Features configured for "kube" deployment could be allowed to fallback to using local image, until the point of successful kube deployment. The fallback is allowed by default.
+
+- Usage:
+  ```
+  config feature fallback [<feature name>] [on/off]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature fallback snmp on
+  ```
+
 ## Gearbox
 
 This section explains all the Gearbox PHY show commands that are supported in SONiC.
@@ -3553,6 +3652,44 @@ Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/q
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ip--ipv6)
 
+
+## Kubernetes
+
+### Kubernetes show commands
+
+**show kubernetes server config**
+
+This command displays the kubernetes server configuration, if any, else would report as not configured.
+
+- Usage:
+  ```
+  show kubernetes server config
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kubernetes server config
+  ip           port    insecure    disable
+  -----------  ------  ----------  ---------
+  10.3.157.24  6443    True        False
+  ```
+
+**show kubernetes server status**
+
+This command displays the kubernetes server status.
+
+- Usage:
+  ```
+  show kubernetes server status
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kubernetes server config
+  ip           port    connected    update-time
+  -----------  ------  -----------  -------------------
+  10.3.157.24  6443    true         2020-11-15 18:25:05
+  ```
 
 ## LLDP
 
