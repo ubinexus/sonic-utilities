@@ -61,7 +61,7 @@ def feature_status(db, feature_name):
     names = []
     if feature_name:
         key = "FEATURE|{}".format(feature_name)
-        if cfg_table.has_key(feature_name):
+        if feature_name in cfg_table:
             data = cfg_table[feature_name]
             if keys and (key in keys):
                 data.update(dbconn.get_all(dbconn.STATE_DB, key))
@@ -122,7 +122,7 @@ def feature_config(db, feature_name):
     names = []
     fields = set()
     if feature_name:
-        if cfg_table.has_key(feature_name):
+        if feature_name in cfg_table:
             data = _update_data(update_list, cfg_table[feature_name])
             ordered_data.append(data)
             names.append(feature_name)
