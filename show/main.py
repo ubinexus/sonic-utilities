@@ -1437,8 +1437,7 @@ def boot():
 def mmu():
     """Show mmu configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd)
 
 #
 # 'buffer' command ("show buffer")
@@ -1455,8 +1454,7 @@ def buffer():
 def configuration():
     """show buffer configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd)
 
 #
 # 'information' command ("show buffer state")
@@ -1465,8 +1463,7 @@ def configuration():
 def information():
     """show buffer information"""
     cmd = "buffershow -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd)
 
 
 #

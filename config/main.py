@@ -1704,7 +1704,7 @@ def reload(ctx, no_dynamic_buffer):
             ), fg="yellow")
 
     if buffer_model_updated:
-        print "Buffer calculation model updated, restarting swss is required to take effect"
+        print("Buffer calculation model updated, restarting swss is required to take effect")
 
 def is_dynamic_buffer_enabled(config_db):
     """Return whether the current system supports dynamic buffer calculation"""
@@ -2584,7 +2584,7 @@ def pgmaps_check_legality(ctx, interface_name, input_pg, is_new_pg):
             ctx.fail("PG {} doesn't exist".format(input_pg))
         return
 
-    for k, v in existing_pgs.iteritems():
+    for k, v in existing_pgs.items():
         port, existing_pg = k
         if port == interface_name:
             existing_lower = int(existing_pg[0])
@@ -2633,7 +2633,7 @@ def remove_pg_on_port(ctx, interface_name, pg_map):
     # Remvoe all dynamic lossless PGs on the port
     existing_pgs = config_db.get_table("BUFFER_PG")
     removed = False
-    for k, v in existing_pgs.iteritems():
+    for k, v in existing_pgs.items():
         port, existing_pg = k
         if port == interface_name and (not pg_map or pg_map == existing_pg):
             need_to_remove = False
@@ -3372,7 +3372,7 @@ def priority(ctx, interface_name, priority, status):
     clicommon.run_command("pfc config priority {0} {1} {2}".format(status, interface_name, priority))
 
 #
-# 'buffer_profile' group ('config buffer_profile ...')
+# 'buffer' group ('config buffer ...')
 #
 
 @config.group(cls=clicommon.AbbreviationGroup)
@@ -3400,11 +3400,11 @@ def profile(ctx):
 @click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
 @click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
 @click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
-@click.pass_context
-def add_profile(ctx, profile, xon, xoff, size, dynamic_th, pool):
+@clicommon.pass_db
+def add_profile(db, profile, xon, xoff, size, dynamic_th, pool):
     """Add or modify a buffer profile"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
 
     profile_entry = config_db.get_entry('BUFFER_PROFILE', profile)
     if profile_entry:
@@ -3420,11 +3420,11 @@ def add_profile(ctx, profile, xon, xoff, size, dynamic_th, pool):
 @click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
 @click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
 @click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
-@click.pass_context
-def set_profile(ctx, profile, xon, xoff, size, dynamic_th, pool):
+@clicommon.pass_db
+def set_profile(db, profile, xon, xoff, size, dynamic_th, pool):
     """Add or modify a buffer profile"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
 
     profile_entry = config_db.get_entry('BUFFER_PROFILE', profile)
     if not profile_entry:
@@ -3497,15 +3497,15 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
 
 @profile.command('remove')
 @click.argument('profile', metavar='<profile>', required=True)
-@click.pass_context
-def remove_profile(ctx, profile):
+@clicommon.pass_db
+def remove_profile(db, profile):
     """Delete a buffer profile"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
 
     full_profile_name = '[BUFFER_PROFILE|{}]'.format(profile)
     existing_pgs = config_db.get_table("BUFFER_PG")
-    for k, v in existing_pgs.iteritems():
+    for k, v in existing_pgs.items():
         port, pg = k
         referenced_profile = v.get('profile')
         if referenced_profile and referenced_profile == full_profile_name:

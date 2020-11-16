@@ -29,6 +29,17 @@ BUFFER_PROFILE_FIELDS = {
     "alpha": DYNAMIC_THRESHOLD
 }
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+
+except KeyError:
+    pass
 
 class MmuConfig(object):
     def __init__(self, verbose, config):
@@ -111,7 +122,6 @@ class MmuConfig(object):
 def main(config):
     if config:
         parser = argparse.ArgumentParser(description='Show and change: mmu configuration',
-                                         version='1.0.0',
                                          formatter_class=argparse.RawTextHelpFormatter)
 
         parser.add_argument('-l', '--list', action='store_true', help='show mmu configuration')
@@ -120,7 +130,6 @@ def main(config):
         parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     else:
         parser = argparse.ArgumentParser(description='Show buffer state',
-                                         version='1.0.0',
                                          formatter_class=argparse.RawTextHelpFormatter)
 
         parser.add_argument('-l', '--list', action='store_true', help='show buffer state')

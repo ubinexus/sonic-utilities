@@ -188,8 +188,8 @@ class DBMigrator():
         '''
         # Migrate BUFFER_PROFILEs, removing dynamically generated profiles
         dynamic_profile = self.configDB.get_table('BUFFER_PROFILE')
-        profile_pattern = 'pg_lossless_([0-9]*000)_([0-9]*m)_profile'
-        for name, info in dynamic_profile.iteritems():
+        profile_pattern = 'pg_lossless_([1-9][0-9]*000)_([1-9][0-9]*m)_profile'
+        for name, info in dynamic_profile.items():
             m = re.search(profile_pattern, name)
             if not m:
                 continue
@@ -212,12 +212,12 @@ class DBMigrator():
         ports = self.configDB.get_table('PORT')
         all_cable_lengths = self.configDB.get_table('CABLE_LENGTH')
         if not buffer_pgs or not ports or not all_cable_lengths:
-            log.log_notice("At lease one of tables BUFFER_PG, PORT and CABLE_LENGTH hasn't been defined, skip following mitration")
+            log.log_notice("At lease one of tables BUFFER_PG, PORT and CABLE_LENGTH hasn't been defined, skip following migration")
             abandon_method()
             return True
 
-        cable_lengths = all_cable_lengths[all_cable_lengths.keys()[0]]
-        for name, profile in buffer_pgs.iteritems():
+        cable_lengths = all_cable_lengths[list(all_cable_lengths.keys())[0]]
+        for name, profile in buffer_pgs.items():
             # do the db migration
             port, pg = name
             if pg != '3-4':
@@ -278,7 +278,7 @@ class DBMigrator():
         warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
         mmu_size = self.stateDB.get(self.stateDB.STATE_DB, 'BUFFER_MAX_PARAM_TABLE|global', 'mmu_size')
         if warmreboot_state == 'true' and not mmu_size:
-            log.log_notice("This is the very first run of buffermgrd (dynamc), prepare info requred from warm reboot")
+            log.log_notice("This is the very first run of buffermgrd (dynamic), prepare info required from warm reboot")
         else:
             return True
 
@@ -298,7 +298,7 @@ class DBMigrator():
             app_table_name = table_name + "_TABLE"
             if not entries:
                 entries = self.configDB.get_table(table_name)
-            for key, items in entries.iteritems():
+            for key, items in entries.items():
                 # copy items to appl db
                 if reference_field_name:
                     confdb_ref = items.get(reference_field_name)
@@ -328,7 +328,7 @@ class DBMigrator():
                     appl_db_key = app_table_name + ':' + ':'.join(key)
                 else:
                     appl_db_key = app_table_name + ':' + key
-                for field, data in items.iteritems():
+                for field, data in items.items():
                     self.appDB.set(self.appDB.APPL_DB, appl_db_key, field, data)
 
             if keys_copied:

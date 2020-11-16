@@ -2365,18 +2365,18 @@ This command is used to configure a lossless buffer profile.
 - Usage:
 
   ```
-  config buffer_profile add <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-headroom <headroom_size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
-  config buffer_profile set <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-headroom <headroom_size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer_profile add <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer_profile set <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
   config buffer_profile remove <profile_name>
   ```
 
   All the parameters are devided to two groups, one for headroom and one for dynamic_th. For any command at lease one group of parameters should be provided.
   For headroom parameters:
 
-  - At lease one of `xoff` and `headroom` should be provided and the other will be optional and conducted via the formula `xon + xoff = headroom`.
+  - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
   All other parameters are optional.
   - `xon` is madantory.
-  - `xon` + `xoff` <= `headroom`; For Mellanox platform xon + xoff == headroom
+  - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
 
   If only headroom parameters are provided, the `dynamic_th` will be taken from `CONFIG_DB.DEFAULT_LOSSLESS_BUFFER_PARAMETER.default_dynamic_th`.
 
@@ -2578,20 +2578,20 @@ This command is used to display the status of buffer pools and profiles currentl
   ----------  --------------------------------
   ```
 
-**show buffer configure**
+**show buffer configuration**
 
 This command is used to display the status of buffer pools and profiles currently configured.
 
 - Usage:
 
   ```
-  show buffer configure
+  show buffer configuration
   ```
 
 - Example:
 
   ```
-  admin@sonic:~$ show buffer configure
+  admin@sonic:~$ show buffer configuration
   Pool: ingress_lossless_pool
   ----  --------
   type  ingress
