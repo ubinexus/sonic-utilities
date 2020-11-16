@@ -64,9 +64,9 @@ class TestKube(object):
 
     def __check_res(self, result, info, op):
         print("Running test: {}".format(info))
-        print result.exit_code
+        print(result.exit_code)
         assert result.exit_code == 0
-        print result.output
+        print(result.output)
         assert result.output == op
 
 

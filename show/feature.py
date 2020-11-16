@@ -47,7 +47,7 @@ def feature_status(db, feature_name):
             ('SystemState', 'system_state', ""),
             ('UpdateTime', 'update_time', ""),
             ('ContainerId', 'container_id', ""),
-            ('ContainerVersion', 'container_version', ""),
+            ('Version', 'container_version', ""),
             ('SetOwner', 'set_owner', ""),
             ('CurrentOwner', 'current_owner', ""),
             ('RemoteState', "remote_state", "")
