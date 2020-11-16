@@ -10,7 +10,7 @@ try:
     import click
 
     from .lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
-    from .lib import URL, SquashFs
+    from .lib import URL, SquashFs, FwPackage
     from .log import LogHelper
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
@@ -87,6 +87,14 @@ def install(ctx):
 def update(ctx):
     """Update platform firmware"""
     ctx.obj[COMPONENT_PATH_CTX_KEY] = [ ]
+
+
+# 'auto_update' group
+@cli.group()
+@click.pass_context
+def auto_update(ctx):
+    """Auto-update platform firmware"""
+    pass
 
 
 def chassis_handler(ctx):
@@ -334,23 +342,29 @@ def fw_update(ctx, yes, force, image):
         cli_abort(ctx, str(e))
 
 
-# 'show' subgroup
-@cli.group()
-def show():
-    """Display platform info"""
-    pass
-
-
-# 'updates' subcommand
-@show.command()
-@click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Show updates using current/next SONiC image")
+# 'fw' subcommand
+@auto_update.command(name='fw')
+@click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Update firmware using current/next SONiC image")
+@click.option('-f', '--fw_image', 'fw_image', help="Custom FW package path")
+@click.option('-b', '--boot', 'boot', type=click.Choice(["any", "cold", "fast", "warm", "none"]), default="none", show_default=True, help="Necessary boot option after the firmware update")
 @click.pass_context
-def updates(ctx, image):
-    """Show available updates"""
-    try:
-        squashfs = None
+def fw_auto_update(ctx, boot, image=None, fw_image=None):
+    """Update firmware from SONiC image"""
+    squashfs = None
+    fwpackage = None
+    cup = None
 
-        try:
+    try:
+
+        if fw_image is not None:
+            fwpackage = FWPackage(fw_image)
+
+            if fwpackage.untar_fwpackage():
+                fs_path = fwpackage.get_fw_package_path()
+                cup = ComponentUpdateProvider(fs_path)
+            else:
+                log_helper.print_warning("Cannot open the firmware package")
+        else:
             if image == IMAGE_NEXT:
                 squashfs = SquashFs()
 
@@ -362,6 +376,66 @@ def updates(ctx, image):
                     cup = ComponentUpdateProvider()
             else:
                 cup = ComponentUpdateProvider()
+
+        if cup is not None:
+            au_component_list = cup.get_update_available_components()
+            if au_component_list:
+                if cup.is_first_auto_update(boot):
+                    for au_component in au_component_list:
+                        cup.auto_update_firmware(au_component, boot)
+                    log_helper.print_warning("All firmware auto-update has been performed")
+                    click.echo("All firmware auto-update has been performed")
+            else:
+                log_helper.print_warning("All components: {}".format(cup.FW_STATUS_UP_TO_DATE))
+        else:
+            log_helper.print_warning("compoenet update package is not available")
+    finally:
+        if squashfs is not None:
+            squashfs.umount_next_image_fs()
+        if fwpackage is not None:
+            fwpackage.cleanup_tmp_fwpackage()
+
+
+# 'show' subgroup
+@cli.group()
+def show():
+    """Display platform info"""
+    pass
+
+
+# 'updates' subcommand
+@show.command()
+@click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Show updates using current/next SONiC image")
+@click.option('-f', '--fw_image', 'fw_image', help="Custom FW package path")
+@click.pass_context
+def updates(ctx, image=None, fw_image=None):
+    """Show available updates"""
+    try:
+        squashfs = None
+        fwpackage = None
+        cup = None
+
+        try:
+            if fw_image is not None:
+                fwpackage = FWPackage(fw_image)
+
+                if fwpackage.untar_fwpackage():
+                    fs_path = fwpackage.get_fw_package_path()
+                    cup = ComponentUpdateProvider(fs_path)
+                else:
+                    log_helper.print_warning("Cannot open the firmware package")
+            else:
+                if image == IMAGE_NEXT:
+                    squashfs = SquashFs()
+
+                    if squashfs.is_next_boot_set():
+                        fs_path = squashfs.mount_next_image_fs()
+                        cup = ComponentUpdateProvider(fs_path)
+                    else:
+                        log_helper.print_warning("Next boot is set to current: fallback to defaults")
+                        cup = ComponentUpdateProvider()
+                else:
+                    cup = ComponentUpdateProvider()
 
             status = cup.get_status()
             if status is not None:
@@ -383,6 +457,18 @@ def status(ctx):
     try:
         csp = ComponentStatusProvider()
         click.echo(csp.get_status())
+    except Exception as e:
+        cli_abort(ctx, str(e))
+
+
+# 'auto_update_status' subcommand
+@show.command()
+@click.pass_context
+def auto_update_status(ctx):
+    """Show platform components auto firmware update status"""
+    try:
+        cup = ComponentUpdateProvider()
+        click.echo(cup.get_au_status())
     except Exception as e:
         cli_abort(ctx, str(e))
 
