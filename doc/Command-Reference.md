@@ -2451,7 +2451,7 @@ This sub-section contains the configuration commands that can configure the feat
 
 ### Feature show commands
 
-** show feature config
+**show feature config**
 
 Shows the config of given feature or all if no feature is given. The "fallback" is shown only if configured. The fallback defaults to "true" when not configured.
 
@@ -2481,7 +2481,7 @@ Shows the config of given feature or all if no feature is given. The "fallback" 
   telemetry       enabled   enabled        kube
   ```
 
-** show feature status
+**show feature status**
 
 Shows the status of given feature or all if no feature is given. The "fallback" defaults to "true" when not configured.
 The subset of features are configurable for remote management and only those report additional data.
@@ -2512,7 +2512,7 @@ The subset of features are configurable for remote management and only those rep
   telemetry       enabled   enabled        down           2020-11-15 18:24:59                 20201230.100        kube        none
   ```
 
-** config feature owner
+**config feature owner**
 
 Configures the owner for a feature as "local" or  "kube". The "local" implies starting the feature container from local image. The "kube" implies that kubernetes server is made eligible to deploy the feature. The deployment of a feature by kubernetes is conditional based on many factors like, whether the kube server is configured or not, connected-to-kube-server or not and if that master has manifest for this feature for this switch or not and more. At some point in future, the deployment *could* happen and till that point the feature can run from local image, called "fallback". The fallback is allowed by default and it could be toggled to "not allowed". When fallback is not allowed, the feature would run only upon deployment by kubernetes master.
 
@@ -2526,7 +2526,7 @@ Configures the owner for a feature as "local" or  "kube". The "local" implies st
   admin@sonic:~$ sudo config feature owner snmp kube
   ```
 
-** config feature fallback
+**config feature fallback**
 
 Features configured for "kube" deployment could be allowed to fallback to using local image, until the point of successful kube deployment. The fallback is allowed by default.
 
