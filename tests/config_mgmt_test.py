@@ -173,7 +173,7 @@ class TestConfigMgmt(TestCase):
             conf will be updated with uconf, i.e. config diff.
         '''
         try:
-            for it in uconf:
+            for it in list(uconf.keys()):
                 # if conf has the key
                 if conf.get(it):
                     # if marked for deletion
