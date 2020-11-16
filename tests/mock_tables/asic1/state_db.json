@@ -203,5 +203,11 @@
         "speed_target": "50",
         "led_status": "green",
         "timestamp": "20200813 01:32:30"
+    },
+    "MUX_CABLE_TABLE_NAME|Ethernet32": {
+        "status": "active"
+    },
+    "MUX_CABLE_TABLE_NAME|Ethernet0": {
+        "status": "active"
     }
 }
