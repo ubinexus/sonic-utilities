@@ -353,19 +353,19 @@ class MellanoxBufferMigrator():
                 if method == "sku":
                     skumap = pool_convert_map.get(mapname)
                     new_config_name = skumap.get(self.sku)
-                elif method == "platform":
-                    platformmap = pool_convert_map.get(mapname)
-                    new_config_name = platformmap.get(platform)
+                else:
+                    log.log_info("Unsupported mapping method {} found. Stop db_migrator".format(method))
+                    return False
             else:
                 new_config_name = new_config_map
         return new_config_name
 
-    def mlnx_migrate_extract_partial_pool(self, pool_config, config_name = None):
-        partialpool = pool_config.get("doublepool")
+    def mlnx_migrate_extend_condensed_pool(self, pool_config, config_name = None):
+        condensedpool = pool_config.get("doublepool")
         doublepool = False
-        if not partialpool:
-            partialpool = pool_config.get("singlepool")
-            if partialpool:
+        if not condensedpool:
+            condensedpool = pool_config.get("singlepool")
+            if condensedpool:
                 pool_config.pop("singlepool")
             else:
                 log.log_info("Got old default pool configuration {} {}".format(config_name, pool_config))
@@ -373,31 +373,31 @@ class MellanoxBufferMigrator():
             pool_config.pop("doublepool")
             doublepool = True
 
-        if partialpool:
-            xoff = partialpool.get('xoff')
+        if condensedpool:
+            xoff = condensedpool.get('xoff')
             if xoff:
-                partialpool.pop('xoff')
-            log.log_info("partial pool {}".format(partialpool))
-            partialpool['type'] = 'egress'
-            partialpool['mode'] = 'dynamic'
+                condensedpool.pop('xoff')
+            log.log_info("condensed pool {}".format(condensedpool))
+            condensedpool['type'] = 'egress'
+            condensedpool['mode'] = 'dynamic'
             pool_config['egress_lossy_pool'] = {}
-            pool_config['egress_lossy_pool'].update(partialpool)
+            pool_config['egress_lossy_pool'].update(condensedpool)
 
             pool_config['egress_lossless_pool']['type'] = 'egress'
             pool_config['egress_lossless_pool']['mode'] = 'dynamic'
 
-            partialpool['type'] = 'ingress'
+            condensedpool['type'] = 'ingress'
             pool_config['ingress_lossless_pool'] = {}
-            pool_config['ingress_lossless_pool'].update(partialpool)
+            pool_config['ingress_lossless_pool'].update(condensedpool)
 
             if doublepool:
                 pool_config['ingress_lossy_pool'] = {}
-                pool_config['ingress_lossy_pool'].update(partialpool)
+                pool_config['ingress_lossy_pool'].update(condensedpool)
 
             if xoff:
                 pool_config['ingress_lossless_pool']['xoff'] = xoff
 
-            log.log_info("Initialize partial buffer pool: {}".format(pool_config))
+            log.log_info("Initialize condensed buffer pool: {}".format(pool_config))
 
     def mlnx_migrate_get_headroom_profiles(self, headroom_profile_set):
         if type(headroom_profile_set) is tuple:
@@ -408,7 +408,7 @@ class MellanoxBufferMigrator():
 
         return result
 
-    def mlnx_migrate_extract_headroom_profile(self, headroom_profile):
+    def mlnx_migrate_extend_headroom_profile(self, headroom_profile):
         headroom_profile['dynamic_th'] = '0'
         if not 'xoff' in headroom_profile.keys():
             headroom_profile['xoff'] = str(int(headroom_profile['size']) - int(headroom_profile['xon']))
@@ -455,7 +455,7 @@ class MellanoxBufferMigrator():
         default_buffer_pools_old = self.mlnx_default_buffer_parameters(old_version, "buffer_pools")
         for old_config_name in default_pool_conf_list_old:
             old_config = default_buffer_pools_old[old_config_name]
-            self.mlnx_migrate_extract_partial_pool(old_config, old_config_name)
+            self.mlnx_migrate_extend_condensed_pool(old_config, old_config_name)
 
             log.log_info("Checking old pool configuration {} {}".format(old_config_name, old_config))
             if configdb_buffer_pools == old_config:
@@ -475,7 +475,7 @@ class MellanoxBufferMigrator():
             log.log_error("Can't find the buffer pool configuration for {} in {}".format(new_config_name, new_version))
             return False
 
-        self.mlnx_migrate_extract_partial_pool(new_buffer_pool_conf, new_config_name)
+        self.mlnx_migrate_extend_condensed_pool(new_buffer_pool_conf, new_config_name)
 
         # Migrate old buffer conf to latest.
         for pool in configdb_buffer_pools.keys():
@@ -532,7 +532,7 @@ class MellanoxBufferMigrator():
                 matched = True
                 for name, profile in configdb_buffer_profiles.iteritems():
                     if name in lossless_profiles.keys():
-                        default_profile = self.mlnx_migrate_extract_headroom_profile(lossless_profiles.get(name))
+                        default_profile = self.mlnx_migrate_extend_headroom_profile(lossless_profiles.get(name))
                         if profile != default_profile:
                             log.log_info("Skip headroom profile set {} due to {} mismatched: {} vs {}".format(
                                 headroom_set_name, name, default_profile, profile))
@@ -563,7 +563,7 @@ class MellanoxBufferMigrator():
             if type(default_headrooms_new) is dict:
                 for name, profile in configdb_buffer_profiles.iteritems():
                     if name in default_headrooms_new.keys():
-                        default_profile = self.mlnx_migrate_extract_headroom_profile(default_headrooms_new.get(name))
+                        default_profile = self.mlnx_migrate_extend_headroom_profile(default_headrooms_new.get(name))
                         self.configDB.set_entry('BUFFER_PROFILE', name, default_profile)
                         log.log_info("Profile {} has been migrated to {}".format(name, default_profile))
 
