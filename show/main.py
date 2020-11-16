@@ -6,8 +6,6 @@ import sys
 
 import click
 import netifaces
-from pkg_resources import parse_version
-
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted

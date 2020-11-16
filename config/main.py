@@ -24,7 +24,6 @@ import utilities_common.cli as clicommon
 from .utils import log
 
 
-import chassis_modules
 from . import aaa
 from . import chassis_modules
 from . import console
