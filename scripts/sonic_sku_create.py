@@ -642,7 +642,7 @@ class SkuCreate(object):
             if not os.path.exists(self.new_sku_dir):
                 print("Trying to remove a SKU "+ self.new_sku_dir + " that doesn't exists, Ignoring -r command")
             while True:
-                answer = input("You are about to permanently delete the SKU "+ self.new_sku_dir+" !! \nDo you want to continue (Yes/No)?") 
+                answer = raw_input("You are about to permanently delete the SKU "+ self.new_sku_dir+" !! \nDo you want to continue (Yes/No)?") 
                 if (answer == "Yes" or answer == "No"):
                     break
                 else:
