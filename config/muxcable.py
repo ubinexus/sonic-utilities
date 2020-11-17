@@ -159,7 +159,7 @@ def mode(state, port, json_output):
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for key in port_table_keys[asic_id]:
-                logical_port = port = key.split("|")[1]
+                logical_port = key.split("|")[1]
                 port_status_dict = {}
                 lookup_statedb_and_update_configdb(
                     per_npu_statedb[asic_id], per_npu_configdb[asic_id], logical_port, state, port_status_dict)
