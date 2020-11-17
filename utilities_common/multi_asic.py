@@ -18,7 +18,7 @@ class MultiAsic(object):
     def is_object_internal(self, object_type, cli_object):
         '''
         The function checks if a CLI object is internal and returns true or false.
-        Internal objects are port or portchannel which are connected to other 
+        Internal objects are port or portchannel which are connected to other
         ports or portchannels within a multi ASIC device.
 
         For single asic, this function is not applicable
@@ -120,8 +120,23 @@ def run_on_multi_asic(func):
         ns_list = self.multi_asic.get_ns_list_based_on_options()
         for ns in ns_list:
             self.multi_asic.current_namespace = ns
-            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
-            self.config_db = multi_asic.connect_config_db_for_ns(ns)
+            # if object instance already has db connections, use them
+            if (hasattr(self, 'db_clients') and
+                    self.db_clients and
+                    ns in self.db_clients.config_db_clients and
+                    self.db_clients.config_db_clients[ns]):
+                self.config_db = self.db_clients.config_db_clients[ns]
+            else:
+                self.config_db = multi_asic.connect_config_db_for_ns(ns)
+
+            if (hasattr(self, 'db_clients') and
+                    self.db_clients and
+                    ns in self.db_clients.db_clients and
+                    self.db_clients.db_clients[ns]):
+                self.db = self.db_clients.db_clients[ns]
+            else:
+                self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+
             func(self,  *args, **kwargs)
     return wrapped_run_on_all_asics
 
