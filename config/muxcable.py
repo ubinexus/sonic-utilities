@@ -4,7 +4,6 @@ import sys
 
 import click
 import utilities_common.cli as clicommon
-
 from sonic_py_common import multi_asic, device_info
 from swsscommon import swsscommon
 from tabulate import tabulate
@@ -105,8 +104,8 @@ def lookup_statedb_and_update_configdb(y_cable_asic_table, y_cable_update_tbl, p
 @muxcable.command()
 @click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto"]))
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.option('--json', 'json_flag', required=False, is_flag=True, type=click.BOOL)
-def mode(state, port, json_flag):
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL)
+def mode(state, port, json_output):
     """Show muxcable summary information"""
 
     config_db = {}
@@ -142,7 +141,7 @@ def mode(state, port, json_flag):
                 lookup_statedb_and_update_configdb(
                     y_cable_asic_table, y_cable_update_tbl[asic_index], port, state, port_status_dict)
 
-                if json_flag:
+                if json_output:
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                 else:
                     headers = ['port', 'state']
@@ -165,7 +164,7 @@ def mode(state, port, json_flag):
                 lookup_statedb_and_update_configdb(
                     y_cable_tbl[asic_id], y_cable_update_tbl[asic_id], logical_port, state, port_status_dict)
 
-                if json_flag:
+                if json_output:
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                 else:
                     headers = ['port', 'state']

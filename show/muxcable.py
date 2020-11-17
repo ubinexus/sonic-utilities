@@ -6,7 +6,6 @@ import utilities_common.cli as clicommon
 
 from sonic_py_common import multi_asic, device_info
 from swsscommon import swsscommon
-from swsscommon.swsscommon import SonicV2Connector
 from swsssdk import ConfigDBConnector
 from tabulate import tabulate
 
@@ -168,7 +167,7 @@ def status(port, json_output):
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
@@ -246,7 +245,6 @@ def config(port, json_output):
     port_mux_tbl_keys = {}
     asic_start_idx = None
     per_npu_configdb = {}
-    muxcable_info_dict = {}
     mux_tbl_cfg_db = {}
     peer_switch_tbl_cfg_db = {}
 

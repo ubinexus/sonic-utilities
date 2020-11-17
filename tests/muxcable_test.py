@@ -18,11 +18,11 @@ json_data_status_output_expected = """muxcable Ports status :
 {
     "MUX_CABLE": {
         "Ethernet32": {
-            "STATUS": "active", 
+            "STATUS": "active",
             "HEALTH": "HEALTHY"
-        }, 
+        },
         "Ethernet0": {
-            "STATUS": "active", 
+            "STATUS": "active",
             "HEALTH": "HEALTHY"
         }
     }
@@ -42,19 +42,19 @@ Ethernet0   auto     10.2.1.1  e800::46
 json_data_config_output_expected = """muxcable Ports status : 
 {
     "MUX_CABLE": {
-        "PEER_TOR": "10.2.2.2", 
+        "PEER_TOR": "10.2.2.2",
         "PORTS": {
             "Ethernet32": {
-                "STATE": "active", 
+                "STATE": "active",
                 "SERVER": {
-                    "IPv4": "10.1.1.1", 
+                    "IPv4": "10.1.1.1",
                     "IPv6": "fc00::75"
                 }
-            }, 
+            },
             "Ethernet0": {
-                "STATE": "auto", 
+                "STATE": "auto",
                 "SERVER": {
-                    "IPv4": "10.2.1.1", 
+                    "IPv4": "10.2.1.1",
                     "IPv6": "e800::46"
                 }
             }
