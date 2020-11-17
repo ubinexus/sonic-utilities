@@ -284,5 +284,33 @@
         "time": "Fri Oct  9 02:29:44 UTC 2020",
         "user": "admin",
         "comment": ""
+    },
+    "CHASSIS_TABLE|CHASSIS 1": {
+        "module_num": "5"
+    },
+    "CHASSIS_MODULE_TABLE|SUPERVISOR0": {
+        "desc": "supervisor-card",
+        "oper_status": "Online",
+        "slot": "16"
+    },
+    "CHASSIS_MODULE_TABLE|LINE-CARD0": {
+        "desc": "line-card",
+        "oper_status": "Empty",
+        "slot": "1"
+    },
+    "CHASSIS_MODULE_TABLE|LINE-CARD1": {
+        "desc": "line-card",
+        "oper_status": "Online",
+        "slot": "2"
+    },
+    "CHASSIS_MODULE_TABLE|FABRIC-CARD0": {
+        "desc": "fabric-card",
+        "oper_status": "Online",
+        "slot": "17"
+    },
+    "CHASSIS_MODULE_TABLE|FABRIC-CARD1": {
+        "desc": "fabric-card",
+        "oper_status": "Offline",
+        "slot": "18"
     }
 }

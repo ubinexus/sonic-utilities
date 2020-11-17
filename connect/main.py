@@ -1,15 +1,8 @@
-#! /usr/bin/python -u
-
-import click
+import configparser
 import os
 import pexpect
 
-try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import configparser
+import click
 
 
 # This is from the aliases example:
@@ -95,10 +88,11 @@ def connect():
 # 'line' command ("connect line")
 #
 @connect.command('line')
-@click.argument('linenum')
-def line(linenum):
+@click.argument('target')
+@click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret target as device name instead")
+def line(target, devicename):
     """Connect to line LINENUM via serial connection"""
-    cmd = "consutil connect " + linenum
+    cmd = "consutil connect {}".format("--devicename " if devicename else "") + str(target)
     run_command(cmd)
 
 #
