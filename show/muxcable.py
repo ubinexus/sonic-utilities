@@ -70,17 +70,6 @@ def get_value_for_key_in_dict(dict, port, key, table_name):
     return value
 
 
-def get_value_for_key_in_tbl(asic_table, port, key):
-    (status, fvs) = asic_table.get(str(port))
-    if status is not True:
-        click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, asic_table.getTableName))
-        sys.exit(1)
-    fvp = dict(fvs)
-    value = fvp.get(key, None)
-
-    return value
-
-
 def get_value_for_key_in_config_tbl(config_db, port, key, table):
     info_dict = {}
     info_dict = config_db.get_entry(table, port)
@@ -120,7 +109,6 @@ def create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_index
     print_port_data = []
 
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "status", "MUX_CABLE_TABLE_NAME")
-    #status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
     print_port_data.append(port)
     print_port_data.append(status_value)
     print_port_data.append("HEALTHY")
