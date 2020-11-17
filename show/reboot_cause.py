@@ -1,38 +1,40 @@
-#! /usr/bin/python -u
-
 import json
 import os
 import sys
 
 import click
+from tabulate import tabulate
+from swsssdk import SonicV2Connector
+import utilities_common.cli as clicommon
+
 
 PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.json"
 USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
 
-
-#
-# 'reboot-cause' group ("show reboot-cause")
-#
 def read_reboot_cause_file():
-    result=""
+    result = ""
     if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
         with open(PREVIOUS_REBOOT_CAUSE_FILE) as f:
             result = json.load(f)
     return result
 
-@click.group(name='reboot-cause', short_help='Show cause of most recent reboot', cls=clicommon.AliasedGroup, invoke_without_command=True)
+#
+# 'reboot-cause' group ("show reboot-cause")
+#
+@click.group(cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.pass_context
 def reboot_cause(ctx):
+    """Show cause of most recent reboot"""
     if ctx.invoked_subcommand is None:
-        last_reboot_cause = ""
+        reboot_cause = ""
         # Read the last previous reboot cause
         data = read_reboot_cause_file()
-        if data['user']:
-            last_reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
+        if data['user'] == "N/A":
+            reboot_cause = "{}".format(data['cause'])
         else:
-            last_reboot_cause = "{}".format(data['cause'])
+            reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
 
-        click.echo(last_reboot_cause)
+        click.echo(reboot_cause)
 
 # 'history' subcommand ("show reboot-cause history")
 @reboot_cause.command()
