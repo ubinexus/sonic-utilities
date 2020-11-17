@@ -3,10 +3,11 @@ import os
 import sys
 
 import click
-import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic, device_info
 from swsscommon import swsscommon
+from swsssdk import ConfigDBConnector
 from tabulate import tabulate
+import utilities_common.cli as clicommon
 
 platform_sfputil = None
 
@@ -32,14 +33,11 @@ def load_platform_sfputil():
 # Helper functions
 
 
-def get_value_for_key_in_tbl(asic_table, port, key):
-    (status, fvs) = asic_table.get(str(port))
-    if status is not True:
-        click.echo("could not retrieve key {} value for key {} inside table {}".format(key, port, asic_table.getTableName))
+def get_value_for_key_in_dict(dict, port, key, table_name):
+    value = dict.get(key, None)
+    if value is None:
+        click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table_name))
         sys.exit(1)
-    fvp = dict(fvs)
-    value = fvp.get(key, None)
-
     return value
 
 #
@@ -79,24 +77,22 @@ def muxcable():
     return
 
 
-def lookup_statedb_and_update_configdb(y_cable_asic_table, y_cable_update_tbl, port, state_value, port_status_dict):
+def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_value, port_status_dict):
 
-    state = get_value_for_key_in_tbl(y_cable_asic_table, port, "state")
-    click.echo("state_value = {} {}".format(state_value, state))
-    if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active"):
+    muxcable_statedb_dict = per_npu_statedb.get_all(per_npu_statedb.STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
+
+    state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
+    #click.echo("state_value = {} {}".format(state_value, state))
+    if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active") or (state == "standby" and state_value == "auto"):
         # status is already active, so right back ok
-        fvs = swsscommon.FieldValuePairs([('state', 'Ok')])
-        y_cable_update_tbl.set(port, fvs)
+        # Nothing to do Since the state is not changing
         port_status_dict[port] = 'OK'
-    elif state == "active" and state_value == "standby":
+    elif state == "standby" and state_value == "active":
+        config_db.set_entry("MUX_CABLE", port, {"state": "INPROGRESS"})
         # Change of status recived, right back inprogress
-        fvs = swsscommon.FieldValuePairs([('state', 'inprogress')])
-        y_cable_update_tbl.set(port, fvs)
         port_status_dict[port] = 'INPROGRESS'
     else:
         # Everything else to be treated as failure
-        fvs = swsscommon.FieldValuePairs([('state', 'Failed')])
-        y_cable_update_tbl.set(port, fvs)
         port_status_dict[port] = 'FAILED'
 
 
@@ -108,38 +104,41 @@ def lookup_statedb_and_update_configdb(y_cable_asic_table, y_cable_update_tbl, p
 def mode(state, port, json_output):
     """Show muxcable summary information"""
 
-    config_db = {}
-    state_db = {}
-    y_cable_tbl = {}
-    y_cable_update_tbl = {}
     port_table_keys = {}
+    y_cable_asic_table_keys = {}
+    per_npu_configdb = {}
+    per_npu_statedb = {}
+    mux_tbl_cfg_db = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
 
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        config_db[asic_id] = swsscommon.DBConnector("CONFIG_DB", REDIS_TIMEOUT_MSECS, True, namespace)
-        state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
         # replace these with correct macros
-        y_cable_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "MUX_CABLE_TABLE")
-        y_cable_update_tbl[asic_id] = swsscommon.Table(config_db[asic_id], "MUX_CABLE")
-        port_table_keys[asic_id] = y_cable_tbl[asic_id].getKeys()
+        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_configdb[asic_id].connect()
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        mux_tbl_cfg_db[asic_id] = per_npu_configdb[asic_id].get_table("MUX_CABLE")
+
+        port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
 
     if port is not None and port != "all":
         asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
-        click.echo("asic_index {} \n".format(asic_index))
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
             sys.exit(1)
 
-        y_cable_asic_table = y_cable_tbl.get(asic_index, None)
-        if y_cable_asic_table is not None:
-            y_cable_asic_table_keys = y_cable_asic_table.getKeys()
-            if port in y_cable_asic_table_keys:
+        if per_npu_statedb[asic_index] is not None:
+            y_cable_asic_table_keys = port_table_keys[asic_index]
+            logical_key = "MUX_CABLE_TABLE"+"|"+port
+            if logical_key in y_cable_asic_table_keys:
                 port_status_dict = {}
                 lookup_statedb_and_update_configdb(
-                    y_cable_asic_table, y_cable_update_tbl[asic_index], port, state, port_status_dict)
+                    per_npu_statedb[asic_index], per_npu_configdb[asic_index], port, state, port_status_dict)
 
                 if json_output:
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
@@ -159,10 +158,11 @@ def mode(state, port, json_output):
 
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-            for logical_port in port_table_keys[asic_id]:
+            for key in port_table_keys[asic_id]:
+                logical_port = port = key.split("|")[1]
                 port_status_dict = {}
                 lookup_statedb_and_update_configdb(
-                    y_cable_tbl[asic_id], y_cable_update_tbl[asic_id], logical_port, state, port_status_dict)
+                    per_npu_statedb[asic_id], per_npu_configdb[asic_id], logical_port, state, port_status_dict)
 
                 if json_output:
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
