@@ -3,7 +3,6 @@ import sys
 
 import click
 import utilities_common.cli as clicommon
-
 from sonic_py_common import multi_asic, device_info
 from swsscommon import swsscommon
 from swsssdk import ConfigDBConnector
@@ -255,6 +254,7 @@ def config(port, json_output):
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
         if asic_start_idx is None:
             asic_start_idx = asic_id
+        # TO-DO replace the macros with correct swsscommon names
         #config_db[asic_id] = swsscommon.DBConnector("CONFIG_DB", REDIS_TIMEOUT_MSECS, True, namespace)
         #mux_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_MUX_CABLE_TABLE_NAME)
         per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
