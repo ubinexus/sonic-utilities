@@ -173,7 +173,9 @@ def status(port, json_output):
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE_NAME|*')
 
     if port is not None:
-        asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
             sys.exit(1)
@@ -190,7 +192,7 @@ def status(port, json_output):
 
                     create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port)
 
-                    click.echo("muxcable Ports status : \n{}".format(json.dumps(port_status_dict, indent=4)))
+                    click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                 else:
                     print_data = []
 
@@ -219,7 +221,7 @@ def status(port, json_output):
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE_NAME|{}'.format(port))
                     create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_id, port)
 
-            click.echo("muxcable Ports status : \n{}".format(json.dumps(port_status_dict, indent=4)))
+            click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
         else:
             print_data = []
             for namespace in namespaces:
@@ -265,7 +267,9 @@ def config(port, json_output):
         port_mux_tbl_keys[asic_id] = mux_tbl_cfg_db[asic_id].keys()
 
     if port is not None:
-        asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant retreive mux config".format(port))
             sys.exit(1)
@@ -289,7 +293,7 @@ def config(port, json_output):
                     port_status_dict["MUX_CABLE"]["PORTS"] = {}
                     create_json_dump_per_port_config(port_status_dict, per_npu_configdb, asic_id, port)
 
-                    click.echo("muxcable Ports status : \n{}".format(json.dumps(port_status_dict, indent=4)))
+                    click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                 else:
                     print_data = []
                     print_peer_tor = []
@@ -331,7 +335,7 @@ def config(port, json_output):
                 for port in port_mux_tbl_keys[asic_id]:
                     create_json_dump_per_port_config(port_status_dict, per_npu_configdb, asic_id, port)
 
-            click.echo("muxcable Ports status : \n{}".format(json.dumps(port_status_dict, indent=4)))
+            click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
         else:
             print_data = []
             print_peer_tor = []

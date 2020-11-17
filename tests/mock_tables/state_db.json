@@ -306,5 +306,11 @@
     },
     "MUX_CABLE_TABLE_NAME|Ethernet0": {
         "status": "active"
+    },
+    "MUX_CABLE_TABLE|Ethernet0": {
+        "state": "active"
+    },
+    "MUX_CABLE_TABLE|Ethernet1": {
+        "state": "standby"
     }
 }

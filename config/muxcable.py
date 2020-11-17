@@ -83,7 +83,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_v
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
     #click.echo("state_value = {} {}".format(state_value, state))
-    if (state == "active" and state_value == "active") or (state == "auto" and state_value == "active") or (state == "standby" and state_value == "auto"):
+    if (state == "active" and state_value == "active") or (state == "active" and state_value == "auto") or (state == "standby" and state_value == "auto"):
         # status is already active, so right back ok
         # Nothing to do Since the state is not changing
         port_status_dict[port] = 'OK'
