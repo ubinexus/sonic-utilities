@@ -465,10 +465,10 @@ def status(ctx):
 @show.command()
 @click.pass_context
 def auto_update_status(ctx):
-    """Show platform components auto firmware update status"""
+    """Show platform components auto_update status"""
     try:
-        cup = ComponentUpdateProvider()
-        click.echo(cup.get_au_status())
+        csp = ComponentStatusProvider()
+        click.echo(csp.get_au_status())
     except Exception as e:
         cli_abort(ctx, str(e))
 

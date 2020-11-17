@@ -540,7 +540,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
     ComponentUpdateProvider
     """
     STATUS_HEADER = [ "Chassis", "Module", "Component", "Firmware", "Version (Current/Available)", "Status" ]
-    AU_STATUS_HEADER = [ "Component", "Status", "Info", "Boot" ]
     FORMAT = "simple"
 
     FW_STATUS_UPDATE_REQUIRED = "update is required"
@@ -959,6 +958,7 @@ class ComponentStatusProvider(PlatformDataProvider):
     ComponentStatusProvider
     """
     HEADER = [ "Chassis", "Module", "Component", "Version", "Description" ]
+    AU_STATUS_HEADER = [ "Component", "Status", "Info", "Boot" ]
     FORMAT = "simple"
 
     def __init__(self):
@@ -1020,3 +1020,31 @@ class ComponentStatusProvider(PlatformDataProvider):
                         append_module_name = False
 
         return tabulate(status_table, self.HEADER, tablefmt=self.FORMAT)
+
+    def read_au_status_file_if_exists(self, filename=FW_AU_STATUS_FILE_PATH):
+        data = None
+        if os.path.exists(filename):
+            with open(filename) as au_status_file:
+                data = json.load(au_status_file)
+        return data
+
+    def get_au_status(self):
+        au_status = []
+        auto_updated_status_table = []
+        data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
+
+        if data is None:
+            return None
+
+        boot_type = list(data.keys())[0]
+        click.echo("Firmware auto-update performed for {} reboot".format(boot_type))
+
+        au_status = data[boot_type]
+        for comp_au_status in au_status:
+            r = []
+            r.append(comp_au_status['comp'] if 'comp' in comp_au_status else "")
+            r.append(comp_au_status['status'] if 'status' in comp_au_status else "")
+            r.append(comp_au_status['info'] if 'info' in comp_au_status else "")
+            auto_updated_status_table.append(r)
+
+        return tabulate(auto_updated_status_table, self.AU_STATUS_HEADER, tablefmt=self.FORMAT)
