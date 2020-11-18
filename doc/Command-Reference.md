@@ -4119,18 +4119,18 @@ With no optional argument, all the ports muxcable status will be displayed in ta
   Ethernet0   auto      HEALTHY
 
   admin@sonic:~$ show muxcable status --json
-{
-    "MUX_CABLE": {
-        "Ethernet32": {
-            "STATUS": "active",
-            "HEALTH": "HEALTHY"
-        },
-        "Ethernet0": {
-            "STATUS": "auto",
-            "HEALTH": "HEALTHY"
-        }
-    }
-}
+  {
+      "MUX_CABLE": {
+	  "Ethernet32": {
+	      "STATUS": "active",
+	      "HEALTH": "HEALTHY"
+	  },
+	  "Ethernet0": {
+	      "STATUS": "auto",
+	      "HEALTH": "HEALTHY"
+	  }
+      }
+  }
 
   admin@sonic:~$ show muxcable status Ethernet0
   PORT       STATUS    HEALTH
@@ -4138,14 +4138,14 @@ With no optional argument, all the ports muxcable status will be displayed in ta
   Ethernet0  auto      HEALTHY
 
   admin@sonic:~$ show muxcable status Ethernet0 --json
-{
-    "MUX_CABLE": {
-        "Ethernet0": {
-            "STATUS": "auto",
-            "HEALTH": "HEALTHY"
-        }
-    }
-}
+  {
+      "MUX_CABLE": {
+	  "Ethernet0": {
+	      "STATUS": "auto",
+	      "HEALTH": "HEALTHY"
+	  }
+      }
+  }
   ```
 
 **show muxcable config**
@@ -4172,20 +4172,20 @@ While displaying the muxcable configuration, users can configure the following f
   Ethernet0  active  10.1.1.1  fc00::75
 
   admin@sonic:~$ show muxcable config --json
-{
-    "MUX_CABLE": {
-        "PEER_TOR": "10.1.1.1",
-        "PORTS": {
-            "Ethernet0": {
-                "STATE": "active",
-                "SERVER": {
-                    "IPv4": "10.1.1.1",
-                    "IPv6": "fc00::75"
-                }
-            }
-        }
-    }
-}
+  {
+      "MUX_CABLE": {
+	  "PEER_TOR": "10.1.1.1",
+	  "PORTS": {
+	      "Ethernet0": {
+		  "STATE": "active",
+		  "SERVER": {
+		      "IPv4": "10.1.1.1",
+		      "IPv6": "fc00::75"
+		  }
+	      }
+	  }
+      }
+  }
 
   admin@sonic:~$ show muxcable config Ethernet0
   SWITCH_NAME    PEER_TOR
@@ -4196,19 +4196,19 @@ While displaying the muxcable configuration, users can configure the following f
   Ethernet0  active  10.1.1.1  fc00::75
 
   admin@sonic:~$ show muxcable config Ethernet0 --json
-{
-    "MUX_CABLE": {
-        "PORTS": {
-            "Ethernet0": {
-                "STATE": "active",
-                "SERVER": {
-                    "IPv4": "10.1.1.1",
-                    "IPv6": "fc00::75"
-                }
-            }
-        }
-    }
-}
+  {
+      "MUX_CABLE": {
+	  "PORTS": {
+	      "Ethernet0": {
+		  "STATE": "active",
+		  "SERVER": {
+		      "IPv4": "10.1.1.1",
+		      "IPv6": "fc00::75"
+		  }
+	      }
+	  }
+      }
+  }
   ```
 
 
@@ -4237,9 +4237,9 @@ While configuring the muxcable, users need to configure the following fields for
   Ethernet0  OK
 
   admin@sonic:~$ sudo config muxcable  mode --json active Ethernet0
-{
-    "Ethernet0": "OK"
-}
+  {
+      "Ethernet0": "OK"
+  }
 
   admin@sonic:~$ sudo config muxcable  mode active all
   port        state
@@ -4248,10 +4248,10 @@ While configuring the muxcable, users need to configure the following fields for
   Ethernet32  INPROGRESS
 
   admin@sonic:~$ sudo config muxcable  mode active all --json
-{
-    "Ethernet32": "INPROGRESS",
-    "Ethernet0": "OK"
-}
+  {
+      "Ethernet32": "INPROGRESS",
+      "Ethernet0": "OK"
+  }
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
