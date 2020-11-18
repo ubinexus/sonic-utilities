@@ -3725,7 +3725,6 @@ def mclag(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 
 #mclag domain add 
