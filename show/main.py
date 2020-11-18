@@ -1240,8 +1240,11 @@ def techsupport(since, verbose, force, yes):
             yes = raw_input('Proceed with any system interruption? (y/n) ')
             if yes.lower() == 'y':
                 cmd += " -f"
-            if yes.lower() == 'n':
+            elif yes.lower() == 'n':
                 exit("Please do \'show techsupport\' without \'--force\'")
+            else:
+                exit("Please try again")
+
     if since:
         cmd += " -s {}".format(since)
     run_command(cmd, display_cmd=verbose)
