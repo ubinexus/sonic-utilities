@@ -1,15 +1,14 @@
+import json
 import os
 import sys
-import json
+from unittest import mock
 
-
-import mock
 import pytest
-
-import mock_tables.dbconnector
-
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
+
+from .mock_tables import dbconnector
+
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -70,6 +69,11 @@ def setup_single_broacom_asic():
     config.asic_type = mock.MagicMock(return_value="broadcom")
     config._get_device_type = mock.MagicMock(return_value="ToRRouter")
 
+@pytest.fixture
+def setup_t1_topo():
+    dbconnector.topo = "t1"
+    yield
+    dbconnector.topo = None
 
 @pytest.fixture
 def setup_single_bgp_instance(request):
