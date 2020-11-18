@@ -22,7 +22,7 @@ class MasicDb(object):
     Multi ASIC DB object - creates config DB and other redis DB client
     connections for all namespaces. In case of single ASIC platform, DB
     client connections are created for default namespace
-    """"
+    """
     def __init__(self):
         self.ns_list = multi_asic_ns_choices()
         self.config_db_clients = {}

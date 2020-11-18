@@ -9,7 +9,6 @@ from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
 
-
 # mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "2":
