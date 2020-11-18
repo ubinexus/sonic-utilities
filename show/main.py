@@ -1235,15 +1235,10 @@ def techsupport(since, verbose, force, yes):
     cmd = "sudo generate_dump -v"
     if force:
         if yes:
-           cmd += " -f" 
+            cmd += " -f"
         else:
-            yes = raw_input('Proceed with any system interruption? (y/n) ')
-            if yes.lower() == 'y':
+            if click.confirm('Proceed with any system interruption?', abort=True):
                 cmd += " -f"
-            elif yes.lower() == 'n':
-                exit("Please do \'show techsupport\' without \'--force\'")
-            else:
-                exit("Please try again")
 
     if since:
         cmd += " -s {}".format(since)
