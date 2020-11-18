@@ -61,8 +61,8 @@ def muxcable():
     return
 
 
-def get_value_for_key_in_dict(dict, port, key, table_name):
-    value = dict.get(key, None)
+def get_value_for_key_in_dict(mdict, port, key, table_name):
+    value = mdict.get(key, None)
     if status is None:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table_name))
         sys.exit(1)

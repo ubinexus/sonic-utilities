@@ -33,8 +33,8 @@ def load_platform_sfputil():
 # Helper functions
 
 
-def get_value_for_key_in_dict(dict, port, key, table_name):
-    value = dict.get(key, None)
+def get_value_for_key_in_dict(mdict, port, key, table_name):
+    value = mdict.get(key, None)
     if value is None:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table_name))
         sys.exit(1)
@@ -82,15 +82,14 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_v
     muxcable_statedb_dict = per_npu_statedb.get_all(per_npu_statedb.STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
-    #click.echo("state_value = {} {}".format(state_value, state))
     if (state == "active" and state_value == "active") or (state == "active" and state_value == "auto") or (state == "standby" and state_value == "auto"):
         # status is already active, so right back ok
         # Nothing to do Since the state is not changing
         port_status_dict[port] = 'OK'
     elif state == "standby" and state_value == "active":
+        port_status_dict[port] = 'INPROGRESS'
         config_db.set_entry("MUX_CABLE", port, {"state": "INPROGRESS"})
         # Change of status recived, right back inprogress
-        port_status_dict[port] = 'INPROGRESS'
     else:
         # Everything else to be treated as failure
         port_status_dict[port] = 'FAILED'
@@ -156,17 +155,18 @@ def mode(state, port, json_output):
 
     elif port == "all" and port is not None:
 
+        port_status_dict = {}
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for key in port_table_keys[asic_id]:
                 logical_port = key.split("|")[1]
-                port_status_dict = {}
                 lookup_statedb_and_update_configdb(
                     per_npu_statedb[asic_id], per_npu_configdb[asic_id], logical_port, state, port_status_dict)
 
-                if json_output:
-                    click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
-                else:
-                    headers = ['port', 'state']
-                    data = sorted([(k, v) for k, v in port_status_dict.items()])
-                    click.echo(tabulate(data, headers=headers))
+            if json_output:
+                click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
+            else:
+                data = sorted([(k, v) for k, v in port_status_dict.items()])
+
+                headers = ['port', 'state']
+                click.echo(tabulate(data, headers=headers))
