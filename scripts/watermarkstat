@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
@@ -6,16 +6,26 @@
 #
 #####################################################################
 
-from __future__ import print_function
-
 import argparse
 import json
+import os
 import sys
 
 import swsssdk
 from natsort import natsorted
 from tabulate import tabulate
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+
+except KeyError:
+    pass
 
 headerBufferPool = ['Pool', 'Bytes']
 
@@ -183,7 +193,7 @@ class Watermarkstat(object):
 
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
-        single_key = header_map.keys()[0]
+        single_key = list(header_map.keys())[0]
         header_len = len(header_map[single_key])
         min_idx = sys.maxsize
 
@@ -248,7 +258,6 @@ class Watermarkstat(object):
 def main():
 
     parser = argparse.ArgumentParser(description='Display the watermark counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -268,6 +277,7 @@ Examples:
     parser.add_argument('-t', '--type', required=True, action='store',
                         choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool'],
                         help='The type of watermark')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
     watermarkstat = Watermarkstat()
    
