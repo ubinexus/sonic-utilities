@@ -80,17 +80,13 @@ json_port_data_status_config_output_expected = """{
 """
 
 json_data_config_output_auto_expected = """{
-    "Ethernet0": "OK"
-}
-{
+    "Ethernet0": "OK",
     "Ethernet1": "OK"
 }
 """
 
 json_data_config_output_active_expected = """{
-    "Ethernet0": "OK"
-}
-{
+    "Ethernet0": "OK",
     "Ethernet1": "INPROGRESS"
 }
 """
