@@ -46,6 +46,10 @@ def history():
     prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = db.keys(db.STATE_DB, _hash)
+    if table_keys is None:
+        click.echo("Reboot-cause history is not yet available in StateDB")
+        exit()
+
     table_keys.sort(reverse=True)
 
     table = []
