@@ -62,7 +62,7 @@ def active_hops(nhg):
                     for key in table_keys:
                         mod_key = key.split("|")[1].split("/")[0]
                         mod_nhg_prefix = nhg_prefix.split("/")[0]
-                        if ipaddress.ip_address(unicode(mod_key)).exploded == ipaddress.ip_address(unicode(mod_nhg_prefix)).exploded:
+                        if ipaddress.ip_address(mod_key).exploded == ipaddress.ip_address(mod_nhg_prefix).exploded:
                             t_dict = state_db.get_all(state_db.STATE_DB, key)
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                 else:
@@ -143,7 +143,7 @@ def hash_view(nhg):
                     for key in table_keys:
                         mod_key = key.split("|")[1].split("/")[0]
                         mod_nhg_prefix = nhg_prefix.split("/")[0]
-                        if ipaddress.ip_address(unicode(mod_key)).exploded == ipaddress.ip_address(unicode(mod_nhg_prefix)).exploded:
+                        if ipaddress.ip_address(mod_key).exploded == ipaddress.ip_address(mod_nhg_prefix).exploded:
                             t_dict = state_db.get_all(state_db.STATE_DB, key)
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                 else:
