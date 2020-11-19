@@ -742,7 +742,7 @@ main() {
     $MKDIR $V -p $LOGDIR
     $LN $V -s /etc $TARDIR/etc
 
-    ($TAR $V -rf $TARFILE -C $DUMPDIR --mode=+rw \
+    ($TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw \
         --exclude="etc/alternatives" \
         --exclude="*/etc/passwd*" \
         --exclude="*/etc/shadow*" \
