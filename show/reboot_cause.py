@@ -27,7 +27,7 @@ def reboot_cause(ctx):
     """Show cause of most recent reboot"""
     if ctx.invoked_subcommand is None:
         reboot_cause = ""
-        # Read the last previous reboot cause
+        # Read the previous reboot cause
         data = read_reboot_cause_file()
         if data['user'] == "N/A":
             reboot_cause = "{}".format(data['cause'])

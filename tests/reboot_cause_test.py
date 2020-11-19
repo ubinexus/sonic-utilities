@@ -1,9 +1,7 @@
 import os
 import sys
 import textwrap
-
 import mock
-
 from click.testing import CliRunner
 
 import show.main as show
