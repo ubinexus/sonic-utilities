@@ -7,6 +7,7 @@ import re
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
+import utilities_common.constants as constants
 from importlib import reload
 from natsort import natsorted
 from sonic_py_common import device_info
@@ -14,8 +15,8 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
-import utilities_common.constants as constants
 from utilities_common.general import load_db_config
+from utilities_common.routing_stack import get_routing_stack
 
 # mock the redis for unit test purposes #
 try:
@@ -64,32 +65,15 @@ HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
-
 GEARBOX_TABLE_PHY_PATTERN = r"_GEARBOX_TABLE:phy:*"
 
-# To be enhanced. Routing-stack information should be collected from a global
-# location (configdb?), so that we prevent the continous execution of this
-# bash oneliner. To be revisited once routing-stack info is tracked somewhere.
-def get_routing_stack():
-    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -n 1"
-
-    try:
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                text=True)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        result = stdout.rstrip('\n')
-
-    except OSError as e:
-        raise OSError("Cannot detect routing-stack")
-
-    return (result)
-
-
 # Global Routing-Stack variable
-routing_stack = get_routing_stack()
+# For show commands we'll also run an extended routing stack state validation,
+# to inform the user of running post-restart recoveries when some of the show
+# commands are unavailable on specific platforms, like framewave.
+routing_stack_data = get_routing_stack(extended_validation=True)
+routing_stack = routing_stack_data[0]
+routing_stack_state = routing_stack_data[1]
 
 # Read given JSON file
 def readJsonFile(fileName):
@@ -127,9 +111,20 @@ def run_command(command, display_cmd=False, return_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
+
+def showifpresent(cmd_name, config_name, verbose):
+    """
+    Prints config name to terminal and shows config if present
+    """
+    click.echo(config_name)
+    if run_command(cmd_name, return_cmd=True):
+        run_command(cmd_name, display_cmd=verbose)
+    else:
+        click.echo("{\n    EMPTY\n}")
+
+
 # Global class instance for SONiC interface name to alias conversion
 iface_alias_converter = clicommon.InterfaceAliasConverter()
-
 
 
 def connect_config_db():
@@ -198,7 +193,6 @@ cli.add_command(warm_restart.warm_restart)
 # Add greabox commands only if GEARBOX is configured
 if is_gearbox_configured():
     cli.add_command(gearbox.gearbox)
-
 
 #
 # 'vrf' command ("show vrf")
@@ -739,21 +733,6 @@ def mac(vlan, port, verbose):
     run_command(cmd, display_cmd=verbose)
 
 #
-# 'show route-map' command ("show route-map")
-#
-
-@cli.command('route-map')
-@click.argument('route_map_name', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route_map(route_map_name, verbose):
-    """show route-map"""
-    cmd = 'sudo {} -c "show route-map'.format(constants.RVTYSH_COMMAND)
-    if route_map_name is not None:
-        cmd += ' {}'.format(route_map_name)
-    cmd += '"'
-    run_command(cmd, display_cmd=verbose)
-
-#
 # 'ip' group ("show ip ...")
 #
 
@@ -762,62 +741,6 @@ def route_map(route_map_name, verbose):
 def ip():
     """Show IP (IPv4) commands"""
     pass
-
-
-#
-# 'show ip interfaces' command
-#
-# Display all interfaces with master, an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
-# Addresses from all scopes are included. Interfaces with no addresses are
-# excluded.
-#
-@ip.command()
-@multi_asic_util.multi_asic_click_options
-def interfaces(namespace, display):
-    cmd = "sudo ipintutil -a ipv4"
-    if namespace is not None:
-        cmd += " -n {}".format(namespace)
-
-    cmd += " -d {}".format(display)
-    clicommon.run_command(cmd)
-
-#
-# 'route' subcommand ("show ip route")
-#
-
-@ip.command()
-@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
-@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
-@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, namespace, display, verbose):
-    """Show IP (IPv4) routing table"""
-    # Call common handler to handle the show ip route cmd
-    bgp_common.show_routes(args, namespace, display, verbose, "ip")
-
-#
-# 'prefix-list' subcommand ("show ip prefix-list")
-#
-
-@ip.command('prefix-list')
-@click.argument('prefix_list_name', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def prefix_list(prefix_list_name, verbose):
-    """show ip prefix-list"""
-    cmd = 'sudo {} -c "show ip prefix-list'.format(constants.RVTYSH_COMMAND)
-    if prefix_list_name is not None:
-        cmd += ' {}'.format(prefix_list_name)
-    cmd += '"'
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'protocol' command
-@ip.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def protocol(verbose):
-    """Show IPv4 protocol information"""
-    cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
-    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -831,64 +754,133 @@ def ipv6():
     pass
 
 #
-# 'prefix-list' subcommand ("show ipv6 prefix-list")
+# 'show route-map' command ("show route-map")
 #
-
-@ipv6.command('prefix-list')
-@click.argument('prefix_list_name', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def prefix_list(prefix_list_name, verbose):
-    """show ip prefix-list"""
-    cmd = 'sudo {} -c "show ipv6 prefix-list'.format(constants.RVTYSH_COMMAND)
-    if prefix_list_name is not None:
-        cmd += ' {}'.format(prefix_list_name)
-    cmd += '"'
-    run_command(cmd, display_cmd=verbose)
-
-
-
-#
-# 'show ipv6 interfaces' command
-#
-# Display all interfaces with master, an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
-# Addresses from all scopes are included. Interfaces with no addresses are
-# excluded.
-#
-@ipv6.command()
-@multi_asic_util.multi_asic_click_options
-def interfaces(namespace, display):
-    cmd = "sudo ipintutil -a ipv6"
-
-    if namespace is not None:
-        cmd += " -n {}".format(namespace)
-
-    cmd += " -d {}".format(display)
-
-    clicommon.run_command(cmd)
+if routing_stack != "framewave":
+    @cli.command('route-map')
+    @click.argument('route_map_name', required=False)
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def route_map(route_map_name, verbose):
+        """show route-map"""
+        cmd = 'sudo {} -c "show route-map'.format(constants.RVTYSH_COMMAND)
+        if route_map_name is not None:
+            cmd += ' {}'.format(route_map_name)
+        cmd += '"'
+        run_command(cmd, display_cmd=verbose)
 
 
-#
-# 'route' subcommand ("show ipv6 route")
-#
+    #
+    # 'show ip interfaces' command
+    #
+    # Display all interfaces with master, an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
+    # Addresses from all scopes are included. Interfaces with no addresses are
+    # excluded.
+    #
+    @ip.command()
+    @multi_asic_util.multi_asic_click_options
+    def interfaces(namespace, display):
+        cmd = "sudo ipintutil -a ipv4"
+        if namespace is not None:
+            cmd += " -n {}".format(namespace)
 
-@ipv6.command()
-@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
-@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
-@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, namespace, display, verbose):
-    """Show IPv6 routing table"""
-    # Call common handler to handle the show ipv6 route cmd
-    bgp_common.show_routes(args, namespace, display, verbose, "ipv6")
+        cmd += " -d {}".format(display)
+        clicommon.run_command(cmd)
+
+    #
+    # 'route' subcommand ("show ip route")
+    #
+
+    @ip.command()
+    @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+    @click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+    @click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def route(args, namespace, display, verbose):
+        """Show IP (IPv4) routing table"""
+        # Call common handler to handle the show ip route cmd
+        bgp_common.show_routes(args, namespace, display, verbose, "ip")
+
+    #
+    # 'prefix-list' subcommand ("show ip prefix-list")
+    #
+
+    @ip.command('prefix-list')
+    @click.argument('prefix_list_name', required=False)
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def prefix_list(prefix_list_name, verbose):
+        """show ip prefix-list"""
+        cmd = 'sudo {} -c "show ip prefix-list'.format(constants.RVTYSH_COMMAND)
+        if prefix_list_name is not None:
+            cmd += ' {}'.format(prefix_list_name)
+        cmd += '"'
+        run_command(cmd, display_cmd=verbose)
 
 
-# 'protocol' command
-@ipv6.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def protocol(verbose):
-    """Show IPv6 protocol information"""
-    cmd = 'sudo {} -c "show ipv6 protocol"'.format(constants.RVTYSH_COMMAND)
-    run_command(cmd, display_cmd=verbose)
+    # 'protocol' command
+    @ip.command()
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def protocol(verbose):
+        """Show IPv4 protocol information"""
+        cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
+        run_command(cmd, display_cmd=verbose)
+
+    #
+    # 'prefix-list' subcommand ("show ipv6 prefix-list")
+    #
+    @ipv6.command('prefix-list')
+    @click.argument('prefix_list_name', required=False)
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def prefix_list(prefix_list_name, verbose):
+        """show ip prefix-list"""
+        cmd = 'sudo {} -c "show ipv6 prefix-list'.format(constants.RVTYSH_COMMAND)
+        if prefix_list_name is not None:
+            cmd += ' {}'.format(prefix_list_name)
+        cmd += '"'
+        run_command(cmd, display_cmd=verbose)
+
+
+    #
+    # 'show ipv6 interfaces' command
+    #
+    # Display all interfaces with master, an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
+    # Addresses from all scopes are included. Interfaces with no addresses are
+    # excluded.
+    #
+    @ipv6.command()
+    @multi_asic_util.multi_asic_click_options
+    def interfaces(namespace, display):
+        cmd = "sudo ipintutil -a ipv6"
+
+        if namespace is not None:
+            cmd += " -n {}".format(namespace)
+
+        cmd += " -d {}".format(display)
+
+        clicommon.run_command(cmd)
+
+
+    #
+    # 'route' subcommand ("show ipv6 route")
+    #
+
+    @ipv6.command()
+    @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+    @click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+    @click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def route(args, namespace, display, verbose):
+        """Show IPv6 routing table"""
+        # Call common handler to handle the show ipv6 route cmd
+        bgp_common.show_routes(args, namespace, display, verbose, "ipv6")
+
+
+    # 'protocol' command
+    @ipv6.command()
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def protocol(verbose):
+        """Show IPv6 protocol information"""
+        cmd = 'sudo {} -c "show ipv6 protocol"'.format(constants.RVTYSH_COMMAND)
+        run_command(cmd, display_cmd=verbose)
 
 #
 # Inserting BGP functionality into cli's show parse-chain.
@@ -904,6 +896,14 @@ elif routing_stack == "frr":
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
+
+
+#
+# Add framewave's own protocol commands.
+#
+if routing_stack == "framewave" and routing_stack_state == constants.ROUTING_STACK_STATE_RUNNING:
+    from . import framewave
+    framewave.add_commands(cli)
 
 #
 # 'link-local-mode' subcommand ("show ipv6 link-local-mode")
@@ -1008,7 +1008,7 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
-    
+
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
 
@@ -1054,49 +1054,48 @@ def users(verbose):
     cmd = "who"
     run_command(cmd, display_cmd=verbose)
 
-
 #
 # 'techsupport' command ("show techsupport")
 #
 
-@cli.command()
-@click.option('--since', required=False, help="Collect logs and core files since given date")
-@click.option('-g', '--global-timeout', default=30, type=int, help="Global timeout in minutes. Default 30 mins")
-@click.option('-c', '--cmd-timeout', default=5, type=int, help="Individual command timeout in minutes. Default 5 mins")
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
-@click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
-@click.option('--debug-dump', is_flag=True, help="Collect Debug Dump Output")
-@click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
-def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
-    """Gather information for troubleshooting"""
-    cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
+if routing_stack != "framewave":
+    @cli.command()
+    @click.option('--since', required=False, help="Collect logs and core files since given date")
+    @click.option('-g', '--global-timeout', default=30, type=int, help="Global timeout in minutes. Default 30 mins")
+    @click.option('-c', '--cmd-timeout', default=5, type=int, help="Individual command timeout in minutes. Default 5 mins")
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    @click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
+    @click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
+    @click.option('--debug-dump', is_flag=True, help="Collect Debug Dump Output")
+    @click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
+    def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
+        """Gather information for troubleshooting"""
+        cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
 
-    if allow_process_stop:
-        cmd += " -a"
+        if allow_process_stop:
+            cmd += " -a"
 
-    if silent:
-        cmd += " generate_dump"
-        click.echo("Techsupport is running with silent option. This command might take a long time.")
-    else:
-        cmd += " generate_dump -v"
+        if silent:
+            cmd += " generate_dump"
+            click.echo("Techsupport is running with silent option. This command might take a long time.")
+        else:
+            cmd += " generate_dump -v"
 
-    if since:
-        cmd += " -s '{}'".format(since)
-    
-    if debug_dump:
-        cmd += " -d "
+        if since:
+            cmd += " -s '{}'".format(since)
 
-    cmd += " -t {}".format(cmd_timeout)
-    if redirect_stderr:
-        cmd += " -r"
-    run_command(cmd, display_cmd=verbose)
+        if debug_dump:
+            cmd += " -d "
+
+        cmd += " -t {}".format(cmd_timeout)
+        if redirect_stderr:
+            cmd += " -r"
+        run_command(cmd, display_cmd=verbose)
 
 
 #
 # 'runningconfiguration' group ("show runningconfiguration")
 #
-
 @cli.group(cls=clicommon.AliasedGroup)
 def runningconfiguration():
     """Show current running configuration information"""
@@ -1136,12 +1135,27 @@ def ports(portname, verbose):
 
 
 # 'bgp' subcommand ("show runningconfiguration bgp")
+if routing_stack != "framewave":
+    @runningconfiguration.command()
+    @click.option('--verbose', is_flag=True, help="Enable verbose output")
+    def bgp(verbose):
+        """Show BGP running configuration"""
+        cmd = 'sudo vtysh -c "show running-config"'.format(constants.RVTYSH_COMMAND)
+        run_command(cmd, display_cmd=verbose)
+
+
+# 'portchannel' subcommand ("show runningconfiguration portchannel")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def bgp(verbose):
-    """Show BGP running configuration"""
-    cmd = 'sudo {} -c "show running-config"'.format(constants.RVTYSH_COMMAND)
-    run_command(cmd, display_cmd=verbose)
+def portchannel(verbose):
+    """Show port channel configuration"""
+    cmd_port = "sonic-cfggen -d --var-json PORTCHANNEL"
+    cmd_port_int = "sonic-cfggen -d --var-json PORTCHANNEL_INTERFACE"
+    cmd_port_mem = "sonic-cfggen -d --var-json PORTCHANNEL_MEMBER"
+
+    showifpresent(cmd_port, '"PORTCHANNEL":', verbose)
+    showifpresent(cmd_port_int, '"PORTCHANNEL_INTERFACE":', verbose)
+    showifpresent(cmd_port_mem, '"PORTCHANNEL_MEMBER":', verbose)
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
@@ -1188,7 +1202,7 @@ def snmp(ctx, db):
 
 # ("show runningconfiguration snmp community")
 @snmp.command('community')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def community(db, json_output):
@@ -1209,7 +1223,7 @@ def community(db, json_output):
 
 # ("show runningconfiguration snmp contact")
 @snmp.command('contact')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def contact(db, json_output):
@@ -1237,7 +1251,7 @@ def contact(db, json_output):
 
 # ("show runningconfiguration snmp location")
 @snmp.command('location')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def location(db, json_output):
@@ -1264,13 +1278,13 @@ def location(db, json_output):
 
 # ("show runningconfiguration snmp user")
 @snmp.command('user')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def users(db, json_output):
     """show SNMP running configuration user"""
     snmp_users = db.cfgdb.get_table('SNMP_USER')
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     if json_output:
@@ -1283,7 +1297,7 @@ def users(db, json_output):
             snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
             snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
             snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                    snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
         click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
@@ -1300,7 +1314,7 @@ def show_run_snmp(db, ctx):
     snmp_contact_body = []
     snmp_comm_header = ["Community String", "Community Type"]
     snmp_comm_body = []
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     try:
@@ -1334,7 +1348,7 @@ def show_run_snmp(db, ctx):
         snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
         snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
         snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
     click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
@@ -1355,6 +1369,10 @@ def syslog(verbose):
             syslog_servers.append(server)
     syslog_dict['Syslog Servers'] = syslog_servers
     print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
+
+if routing_stack == "framewave" and routing_stack_state == constants.ROUTING_STACK_STATE_RUNNING:
+    from . import framewave
+    framewave.add_runningconfiguration(runningconfiguration)
 
 
 #

@@ -388,7 +388,7 @@ def show_routes(args, namespace, display, verbose, ipver):
         if output == "":
             return
         if output[0] == "%":
-            # remove the "json" keyword that was added by this handler to show original cmd user specified 
+            # remove the "json" keyword that was added by this handler to show original cmd user specified
             json_str = output[-5:-1]
             if json_str == "json":
                 error_msg = output[:-5]

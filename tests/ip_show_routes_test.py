@@ -28,9 +28,13 @@ class TestShowIpRouteCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], [])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_expected_output + "\n"
+        assert filtered_result == show_ip_route_common.show_ip_route_expected_output + "\n"
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['ip_specific_route'], indirect=['setup_single_bgp_instance'])
@@ -42,9 +46,13 @@ class TestShowIpRouteCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["192.168.0.1"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_specific_ip_route_expected_output + "\n"
+        assert filtered_result == show_ip_route_common.show_specific_ip_route_expected_output + "\n"
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['ip_special_route'], indirect=['setup_single_bgp_instance'])
@@ -56,9 +64,13 @@ class TestShowIpRouteCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], [])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_special_ip_route_expected_output + "\n"
+        assert filtered_result == show_ip_route_common.show_special_ip_route_expected_output + "\n"
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['ipv6_specific_route'], indirect=['setup_single_bgp_instance'])
@@ -70,9 +82,13 @@ class TestShowIpRouteCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["20c0:a8c7:0:81::", "json"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_single_json_expected_output + "\n"
+        assert filtered_result == show_ip_route_common.show_ipv6_route_single_json_expected_output + "\n"
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['ipv6_route'], indirect=['setup_single_bgp_instance'])
@@ -84,9 +100,13 @@ class TestShowIpRouteCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ipv6"].commands["route"], [])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_expected_output + "\n"
+        assert filtered_result == show_ip_route_common.show_ipv6_route_expected_output + "\n"
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['ipv6_route_err'], indirect=['setup_single_bgp_instance'])
@@ -98,6 +118,10 @@ class TestShowIpRouteCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ipv6"].commands["route"], ["garbage"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_err_expected_output + "\n"
+        assert filtered_result == show_ip_route_common.show_ipv6_route_err_expected_output + "\n"

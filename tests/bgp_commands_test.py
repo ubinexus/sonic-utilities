@@ -92,6 +92,8 @@ Error: bgp summary from bgp container not in json format
 """
 
 
+@pytest.mark.skipif(os.getenv('SONIC_ROUTING_STACK') == "framewave",
+                    reason="BGP summary not supported on framewave")
 class TestBgpCommands(object):
     @classmethod
     def setup_class(cls):

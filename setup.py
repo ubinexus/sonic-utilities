@@ -48,6 +48,7 @@ setup(
         'show',
         'show.interfaces',
         'show.plugins',
+        'show.framewave',
         'sonic_installer',
         'sonic_installer.bootloader',
         'sonic_package_manager',

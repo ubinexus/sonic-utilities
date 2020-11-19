@@ -23,6 +23,7 @@ V=
 ALLOW_PROCESS_STOP=
 NOOP=false
 DO_COMPRESS=true
+DETAIL=
 CMD_PREFIX=
 SINCE_DATE="@0" # default is set to January 1, 1970 at 00:00:00 GMT
 REFERENCE_FILE=/tmp/reference
@@ -421,6 +422,7 @@ save_bridge_info() {
 # Globals:
 #  None
 # Arguments:
+#  routing_stack: The routing stack used.
 #  Optional arg namespace
 # Returns:
 #  None
@@ -428,28 +430,46 @@ save_bridge_info() {
 save_bgp_neighbor() {
     trap 'handle_error $? $LINENO' ERR
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
-    local asic_id=${1:-""}
-    local ns=$(get_vtysh_namespace $asic_id)
+    local routing_stack=$1
+    local asic_id=${2:-""}
 
-    neighbor_list_v4=$(${timeout_cmd} vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
-    for word in $neighbor_list_v4; do
-        save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
-        save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
-    done
-    neighbor_list_v6=$(vtysh $ns -c "show bgp ipv6 neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}' | fgrep ':')
-    for word in $neighbor_list_v6; do
-        save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word advertised-routes\"" "ipv6.bgp.neighbor.$word.adv$asic_id"
-        save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word routes\"" "ipv6.bgp.neighbor.$word.rcv$asic_id"
-    done
+    if [ "$routing_stack" = "frr" ]; then
+        local ns=$(get_vtysh_namespace $asic_id)
 
-    vrf_list=`${timeout_cmd} vtysh $ns -c "show vrf" | awk -F" " '{print $2}'`
-    for vrf in $vrf_list; do
-        neighbor_list=`${timeout_cmd} vtysh $ns -c "show ip bgp vrf $vrf neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}'`
-        for word in $neighbor_list; do
-            save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word advertised-routes\"" "ip.bgp.neighbor.$vrf.$word.adv$asic_id"
-            save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word routes\"" "ip.bgp.neighbor.$vrf.$word.rcv$asic_id"
+        neighbor_list_v4=$(${timeout_cmd} vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
+        for word in $neighbor_list_v4; do
+            save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
+            save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
         done
-    done
+        neighbor_list_v6=$(vtysh $ns -c "show bgp ipv6 neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}' | fgrep ':')
+        for word in $neighbor_list_v6; do
+            save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word advertised-routes\"" "ipv6.bgp.neighbor.$word.adv$asic_id"
+            save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word routes\"" "ipv6.bgp.neighbor.$word.rcv$asic_id"
+        done
+
+        vrf_list=`${timeout_cmd} vtysh $ns -c "show vrf" | awk -F" " '{print $2}'`
+        for vrf in $vrf_list; do
+            neighbor_list=`${timeout_cmd} vtysh $ns -c "show ip bgp vrf $vrf neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}'`
+            for word in $neighbor_list; do
+                save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word advertised-routes\"" "ip.bgp.neighbor.$vrf.$word.adv$asic_id"
+                save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word routes\"" "ip.bgp.neighbor.$vrf.$word.rcv$asic_id"
+            done
+        done
+    elif [ "$routing_stack" = "framewave" ]; then
+        neighbor_list=$(show bgp neighbor | grep -Ev "BGP AS|====|NETWORK|----" | grep -v -e "^$" | awk '{print $1}')
+        for word in $neighbor_list; do
+            save_cmd "show bgp neighbor $word" "bgp.neighbor.$word"
+        done
+
+        # TODO VRF?
+        vrf_list=$(show vrf | grep -Ev "VRF|----" | grep -v -e "^$" | awk '{print $1}')
+        for vrf in $vrf_list; do
+            neighbor_list=$(show bgp neighbor -- vrf $vrf | grep -Ev "BGP AS|====|NETWORK|----" | grep -v -e "^$" | awk '{print $1}')
+            for word in $neighbor_list; do
+                save_cmd "show bgp neighbor --vrf $vrf $word" "bgp.neighbor.$vrf.$word"
+            done
+        done
+    fi
 }
 
 ###############################################################################
@@ -458,18 +478,20 @@ save_bgp_neighbor() {
 # Globals:
 #  NUM_ASICS
 # Arguments:
-#  None
+#  routing_stack: The routing stack used.
 # Returns:
 #  None
 ###############################################################################
 save_bgp_neighbor_all_ns() {
     trap 'handle_error $? $LINENO' ERR
+    local routing_stack=$1
+
     if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
-        save_bgp_neighbor
+        save_bgp_neighbor $routing_stack
     else
         for (( i=0; i<$NUM_ASICS; i++ ))
         do
-            save_bgp_neighbor $i
+            save_bgp_neighbor $routing_stack $i
         done
     fi
 }
@@ -498,16 +520,23 @@ save_nat_info() {
 # Globals:
 #  None
 # Arguments:
-#  None
+#  routing_stack: The routing stack used.
 # Returns:
 #  None
 ###############################################################################
 save_bfd_info() {
     trap 'handle_error $? $LINENO' ERR
-    save_vtysh "show bfd peers" "frr.bfd.peers"
-    save_vtysh "show bfd peers counters" "frr.bfd.peers.counters"
-    save_vtysh "show bfd peers json" "frr.bfd.peers.json"
-    save_vtysh "show bfd peers counters json" "frr.bfd.peers.counters.json"
+    local routing_stack=$1
+
+    if [ "$routing_stack" = "frr" ]; then
+        save_vtysh "show bfd peers" "frr.bfd.peers"
+        save_vtysh "show bfd peers counters" "frr.bfd.peers.counters"
+        save_vtysh "show bfd peers json" "frr.bfd.peers.json"
+        save_vtysh "show bfd peers counters json" "frr.bfd.peers.counters.json"
+    elif [ "$routing_stack" = "framewave" ]; then
+        :
+        # No BFD support
+    fi
 }
 
 ###############################################################################
@@ -534,19 +563,123 @@ save_ip_info() {
 # Globals:
 #  None
 # Arguments:
-#  None
+#  routing_stack: The routing stack used.
 # Returns:
 #  None
 ###############################################################################
 save_bgp_info() {
     trap 'handle_error $? $LINENO' ERR
-    save_vtysh "show ip bgp summary" "bgp.summary"
-    save_vtysh "show ip bgp neighbors" "bgp.neighbors"
-    save_vtysh "show ip bgp" "bgp.table"
-    save_vtysh "show bgp ipv6 summary" "bgp.ipv6.summary"
-    save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
-    save_vtysh "show bgp ipv6" "bgp.ipv6.table"
-    save_bgp_neighbor_all_ns
+    local routing_stack=$1
+
+    if [ "$routing_stack" = "frr" ]; then
+        save_vtysh "show ip bgp summary" "bgp.summary"
+        save_vtysh "show ip bgp neighbors" "bgp.neighbors"
+        save_vtysh "show ip bgp" "bgp.table"
+        save_vtysh "show bgp ipv6 summary" "bgp.ipv6.summary"
+        save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
+        save_vtysh "show bgp ipv6" "bgp.ipv6.table"
+    elif [ "$routing_stack" = "framewave" ]; then
+        save_cmd "show bgp ip" "bgp.ip"
+        save_cmd "show bgp l3vpn" "bgp.l3vpn"
+        save_cmd "show bgp neighbor" "bgp.neighbor"
+        save_cmd "show bgp neighbor-routes advertised --addr-type ipv4" "bgp.neighbor-routes.advertised.ipv4"
+        save_cmd "show bgp neighbor-routes advertised --addr-type ipv6" "bgp.neighbor-routes.advertised.ipv6"
+        save_cmd "show bgp neighbor-routes advertised --addr-type vpnv4" "bgp.neighbor-routes.advertised.vpnv4"
+        save_cmd "show bgp neighbor-routes advertised --addr-type vpnv6" "bgp.neighbor-routes.advertised.vpnv6"
+        save_cmd "show bgp neighbor-routes received --addr-type ipv4" "bgp.neighbor-routes.received.ipv4"
+        save_cmd "show bgp neighbor-routes received --addr-type ipv6" "bgp.neighbor-routes.received.ipv6"
+        save_cmd "show bgp neighbor-routes received --addr-type vpnv4" "bgp.neighbor-routes.received.vpnv4"
+        save_cmd "show bgp neighbor-routes received --addr-type vpnv6" "bgp.neighbor-routes.received.vpnv6"
+    fi
+    save_bgp_neighbor_all_ns $routing_stack
+}
+
+###############################################################################
+# Save ISIS related info
+# Globals:
+#  None
+# Arguments:
+#  routing_stack: The routing stack used.
+# Returns:
+#  None
+###############################################################################
+save_isis_info() {
+    local routing_stack=$1
+
+    if [ "$routing_stack" = "framewave" ]; then
+        save_cmd "show isis state" "isis.state"
+        save_cmd "show isis interface" "isis.interface"
+        interface_list=$(show isis interface | grep -Ev "BGP AS|====|INTERFACE|----|IS-IS|No" | grep -v -e "^$" | awk '{print $1}')
+        for word in $interface_list; do
+            save_cmd "show isis interface $word statistics" "isis.interface.$word.statistics"
+        done
+        save_cmd "show isis neighbors" "isis.neighbors"
+        save_cmd "show isis lsp" "isis.lsp"
+        save_cmd "show isis lsp --detail" "isis.lsp-detail"
+    fi
+}
+
+###############################################################################
+# Save MPLS related info
+# Globals:
+#  None
+# Arguments:
+#  routing_stack: The routing stack used.
+# Returns:
+#  None
+###############################################################################
+save_mpls_info() {
+    local routing_stack=$1
+
+    if [ "$routing_stack" = "framewave" ]; then
+        save_cmd "show mpls forwarding all" "mpls.forwarding.all"
+        label_list=$(show mpls forwarding all | sed -e '1,/INCOMING/d' | grep -Ev "LABEL|----" | grep -v -e "^$" | awk '{print $1}')
+        for word in $label_list; do
+            save_cmd "show mpls forwarding incoming-label $word" "mpls.forwarding.incoming-label.$word"
+        done
+    fi
+}
+
+###############################################################################
+# Save SR related info
+# Globals:
+#  None
+# Arguments:
+#  routing_stack: The routing stack used.
+# Returns:
+#  None
+###############################################################################
+save_sr_info() {
+    local routing_stack=$1
+
+    if [ "$routing_stack" = "framewave" ]; then
+        save_cmd "show segment-routing node all" "segment-routing.node.all"
+        save_cmd "show segment-routing node local" "segment-routing.node.local"
+        router_id_list=$(sonic-db-dump -n CONFIG_DB -y -k "LOOPBACK*" | grep "Loopback0" | awk -F'|' '{print $3}' | awk -F/ '{print $1}')
+        for word in $router_id_list; do
+            save_cmd "show segment-routing node isis $word" "segment-routing.node.isis.$word"
+        done
+        save_cmd "show segment-routing prefix-sid" "segment-routing.prefix-sid"
+        save_cmd "show segment-routing xc" "segment-routing.xc"
+        save_cmd "show segment-routing xc detail" "segment-routing.xc.detail"
+    fi
+}
+
+###############################################################################
+# Save routing related info
+# Globals:
+#  None
+# Arguments:
+#  routing_stack: The routing stack used.
+# Returns:
+#  None
+###############################################################################
+save_routing_info() {
+    local routing_stack=$1
+
+    if [ "$routing_stack" = "framewave" ]; then
+        save_cmd "sudo docker exec bgp /opt/framewave/bin/show-route" "routing.programming"
+    fi
 }
 
 ###############################################################################
@@ -567,6 +700,35 @@ save_frr_info() {
     save_vtysh "show zebra dplane detailed" "frr.dplane"
     save_vtysh "show interface vrf all" "frr.interfaces"
     save_vtysh "show zebra client summary" "frr.client"
+}
+
+###############################################################################
+# Save SWAN related info
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_swan_info() {
+    save_cmd "docker exec -it swan-agent cat /root/config/config.json" "swan-agent.config"
+    save_cmd "docker exec -it swan-agent cat /root/config/swanagent.txt" "swan-agent.swanagent"
+}
+
+###############################################################################
+# Save framewave related info
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_framewave_info() {
+    save_cmd "show rejected-config detail" "framewave.rejected-config.detail"
+    save_swan_info
+    sudo docker exec -i bgp /bin/bash -c 'kill -s SIGUSR1 $(pgrep nbased)'
 }
 
 ###############################################################################
@@ -680,6 +842,44 @@ save_platform_info() {
     save_cmd "show platform ssdhealth" "ssdhealth"
     save_cmd "show platform temperature" "temperature"
     save_cmd "show platform fan" "fan"
+}
+
+###############################################################################
+# Save dataplane related info
+# Globals:
+#  None
+# Arguments:
+#  asic
+# Returns:
+#  None
+###############################################################################
+
+save_dataplane_info() {
+    local asic="$1"
+    if [[ "$asic" = "soda" ]]; then
+        save_cmd "docker exec -it syncd ip netns exec sodans ip link show" "soda.interfacetable"
+        save_cmd "docker exec -it syncd ip netns exec sodans ip route show" "soda.IProutingtable"
+        save_cmd "docker exec -it syncd ip netns exec sodans ip -M route show" "soda.MPLSforwardingtable"
+        save_cmd "docker exec -it syncd ip netns exec sodans ip rule show" "soda.IPrules"
+        save_cmd "docker exec -it syncd ip netns exec sodans ip rule show" "soda.Netfilterrules"
+    fi
+}
+
+###############################################################################
+# Save interfaces related info
+# Globals:
+#  None
+# Arguments:
+#  asic
+# Returns:
+#  None
+###############################################################################
+save_interfaces_info() {
+    local asic="$1"
+    save_cmd "ip link show" "control.interface.state"
+    if [[ "$asic" = "soda" ]]; then
+        save_cmd "docker exec -it syncd ip netns exec sodans ip link show" "dataplane.interface.state"
+    fi
 }
 
 ###############################################################################
@@ -804,12 +1004,12 @@ collect_mellanox() {
     copy_from_docker syncd $sai_dump_folder $sai_dump_folder
     echo "$sai_dump_folder"
     for file in `ls $sai_dump_folder`; do
-        save_file ${sai_dump_folder}/${file} sai_sdk_dump true 
+        save_file ${sai_dump_folder}/${file} sai_sdk_dump true
     done
 
     ${CMD_PREFIX}rm -rf $sai_dump_folder
     ${CMD_PREFIX}docker exec -t syncd rm -rf $sai_dump_folder
-    
+
     # Save SDK error dumps
     local sdk_dump_path=`${CMD_PREFIX}docker exec syncd cat /tmp/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
     if [[ -d $sdk_dump_path ]]; then
@@ -977,6 +1177,116 @@ save_warmboot_files() {
 }
 
 ###############################################################################
+# Get .so libraries
+# Globals:
+#  None
+# Arguments:
+#  file
+# Returns:
+#  None
+###############################################################################
+get_so_libs() {
+local file=$1
+case $file in
+    nbased)
+        lib_list=$(sudo docker exec -it bgp /bin/bash -c 'ldd ./opt/framewave/bin/nbased |cut -s -d'/' -f2- | cut -s -d " " -f1 '| tr -d '\r')
+        container=bgp
+        ;;
+
+    fcmd)
+        lib_list=$(sudo docker exec -it bgp /bin/bash -c 'ldd ./opt/framewave/bin/fcmd |cut -s -d'/' -f2- | cut -s -d " " -f1 '| tr -d '\r')
+        container=bgp
+        ;;
+
+    fspd)
+        lib_list=$(sudo docker exec -it bgp /bin/bash -c 'ldd ./opt/framewave/bin/fspd |cut -s -d'/' -f2- | cut -s -d " " -f1 '| tr -d '\r')
+        container=bgp
+        ;;
+
+    ftnmd)
+        lib_list=$(sudo docker exec -it bgp /bin/bash -c 'ldd ./opt/framewave/bin/ftnmd |cut -s -d'/' -f2- | cut -s -d " " -f1 '| tr -d '\r')
+        container=bgp
+        ;;
+
+    orchagent)
+        lib_list=$(sudo docker exec -it swss /bin/bash -c 'ldd ./usr/bin/orchagent |cut -s -d'/' -f2-  | cut -s -d " " -f1 '| tr -d '\r')
+        container=swss
+        ;;
+
+    syncd) ./usr/bin/syncd
+        lib_list=$(sudo docker exec -t syncd /bin/bash -c 'ldd ./usr/bin/syncd |grep "lib"|cut -s -d'/' -f2- | cut -s -d " " -f1 '| tr -d '\r')
+        container=syncd
+        ;;
+
+    agentsonic)
+        lib_list=$(sudo docker exec -t swan-agent /bin/bash -c 'ldd ./usr/bin/agentsonic  |grep "lib"|cut -s -d'/' -f2- | cut -s -d " " -f1 '| tr -d '\r')
+        container=swan-agent
+        ;;
+esac
+lib_array=( $lib_list )
+for library in "${lib_array[@]}"
+do
+    docker cp -L $container:/"$library" /tmp
+    local lib_name=${library##*/}
+    save_file /tmp/$lib_name $file/libraries true
+done
+}
+
+###############################################################################
+# Save executables
+# Globals:
+#  None
+# Arguments:
+#  file
+# Returns:
+#  None
+###############################################################################
+save_executable() {
+local file=$1
+filename=${file%%.*}
+filename=${filename##*/}
+get_so_libs $filename
+
+case $filename in
+    orchagent)
+        sudo docker cp swss:/usr/bin/orchagent /tmp/
+        save_file /tmp/orchagent orchagent true
+        ;;
+
+    syncd)
+        sudo docker cp syncd:/usr/bin/syncd /tmp/
+        save_file /tmp/syncd syncd true
+        ;;
+
+    nbased)
+        sudo docker cp bgp:/opt/framewave/bin/nbased /tmp/
+        save_file /tmp/nbased nbased true
+        ;;
+
+    fcmd)
+        sudo docker cp bgp:/opt/framewave/bin/fcmd /tmp/
+        save_file /tmp/fcmd fcmd true
+        ;;
+
+    fspd)
+        sudo docker cp bgp:/opt/framewave/bin/fspd /tmp/
+        save_file /tmp/fspd fspd true
+        ;;
+
+    ftnmd)
+        sudo docker cp bgp:/opt/framewave/bin/ftnmd /tmp/
+        save_file /tmp/ftnmd ftnmd true
+        ;;
+
+    agentsonic)
+        sudo docker cp swan-agent:/usr/bin/agentsonic /tmp/
+        save_file /tmp/agentsonic agentsonic true
+        ;;
+esac
+}
+
+
+###############################################################################
 # Save crash files
 # Globals:
 #  None
@@ -989,6 +1299,8 @@ save_crash_files() {
     # archive core dump files
     trap 'handle_error $? $LINENO' ERR
     for file in $(find_files "/var/core/"); do
+        # save executable associated with core dump file
+        save_executable $file
         # don't gzip already-gzipped log files :)
         if [ -z "${file##*.gz}" ]; then
             save_file $file core false
@@ -1022,7 +1334,7 @@ save_crash_files() {
 get_asic_count() {
     trap 'handle_error $? $LINENO' ERR
     local redirect_eval="2>&1"
-    if ! $SAVE_STDERR 
+    if ! $SAVE_STDERR
     then
          redirect_eval=""
     fi
@@ -1169,8 +1481,39 @@ main() {
     save_ip_info
     save_bridge_info
 
-    save_frr_info
-    save_bgp_info
+    local routing_stack="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v routing_stack)"
+    if [[ "$routing_stack" = "frr" ]]; then
+        save_frr_info
+    elif [[ "$routing_stack" = "framewave" ]]; then
+        save_framewave_info
+    fi
+
+    if [[ "$DETAIL" = "detail" ]]; then
+        save_bgp_info $routing_stack
+        save_isis_info $routing_stack
+        save_mpls_info $routing_stack
+        save_sr_info $routing_stack
+        save_routing_info $routing_stack
+        save_dataplane_info $asic
+        save_interfaces_info $asic
+    fi
+
+    if [[ "$DETAIL" = "bgp" ]]; then
+        save_bgp_info $routing_stack
+    elif [[ "$DETAIL" = "isis" ]]; then
+        save_isis_info $routing_stack
+    elif [[ "$DETAIL" = "mpls" ]]; then
+        save_mpls_info $routing_stack
+    elif [[ "$DETAIL" = "sr" ]]; then
+        save_sr_info $routing_stack
+    elif [[ "$DETAIL" = "interfaces" ]]; then
+        save_interfaces_info $asic
+    elif [[ "$DETAIL" = "dataplane" ]]; then
+        save_dataplane_info $asic
+    elif [[ "$DETAIL" = "routing" ]]; then
+        save_routing_info $routing_stack
+        save_dataplane_info $asic
+    fi
 
     save_cmd "show interface status -d all" "interface.status"
     save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
@@ -1202,17 +1545,17 @@ main() {
     save_cmd "dmesg" "dmesg"
 
     save_nat_info
-    save_bfd_info
+    save_bfd_info $routing_stack
     save_redis_info
 
-    if $DEBUG_DUMP 
+    if $DEBUG_DUMP
     then
         save_dump_state_all_ns
     fi
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
-    
+
     if [[ -d ${PLUGINS_DIR} ]]; then
         local -r dump_plugins="$(find ${PLUGINS_DIR} -type f -executable)"
         for plugin in $dump_plugins; do
@@ -1346,15 +1689,18 @@ OPTIONS
         Collect logs since DATE;
         The argument is a mostly free format human readable string such as
         "24 March", "yesterday", etc.
+
+    -d DETAIL
+        Define which function to print out in detail, for all info pass 'detail'.
+
     -t TIMEOUT_MINS
         Command level timeout in minutes
-    -r 
+    -r
         Redirect any intermediate errors to STDERR
-    -d 
+    -d
         Collect the output of debug dump cli
 EOF
 }
-
 
 while getopts ":xnvhzas:t:r:d" opt; do
     case $opt in
@@ -1395,13 +1741,21 @@ while getopts ":xnvhzas:t:r:d" opt; do
             # validate date expression
             date --date="${SINCE_DATE}" &> /dev/null || abort "${ERROR_INVALID_ARGUMENT}" "Invalid date expression passed: '${SINCE_DATE}'"
             ;;
+
+        d)
+            DETAIL=${OPTARG}
+            echo 'dataplane, routes, interfaces, bgp, isis, mpls, sr, detail' | grep -qw ${DETAIL}
+            if ! [[ $? = 0 ]] ; then
+                abort "${ERROR_INVALID_ARGUMENT}" "Invalid -d parameter: '${DETAIL}'"
+            fi
+            ;;
         t)
             TIMEOUT_MIN="${OPTARG}"
             ;;
         r)
             SAVE_STDERR=false
             ;;
-        d) 
+        d)
             DEBUG_DUMP=true
             ;;
         /?)

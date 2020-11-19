@@ -31,9 +31,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-dfrontend"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_multi_asic_display_all_front_expected_output
+        assert filtered_result == show_ip_route_common.show_ip_route_multi_asic_display_all_front_expected_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -45,9 +49,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-dall"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_multi_asic_display_all_expected_output
+        assert filtered_result == show_ip_route_common.show_ip_route_multi_asic_display_all_expected_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_specific_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -59,9 +67,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["10.0.0.4"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_multi_asic_specific_route_output
+        assert filtered_result == show_ip_route_common.show_ip_route_multi_asic_specific_route_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_specific_route_on_1_asic'], indirect=['setup_multi_asic_bgp_instance'])
@@ -73,9 +85,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["192.168.0.1"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_specific_ip_route_expected_output
+        assert filtered_result == show_ip_route_common.show_specific_ip_route_expected_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_specific_recursive_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -101,9 +117,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ipv6"].commands["route"], ["2603:10e2:400::"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_multi_asic_specific_route_output
+        assert filtered_result == show_ip_route_common.show_ipv6_route_multi_asic_specific_route_output
 
     # note that we purposely use the single bgp instance setup to cause trigger a param error bad 
     # just bail out while executing in multi-asic show ipv6 route handling.
@@ -118,9 +138,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ipv6"].commands["route"], ["garbage"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_err_expected_output + "\n"
+        assert filtered_result == show_ip_route_common.show_ipv6_route_err_expected_output + "\n"
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -132,9 +156,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-nasic7"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_multi_asic_invalid_namesapce_err_output
+        assert filtered_result == show_ip_route_common.show_ip_route_multi_asic_invalid_namesapce_err_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -146,9 +174,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-deverything"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_multi_asic_invalid_display_err_output
+        assert filtered_result == show_ip_route_common.show_ip_route_multi_asic_invalid_display_err_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ipv6_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -160,9 +192,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ipv6"].commands["route"], ["-dfrontend"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_multi_asic_all_namesapce_output
+        assert filtered_result == show_ip_route_common.show_ipv6_route_multi_asic_all_namesapce_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ipv6_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -174,9 +210,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ipv6"].commands["route"], ["-nasic2"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_multi_asic_single_namesapce_output
+        assert filtered_result == show_ip_route_common.show_ipv6_route_multi_asic_single_namesapce_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ipv6_specific_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -188,9 +228,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ipv6"].commands["route"], ["json"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ipv6_route_multi_asic_json_output
+        assert filtered_result == show_ip_route_common.show_ipv6_route_multi_asic_json_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_special_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -202,9 +246,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-nasic0"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_special_ip_route_expected_output
+        assert filtered_result == show_ip_route_common.show_special_ip_route_expected_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_empty_route'], indirect=['setup_multi_asic_bgp_instance'])
@@ -216,9 +264,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["-dfrontend"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == "" 
+        assert filtered_result == ""
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route_summary'], indirect=['setup_multi_asic_bgp_instance'])
@@ -230,9 +282,13 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["ip"].commands["route"], ["summary"])
-        print("{}".format(result.output))
+        filtered_result = result.output.replace(
+            show_ip_route_common.routing_stack_absent_warning, "")
+        filtered_result = filtered_result.replace(
+            show_ip_route_common.routing_stack_temp_down_warning, "")
+        print("{}".format(filtered_result))
         assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_summary_expected_output
+        assert filtered_result == show_ip_route_common.show_ip_route_summary_expected_output
 
     @classmethod
     def teardown_class(cls):

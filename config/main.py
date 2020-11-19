@@ -22,10 +22,11 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from utilities_common import util_base
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, RedisTransactioner, DBConnector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
+from utilities_common.routing_stack import get_routing_stack
 import utilities_common.cli as clicommon
 from utilities_common.general import load_db_config
 
@@ -91,6 +92,10 @@ PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
 
 asic_type = None
+
+# Global variable holding the configured routing stack
+routing_stack_data = get_routing_stack()
+routing_stack = routing_stack_data[0]
 
 #
 # Helper functions
@@ -1001,6 +1006,14 @@ config.add_command(mclag.mclag)
 config.add_command(mclag.mclag_member)
 config.add_command(mclag.mclag_unique_ip)
 
+#
+# IS-IS commands are specific to the routing stack.
+#
+if routing_stack == "framewave":
+    from .isis_framewave import isis
+    config.add_command(isis)
+
+
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Existing files will be overwritten, continue?')
@@ -1348,7 +1361,23 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
 
         config_db.connect()
         client = config_db.get_redis_client(config_db.CONFIG_DB)
-        client.flushdb()
+        if routing_stack != "framewave":
+            client.flushdb()
+        else:
+            # On framewave all keys have to be purged one by one to generate keyspace
+            # notifications in order for the configuration from framewave
+            # to be flushed too
+            REDIS_REPLY_INTEGER = 3
+            dbcfg = DBConnector("CONFIG_DB", 0, True)
+            pipe = RedisTransactioner(dbcfg)
+            # To minimise row dependency confilcts we'll delete the config
+            # in a single transaction
+            pipe.multi()
+            keys = client.keys()
+            for key in keys:
+                pipe.enqueue("DEL %s" % key, REDIS_REPLY_INTEGER)
+            pipe._exec()
+
         if load_sysinfo:
             if namespace is None:
                 command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)

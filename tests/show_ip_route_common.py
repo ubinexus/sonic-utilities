@@ -2,6 +2,16 @@
 # NON-MULTI_ASIC TEST SECTION
 #
 
+# During python-wheels execution no routing stack will be present so
+# the error about the routing stack absence will have to filtered out
+routing_stack_absent_warning =\
+    "\nRouting-stack has exited with an error\n" \
+    "Show commands dependent on routing stack are not available\n"
+
+routing_stack_temp_down_warning =\
+    "\nRouting stack currently starting/restarting. \n" \
+    "Expect routing-stack related show commands to be unrecognized for a while...\n\n"
+
 show_ip_route_expected_output = """\
 Codes: K - kernel route, C - connected, S - static, R - RIP,
        O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,

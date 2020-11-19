@@ -5,6 +5,7 @@ import subprocess
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
+from utilities_common.routing_stack import get_routing_stack
 from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
@@ -17,6 +18,10 @@ from . import portchannel
 from collections import OrderedDict
 
 HWSKU_JSON = 'hwsku.json'
+
+# Global Routing-Stack variable
+routing_stack_data = get_routing_stack()
+routing_stack = routing_stack_data[0]
 
 # Read given JSON file
 def readJsonFile(fileName):
@@ -331,7 +336,7 @@ def expected(db, interfacename):
 @click.pass_context
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
-    
+
     #Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
        if (display == 'frontend' or display == 'all' or display is None):
@@ -339,7 +344,7 @@ def mpls(ctx, interfacename, namespace, display):
        else:
            print("Error: Invalid display option command for single asic")
            return
-    
+
     display = "all" if interfacename else display
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
     ns_list = masic.get_ns_list_based_on_options()
@@ -365,13 +370,13 @@ def mpls(ctx, interfacename, namespace, display):
             if (interfacename is not None):
                 if (interfacename != ifname):
                     continue
-                
+
                 intf_found = True
-            
+
             if (display != "all"):
                 if ("Loopback" in ifname):
                     continue
-                
+
                 if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
                     continue
 
@@ -384,11 +389,11 @@ def mpls(ctx, interfacename, namespace, display):
             if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
                 intfs_data.update({ifname: 'disable'})
             else:
-                intfs_data.update({ifname: mpls_intf['mpls']}) 
-    
+                intfs_data.update({ifname: mpls_intf['mpls']})
+
     # Check if interface is valid
     if (interfacename is not None and not intf_found):
-        ctx.fail('interface {} doesn`t exist'.format(interfacename))    
+        ctx.fail('interface {} doesn`t exist'.format(interfacename))
 
     header = ['Interface', 'MPLS State']
     body = []
@@ -404,6 +409,9 @@ def mpls(ctx, interfacename, namespace, display):
     click.echo(tabulate(body, header))
 
 interfaces.add_command(portchannel.portchannel)
+
+if routing_stack != "framewave":
+    interfaces.add_command(portchannel.portchannel)
 
 #
 # transceiver group (show interfaces trasceiver ...)
