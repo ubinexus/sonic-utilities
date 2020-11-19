@@ -66,4 +66,3 @@ def history():
 
     header = ['Name', 'Cause', 'Time', 'User', 'Comment']
     click.echo(tabulate(table, header))
-
