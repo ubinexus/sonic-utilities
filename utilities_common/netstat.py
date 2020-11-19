@@ -9,11 +9,15 @@ def ns_diff(newstr, oldstr):
     """
         Calculate the diff.
     """
-    if newstr == STATUS_NA or oldstr == STATUS_NA:
+    if newstr == STATUS_NA:
         return STATUS_NA
-    else:
-        new, old = int(newstr), int(oldstr)
-        return '{:,}'.format(new - old)
+
+    # if new is valid but old is not we should return new
+    if oldstr == STATUS_NA:
+        oldstr = '0'
+
+    new, old = int(newstr), int(oldstr)
+    return '{:,}'.format(max(0, new - old))
 
 def ns_brate(newstr, oldstr, delta):
     """
@@ -41,7 +45,7 @@ def ns_prate(newstr, oldstr, delta):
         rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
         return "{:.2f}".format(rate)+'/s'
 
-def ns_util(newstr, oldstr, delta):
+def ns_util(newstr, oldstr, delta, port_rate=PORT_RATE):
     """
         Calculate the util.
     """
@@ -49,7 +53,7 @@ def ns_util(newstr, oldstr, delta):
         return STATUS_NA
     else:
         rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
-        util = rate/(PORT_RATE*1024*1024*1024/8.0)*100
+        util = rate/(port_rate*1024*1024*1024/8.0)*100
         return "{:.2f}%".format(util)
 
 def table_as_json(table, header):
