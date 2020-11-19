@@ -50,7 +50,6 @@ B>*192.168.0.240/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
 B>*192.168.0.241/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-
 asic1:
 K *0.0.0.0/0 [210/0] via 240.127.1.1, eth0, 2d22h01m
 B>*0.0.0.0/0 [20/0] via 10.0.0.8, PortChannel0008, 2d22h01m
@@ -87,7 +86,6 @@ B>*192.168.0.240/32 [20/0] via 10.0.0.8, Ethernet-BP260, 2d22h01m
   *                        via 10.0.0.7, PortChannel4009, 2d22h01m
 B>*192.168.0.241/32 [20/0] via 10.0.0.8, PortChannel0008, 2d22h01m
   *                        via 10.0.0.7, PortChannel0007, 2d22h01m
-
 asic2:
 K *0.0.0.0/0 [210/0] via 240.127.1.1, eth0, 2d22h02m
 B>*0.0.0.0/0 [20/0] via 10.0.0.16, PortChannel1016, 2d22h02m
@@ -124,7 +122,6 @@ B>*192.168.0.240/32 [20/0] via 10.0.0.16, PortChannel1016, 2d22h02m
   *                        via 10.0.0.15, PortChannel1015, 2d22h02m
 B>*192.168.0.241/32 [20/0] via 10.0.0.16, PortChannel1016, 2d22h02m
   *                        via 10.0.0.15, PortChannel1015, 2d22h02m
-
 """
 
 show_ip_route_multi_asic_display_all_front_expected_output = """\
@@ -137,8 +134,8 @@ Codes: K - kernel route, C - connected, S - static, R - RIP,
 K *0.0.0.0/0 [210/0] via 240.127.1.1, eth0, 2d22h00m
 B>*0.0.0.0/0 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                 via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                 via 10.0.0.16, PortChannel1016, 2d22h00m
   *                 via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                 via 10.0.0.16, PortChannel1016, 2d22h00m
 S 0.0.0.0/0 [200/0] via 10.3.146.1, inactive 2d22h00m
 C>*8.0.0.0/32 is directly connected, Loopback4096, 2d22h00m
 C>*8.0.0.2/32 is directly connected, Loopback4096, 2d22h02m
@@ -149,48 +146,48 @@ B>*100.1.0.3/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                    via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.0/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                      via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                      via 10.0.0.16, PortChannel1016, 2d22h00m
   *                      via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                      via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.1/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                      via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                      via 10.0.0.16, PortChannel1016, 2d22h00m
   *                      via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                      via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.32/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                       via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                       via 10.0.0.16, PortChannel1016, 2d22h00m
   *                       via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                       via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.97/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                       via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                       via 10.0.0.16, PortChannel1016, 2d22h00m
   *                       via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                       via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.193/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
   *                        via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.208/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
   *                        via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.209/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
   *                        via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.224/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
   *                        via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.225/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
   *                        via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.240/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
   *                        via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
 B>*192.168.0.241/32 [20/0] via 10.0.0.5, PortChannel0005, 2d22h00m
   *                        via 10.0.0.1, PortChannel0002, 2d22h00m
-  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
   *                        via 10.0.0.15, PortChannel1015, 2d22h00m
+  *                        via 10.0.0.16, PortChannel1016, 2d22h00m
 """
 
 show_ipv6_route_multi_asic_all_namesapce_output = """\
@@ -203,20 +200,20 @@ Codes: K - kernel route, C - connected, S - static, R - RIP,
 K *::/0 [210/0] via fd00::1, eth0, 2d22h00m
 B>*::/0 [20/0] via fc00::6, PortChannel0005, 2d22h00m
   *            via fc00::2, PortChannel0002, 2d22h00m
-  *            via fc00::6, PortChannel1016, 2d22h00m
   *            via fc00::2, PortChannel1015, 2d22h00m
+  *            via fc00::6, PortChannel1016, 2d22h00m
 B>*2064:100::1/128 [20/0] via fc00::2, PortChannel0002, 2d22h00m
   *                       via fc00::2, PortChannel1015, 2d22h00m
 B>*2064:100::3/128 [20/0] via fc00::6, PortChannel0005, 2d22h00m
   *                       via fc00::6, PortChannel1016, 2d22h00m
 B>*20c0:a800:0:1::/64 [20/0] via fc00::6, PortChannel0005, 2d22h00m
   *                          via fc00::2, PortChannel0002, 2d22h00m
-  *                          via fc00::6, PortChannel1016, 2d22h00m
   *                          via fc00::2, PortChannel1015, 2d22h00m
+  *                          via fc00::6, PortChannel1016, 2d22h00m
 B>*20c0:a800:0:10::/64 [20/0] via fc00::6, PortChannel0005, 2d22h00m
   *                           via fc00::2, PortChannel0002, 2d22h00m
-  *                           via fc00::6, PortChannel1016, 2d22h00m
   *                           via fc00::2, PortChannel1015, 2d22h00m
+  *                           via fc00::6, PortChannel1016, 2d22h00m
 B>*20c0:a800:0:11::/64 [20/0] via fc00::6, PortChannel0002, 2d22h00m
   *                           via fc00::6, PortChannel1015, 2d22h00m
 B>*20c0:a800:0:20::/64 [20/0] via fc00::2, PortChannel0002, 2d22h00m

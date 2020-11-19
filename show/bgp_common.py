@@ -142,15 +142,15 @@ def print_ip_routes(route_info, filter_by_ip):
     for route, info in sorted(route_info.items(), key=get_ip_value):
         for i in range(0, len(info)):
             if filter_by_ip:
-                print "Routing entry for {}".format(str(route))
+                print("Routing entry for {}".format(str(route)))
                 str_2_print = '  Known via "{}", distance {}, metric {}'.format(info[i]['protocol'], info[i]['distance'], info[i]['metric'])
                 if "selected" in info[i]:
                     str_2_print += ", best"
-                print str_2_print
-                print "  Last update {} ago".format(info[i]['uptime'])
+                print(str_2_print)
+                print("  Last update {} ago".format(info[i]['uptime']))
                 for j in range(0, len(info[i]['nexthops'])):
                     if "directlyConnected" in info[i]['nexthops'][j]:
-                        print "  * directly connected, {}\n".format(info[i]['nexthops'][j]['interfaceName'])
+                        print("  * directly connected, {}\n".format(info[i]['nexthops'][j]['interfaceName']))
                     else:
                         if "ip" in info[i]['nexthops'][j]:
                             str_2_print = "  * {}".format(info[i]['nexthops'][j]['ip'])
@@ -159,8 +159,8 @@ def print_ip_routes(route_info, filter_by_ip):
                             str_2_print += ", via {}".format(info[i]['nexthops'][j]['interfaceName'])
                         else:
                             str_2_print += " inactive"
-                        print str_2_print
-                print
+                        print(str_2_print)
+                print("")
             else:
                 str_2_print = ""
                 str_2_print += proto_code[info[i]['protocol']]
@@ -187,14 +187,13 @@ def print_ip_routes(route_info, filter_by_ip):
                     # add uptime at the end of the string
                     str_2_print += " {}".format(info[i]['uptime'])
                     # print out this string
-                    print str_2_print
+                    print(str_2_print)
 
 
-def merge_to_combined_route(combined_route, route, r_info_l):
+def merge_to_combined_route(combined_route, route, new_info_l):
     # The following protocols do not have multi-nexthops. mbrship test with small list is faster than small set
     # If other protocol are also single nexthop not in this list just add them
     single_nh_proto = ["connected"]
-    new_info_l = copy.deepcopy(r_info_l)
     # check if this route already exists. if so, combine nethops and update the count
     if route in combined_route:
         while len(new_info_l):
@@ -232,9 +231,7 @@ def merge_to_combined_route(combined_route, route, r_info_l):
                             combined_route[route][j]['internalNextHopNum'] + len(additional_nh_l)
                             if combined_route[route][j]['internalNextHopActiveNum'] > 0 and new_info['internalNextHopActiveNum'] > 0:
                                 combined_route[route][j]['internalNextHopActiveNum'] + len(additional_nh_l)
-                            while len(additional_nh_l):
-                                a_nh = additional_nh_l.pop()
-                                combined_route[route][j]['nexthops'].append(a_nh)
+                            combined_route[route][j]['nexthops'] += additional_nh_l
                         # the nexhops merged, no need to add the new_info
                         skip_this_new_info = True
                         break
@@ -296,62 +293,59 @@ def print_show_ip_route_hdr():
     print("       F - PBR, f - OpenFabric,")
     print("       > - selected route, * - FIB route, q - queued route, r - rejected route\n")
 
+
+'''
+ handling multi-ASIC by gathering the output from specified/all name space into a dictionary via
+ jason option and then filter out the json entries (by removing those next Hop that are
+ back-end ASIC if display is for front-end only). If the entry itself has no more next Hop after filtering,
+ then skip over that particular route entry.  Once completed, if the user chose "json" option,
+ then just print out the dictionary in Json format accordingly. But if no "json" option specified,
+ then print out the header and the decoded entry representation for each route accordingly.
+ if user specified a namespace, then print everything.
+ if user did not specify name space but specified display for all (include backend), then print each namespace
+ without any filtering.  But if display is for front-end only, then do filter and combine all output(merge same
+ routes from all namespace as additional nexthops)
+ This code is based on FRR 7.2 branch. If we moved to a new version we may need to change here as well
+'''
 def show_routes(args, namespace, display, verbose, ipver):
     import utilities_common.bgp_util as bgp_util
     """Show IPv4/IPV6 routing table"""
+    filter_back_end = False
     if display is None:
         if multi_asic.is_multi_asic():
             display = constants.DISPLAY_EXTERNAL
+            filter_back_end = True
     else:
         if multi_asic.is_multi_asic():
             if display not in multi_asic_util.multi_asic_display_choices():
-                print "dislay option '{}' is not a valid option.".format(display)
+                print("dislay option '{}' is not a valid option.".format(display))
                 return
+            else:
+                if display == constants.DISPLAY_EXTERNAL:
+                    filter_back_end = True
         else:
-            print "dislay option '{}' is not a valid option.".format(display)
-            return
+            if display not in ['frontend', 'all']:
+                print("dislay option '{}' is not a valid option.".format(display))
+                return
     device = multi_asic_util.MultiAsic(display, namespace)
     arg_strg = ""
     found_json = 0
     ns_l = []
     print_ns_str = False
-    filter_back_end = False
     filter_by_ip = False
     asic_cnt = 0
-    if multi_asic.is_multi_asic():
-        '''
-        handling multi-ASIC by gathering the output from specified/all name space into a dictionary via
-        jason option and then filter out the json entries (by removing those next Hop that are
-        back-end ASIC if display is for front-end only). If the entry itself has no more next Hop after filtering,
-        then skip over that particular route entry.  Once completed, if the user chose "json" option,
-        then just print out the dictionary in Json format accordingly. But if no "json" option specified,
-        then print out the header and the decoded entry representation for each route accordingly.
-        if user specified a namespace, then print everything.
-        if user did not specify name space but specified display for all (include backend), then print each namespace
-        without any filtering.  But if display is for front-end only, then do filter and combine all output(merge same
-        routes from all namespace as additional nexthops)
-        This code is based on FRR 7.2 branch. If we moved to a new version we may need to change here as well
-        '''
-        if display != constants.DISPLAY_ALL:
-            filter_back_end = True
-        try:
-            for name_s in device.get_ns_list_based_on_options():
-                ns_l.append(name_s)
-            asic_cnt = len(ns_l)
-            if asic_cnt > 1 and display == constants.DISPLAY_ALL:
-                print_ns_str = True
-        except ValueError:
-            print "namespace '{}' is not valid. valid name spaces are:\n{}".format(namespace, multi_asic_util.multi_asic_ns_choices())
+    try:
+        ns_l = device.get_ns_list_based_on_options()
+    except ValueError:
+        print("namespace '{}' is not valid. valid name spaces are:\n{}".format(namespace, multi_asic_util.multi_asic_ns_choices()))
+        return
+    asic_cnt = len(ns_l)
+    if asic_cnt > 1 and display == constants.DISPLAY_ALL:
+        print_ns_str = True
+    if namespace is not None:
+        if not multi_asic.is_multi_asic():
+            print("namespace option is not applicable for non-multi-asic platform")
             return
-    else:
-        if namespace is not None:
-            print "namespace option is not applicable for non-multi-asic platform"
-            return
-        if display is not None:
-            print "display option is not applicable for non-multi-asic platform"
-            return
-        ns_l.append(0)
-
     # build the filter set only if necessary
     if filter_back_end:
         back_end_intf_set = multi_asic.get_back_end_interface_set()
@@ -391,7 +385,7 @@ def show_routes(args, namespace, display, verbose, ipver):
                 error_msg = output[:-5]
             else:
                 error_msg = output
-            print error_msg
+            print(error_msg)
             return
         route_info = json.loads(output)
         if filter_back_end or print_ns_str:
@@ -406,9 +400,8 @@ def show_routes(args, namespace, display, verbose, ipver):
             print_show_ip_route_hdr()
         if print_ns_str:
             for name_space, ns_route in sorted(combined_route.items()):
-                print "{}:".format(name_space)
+                print("{}:".format(name_space))
                 print_ip_routes(ns_route, filter_by_ip)
-                print
         else:
             print_ip_routes(combined_route, filter_by_ip)
     else:
