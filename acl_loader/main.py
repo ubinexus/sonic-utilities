@@ -1,16 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import click
-import ipaddr
+import ipaddress
 import json
 import syslog
-import tabulate
-from natsort import natsorted
 
 import openconfig_acl
+import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
+from natsort import natsorted
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector
 
 
 def info(msg):
@@ -29,13 +30,38 @@ def error(msg):
 
 
 def deep_update(dst, src):
-    for key, value in src.iteritems():
+    for key, value in src.items():
         if isinstance(value, dict):
             node = dst.setdefault(key, {})
             deep_update(node, value)
         else:
             dst[key] = value
     return dst
+
+
+class AclAction:
+    """ namespace for ACL action keys """
+
+    PACKET         = "PACKET_ACTION"
+    REDIRECT       = "REDIRECT_ACTION"
+    MIRROR         = "MIRROR_ACTION"
+    MIRROR_INGRESS = "MIRROR_INGRESS_ACTION"
+    MIRROR_EGRESS  = "MIRROR_EGRESS_ACTION"
+
+
+class PacketAction:
+    """ namespace for ACL packet actions """
+
+    DROP    = "DROP"
+    FORWARD = "FORWARD"
+    ACCEPT  = "ACCEPT"
+
+
+class Stage:
+    """ namespace for ACL stages """
+
+    INGRESS = "INGRESS"
+    EGRESS  = "EGRESS"
 
 
 class AclLoaderException(Exception):
@@ -48,8 +74,13 @@ class AclLoader(object):
     ACL_RULE = "ACL_RULE"
     ACL_TABLE_TYPE_MIRROR = "MIRROR"
     ACL_TABLE_TYPE_CTRLPLANE = "CTRLPLANE"
-    MIRROR_SESSION = "MIRROR_SESSION"
+    CFG_MIRROR_SESSION_TABLE = "MIRROR_SESSION"
+    STATE_MIRROR_SESSION_TABLE = "MIRROR_SESSION_TABLE"
+    POLICER = "POLICER"
     SESSION_PREFIX = "everflow"
+    SWITCH_CAPABILITY_TABLE = "SWITCH_CAPABILITY"
+    ACL_ACTIONS_CAPABILITY_FIELD = "ACL_ACTIONS"
+    ACL_ACTION_CAPABILITY_FIELD = "ACL_ACTION"
 
     min_priority = 1
     max_priority = 10000
@@ -79,23 +110,52 @@ class AclLoader(object):
     def __init__(self):
         self.yang_acl = None
         self.requested_session = None
+        self.mirror_stage = None
         self.current_table = None
         self.tables_db_info = {}
         self.rules_db_info = {}
         self.rules_info = {}
+        # Load global db config. This call is no-op in single npu platforms
+        SonicDBConfig.load_sonic_global_db_config()
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
         self.statedb = SonicV2Connector(host="127.0.0.1")
         self.statedb.connect(self.statedb.STATE_DB)
 
+        # For multi-npu architecture we will have both global and per front asic namespace.
+        # Global namespace will be used for Control plane ACL which are via IPTables.
+        # Per ASIC namespace will be used for Data and Everflow ACL's.
+        # Global Configdb will have all ACL information for both Ctrl and Data/Evereflow ACL's
+        # and will be used as souurce of truth for ACL modification to config DB which will be done to both Global DB and 
+        # front asic namespace
+        
+        self.per_npu_configdb = {}
+
+        # State DB are used for to get mirror Session monitor port.
+        # For multi-npu platforms each asic namespace can have different monitor port
+        # dependinding on which route to session destination ip. So for multi-npu
+        # platforms we get state db for all front asic namespace in addition to 
+        
+        self.per_npu_statedb = {}
+
+        # Getting all front asic namespace and correspding config and state DB connector
+        
+        namespaces = device_info.get_all_namespaces()
+        for front_asic_namespaces in namespaces['front_ns']:
+            self.per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            self.per_npu_configdb[front_asic_namespaces].connect()
+            self.per_npu_statedb[front_asic_namespaces] = SonicV2Connector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            self.per_npu_statedb[front_asic_namespaces].connect(self.per_npu_statedb[front_asic_namespaces].STATE_DB)
+        
         self.read_tables_info()
         self.read_rules_info()
         self.read_sessions_info()
+        self.read_policers_info()
 
     def read_tables_info(self):
         """
-        Read ACL tables information from Config DB
+        Read ACL_TABLE table from configuration database
         :return:
         """
         self.tables_db_info = self.configdb.get_table(self.ACL_TABLE)
@@ -105,7 +165,7 @@ class AclLoader(object):
 
     def read_rules_info(self):
         """
-        Read rules information from Config DB
+        Read ACL_RULE table from configuration database
         :return:
         """
         self.rules_db_info = self.configdb.get_table(self.ACL_RULE)
@@ -113,30 +173,59 @@ class AclLoader(object):
     def get_rules_db_info(self):
         return self.rules_db_info
 
+    def read_policers_info(self):
+        """
+        Read POLICER table from configuration database
+        :return:
+        """
+        
+        # For multi-npu platforms we will read from any one of front asic namespace 
+        # config db as the information should be same across all config db
+        if self.per_npu_configdb:
+            namespace_configdb = list(self.per_npu_configdb.values())[0]
+            self.policers_db_info = namespace_configdb.get_table(self.POLICER)
+        else:
+            self.policers_db_info = self.configdb.get_table(self.POLICER)
+
+    def get_policers_db_info(self):
+        return self.policers_db_info
+
     def read_sessions_info(self):
         """
-        Read ACL tables information from Config DB
+        Read MIRROR_SESSION table from configuration database
         :return:
         """
-        self.sessions_db_info = self.configdb.get_table(self.MIRROR_SESSION)
-        for key in self.sessions_db_info.keys():
-            state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.MIRROR_SESSION, key))
-            if state_db_info:
-                status = state_db_info.get("status", "inactive")
+
+        # For multi-npu platforms we will read from any one of front asic namespace 
+        # config db as the information should be same across all config db
+        if self.per_npu_configdb:
+            namespace_configdb = list(self.per_npu_configdb.values())[0]
+            self.sessions_db_info = namespace_configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
+        else:
+            self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
+        for key in self.sessions_db_info:
+            if self.per_npu_statedb:
+                # For multi-npu platforms we will read from all front asic name space 
+                # statedb as the monitor port will be differnt for each asic 
+                # and it's status also might be different (ideally should not happen)
+                # We will store them as dict of 'asic' : value
+                self.sessions_db_info[key]["status"] = {}
+                self.sessions_db_info[key]["monitor_port"] = {}
+                for namespace_key, namespace_statedb in self.per_npu_statedb.items():
+                    state_db_info = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
+                    self.sessions_db_info[key]["status"][namespace_key] = state_db_info.get("status", "inactive") if state_db_info else "error"
+                    self.sessions_db_info[key]["monitor_port"][namespace_key] = state_db_info.get("monitor_port", "") if state_db_info else ""
             else:
-                status = "error"
-            self.sessions_db_info[key]["status"] = status
+                state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
+                self.sessions_db_info[key]["status"] = state_db_info.get("status", "inactive") if state_db_info else "error"
+                self.sessions_db_info[key]["monitor_port"] = state_db_info.get("monitor_port", "") if state_db_info else ""
 
     def get_sessions_db_info(self):
-        """
-        Read mirror session information from Config DB
-        :return:
-        """
         return self.sessions_db_info
 
     def get_session_name(self):
         """
-        Read mirror session name from Config DB
+        Get requested mirror session name or default session
         :return: Mirror session name
         """
         if self.requested_session:
@@ -154,6 +243,9 @@ class AclLoader(object):
         :param table_name: Table name
         :return:
         """
+        if not self.is_table_valid(table_name):
+            warning("Table \"%s\" not found" % table_name)
+
         self.current_table = table_name
 
     def set_session_name(self, session_name):
@@ -166,6 +258,14 @@ class AclLoader(object):
             raise AclLoaderException("Session %s does not exist" % session_name)
 
         self.requested_session = session_name
+
+    def set_mirror_stage(self, stage):
+        """
+        Set mirror stage to be used in ACL mirror rule action
+        :param session_name: stage 'ingress'/'egress'
+        :return:
+        """
+        self.mirror_stage = stage.upper()
 
     def set_max_priority(self, priority):
         """
@@ -180,11 +280,11 @@ class AclLoader(object):
 
     def is_table_mirror(self, tname):
         """
-        Check if ACL table type is ACL_TABLE_TYPE_MIRROR
+        Check if ACL table type is ACL_TABLE_TYPE_MIRROR or ACL_TABLE_TYPE_MIRRORV6
         :param tname: ACL table name
-        :return: True if table type is ACL_TABLE_TYPE_MIRROR else False
+        :return: True if table type is MIRROR or MIRRORV6 else False
         """
-        return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_MIRROR
+        return self.tables_db_info[tname]['type'].upper().startswith(self.ACL_TABLE_TYPE_MIRROR)
 
     def is_table_control_plane(self, tname):
         """
@@ -220,24 +320,81 @@ class AclLoader(object):
 
         if rule.actions.config.forwarding_action == "ACCEPT":
             if self.is_table_control_plane(table_name):
-                rule_props["PACKET_ACTION"] = "ACCEPT"
+                rule_props[AclAction.PACKET] = PacketAction.ACCEPT
             elif self.is_table_mirror(table_name):
                 session_name = self.get_session_name()
                 if not session_name:
                     raise AclLoaderException("Mirroring session does not exist")
 
-                rule_props["MIRROR_ACTION"] = session_name
+                if self.mirror_stage == Stage.INGRESS:
+                    mirror_action = AclAction.MIRROR_INGRESS
+                elif self.mirror_stage == Stage.EGRESS:
+                    mirror_action = AclAction.MIRROR_EGRESS
+                else:
+                    raise AclLoaderException("Invalid mirror stage passed {}".format(self.mirror_stage))
+
+                rule_props[mirror_action] = session_name
             else:
-                rule_props["PACKET_ACTION"] = "FORWARD"
+                rule_props[AclAction.PACKET] = PacketAction.FORWARD
         elif rule.actions.config.forwarding_action == "DROP":
-            rule_props["PACKET_ACTION"] = "DROP"
+            rule_props[AclAction.PACKET] = PacketAction.DROP
         elif rule.actions.config.forwarding_action == "REJECT":
-            rule_props["PACKET_ACTION"] = "DROP"
+            rule_props[AclAction.PACKET] = PacketAction.DROP
         else:
-            raise AclLoaderException("Unknown rule action %s in table %s, rule %d" % (
+            raise AclLoaderException("Unknown rule action {} in table {}, rule {}".format(
+                rule.actions.config.forwarding_action, table_name, rule_idx))
+
+        if not self.validate_actions(table_name, rule_props):
+            raise AclLoaderException("Rule action {} is not supported in table {}, rule {}".format(
                 rule.actions.config.forwarding_action, table_name, rule_idx))
 
         return rule_props
+
+    def validate_actions(self, table_name, action_props):
+        if self.is_table_control_plane(table_name):
+            return True
+
+        action_count = len(action_props)
+
+        if table_name not in self.tables_db_info:
+            raise AclLoaderException("Table {} does not exist".format(table_name))
+
+        stage = self.tables_db_info[table_name].get("stage", Stage.INGRESS)
+
+        # check if per npu state db is there then read using first state db
+        # else read from global statedb
+        if self.per_npu_statedb:
+            # For multi-npu we will read using anyone statedb connector for front asic namespace. 
+            # Same information should be there in all state DB's 
+            # as it is static information about switch capability
+            namespace_statedb = list(self.per_npu_statedb.values())[0]
+            capability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+        else: 
+            capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+        for action_key in dict(action_props):
+            key = "{}|{}".format(self.ACL_ACTIONS_CAPABILITY_FIELD, stage.upper())
+            if key not in capability:
+                del action_props[action_key]
+                continue
+
+            values = capability[key].split(",")
+            if action_key.upper() not in values:
+                del action_props[action_key]
+                continue
+
+            if action_key == AclAction.PACKET:
+                # Check if action_value is supported
+                action_value = action_props[action_key]
+                key = "{}|{}".format(self.ACL_ACTION_CAPABILITY_FIELD, action_key.upper())
+                if key not in capability:
+                    del action_props[action_key]
+                    continue
+
+                if action_value not in capability[key]:
+                    del action_props[action_key]
+                    continue
+
+        return action_count == len(action_props)
 
     def convert_l2(self, table_name, rule_idx, rule):
         rule_props = {}
@@ -257,8 +414,10 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
+        # FIXME: 0 is a valid protocol number, but openconfig seems to use it as a default value,
+        # so there isn't currently a good way to check if the user defined proto=0 or not.
         if rule.ip.config.protocol:
-            if self.ip_protocol_map.has_key(rule.ip.config.protocol):
+            if rule.ip.config.protocol in self.ip_protocol_map:
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
                 try:
@@ -271,14 +430,14 @@ class AclLoader(object):
 
         if rule.ip.config.source_ip_address:
             source_ip_address = rule.ip.config.source_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(source_ip_address).version == 4:
+            if ipaddress.ip_network(source_ip_address).version == 4:
                 rule_props["SRC_IP"] = source_ip_address
             else:
                 rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
             destination_ip_address = rule.ip.config.destination_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(destination_ip_address).version == 4:
+            if ipaddress.ip_network(destination_ip_address).version == 4:
                 rule_props["DST_IP"] = destination_ip_address
             else:
                 rule_props["DST_IPV6"] = destination_ip_address
@@ -378,8 +537,11 @@ class AclLoader(object):
         rule_props = {}
         rule_data = {(table_name, "DEFAULT_RULE"): rule_props}
         rule_props["PRIORITY"] = str(self.min_priority)
-        rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         rule_props["PACKET_ACTION"] = "DROP"
+        if 'v6' in table_name.lower():
+            rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV6"])
+        else:
+            rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         return rule_data
 
     def convert_rules(self):
@@ -417,11 +579,18 @@ class AclLoader(object):
         be removed and new rules in that table will be installed.
         :return:
         """
-        for key in self.rules_db_info.keys():
+        for key in self.rules_db_info:
             if self.current_table is None or self.current_table == key[0]:
-               self.configdb.mod_entry(self.ACL_RULE, key, None)
+                self.configdb.mod_entry(self.ACL_RULE, key, None)
+                # Program for per front asic namespace also if present
+                for namespace_configdb in self.per_npu_configdb.values():
+                    namespace_configdb.mod_entry(self.ACL_RULE, key, None)
+
 
         self.configdb.mod_config({self.ACL_RULE: self.rules_info})
+        # Program for per front asic namespace also if present
+        for namespace_configdb in self.per_npu_configdb.values():
+            namespace_configdb.mod_config({self.ACL_RULE: self.rules_info})
 
     def incremental_update(self):
         """
@@ -436,10 +605,10 @@ class AclLoader(object):
         # update on dataplane ACLs, and only perform an incremental update on
         # control plane ACLs.
 
-        new_rules = set(self.rules_info.iterkeys())
+        new_rules = set(self.rules_info.keys())
         new_dataplane_rules = set()
         new_controlplane_rules = set()
-        current_rules = set(self.rules_db_info.iterkeys())
+        current_rules = set(self.rules_db_info.keys())
         current_dataplane_rules = set()
         current_controlplane_rules = set()
 
@@ -460,10 +629,17 @@ class AclLoader(object):
         # Remove all existing dataplane rules
         for key in current_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
+            # Program for per-asic namespace also if present
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, None)
+
 
         # Add all new dataplane rules
         for key in new_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+            # Program for per-asic namespace corresponding to front asic also if present. 
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         added_controlplane_rules = new_controlplane_rules.difference(current_controlplane_rules)
         removed_controlplane_rules = current_controlplane_rules.difference(new_controlplane_rules)
@@ -471,14 +647,25 @@ class AclLoader(object):
 
         for key in added_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+            # Program for per-asic namespace corresponding to front asic also if present. 
+            # For control plane ACL it's not needed but to keep all db in sync program everywhere
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         for key in removed_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
+            # Program for per-asic namespace corresponding to front asic also if present. 
+            # For control plane ACL it's not needed but to keep all db in sync program everywhere
+            for namespace_configdb in self.per_npu_configdb.values():
+                namespace_configdb.mod_entry(self.ACL_RULE, key, None)
 
         for key in existing_controlplane_rules:
             if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
                 self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
-
+                # Program for per-asic namespace corresponding to front asic also if present. 
+                # For control plane ACL it's not needed but to keep all db in sync program everywhere
+                for namespace_configdb in self.per_npu_configdb.values():
+                    namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
     def delete(self, table=None, rule=None):
         """
@@ -486,45 +673,48 @@ class AclLoader(object):
         :param rule:
         :return:
         """
-        for key in self.rules_db_info.iterkeys():
+        for key in self.rules_db_info:
             if not table or table == key[0]:
                 if not rule or rule == key[1]:
                     self.configdb.set_entry(self.ACL_RULE, key, None)
-
-
+                    # Program for per-asic namespace corresponding to front asic also if present. 
+                    for namespace_configdb in self.per_npu_configdb.values():
+                        namespace_configdb.set_entry(self.ACL_RULE, key, None)
+    
     def show_table(self, table_name):
         """
         Show ACL table configuration.
         :param table_name: Optional. ACL table name. Filter tables by specified name.
         :return:
         """
-        header = ("Name", "Type", "Binding", "Description")
+        header = ("Name", "Type", "Binding", "Description", "Stage")
 
         data = []
-        for key, val in self.get_tables_db_info().iteritems():
+        for key, val in self.get_tables_db_info().items():
             if table_name and key != table_name:
                 continue
 
+            stage = val.get("stage", Stage.INGRESS).lower()
+
             if val["type"] == AclLoader.ACL_TABLE_TYPE_CTRLPLANE:
                 services = natsorted(val["services"])
-                data.append([key, val["type"], services[0], val["policy_desc"]])
+                data.append([key, val["type"], services[0], val["policy_desc"], stage])
 
                 if len(services) > 1:
                     for service in services[1:]:
-                        data.append(["", "", service, ""])
+                        data.append(["", "", service, "", ""])
             else:
                 if not val["ports"]:
-                    data.append([key, val["type"], "", val["policy_desc"]])
+                    data.append([key, val["type"], "", val["policy_desc"], stage])
                 else:
                     ports = natsorted(val["ports"])
-                    data.append([key, val["type"], ports[0], val["policy_desc"]])
+                    data.append([key, val["type"], ports[0], val["policy_desc"], stage])
 
                     if len(ports) > 1:
                         for port in ports[1:]:
-                            data.append(["", "", port, ""])
+                            data.append(["", "", port, "", ""])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
-
 
     def show_session(self, session_name):
         """
@@ -532,18 +722,48 @@ class AclLoader(object):
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue")
+        erspan_header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue",
+                            "Policer", "Monitor Port", "SRC Port", "Direction")
+        span_header = ("Name", "Status", "DST Port", "SRC Port", "Direction", "Queue", "Policer")
 
-        data = []
-        for key, val in self.get_sessions_db_info().iteritems():
+        erspan_data = []
+        span_data = []
+        for key, val in self.get_sessions_db_info().items():
             if session_name and key != session_name:
                 continue
 
-            data.append([key, val["status"], val["src_ip"], val["dst_ip"],
-                         val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", "")])
+            if val.get("type") == "SPAN":
+                span_data.append([key, val.get("status", ""), val.get("dst_port", ""),
+                                       val.get("src_port", ""), val.get("direction", "").lower(),
+                                       val.get("queue", ""), val.get("policer", "")])
+            else:
+                erspan_data.append([key, val.get("status", ""), val.get("src_ip", ""),
+                                         val.get("dst_ip", ""), val.get("gre_type", ""), val.get("dscp", ""),
+                                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
+                                         val.get("monitor_port", ""), val.get("src_port", ""), val.get("direction", "").lower()])
+
+        print("ERSPAN Sessions")
+        print(tabulate.tabulate(erspan_data, headers=erspan_header, tablefmt="simple", missingval=""))
+        print("\nSPAN Sessions")
+        print(tabulate.tabulate(span_data, headers=span_header, tablefmt="simple", missingval=""))
+
+    def show_policer(self, policer_name):
+        """
+        Show policer configuration.
+        :param policer_name: Optional. Policer name. Filter policers by specified name.
+        :return:
+        """
+        header = ("Name", "Type", "Mode", "CIR", "CBS")
+
+        data = []
+        for key, val in self.get_policers_db_info().items():
+            if policer_name and key != policer_name:
+                continue
+
+            data.append([key, val["meter_type"], val["mode"], val.get("cir", ""), val.get("cbs", "")])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
+
 
     def show_rule(self, table_name, rule_id):
         """
@@ -554,10 +774,40 @@ class AclLoader(object):
         """
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
-        ignore_list = ["PRIORITY", "PACKET_ACTION", "MIRROR_ACTION"]
+        def pop_priority(val):
+            priority = "N/A"
+            for key in dict(val):
+                if (key.upper() == "PRIORITY"):
+                    priority  = val.pop(key)
+                    return priority
+            return priority
+
+        def pop_action(val):
+            action = ""
+
+            for key in dict(val):
+                key = key.upper()
+                if key == AclAction.PACKET:
+                    action = val.pop(key)
+                elif key == AclAction.REDIRECT:
+                    action = "REDIRECT: {}".format(val.pop(key))
+                elif key in (AclAction.MIRROR, AclAction.MIRROR_INGRESS):
+                    action = "MIRROR INGRESS: {}".format(val.pop(key))
+                elif key == AclAction.MIRROR_EGRESS:
+                    action = "MIRROR EGRESS: {}".format(val.pop(key))
+                else:
+                    continue
+
+            return action
+
+        def pop_matches(val):
+            matches = list(sorted(["%s: %s" % (k, val[k]) for k in val]))
+            if len(matches) == 0:
+                matches.append("N/A")
+            return matches
 
         raw_data = []
-        for (tname, rid), val in self.get_rules_db_info().iteritems():
+        for (tname, rid), val in self.get_rules_db_info().items():
 
             if table_name and table_name != tname:
                 continue
@@ -565,22 +815,9 @@ class AclLoader(object):
             if rule_id and rule_id != rid:
                 continue
 
-            priority = val["PRIORITY"]
-
-            action = ""
-            if "PACKET_ACTION" in val:
-                action = val["PACKET_ACTION"]
-            elif "MIRROR_ACTION" in val:
-                action = "MIRROR: %s" % val["MIRROR_ACTION"]
-            else:
-                continue
-
-            matches = ["%s: %s" % (k, v) for k, v in val.iteritems() if k not in ignore_list]
-
-            matches.sort()
-
-            if len(matches) == 0:
-                matches.append("N/A")
+            priority = pop_priority(val)
+            action = pop_action(val)
+            matches = pop_matches(val)
 
             rule_data = [[tname, rid, priority, action, matches[0]]]
             if len(matches) > 1:
@@ -649,6 +886,18 @@ def session(ctx, session_name):
 
 
 @show.command()
+@click.argument('policer_name', type=click.STRING, required=False)
+@click.pass_context
+def policer(ctx, policer_name):
+    """
+    Show policer configuration.
+    :return:
+    """
+    acl_loader = ctx.obj["acl_loader"]
+    acl_loader.show_policer(policer_name)
+
+
+@show.command()
 @click.argument('table_name', type=click.STRING, required=False)
 @click.argument('rule_id', type=click.STRING, required=False)
 @click.pass_context
@@ -674,9 +923,10 @@ def update(ctx):
 @click.argument('filename', type=click.Path(exists=True))
 @click.option('--table_name', type=click.STRING, required=False)
 @click.option('--session_name', type=click.STRING, required=False)
+@click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def full(ctx, filename, table_name, session_name, max_priority):
+def full(ctx, filename, table_name, session_name, mirror_stage, max_priority):
     """
     Full update of ACL rules configuration.
     If a table_name is provided, the operation will be restricted in the specified table.
@@ -689,6 +939,8 @@ def full(ctx, filename, table_name, session_name, max_priority):
     if session_name:
         acl_loader.set_session_name(session_name)
 
+    acl_loader.set_mirror_stage(mirror_stage)
+
     if max_priority:
         acl_loader.set_max_priority(max_priority)
 
@@ -699,9 +951,10 @@ def full(ctx, filename, table_name, session_name, max_priority):
 @update.command()
 @click.argument('filename', type=click.Path(exists=True))
 @click.option('--session_name', type=click.STRING, required=False)
+@click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def incremental(ctx, filename, session_name, max_priority):
+def incremental(ctx, filename, session_name, mirror_stage, max_priority):
     """
     Incremental update of ACL rule configuration.
     """
@@ -709,6 +962,8 @@ def incremental(ctx, filename, session_name, max_priority):
 
     if session_name:
         acl_loader.set_session_name(session_name)
+
+    acl_loader.set_mirror_stage(mirror_stage)
 
     if max_priority:
         acl_loader.set_max_priority(max_priority)
