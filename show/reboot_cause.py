@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 import click
 from tabulate import tabulate
@@ -48,7 +49,7 @@ def history():
     table_keys = db.keys(db.STATE_DB, _hash)
     if table_keys is None:
         click.echo("Reboot-cause history is not yet available in StateDB")
-        exit()
+        sys.exit(1)
 
     table_keys.sort(reverse=True)
 
