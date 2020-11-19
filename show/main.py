@@ -7,7 +7,9 @@ import sys
 import click
 import netifaces
 import utilities_common.cli as clicommon
-
+import utilities_common.multi_asic as multi_asic_util
+from natsort import natsorted
+from pkg_resources import parse_version
 from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
