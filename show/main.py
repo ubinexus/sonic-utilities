@@ -1,4 +1,3 @@
-import bgp_common
 import json
 import netaddr
 import os
@@ -10,6 +9,7 @@ from natsort import natsorted
 import netifaces
 from pkg_resources import parse_version
 
+import .bgp_common as bgp_common
 import feature
 import interfaces
 import kube
