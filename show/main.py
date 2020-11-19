@@ -1237,8 +1237,12 @@ def techsupport(since, verbose, force, yes):
         if yes:
             cmd += " -f"
         else:
-            if click.confirm('Proceed with any system interruption?', abort=True):
+            if click.confirm('Proceed with any system interruption for HW register dump?'):
                 cmd += " -f"
+            else:
+                click.echo("Please use --force only for disruptive HW register dump!")
+                system.exit(1)
+
 
     if since:
         cmd += " -s {}".format(since)
