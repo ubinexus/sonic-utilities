@@ -5,20 +5,20 @@ import swsssdk
 import redis
 import argparse
 
-def migrate(target_dbname):
+def centralize_to_target_db(target_dbname):
     target_dbport = swsssdk.SonicDBConfig.get_port(target_dbname)
     target_dbhost = swsssdk.SonicDBConfig.get_hostname(target_dbname)
 
     dblists = swsssdk.SonicDBConfig.get_dblist()
     for dbname in dblists:
         dbport = swsssdk.SonicDBConfig.get_port(dbname)
-        # if the db is on the same instance, no need to migrate
-        if dbport == target_dbport:
+        dbhost = swsssdk.SonicDBConfig.get_hostname(dbname)
+        # if the db is on the same instance, no need to move
+        if dbport == target_dbport and dbhost == target_dbhost:
             continue
 
         dbsocket = swsssdk.SonicDBConfig.get_socket(dbname)
         dbid = swsssdk.SonicDBConfig.get_dbid(dbname)
-        dbhost = swsssdk.SonicDBConfig.get_hostname(dbname)
 
         r = redis.Redis(host=dbhost, unix_socket_path=dbsocket, db=dbid)
 
@@ -37,23 +37,24 @@ def migrate(target_dbname):
     r.save()
 
 def main():
-    parser = argparse.ArgumentParser(description='migrate all db data into one db instances',
+    parser = argparse.ArgumentParser(description='centralize all db data into one db instances',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog=
 """
-Example : migrate_warmboot_database APPL_DB
+Example : centralize_database APPL_DB
 """)
     parser.add_argument('target_db', type=str, help='move all db data into the instance where target db locates')
     args = parser.parse_args()
 
     if args.target_db:
-            try:
-                migrate(args.target_db)
-            except Exception as ex:
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print(message, file=sys.stderr)
-                sys.exit(1)
+        try:
+            centralize_to_target_db(args.target_db)
+            print(swsssdk.SonicDBConfig.get_instancename(args.target_db))
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message, file=sys.stderr)
+            sys.exit(1)
     else:
         parser.print_help()
 

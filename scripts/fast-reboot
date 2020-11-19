@@ -248,13 +248,12 @@ function backup_database()
         end
     " 0 > /dev/null
 
-    # move all db data into instances where APPL_DB locates
-    migrate_warmboot_database APPL_DB
+    # move all db data into the instance where APPL_DB locates
+    target_db_inst=`centralize_database APPL_DB`
 
-    inst=`/usr/bin/python -c "import swsssdk; print(swsssdk.SonicDBConfig.get_instancename('APPL_DB'))"`
     # Dump redis content to a file 'dump.rdb' in warmboot directory
-    docker cp database:/var/lib/$inst/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/$inst/$REDIS_FILE
+    docker cp database:/var/lib/$target_db_inst/$REDIS_FILE $WARM_DIR
+    docker exec -i database rm /var/lib/$target_db_inst/$REDIS_FILE
 }
 
 function setup_control_plane_assistant()

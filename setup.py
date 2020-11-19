@@ -111,7 +111,7 @@ setup(
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
-        'scripts/migrate_warmboot_database'
+        'scripts/centralize_database'
     ],
     entry_points={
         'console_scripts': [
