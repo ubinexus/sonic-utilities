@@ -707,7 +707,10 @@ class AclLoader(object):
                 if not val["ports"]:
                     data.append([key, val["type"], "", val["policy_desc"], stage])
                 else:
-                    ports = natsorted(val["ports"])
+                    if isinstance(val['ports'], str):
+                        ports = [val['ports']]
+                    else:
+                        ports = natsorted(val["ports"])
                     data.append([key, val["type"], ports[0], val["policy_desc"], stage])
 
                     if len(ports) > 1:
