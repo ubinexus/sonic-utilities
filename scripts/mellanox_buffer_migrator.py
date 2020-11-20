@@ -40,14 +40,8 @@ class MellanoxBufferMigrator():
                 "spc2_t1_pool": {"doublepool": { "size": "12042240" }, "egress_lossless_pool": { "size": "35966016"}},
 
                 # buffer pools with shared headroom pool supported
-                "spc1_t0_pool_shp": {"ingress_lossless_pool": { "size": "4000000", "type": "ingress", "mode": "dynamic" },
-                                     "ingress_lossy_pool": { "size": "7340032", "type": "ingress", "mode": "dynamic" },
-                                     "egress_lossless_pool": { "size": "16777152", "type": "egress", "mode": "dynamic" },
-                                     "egress_lossy_pool": {"size": "7340032", "type": "egress", "mode": "dynamic" } },
-                "spc1_t1_pool_shp": {"ingress_lossless_pool": { "size": "2000000", "type": "ingress", "mode": "dynamic" },
-                                     "ingress_lossy_pool": { "size": "5242880", "type": "ingress", "mode": "dynamic" },
-                                     "egress_lossless_pool": { "size": "16777152", "type": "egress", "mode": "dynamic" },
-                                     "egress_lossy_pool": {"size": "5242880", "type": "egress", "mode": "dynamic" } }
+                "spc1_t0_pool_shp": {"doublepool": { "size": "3988992" }, "egress_lossless_pool": { "size": "13945824"}},
+                "spc1_t1_pool_shp": {"doublepool": { "size": "4554240" }, "egress_lossless_pool": { "size": "13945824"}}
             }
         },
         "version_1_0_3": {
