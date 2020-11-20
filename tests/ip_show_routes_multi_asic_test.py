@@ -307,8 +307,9 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
-        import mock_tables.mock_multi_asic_3_asics
-        mock_tables.dbconnector.load_namespace_config()
+        from .mock_tables import mock_multi_asic_3_asics
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config()
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route'], indirect=['setup_multi_asic_bgp_instance'])
