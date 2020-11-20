@@ -1243,7 +1243,6 @@ def techsupport(since, verbose, force, yes):
                 click.echo("Please use --force only for disruptive HW register dump!")
                 system.exit(1)
 
-
     if since:
         cmd += " -s {}".format(since)
     run_command(cmd, display_cmd=verbose)
