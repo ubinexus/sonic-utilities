@@ -15,7 +15,8 @@ import config.main as config
 import show.main as show
 
 
-tabular_data_status_output_expected = """PORT        STATUS    HEALTH
+tabular_data_status_output_expected = """\
+PORT        STATUS    HEALTH
 ----------  --------  --------
 Ethernet32  active    HEALTHY
 Ethernet0   active    HEALTHY
@@ -24,7 +25,8 @@ Ethernet8   standby   HEALTHY
 Ethernet12  failure   HEALTHY
 """
 
-json_data_status_output_expected = """{
+json_data_status_output_expected = """\
+{
     "MUX_CABLE": {
         "Ethernet32": {
             "STATUS": "active",
@@ -51,7 +53,8 @@ json_data_status_output_expected = """{
 """
 
 
-tabular_data_config_output_expected = """SWITCH_NAME    PEER_TOR
+tabular_data_config_output_expected = """\
+SWITCH_NAME    PEER_TOR
 -------------  ----------
 sonic-switch   10.2.2.2
 port        state    ipv4      ipv6
@@ -63,7 +66,8 @@ Ethernet8   active   10.4.1.1  e802::46
 Ethernet12  active   10.4.1.1  e802::46
 """
 
-json_data_status_config_output_expected = """{
+json_data_status_config_output_expected = """\
+{
     "MUX_CABLE": {
         "PEER_TOR": "10.2.2.2",
         "PORTS": {
@@ -107,7 +111,8 @@ json_data_status_config_output_expected = """{
 }
 """
 
-json_port_data_status_config_output_expected = """{
+json_port_data_status_config_output_expected = """\
+{
     "MUX_CABLE": {
         "PEER_TOR": "10.2.2.2",
         "PORTS": {
@@ -123,7 +128,8 @@ json_port_data_status_config_output_expected = """{
 }
 """
 
-json_data_config_output_auto_expected = """{
+json_data_config_output_auto_expected = """\
+{
     "Ethernet32": "OK",
     "Ethernet0": "OK",
     "Ethernet4": "OK",
@@ -132,7 +138,8 @@ json_data_config_output_auto_expected = """{
 }
 """
 
-json_data_config_output_active_expected = """status is already active for this port Ethernet0\n"""
+json_data_config_output_active_expected = """\
+status is already active for this port Ethernet0\n"""
 
 
 class TestMuxcable(object):
