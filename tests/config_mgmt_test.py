@@ -442,7 +442,7 @@ class TestConfigMgmt(TestCase):
                     'ports': ['Ethernet0', 'Ethernet4']
                 },
                 'NO-NSW-PACL-TEST': {
-                    'ports': None
+                    'ports': []
                 }
             },
             'INTERFACE': None,

@@ -715,8 +715,12 @@ class ConfigMgmtDPB(ConfigMgmt):
                 for key in diff:
                     # make sure keys from diff are present in inp but not in outp
                     if key in inp and key not in outp:
-                        # assign key to None(null), redis will delete entire key
-                        config[key] = None
+                        if type(inp[key]) == list:
+                            # assign current lists as empty.
+                            config[key] = []
+                        else:
+                            # assign key to None(null), redis will delete entire key
+                            config[key] = None
                     else:
                         # should not happen
                         raise Exception('Invalid deletion of {} in diff'.format(key))
