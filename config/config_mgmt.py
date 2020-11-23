@@ -6,11 +6,13 @@ try:
     import re
     import syslog
 
-    from json import load
-    from time import sleep as tsleep
+    from collections import OrderedDict
     from imp import load_source
+    from json import load
     from jsondiff import diff
+    from natsort import natsorted
     from sys import flags
+    from time import sleep as tsleep
 
     # SONiC specific imports
     import sonic_yang
@@ -20,7 +22,7 @@ try:
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
     # since /usr/local/bin/sonic-cfggen does not have .py extension.
     load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    from sonic_cfggen import deep_update, FormatConverter, sort_data
+    from sonic_cfggen import deep_update, FormatConverter
 
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -198,6 +200,12 @@ class ConfigMgmt():
 
         return
 
+    def sortData(self, data):
+        for table in data:
+            if type(data[table]) is dict:
+                data[table] = OrderedDict(natsorted(data[table].items()))
+        return data
+
     def writeConfigDB(self, jDiff):
         '''
         Write the diff in Config DB.
@@ -213,7 +221,7 @@ class ConfigMgmt():
         configdb = ConfigDBConnector(**db_kwargs)
         configdb.connect(False)
         deep_update(data, FormatConverter.to_deserialized(jDiff))
-        data = sort_data(data)
+        data = self.sortData(data)
         self.sysLog(msg="Write in DB: {}".format(data))
         configdb.mod_config(FormatConverter.output_to_db(data))
 
