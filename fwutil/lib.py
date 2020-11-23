@@ -36,8 +36,8 @@ NEWLINE = "\n"
 PLATFORM_COMPONENTS_FILE = "platform_components.json"
 FIRMWARE_UPDATE_DIR = "/tmp/firmwareupdate/"
 FWUPDATE_FWPACKAGE_DIR = os.path.join(FIRMWARE_UPDATE_DIR, "fwpackage/")
-FW_AU_TASK_FILE_REGEX = "*_fw_auto_update"
-FW_AU_STATUS_FILE = "fw_auto_update_status"
+FW_AU_TASK_FILE_REGEX = "*_fw_au_task"
+FW_AU_STATUS_FILE = "fw_au_status"
 FW_AU_STATUS_FILE_PATH = os.path.join(FIRMWARE_UPDATE_DIR, FW_AU_STATUS_FILE)
 
 # ========================= Variables ==========================================
@@ -813,7 +813,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 data = json.load(au_status_file)
         return data
 
-    def set_firmware_auto_update_status(self, component_path, boot, status, info):
+    def set_firmware_auto_update_status(self, component_path, boot, rt_code):
         data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
         if data is None:
             data = {}
@@ -823,6 +823,24 @@ class ComponentUpdateProvider(PlatformDataProvider):
         au_status = data[boot]
 
         comp_au_status = {}
+        if rt_code < 0:
+            status = False
+        else:
+            status = True
+
+        if rt_code == 0:
+            info = "ns_boot_type"
+        elif rt_code == 1:
+            info = "installed"
+        elif rt_code == 2:
+            info = "updated"
+        elif rt_code == 3:
+            info = "scheduled"
+        elif rt_code == -1:
+            info = "err_image"
+        elif rt_code == -2:
+            info = "err_others"
+
         comp_au_status['comp'] = component_path
         comp_au_status['status'] = status
         comp_au_status['info'] = info
@@ -830,6 +848,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         au_status.append(comp_au_status)
 
         self.update_au_status_file(data, FW_AU_STATUS_FILE_PATH)
+        return (status, info)
 
     def get_au_status(self):
         au_status = []
@@ -888,11 +907,11 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     firmware_path,
                     boot
                 )
-                status, info = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode(sys.stdout.encoding).strip().split(":")
+                rt_code = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode(sys.stdout.encoding)
             else:
-                status, info = component.auto_update_firmware(firmware_path, boot).decode(sys.stdout.encoding).strip().split(":")
-            self.set_firmware_auto_update_status(component_path, boot, status, info)
-            click.echo("{} firmware auto-update status: {} with {}".format(component_path, status, info))
+                rt_code = component.auto_update_firmware(firmware_path, boot).decode(sys.stdout.encoding)
+            click.echo("{} firmware auto-update status return_code: {}".format(component_path, rt_code))
+            (status, info) = self.set_firmware_auto_update_status(rt_code)
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, status, info)
         except KeyboardInterrupt:
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, False, "Keyboard interrupt")
@@ -911,7 +930,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 return False
         for status_file in glob.glob(os.path.join(FIRMWARE_UPDATE_DIR, FW_AU_STATUS_FILE)):
             if status_file is not None:
-                click.echo("{} firmware auto-update is already performed, {} firmware auto update is not allowed any more".format(task_file, boot))
+                click.echo("{} firmware auto-update is already performed, {} firmware auto update is not allowed any more".format(status_file, boot))
                 return False
         click.echo("Firmware auto-update for boot_type {} is allowed".format(boot))
         return True
