@@ -1,5 +1,4 @@
 import json
-#import netaddr
 import os
 import subprocess
 import sys
@@ -55,7 +54,7 @@ def get_routing_stack():
 
 
 # Global Routing-Stack variable
-routing_stack = "frr"
+routing_stack = get_routing_stack()
 
 # Read given JSON file
 def readJsonFile(fileName):

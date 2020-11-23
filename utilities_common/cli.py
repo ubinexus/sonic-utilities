@@ -6,7 +6,6 @@ import sys
 
 import click
 import json
-#import netaddr
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
