@@ -3,9 +3,11 @@ import click
 
 from sonic_py_common import multi_asic, device_info
 
+platform_sfputil = None
 
-def load_platform_sfputil(platform_sfputil):
+def load_platform_sfputil():
 
+    global platform_sfputil
     try:
         import sonic_platform_base.sonic_sfp.sfputilhelper
         platform_sfputil = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper()
@@ -16,7 +18,7 @@ def load_platform_sfputil(platform_sfputil):
     return 0
 
 
-def platform_sfputil_read_porttab_mappings(platform_sfp_util):
+def platform_sfputil_read_porttab_mappings():
 
     try:
 
@@ -31,7 +33,7 @@ def platform_sfputil_read_porttab_mappings(platform_sfp_util):
             port_config_file_path = device_info.get_path_to_port_config_file()
             platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
     except Exception as e:
-        click.echo("Error reading port info (%s)" % str(e), True)
+        click.echo("Error reading port info (%s)" % str(e))
         sys.exit(3)
 
     return 0
