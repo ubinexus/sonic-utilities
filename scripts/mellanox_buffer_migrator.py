@@ -17,7 +17,6 @@ class MellanoxBufferMigrator():
             self.sku = device_data.get('hwsku')
         if not self.platform or not self.sku:
             log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
-            return False
 
     mellanox_default_parameter = {
         "version_1_0_2": {
