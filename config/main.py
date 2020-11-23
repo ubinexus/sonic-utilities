@@ -36,12 +36,18 @@ from .config_mgmt import ConfigMgmtDPB
 
 # mock masic APIs for unit test
 try:
-    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
         import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import mock_tables.mock_multi_asic
         mock_tables.dbconnector.load_namespace_config()
 except KeyError:
     pass
+
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 

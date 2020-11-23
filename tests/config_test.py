@@ -56,6 +56,8 @@ class TestLoadMinigraph(object):
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
+        import config.main
+        imp.reload(config.main)
 
     def test_load_minigraph(self, get_cmd_module, setup_single_broadcom_asic):
         (config, show) = get_cmd_module
@@ -91,7 +93,10 @@ class TestLoadMinigraph(object):
 class TestConfigQos(object):
     @classmethod
     def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
         print("SETUP")
+        import config.main
+        imp.reload(config.main)
 
     def test_qos_reload_single(self, get_cmd_module, setup_single_broadcom_asic):
         (config, show) = get_cmd_module
@@ -126,6 +131,7 @@ class TestConfigQos(object):
 class TestConfigQosMasic(object):
     @classmethod
     def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         print("SETUP")
         import config.main
@@ -166,4 +172,7 @@ class TestConfigQosMasic(object):
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        dbconnector.load_namespace_config()
         print("TEARDOWN")
