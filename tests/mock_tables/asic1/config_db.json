@@ -120,7 +120,7 @@
         "ipv6_nexthop_high_threshold": "85"
     },
     "MUX_CABLE|Ethernet32": {
-        "state": "active",
+        "state": "auto",
 	"server_ipv4": "10.1.1.1",
 	"server_ipv6": "fc00::75"
     },

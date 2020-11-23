@@ -3,32 +3,17 @@ import os
 import sys
 
 import click
-from sonic_py_common import multi_asic, device_info
-from swsscommon import swsscommon
-from swsssdk import ConfigDBConnector
 from tabulate import tabulate
+
+from sonic_py_common import multi_asic
+from swsssdk import ConfigDBConnector
+from swsscommon import swsscommon
 import utilities_common.cli as clicommon
+from utilities_common import platform_sfputil_helper
 
 platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
-
-
-# ==================== Methods for initialization ====================
-
-
-# Loads platform specific sfputil module from source
-def load_platform_sfputil():
-    global platform_sfputil
-
-    try:
-        import sonic_platform_base.sonic_sfp.sfputilhelper
-        platform_sfputil = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper()
-    except Exception as e:
-        click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
-        return -1
-
-    return 0
 
 # Helper functions
 
@@ -45,6 +30,18 @@ def get_value_for_key_in_dict(mdict, port, key, table_name):
 #
 
 
+def get_value_for_key_in_config_tbl(config_db, port, key, table):
+    info_dict = {}
+    info_dict = config_db.get_entry(table, port)
+    if info_dict is None:
+        click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table))
+        sys.exit(1)
+
+    value = get_value_for_key_in_dict(info_dict, port, key, table)
+
+    return value
+
+
 @click.group(name='muxcable', cls=clicommon.AliasedGroup)
 def muxcable():
     """SONiC command line - 'show muxcable' command"""
@@ -53,46 +50,67 @@ def muxcable():
         click.echo("Root privileges are required for this operation")
         sys.exit(1)
 
+    global platform_sfputil
     # Load platform-specific sfputil class
-    err = load_platform_sfputil()
-    if err != 0:
-        sys.exit(2)
+    platform_sfputil_helper.load_platform_sfputil()
 
     # Load port info
-    try:
-        if multi_asic.is_multi_asic():
-            # For multi ASIC platforms we pass DIR of port_config_file_path and the number of asics
-            (platform_path, hwsku_path) = device_info.get_paths_to_platform_and_hwsku_dirs()
+    platform_sfputil_helper.platform_sfputil_read_porttab_mappings()
 
-            # Load platform module from source
-            platform_sfputil.read_all_porttab_mappings(hwsku_path, multi_asic.get_num_asics())
-        else:
-            # For single ASIC platforms we pass port_config_file_path and the asic_inst as 0
-            port_config_file_path = device_info.get_path_to_port_config_file()
-            platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
-    except Exception as e:
-        log.log_error("Error reading port info (%s)" % str(e), True)
-        sys.exit(3)
-
-    return
+    platform_sfputil = platform_sfputil_helper.platform_sfputil
 
 
-def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_value, port_status_dict):
+def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_cfg_val, port_status_dict):
 
     muxcable_statedb_dict = per_npu_statedb.get_all(per_npu_statedb.STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
+    configdb_state = get_value_for_key_in_config_tbl(config_db, port, "state", "MUX_CABLE")
+    ipv4_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv4", "MUX_CABLE")
+    ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
-    if (state == "active" and state_value == "active") or (state == "active" and state_value == "auto") or (state == "standby" and state_value == "auto"):
-        # status is already active, so right back ok
-        # Nothing to do Since the state is not changing
-        port_status_dict[port] = 'OK'
-    elif state == "standby" and state_value == "active":
-        port_status_dict[port] = 'INPROGRESS'
-        config_db.set_entry("MUX_CABLE", port, {"state": "INPROGRESS"})
-        # Change of status recived, right back inprogress
-    else:
-        # Everything else to be treated as failure
+    if state == "active" and configdb_state == "active":
+        if state_cfg_val == "active":
+            # status is already active, so right back error
+            click.echo("status is already active for this port {}".format(port))
+            sys.exit(1)
+        if state_cfg_val == "auto":
+            # display ok and write to cfgdb auto
+            port_status_dict[port] = 'OK'
+            config_db.set_entry("MUX_CABLE", port, {"state": "auto",
+                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
+    elif state == "active" and configdb_state == "auto":
+        if state_cfg_val == "active":
+            # make the state active and write back OK
+            config_db.set_entry("MUX_CABLE", port, {"state": "active",
+                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
+            port_status_dict[port] = 'OK'
+        if state_cfg_val == "auto":
+            # dont write anything to db, write OK to user
+            port_status_dict[port] = 'OK'
+
+    elif state == "standby" and configdb_state == "auto":
+        if state_cfg_val == "active":
+            # make the state active
+            config_db.set_entry("MUX_CABLE", port, {"state": "active",
+                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
+            port_status_dict[port] = 'INPROGRESS'
+        if state_cfg_val == "auto":
+            # dont write anything to db
+            port_status_dict[port] = 'OK'
+
+    elif state == "standby" and configdb_state == "active":
+        if state_cfg_val == "active":
+            click.echo("status is already active for this port {}".format(port))
+        if state_cfg_val == "auto":
+            config_db.set_entry("MUX_CABLE", port, {"state": "auto",
+                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
+            # dont write anything to db
+            port_status_dict[port] = 'OK'
+
+    elif state == "failure":
         port_status_dict[port] = 'FAILED'
+        config_db.set_entry("MUX_CABLE", port, {"state": "failure",
+                                                "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
 
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
@@ -126,10 +144,18 @@ def mode(state, port, json_output):
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
 
     if port is not None and port != "all":
-        asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         if asic_index is None:
-            click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-            sys.exit(1)
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+                sys.exit(1)
 
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]

@@ -3,67 +3,39 @@ import sys
 
 import click
 import utilities_common.cli as clicommon
-from sonic_py_common import multi_asic, device_info
+from sonic_py_common import multi_asic
 from swsscommon import swsscommon
 from swsssdk import ConfigDBConnector
 from tabulate import tabulate
+
+from utilities_common import platform_sfputil_helper
 
 platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
 
-
-# ==================== Methods for initialization ====================
-
-
-# Loads platform specific sfputil module from source
-def load_platform_sfputil():
-    global platform_sfputil
-
-    try:
-        import sonic_platform_base.sonic_sfp.sfputilhelper
-        platform_sfputil = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper()
-    except Exception as e:
-        click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
-        return -1
-
-    return 0
-
-
 #
 # 'muxcable' command ("show muxcable")
 #
+
+
 @click.group(name='muxcable', cls=clicommon.AliasedGroup)
 def muxcable():
     """SONiC command line - 'show muxcable' command"""
 
+    global platform_sfputil
     # Load platform-specific sfputil class
-    err = load_platform_sfputil()
-    if err != 0:
-        sys.exit(2)
+    platform_sfputil_helper.load_platform_sfputil()
 
     # Load port info
-    try:
-        if multi_asic.is_multi_asic():
-            # For multi ASIC platforms we pass DIR of port_config_file_path and the number of asics
-            (platform_path, hwsku_path) = device_info.get_paths_to_platform_and_hwsku_dirs()
+    platform_sfputil_helper.platform_sfputil_read_porttab_mappings()
 
-            # Load platform module from source
-            platform_sfputil.read_all_porttab_mappings(hwsku_path, multi_asic.get_num_asics())
-        else:
-            # For single ASIC platforms we pass port_config_file_path and the asic_inst as 0
-            port_config_file_path = device_info.get_path_to_port_config_file()
-            platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
-    except Exception as e:
-        log.log_error("Error reading port info (%s)" % str(e), True)
-        sys.exit(3)
-
-    return
+    platform_sfputil = platform_sfputil_helper.platform_sfputil
 
 
 def get_value_for_key_in_dict(mdict, port, key, table_name):
     value = mdict.get(key, None)
-    if status is None:
+    if value is None:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table_name))
         sys.exit(1)
 
@@ -97,7 +69,7 @@ def get_switch_name(config_db):
 
 def create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port):
 
-    status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "status", "MUX_CABLE_TABLE_NAME")
+    status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     port_status_dict["MUX_CABLE"][port] = {}
     port_status_dict["MUX_CABLE"][port]["STATUS"] = status_value
     # TODO : Fix the health status of the port
@@ -108,7 +80,8 @@ def create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_index
 
     print_port_data = []
 
-    status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "status", "MUX_CABLE_TABLE_NAME")
+    status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
+    #status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
     print_port_data.append(port)
     print_port_data.append(status_value)
     print_port_data.append("HEALTHY")
@@ -158,20 +131,25 @@ def status(port, json_output):
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
-            per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE_NAME|*')
+            per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
 
     if port is not None:
         asic_index = None
         if platform_sfputil is not None:
             asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         if asic_index is None:
-            click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-            sys.exit(1)
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+                sys.exit(1)
 
         muxcable_info_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-            per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE_NAME|{}'.format(port))
+            per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
         if muxcable_info_dict[asic_index] is not None:
-            logical_key = "MUX_CABLE_TABLE_NAME"+"|"+port
+            logical_key = "MUX_CABLE_TABLE"+"|"+port
             if logical_key in port_table_keys[asic_index]:
 
                 if json_output:
@@ -206,7 +184,7 @@ def status(port, json_output):
                 for key in port_table_keys[asic_id]:
                     port = key.split("|")[1]
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
-                        per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE_NAME|{}'.format(port))
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
                     create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_id, port)
 
             click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
@@ -217,7 +195,7 @@ def status(port, json_output):
                 for key in port_table_keys[asic_id]:
                     port = key.split("|")[1]
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
-                        per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE_NAME|{}'.format(port))
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
 
                     create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_id, port)
 
@@ -259,8 +237,13 @@ def config(port, json_output):
         if platform_sfputil is not None:
             asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
         if asic_index is None:
-            click.echo("Got invalid asic index for port {}, cant retreive mux config".format(port))
-            sys.exit(1)
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+                sys.exit(1)
 
         port_status_dict = {}
         port_status_dict["MUX_CABLE"] = {}
