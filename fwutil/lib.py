@@ -823,13 +823,13 @@ class ComponentUpdateProvider(PlatformDataProvider):
         au_status = data[boot]
 
         comp_au_status = {}
-        if rt_code < 0:
+        if rt_code < -1:
             status = False
         else:
             status = True
 
         if rt_code == 0:
-            info = "ns_boot_type"
+            info = "reserved"
         elif rt_code == 1:
             info = "installed"
         elif rt_code == 2:
@@ -837,9 +837,13 @@ class ComponentUpdateProvider(PlatformDataProvider):
         elif rt_code == 3:
             info = "scheduled"
         elif rt_code == -1:
-            info = "err_image"
+            info = "err_boot_type"
         elif rt_code == -2:
+            info = "err_image"
+        elif rt_code == -3:
             info = "err_others"
+        else:
+            info = "err_unknown"
 
         comp_au_status['comp'] = component_path
         comp_au_status['status'] = status
