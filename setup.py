@@ -104,6 +104,7 @@ setup(
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
+        'scripts/sonic_sku_create.py',
         'scripts/syseeprom-to-json',
         'scripts/teamshow',
         'scripts/tempershow',
