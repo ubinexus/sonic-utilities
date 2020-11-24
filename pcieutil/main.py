@@ -118,7 +118,8 @@ def pcie_aer():
 
 
 @pcie_aer.command()
-def correctable():
+@click.option('-nz', '--no-zero', is_flag=True)
+def correctable(no_zero):
     '''Show PCIe AER correctable attributes'''
 
     statedb = SonicV2Connector()
@@ -146,6 +147,9 @@ def correctable():
         if not aer_attribute:
             continue
 
+        if no_zero and all(val=='0' for key, val in aer_attribute.items() if key.startswith('correctable')):
+            continue
+
         # Tabulate Header
         device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
         header.append(device_name)
@@ -159,7 +163,8 @@ def correctable():
 
 
 @pcie_aer.command()
-def fatal():
+@click.option('-nz', '--no-zero', is_flag=True)
+def fatal(no_zero):
     '''Show PCIe AER fatal attributes'''
     statedb = SonicV2Connector()
     statedb.connect(statedb.STATE_DB)
@@ -186,6 +191,9 @@ def fatal():
         if not aer_attribute:
             continue
 
+        if no_zero and all(val=='0' for key, val in aer_attribute.items() if key.startswith('fatal')):
+            continue
+
         # Tabulate Header
         device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
         header.append(device_name)
@@ -199,7 +207,8 @@ def fatal():
 
 
 @pcie_aer.command()
-def non_fatal():
+@click.option('-nz', '--no-zero', is_flag=True)
+def non_fatal(no_zero):
     '''Show PCIe AER non-fatal attributes '''
     statedb = SonicV2Connector()
     statedb.connect(statedb.STATE_DB)
@@ -227,6 +236,9 @@ def non_fatal():
         if not aer_attribute:
             continue
 
+        if no_zero and all(val=='0' for key, val in aer_attribute.items() if key.startswith('non_fatal')):
+            continue
+
         # Tabulate Header
         device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
         header.append(device_name)
@@ -239,17 +251,18 @@ def non_fatal():
     click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
 
 
-@pcie_aer.command()
+@pcie_aer.command(name='all')
+@click.option('-nz', '--no-zero', is_flag=True)
 @click.pass_context
-def all(ctx):
+def all_errors(ctx, no_zero):
     '''Show all PCIe AER attributes '''
-    ctx.invoke(correctable)
+    ctx.forward(correctable)
     click.echo("")
 
-    ctx.invoke(fatal)
+    ctx.forward(fatal)
     click.echo("")
 
-    ctx.invoke(non_fatal)
+    ctx.forward(non_fatal)
     click.echo("")
 
 
