@@ -97,7 +97,7 @@ def config(redis_unix_socket_path):
                 r.append("NULL")
                 r.append("NULL")
                 r.append("NULL")
-            elif 'neighsyncd_timer' in  data[k]:
+            elif 'neighsyncd_timer' in data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
                 r.append("NULL")

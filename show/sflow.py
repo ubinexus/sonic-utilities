@@ -68,7 +68,6 @@ def show_sflow_global(config_db):
     click.echo("\nsFlow Global Information:")
     click.echo("  sFlow Admin State:".ljust(30) + "{}".format(global_admin_state))
 
-
     click.echo("  sFlow Polling Interval:".ljust(30), nl=False)
     if (sflow_info and 'polling_interval' in sflow_info['global']):
         click.echo("{}".format(sflow_info['global']['polling_interval']))

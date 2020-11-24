@@ -32,7 +32,7 @@ def name(vxlan_name):
         r.append(vxlan_data.get('src_ip'))
         r.append(vxlan_data.get('dst_ip'))
         vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
-                        'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, vxlan_name, config_db.KEY_SEPARATOR))
+                                        'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, vxlan_name, config_db.KEY_SEPARATOR))
         if vxlan_map_keys:
             vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
             r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
@@ -60,7 +60,7 @@ def tunnel():
         r.append(vxlan_data[k].get('src_ip'))
         r.append(vxlan_data[k].get('dst_ip'))
         vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
-                        'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR,k, config_db.KEY_SEPARATOR))
+                                        'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, k, config_db.KEY_SEPARATOR))
         if vxlan_map_keys:
             vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
             r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
