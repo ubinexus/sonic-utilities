@@ -112,6 +112,43 @@ class TestChassisModules(object):
         print(result.output)
         assert result.exit_code != 0
 
+    def test_midplane_show_all_count_lines(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["chassis-modules"].commands["midplane-status"], [])
+        print(result.output)
+        result_lines = result.output.strip('\n').split('\n')
+        modules = ["LINE-CARD0", "LINE-CARD1", "SUPERVISOR0"]
+        for i, module in enumerate(modules):
+            assert module in result_lines[i + warning_lines + header_lines]
+        assert len(result_lines) == warning_lines + header_lines + len(modules)
+
+    def test_midplane_show_single_count_lines(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["chassis-modules"].commands["midplane-status"], ["LINE-CARD0"])
+        print(result.output)
+        result_lines = result.output.strip('\n').split('\n')
+        modules = ["LINE-CARD0"]
+        for i, module in enumerate(modules):
+            assert module in result_lines[i+header_lines]
+        assert len(result_lines) == header_lines + len(modules)
+
+    def test_midplane_show_module_down(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["chassis-modules"].commands["midplane-status"], ["LINE-CARD1"])
+        print(result.output)
+        result_lines = result.output.strip('\n').split('\n')
+        assert result.exit_code == 0
+        result_out = (result_lines[header_lines]).split()
+        print(result_out)
+        assert result_out[2] == 'False'
+
+    def test_midplane_show_incorrect_module(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["chassis-modules"].commands["midplane-status"], ["TEST-CARD1"])
+        print(result.output)
+        print(result.exit_code)
+        assert result.exit_code == 0
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
