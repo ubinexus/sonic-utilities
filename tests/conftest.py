@@ -56,7 +56,6 @@ def get_cmd_module():
 
     return (config, show)
 
-
 def set_mock_apis():
     import config.main as config
     cwd = os.path.dirname(os.path.realpath(__file__))
@@ -69,6 +68,7 @@ def set_mock_apis():
         return_value=os.path.join(cwd, "qos_config_input/sonic_version.yml")
     )
     config.asic_type = mock.MagicMock(return_value="broadcom")
+    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
 
 
 @pytest.fixture
@@ -76,21 +76,10 @@ def setup_single_broadcom_asic():
     import config.main as config
     import show.main as show
 
-    cwd = os.path.dirname(os.path.realpath(__file__))
-    device_info.get_paths_to_platform_and_hwsku_dirs = mock.MagicMock(
-        return_value=(
-            os.path.join(cwd, "."), os.path.join(cwd, "qos_config_input")
-        )
-    )
-    device_info.get_sonic_version_file = mock.MagicMock(
-        return_value=os.path.join(cwd, "qos_config_input/sonic_version.yml")
-    )
-    config.asic_type = mock.MagicMock(return_value="broadcom")
-
+    set_mock_apis()
     device_info.get_num_npus = mock.MagicMock(return_value=1)
     config._get_sonic_generated_services = \
         mock.MagicMock(return_value=(generated_services_list, []))
-    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
 
 
 @pytest.fixture
@@ -100,7 +89,11 @@ def setup_multi_broadcom_masic():
 
     set_mock_apis()
     device_info.get_num_npus = mock.MagicMock(return_value=2)
-    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
+
+    yield
+
+    device_info.get_num_npus = mock.MagicMock(return_value=1)
+
 
 @pytest.fixture
 def setup_t1_topo():
