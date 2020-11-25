@@ -550,6 +550,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
     def __init__(self, root_path=None):
         PlatformDataProvider.__init__(self)
+        if not os.path.isdir(FIRMWARE_UPDATE_DIR):
+            os.mkdir(FIRMWARE_UPDATE_DIR)
 
         self.__root_path = root_path
 
@@ -911,11 +913,11 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     firmware_path,
                     boot
                 )
-                rt_code = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).decode(sys.stdout.encoding)
+                rt_code = int(subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True))
             else:
                 rt_code = component.auto_update_firmware(firmware_path, boot).decode(sys.stdout.encoding)
             click.echo("{} firmware auto-update status return_code: {}".format(component_path, rt_code))
-            (status, info) = self.set_firmware_auto_update_status(rt_code)
+            (status, info) = self.set_firmware_auto_update_status(component_path, firmware_path, rt_code)
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, status, info)
         except KeyboardInterrupt:
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, False, "Keyboard interrupt")

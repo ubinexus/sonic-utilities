@@ -10,7 +10,7 @@ try:
     import click
 
     from .lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
-    from .lib import URL, SquashFs, FwPackage
+    from .lib import URL, SquashFs, FWPackage
     from .log import LogHelper
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
