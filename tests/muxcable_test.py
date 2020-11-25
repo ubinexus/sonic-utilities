@@ -22,7 +22,7 @@ Ethernet32  active    HEALTHY
 Ethernet0   active    HEALTHY
 Ethernet4   standby   HEALTHY
 Ethernet8   standby   HEALTHY
-Ethernet12  failure   HEALTHY
+Ethernet12  unknown   HEALTHY
 """
 
 json_data_status_output_expected = """\
@@ -45,7 +45,7 @@ json_data_status_output_expected = """\
             "HEALTH": "HEALTHY"
         },
         "Ethernet12": {
-            "STATUS": "failure",
+            "STATUS": "unknown",
             "HEALTH": "HEALTHY"
         }
     }
@@ -134,12 +134,19 @@ json_data_config_output_auto_expected = """\
     "Ethernet0": "OK",
     "Ethernet4": "OK",
     "Ethernet8": "OK",
-    "Ethernet12": "FAILED"
+    "Ethernet12": "OK"
 }
 """
 
 json_data_config_output_active_expected = """\
-status is already active for this port Ethernet0\n"""
+{
+    "Ethernet32": "OK",
+    "Ethernet0": "OK",
+    "Ethernet4": "INPROGRESS",
+    "Ethernet8": "OK",
+    "Ethernet12": "OK"
+}
+"""
 
 
 class TestMuxcable(object):
@@ -153,7 +160,7 @@ class TestMuxcable(object):
         db = Db()
         result = runner.invoke(show.cli.commands["muxcable"].commands["status"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 102)
         assert(result.output == tabular_data_status_output_expected)
 
     def test_muxcable_status_json(self):
@@ -162,7 +169,7 @@ class TestMuxcable(object):
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["status"], ["--json"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 102)
         assert(result.output == json_data_status_output_expected)
 
     def test_muxcable_status_config(self):
@@ -171,7 +178,7 @@ class TestMuxcable(object):
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["config"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 101)
         assert(result.output == tabular_data_config_output_expected)
 
     def test_muxcable_status_config_json(self):
@@ -180,7 +187,7 @@ class TestMuxcable(object):
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["config"], ["--json"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 101)
         assert(result.output == json_data_status_config_output_expected)
 
     def test_muxcable_config_json_with_incorrect_port(self):
@@ -198,7 +205,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(show.cli.commands["muxcable"].commands["status"], ["Ethernet0", "--json"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 102)
 
     def test_muxcable_status_json_port_incorrect_index(self):
         runner = CliRunner()
@@ -231,7 +238,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(show.cli.commands["muxcable"].commands["config"], ["Ethernet0"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 101)
 
     def test_muxcable_config_json_with_correct_port(self):
         runner = CliRunner()
@@ -240,7 +247,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(show.cli.commands["muxcable"].commands["config"], ["Ethernet0", "--json"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 101)
 
     def test_muxcable_config_json_port_with_incorrect_index(self):
         runner = CliRunner()
@@ -249,7 +256,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 1
             result = runner.invoke(show.cli.commands["muxcable"].commands["config"], ["Ethernet0", "--json"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 101)
 
     def test_muxcable_config_json_with_incorrect_port_patch(self):
         runner = CliRunner()
@@ -267,7 +274,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(show.cli.commands["muxcable"].commands["status"], ["Ethernet0"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 102)
 
     def test_config_muxcable_tabular_port_Ethernet8_active(self):
         runner = CliRunner()
@@ -277,7 +284,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["active", "Ethernet8"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_tabular_port_Ethernet8_auto(self):
         runner = CliRunner()
@@ -287,7 +294,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["auto", "Ethernet8"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_mode_auto_json(self):
         runner = CliRunner()
@@ -295,7 +302,7 @@ class TestMuxcable(object):
 
         result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["auto", "all", "--json"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 100)
         assert(result.output == json_data_config_output_auto_expected)
 
     def test_config_muxcable_mode_active_json(self):
@@ -306,7 +313,7 @@ class TestMuxcable(object):
         f = open("newfile1", "w")
         f.write(result.output)
 
-        assert(result.exit_code == 1)
+        assert(result.exit_code == 100)
         assert(result.output == json_data_config_output_active_expected)
 
     def test_config_muxcable_json_port_auto_Ethernet0(self):
@@ -318,7 +325,7 @@ class TestMuxcable(object):
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], [
                                    "auto", "Ethernet0", "--json"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_json_port_active_Ethernet0(self):
         runner = CliRunner()
@@ -329,13 +336,13 @@ class TestMuxcable(object):
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], [
                                    "active", "Ethernet0", "--json"], obj=db)
 
-        assert(result.exit_code == 1)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_mode_auto_tabular(self):
         runner = CliRunner()
         db = Db()
         result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["auto", "all"], obj=db)
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_mode_active_tabular(self):
         runner = CliRunner()
@@ -345,7 +352,7 @@ class TestMuxcable(object):
         f = open("newfile", "w")
         f.write(result.output)
 
-        assert(result.exit_code == 1)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_tabular_port(self):
         runner = CliRunner()
@@ -355,7 +362,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["active", "Ethernet0"], obj=db)
 
-        assert(result.exit_code == 1)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_tabular_port_Ethernet4_active(self):
         runner = CliRunner()
@@ -365,7 +372,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["active", "Ethernet4"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_tabular_port_Ethernet4_auto(self):
         runner = CliRunner()
@@ -375,7 +382,7 @@ class TestMuxcable(object):
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["auto", "Ethernet4"], obj=db)
 
-        assert(result.exit_code == 0)
+        assert(result.exit_code == 100)
 
     def test_config_muxcable_tabular_port_with_incorrect_index(self):
         runner = CliRunner()

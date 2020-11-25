@@ -13,7 +13,7 @@ def load_platform_sfputil():
         platform_sfputil = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper()
     except Exception as e:
         click.echo("Failed to instantiate platform_sfputil due to {}".format(repr(e)))
-        sys.exit(3)
+        sys.exit(1)
 
     return 0
 
@@ -34,6 +34,6 @@ def platform_sfputil_read_porttab_mappings():
             platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
     except Exception as e:
         click.echo("Error reading port info (%s)" % str(e))
-        sys.exit(3)
+        sys.exit(1)
 
     return 0

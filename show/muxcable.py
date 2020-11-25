@@ -14,6 +14,11 @@ platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
 
+CONFIG_SUCCESSFUL = 101
+CONFIG_FAIL = 1
+STATUS_FAIL = 1
+STATUS_SUCCESSFUL = 102
+
 #
 # 'muxcable' command ("show muxcable")
 #
@@ -37,7 +42,7 @@ def get_value_for_key_in_dict(mdict, port, key, table_name):
     value = mdict.get(key, None)
     if value is None:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table_name))
-        sys.exit(1)
+        sys.exit(STATUS_FAIL)
 
     return value
 
@@ -47,7 +52,7 @@ def get_value_for_key_in_config_tbl(config_db, port, key, table):
     info_dict = config_db.get_entry(table, port)
     if info_dict is None:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table))
-        sys.exit(1)
+        sys.exit(STATUS_FAIL)
 
     value = get_value_for_key_in_dict(info_dict, port, key, table)
 
@@ -64,7 +69,7 @@ def get_switch_name(config_db):
         return switch_name
     else:
         click.echo("could not retreive switch name")
-        sys.exit(1)
+        sys.exit(STATUS_FAIL)
 
 
 def create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port):
@@ -144,7 +149,7 @@ def status(port, json_output):
             asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
             if asic_index is None:
                 click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-                sys.exit(1)
+                sys.exit(STATUS_FAIL)
 
         muxcable_info_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
@@ -159,6 +164,7 @@ def status(port, json_output):
                     create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port)
 
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
+                    sys.exit(STATUS_SUCCESSFUL)
                 else:
                     print_data = []
 
@@ -167,12 +173,13 @@ def status(port, json_output):
                     headers = ['PORT', 'STATUS', 'HEALTH']
 
                     click.echo(tabulate(print_data, headers=headers))
+                    sys.exit(STATUS_SUCCESSFUL)
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
-                sys.exit(1)
+                sys.exit(STATUS_FAIL)
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
-            sys.exit(1)
+            sys.exit(STATUS_FAIL)
 
     else:
 
@@ -201,6 +208,8 @@ def status(port, json_output):
 
             headers = ['PORT', 'STATUS', 'HEALTH']
             click.echo(tabulate(print_data, headers=headers))
+
+        sys.exit(STATUS_SUCCESSFUL)
 
 
 @muxcable.command()
@@ -243,7 +252,7 @@ def config(port, json_output):
             asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
             if asic_index is None:
                 click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-                sys.exit(1)
+                sys.exit(CONFIG_FAIL)
 
         port_status_dict = {}
         port_status_dict["MUX_CABLE"] = {}
@@ -265,6 +274,7 @@ def config(port, json_output):
                     create_json_dump_per_port_config(port_status_dict, per_npu_configdb, asic_id, port)
 
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
+                    sys.exit(CONFIG_SUCCESSFUL)
                 else:
                     print_data = []
                     print_peer_tor = []
@@ -280,12 +290,14 @@ def config(port, json_output):
                     headers = ['port', 'state', 'ipv4', 'ipv6']
                     click.echo(tabulate(print_data, headers=headers))
 
+                    sys.exit(CONFIG_SUCCESSFUL)
+
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
-                sys.exit(1)
+                sys.exit(CONFIG_FAIL)
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
-            sys.exit(1)
+            sys.exit(CONFIG_FAIL)
 
     else:
 
@@ -323,3 +335,5 @@ def config(port, json_output):
             click.echo(tabulate(print_peer_tor, headers=headers))
             headers = ['port', 'state', 'ipv4', 'ipv6']
             click.echo(tabulate(print_data, headers=headers))
+
+        sys.exit(CONFIG_SUCCESSFUL)

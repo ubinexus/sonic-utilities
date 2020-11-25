@@ -4098,15 +4098,15 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#manage
 
 **show muxcable status**
 
-This command displays all the status of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current status of muxcable on the port(auto/active) and also the health of the muxcable.
+This command displays all the status of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current status of muxcable on the port (auto/active) and also the health of the muxcable.
 
 - Usage:
   ```
   show muxcable status [OPTIONS] [PORT]
   ```
 While displaying the muxcable status, users can configure the following fields
-1) optional - Port name should be a valid port
-2) optional - --json option to display the result in json format. By default output will be in tabular format.
+PORT     optional - Port name should be a valid port
+--json   optional - -- option to display the result in json format. By default output will be in tabular format.
 
 With no optional argument, all the ports muxcable status will be displayed in tabular form, or user can pass --json option to display in json format
 
@@ -4158,8 +4158,8 @@ This command displays all the configurations of either all the ports which are c
   ```
 With no optional argument, all the ports muxcable configuration will be displayed in tabular form
 While displaying the muxcable configuration, users can configure the following fields
-1) optional - Port name should be a valid port
-3) optional - --json option to display the result in json format. By default output will be in tabular format.
+PORT   optional - Port name should be a valid port
+--json optional -  option to display the result in json format. By default output will be in tabular format.
 
 - Example:
   ```
@@ -4217,17 +4217,17 @@ While displaying the muxcable configuration, users can configure the following f
 
 **config muxcable mode**
 
-This command is used for setting the configuration of a muxcable Port/all ports to be active or auto. The user has to enter a port number or else all to make the muxcable config operation on all the ports. Depending on the status of the muxcable port state the resultant output could be OK or INPROGRESS or FAILED. OK would imply no change on the state, INPROGRESS would mean the toggle is happening in the background. FAILED would mean that the muxcable is in bad state or the operation is not successfull.
+This command is used for setting the configuration of a muxcable Port/all ports to be active or auto. The user has to enter a port number or else all to make the muxcable config operation on all the ports. Depending on the status of the muxcable port state the resultant output could be OK or INPROGRESS . OK would imply no change on the state, INPROGRESS would mean the toggle is happening in the background.
 
 - Usage:
   ```
   config muxcable mode [OPTIONS] <operation_status> <port_name>
   ```
 
-While configuring the muxcable, users need to configure the following fields for the operation
-1) operation_status - Permitted operation to be configured can only be auto or active
-2) port_name        - Port name could be a valid port or all to which the muxcable operation would occur. All would imply the operation on all the ports
-3) optional         - --json option to display the result in json format. By default output will be in tabular format.
+While configuring the muxcable, users needs to configure the following fields for the operation
+<auto/active>  - operation_state, permitted operation to be configured which can only be auto or active
+PORT           - Port name could be a valid port or all to which the muxcable operation would occur. All would imply the operation on all the ports
+--json         - option to display the result in json format. By default output will be in tabular format.
 
 - Example:
   ```

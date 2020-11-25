@@ -314,6 +314,6 @@
         "state": "standby"
     },
     "MUX_CABLE_TABLE|Ethernet12": {
-        "state": "failure"
+        "state": "unknown"
     }
 }

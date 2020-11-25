@@ -15,6 +15,10 @@ platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
 
+CONFIG_SUCCESSFUL = 100
+CONFIG_FAIL = 1
+
+
 # Helper functions
 
 
@@ -22,7 +26,7 @@ def get_value_for_key_in_dict(mdict, port, key, table_name):
     value = mdict.get(key, None)
     if value is None:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table_name))
-        sys.exit(1)
+        sys.exit(CONFIG_FAIL)
     return value
 
 #
@@ -35,7 +39,7 @@ def get_value_for_key_in_config_tbl(config_db, port, key, table):
     info_dict = config_db.get_entry(table, port)
     if info_dict is None:
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table))
-        sys.exit(1)
+        sys.exit(CONFIG_FAIL)
 
     value = get_value_for_key_in_dict(info_dict, port, key, table)
 
@@ -48,7 +52,7 @@ def muxcable():
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
-        sys.exit(1)
+        sys.exit(CONFIG_FAIL)
 
     global platform_sfputil
     # Load platform-specific sfputil class
@@ -68,11 +72,10 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
-    if state == "active" and configdb_state == "active":
+    if (state == "active" and configdb_state == "active") or (state == "standby" and configdb_state == "active") or (state == "unknown" and  configdb_state == "active") :
         if state_cfg_val == "active":
             # status is already active, so right back error
-            click.echo("status is already active for this port {}".format(port))
-            sys.exit(1)
+            port_status_dict[port] = 'OK'
         if state_cfg_val == "auto":
             # display ok and write to cfgdb auto
             port_status_dict[port] = 'OK'
@@ -88,7 +91,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
             # dont write anything to db, write OK to user
             port_status_dict[port] = 'OK'
 
-    elif state == "standby" and configdb_state == "auto":
+    elif (state == "standby" and configdb_state == "auto") or (state == "unknown" and  configdb_state == "auto"):
         if state_cfg_val == "active":
             # make the state active
             config_db.set_entry("MUX_CABLE", port, {"state": "active",
@@ -97,20 +100,6 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
         if state_cfg_val == "auto":
             # dont write anything to db
             port_status_dict[port] = 'OK'
-
-    elif state == "standby" and configdb_state == "active":
-        if state_cfg_val == "active":
-            click.echo("status is already active for this port {}".format(port))
-        if state_cfg_val == "auto":
-            config_db.set_entry("MUX_CABLE", port, {"state": "auto",
-                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
-            # dont write anything to db
-            port_status_dict[port] = 'OK'
-
-    elif state == "failure":
-        port_status_dict[port] = 'FAILED'
-        config_db.set_entry("MUX_CABLE", port, {"state": "failure",
-                                                "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
 
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
@@ -155,7 +144,7 @@ def mode(state, port, json_output):
             asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
             if asic_index is None:
                 click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-                sys.exit(1)
+                sys.exit(CONFIG_FAIL)
 
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
@@ -172,12 +161,14 @@ def mode(state, port, json_output):
                     data = sorted([(k, v) for k, v in port_status_dict.items()])
                     click.echo(tabulate(data, headers=headers))
 
+                sys.exit(CONFIG_SUCCESSFUL)
+
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
-                sys.exit(1)
+                sys.exit(CONFIG_FAIL)
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
-            sys.exit(1)
+            sys.exit(CONFIG_FAIL)
 
     elif port == "all" and port is not None:
 
@@ -196,3 +187,5 @@ def mode(state, port, json_output):
 
                 headers = ['port', 'state']
                 click.echo(tabulate(data, headers=headers))
+
+        sys.exit(CONFIG_SUCCESSFUL)
