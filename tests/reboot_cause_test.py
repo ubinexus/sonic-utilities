@@ -3,6 +3,12 @@ import sys
 import textwrap
 import mock
 from click.testing import CliRunner
+from .mock_tables import dbconnector
+
+test_path = os.path.dirname(os.path.abspath(__file__))
+modules_path = os.path.dirname(test_path)
+sys.path.insert(0, modules_path)
+
 
 import show.main as show
 
@@ -52,8 +58,8 @@ class TestShowRebootCause(object):
         expected_output = """\
 Name                 Cause        Time                          User    Comment
 -------------------  -----------  ----------------------------  ------  ---------
-2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
-2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
+2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin   N/A
+2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin   N/A
 """
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["reboot-cause"].commands["history"], [])

@@ -47,22 +47,25 @@ def history():
     prefix = REBOOT_CAUSE_TABLE_NAME + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = db.keys(db.STATE_DB, _hash)
-    if table_keys is None:
+    if table_keys is not None:
         click.echo("Reboot-cause history is not yet available in StateDB")
         sys.exit(1)
 
-    table_keys.sort(reverse=True)
+        table_keys.sort(reverse=True)
 
-    table = []
-    for tk in table_keys:
-        entry = db.get_all(db.STATE_DB, tk)
-        r = []
-        r.append(tk.replace(prefix,""))
-        r.append(entry['cause'] if 'cause' in entry else "")
-        r.append(entry['time'] if 'time' in entry else "")
-        r.append(entry['user'] if 'user' in entry else "")
-        r.append(entry['comment'] if 'comment' in entry else "")
-        table.append(r)
+        table = []
+        for tk in table_keys:
+            entry = db.get_all(db.STATE_DB, tk)
+            r = []
+            r.append(tk.replace(prefix,""))
+            r.append(entry['cause'] if 'cause' in entry else "")
+            r.append(entry['time'] if 'time' in entry else "")
+            r.append(entry['user'] if 'user' in entry else "")
+            r.append(entry['comment'] if 'comment' in entry else "")
+            table.append(r)
 
-    header = ['Name', 'Cause', 'Time', 'User', 'Comment']
-    click.echo(tabulate(table, header))
+        header = ['Name', 'Cause', 'Time', 'User', 'Comment']
+        click.echo(tabulate(table, header))
+    else:
+        click.echo("Reboot-cause history is not yet available in StateDB")
+        sys.exit(1)
