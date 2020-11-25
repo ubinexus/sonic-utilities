@@ -3,12 +3,11 @@ import os
 import sys
 
 import click
-from tabulate import tabulate
-
+import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
 from swsssdk import ConfigDBConnector
 from swsscommon import swsscommon
-import utilities_common.cli as clicommon
+from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
 
 platform_sfputil = None

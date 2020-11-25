@@ -1,6 +1,6 @@
 import sys
-import click
 
+import click
 from sonic_py_common import multi_asic, device_info
 
 platform_sfputil = None
