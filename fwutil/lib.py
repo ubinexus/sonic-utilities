@@ -915,7 +915,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 )
                 rt_code = int(subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True))
             else:
-                rt_code = component.auto_update_firmware(firmware_path, boot).decode(sys.stdout.encoding)
+                rt_code = int(component.auto_update_firmware(firmware_path, boot))
             click.echo("{} firmware auto-update status return_code: {}".format(component_path, rt_code))
             (status, info) = self.set_firmware_auto_update_status(component_path, firmware_path, rt_code)
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, status, info)
