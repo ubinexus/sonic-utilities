@@ -45,12 +45,9 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
-* [Feature State](#feature-state)
-  * [Feature State show commands](#feature-state-show-commands)
-  * [Feature State config command](#feature-state-config-command)
-* [Feature Auto-restart](#feature-auto-restart)
-  * [Feature Auto-restart show commands](#feature-auto-restart-show-commands)
-  * [Feature Auto-restart config command](#feature-auto-restart-config-command)
+* [Feature](#feature)
+  * [Feature State show commands](#feature-show-commands)
+  * [Feature State config command](#feature-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -2382,12 +2379,18 @@ The list of the WRED profile fields that are configurable is listed in the below
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
 
-## Feature State
+## Feature
 
 SONiC includes a capability in which Feature state can be enabled/disabled
 which will make corresponding feature docker container to start/stop.
 
-### Feature State show commands
+Also SONiC provide capability in which Feature docker container can be automatically shut
+down and restarted if one of critical processes running in the container exits
+unexpectedly. Restarting the entire feature container ensures that configuration is 
+reloaded and all processes in the feature container get restarted, thus increasing the
+likelihood of entering a healthy state.
+
+### Feature show commands
 
 **show feature status**
 
@@ -2415,41 +2418,6 @@ This command will display the status of feature state.
   teamd       always_enabled  enabled
   telemetry   enabled         enabled
   ```
-
-Optionally, you can specify a feature name in order to display
-status for that feature
-
-### Feature State config command
-
-**config feature state <feature_name> <state>**
-
-This command will configure the state for a specific feature.
-Please note if the state for a feature is "always_enabled" then this
-commands is don't care and will not update state.
-
-
-- Usage:
-  ```
-  config feature state <feature_name> (enabled | disabled)
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config feature state bgp disabled
-  ``` 
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#feature-state)
-
-## Feature Auto-restart
-
-SONiC includes a capability in which Feature docker container can be automatically shut
-down and restarted if one of critical processes running in the container exits
-unexpectedly. Restarting the entire feature container ensures that configuration is 
-reloaded and all processes in the feature container get restarted, thus increasing the
-likelihood of entering a healthy state.
-
-### Feature Auto-restart show commands
-
 **show feature autorestart**
 
 This command will display the status of auto-restart for feature container.
@@ -2477,17 +2445,28 @@ This command will display the status of auto-restart for feature container.
   telemetry   enabled
   ```
 
-Optionally, you can specify a feature name in order to display the auto-restart
-status for that feature container
+Optionally, you can specify a feature name in order to display
+status for that feature
 
-### Feature Auto-restart config command
+### Feature config commands
+
+**config feature state <feature_name> <state>**
+
+This command will configure the state for a specific feature.
+
+- Usage:
+  ```
+  config feature state <feature_name> (enabled | disabled)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature state bgp disabled
+  ``` 
 
 **config feature autorestart <feature_name> <autorestart_status>**
 
 This command will configure the status of auto-restart for a specific feature container.
-Please note if the state of auto-restart for a feature is "always_enabled" then this
-commands is don't care and will not update auto-restart state.
-
 
 - Usage:
   ```
@@ -2498,8 +2477,10 @@ commands is don't care and will not update auto-restart state.
   ```
   admin@sonic:~$ sudo config feature autorestart bgp disabled
   ``` 
+Note: If the state or auto-restart value for a feature is "always_enabled" then config
+commands are don't care and will not update state/auto-restart value.
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#feature-auto-restart)
+Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
 
 ## Gearbox
 
