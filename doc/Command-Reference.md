@@ -46,8 +46,8 @@
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
 * [Feature](#feature)
-  * [Feature State show commands](#feature-show-commands)
-  * [Feature State config command](#feature-config-commands)
+  * [Feature show commands](#feature-show-commands)
+  * [Feature config commands](#feature-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -2477,7 +2477,7 @@ This command will configure the status of auto-restart for a specific feature co
   ```
   admin@sonic:~$ sudo config feature autorestart bgp disabled
   ``` 
-Note: If the state or auto-restart value for a feature is "always_enabled" then config
+NOTE: If the existing state or auto-restart value for a feature is "always_enabled" then config
 commands are don't care and will not update state/auto-restart value.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
