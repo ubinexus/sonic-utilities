@@ -2070,15 +2070,6 @@ The command is same with `connect line --devicename <devicename>`
   Press ^A ^X to disconnect
   ```
 
-Optionally, you can connect with a remote device name by specifying the `-d` or `--devicename` flag.
-
-- Example:
-  ```
-  admin@sonic:~$ connect device switch1
-  Successful connection to line 1
-  Press ^A ^X to disconnect
-  ```
-
 ### Console clear commands
 
 **sonic-clear line**
