@@ -12,6 +12,7 @@ from natsort import natsorted
 from pkg_resources import parse_version
 from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 
@@ -145,7 +146,6 @@ cli.add_command(chassis_modules.chassis_modules)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
-cli.add_command(gearbox.gearbox)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kdump.kdump)
 cli.add_command(kube.kubernetes)
@@ -161,6 +161,14 @@ cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
 cli.add_command(system_health.system_health)
 cli.add_command(warm_restart.warm_restart)
+
+# Add greabox commands only if GEARBOX is configured
+# TODO: Find a cleaner way to do this
+app_db = SonicV2Connector(host='127.0.0.1')
+app_db.connect(app_db.APPL_DB)
+if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
+    cli.add_command(gearbox.gearbox)
+
 
 #
 # 'vrf' command ("show vrf")
