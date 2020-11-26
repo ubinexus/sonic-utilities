@@ -33,7 +33,6 @@ from . import platform
 from . import processes
 from . import reboot_cause
 from . import sflow
->>>>>>> [show] Break some groups out into their own modules
 from . import vlan
 from . import vnet
 from . import vxlan
@@ -155,7 +154,6 @@ cli.add_command(platform.platform)
 cli.add_command(processes.processes)
 cli.add_command(reboot_cause.reboot_cause)
 cli.add_command(sflow.sflow)
->>>>>>> [show] Break some groups out into their own modules
 cli.add_command(vlan.vlan)
 cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
