@@ -589,24 +589,26 @@ class TestConsutilClear(object):
     @mock.patch('os.geteuid', mock.MagicMock(return_value=1))
     def test_clear_without_root(self):
         runner = CliRunner()
+        db = Db()
 
         result = runner.invoke(consutil.consutil.commands["clear"], ['1'], obj=db)
         print(result.exit_code)
         print(sys.stderr, result.output)
         assert result.exit_code == 2
-        assert result.output == "Root privileges are required for this operation"
+        assert "Root privileges are required for this operation" in result.output
 
     @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB1"]))
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
     @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
     def test_clear_line_not_found(self):
         runner = CliRunner()
+        db = Db()
 
         result = runner.invoke(consutil.consutil.commands["clear"], ['2'], obj=db)
         print(result.exit_code)
         print(sys.stderr, result.output)
         assert result.exit_code == 3
-        assert result.output == "Target [2] does not exist"
+        assert "Target [2] does not exist" in result.output
 
     @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB1"]))
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
@@ -621,7 +623,7 @@ class TestConsutilClear(object):
         print(result.exit_code)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
-        assert result.output == "No process is connected to line 1"
+        assert "No process is connected to line 1" in result.output
 
     @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB1"]))
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
