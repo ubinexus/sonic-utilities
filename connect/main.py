@@ -106,7 +106,7 @@ def line(target, devicename):
 def device(devicename):
     """Connect to device DEVICENAME via serial connection"""
     cmd = "consutil connect -d " + devicename
-    run_command(cmd)
+    sys.exit(run_command(cmd))
 
 if __name__ == '__main__':
     connect()
