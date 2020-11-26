@@ -16,13 +16,14 @@ from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 
-from . import reboot_cause
+from . import bgp_common 
 from . import chassis_modules
 from . import feature
 from . import fgnhg
 from . import interfaces
 from . import kube
 from . import mlnx
+from . import reboot_cause
 from . import vlan
 from . import system_health
 
@@ -83,7 +84,7 @@ def run_command(command, display_cmd=False, return_cmd=False):
 
     while True:
         if return_cmd:
-            output = proc.communicate()[0].decode("utf-8")
+            output = proc.communicate()[0]
             return output
         output = proc.stdout.readline()
         if output == "" and proc.poll() is not None:
@@ -127,12 +128,12 @@ def cli(ctx):
 
 
 # Add groups from other modules
-cli.add_command(reboot_cause.reboot_cause)
 cli.add_command(chassis_modules.chassis_modules)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
+cli.add_command(reboot_cause.reboot_cause)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
 
@@ -792,17 +793,13 @@ def get_bgp_peer():
 
 @ip.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, verbose):
+def route(args, namespace, display, verbose):
     """Show IP (IPv4) routing table"""
-    cmd = 'sudo vtysh -c "show ip route'
-
-    for arg in args:
-        cmd += " " + str(arg)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ip route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ip")
 
 #
 # 'prefix-list' subcommand ("show ip prefix-list")
@@ -915,17 +912,13 @@ def interfaces():
 
 @ipv6.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, verbose):
+def route(args, namespace, display, verbose):
     """Show IPv6 routing table"""
-    cmd = 'sudo vtysh -c "show ipv6 route'
-
-    for arg in args:
-        cmd += " " + str(arg)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ipv6 route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ipv6")
 
 
 # 'protocol' command
@@ -2272,7 +2265,7 @@ def neighbors():
     appl_db.connect(appl_db.APPL_DB)
 
     # Fetching data from appl_db for neighbors
-    nbrs = appl_db.keys(appl_db.APPL_DB, "NEIGH_TABLE*")
+    nbrs = appl_db.keys(appl_db.APPL_DB, "NEIGH_TABLE:*")
     nbrs_data = {}
     for nbr in nbrs if nbrs else []:
         tbl, intf, ip = nbr.split(":", 2)
@@ -2312,7 +2305,7 @@ def all():
     header = ['vnet name', 'prefix', 'nexthop', 'interface']
 
     # Fetching data from appl_db for VNET ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TABLE*")
+    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TABLE:*")
     vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
 
     table = []
@@ -2331,7 +2324,7 @@ def all():
     header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
 
     # Fetching data from appl_db for VNET TUNNEL ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE*")
+    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
     vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
 
     table = []
@@ -2355,7 +2348,7 @@ def tunnel():
     header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
 
     # Fetching data from appl_db for VNET TUNNEL ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE*")
+    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
     vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
 
     table = []
