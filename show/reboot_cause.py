@@ -48,9 +48,6 @@ def history():
     _hash = '{}{}'.format(prefix, '*')
     table_keys = db.keys(db.STATE_DB, _hash)
     if table_keys is not None:
-        click.echo("Reboot-cause history is not yet available in StateDB")
-        sys.exit(1)
-
         table_keys.sort(reverse=True)
 
         table = []
