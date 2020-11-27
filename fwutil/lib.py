@@ -913,11 +913,12 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     firmware_path,
                     boot
                 )
-                rt_code = int(subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True))
+                click.echo("firmware auto-update starting:utility cmd {}".format(cmd))
+                rt_code = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
             else:
-                rt_code = int(component.auto_update_firmware(firmware_path, boot))
-            click.echo("{} firmware auto-update status return_code: {}".format(component_path, rt_code))
-            (status, info) = self.set_firmware_auto_update_status(component_path, firmware_path, rt_code)
+                rt_code = component.auto_update_firmware(firmware_path, boot)
+            click.echo("{} firmware auto-update status return_code: {}".format(component_path, int(rt_code)))
+            (status, info) = self.set_firmware_auto_update_status(component_path, boot, rt_code)
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, status, info)
         except KeyboardInterrupt:
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, False, "Keyboard interrupt")
