@@ -62,7 +62,7 @@ def history():
             table.append(r)
 
         header = ['Name', 'Cause', 'Time', 'User', 'Comment']
-        click.echo(tabulate(table, header))
+        click.echo(tabulate(table, header, numalign="left"))
     else:
         click.echo("Reboot-cause history is not yet available in StateDB")
         sys.exit(1)
