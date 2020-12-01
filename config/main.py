@@ -1902,6 +1902,33 @@ def shutdown():
     pass
 
 @config.group(cls=clicommon.AbbreviationGroup)
+def core():
+    """ Configure coredump """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+    pass
+
+@core.command()
+@click.argument('disable', required=False)
+def disable(disable):
+    """Administratively Disable coredump generation"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    table = "COREDUMP"
+    key = "config"
+    config_db.set_entry(table, key, {"enabled": "false"})
+
+@core.command()
+@click.argument('enable', required=False)
+def enable(enable):
+    """Administratively Enable coredump generation"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    table = "COREDUMP"
+    key = "config"
+    config_db.set_entry(table, key, {"enabled": "true"})
+
+@config.group(cls=clicommon.AbbreviationGroup)
 def kdump():
     """ Configure kdump """
     if os.geteuid() != 0:
