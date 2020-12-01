@@ -62,7 +62,10 @@ setup(
                                   'mock_tables/asic0/*.json',
                                   'mock_tables/asic1/*.json',
                                   'filter_fdb_input/*',
-                                  'pfcwd_input/*']
+                                  'pfcwd_input/*',
+                                  'sku_create_input/*',
+                                  'sku_create_input/ACS-MSN2700/*',
+                                  'sku_create_input/Mellanox-SN2700-D48C8/*']
     },
     scripts=[
         'scripts/aclshow',
