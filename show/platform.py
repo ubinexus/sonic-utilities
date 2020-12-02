@@ -89,7 +89,7 @@ def ssdhealth(device, verbose, vendor):
     """Show SSD Health information"""
     if not device:
         device = os.popen("lsblk -o NAME,TYPE -p | grep disk").readline().strip().split()[0]
-    cmd = "ssdutil -d " + device
+    cmd = "sudo ssdutil -d " + device
     options = " -v" if verbose else ""
     options += " -e" if vendor else ""
     clicommon.run_command(cmd + options, display_cmd=verbose)
@@ -100,9 +100,9 @@ def ssdhealth(device, verbose, vendor):
 @click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
 def pcieinfo(check, verbose):
     """Show Device PCIe Info"""
-    cmd = "pcieutil pcie-show"
+    cmd = "sudo pcieutil pcie-show"
     if check:
-        cmd = "pcieutil pcie-check"
+        cmd = "sudo pcieutil pcie-check"
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
