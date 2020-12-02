@@ -1653,8 +1653,7 @@ def reload(dry_run, json_data):
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
     sonic_version_file = device_info.get_sonic_version_file()
-    from_db = "" if dry_run else "-d --write-to-db"
-    display_cmd = True
+    from_db = "-d --write-to-db"
     if dry_run:
         from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
 
@@ -1692,7 +1691,7 @@ def reload(dry_run, json_data):
                 )
                 # Apply the configurations only when both buffer and qos
                 # configuration files are present
-                clicommon.run_command(command, display_cmd=display_cmd)
+                clicommon.run_command(command, display_cmd=True)
             else:
                 click.secho("QoS definition template not found at {}".format(
                     qos_template_file
