@@ -18,6 +18,7 @@ from utilities_common.db import Db
 
 from . import bgp_common 
 from . import chassis_modules
+from . import coredump
 from . import feature
 from . import fgnhg
 from . import interfaces
@@ -129,6 +130,7 @@ def cli(ctx):
 
 # Add groups from other modules
 cli.add_command(chassis_modules.chassis_modules)
+cli.add_command(coredump.coredump)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
@@ -1423,75 +1425,6 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
-#
-# 'coredumpctl' group ("show cores")
-#
-
-@cli.group(cls=clicommon.AliasedGroup)
-def cores():
-    """Show core dump events encountered"""
-    pass
-
-# 'config' subcommand ("show cores config")
-@cores.command('config')
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def core_config(verbose):
-    """ Show coredump configuration """
-    # Default admin mode
-    admin_mode = True
-    # Obtain config from Config DB
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('COREDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                admin_mode = config_data.get('enabled')
-                if admin_mode is not None and admin_mode.lower() == 'false':
-                    admin_mode = False
-
-    # Core dump administrative mode
-    if admin_mode:
-        click.echo('Coredump : %s' % 'Enabled')
-    else:
-        click.echo('Coredump : %s' % 'Disabled')
-
-# 'list' subcommand ("show cores list")
-@cores.command('list')
-@click.argument('pattern', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def core_list(verbose, pattern):
-    """ List available coredumps """
-
-    if not os.geteuid()==0:
-        click.echo("Note: To list all the core files please run the command with root privileges\n")
-
-    if os.path.exists("/usr/bin/coredumpctl"):
-        cmd = "coredumpctl list"
-        if pattern is not None:
-            cmd = cmd + " " + pattern
-        run_command(cmd, display_cmd=verbose)
-    else:
-        exit("Note: Install systemd-coredump package to run this command")
-
-# 'info' subcommand ("show cores info")
-@cores.command('info')
-@click.argument('pattern', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def core_info(verbose, pattern):
-    """ Show information about one or more coredumps """
-
-    if not os.geteuid()==0:
-        click.echo("Note: To view all the core files please run the command with root privileges\n")
-
-    if os.path.exists("/usr/bin/coredumpctl"):
-        cmd = "coredumpctl info"
-        if pattern is not None:
-            cmd = cmd + " " + pattern
-        run_command(cmd, display_cmd=verbose)
-    else:
-        exit("Note: Install systemd-coredump package to run this command")
 
 #
 # 'kdump command ("show kdump ...")
