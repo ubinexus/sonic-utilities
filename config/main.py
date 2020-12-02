@@ -27,6 +27,7 @@ from .utils import log
 from . import aaa
 from . import chassis_modules
 from . import console
+from . import coredump
 from . import feature
 from . import kube
 from . import mlnx
@@ -877,6 +878,7 @@ config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
 config.add_command(chassis_modules.chassis_modules)
 config.add_command(console.console)
+config.add_command(coredump.coredump)
 config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
 config.add_command(muxcable.muxcable)

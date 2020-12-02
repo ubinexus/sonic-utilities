@@ -18,6 +18,7 @@ from utilities_common.db import Db
 
 from . import bgp_common 
 from . import chassis_modules
+from . import coredump
 from . import feature
 from . import fgnhg
 from . import interfaces
@@ -130,6 +131,7 @@ def cli(ctx):
 
 # Add groups from other modules
 cli.add_command(chassis_modules.chassis_modules)
+cli.add_command(coredump.coredump)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
@@ -1424,6 +1426,7 @@ def system_memory(verbose):
     """Show memory information"""
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
+
 
 #
 # 'kdump command ("show kdump ...")
