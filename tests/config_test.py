@@ -3,7 +3,9 @@ import imp
 import os
 import traceback
 import json
+from unittest import mock
 
+import click
 from click.testing import CliRunner
 
 from sonic_py_common import device_info
@@ -51,6 +53,13 @@ Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
+def mock_run_command_side_effect(*args, **kwargs):
+    command = args[0]
+
+    if 'display_cmd' in kwargs and kwargs['display_cmd'] == True:
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+
 class TestLoadMinigraph(object):
     @classmethod
     def setup_class(cls):
@@ -60,29 +69,33 @@ class TestLoadMinigraph(object):
         imp.reload(config.main)
 
     def test_load_minigraph(self, get_cmd_module, setup_single_broadcom_asic):
-        (config, show) = get_cmd_module
-        runner = CliRunner()
-        result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
-        print(result.exit_code)
-        print(result.output)
-        traceback.print_tb(result.exc_info[2])
-        assert result.exit_code == 0
-        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            assert mock_run_command.call_count == 38
 
     def test_load_minigraph_with_disabled_telemetry(self, get_cmd_module, setup_single_broadcom_asic):
-        (config, show) = get_cmd_module
-        db = Db()
-        runner = CliRunner()
-        result = runner.invoke(config.config.commands["feature"].commands["state"], ["telemetry", "disabled"], obj=db)
-        assert result.exit_code == 0
-        result = runner.invoke(show.cli.commands["feature"].commands["status"], ["telemetry"], obj=db)
-        print(result.output)
-        assert result.exit_code == 0
-        result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert "telemetry" not in result.output
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            db = Db()
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["feature"].commands["state"], ["telemetry", "disabled"], obj=db)
+            assert result.exit_code == 0
+            result = runner.invoke(show.cli.commands["feature"].commands["status"], ["telemetry"], obj=db)
+            print(result.output)
+            assert result.exit_code == 0
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert "telemetry" not in result.output
+            assert mock_run_command.call_count == 35
 
     @classmethod
     def teardown_class(cls):
@@ -99,27 +112,28 @@ class TestConfigQos(object):
         imp.reload(config.main)
 
     def test_qos_reload_single(self, get_cmd_module, setup_single_broadcom_asic):
-        (config, show) = get_cmd_module
-        runner = CliRunner()
-        output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
-        print("Saving output in {}".format(output_file))
-        try:
-            os.remove(output_file)
-        except OSError:
-            pass
-        json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
-        result = runner.invoke(
-            config.config.commands["qos"],
-            ["reload", "--dry_run", output_file, "--json-data", json_data]
-        )
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
+            print("Saving output in {}".format(output_file))
+            try:
+                os.remove(output_file)
+            except OSError:
+                pass
+            json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
+            result = runner.invoke(
+                config.config.commands["qos"],
+                ["reload", "--dry_run", output_file, "--json-data", json_data]
+            )
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
 
-        cwd = os.path.dirname(os.path.realpath(__file__))
-        expected_result = os.path.join(
-            cwd, "qos_config_input", "config_qos.json"
-        )
+            cwd = os.path.dirname(os.path.realpath(__file__))
+            expected_result = os.path.join(
+                cwd, "qos_config_input", "config_qos.json"
+            )
         assert filecmp.cmp(output_file, expected_result, shallow=False)
 
     @classmethod
@@ -139,34 +153,35 @@ class TestConfigQosMasic(object):
 
 
     def test_qos_reload_masic(self, get_cmd_module, setup_multi_broadcom_masic):
-        (config, show) = get_cmd_module
-        runner = CliRunner()
-        output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
-        print("Saving output in {}<0,1,2..>".format(output_file))
-        num_asic = device_info.get_num_npus()
-        for asic in range(num_asic):
-            try:
-                file = "{}{}".format(output_file, asic)
-                os.remove(file)
-            except OSError:
-                pass
-        json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
-        result = runner.invoke(
-            config.config.commands["qos"],
-            ["reload", "--dry_run", output_file, "--json-data", json_data]
-        )
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-
-        cwd = os.path.dirname(os.path.realpath(__file__))
-
-        for asic in range(num_asic):
-            expected_result = os.path.join(
-                cwd, "qos_config_input", str(asic), "config_qos.json"
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
+            print("Saving output in {}<0,1,2..>".format(output_file))
+            num_asic = device_info.get_num_npus()
+            for asic in range(num_asic):
+                try:
+                    file = "{}{}".format(output_file, asic)
+                    os.remove(file)
+                except OSError:
+                    pass
+            json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
+            result = runner.invoke(
+                config.config.commands["qos"],
+                ["reload", "--dry_run", output_file, "--json-data", json_data]
             )
-            file = "{}{}".format(output_file, asic)
-            assert filecmp.cmp(file, expected_result, shallow=False)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
+            cwd = os.path.dirname(os.path.realpath(__file__))
+
+            for asic in range(num_asic):
+                expected_result = os.path.join(
+                    cwd, "qos_config_input", str(asic), "config_qos.json"
+                )
+                file = "{}{}".format(output_file, asic)
+                assert filecmp.cmp(file, expected_result, shallow=False)
 
     @classmethod
     def teardown_class(cls):
