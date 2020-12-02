@@ -8,7 +8,6 @@ def coredump():
     """ Configure coredump """
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
-    pass
 
 @coredump.command()
 @click.argument('disable', required=False)
