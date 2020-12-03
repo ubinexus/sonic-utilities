@@ -72,7 +72,7 @@ def setup_multi_asic_bgp_instance(request):
     elif request.param == 'ipv6_route':
         m_asic_json_file = 'ipv6_route.json'
     else:
-        bgp_mocked_json = os.path.join(
+        m_asic_json_file = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
 
     def mock_run_bgp_command(vtysh_cmd, bgp_namespace):
