@@ -1,3 +1,4 @@
+import imp
 import os
 import sys
 
@@ -1299,4 +1300,5 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         from .mock_tables import dbconnector
         from .mock_tables import mock_single_asic
+        imp.reload(mock_single_asic)
         dbconnector.load_namespace_config()
