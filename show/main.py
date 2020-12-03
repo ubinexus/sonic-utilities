@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 
+import bgp_common
 import click
 from click_default_group import DefaultGroup
 from natsort import natsorted
@@ -19,6 +20,7 @@ from tabulate import tabulate
 import mlnx
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
+
 
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 
@@ -1333,17 +1335,13 @@ def get_bgp_peer():
 
 @ip.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, verbose):
+def route(args, namespace, display, verbose):
     """Show IP (IPv4) routing table"""
-    cmd = 'sudo vtysh -c "show ip route'
-
-    for arg in args:
-        cmd += " " + str(arg)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ip route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ip")
 
 #
 # 'prefix-list' subcommand ("show ip prefix-list")
@@ -1452,17 +1450,13 @@ def interfaces():
 
 @ipv6.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, verbose):
+def route(args, namespace, display, verbose):
     """Show IPv6 routing table"""
-    cmd = 'sudo vtysh -c "show ipv6 route'
-
-    for arg in args:
-        cmd += " " + str(arg)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ipv6 route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ipv6")
 
 
 # 'protocol' command
