@@ -5,7 +5,7 @@ from swsssdk import ConfigDBConnector
 #
 # 'kdump command ("show kdump ...")
 #
-@click.group(cls=clicommon.AliasedGroup, name="kdump")
+@click.group(r
 def kdump():
     """Show kdump configuration, status and information """
     pass
@@ -50,7 +50,7 @@ def memory():
                 kdump_memory_from_db = config_data.get('memory')
                 if kdump_memory_from_db is not None:
                     kdump_memory = kdump_memory_from_db
-    click.echo("Memory Reserved: %s" % kdump_memory)
+    click.echo("Memory Reserved: {}".format(kdump_memory))
 
 @kdump.command('num_dumps')
 def num_dumps():
@@ -66,7 +66,7 @@ def num_dumps():
                 kdump_num_dumps_from_db = config_data.get('num_dumps')
                 if kdump_num_dumps_from_db is not None:
                     kdump_num_dumps = kdump_num_dumps_from_db
-    click.echo("Maximum number of Kernel Core files Stored: %s" % kdump_num_dumps)
+    click.echo("Maximum number of Kernel Core files Stored: {}".format(kdump_num_dumps))
 
 @kdump.command('files')
 def files():
@@ -78,7 +78,8 @@ def files():
 @click.argument('lines', metavar='<lines>', required=False)
 def log(record, lines):
     """Show kdump kernel core dump file kernel log"""
-    if lines is None:
-        clicommon.run_command("sonic-kdump-config --file %s" % record)
-    else:
-        clicommon.run_command("sonic-kdump-config --file %s --lines %s" % (record, lines))
+    cmd = "sonic-kdump-config --file {}".format(record)
+    if lines is not None:
+        cmd += " --lines {}".format(lines)
+
+    clicommon.run_command(cmd)
