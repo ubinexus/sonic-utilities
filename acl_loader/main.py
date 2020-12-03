@@ -592,7 +592,7 @@ class AclLoader(object):
         for namespace_configdb in self.per_npu_configdb.values():
             namespace_configdb.mod_config({self.ACL_RULE: self.rules_info})
 
-    def incremental_update(self):
+    def incremental_update(self, update=False):
         """
         Perform incremental ACL rules configuration update. Get existing rules from
         Config DB. Compare with rules specified in file and perform corresponding
@@ -600,10 +600,8 @@ class AclLoader(object):
         :return:
         """
 
-        # TODO: Until we test ASIC behavior, we cannot assume that we can insert
-        # dataplane ACLs and shift existing ACLs. Therefore, we perform a full
-        # update on dataplane ACLs, and only perform an incremental update on
-        # control plane ACLs.
+        # Broadcom ASIC supports incremental update for dataplane rules (shuffling and insertion)
+        # ASIC which doesnt support incremental behaviour can use full or load (new) command
 
         new_rules = set(self.rules_info.keys())
         new_dataplane_rules = set()
@@ -614,6 +612,8 @@ class AclLoader(object):
 
         for key in new_rules:
             table_name = key[0]
+            if self.current_table is not None and self.current_table != table_name:
+                continue
             if self.tables_db_info[table_name]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE:
                 new_controlplane_rules.add(key)
             else:
@@ -621,25 +621,37 @@ class AclLoader(object):
 
         for key in current_rules:
             table_name = key[0]
+            if self.current_table is not None and self.current_table != table_name:
+                continue
             if self.tables_db_info[table_name]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE:
                 current_controlplane_rules.add(key)
             else:
                 current_dataplane_rules.add(key)
 
-        # Remove all existing dataplane rules
-        for key in current_dataplane_rules:
-            self.configdb.mod_entry(self.ACL_RULE, key, None)
-            # Program for per-asic namespace also if present
-            for namespace_configdb in self.per_npu_configdb.values():
-                namespace_configdb.mod_entry(self.ACL_RULE, key, None)
+        # Do Incremental update of data path rules
+        added_dataplane_rules = new_dataplane_rules.difference(current_dataplane_rules)
+        removed_dataplane_rules = current_dataplane_rules.difference(new_dataplane_rules)
+        existing_dataplane_rules = new_rules.intersection(current_dataplane_rules)
 
-
-        # Add all new dataplane rules
-        for key in new_dataplane_rules:
+        for key in added_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
-            # Program for per-asic namespace corresponding to front asic also if present. 
+
             for namespace_configdb in self.per_npu_configdb.values():
-                namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+                namespace_configdb.mod_entry(self.ACL_RULE, key,  self.rules_info[key]) 
+
+        if not update:
+            for key in removed_dataplane_rules:
+                self.configdb.mod_entry(self.ACL_RULE, key, None)
+            # Program for per-asic namespace also if present
+                for namespace_configdb in self.per_npu_configdb.values():
+                    namespace_configdb.mod_entry(self.ACL_RULE, key, None)
+
+        for key in existing_dataplane_rules:
+            if (self.rules_info[key] != self.rules_db_info[key]):
+                self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+
+                for namespace_configdb in self.per_npu_configdb.values():
+                    namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
         added_controlplane_rules = new_controlplane_rules.difference(current_controlplane_rules)
         removed_controlplane_rules = current_controlplane_rules.difference(new_controlplane_rules)
@@ -660,7 +672,7 @@ class AclLoader(object):
                 namespace_configdb.mod_entry(self.ACL_RULE, key, None)
 
         for key in existing_controlplane_rules:
-            if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
+            if (self.rules_info[key] != self.rules_db_info[key]):
                 self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
                 # Program for per-asic namespace corresponding to front asic also if present. 
                 # For control plane ACL it's not needed but to keep all db in sync program everywhere
@@ -946,15 +958,20 @@ def full(ctx, filename, table_name, session_name, mirror_stage, max_priority):
 
 @update.command()
 @click.argument('filename', type=click.Path(exists=True))
+@click.option('--table_name', type=click.STRING, required=False)
 @click.option('--session_name', type=click.STRING, required=False)
 @click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def incremental(ctx, filename, session_name, mirror_stage, max_priority):
+def incremental(ctx, filename, table_name, session_name, mirror_stage, max_priority):
     """
     Incremental update of ACL rule configuration.
+    If a table_name is provided, the operation will be restricted in the specified table.
     """
     acl_loader = ctx.obj["acl_loader"]
+
+    if table_name:
+        acl_loader.set_table_name(table_name)
 
     if session_name:
         acl_loader.set_session_name(session_name)
@@ -967,6 +984,34 @@ def incremental(ctx, filename, session_name, mirror_stage, max_priority):
     acl_loader.load_rules_from_file(filename)
     acl_loader.incremental_update()
 
+@update.command()
+@click.argument('filename', type=click.Path(exists=True))
+@click.option('--table_name', type=click.STRING, required=False)
+@click.option('--session_name', type=click.STRING, required=False)
+@click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
+@click.option('--max_priority', type=click.INT, required=False)
+@click.pass_context
+def load(ctx, filename, table_name, session_name, mirror_stage, max_priority):
+    """
+    Add or Overwrite ACL rules configuration.
+    This operation will update the existing acl rules with new rules from the 
+    configuration without removing the common rules.
+    """
+    acl_loader = ctx.obj["acl_loader"]
+
+    if table_name:
+        acl_loader.set_table_name(table_name)
+
+    if session_name:
+        acl_loader.set_session_name(session_name)
+
+    acl_loader.set_mirror_stage(mirror_stage)
+
+    if max_priority:
+        acl_loader.set_max_priority(max_priority)
+
+    acl_loader.load_rules_from_file(filename)
+    acl_loader.incremental_update(True)
 
 @cli.command()
 @click.argument('table', required=False)

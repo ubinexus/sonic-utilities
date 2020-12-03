@@ -2946,6 +2946,17 @@ def incremental(file_name):
     command = "acl-loader update incremental {}".format(file_name)
     clicommon.run_command(command)
 
+#
+# 'load' subcommand
+#
+
+@update.command()
+@click.argument('file_name', required=True)
+def load(file_name):
+    """Load ACL rules to configuration (doesnt delete the rules)"""
+    log.log_info("'acl update load {}' executing...".format(file_name))
+    command = "acl-loader update load {}".format(file_name)
+    clicommon.run_command(command)
 
 #
 # 'dropcounters' group ('config dropcounters ...')
