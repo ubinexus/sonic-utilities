@@ -5,7 +5,7 @@ from swsssdk import ConfigDBConnector
 #
 # 'kdump command ("show kdump ...")
 #
-@click.group(r
+@click.group(cls=clicommon.AliasedGroup, name="kdump")
 def kdump():
     """Show kdump configuration, status and information """
     pass
