@@ -1297,4 +1297,6 @@ class TestCrmMultiAsic(object):
         print("TEARDOWN")
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        from .mock_tables import dbconnector
         from .mock_tables import mock_single_asic
+        dbconnector.load_namespace_config()

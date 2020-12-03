@@ -112,28 +112,27 @@ class TestConfigQos(object):
         imp.reload(config.main)
 
     def test_qos_reload_single(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
-            print("Saving output in {}".format(output_file))
-            try:
-                os.remove(output_file)
-            except OSError:
-                pass
-            json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
-            result = runner.invoke(
-                config.config.commands["qos"],
-                ["reload", "--dry_run", output_file, "--json-data", json_data]
-            )
-            print(result.exit_code)
-            print(result.output)
-            assert result.exit_code == 0
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
+        print("Saving output in {}".format(output_file))
+        try:
+            os.remove(output_file)
+        except OSError:
+            pass
+        json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
+        result = runner.invoke(
+            config.config.commands["qos"],
+            ["reload", "--dry_run", output_file, "--json-data", json_data]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
 
-            cwd = os.path.dirname(os.path.realpath(__file__))
-            expected_result = os.path.join(
-                cwd, "qos_config_input", "config_qos.json"
-            )
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        expected_result = os.path.join(
+            cwd, "qos_config_input", "config_qos.json"
+        )
         assert filecmp.cmp(output_file, expected_result, shallow=False)
 
     @classmethod
@@ -153,40 +152,40 @@ class TestConfigQosMasic(object):
 
 
     def test_qos_reload_masic(self, get_cmd_module, setup_multi_broadcom_masic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
-            print("Saving output in {}<0,1,2..>".format(output_file))
-            num_asic = device_info.get_num_npus()
-            for asic in range(num_asic):
-                try:
-                    file = "{}{}".format(output_file, asic)
-                    os.remove(file)
-                except OSError:
-                    pass
-            json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
-            result = runner.invoke(
-                config.config.commands["qos"],
-                ["reload", "--dry_run", output_file, "--json-data", json_data]
-            )
-            print(result.exit_code)
-            print(result.output)
-            assert result.exit_code == 0
-
-            cwd = os.path.dirname(os.path.realpath(__file__))
-
-            for asic in range(num_asic):
-                expected_result = os.path.join(
-                    cwd, "qos_config_input", str(asic), "config_qos.json"
-                )
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
+        print("Saving output in {}<0,1,2..>".format(output_file))
+        num_asic = device_info.get_num_npus()
+        for asic in range(num_asic):
+            try:
                 file = "{}{}".format(output_file, asic)
-                assert filecmp.cmp(file, expected_result, shallow=False)
+                os.remove(file)
+            except OSError:
+                pass
+        json_data = '{"DEVICE_METADATA": {"localhost": {}}}'
+        result = runner.invoke(
+            config.config.commands["qos"],
+            ["reload", "--dry_run", output_file, "--json-data", json_data]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+
+        for asic in range(num_asic):
+            expected_result = os.path.join(
+                cwd, "qos_config_input", str(asic), "config_qos.json"
+            )
+            file = "{}{}".format(output_file, asic)
+            assert filecmp.cmp(file, expected_result, shallow=False)
 
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        # change back to single asic config
         from .mock_tables import dbconnector
         from .mock_tables import mock_single_asic
         dbconnector.load_namespace_config()
