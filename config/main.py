@@ -956,18 +956,17 @@ def ignore_signal(signum, frame):
     infd = open(os.devnull, 'r')
     os.dup2(infd.fileno(), sys.stdin.fileno())
 
-    #outfd = open(os.devnull, 'a+')
     outfd = open(PIPE_FILE, 'a+')
     os.dup2(outfd.fileno(), sys.stderr.fileno())
     os.dup2(outfd.fileno(), sys.stdout.fileno())
 
-    cmd= "command execution is continued, received signal {}".format(signum)
+    cmd = "command execution is continued, received signal {}".format(signum)
     log.log_info(cmd)
     return
 
 # tail the output of reload command
 def config_reload_log_thread(pid, outfd):
-    os.system("tail -f --pid={} {}".format(pid,PIPE_FILE))
+    os.system("tail -f --pid={} {}".format(pid, PIPE_FILE))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
