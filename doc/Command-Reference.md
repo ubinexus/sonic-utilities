@@ -2486,7 +2486,7 @@ This command is used to display the status of buffer pools and profiles currentl
 - Example:
 
   ```
-  admin@sonic:~$ buffershow -l
+  admin@sonic:~$ show buffer information
   Pool: ingress_lossless_pool
   ----  --------
   type  ingress
