@@ -8,10 +8,12 @@ import traceback
 from sonic_py_common import device_info, logger
 from swsssdk import ConfigDBConnector, SonicDBConfig
 from swsscommon.swsscommon import SonicV2Connector
+from portconfig import get_port_config_file_name, get_breakout_mode
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 SYSLOG_IDENTIFIER = 'db_migrator'
 
+BRK_CFG_TABLE = 'BREAKOUT_CFG'
 
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
@@ -243,6 +245,26 @@ class DBMigrator():
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
 
+    def migrate_platform_json(self):
+        device_data = self.configDB.get_table('DEVICE_METADATA')
+        if 'localhost' in device_data.keys():
+            hwsku = device_data['localhost']['hwsku']
+            platform = device_data['localhost']['platform']
+        else:
+            log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            return False
+
+        port_config = get_port_config_file_name(hwsku, platform)
+        brkout_table = get_breakout_mode(hwsku, platform, port_config)
+        if brkout_table is not None:
+            data = self.configDB.get_table(BRK_CFG_TABLE)
+            if not bool(data):
+                log.log_info("Migrating table {} to config_db".format(BRK_CFG_TABLE))
+                for key in brkout_table:
+                    entry = {'brkout_mode': brkout_table[key]['brkout_mode']}
+                    self.configDB.set_entry(BRK_CFG_TABLE, key, entry)
+
+
     def common_migration_ops(self):
         try:
             with open(INIT_CFG_FILE) as f:
@@ -261,6 +283,7 @@ class DBMigrator():
                 self.configDB.set_entry(init_cfg_table, init_table_key, init_table_val)
 
         self.migrate_copp_table()
+        self.migrate_platform_json()
 
     def migrate(self):
         version = self.get_version()
