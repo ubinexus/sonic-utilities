@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import signal
 import threading
 import time
 
@@ -58,9 +59,11 @@ CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
+PIPE_FILE = "/tmp/reload.txt"
 
 
 asic_type = None
+child_pid=0
 
 #
 # Breakout Mode Helper functions
@@ -735,6 +738,8 @@ def _restart_services(config_db):
         'telemetry'
     ]
 
+    result = 0
+
     disabled_services = _get_disabled_services_list(config_db)
 
     for service in disabled_services:
@@ -744,11 +749,17 @@ def _restart_services(config_db):
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
 
-    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
+    try:
+        execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
 
-    # Reload Monit configuration to pick up new hostname in case it changed
-    click.echo("Reloading Monit configuration ...")
-    clicommon.run_command("sudo monit reload")
+        # Reload Monit configuration to pick up new hostname in case it changed
+        click.echo("Reloading Monit configuration ...")
+        clicommon.run_command("sudo monit reload")
+    except Exception as e:
+        log.log_error("'_restart_verify_services' start services failed, error: {}".format(e))
+        result = 1
+
+    return result
 
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
@@ -995,6 +1006,30 @@ def load(filename, yes):
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
 
+def handle_signal(signum, frame):
+    cmd= "command execution is aborted, received signal {}".format(signum)
+    print(cmd)
+    log.log_info(cmd)
+    if child_pid != 0 :
+       os.kill(child_pid, signal.SIGTERM)
+    sys.exit()
+
+def ignore_signal(signum, frame):
+    infd = open(os.devnull, 'r')
+    os.dup2(infd.fileno(), sys.stdin.fileno())
+
+    #outfd = open(os.devnull, 'a+')
+    outfd = open(PIPE_FILE, 'a+')
+    os.dup2(outfd.fileno(), sys.stderr.fileno())
+    os.dup2(outfd.fileno(), sys.stdout.fileno())
+
+    cmd= "command execution is continued, received signal {}".format(signum)
+    log.log_info(cmd)
+    return
+
+# tail the output of reload command
+def config_reload_log_thread(pid, outfd):
+    os.system("tail -f --pid={} {}".format(pid,PIPE_FILE))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
@@ -1014,7 +1049,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     if not yes:
         click.confirm(message, abort=True)
 
-    log.log_info("'reload' executing...")
+    global child_pid
+    global PIPE_FILE
 
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
@@ -1031,93 +1067,155 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    if load_sysinfo:
-        command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
-        proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
-        cfg_hwsku, err = proc.communicate()
-        if err:
-            click.echo("Could not get the HWSKU from config file, exiting")
-            sys.exit(1)
-        else:
-            cfg_hwsku = cfg_hwsku.strip()
+    if os.path.isfile(PIPE_FILE):
+        os.remove(PIPE_FILE)
+    outfd = open(PIPE_FILE, 'w+')
 
-    #Stop services before config push
-    if not no_service_restart:
-        log.log_info("'reload' stopping services...")
-        _stop_services(db.cfgdb)
+    child_pid=os.fork()
+        #Parent: wait for child to exit
+    if child_pid :
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, handle_signal)
+        signal.signal(signal.SIGQUIT, handle_signal)
 
-    # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
-    # service running in the host + DB services running in each ASIC namespace created per ASIC.
-    # In the below logic, we get all namespaces in this platform and add an empty namespace ''
-    # denoting the current namespace which we are in ( the linux host )
-    for inst in range(-1, num_cfg_file-1):
-        # Get the namespace name, for linux host it is None
-        if inst == -1:
-            namespace = None
-        else:
-            namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+        thread_service_event = threading.Thread(target=config_reload_log_thread, name='reload', args=(child_pid, outfd,))
+        thread_service_event.start()
+        pid, status = os.waitpid(child_pid, 0)
+        if os.path.isfile(PIPE_FILE):
+            os.remove(PIPE_FILE)
+        thread_service_event.join()
+        if pid:
+            sys.exit(status >> 8)
+        return
+    else:
+        # Decouple from parent environment
+        #os.chdir(os.getcwd())
+        #os.chdir('/')
+        os.setsid( )
+        os.umask(0)
+        infd = open(os.devnull, 'r')
+        #outfd = open(os.devnull, 'a+')
+        os.dup2(infd.fileno(), sys.stdin.fileno())
+        os.dup2(outfd.fileno(), sys.stderr.fileno())
+        os.dup2(outfd.fileno(), sys.stdout.fileno())
 
-        # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
-        if cfg_files:
-            file = cfg_files[inst+1]
-        else:
-            if namespace is None:
-                file = DEFAULT_CONFIG_DB_FILE
-            else:
-                file = "/etc/sonic/config_db{}.json".format(inst)
-
-        # Check the file exists before proceeding.
-        if not os.path.exists(file):
-            click.echo("The config_db file {} doesn't exist".format(file))
-            continue
-
-        if namespace is None:
-            config_db = ConfigDBConnector()
-        else:
-            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-
-        config_db.connect()
-        client = config_db.get_redis_client(config_db.CONFIG_DB)
-        client.flushdb()
+    rv = 0
+    log.log_info("'reload' executing...")
+    try:
         if load_sysinfo:
+            command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
+            proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+            cfg_hwsku, err = proc.communicate()
+            if err:
+                click.echo("Could not get the HWSKU from config file, exiting")
+                log.log_error("Could not get the HWSKU from config file, exiting, err: {}".format(err))
+                os.remove(PIPE_FILE)
+                sys.exit(1)
+            else:
+                cfg_hwsku = cfg_hwsku.strip()
+
+        #disable warm-boot configuration
+        _disable_warm_boot_config()
+
+        #Stop services before config push
+        if not no_service_restart:
+            log.log_info("'reload' stopping services...")
+            _stop_services(db.cfgdb)
+    except Exception as e:
+        log.log_error("'reload' failed at stop services, error: {}".format(e))
+
+    try:
+        # In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+        # service running in the host + DB services running in each ASIC namespace created per ASIC.
+        # In the below logic, we get all namespaces in this platform and add an empty namespace ''
+        # denoting the current namespace which we are in ( the linux host )
+        for inst in range(-1, num_cfg_file-1):
+            # Get the namespace name, for linux host it is None
+            if inst == -1:
+                namespace = None
+            else:
+                namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
+
+            # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
+            if cfg_files:
+                file = cfg_files[inst+1]
+            else:
+                if namespace is None:
+                    file = DEFAULT_CONFIG_DB_FILE
+                else:
+                    file = "/etc/sonic/config_db{}.json".format(inst)
+
+            # Check the file exists before proceeding.
+            if not os.path.exists(file):
+                click.echo("The config_db file {} doesn't exist".format(file))
+                continue
+
             if namespace is None:
-                command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
+                config_db = ConfigDBConnector()
             else:
-                command = "{} -H -k {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku, namespace)
-            clicommon.run_command(command, display_cmd=True)
+                config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
 
-        # For the database service running in linux host we use the file user gives as input
-        # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
-        # the default config_db<namespaceID>.json format is used.
-        if namespace is None:
-            if os.path.isfile(INIT_CFG_FILE):
-                command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file)
-            else:
-                command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
-        else:
-            if os.path.isfile(INIT_CFG_FILE):
-                command = "{} -j {} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file, namespace)
-            else:
-                command = "{} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, file, namespace)
+            config_db.connect()
+            client = config_db.get_redis_client(config_db.CONFIG_DB)
+            client.flushdb()
+            if load_sysinfo:
+                if namespace is None:
+                    command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
+                else:
+                    command = "{} -H -k {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku, namespace)
+                clicommon.run_command(command, display_cmd=True)
 
-        clicommon.run_command(command, display_cmd=True)
-        client.set(config_db.INIT_INDICATOR, 1)
-
-        # Migrate DB contents to latest version
-        db_migrator='/usr/local/bin/db_migrator.py'
-        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+            # For the database service running in linux host we use the file user gives as input
+            # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
+            # the default config_db<namespaceID>.json format is used.
             if namespace is None:
-                command = "{} -o migrate".format(db_migrator)
+                if os.path.isfile(INIT_CFG_FILE):
+                    command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file)
+                else:
+                    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
             else:
-                command = "{} -o migrate -n {}".format(db_migrator, namespace)
-            clicommon.run_command(command, display_cmd=True)
+                if os.path.isfile(INIT_CFG_FILE):
+                    command = "{} -j {} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file, namespace)
+                else:
+                    command = "{} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, file, namespace)
 
-    # We first run "systemctl reset-failed" to remove the "failed"
-    # status from all services before we attempt to restart them
-    if not no_service_restart:
-        _reset_failed_services(db.cfgdb)
-        log.log_info("'reload' restarting services...")
-        _restart_services(db.cfgdb)
+            clicommon.run_command(command, display_cmd=True)
+            client.set(config_db.INIT_INDICATOR, 1)
+
+            # Migrate DB contents to latest version
+            db_migrator='/usr/local/bin/db_migrator.py'
+            if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+                if namespace is None:
+                    command = "{} -o migrate".format(db_migrator)
+                else:
+                    command = "{} -o migrate -n {}".format(db_migrator, namespace)
+                clicommon.run_command(command, display_cmd=True)
+
+
+        # We first run "systemctl reset-failed" to remove the "failed"
+        # status from all services before we attempt to restart them
+        if not no_service_restart:
+            _reset_failed_services(db.cfgdb)
+            log.log_info("'reload' restarting services...")
+            rc = _restart_services(db.cfgdb)
+            rv |= rc
+            if rv == 0:
+                log.log_info("'reload' complete!")
+                click.echo('Reload complete!')
+            else:
+                log.log_info("'reload' failed!")
+                click.echo('Reload failed!')
+    except Exception as e:
+        log.log_error("'reload' failed, error: {}".format(e))
+        rv = 1
+
+    if os.path.isfile(PIPE_FILE):
+        os.remove(PIPE_FILE)
+
+    if rv != 0:
+        click.echo('Error encountered while starting one or more services.')
+        click.echo('Please refer to the Command Reference Guide for recovery instructions.')
+    sys.exit(rv)
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
