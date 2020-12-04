@@ -756,7 +756,7 @@ def _restart_services(config_db):
         click.echo("Reloading Monit configuration ...")
         clicommon.run_command("sudo monit reload")
     except Exception as e:
-        log.log_error("'_restart_verify_services' start services failed, error: {}".format(e))
+        log.log_error("'_restart_services' start services failed, error: {}".format(e))
         result = 1
 
     return result
@@ -1007,7 +1007,7 @@ def load(filename, yes):
         clicommon.run_command(command, display_cmd=True)
 
 def handle_signal(signum, frame):
-    cmd= "command execution is aborted, received signal {}".format(signum)
+    cmd = "command execution is aborted, received signal {}".format(signum)
     print(cmd)
     log.log_info(cmd)
     if child_pid != 0 :
@@ -1018,18 +1018,17 @@ def ignore_signal(signum, frame):
     infd = open(os.devnull, 'r')
     os.dup2(infd.fileno(), sys.stdin.fileno())
 
-    #outfd = open(os.devnull, 'a+')
     outfd = open(PIPE_FILE, 'a+')
     os.dup2(outfd.fileno(), sys.stderr.fileno())
     os.dup2(outfd.fileno(), sys.stdout.fileno())
 
-    cmd= "command execution is continued, received signal {}".format(signum)
+    cmd = "command execution is continued, received signal {}".format(signum)
     log.log_info(cmd)
     return
 
 # tail the output of reload command
 def config_reload_log_thread(pid, outfd):
-    os.system("tail -f --pid={} {}".format(pid,PIPE_FILE))
+    os.system("tail -f --pid={} {}".format(pid, PIPE_FILE))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
@@ -1072,7 +1071,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     outfd = open(PIPE_FILE, 'w+')
 
     child_pid=os.fork()
-        #Parent: wait for child to exit
+    # Parent: wait for child to exit
     if child_pid :
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
         signal.signal(signal.SIGINT, handle_signal)
@@ -1089,12 +1088,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         return
     else:
         # Decouple from parent environment
-        #os.chdir(os.getcwd())
-        #os.chdir('/')
         os.setsid( )
         os.umask(0)
         infd = open(os.devnull, 'r')
-        #outfd = open(os.devnull, 'a+')
         os.dup2(infd.fileno(), sys.stdin.fileno())
         os.dup2(outfd.fileno(), sys.stderr.fileno())
         os.dup2(outfd.fileno(), sys.stdout.fileno())
@@ -1114,10 +1110,10 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             else:
                 cfg_hwsku = cfg_hwsku.strip()
 
-        #disable warm-boot configuration
+        # disable warm-boot configuration
         _disable_warm_boot_config()
 
-        #Stop services before config push
+        # Stop services before config push
         if not no_service_restart:
             log.log_info("'reload' stopping services...")
             _stop_services(db.cfgdb)
