@@ -118,36 +118,31 @@ def config(db):
             for (vlan, interface_name) in member_data:
                 if vlan == k:
                     members.add(interface_name)
-            if members:
-                for m in natsorted(list(members)):
-                    r = []
-                    r.append(k)
-                    r.append(data[k]['vlanid'])
-                    if clicommon.get_interface_naming_mode() == "alias":
-                        alias = clicommon.InterfaceAliasConverter(db).name_to_alias(m)
-                        r.append(alias)
-                    else:
-                        r.append(m)
 
-                    entry = db.cfgdb.get_entry('VLAN_MEMBER', (k, m))
-                    mode = entry.get('tagging_mode')
-                    if mode is None:
-                        r.append('?')
-                    else:
-                        r.append(mode)
-
-                    table.append(r)
-            else:
+            for m in natsorted(list(members)):
                 r = []
                 r.append(k)
                 r.append(data[k]['vlanid'])
+                if clicommon.get_interface_naming_mode() == "alias":
+                    alias = clicommon.InterfaceAliasConverter(db).name_to_alias(m)
+                    r.append(alias)
+                else:
+                    r.append(m)
+
+                entry = db.cfgdb.get_entry('VLAN_MEMBER', (k, m))
+                mode = entry.get('tagging_mode')
+                if mode is None:
+                    r.append('?')
+                else:
+                    r.append(mode)
+
                 table.append(r)
 
         return table
 
     header = ['Name', 'VID', 'Member', 'Mode']
     click.echo(tabulate(tablelize(keys, data), header))
-
+    
 @vlan.command()
 @clicommon.pass_db
 def count(db):
