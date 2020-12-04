@@ -1036,6 +1036,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     if not yes:
         click.confirm(message, abort=True)
 
+    global child_pid
+
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
