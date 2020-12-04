@@ -1,9 +1,8 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import sys
 import os
-from swsssdk import SonicV2Connector
 from tabulate import tabulate
 
 # mock the redis for unit test purposes #
@@ -16,6 +15,8 @@ try:
         import mock_tables.dbconnector
 except KeyError:
     pass
+
+from swsscommon.swsscommon import SonicV2Connector
 
 def psu_status_show(index):
     db = SonicV2Connector(host="127.0.0.1")
@@ -60,7 +61,6 @@ def psu_status_show(index):
 
 def main():
     parser = argparse.ArgumentParser(description='Display the psu status information',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
 Examples:
@@ -69,6 +69,7 @@ Examples:
 
     parser.add_argument('-s', '--status', action='store_true', help='show the status information')
     parser.add_argument('-i', '--index', type=int, default=-1, help='the index of psu')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     status_show = args.status

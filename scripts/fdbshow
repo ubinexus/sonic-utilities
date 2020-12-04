@@ -31,8 +31,8 @@ import json
 import sys
 
 from natsort import natsorted
-from swsssdk import SonicV2Connector, port_util
-#from swsscommon.swsscommon import SonicV2Connector
+from swsssdk import port_util
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 class FdbShow(object):
@@ -75,22 +75,8 @@ class FdbShow(object):
             fdb = json.loads(fdb_entry .split(":", 2)[-1])
             if not fdb:
                 continue
-            fdb_list.append(fdb)
-            pipe.hgetall(s)
-        values = pipe.execute()
-        client = self.db.get_redis_client(self.db.ASIC_DB)
-        pipe = client.pipeline()
-        vlans = []
-        vlan_keys = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_VLAN:*")
-        for v in vlan_keys:
-            pipe.hgetall(v)
-        vlans = pipe.execute()
 
-        posi = 0
-        for ent in values:
-            if 'SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID' not in ent:
-                posi = posi + 1
-                continue
+            ent = self.db.get_all('ASIC_DB', s, blocking=True)
             br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
             ent_type = ent["SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]

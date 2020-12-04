@@ -1,5 +1,4 @@
 import json
-import netaddr
 import os
 import subprocess
 import sys
@@ -788,6 +787,7 @@ def get_if_master(iface):
 @ip.command()
 def interfaces():
     """Show interfaces IPv4 address"""
+    import netaddr
     header = ['Interface', 'Master', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     bgp_peer = get_bgp_peer()
@@ -1303,6 +1303,7 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ntp(ctx, verbose):
     """Show NTP information"""
+    from pkg_resources import parse_version
     ntpstat_cmd = "ntpstat"
     ntpcmd = "ntpq -p -n"
     if is_mgmt_vrf_enabled(ctx) is True:
