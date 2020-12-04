@@ -63,7 +63,7 @@ PIPE_FILE = "/tmp/reload.txt"
 
 
 asic_type = None
-child_pid=0
+child_pid = 0
 
 #
 # Breakout Mode Helper functions
