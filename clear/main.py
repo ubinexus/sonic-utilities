@@ -1,15 +1,9 @@
-#! /usr/bin/python -u
-
-import click
+import configparser
 import os
 import subprocess
+import sys
 
-try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import configparser
+import click
 
 
 # This is from the aliases example:
@@ -84,6 +78,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
+                                text=True,
                                 stderr=subprocess.STDOUT)
         stdout = proc.communicate()[0]
         proc.wait()
@@ -99,11 +94,12 @@ def get_routing_stack():
 routing_stack = get_routing_stack()
 
 
-def run_command(command, pager=False, return_output=False):
+def run_command(command, pager=False, return_output=False, return_exitstatus=False):
     # Provide option for caller function to Process the output.
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     if return_output:
-        return proc.communicate()
+        output = proc.communicate()
+        return output if not return_exitstatus else output + (proc.returncode,)
     elif pager:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
         click.echo_via_pager(proc.stdout.read())
@@ -365,11 +361,14 @@ def clear_vlan_fdb(vlanid):
 # 'line' command
 #
 @cli.command('line')
-@click.argument('linenum')
-def line(linenum):
+@click.argument('target')
+@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
+def line(target, devicename):
     """Clear preexisting connection to line"""
-    cmd = "consutil clear " + str(linenum)
-    run_command(cmd)
+    cmd = "consutil clear {}".format("--devicename " if devicename else "") + str(target)
+    (output, _, exitstatus) = run_command(cmd, return_output=True, return_exitstatus=True)
+    click.echo(output)
+    sys.exit(exitstatus)
 
 #
 # 'nat' group ("clear nat ...")

@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/python3
+
 """
     Script to show MAC/FDB entries learnt in Hardware
     
@@ -31,6 +32,7 @@ import sys
 
 from natsort import natsorted
 from swsssdk import SonicV2Connector, port_util
+#from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 class FdbShow(object):
@@ -40,7 +42,7 @@ class FdbShow(object):
 
     def __init__(self):
         super(FdbShow,self).__init__()
-        self.db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+        self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, \
         self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
@@ -50,7 +52,7 @@ class FdbShow(object):
     def fetch_fdb_data(self):
         """
             Fetch FDB entries from ASIC DB. 
-            FDB entries are sorted on "VlanID" and stored as a list of tuples
+            FDB entries are sorted on "VlanID" plus MAC addr, and stored as a list of tuples
         """
         self.db.connect(self.db.ASIC_DB)
         self.bridge_mac_list = []
@@ -64,7 +66,7 @@ class FdbShow(object):
 
         oid_pfx = len("oid:0x")
 
-        client = self.db.redis_clients["ASIC_DB"]
+        client = self.db.get_redis_client(self.db.ASIC_DB)
         pipe = client.pipeline()
         values = []
         fdb_list = []
@@ -76,43 +78,48 @@ class FdbShow(object):
             fdb_list.append(fdb)
             pipe.hgetall(s)
         values = pipe.execute()
+        client = self.db.get_redis_client(self.db.ASIC_DB)
+        pipe = client.pipeline()
+        vlans = []
         vlan_keys = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_VLAN:*")
         for v in vlan_keys:
             pipe.hgetall(v)
-        pipe.execute()
+        vlans = pipe.execute()
 
         posi = 0
         for ent in values:
             if 'SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID' not in ent:
                 posi = posi + 1
                 continue
-            br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
-            ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
+            br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            ent_type = ent["SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
-            if br_port_id not in self.if_br_oid_map:
+            if (br_port_id not in self.if_br_oid_map):
                 posi = posi + 1
                 continue
+
             port_id = self.if_br_oid_map[br_port_id]
 
-            #When if_name not mapped to port_id in DB, using port_id as if_name in the display.
+            #FIXME: When if_name not mapped to port_id in DB, using port_id as if_name in the display.
             try:
                 if_name = self.if_oid_map[port_id]
-            except Exception:
+            except:
                 if_name = port_id
-                
+
+            #FIXME: When VLAN Id for fdb entry not present in DB, then not displaying the fdb entry.
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
             elif 'bvid' in fdb:
                 try:
-                    vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
-                except Exception:
-                    vlan_id = fdb["bvid"]
-                    print("Failed to get Vlan id for bvid {}\n".format(fdb["bvid"]))
-            self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
+                    vlan_id  = vlans[vlan_keys.index("ASIC_STATE:SAI_OBJECT_TYPE_VLAN:{}".format(fdb_list[posi][u'bvid']))] ["SAI_VLAN_ATTR_VLAN_ID"]
+                except:
+                    posi = posi + 1
+                    continue
+            self.bridge_mac_list.append((int(vlan_id),) + (fdb_list[posi]["mac"],) + (if_name,) + (fdb_type,))
+            posi = posi + 1
 
-        self.bridge_mac_list.sort(key = lambda x: x[0])
+        self.bridge_mac_list.sort(key = lambda x: (x[0], x[1]))
         return
-    
     
     def get_iter_index(self, key_value=0, pos=0):
         """
@@ -150,7 +157,7 @@ class FdbShow(object):
             output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
 
         print(tabulate(output, self.HEADER))
-        print("Total number of entries {0}".format(self.FDB_COUNT))
+        print("Total number of entries {0} ".format(self.FDB_COUNT))
 
 
 def main():

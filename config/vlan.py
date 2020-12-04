@@ -1,5 +1,8 @@
 import click
 import utilities_common.cli as clicommon
+import re
+import logging
+from itertools import count, groupby
 
 from time import sleep
 from .utils import log
@@ -137,6 +140,11 @@ def add_vlan_member(db, vid, port, untagged):
        (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
         ctx.fail("{} is a router interface!".format(port))
 
+    vlan_in_db = db.cfgdb.get_entry('VLAN', vlan)
+    members = vlan_in_db.get('members', [])
+    members.append(port)
+    vlan_in_db['members'] = members
+    db.cfgdb.set_entry('VLAN', vlan, vlan_in_db)
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
 
 @vlan_member.command('del')
@@ -167,6 +175,15 @@ def del_vlan_member(db, vid, port):
     if not clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
         ctx.fail("{} is not a member of {}".format(port, vlan))
 
+    vlan_in_db = db.cfgdb.get_entry('VLAN', vlan)
+    members = vlan_in_db.get('members', [])
+    vlan_in_db['members'] = members
+    members.remove(port)
+    if len(members) == 0:
+        del vlan_in_db['members']
+    else:
+        vlan_in_db['members'] = members
+    db.cfgdb.set_entry('VLAN', vlan, vlan_in_db)
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), None)
 
 @vlan.group(cls=clicommon.AbbreviationGroup, name='dhcp_relay')
@@ -201,7 +218,9 @@ def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
     click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
     try:
         click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl restart dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
     except SystemExit as e:
         ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
 
@@ -235,7 +254,9 @@ def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
     click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
     try:
         click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl restart dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
+        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
     except SystemExit as e:
         ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
 
@@ -261,6 +282,15 @@ def vlan_range_validate(vid1, vid2):
 
     if vid2 <= vid1:
         ctx.fail(" vid2 should be greater than vid1")
+
+#
+# Return a string with ranges separated by hyphen.
+#
+def get_hyphenated_string(vlan_list):
+    vlan_list.sort()
+    G = (list(x) for _,x in groupby(vlan_list, lambda x,c=count(): next(c)-x))
+    hyphenated_string = ",".join("-".join(map(str,(g[0],g[-1])[:len(g)])) for g in G)
+    return hyphenated_string
 
 #
 # 'range' group ('config vlan range ...')
@@ -516,16 +546,6 @@ def add_vlan_member_range(db, vid1, vid2, interface_name, untagged, warning):
     warning_membership_list = []
     clients = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
     pipe = clients.pipeline()
-
-    # Validate if interface has IP configured
-    # in physical and port channel tables
-    for k,v in db.cfgdb.get_table('INTERFACE').iteritems():
-        if k == interface_name:
-            ctx.fail(" {} has ip address configured".format(interface_name))
-
-    for k,v in db.cfgdb.get_table('PORTCHANNEL_INTERFACE').iteritems():
-        if k == interface_name:
-            ctx.fail(" {} has ip address configured".format(interface_name))
 
     for k,v in db.cfgdb.get_table('PORTCHANNEL_MEMBER'):
         if v == interface_name:
