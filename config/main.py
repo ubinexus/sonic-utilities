@@ -952,6 +952,23 @@ def handle_signal(signum, frame):
 def config_reload_log_thread(pid, outfd):
     os.system("tail -f --pid={} {}".format(pid, RELOAD_PIPE_FILE))
 
+def ignore_signal(signum, frame):
+    infd = open(os.devnull, 'r')
+    os.dup2(infd.fileno(), sys.stdin.fileno())
+
+    #outfd = open(os.devnull, 'a+')
+    outfd = open(PIPE_FILE, 'a+')
+    os.dup2(outfd.fileno(), sys.stderr.fileno())
+    os.dup2(outfd.fileno(), sys.stdout.fileno())
+
+    cmd= "command execution is continued, received signal {}".format(signum)
+    log.log_info(cmd)
+    return
+
+# tail the output of reload command
+def config_reload_log_thread(pid, outfd):
+    os.system("tail -f --pid={} {}".format(pid,PIPE_FILE))
+
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
@@ -1139,6 +1156,14 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, background):
 
     if rv != 0:
         click.echo('Error encountered while starting one or more services.')
+    sys.exit(rv)
+
+    if os.path.isfile(PIPE_FILE):
+        os.remove(PIPE_FILE)
+
+    if rv != 0:
+        click.echo('Error encountered while starting one or more services.')
+        click.echo('Please refer to the Command Reference Guide for recovery instructions.')
     sys.exit(rv)
 
 @config.command("load_mgmt_config")
