@@ -966,7 +966,7 @@ def ignore_signal(signum, frame):
 
 # tail the output of reload command
 def config_reload_log_thread(pid, outfd):
-    os.system("tail -f --pid={} {}".format(pid, PIPE_FILE))
+    os.system("tail -f --pid={} {}".format(pid, RELOAD_PIPE_FILE))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
@@ -1157,8 +1157,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, background):
         click.echo('Error encountered while starting one or more services.')
     sys.exit(rv)
 
-    if os.path.isfile(PIPE_FILE):
-        os.remove(PIPE_FILE)
+    if os.path.isfile(RELOAD_PIPE_FILE):
+        os.remove(RELOAD_PIPE_FILE)
 
     if rv != 0:
         click.echo('Error encountered while starting one or more services.')
