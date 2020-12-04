@@ -59,7 +59,7 @@ CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
-PIPE_FILE = "/tmp/reload.txt"
+RELOAD_PIPE_FILE = "/tmp/reload.txt"
 
 
 asic_type = None
@@ -1014,21 +1014,9 @@ def handle_signal(signum, frame):
        os.kill(child_pid, signal.SIGTERM)
     sys.exit()
 
-def ignore_signal(signum, frame):
-    infd = open(os.devnull, 'r')
-    os.dup2(infd.fileno(), sys.stdin.fileno())
-
-    outfd = open(PIPE_FILE, 'a+')
-    os.dup2(outfd.fileno(), sys.stderr.fileno())
-    os.dup2(outfd.fileno(), sys.stdout.fileno())
-
-    cmd = "command execution is continued, received signal {}".format(signum)
-    log.log_info(cmd)
-    return
-
 # tail the output of reload command
 def config_reload_log_thread(pid, outfd):
-    os.system("tail -f --pid={} {}".format(pid, PIPE_FILE))
+    os.system("tail -f --pid={} {}".format(pid, RELOAD_PIPE_FILE))
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
@@ -1048,9 +1036,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     if not yes:
         click.confirm(message, abort=True)
 
-    global child_pid
-    global PIPE_FILE
-
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
@@ -1066,9 +1051,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    if os.path.isfile(PIPE_FILE):
-        os.remove(PIPE_FILE)
-    outfd = open(PIPE_FILE, 'w+')
+    if os.path.isfile(RELOAD_PIPE_FILE):
+        os.remove(RELOAD_PIPE_FILE)
+    outfd = open(RELOAD_PIPE_FILE, 'w+')
 
     child_pid=os.fork()
     # Parent: wait for child to exit
@@ -1080,8 +1065,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         thread_service_event = threading.Thread(target=config_reload_log_thread, name='reload', args=(child_pid, outfd,))
         thread_service_event.start()
         pid, status = os.waitpid(child_pid, 0)
-        if os.path.isfile(PIPE_FILE):
-            os.remove(PIPE_FILE)
+        if os.path.isfile(RELOAD_PIPE_FILE):
+            os.remove(RELOAD_PIPE_FILE)
         thread_service_event.join()
         if pid:
             sys.exit(status >> 8)
@@ -1105,7 +1090,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             if err:
                 click.echo("Could not get the HWSKU from config file, exiting")
                 log.log_error("Could not get the HWSKU from config file, exiting, err: {}".format(err))
-                os.remove(PIPE_FILE)
+                os.remove(RELOAD_PIPE_FILE)
                 sys.exit(1)
             else:
                 cfg_hwsku = cfg_hwsku.strip()
@@ -1205,8 +1190,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         log.log_error("'reload' failed, error: {}".format(e))
         rv = 1
 
-    if os.path.isfile(PIPE_FILE):
-        os.remove(PIPE_FILE)
+    if os.path.isfile(RELOAD_PIPE_FILE):
+        os.remove(RELOAD_PIPE_FILE)
 
     if rv != 0:
         click.echo('Error encountered while starting one or more services.')
