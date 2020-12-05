@@ -6,7 +6,6 @@ import sys
 
 import click
 import json
-import netaddr
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
@@ -191,6 +190,7 @@ def get_interface_naming_mode():
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
+    import netaddr
     if not val:
         return False
     try:
@@ -458,25 +458,31 @@ def run_command_in_alias_mode(command):
 
 
 def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False):
-    """Run bash command and print output to stdout
+    """
+    Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
+    return code, the function will exit with that return code.
+
+    Args:
+        display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
+        ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
+        return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
+        interactive_mode: Boolean; If true, it will treat the process as a long-running process which may generate
+                          multiple lines of output over time
     """
 
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
-    if os.getenv("UTILITIES_UNIT_TESTING") == "1":
-        return
-
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
     if get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
         run_command_in_alias_mode(command)
-        raise sys.exit(0)
+        sys.exit(0)
 
     proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
-        output = proc.communicate()[0].decode("utf-8")
+        output = proc.communicate()[0]
         return output
 
     if not interactive_mode:
