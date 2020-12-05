@@ -8,12 +8,15 @@ from utilities_common import constants
 
 class MultiAsic(object):
 
-    def __init__(self, display_option=constants.DISPLAY_ALL,
-                 namespace_option=None):
+    def __init__(
+        self, display_option=constants.DISPLAY_ALL, namespace_option=None,
+        db=None
+    ):
         self.namespace_option = namespace_option
         self.display_option = display_option
         self.current_namespace = None
         self.is_multi_asic = multi_asic.is_multi_asic()
+        self.db = db
 
     def is_object_internal(self, object_type, cli_object):
         '''
@@ -121,19 +124,13 @@ def run_on_multi_asic(func):
         for ns in ns_list:
             self.multi_asic.current_namespace = ns
             # if object instance already has db connections, use them
-            if (hasattr(self, 'db_clients') and
-                    self.db_clients and
-                    ns in self.db_clients.config_db_clients and
-                    self.db_clients.config_db_clients[ns]):
-                self.config_db = self.db_clients.config_db_clients[ns]
+            if self.multi_asic.db and self.multi_asic.db.cfgdb_clients.get(ns):
+                self.config_db = self.multi_asic.db.cfgdb_clients[ns]
             else:
                 self.config_db = multi_asic.connect_config_db_for_ns(ns)
 
-            if (hasattr(self, 'db_clients') and
-                    self.db_clients and
-                    ns in self.db_clients.db_clients and
-                    self.db_clients.db_clients[ns]):
-                self.db = self.db_clients.db_clients[ns]
+            if self.multi_asic.db and self.multi_asic.db.db_clients.get(ns):
+                self.db = self.multi_asic.db.db_clients[ns]
             else:
                 self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
 

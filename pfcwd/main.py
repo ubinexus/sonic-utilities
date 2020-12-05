@@ -3,6 +3,8 @@ import sys
 
 import click
 
+import utilities_common.cli as clicommon
+
 from natsort import natsorted
 from sonic_py_common.multi_asic import get_external_ports
 from tabulate import tabulate
@@ -53,8 +55,7 @@ CONFIG_DB_PFC_WD_TABLE_NAME = 'PFC_WD'
 
 # Main entrypoint
 @click.group()
-@click.pass_context
-def cli(ctx):
+def cli():
     """ SONiC PFC Watchdog """
 
 
@@ -99,14 +100,18 @@ def get_server_facing_ports(db):
 
 
 class PfcwdCli(object):
-    def __init__(self, ctx, namespace=None, display=constants.DISPLAY_ALL):
+    def __init__(
+        self, ctx, db=None, namespace=None, display=constants.DISPLAY_ALL
+    ):
         self.db = None
         self.config_db = None
-        self.multi_asic = multi_asic_util.MultiAsic(display, namespace)
+        # ctx.obj contains the Db object set by clicommon.pass_db decorator
+        # Unit tests over write the ctx.obj with test Db object, using ctx.obj
+        self.multi_asic = multi_asic_util.MultiAsic(
+            display, namespace, ctx.obj
+        )
         self.table = []
         self.all_ports = []
-        if ctx.obj and isinstance(ctx.obj, dict):
-            self.db_clients = ctx.obj.get("db_clients", None)
 
     @multi_asic_util.run_on_multi_asic
     def collect_stats(self, empty, queues):
@@ -400,33 +405,35 @@ class PfcwdCli(object):
             pfcwd_info
         )
 
+
 # Show stats
 class Show(object):
     # Show commands
     @cli.group()
-    @click.pass_context
-    def show(ctx):
+    def show():
         """ Show PFC Watchdog information"""
 
     @show.command()
     @multi_asic_util.multi_asic_click_options
     @click.option('-e', '--empty', is_flag=True)
     @click.argument('queues', nargs=-1)
+    @clicommon.pass_db
     @click.pass_context
-    def stats(ctx, namespace, display, empty, queues):
+    def stats(ctx, db, namespace, display, empty, queues):
         """ Show PFC Watchdog stats per queue """
         if (len(queues)):
             display = constants.DISPLAY_ALL
-        PfcwdCli(ctx, namespace, display).show_stats(empty, queues)
+        PfcwdCli(ctx, db, namespace, display).show_stats(empty, queues)
 
     # Show config
     @show.command()
     @multi_asic_util.multi_asic_click_options
     @click.argument('ports', nargs=-1)
+    @clicommon.pass_db
     @click.pass_context
-    def config(ctx, namespace, display, ports):
+    def config(ctx, db, namespace, display, ports):
         """ Show PFC Watchdog configuration """
-        PfcwdCli(ctx, namespace, display).config(ports)
+        PfcwdCli(ctx, db, namespace, display).config(ports)
 
 
 # Start WD
@@ -438,8 +445,9 @@ class Start(object):
     @click.option('--restoration-time', '-r', type=click.IntRange(100, 60000))
     @click.argument('ports', nargs=-1)
     @click.argument('detection-time', type=click.IntRange(100, 5000))
+    @clicommon.pass_db
     @click.pass_context
-    def start(ctx, action, restoration_time, ports, detection_time):
+    def start(ctx, db, action, restoration_time, ports, detection_time):
         """
         Start PFC watchdog on port(s). To config all ports, use all as input.
 
@@ -448,57 +456,63 @@ class Start(object):
         sudo pfcwd start --action drop ports all detection-time 400 --restoration-time 400
 
         """
-        PfcwdCli(ctx).start(
+        PfcwdCli(ctx, db).start(
             action, restoration_time, ports, detection_time
         )
+
 
 # Set WD poll interval
 class Interval(object):
     @cli.command()
     @click.argument('poll_interval', type=click.IntRange(100, 3000))
+    @clicommon.pass_db
     @click.pass_context
-    def interval(ctx, poll_interval):
+    def interval(ctx, db, poll_interval):
         """ Set PFC watchdog counter polling interval """
-        PfcwdCli(ctx).interval(poll_interval)
+        PfcwdCli(ctx, db).interval(poll_interval)
 
 
 # Stop WD
 class Stop(object):
     @cli.command()
     @click.argument('ports', nargs=-1)
+    @clicommon.pass_db
     @click.pass_context
-    def stop(ctx, ports):
+    def stop(ctx, db, ports):
         """ Stop PFC watchdog on port(s) """
-        PfcwdCli(ctx).stop(ports)
+        PfcwdCli(ctx, db).stop(ports)
 
 
 # Set WD default configuration on server facing ports when enable flag is on
 class StartDefault(object):
     @cli.command("start_default")
+    @clicommon.pass_db
     @click.pass_context
-    def start_default(ctx):
+    def start_default(ctx, db):
         """ Start PFC WD by default configurations  """
-        PfcwdCli(ctx).start_default()
+        PfcwdCli(ctx, db).start_default()
 
 
 # Enable/disable PFC WD counter polling
 class CounterPoll(object):
     @cli.command('counter_poll')
     @click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
+    @clicommon.pass_db
     @click.pass_context
-    def counter_poll(ctx, counter_poll):
+    def counter_poll(ctx, db, counter_poll):
         """ Enable/disable counter polling """
-        PfcwdCli(ctx).counter_poll(counter_poll)
+        PfcwdCli(ctx, db).counter_poll(counter_poll)
 
 
 # Enable/disable PFC WD BIG_RED_SWITCH mode
 class BigRedSwitch(object):
     @cli.command('big_red_switch')
     @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
+    @clicommon.pass_db
     @click.pass_context
-    def big_red_switch(ctx, big_red_switch):
+    def big_red_switch(ctx, db, big_red_switch):
         """ Enable/disable BIG_RED_SWITCH mode """
-        PfcwdCli(ctx).big_red_switch(big_red_switch)
+        PfcwdCli(ctx, db).big_red_switch(big_red_switch)
 
 
 def get_pfcwd_clis():

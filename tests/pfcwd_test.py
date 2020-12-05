@@ -3,9 +3,9 @@ import os
 import sys
 
 from click.testing import CliRunner
-from utilities_common.db import MasicDb
+from utilities_common.db import Db
 
-from pfcwd_input.pfcwd_test_vectors import *
+from .pfcwd_input.pfcwd_test_vectors import *
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -48,7 +48,7 @@ class TestPfcwd(object):
     def executor(self, testcase):
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db_clients = MasicDb()
+        db_clients = Db()
 
         for input in testcase:
             exec_cmd = ""
@@ -59,7 +59,7 @@ class TestPfcwd(object):
 
             if 'db' in input and input['db']:
                 result = runner.invoke(
-                    exec_cmd, input['args'], obj={"db_clients": db_clients}
+                    exec_cmd, input['args'], obj=db_clients
                 )
             else:
                 result = runner.invoke(exec_cmd, input['args'])
@@ -82,12 +82,12 @@ class TestPfcwd(object):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db_clients = MasicDb()
+        db_clients = Db()
 
         # get initial config
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.output == pfcwd_show_config_output
@@ -98,7 +98,7 @@ class TestPfcwd(object):
                 "--action", "forward", "--restoration-time", "101",
                 "Ethernet0", "102"
             ],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.exit_code == 0
@@ -106,7 +106,7 @@ class TestPfcwd(object):
         # get config after the change
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.exit_code == 0
@@ -116,7 +116,7 @@ class TestPfcwd(object):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db_clients = MasicDb()
+        db_clients = Db()
 
         result = runner.invoke(
             pfcwd.cli.commands["start"],
@@ -124,7 +124,7 @@ class TestPfcwd(object):
                 "--action", "forward", "--restoration-time", "101",
                 "Ethernet1000", "102"
             ],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.exit_code == 0
@@ -197,11 +197,11 @@ class TestMultiAsicPfcwdShow(object):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db_clients = MasicDb()
+        db_clients = Db()
         # get initial config
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.output == show_pfc_config_all
@@ -212,7 +212,7 @@ class TestMultiAsicPfcwdShow(object):
                 "--action", "forward", "--restoration-time", "101",
                 "Ethernet0", "Ethernet-BP4", "102"
             ],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.exit_code == 0
@@ -220,7 +220,7 @@ class TestMultiAsicPfcwdShow(object):
         # get config after the change
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.exit_code == 0
@@ -230,7 +230,7 @@ class TestMultiAsicPfcwdShow(object):
         # --action drop --restoration-time 200 Ethernet0 Ethernet500 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db_clients = MasicDb()
+        db_clients = Db()
 
         result = runner.invoke(
             pfcwd.cli.commands["start"],
@@ -238,7 +238,7 @@ class TestMultiAsicPfcwdShow(object):
                 "--action", "forward", "--restoration-time", "101",
                 "Ethernet0", "Ethernet-500", "102"
             ],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.exit_code == 0
@@ -247,7 +247,7 @@ class TestMultiAsicPfcwdShow(object):
         # get config after the command, config shoudln't change
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
-            obj={"db_clients": db_clients}
+            obj=db_clients
         )
         print(result.output)
         assert result.exit_code == 0
