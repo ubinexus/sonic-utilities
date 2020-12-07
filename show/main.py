@@ -8,7 +8,6 @@ import netifaces
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
-from pkg_resources import parse_version
 from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
@@ -637,20 +636,22 @@ def pwm_buffer_pool():
 # 'mac' command ("show mac ...")
 #
 
-@cli.group(invoke_without_command=True)
-@click.pass_context
+@cli.command()
 @click.option('-v', '--vlan')
 @click.option('-p', '--port')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def mac(ctx, vlan, port, verbose):
+def mac(vlan, port, verbose):
     """Show MAC (FDB) entries"""
-    if ctx.invoked_subcommand is None:
-        cmd = "fdbshow"
-        if vlan is not None:
-            cmd += " -v {}".format(vlan)
-        if port is not None:
-            cmd += " -p {}".format(port)
-        run_command(cmd, display_cmd=verbose)
+
+    cmd = "fdbshow"
+
+    if vlan is not None:
+        cmd += " -v {}".format(vlan)
+
+    if port is not None:
+        cmd += " -p {}".format(port)
+
+    run_command(cmd, display_cmd=verbose)
 
 @mac.command()
 def aging_time():
