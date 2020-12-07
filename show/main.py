@@ -668,7 +668,6 @@ def aging_time():
                 age_time = switch_table[key]['fdb_aging_time']
             except KeyError:
                 age_time = '0'
-                pass
     output = 'Mac Aging-Time : '
     output += ('%s seconds\n' % (str(age_time)))
     click.echo(output)
