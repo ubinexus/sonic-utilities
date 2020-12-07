@@ -103,7 +103,7 @@ class FdbShow(object):
             #FIXME: When if_name not mapped to port_id in DB, using port_id as if_name in the display.
             try:
                 if_name = self.if_oid_map[port_id]
-            except:
+            except Exception as e:
                 if_name = port_id
 
             #FIXME: When VLAN Id for fdb entry not present in DB, then not displaying the fdb entry.
@@ -112,9 +112,10 @@ class FdbShow(object):
             elif 'bvid' in fdb:
                 try:
                     vlan_id  = vlans[vlan_keys.index("ASIC_STATE:SAI_OBJECT_TYPE_VLAN:{}".format(fdb_list[posi][u'bvid']))] ["SAI_VLAN_ATTR_VLAN_ID"]
-                except:
+                except Exception as e:
                     posi = posi + 1
                     continue
+
             self.bridge_mac_list.append((int(vlan_id),) + (fdb_list[posi]["mac"],) + (if_name,) + (fdb_type,))
             posi = posi + 1
 
