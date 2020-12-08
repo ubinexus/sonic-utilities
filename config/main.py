@@ -1630,8 +1630,8 @@ def _update_buffer_calculation_model(config_db, model):
     device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
     if device_metadata.get('buffer_model') != model:
         buffer_model_changed = True
-    device_metadata['buffer_model'] = model
-    config_db.set_entry('DEVICE_METADATA', 'localhost', device_metadata)
+        device_metadata['buffer_model'] = model
+        config_db.set_entry('DEVICE_METADATA', 'localhost', device_metadata)
     return buffer_model_changed
 
 @qos.command('reload')

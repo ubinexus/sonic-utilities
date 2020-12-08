@@ -1365,7 +1365,7 @@
     "BUFFER_PROFILE|alpha_profile": {
         "dynamic_th": "0",
         "pool": "[BUFFER_POOL|ingress_lossless_pool]",
-	"headroom_type": "dynamic"
+        "headroom_type": "dynamic"
     },
     "BUFFER_PG|Ethernet0|3-4": {
         "profile": "NULL"
