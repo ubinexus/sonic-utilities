@@ -32,6 +32,7 @@ BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
 FEATURE_KEY = "console_mgmt"
+FEATURE_ENABLED_KEY = "enabled"
 
 # STATE_DB Keys
 STATE_KEY = "state"

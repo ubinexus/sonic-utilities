@@ -505,7 +505,7 @@ class TestConsutil(object):
     def test_consutil_feature_disabled_config(self):
         runner = CliRunner()
         db = Db()
-        db.cfgdb.set_entry("CONSOLE_SWITCH", "", { "console_mgmt" : "0" })
+        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "no" })
 
         result = runner.invoke(consutil.consutil, ['show'], obj=db)
         print(result.exit_code)
@@ -518,7 +518,7 @@ class TestConsutil(object):
     def test_consutil_feature_enabled(self):
         runner = CliRunner()
         db = Db()
-        db.cfgdb.set_entry("CONSOLE_SWITCH", "", { "console_mgmt" : "1" })
+        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "yes" })
 
         result = runner.invoke(consutil.consutil, ['show'], obj=db)
         print(result.exit_code)

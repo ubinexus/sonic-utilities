@@ -20,9 +20,10 @@ def enable_console_switch(db):
 
     table = "CONSOLE_SWITCH"
     dataKey1 = 'console_mgmt'
+    dataKey2 = 'enabled'
 
-    data = { dataKey1 : "1" }
-    config_db.mod_entry(table, '', data)
+    data = { dataKey2 : "yes" }
+    config_db.mod_entry(table, dataKey1, data)
 
 #
 # 'console disable' group ('config console disable')
@@ -35,9 +36,10 @@ def disable_console_switch(db):
 
     table = "CONSOLE_SWITCH"
     dataKey1 = 'console_mgmt'
+    dataKey2 = 'enabled'
 
-    data = { dataKey1 : "0" }
-    config_db.mod_entry(table, '', data)
+    data = { dataKey2 : "no" }
+    config_db.mod_entry(table, dataKey1, data)
 
 #
 # 'console add' group ('config console add ...')
