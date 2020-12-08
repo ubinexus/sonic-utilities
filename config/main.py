@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 
-from socket import AF_INET,AF_INET6
+from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
@@ -1781,10 +1781,12 @@ def vrf_add_management_vrf(config_db):
     cmd = "cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     output = proc.communicate()
-    #print "output: {}".format(int(output[0]))
     if int(output[0]) >= 1:
         cmd="ip -4 route del default dev eth0 metric 202"
-        os.system(cmd)
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+        if err:
+            click.echo("Could not delete eth0 route")
 
 def vrf_delete_management_vrf():
     """Disable management vrf in config DB"""
@@ -1823,7 +1825,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
         entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
         if entry and entry['mgmtVrfEnabled'] == 'true' :
             click.echo("ManagementVRF is Enabled. Provide vrf.")
-            return
+            return False
     found = 0
     ip = ipaddress.ip_address(agentip)
     for intf in netifaces.interfaces():
@@ -1835,7 +1837,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
                     break;
         if found == 1:
             break;
-    if found == 0:
+    else:
         click.echo(" IP addfress is not available")
         return
 
@@ -1847,7 +1849,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     entry = config_db.get_keys(key1)
     if entry:
         ip_port = agentip + ":" + port
-        click.echo("entry with {} already exist ". format(ip_port))
+        click.echo("entry with {} already exist ".format(ip_port))
         return
     key = key+'|'
     if vrf:
