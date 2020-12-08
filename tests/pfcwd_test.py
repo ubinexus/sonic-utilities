@@ -244,7 +244,7 @@ class TestMultiAsicPfcwdShow(object):
         assert result.exit_code == 0
         assert result.output == show_pfc_config_start_fail
 
-        # get config after the command, config shoudln't change
+        # get config after the command, config shouldn't change
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
             obj=db
