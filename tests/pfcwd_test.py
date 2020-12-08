@@ -112,6 +112,80 @@ class TestPfcwd(object):
         assert result.exit_code == 0
         assert result.output == pfcwd_show_start_config_output_pass
 
+    def test_pfcwd_start_actions(self):
+        # pfcwd start --action fwd --restoration-time 200 Ethernet0 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == pfcwd_show_config_output
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "301",
+                "all", "302"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_action_forward_output
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "alert", "--restoration-time", "501",
+                "all", "502"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_action_alert_output
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "all", "602"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_action_drop_output
+
     def test_pfcwd_start_ports_invalid(self):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
@@ -194,7 +268,7 @@ class TestMultiAsicPfcwdShow(object):
         assert result.output == show_pfcwd_config_with_ports
 
     def test_pfcwd_start_ports_masic_valid(self):
-        # pfcwd start --action drop --restoration-time 200 Ethernet0 200
+        # pfcwd start --action forward --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
         db = Db()
@@ -225,6 +299,79 @@ class TestMultiAsicPfcwdShow(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfc_config_start_pass
+
+    def test_pfcwd_start_actions_masic(self):
+        # pfcwd start --action drop --restoration-time 200 Ethernet0 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == show_pfc_config_all
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "301",
+                "all", "302"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_action_drop_masic
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "alert", "--restoration-time", "401",
+                "all", "402"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_action_alert_masic
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "701",
+                "all", "702"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_action_forward_masic
 
     def test_pfcwd_start_ports_masic_invalid(self):
         # --action drop --restoration-time 200 Ethernet0 Ethernet500 200
