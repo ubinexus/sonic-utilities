@@ -31,7 +31,6 @@ from . import console
 from . import feature
 from . import kdump
 from . import kube
-from . import mlnx
 from . import muxcable
 from . import nat
 from . import vlan

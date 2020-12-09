@@ -25,7 +25,6 @@ from . import gearbox
 from . import interfaces
 from . import kdump
 from . import kube
-from . import mlnx
 from . import muxcable
 from . import nat
 from . import platform
