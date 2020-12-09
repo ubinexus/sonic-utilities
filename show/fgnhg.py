@@ -35,13 +35,14 @@ def active_hops(nhg):
     table_keys = []
     table_keys = state_db.keys(state_db.STATE_DB, _hash)
     t_dict = {}
+    header = ["FG_NHG_PREFIX", "Active Next Hops"]
     table = []
     output_dict = {}
 
     if nhg is None:
         for nhg_prefix in table_keys:
             t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-            vals = sorted(set([val for val in list(t_dict.values())]))
+            vals = sorted(set([val for val in t_dict.values()]))
             for nh_ip in vals:
                 if nhg_prefix in output_dict:
                     output_dict[nhg_prefix].append(nh_ip.split("@")[0])
@@ -49,7 +50,6 @@ def active_hops(nhg):
                     output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
 
             nhg_prefix_report = (nhg_prefix.split("|")[1])
-            header = ["FG_NHG_PREFIX", "Active Next Hops"]
             formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
             table.append([nhg_prefix_report, formatted_nhps])
 
@@ -69,7 +69,7 @@ def active_hops(nhg):
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                     t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
 
-                vals = sorted(set([val for val in list(t_dict.values())]))
+                vals = sorted(set([val for val in t_dict.values()]))
 
                 for nh_ip in vals:
                     if nhg_prefix in output_dict:
@@ -80,7 +80,6 @@ def active_hops(nhg):
                 nhg_prefix_report = (nhg_prefix.split("|")[1])
                 formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
                 table.append([nhg_prefix_report, formatted_nhps])
-                header = ["FG_NHG_PREFIX", "Active Next Hops"]
                 click.echo(tabulate(table, header, tablefmt="grid"))
 
 
@@ -105,6 +104,7 @@ def hash_view(nhg):
     table_keys = []
     table_keys = state_db.keys(state_db.STATE_DB, _hash)
     t_dict = {}
+    header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
     table = []
     output_dict = {}
     bank_dict = {}
@@ -113,7 +113,7 @@ def hash_view(nhg):
         for nhg_prefix in table_keys:
             bank_dict = {}
             t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-            vals = sorted(set([val for val in list(t_dict.values())]))
+            vals = sorted(set([val for val in t_dict.values()]))
 
             for nh_ip in vals:
                 bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])
@@ -128,7 +128,6 @@ def hash_view(nhg):
 
             bank_dict = OrderedDict(sorted(bank_dict.items()))
             nhg_prefix_report = (nhg_prefix.split("|")[1])
-            header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 
             for nhip, val in bank_dict.items():
                 formatted_banks = ','.replace(',', '\n').join(bank_dict[nhip])
@@ -150,7 +149,7 @@ def hash_view(nhg):
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                     t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
 
-                vals = sorted(set([val for val in list(t_dict.values())]))
+                vals = sorted(set([val for val in t_dict.values()]))
 
                 for nh_ip in vals:
                     bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])
@@ -163,7 +162,6 @@ def hash_view(nhg):
 
                 nhg_prefix_report = (nhg_prefix.split("|")[1])
                 bank_dict = OrderedDict(sorted(bank_dict.items()))
-                header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
 
                 for nhip, val in bank_dict.items():
                     formatted_banks = ','.replace(',', '\n').join(bank_dict[nhip])

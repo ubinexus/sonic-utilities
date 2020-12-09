@@ -20,7 +20,7 @@ try:
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
     # since /usr/local/bin/sonic-cfggen does not have .py extension.
     load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    from sonic_cfggen import deep_update, FormatConverter, sort_data
+    from sonic_cfggen import deep_update, FormatConverter
 
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -213,7 +213,6 @@ class ConfigMgmt():
         configdb = ConfigDBConnector(**db_kwargs)
         configdb.connect(False)
         deep_update(data, FormatConverter.to_deserialized(jDiff))
-        data = sort_data(data)
         self.sysLog(msg="Write in DB: {}".format(data))
         configdb.mod_config(FormatConverter.output_to_db(data))
 
@@ -545,7 +544,7 @@ class ConfigMgmtDPB(ConfigMgmt):
                     pass
                 return
 
-            for it in list(D1.keys()):
+            for it in D1:
                 # D2 has the key
                 if D2.get(it):
                     _mergeItems(D1[it], D2[it])
@@ -577,7 +576,7 @@ class ConfigMgmtDPB(ConfigMgmt):
         '''
         found = False
         if isinstance(In, dict):
-            for key in list(In.keys()):
+            for key in In:
                 for skey in skeys:
                     # pattern is very specific to current primary keys in
                     # config DB, may need to be updated later.

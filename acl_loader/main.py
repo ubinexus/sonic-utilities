@@ -182,7 +182,7 @@ class AclLoader(object):
         # For multi-npu platforms we will read from any one of front asic namespace 
         # config db as the information should be same across all config db
         if self.per_npu_configdb:
-            namespace_configdb = (list(self.per_npu_configdb.values()))[0]
+            namespace_configdb = list(self.per_npu_configdb.values())[0]
             self.policers_db_info = namespace_configdb.get_table(self.POLICER)
         else:
             self.policers_db_info = self.configdb.get_table(self.POLICER)
@@ -199,11 +199,11 @@ class AclLoader(object):
         # For multi-npu platforms we will read from any one of front asic namespace 
         # config db as the information should be same across all config db
         if self.per_npu_configdb:
-            namespace_configdb = (list(self.per_npu_configdb.values()))[0]
+            namespace_configdb = list(self.per_npu_configdb.values())[0]
             self.sessions_db_info = namespace_configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
         else:
             self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
-        for key in list(self.sessions_db_info.keys()):
+        for key in self.sessions_db_info:
             if self.per_npu_statedb:
                 # For multi-npu platforms we will read from all front asic name space 
                 # statedb as the monitor port will be differnt for each asic 
@@ -367,7 +367,7 @@ class AclLoader(object):
             # For multi-npu we will read using anyone statedb connector for front asic namespace. 
             # Same information should be there in all state DB's 
             # as it is static information about switch capability
-            namespace_statedb = (list(self.per_npu_statedb.values()))[0]
+            namespace_statedb = list(self.per_npu_statedb.values())[0]
             capability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         else: 
             capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
@@ -429,14 +429,14 @@ class AclLoader(object):
                 rule_props["IP_PROTOCOL"] = rule.ip.config.protocol
 
         if rule.ip.config.source_ip_address:
-            source_ip_address = rule.ip.config.source_ip_address.encode("ascii")
+            source_ip_address = rule.ip.config.source_ip_address
             if ipaddress.ip_network(source_ip_address).version == 4:
                 rule_props["SRC_IP"] = source_ip_address
             else:
                 rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
-            destination_ip_address = rule.ip.config.destination_ip_address.encode("ascii")
+            destination_ip_address = rule.ip.config.destination_ip_address
             if ipaddress.ip_network(destination_ip_address).version == 4:
                 rule_props["DST_IP"] = destination_ip_address
             else:
@@ -550,7 +550,7 @@ class AclLoader(object):
         :return:
         """
         for acl_set_name in self.yang_acl.acl.acl_sets.acl_set:
-            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper().encode('ascii')
+            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper()
             acl_set = self.yang_acl.acl.acl_sets.acl_set[acl_set_name]
 
             if not self.is_table_valid(table_name):
@@ -579,17 +579,17 @@ class AclLoader(object):
         be removed and new rules in that table will be installed.
         :return:
         """
-        for key in list(self.rules_db_info.keys()):
+        for key in self.rules_db_info:
             if self.current_table is None or self.current_table == key[0]:
                 self.configdb.mod_entry(self.ACL_RULE, key, None)
                 # Program for per front asic namespace also if present
-                for namespace_configdb in list(self.per_npu_configdb.values()):
+                for namespace_configdb in self.per_npu_configdb.values():
                     namespace_configdb.mod_entry(self.ACL_RULE, key, None)
 
 
         self.configdb.mod_config({self.ACL_RULE: self.rules_info})
         # Program for per front asic namespace also if present
-        for namespace_configdb in list(self.per_npu_configdb.values()):
+        for namespace_configdb in self.per_npu_configdb.values():
             namespace_configdb.mod_config({self.ACL_RULE: self.rules_info})
 
     def incremental_update(self):
@@ -630,7 +630,7 @@ class AclLoader(object):
         for key in current_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
             # Program for per-asic namespace also if present
-            for namespace_configdb in list(self.per_npu_configdb.values()):
+            for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, None)
 
 
@@ -638,7 +638,7 @@ class AclLoader(object):
         for key in new_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
             # Program for per-asic namespace corresponding to front asic also if present. 
-            for namespace_configdb in list(self.per_npu_configdb.values()):
+            for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         added_controlplane_rules = new_controlplane_rules.difference(current_controlplane_rules)
@@ -649,14 +649,14 @@ class AclLoader(object):
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
             # Program for per-asic namespace corresponding to front asic also if present. 
             # For control plane ACL it's not needed but to keep all db in sync program everywhere
-            for namespace_configdb in list(self.per_npu_configdb.values()):
+            for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         for key in removed_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
             # Program for per-asic namespace corresponding to front asic also if present. 
             # For control plane ACL it's not needed but to keep all db in sync program everywhere
-            for namespace_configdb in list(self.per_npu_configdb.values()):
+            for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, None)
 
         for key in existing_controlplane_rules:
@@ -664,7 +664,7 @@ class AclLoader(object):
                 self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
                 # Program for per-asic namespace corresponding to front asic also if present. 
                 # For control plane ACL it's not needed but to keep all db in sync program everywhere
-                for namespace_configdb in list(self.per_npu_configdb.values()):
+                for namespace_configdb in self.per_npu_configdb.values():
                     namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
     def delete(self, table=None, rule=None):
@@ -673,12 +673,12 @@ class AclLoader(object):
         :param rule:
         :return:
         """
-        for key in self.rules_db_info.keys():
+        for key in self.rules_db_info:
             if not table or table == key[0]:
                 if not rule or rule == key[1]:
                     self.configdb.set_entry(self.ACL_RULE, key, None)
                     # Program for per-asic namespace corresponding to front asic also if present. 
-                    for namespace_configdb in list(self.per_npu_configdb.values()):
+                    for namespace_configdb in self.per_npu_configdb.values():
                         namespace_configdb.set_entry(self.ACL_RULE, key, None)
     
     def show_table(self, table_name):
@@ -826,11 +826,7 @@ class AclLoader(object):
 
             raw_data.append([priority, rule_data])
 
-        def cmp_rules(a, b):
-            return cmp(a[0], b[0])
-
-        raw_data.sort(cmp_rules)
-        raw_data.reverse()
+        raw_data.sort(key=lambda x: x[0], reverse=True)
 
         data = []
         for _, d in raw_data:
