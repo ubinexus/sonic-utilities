@@ -7,6 +7,8 @@ import click
 
 import utilities_common as util_base
 
+from . import plugins
+
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
