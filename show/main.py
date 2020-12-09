@@ -1227,25 +1227,17 @@ def users(verbose):
 
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
-@click.option('--force', is_flag=True, help="Enable hardware register dump even with system interruption")
-@click.option('--yes', is_flag=True, help="Enable force generating dump option")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(since, verbose, force, yes):
+@click.option('--allow-process-stop', is_flag=True, help="Allow hardware register dump even with system interruption")
+def techsupport(since, verbose, allow-process-stop):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
-    if force:
-        if yes:
-            cmd += " -f"
-        else:
-            if click.confirm('WARNING: Proceed with any potential system interruption for HW register dump?'):
-                cmd += " -f"
-            else:
-                click.echo("Please use --force only for disruptive HW register dump!")
-                system.exit(1)
-
+    if allow-process-stop:
+        cmd += " -a"
 
     if since:
         cmd += " -s {}".format(since)
+
     run_command(cmd, display_cmd=verbose)
 
 

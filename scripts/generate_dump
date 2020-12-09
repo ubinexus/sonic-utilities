@@ -20,7 +20,7 @@ MV=mv
 GREP=grep
 TOUCH=touch
 V=
-FORCE=
+ALLOW_PROCESS_STOP=
 NOOP=false
 DO_COMPRESS=true
 CMD_PREFIX=
@@ -764,7 +764,7 @@ main() {
     # run 'hw-management-generate-dump.sh' script and save the result file
     HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
     if [ -f "$HW_DUMP_FILE" ]; then
-      /usr/bin/hw-management-generate-dump.sh $FORCE
+      /usr/bin/hw-management-generate-dump.sh $ALLOW_PROCESS_STOP
       save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
       rm -f /tmp/hw-mgmt-dump*
     else
@@ -840,7 +840,7 @@ OPTIONS
 EOF
 }
 
-while getopts ":xnvhzsf:" opt; do
+while getopts ":xnvhzsa:" opt; do
     case $opt in
         x)
             # enable bash debugging
@@ -871,8 +871,8 @@ while getopts ":xnvhzsf:" opt; do
         z)
             DO_COMPRESS=false
             ;;
-        f)
-            FORCE="-f"
+        a)
+            ALLOW_PROCESS_STOP="-a"
             ;;
         s)
             SINCE_DATE="${OPTARG}"
