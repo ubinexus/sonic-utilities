@@ -5,7 +5,7 @@ import sys
 
 import click
 
-import utilities_common as util_base
+from utilities_common import util_base
 
 from . import plugins
 

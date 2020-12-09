@@ -1,6 +1,8 @@
 try:
     import imp
     import os
+    import pkgutil
+    import importlib
 
     from sonic_py_common import device_info
 except ImportError as e:
