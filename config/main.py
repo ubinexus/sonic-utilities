@@ -1789,7 +1789,7 @@ def vrf_add_management_vrf(config_db):
     if int(output[0]) >= 1:
         cmd="ip -4 route del default dev eth0 metric 202"
         proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        (out, err) = proc.communicate()
+        output = proc.communicate()
         if proc.returncode != 0:
             click.echo("Could not delete eth0 route")
 
