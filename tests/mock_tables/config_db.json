@@ -5,11 +5,13 @@
     },
     "SFLOW_COLLECTOR|prod": {
         "collector_ip": "fe80::6e82:6aff:fe1e:cd8e",
-        "collector_port": "6343"
+        "collector_port": "6343",
+        "collector_vrf": "mgmt"
     },
     "SFLOW_COLLECTOR|ser5": {
         "collector_ip": "172.21.35.15",
-        "collector_port": "6343"
+        "collector_port": "6343",
+        "collector_vrf": "default"
     },
     "BREAKOUT_CFG|Ethernet0": {
         "brkout_mode": "4x25G[10G]"
@@ -571,8 +573,8 @@
         "high_mem_alert": "disabled"
     },
     "FEATURE|database": {
-        "state": "enabled",
-        "auto_restart": "disabled",
+        "state": "always_enabled",
+        "auto_restart": "always_enabled",
         "high_mem_alert": "disabled"
     },
     "FEATURE|dhcp_relay": {
@@ -782,6 +784,12 @@
         "mgmt_addr": "10.250.0.54",
         "type": "LeafRouter"
     },
+    "FG_NHG_PREFIX|100.50.25.12/32": {
+	    "FG_NHG": "fgnhg_v4"
+	},
+    "FG_NHG_PREFIX|fc:05::/128": {
+	    "FG_NHG": "fgnhg_v6"
+	},
     "BGP_NEIGHBOR|10.0.0.1": {
         "asn": "65200",
         "holdtime": "10",
@@ -980,21 +988,21 @@
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|10.0.0.61": {
+    "BGP_INTERNAL_NEIGHBOR|10.0.0.61": {
         "asn": "64015",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "10.0.0.60",
-        "name": "ARISTA15T0",
+        "name": "INT_NEIGH0",
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|10.0.0.63": {
+    "BGP_INTERNAL_NEIGHBOR|10.0.0.63": {
         "asn": "64016",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "10.0.0.62",
-        "name": "ARISTA16T0",
+        "name": "INT_NEIGH1",
         "nhopself": "0",
         "rrclient": "0"
     },
@@ -1196,21 +1204,21 @@
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|fc00::76": {
+    "BGP_INTERNAL_NEIGHBOR|fc00::76": {
         "asn": "64014",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "fc00::75",
-        "name": "ARISTA14T0",
+        "name": "INT_NEIGH0",
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|fc00::a": {
+    "BGP_INTERNAL_NEIGHBOR|fc00::a": {
         "asn": "65200",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "fc00::9",
-        "name": "ARISTA03T2",
+        "name": "INT_NEIGH1",
         "nhopself": "0",
         "rrclient": "0"
     },
@@ -1251,5 +1259,78 @@
     },
     "PFC_WD|GLOBAL": {
         "POLL_INTERVAL": "600"
+    },
+    "CRM|Config": {
+        "acl_table_threshold_type": "percentage",
+        "nexthop_group_threshold_type": "percentage",
+        "fdb_entry_high_threshold": "85",
+        "acl_entry_threshold_type": "percentage",
+        "ipv6_neighbor_low_threshold": "70",
+        "nexthop_group_member_low_threshold": "70",
+        "acl_group_high_threshold": "85",
+        "ipv4_route_high_threshold": "85",
+        "acl_counter_high_threshold": "85",
+        "ipv4_route_low_threshold": "70",
+        "ipv4_route_threshold_type": "percentage",
+        "ipv4_neighbor_low_threshold": "70",
+        "acl_group_threshold_type": "percentage",
+        "ipv4_nexthop_high_threshold": "85",
+        "ipv6_route_threshold_type": "percentage",
+        "nexthop_group_low_threshold": "70",
+        "ipv4_neighbor_high_threshold": "85",
+        "ipv6_route_high_threshold": "85",
+        "ipv6_nexthop_threshold_type": "percentage",
+        "polling_interval": "300",
+        "ipv4_nexthop_threshold_type": "percentage",
+        "acl_group_low_threshold": "70",
+        "acl_entry_low_threshold": "70",
+        "nexthop_group_member_threshold_type": "percentage",
+        "ipv4_nexthop_low_threshold": "70",
+        "acl_counter_threshold_type": "percentage",
+        "ipv6_neighbor_high_threshold": "85",
+        "nexthop_group_member_high_threshold": "85",
+        "acl_table_low_threshold": "70",
+        "fdb_entry_threshold_type": "percentage",
+        "ipv6_neighbor_threshold_type": "percentage",
+        "acl_table_high_threshold": "85",
+        "ipv6_nexthop_low_threshold": "70",
+        "acl_counter_low_threshold": "70",
+        "ipv4_neighbor_threshold_type": "percentage",
+        "nexthop_group_high_threshold": "85",
+        "ipv6_route_low_threshold": "70",
+        "acl_entry_high_threshold": "85",
+        "fdb_entry_low_threshold": "70",
+        "ipv6_nexthop_high_threshold": "85"
+    },
+    "CHASSIS_MODULE|LINE-CARD1": {
+        "admin_status": "down"
+    },
+    "MUX_CABLE|Ethernet32": {
+        "state": "auto",
+	"server_ipv4": "10.1.1.1",
+	"server_ipv6": "fc00::75"
+    },
+    "MUX_CABLE|Ethernet0": {
+        "state": "active",
+	"server_ipv4": "10.2.1.1",
+	"server_ipv6": "e800::46"
+    },
+    "MUX_CABLE|Ethernet4": {
+        "state": "auto",
+	"server_ipv4": "10.3.1.1",
+	"server_ipv6": "e801::46"
+    },
+    "MUX_CABLE|Ethernet8": {
+        "state": "active",
+	"server_ipv4": "10.4.1.1",
+	"server_ipv6": "e802::46"
+    },
+    "MUX_CABLE|Ethernet12": {
+        "state": "active",
+	"server_ipv4": "10.4.1.1",
+	"server_ipv6": "e802::46"
+    },
+    "PEER_SWITCH|sonic-switch" : {
+      "address_ipv4": "10.2.2.2"
     }
 }
