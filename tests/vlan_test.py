@@ -79,6 +79,23 @@ Vlan2000   2000  Ethernet24  untagged
 Vlan2000   2000  Ethernet28  untagged
 """
 
+show_vlan_config_output_range="""\
+Name        VID  Member      Mode
+--------  -----  ----------  --------
+Vlan1000   1000  Ethernet4   untagged
+Vlan1000   1000  Ethernet8   untagged
+Vlan1000   1000  Ethernet12  untagged
+Vlan1000   1000  Ethernet16  untagged
+Vlan2000   2000  Ethernet24  untagged
+Vlan2000   2000  Ethernet28  untagged
+Vlan3001   3001  Ethernet4   tagged
+Vlan3001   3001  Ethernet8   tagged
+Vlan3002   3002  Ethernet4   tagged
+Vlan3002   3002  Ethernet8   tagged
+Vlan3003   3003  Ethernet4   tagged
+Vlan3003   3003  Ethernet8   tagged
+"""
+
 show_vlan_config_in_alias_mode_output="""\
 Name        VID  Member    Mode
 --------  -----  --------  --------
@@ -518,6 +535,27 @@ class TestVlan(object):
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
         print(result.output)
         assert result.output == show_vlan_brief_output
+
+    def test_vlan_config_range(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(config.config.commands["vlan"].commands["range"].commands["add"], ["3001", "3003"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["range"].commands["add"], ["3001", "3003", "Ethernet4"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["range"].commands["add"], ["3001", "3003", "Ethernet8"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        result = runner.invoke(show.cli.commands["vlan"].commands["config"], [], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vlan_config_output_range
 
     def test_config_vlan_remove_nonexist_dhcp_relay_dest(self):
         runner = CliRunner()

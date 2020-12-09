@@ -653,13 +653,12 @@ def mac(ctx, vlan, port, verbose):
         run_command(cmd, display_cmd=verbose)
 
 @mac.command()
-def aging_time():
+@clicommon.pass_db
+def aging_time(db):
     """Show MAC Aging-Time"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
 
     # Fetching data from config_db for SWITCH
-    switch_table = config_db.get_table('SWITCH')
+    switch_table = db.cfgdb.get_table('SWITCH')
     switch_keys = switch_table.keys()
 
     age_time = 0
@@ -669,6 +668,7 @@ def aging_time():
                 age_time = switch_table[key]['fdb_aging_time']
             except KeyError:
                 age_time = '0'
+                pass
     output = 'Mac Aging-Time : '
     output += ('%s seconds\n' % (str(age_time)))
     click.echo(output)

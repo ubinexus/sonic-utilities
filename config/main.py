@@ -1939,12 +1939,11 @@ def mac(ctx, redis_unix_socket_path):
 
 @mac.command('aging_time')
 @click.argument('interval', metavar='<aging interval in sec [0-1000000], 0 to disable aging>', required=True, type=int)
-@click.pass_context
-def set_aging_time(ctx, interval):
-    db = ctx.obj['db']
+@clicommon.pass_db
+def set_aging_time(db, interval):
     if interval not in range(0,1000001):
         ctx.fail("Aging timer must be in range [0-1000000]")
-    db.set_entry('SWITCH', 'switch', {'fdb_aging_time': interval})
+    db.cfgdb.set_entry('SWITCH', 'switch', {'fdb_aging_time': interval})
 
 def mac_address_is_valid(mac):
     """Check if the mac address is valid
