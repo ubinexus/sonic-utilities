@@ -1777,7 +1777,12 @@ def vrf_add_management_vrf(config_db):
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "true"})
     mvrf_restart_services()
-
+    """
+    The regular expression for grep in below cmd is to match eth0 line in /proc/net/route, sample file:
+    $ cat /proc/net/route
+        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
+         eth0    00000000        01803B0A        0003    0       0       202     00000000        0       0       0
+    """
     cmd = "cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     output = proc.communicate()
@@ -1785,10 +1790,10 @@ def vrf_add_management_vrf(config_db):
         cmd="ip -4 route del default dev eth0 metric 202"
         proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
-        if err:
+        if proc.returncode != 0:
             click.echo("Could not delete eth0 route")
 
-def vrf_delete_management_vrf():
+def vrf_delete_management_vrf(config_db):
     """Disable management vrf in config DB"""
 
     entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
@@ -1838,7 +1843,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
         if found == 1:
             break;
     else:
-        click.echo(" IP addfress is not available")
+        click.echo("IP addfress is not available")
         return
 
     key = agentip+'|'
@@ -1849,7 +1854,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     entry = config_db.get_keys(key1)
     if entry:
         ip_port = agentip + ":" + port
-        click.echo("entry with {} already exist ".format(ip_port))
+        click.echo("entry with {} already exists ".format(ip_port))
         return
     key = key+'|'
     if vrf:
