@@ -3,41 +3,41 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 
 show_feature_status_output="""\
-Feature     State     AutoRestart    SetOwner
-----------  --------  -------------  ----------
-bgp         enabled   enabled        local
-database    enabled   disabled       local
-dhcp_relay  enabled   enabled        kube
-lldp        enabled   enabled        kube
-nat         enabled   enabled        local
-pmon        enabled   enabled        kube
-radv        enabled   enabled        kube
-restapi     disabled  enabled        local
-sflow       disabled  enabled        local
-snmp        enabled   enabled        kube
-swss        enabled   enabled        local
-syncd       enabled   enabled        local
-teamd       enabled   enabled        local
-telemetry   enabled   enabled        kube
+Feature     State           AutoRestart     SetOwner
+----------  --------------  --------------  ----------
+bgp         enabled         enabled         local
+database    always_enabled  always_enabled  local
+dhcp_relay  enabled         enabled         kube
+lldp        enabled         enabled         kube
+nat         enabled         enabled         local
+pmon        enabled         enabled         kube
+radv        enabled         enabled         kube
+restapi     disabled        enabled         local
+sflow       disabled        enabled         local
+snmp        enabled         enabled         kube
+swss        enabled         enabled         local
+syncd       enabled         enabled         local
+teamd       enabled         enabled         local
+telemetry   enabled         enabled         kube
 """
 
 show_feature_status_output_with_remote_mgmt="""\
-Feature     State     AutoRestart    SystemState    UpdateTime           ContainerId    Version       SetOwner    CurrentOwner    RemoteState
-----------  --------  -------------  -------------  -------------------  -------------  ------------  ----------  --------------  -------------
-bgp         enabled   enabled                                                                         local
-database    enabled   disabled                                                                        local
-dhcp_relay  enabled   enabled                                                                         kube
-lldp        enabled   enabled                                                                         kube
-nat         enabled   enabled                                                                         local
-pmon        enabled   enabled                                                                         kube
-radv        enabled   enabled                                                                         kube
-restapi     disabled  enabled                                                                         local
-sflow       disabled  enabled                                                                         local
-snmp        enabled   enabled        up             2020-11-12 23:32:56  aaaabbbbcccc   20201230.100  kube        kube            kube
-swss        enabled   enabled                                                                         local
-syncd       enabled   enabled                                                                         local
-teamd       enabled   enabled                                                                         local
-telemetry   enabled   enabled                                                                         kube
+Feature     State           AutoRestart     SystemState    UpdateTime           ContainerId    Version       SetOwner    CurrentOwner    RemoteState
+----------  --------------  --------------  -------------  -------------------  -------------  ------------  ----------  --------------  -------------
+bgp         enabled         enabled                                                                          local
+database    always_enabled  always_enabled                                                                   local
+dhcp_relay  enabled         enabled                                                                          kube
+lldp        enabled         enabled                                                                          kube
+nat         enabled         enabled                                                                          local
+pmon        enabled         enabled                                                                          kube
+radv        enabled         enabled                                                                          kube
+restapi     disabled        enabled                                                                          local
+sflow       disabled        enabled                                                                          local
+snmp        enabled         enabled         up             2020-11-12 23:32:56  aaaabbbbcccc   20201230.100  kube        kube            kube
+swss        enabled         enabled                                                                          local
+syncd       enabled         enabled                                                                          local
+teamd       enabled         enabled                                                                          local
+telemetry   enabled         enabled                                                                          kube
 """
 
 show_feature_config_output="""\
@@ -60,22 +60,22 @@ telemetry   enabled   enabled
 """
 
 show_feature_config_output_with_remote_mgmt="""\
-Feature     State     AutoRestart    Owner
-----------  --------  -------------  -------
-bgp         enabled   enabled        local
-database    enabled   disabled       local
-dhcp_relay  enabled   enabled        kube
-lldp        enabled   enabled        kube
-nat         enabled   enabled        local
-pmon        enabled   enabled        kube
-radv        enabled   enabled        kube
-restapi     disabled  enabled        local
-sflow       disabled  enabled        local
-snmp        enabled   enabled        kube
-swss        enabled   enabled        local
-syncd       enabled   enabled        local
-teamd       enabled   enabled        local
-telemetry   enabled   enabled        kube
+Feature     State           AutoRestart     Owner
+----------  --------------  --------------  -------
+bgp         enabled         enabled         local
+database    always_enabled  always_enabled  local
+dhcp_relay  enabled         enabled         kube
+lldp        enabled         enabled         kube
+nat         enabled         enabled         local
+pmon        enabled         enabled         kube
+radv        enabled         enabled         kube
+restapi     disabled        enabled         local
+sflow       disabled        enabled         local
+snmp        enabled         enabled         kube
+swss        enabled         enabled         local
+syncd       enabled         enabled         local
+teamd       enabled         enabled         local
+telemetry   enabled         enabled         kube
 """
 
 show_feature_bgp_status_output="""\
@@ -134,9 +134,9 @@ bgp        disabled
 """
 
 show_feature_database_always_enabled_state_output="""\
-Feature    State           AutoRestart
----------  --------------  --------------
-database   always_enabled  always_enabled
+Feature    State           AutoRestart     SetOwner
+---------  --------------  --------------  ----------
+database   always_enabled  always_enabled  local
 """
 
 show_feature_database_always_enabled_autorestart_output="""\
