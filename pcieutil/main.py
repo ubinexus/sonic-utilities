@@ -7,6 +7,7 @@
 
 try:
     import os
+    import re
     import sys
     from collections import OrderedDict
 
@@ -108,162 +109,162 @@ def pcie_show():
         Id = item["id"]
         click.echo("bus:dev.fn %s:%s.%s - dev_id=0x%s, %s" % (Bus, Dev, Fn, Id, Name))
 
+
+# PCIe AER stats helpers
+
+aer_fields = {
+    "correctable": ['RxErr', 'BadTLP', 'BadDLLP', 'Rollover', 'Timeout', 'NonFatalErr', 'CorrIntErr', 'HeaderOF', 'TOTAL_ERR_COR'],
+    "fatal": ['Undefined', 'DLP', 'SDES', 'TLP', 'FCP', 'CmpltTO', 'CmpltAbrt', 'UnxCmplt', 'RxOF', 'MalfTLP', 'ECRC', 'UnsupReq',
+              'ACSViol', 'UncorrIntErr', 'BlockedTLP', 'AtomicOpBlocked', 'TLPBlockedErr', 'TOTAL_ERR_FATAL'],
+    "non_fatal": ['Undefined', 'DLP', 'SDES', 'TLP', 'FCP', 'CmpltTO', 'CmpltAbrt', 'UnxCmplt', 'RxOF', 'MalfTLP', 'ECRC', 'UnsupReq',
+                  'ACSViol', 'UncorrIntErr', 'BlockedTLP', 'AtomicOpBlocked', 'TLPBlockedErr', 'TOTAL_ERR_NONFATAL']
+}
+
+
+class PcieDevice(click.ParamType):
+    name = "<Bus>:<Dev>.<Fn>"
+
+    def convert(self, value, param, ctx):
+        match = re.match(r'([0-9A-Fa-f]{1,2}):([0-9A-Fa-f]{1,2})\.([0-9A-Fa-f])', value)
+
+        if not match:
+            self.fail('{} is not in <Bus>:<Dev>.<Fn> format'.format(value), param, ctx)
+
+        Bus, Dev, Fn = [int(val, 16) for val in match.groups()]
+        if Bus > 255:
+            self.fail('Invalid Bus number', param, ctx)
+
+        if Dev > 31:
+            self.fail('Invalid Dev number', param, ctx)
+
+        if Fn > 7:
+            self.fail('Invalid Fn number', param, ctx)
+
+        return "%02x:%02x.%d" % (Bus, Dev, Fn)
+
+
+_pcie_aer_click_options = [
+    click.option('-d', '--device', 'device_key',
+                 type=PcieDevice(),
+                 help="Display stats only for the specified device"),
+    click.option('-nz', '--no-zero',
+                 is_flag=True,
+                 help="Display non-zero AER stats")
+]
+
+
+def pcie_aer_click_options(func):
+    for option in reversed(_pcie_aer_click_options):
+        func = option(func)
+    return func
+
+
+def pcie_aer_display(ctx, severity):
+    device_key = ctx.params['device_key']
+    no_zero = ctx.params['no_zero']
+    header = ["AER - " + severity.upper().replace("_", "")]
+    fields = aer_fields[severity]
+    pcie_dev_list = list()
+    dev_found = False
+
+    statedb = SonicV2Connector()
+    statedb.connect(statedb.STATE_DB)
+
+    table = OrderedDict()
+    for field in fields:
+        table[field] = [field]
+
+    if device_key:
+        pcie_dev_list = ["PCIE_DEVICE|%s" % device_key]
+    else:
+        keys = statedb.keys(statedb.STATE_DB, "PCIE_DEVICE|*")
+        if keys:
+            pcie_dev_list = sorted(keys)
+
+    for pcie_dev_key in pcie_dev_list:
+        aer_attribute = statedb.get_all(statedb.STATE_DB, pcie_dev_key)
+        if not aer_attribute:
+            continue
+
+        if device_key:
+            dev_found = True
+
+        if no_zero and all(val == '0' for key, val in aer_attribute.items() if key.startswith(severity)):
+            continue
+
+        pcie_dev = pcie_dev_key.split("|")[1]
+        Id = aer_attribute['id']
+
+        # Tabulate Header
+        device_name = "%s\n%s" % (pcie_dev, Id)
+        header.append(device_name)
+
+        # Tabulate Row
+        for field in fields:
+            key = severity + "|" + field
+            table[field].append(aer_attribute.get(key, 'NA'))
+
+    if device_key and not dev_found:
+        ctx.exit("Device not found in DB")
+
+    # Strip fields with no non-zero value
+    if no_zero:
+        for field in fields:
+            if all(val == '0' for val in table[field][1:]):
+                del table[field]
+
+    if not (no_zero and (len(header) == 1)):
+        if ctx.obj:
+            click.echo("")
+
+        click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
+        ctx.obj = True
+    else:
+        ctx.obj = False
+
+
 # Show PCIe AER status
-
-
 @cli.group(cls=clicommon.AliasedGroup)
-def pcie_aer():
+@click.pass_context
+def pcie_aer(ctx):
     '''Display PCIe AER status'''
+    # Set True to insert a line between severities in 'all' context
+    ctx.obj = False
     pass
 
 
 @pcie_aer.command()
-@click.option('-nz', '--no-zero', is_flag=True)
-def correctable(no_zero):
+@pcie_aer_click_options
+@click.pass_context
+def correctable(ctx, no_zero, device_key):
     '''Show PCIe AER correctable attributes'''
-
-    statedb = SonicV2Connector()
-    statedb.connect(statedb.STATE_DB)
-    header = ['AER - CORRECTABLE']
-
-    # AER - Correctable fields (9)
-    fields = ['RxErr', 'BadTLP', 'BadDLLP', 'Rollover', 'Timeout', 'NonFatalErr', 'CorrIntErr', 'HeaderOF', 'TOTAL_ERR_COR']
-    table = OrderedDict()
-    for field in fields:
-        table[field] = [field]
-
-    resultInfo = platform_pcieutil.get_pcie_check()
-    for item in resultInfo:
-        if item["result"] == "Failed":
-            continue
-
-        Bus = item["bus"]
-        Dev = item["dev"]
-        Fn = item["fn"]
-        Id = item["id"]
-
-        pcie_dev_key = "PCIE_DEVICE|0x%s|%s:%s.%s" % (Id, Bus, Dev, Fn)
-        aer_attribute = statedb.get_all(statedb.STATE_DB, pcie_dev_key)
-        if not aer_attribute:
-            continue
-
-        if no_zero and all(val=='0' for key, val in aer_attribute.items() if key.startswith('correctable')):
-            continue
-
-        # Tabulate Header
-        device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
-        header.append(device_name)
-
-        # Tabulate Row
-        for field in fields:
-            key = "correctable|" + field
-            table[field].append(aer_attribute.get(key, 'NA'))
-
-    click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
+    pcie_aer_display(ctx, "correctable")
 
 
 @pcie_aer.command()
-@click.option('-nz', '--no-zero', is_flag=True)
-def fatal(no_zero):
+@pcie_aer_click_options
+@click.pass_context
+def fatal(ctx, no_zero, device_key):
     '''Show PCIe AER fatal attributes'''
-    statedb = SonicV2Connector()
-    statedb.connect(statedb.STATE_DB)
-    header = ['AER - FATAL']
-
-    # AER - Fatal fields (18)
-    fields = ['Undefined', 'DLP', 'SDES', 'TLP', 'FCP', 'CmpltTO', 'CmpltAbrt', 'UnxCmplt', 'RxOF', 'MalfTLP', 'ECRC', 'UnsupReq', 'ACSViol', 'UncorrIntErr', 'BlockedTLP', 'AtomicOpBlocked', 'TLPBlockedErr', 'TOTAL_ERR_FATAL']
-    table = OrderedDict()
-    for field in fields:
-        table[field] = [field]
-
-    resultInfo = platform_pcieutil.get_pcie_check()
-    for item in resultInfo:
-        if item["result"] == "Failed":
-            continue
-
-        Bus = item["bus"]
-        Dev = item["dev"]
-        Fn = item["fn"]
-        Id = item["id"]
-
-        pcie_dev_key = "PCIE_DEVICE|0x%s|%s:%s.%s" % (Id, Bus, Dev, Fn)
-        aer_attribute = statedb.get_all(statedb.STATE_DB, pcie_dev_key)
-        if not aer_attribute:
-            continue
-
-        if no_zero and all(val=='0' for key, val in aer_attribute.items() if key.startswith('fatal')):
-            continue
-
-        # Tabulate Header
-        device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
-        header.append(device_name)
-
-        # Tabulate Row
-        for field in fields:
-            key = "fatal|" + field
-            table[field].append(aer_attribute.get(key, 'NA'))
-
-    click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
+    pcie_aer_display(ctx, "fatal")
 
 
 @pcie_aer.command()
-@click.option('-nz', '--no-zero', is_flag=True)
-def non_fatal(no_zero):
+@pcie_aer_click_options
+@click.pass_context
+def non_fatal(ctx, no_zero, device_key):
     '''Show PCIe AER non-fatal attributes '''
-    statedb = SonicV2Connector()
-    statedb.connect(statedb.STATE_DB)
-    aer_attribute = {}
-    header = ['AER - NONFATAL']
-
-    # AER - Non-Fatal fields (18)
-    fields = ['Undefined', 'DLP', 'SDES', 'TLP', 'FCP', 'CmpltTO', 'CmpltAbrt', 'UnxCmplt', 'RxOF', 'MalfTLP', 'ECRC', 'UnsupReq', 'ACSViol', 'UncorrIntErr', 'BlockedTLP', 'AtomicOpBlocked', 'TLPBlockedErr', 'TOTAL_ERR_NONFATAL']
-    table = OrderedDict()
-    for field in fields:
-        table[field] = [field]
-
-    resultInfo = platform_pcieutil.get_pcie_check()
-    for item in resultInfo:
-        if item["result"] == "Failed":
-            continue
-
-        Bus = item["bus"]
-        Dev = item["dev"]
-        Fn = item["fn"]
-        Id = item["id"]
-
-        pcie_dev_key = "PCIE_DEVICE|0x%s|%s:%s.%s" % (Id, Bus, Dev, Fn)
-        aer_attribute = statedb.get_all(statedb.STATE_DB, pcie_dev_key)
-        if not aer_attribute:
-            continue
-
-        if no_zero and all(val=='0' for key, val in aer_attribute.items() if key.startswith('non_fatal')):
-            continue
-
-        # Tabulate Header
-        device_name = "%s:%s.%s\n0x%s" % (Bus, Dev, Fn, Id)
-        header.append(device_name)
-
-        # Tabulate Row
-        for field in fields:
-            key = "non_fatal|" + field
-            table[field].append(aer_attribute.get(key, 'NA'))
-
-    click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
+    pcie_aer_display(ctx, "non_fatal")
 
 
 @pcie_aer.command(name='all')
-@click.option('-nz', '--no-zero', is_flag=True)
+@pcie_aer_click_options
 @click.pass_context
-def all_errors(ctx, no_zero):
+def all_errors(ctx, no_zero, device_key):
     '''Show all PCIe AER attributes '''
-    ctx.forward(correctable)
-    click.echo("")
-
-    ctx.forward(fatal)
-    click.echo("")
-
-    ctx.forward(non_fatal)
-    click.echo("")
+    pcie_aer_display(ctx, "correctable")
+    pcie_aer_display(ctx, "fatal")
+    pcie_aer_display(ctx, "non_fatal")
 
 
 #  Show PCIE Vender ID and Device ID
