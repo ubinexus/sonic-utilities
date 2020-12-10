@@ -219,8 +219,6 @@ def pcie_aer_display(ctx, severity):
 
         click.echo(tabulate(list(table.values()), header, tablefmt="grid"))
         ctx.obj = True
-    else:
-        ctx.obj = False
 
 
 # Show PCIe AER status
@@ -230,7 +228,6 @@ def pcie_aer(ctx):
     '''Display PCIe AER status'''
     # Set True to insert a line between severities in 'all' context
     ctx.obj = False
-    pass
 
 
 @pcie_aer.command()
