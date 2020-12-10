@@ -828,8 +828,8 @@ OPTIONS
         passed to them
     -n
         Noop mode. Don't actually create anything, just echo what would happen
-    -f
-        Force mode. This allows any system interruption to correct any platform HW registers status.
+    -a
+        Allow any process stop. This allows any system interruption to collect any platform HW register status.
     -z
         Don't compress the tar at the end.
     -s DATE
