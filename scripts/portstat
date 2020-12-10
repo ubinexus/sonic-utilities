@@ -305,7 +305,7 @@ class Portstat(object):
             print("Undersize Received............................. {}".format(ns_diff(cntr.rx_usize, old_cntr.rx_usize)))
             print("Overruns Received.............................. {}".format(ns_diff(cntr.rx_ovrrun, old_cntr.rx_ovrrun)))
 
-            print(""
+            print("")
             print("Packets Transmitted 64 Octets.................. {}".format(ns_diff(cntr.tx_64, old_cntr.tx_64)))
             print("Packets Transmitted 65-127 Octets.............. {}".format(ns_diff(cntr.tx_65_127, old_cntr.tx_65_127)))
             print("Packets Transmitted 128-255 Octets............. {}".format(ns_diff(cntr.tx_128_255, old_cntr.tx_128_255)))
