@@ -282,48 +282,48 @@ class Portstat(object):
             if intf_list and key not in intf_list:
                 continue
 
-            print "Packets Received 64 Octets..................... {}".format(ns_diff(cntr.rx_64, old_cntr.rx_64))
-            print "Packets Received 65-127 Octets................. {}".format(ns_diff(cntr.rx_65_127, old_cntr.rx_65_127))
-            print "Packets Received 128-255 Octets................ {}".format(ns_diff(cntr.rx_128_255, old_cntr.rx_128_255))
-            print "Packets Received 256-511 Octets................ {}".format(ns_diff(cntr.rx_256_511, old_cntr.rx_256_511))
-            print "Packets Received 512-1023 Octets............... {}".format(ns_diff(cntr.rx_512_1023, old_cntr.rx_512_1023))
-            print "Packets Received 1024-1518 Octets.............. {}".format(ns_diff(cntr.rx_1024_1518, old_cntr.rx_1024_1518))
-            print "Packets Received 1519-2047 Octets.............. {}".format(ns_diff(cntr.rx_1519_2047, old_cntr.rx_1519_2047))
-            print "Packets Received 2048-4095 Octets.............. {}".format(ns_diff(cntr.rx_2048_4095, old_cntr.rx_2048_4095))
-            print "Packets Received 4096-9216 Octets.............. {}".format(ns_diff(cntr.rx_4096_9216, old_cntr.rx_4096_9216))
-            print "Packets Received 9217-16383 Octets............. {}".format(ns_diff(cntr.rx_9217_16383, old_cntr.rx_9217_16383))
+            print("Packets Received 64 Octets..................... {}".format(ns_diff(cntr.rx_64, old_cntr.rx_64)))
+            print("Packets Received 65-127 Octets................. {}".format(ns_diff(cntr.rx_65_127, old_cntr.rx_65_127)))
+            print("Packets Received 128-255 Octets................ {}".format(ns_diff(cntr.rx_128_255, old_cntr.rx_128_255)))
+            print("Packets Received 256-511 Octets................ {}".format(ns_diff(cntr.rx_256_511, old_cntr.rx_256_511)))
+            print("Packets Received 512-1023 Octets............... {}".format(ns_diff(cntr.rx_512_1023, old_cntr.rx_512_1023)))
+            print("Packets Received 1024-1518 Octets.............. {}".format(ns_diff(cntr.rx_1024_1518, old_cntr.rx_1024_1518)))
+            print("Packets Received 1519-2047 Octets.............. {}".format(ns_diff(cntr.rx_1519_2047, old_cntr.rx_1519_2047)))
+            print("Packets Received 2048-4095 Octets.............. {}".format(ns_diff(cntr.rx_2048_4095, old_cntr.rx_2048_4095)))
+            print("Packets Received 4096-9216 Octets.............. {}".format(ns_diff(cntr.rx_4096_9216, old_cntr.rx_4096_9216)))
+            print("Packets Received 9217-16383 Octets............. {}".format(ns_diff(cntr.rx_9217_16383, old_cntr.rx_9217_16383)))
 
-            print ""
-            print "Total Packets Received Without Errors.......... {}".format(ns_diff(cntr.rx_all, old_cntr.rx_all))
-            print "Unicast Packets Received....................... {}".format(ns_diff(cntr.rx_uca, old_cntr.rx_uca))
-            print "Multicast Packets Received..................... {}".format(ns_diff(cntr.rx_mca, old_cntr.rx_mca))
-            print "Broadcast Packets Received..................... {}".format(ns_diff(cntr.rx_bca, old_cntr.rx_bca))
+            print("")
+            print("Total Packets Received Without Errors.......... {}".format(ns_diff(cntr.rx_all, old_cntr.rx_all)))
+            print("Unicast Packets Received....................... {}".format(ns_diff(cntr.rx_uca, old_cntr.rx_uca)))
+            print("Multicast Packets Received..................... {}".format(ns_diff(cntr.rx_mca, old_cntr.rx_mca)))
+            print("Broadcast Packets Received..................... {}".format(ns_diff(cntr.rx_bca, old_cntr.rx_bca)))
 
-            print ""
-            print "Jabbers Received............................... {}".format(ns_diff(cntr.rx_jbr, old_cntr.rx_jbr))
-            print "Fragments Received............................. {}".format(ns_diff(cntr.rx_frag, old_cntr.rx_frag))
-            print "Undersize Received............................. {}".format(ns_diff(cntr.rx_usize, old_cntr.rx_usize))
-            print "Overruns Received.............................. {}".format(ns_diff(cntr.rx_ovrrun, old_cntr.rx_ovrrun))
+            print("")
+            print("Jabbers Received............................... {}".format(ns_diff(cntr.rx_jbr, old_cntr.rx_jbr)))
+            print("Fragments Received............................. {}".format(ns_diff(cntr.rx_frag, old_cntr.rx_frag)))
+            print("Undersize Received............................. {}".format(ns_diff(cntr.rx_usize, old_cntr.rx_usize)))
+            print("Overruns Received.............................. {}".format(ns_diff(cntr.rx_ovrrun, old_cntr.rx_ovrrun)))
 
-            print ""
-            print "Packets Transmitted 64 Octets.................. {}".format(ns_diff(cntr.tx_64, old_cntr.tx_64))
-            print "Packets Transmitted 65-127 Octets.............. {}".format(ns_diff(cntr.tx_65_127, old_cntr.tx_65_127))
-            print "Packets Transmitted 128-255 Octets............. {}".format(ns_diff(cntr.tx_128_255, old_cntr.tx_128_255))
-            print "Packets Transmitted 256-511 Octets............. {}".format(ns_diff(cntr.tx_256_511, old_cntr.tx_256_511))
-            print "Packets Transmitted 512-1023 Octets............ {}".format(ns_diff(cntr.tx_512_1023, old_cntr.tx_512_1023))
-            print "Packets Transmitted 1024-1518 Octets........... {}".format(ns_diff(cntr.tx_1024_1518, old_cntr.tx_1024_1518))
-            print "Packets Transmitted 1519-2047 Octets........... {}".format(ns_diff(cntr.tx_1519_2047, old_cntr.tx_1519_2047))
-            print "Packets Transmitted 2048-4095 Octets........... {}".format(ns_diff(cntr.tx_2048_4095, old_cntr.tx_2048_4095))
-            print "Packets Transmitted 4096-9216 Octets........... {}".format(ns_diff(cntr.tx_4096_9216, old_cntr.tx_4096_9216))
-            print "Packets Transmitted 9217-16383 Octets.......... {}".format(ns_diff(cntr.tx_9217_16383, old_cntr.tx_9217_16383))
+            print(""
+            print("Packets Transmitted 64 Octets.................. {}".format(ns_diff(cntr.tx_64, old_cntr.tx_64)))
+            print("Packets Transmitted 65-127 Octets.............. {}".format(ns_diff(cntr.tx_65_127, old_cntr.tx_65_127)))
+            print("Packets Transmitted 128-255 Octets............. {}".format(ns_diff(cntr.tx_128_255, old_cntr.tx_128_255)))
+            print("Packets Transmitted 256-511 Octets............. {}".format(ns_diff(cntr.tx_256_511, old_cntr.tx_256_511)))
+            print("Packets Transmitted 512-1023 Octets............ {}".format(ns_diff(cntr.tx_512_1023, old_cntr.tx_512_1023)))
+            print("Packets Transmitted 1024-1518 Octets........... {}".format(ns_diff(cntr.tx_1024_1518, old_cntr.tx_1024_1518)))
+            print("Packets Transmitted 1519-2047 Octets........... {}".format(ns_diff(cntr.tx_1519_2047, old_cntr.tx_1519_2047)))
+            print("Packets Transmitted 2048-4095 Octets........... {}".format(ns_diff(cntr.tx_2048_4095, old_cntr.tx_2048_4095)))
+            print("Packets Transmitted 4096-9216 Octets........... {}".format(ns_diff(cntr.tx_4096_9216, old_cntr.tx_4096_9216)))
+            print("Packets Transmitted 9217-16383 Octets.......... {}".format(ns_diff(cntr.tx_9217_16383, old_cntr.tx_9217_16383)))
 
-            print ""
-            print "Total Packets Transmitted Successfully......... {}".format(ns_diff(cntr.tx_all, old_cntr.tx_all))
-            print "Unicast Packets Transmitted.................... {}".format(ns_diff(cntr.tx_uca, old_cntr.tx_uca))
-            print "Multicast Packets Transmitted.................. {}".format(ns_diff(cntr.tx_mca, old_cntr.tx_mca))
-            print "Broadcast Packets Transmitted.................. {}".format(ns_diff(cntr.tx_bca, old_cntr.tx_bca))
+            print("")
+            print("Total Packets Transmitted Successfully......... {}".format(ns_diff(cntr.tx_all, old_cntr.tx_all)))
+            print("Unicast Packets Transmitted.................... {}".format(ns_diff(cntr.tx_uca, old_cntr.tx_uca)))
+            print("Multicast Packets Transmitted.................. {}".format(ns_diff(cntr.tx_mca, old_cntr.tx_mca)))
+            print("Broadcast Packets Transmitted.................. {}".format(ns_diff(cntr.tx_bca, old_cntr.tx_bca)))
 
-            print "Time Since Counters Last Cleared............... " + str(cnstat_old_dict.get('time'))
+            print("Time Since Counters Last Cleared............... " + str(cnstat_old_dict.get('time')))
 
  
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, intf_list, use_json, print_all, errors_only, rates_only, detail=False):
@@ -562,7 +562,6 @@ Examples:
         if os.path.isfile(cnstat_fqn_file):
             try:
                 cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
-                print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 if not detail:
                     print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, intf_list, use_json, print_all, errors_only, rates_only, detail)
