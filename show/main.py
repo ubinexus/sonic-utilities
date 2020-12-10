@@ -1229,10 +1229,10 @@ def users(verbose):
 @click.option('--since', required=False, help="Collect logs and core files since given date")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--allow-process-stop', is_flag=True, help="Allow hardware register dump which may cause system interruption")
-def techsupport(since, verbose, allow-process-stop):
+def techsupport(since, verbose, allow_process_stop):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
-    if allow-process-stop:
+    if allow_process_stop:
         cmd += " -a"
 
     if since:

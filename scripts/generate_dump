@@ -829,7 +829,8 @@ OPTIONS
     -n
         Noop mode. Don't actually create anything, just echo what would happen
     -a
-        Allow any process stop. This allows any system interruption to collect any platform HW register status.
+        Allow any process stop. This allows for collection of platform HW register
+        status, which may require potential system interruption
     -z
         Don't compress the tar at the end.
     -s DATE
