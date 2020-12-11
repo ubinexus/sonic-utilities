@@ -356,7 +356,7 @@ def is_vni_vrf_mapped(ctx, vni):
            break
 
     if (found == 1):
-        print "VNI {} mapped to Vrf {}, Please remove VRF VNI mapping".format(vni, vrf_key)
+        print("VNI {} mapped to Vrf {}, Please remove VRF VNI mapping".format(vni, vrf_key))
         return False
 
     return True
