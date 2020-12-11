@@ -113,6 +113,34 @@ save_bcmcmd() {
     end_t=$(date +%s%3N)
     echo "[ save_bcmcmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
+
+###############################################################################
+# Runs a given bcmcmd command in all namesapces in case of multi ASIC platform
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  cmd: The command to run. Make sure that arguments with spaces have quotes
+#  filename: the filename to save the output as in $BASE/dump
+#  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+# Returns:
+#  None
+###############################################################################
+save_bcmcmd_all_ns() {
+    local do_gzip=${3:-false}
+
+    if [[ ( "$NUM_ASICS" > 1 ) ]]; then
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            local cmd="bcmcmd -n $i $1"
+            local file="$2.$i"
+            save_bcmcmd "$cmd" "$file" "$do_gzip"
+        done
+    else
+        local cmd="bcmcmd $1"
+        save_bcmcmd "$cmd" "$2" "$do_gzip"
+    fi
+}
+
 ###############################################################################
 # Runs a comamnd and saves its output to the incrementally built tar.
 # Command gets timedout if it runs for more than TIMEOUT_MIN minutes.
@@ -191,10 +219,7 @@ save_cmd() {
 #  None
 ###############################################################################
 save_cmd_all_ns() {
-    #echo $1
-    #echo $2
     local do_zip=${3:-false}
-    #echo ${do_zip}
 
     # host or default namespace
     save_cmd "$1" "$2" "$do_zip"
@@ -280,7 +305,7 @@ save_ip() {
 }
 
 ###############################################################################
-# Runs an bridge command and saves its output to the incrementally built tar.
+# Runs a bridge command and saves its output to the incrementally built tar.
 # Globals:
 #  None
 # Arguments:
@@ -295,6 +320,21 @@ save_bridge() {
     local filename="bridge.$2"
     local do_gzip=${3:-false}
     save_cmd_all_ns "bridge $br_args" "$filename" $do_gzip
+}
+
+###############################################################################
+# Dump the bridge L2 information 
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_bridge_info() {
+    save_bridge "fdb show" "fdb"
+    save_bridge "vlan show" "vlan"
+
 }
 
 ###############################################################################
@@ -712,59 +752,77 @@ collect_mellanox() {
 #  None
 ###############################################################################
 collect_broadcom() {
-    local platform="$(/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)"
-    local hwsku=$(head -n 1 /usr/share/sonic/device/${platform}/default_sku | cut -d ' ' -f 1)
+    local platform=$(show platform summary --json | python -c 'import sys, json; \
+        print(json.load(sys.stdin)["platform"])')
+    local hwsku=$(show platform summary --json | python -c 'import sys, json; \
+        print(json.load(sys.stdin)["hwsku"])')
 
     # save SAI configuration files (config.bcm, port_config.ini, sai.profile)
     if [ -d /usr/share/sonic/device/${platform}/${hwsku} ]; then
         # copy all the files in the HWSKU directory
         pushd /usr/share/sonic/device/${platform}/${hwsku} > /dev/null
-        for file in $(find . -maxdepth 1 -type f); do
+        for file in $(find . -maxdepth 2 -type f); do
             save_file ${file} sai false
         done
         popd > /dev/null
-        # config.bcm - copy the one with chip common properties merged
-        for file in $(find /var/run/docker-syncd -type f -name "*.bcm"); do
-            save_file ${file} sai false
-        done
-        # sai.profile - copy the final sai.profile generated in docker-syncd
-        if [ -f /var/run/docker-syncd/sai.profile ]; then
-            save_file /var/run/docker-syncd/sai.profile sai false
+
+        if [[ ("$NUM_ASICS" > 1) ]]; then
+            for (( i=0; i<$NUM_ASICS; i++ ))
+            do
+                # config.bcm - copy the one with chip common properties merged
+                for file in $(find /var/run/docker-syncd$i -type f -name "*.bcm"); do
+                    save_file ${file} sai$i false
+                done
+                # sai.profile - copy the final sai.profile generated in docker-syncd
+                if [ -f /var/run/docker-syncd$i/sai.profile ]; then
+                    save_file /var/run/docker-syncd$i/sai.profile sai$i false
+                fi
+            done
+        else
+            # config.bcm - copy the one with chip common properties merged
+            for file in $(find /var/run/docker-syncd -type f -name "*.bcm"); do
+                save_file ${file} sai false
+            done
+            # sai.profile - copy the final sai.profile generated in docker-syncd
+            if [ -f /var/run/docker-syncd/sai.profile ]; then
+                save_file /var/run/docker-syncd/sai.profile sai false
+            fi
         fi
     else
         echo "'/usr/share/sonic/device/${platform}/${hwsku}' does not exist" > /tmp/error
         save_file /tmp/error sai false
     fi
 
-    save_bcmcmd "bcmcmd -t5 version" "broadcom.version"
-    save_bcmcmd "bcmcmd -t5 soc" "broadcom.soc"
-    save_bcmcmd "bcmcmd -t5 ps" "broadcom.ps"
     save_cmd "cat /proc/bcm/knet/debug" "broadcom.knet.debug"
     save_cmd "cat /proc/bcm/knet/dma" "broadcom.knet.dma"
     save_cmd "cat /proc/bcm/knet/link" "broadcom.knet.link"
     save_cmd "cat /proc/bcm/knet/rate" "broadcom.knet.rate"
-    save_bcmcmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
-    save_bcmcmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
-    save_bcmcmd "bcmcmd \"ipmc table show\"" "broadcom.ipmc"
-    save_bcmcmd "bcmcmd \"multicast show\"" "broadcom.multicast"
-    save_bcmcmd "bcmcmd \"conf show\"" "conf.summary"
-    save_bcmcmd "bcmcmd \"fp show\"" "fp.summary"
-    save_bcmcmd "bcmcmd \"pvlan show\"" "pvlan.summary"
-    save_bcmcmd "bcmcmd \"l2 show\"" "l2.summary"
-    save_bcmcmd "bcmcmd \"l3 intf show\"" "l3.intf.summary"
-    save_bcmcmd "bcmcmd \"l3 defip show\"" "l3.defip.summary"
-    save_bcmcmd "bcmcmd \"l3 l3table show\"" "l3.l3table.summary"
-    save_bcmcmd "bcmcmd \"l3 egress show\"" "l3.egress.summary"
-    save_bcmcmd "bcmcmd \"l3 ecmp egress show\"" "l3.ecmp.egress.summary"
-    save_bcmcmd "bcmcmd \"l3 multipath show\"" "l3.multipath.summary"
-    save_bcmcmd "bcmcmd \"l3 ip6host show\"" "l3.ip6host.summary"
-    save_bcmcmd "bcmcmd \"l3 ip6route show\"" "l3.ip6route.summary"
-    save_bcmcmd "bcmcmd \"mc show\"" "multicast.summary"
-    save_bcmcmd "bcmcmd \"cstat *\"" "cstat.summary"
-    save_bcmcmd "bcmcmd \"mirror show\"" "mirror.summary"
-    save_bcmcmd "bcmcmd \"mirror dest show\"" "mirror.dest.summary"
-    save_bcmcmd "bcmcmd \"port *\"" "port.summary"
-    save_bcmcmd "bcmcmd \"d chg my_station_tcam\"" "mystation.tcam.summary"
+
+    save_bcmcmd_all_ns "-t5 version" "broadcom.version"
+    save_bcmcmd_all_ns "-t5 soc" "broadcom.soc"
+    save_bcmcmd_all_ns "-t5 ps" "broadcom.ps"
+    save_bcmcmd_all_ns "\"l3 nat_ingress show\"" "broadcom.nat.ingress"
+    save_bcmcmd_all_ns "\"l3 nat_egress show\"" "broadcom.nat.egress"
+    save_bcmcmd_all_ns "\"ipmc table show\"" "broadcom.ipmc"
+    save_bcmcmd_all_ns "\"multicast show\"" "broadcom.multicast"
+    save_bcmcmd_all_ns "\"conf show\"" "conf.summary"
+    save_bcmcmd_all_ns "\"fp show\"" "fp.summary"
+    save_bcmcmd_all_ns "\"pvlan show\"" "pvlan.summary"
+    save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+    save_bcmcmd_all_ns "\"l3 intf show\"" "l3.intf.summary"
+    save_bcmcmd_all_ns "\"l3 defip show\"" "l3.defip.summary"
+    save_bcmcmd_all_ns "\"l3 l3table show\"" "l3.l3table.summary"
+    save_bcmcmd_all_ns "\"l3 egress show\"" "l3.egress.summary"
+    save_bcmcmd_all_ns "\"l3 ecmp egress show\"" "l3.ecmp.egress.summary"
+    save_bcmcmd_all_ns "\"l3 multipath show\"" "l3.multipath.summary"
+    save_bcmcmd_all_ns "\"l3 ip6host show\"" "l3.ip6host.summary"
+    save_bcmcmd_all_ns "\"l3 ip6route show\"" "l3.ip6route.summary"
+    save_bcmcmd_all_ns "\"mc show\"" "multicast.summary"
+    save_bcmcmd_all_ns "\"cstat *\"" "cstat.summary"
+    save_bcmcmd_all_ns "\"mirror show\"" "mirror.summary"
+    save_bcmcmd_all_ns "\"mirror dest show\"" "mirror.dest.summary"
+    save_bcmcmd_all_ns "\"port *\"" "port.summary"
+    save_bcmcmd_all_ns "\"d chg my_station_tcam\"" "mystation.tcam.summary"
 }
 
 ###############################################################################
@@ -910,7 +968,7 @@ save_counter_snapshot() {
 
     save_cmd "echo $counter_t" "date.counter_$idx"
     save_cmd "show interface counters" "interface.counters_$idx"
-    save_cmd "show queue counters" "queue.counters_$idx"
+    save_cmd_all_ns "show queue counters" "queue.counters_$idx"
     save_redis "COUNTERS_DB" "COUNTERS_DB_$idx"
 
     if [ "$asic_name" = "broadcom" ]; then
@@ -923,8 +981,8 @@ save_counter_snapshot() {
             save_cmd "cat /proc/bcm/knet/rx_drop" "broadcom.knet_queue.counters_$idx"
         fi
     fi
-    save_cmd "netstat -i" "netstat.counters_$idx"
-    save_cmd "ifconfig -a" "ifconfig.counters_$idx"
+    save_cmd_all_ns "netstat -i" "netstat.counters_$idx"
+    save_cmd_all_ns "ifconfig -a" "ifconfig.counters_$idx"
 }
 
 
@@ -1004,9 +1062,7 @@ main() {
     save_cmd "sysctl -a" "sysctl"
 
     save_ip_info
-
-    save_bridge "fdb show" "fdb"
-    save_bridge "vlan show" "vlan"
+    save_bridge_info
 
     save_frr_info
     save_bgp_info
@@ -1014,12 +1070,21 @@ main() {
     save_cmd "show interface status -d all" "interface.status"
     save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
     save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
-    save_cmd "show ip interface" "ip.interface"
+    save_cmd_all_ns "show ip interface" "ip.interface"
 
     save_cmd "lldpctl" "lldpctl"
-    save_cmd "docker exec -it lldp lldpcli show statistics" "lldp.statistics"
-    save_cmd "docker logs bgp" "docker.bgp.log"
-    save_cmd "docker logs swss" "docker.swss.log"
+    if [[ ( "$NUM_ASICS" > 1 ) ]]; then
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            save_cmd "docker exec -it lldp$i lldpcli show statistics" "lldp$i.statistics"
+            save_cmd "docker logs bgp$i" "docker.bgp$i.log"
+            save_cmd "docker logs swss$i" "docker.swss$i.log"
+        done
+    else
+        save_cmd "docker exec -it lldp lldpcli show statistics" "lldp.statistics"
+        save_cmd "docker logs bgp" "docker.bgp.log"
+        save_cmd "docker logs swss" "docker.swss.log"
+    fi
 
     save_cmd "ps aux" "ps.aux"
     save_cmd "top -b -n 1" "top"
@@ -1085,11 +1150,22 @@ main() {
     echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
     if [ "$asic" = "broadcom" ]; then
-       sudo docker exec -i syncd touch /var/log/diagrun.log
-       sudo docker exec -i syncd touch /var/log/bcm_diag_post
+        if [[ ("$NUM_ASICS" > 1) ]]; then
+            for (( i=0; i<$NUM_ASICS; i++ ))
+            do
+                sudo docker exec -i syncd$i touch /var/log/diagrun.log
+                sudo docker exec -i syncd$i touch /var/log/bcm_diag_post
 
-       sudo docker cp syncd:/var/log/diagrun.log /var/log/diagrun.log
-       sudo docker cp syncd:/var/log/bcm_diag_post /var/log/bcm_diag_post
+                sudo docker cp syncd$i:/var/log/diagrun.log /var/log/diagrun.log.$i
+                sudo docker cp syncd$i:/var/log/bcm_diag_post /var/log/bcm_diag_post.$i
+            done
+        else
+           sudo docker exec -i syncd touch /var/log/diagrun.log
+           sudo docker exec -i syncd touch /var/log/bcm_diag_post
+
+           sudo docker cp syncd:/var/log/diagrun.log /var/log/diagrun.log
+           sudo docker cp syncd:/var/log/bcm_diag_post /var/log/bcm_diag_post
+        fi
     fi
     save_log_files
 	save_warmboot_files
