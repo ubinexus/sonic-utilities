@@ -28,6 +28,7 @@ show_vxlan_vlanvnimap_output="""\
 | Vlan200 |   200 |
 +---------+-------+
 Total count : 4
+
 """
 
 show_vxlan_tunnel_output="""\
@@ -41,6 +42,7 @@ show_vxlan_tunnel_output="""\
 | 1.1.1.1 | 25.25.25.27 | EVPN              | oper_down    |
 +---------+-------------+-------------------+--------------+
 Total count : 3
+
 """
 
 show_vxlan_remotevni_output="""\
@@ -54,6 +56,7 @@ show_vxlan_remotevni_output="""\
 | Vlan200 | 25.25.25.27  |  2000 |
 +---------+--------------+-------+
 Total count : 3
+
 """
 
 show_vxlan_remotevni_specific_output="""\
@@ -63,21 +66,26 @@ show_vxlan_remotevni_specific_output="""\
 | Vlan200 | 25.25.25.27  |  2000 |
 +---------+--------------+-------+
 Total count : 1
+
 """
 show_vxlan_vlanvnimap_cnt_output="""\
 Total count : 4
+
 """
 
 show_vxlan_tunnel_cnt_output="""\
 Total count : 3
+
 """
 
 show_vxlan_remotevni_cnt_output="""\
 Total count : 3
+
 """
 
 show_vxlan_remotevni_specific_cnt_output="""\
 Total count : 1
+
 """
 
 class TestVxlan(object):
@@ -112,7 +120,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_remotevni(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni"].commands["all"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni all"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -120,7 +128,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_remotevni_specific(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni"].commands["25.25.25.27"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni 25.25.25.27"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -128,7 +136,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_vlanvnimap_cnt(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["vlanvnimap"].commands["count"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["vlanvnimap count"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -136,7 +144,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_tunnel_cnt(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["tunnel"].commands["count"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["tunnel count"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -144,7 +152,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_remotevni_cnt(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni"].commands["all"].commands["count"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni all count"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -152,7 +160,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_remotevni_specific_cnt(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni"].commands["25.25.25.27"].commands["count"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remote-vni 25.25.25.27 count"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
