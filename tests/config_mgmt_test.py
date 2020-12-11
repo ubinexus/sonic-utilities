@@ -56,6 +56,41 @@ class TestConfigMgmt(TestCase):
             len(out['ACL_TABLE'][k]) == 1
         return
 
+	def test_shutdownIntf_call(self):
+        '''
+        Verify that verifyAppDB() is called with deleted ports while calling
+        breakOutPort()
+        '''
+        conf = dict(configDbJson)
+        cmdpb = self.config_mgmt_dpb(conf)
+        print(conf['PORT'])
+        # create ARGS
+        dPorts, aPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
+            curMode='1x50G(2)+2x25G(2)', newMode='2x50G')
+        # Try to breakout and see if verifyAppDB is called
+        cmdpb.breakOutPort(delPorts=dPorts, addPorts=aPorts, portJson=pJson, \
+            force=True, loadDefConfig=False)
+        print(conf['PORT'])
+
+        # verify correct function call to shutdownIntf
+        assert cmdpb._shutdownIntf.call_count == 1
+        print(cmdpb._shutdownIntf.call_args_list[0])
+        fargs = cmdpb._shutdownIntf.call_args_list[0].args
+		# fargs shd be [[dports]], i.e. one args which is dports
+        print(fargs)
+        assert len(fargs) == 1
+        assert fargs[0] == dPorts
+
+        # verify correct function call to writeConfigDB
+        assert cmdpb.writeConfigDB.call_count == 3
+        print(cmdpb.writeConfigDB.call_args_list[0])
+        fargs = cmdpb.writeConfigDB.call_args_list[0].args
+        print(fargs)
+        assert len(fargs) == 1
+        assert "PORT" in fagrs[0]
+        assert len(fargs[0]["PORT"]) == len(dPorts)
+        return
+
     def test_break_out(self):
         # prepare default config
         self.writeJson(portBreakOutConfigDbJson, \
