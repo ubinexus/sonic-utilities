@@ -341,13 +341,12 @@ def vni_id_is_valid(vni):
 
     return True
 
-def is_vni_vrf_mapped(ctx, vni):
+def is_vni_vrf_mapped(db, vni):
     """Check if the vni is mapped to vrf
     """
 
     found = 0
-    db = ctx.obj['db']
-    vrf_table = db.get_table('VRF')
+    vrf_table = db.cfgdb.get_table('VRF')
     vrf_keys = vrf_table.keys()
     if vrf_keys is not None:
       for vrf_key in vrf_keys:

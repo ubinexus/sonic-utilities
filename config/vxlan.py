@@ -264,7 +264,7 @@ def del_vxlan_map_range(db, vxlan_name, vlan_start, vlan_end, vni_start):
        vlan_name = 'Vlan{}'.format(vid)
        vnid = vni_start+vid-vlan_start
        vni_name = '{}'.format(vnid)
-       if clicommon.is_vni_vrf_mapped(ctx, vni_name) is False:
+       if clicommon.is_vni_vrf_mapped(db, vni_name) is False:
            print("Skipping Vlan {} VNI {} mapped delete. ".format(vlan_name, vni_name))
            continue
 

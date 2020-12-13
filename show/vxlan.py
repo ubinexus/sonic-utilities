@@ -214,7 +214,7 @@ def tunnel(count):
 @vxlan.command()
 @click.argument('remote_vtep_ip', required=True)
 @click.argument('count', required=False)
-def remote_vni(remote_vtep_ip, count):
+def remotevni(remote_vtep_ip, count):
     """Show Vlans extended to the remote VTEP"""
 
     if (remote_vtep_ip != 'all') and (clicommon.is_ipaddress(remote_vtep_ip ) is False):
@@ -261,7 +261,7 @@ def remote_vni(remote_vtep_ip, count):
 @vxlan.command()
 @click.argument('remote_vtep_ip', required=True)
 @click.argument('count', required=False)
-def remote_mac(remote_vtep_ip, count):
+def remotemac(remote_vtep_ip, count):
     """Show MACs pointing to the remote VTEP"""
 
     if (remote_vtep_ip != 'all') and (clicommon.is_ipaddress(remote_vtep_ip ) is False): 
