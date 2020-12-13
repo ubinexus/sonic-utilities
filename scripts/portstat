@@ -270,7 +270,7 @@ class Portstat(object):
             Print the difference between two cnstat results for interface.
         """
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 continue
 
