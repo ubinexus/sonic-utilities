@@ -271,34 +271,3 @@ def del_vxlan_map_range(db, vxlan_name, vlan_start, vlan_end, vni_start):
        mapname = vxlan_name + '|' + 'map_' + vni_name + '_' + vlan_name
        db.cfgdb.set_entry('VXLAN_TUNNEL_MAP', mapname, None)
 
-#######
-#
-# 'neigh_suppress' group ('config neigh_suppress...')
-#
-@click.group()
-def neigh_suppress():
-    """ Neighbour Suppress VLAN-related configuration """
-
-@neigh_suppress.command('enable')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@clicommon.pass_db
-def enable_neigh_suppress(db, vid):
-    ctx = click.get_current_context()
-    if clicommon.is_vlanid_in_range(vid) is False:
-        ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
-    vlan = 'Vlan{}'.format(vid)
-    if len(db.cfgdb.get_entry('VLAN', vlan)) == 0:
-        click.echo("{} doesn't exist".format(vlan))
-        return
-    fvs = {'suppress': "on"}
-    db.cfgdb.set_entry('SUPPRESS_VLAN_NEIGH', vlan, fvs)
-
-@neigh_suppress.command('disable')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@clicommon.pass_db
-def disable_neigh_suppress(db, vid):
-    ctx = click.get_current_context()
-    if clicommon.is_vlanid_in_range(vid) is False:
-        ctx.fail(" Invalid Vlan Id , Valid Range : 1 to 4094 ")
-    vlan = 'Vlan{}'.format(vid)
-    db.cfgdb.set_entry('SUPPRESS_VLAN_NEIGH', vlan, None)
