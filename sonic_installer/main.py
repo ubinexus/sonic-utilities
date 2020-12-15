@@ -301,19 +301,19 @@ def migrate_sonic_packages(image_version):
     PACKAGE_MANAGER_DIR = "/var/lib/sonic-package-manager/"
     DOCKER_CTL_SCRIPT = "/usr/lib/docker/docker.sh"
 
+    tmp_dir = "tmp"
+    packages_file = "packages.json"
+    packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
     sonic_version = re.sub("SONiC-OS-", '', image_version)
     new_image_dir = os.path.join('/', "host", "image-{0}".format(sonic_version))
     new_image_squashfs_path = os.path.join(new_image_dir, "fs.squashfs")
     new_image_upper_dir = os.path.join(new_image_dir, "rw")
     new_image_work_dir = os.path.join(new_image_dir, "work")
     new_image_docker_dir = os.path.join(new_image_dir, "docker")
-    new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
+    new_image_mount = os.path.join('/', tmp_dir, "image-{0}-fs".format(sonic_version))
     new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
 
     try:
-        packages_file = "packages.json"
-        packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
-        tmp_dir = "tmp"
         mount_squash_fs(new_image_squashfs_path, new_image_mount)
         # make sure upper dir and work dir exist
         run_command_or_raise(["mkdir", "-p", new_image_upper_dir])
