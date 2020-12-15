@@ -138,6 +138,7 @@ def config_mgmt_dpb(cfgdb):
     writeJson(portBreakOutConfigDbJson, config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE)
     cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
     # mock funcs
+    cmdpb.writeConfigDB = mock.MagicMock(return_value=True)
     cmdpb._verifyAsicDB = mock.MagicMock(return_value=True)
     return cmdpb
 
@@ -313,6 +314,21 @@ class TestConfigDPB(object):
         '''
         Test different combination of breakout port.
         @Param: sonic_db [PyFixture], db.cfgdb -> Config DB.
+
+        How this function works:
+        mock_func creates a mock for load_ConfigMgmt, which inturn create one
+        mocked object of ConfigMgmtDPB, each time when config breakout command
+        is executed, same object of ConfigMgmtDPB will be returned.
+        The object will also have data tree loaded and updated with each breakout
+        command, so we can run breakout command in continution assuming
+        config changes are happening to DB.
+
+        writeConfigDB in ConfigMgmtDPB writes in new object of DB, so those
+        changes will be lost, i.e. not reflected in db.cfgdb. So we mock
+        writeConfigDB() or not, does not matter.
+
+        config/main.py part will use db (sonic_db) while configDb update,
+        so brk_cfg_table updates will be seen in db.
         '''
 
         db = sonic_db
