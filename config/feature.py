@@ -1,7 +1,7 @@
 import sys
 
 import click
-from utilities_common.cli import AbbreviationGroup, pass_db
+from utilities_common.cli import AbbreviationGroup, pass_multi_asic_db
 
 #
 # 'feature' group ('config feature ...')
@@ -17,20 +17,28 @@ def feature():
 @feature.command('state', short_help="Enable/disable a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
 @click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
-@pass_db
+@pass_multi_asic_db
 def feature_state(db, name, state):
     """Enable/disable a feature"""
-    entry_data = db.cfgdb.get_entry('FEATURE', name)
+    entry_data_set = set()
 
-    if not entry_data:
-        click.echo("Feature '{}' doesn't exist".format(name))
+    for ns, cfgdb in db.cfgdb.items():
+        entry_data = cfgdb.get_entry('FEATURE', name)
+        if not entry_data:
+            click.echo("Feature '{}' doesn't exist".format(name))
+            sys.exit(1)
+        entry_data_set.add(entry_data['state'])
+
+    if len(entry_data_set) > 1:
+        click.echo("Feature '{}' state is not consistent across namespaces".format(name))
         sys.exit(1)
 
     if entry_data['state'] == "always_enabled":
         click.echo("Feature '{}' state is always enabled and can not be modified".format(name))
         return
 
-    db.cfgdb.mod_entry('FEATURE', name, {'state': state})
+    for ns, cfgdb in db.cfgdb.items():
+        cfgdb.mod_entry('FEATURE', name, {'state': state})
 
 #
 # 'autorestart' command ('config feature autorestart ...')
@@ -38,17 +46,25 @@ def feature_state(db, name, state):
 @feature.command(name='autorestart', short_help="Enable/disable autosrestart of a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
 @click.argument('autorestart', metavar='<autorestart>', required=True, type=click.Choice(["enabled", "disabled"]))
-@pass_db
+@pass_multi_asic_db
 def feature_autorestart(db, name, autorestart):
     """Enable/disable autorestart of a feature"""
-    entry_data = db.cfgdb.get_entry('FEATURE', name)
+    entry_data_set = set()
 
-    if not entry_data:
-        click.echo("Feature '{}' doesn't exist".format(name))
+    for ns, cfgdb in db.cfgdb.items():
+        entry_data = cfgdb.get_entry('FEATURE', name)
+        if not entry_data:
+            click.echo("Feature '{}' doesn't exist".format(name))
+            sys.exit(1)
+        entry_data_set.add(entry_data['auto_restart'])
+
+    if len(entry_data_set) > 1:
+        click.echo("Feature '{}' auto-restart is not consistent across namespaces".format(name))
         sys.exit(1)
 
     if entry_data['auto_restart'] == "always_enabled":
         click.echo("Feature '{}' auto-restart is always enabled and can not be modified".format(name))
         return
 
-    db.cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
+    for ns, cfgdb in db.cfgdb.items():
+        cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})

@@ -1,3 +1,4 @@
+from importlib import reload
 import os
 import sys
 
@@ -1009,6 +1010,7 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic
+        reload(mock_multi_asic)
         dbconnector.load_namespace_config()
 
     def test_crm_show_summary(self):
@@ -1298,3 +1300,4 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         from .mock_tables import mock_single_asic
+        reload(mock_single_asic)

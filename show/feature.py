@@ -2,7 +2,8 @@ import click
 from natsort import natsorted
 from tabulate import tabulate
 
-from utilities_common.cli import AbbreviationGroup, pass_db
+from utilities_common import constants
+from utilities_common.cli import AbbreviationGroup, pass_multi_asic_db
 
 #
 # 'feature' group (show feature ...)
@@ -17,11 +18,11 @@ def feature():
 #
 @feature.command('status', short_help="Show feature state")
 @click.argument('feature_name', required=False)
-@pass_db
+@pass_multi_asic_db
 def feature_status(db, feature_name):
     header = ['Feature', 'State', 'AutoRestart']
     body = []
-    feature_table = db.cfgdb.get_table('FEATURE')
+    feature_table = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('FEATURE')
     if feature_name:
         if feature_table and feature_name in feature_table:
             body.append([feature_name, feature_table[feature_name]['state'], \
@@ -39,11 +40,11 @@ def feature_status(db, feature_name):
 #
 @feature.command('autorestart', short_help="Show auto-restart state for a feature")
 @click.argument('feature_name', required=False)
-@pass_db
+@pass_multi_asic_db
 def feature_autorestart(db, feature_name):
     header = ['Feature', 'AutoRestart']
     body = []
-    feature_table = db.cfgdb.get_table('FEATURE')
+    feature_table = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('FEATURE')
     if feature_name:
         if feature_table and feature_name in feature_table:
             body.append([feature_name, feature_table[feature_name]['auto_restart']])

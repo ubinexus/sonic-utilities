@@ -10,10 +10,12 @@ import json
 from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common.db import Db
+from utilities_common.multi_asic import MultiAsicDb
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 pass_db = click.make_pass_decorator(Db, ensure=True)
+pass_multi_asic_db = click.make_pass_decorator(MultiAsicDb, ensure=True)
 
 class AbbreviationGroup(click.Group):
     """This subclass of click.Group supports abbreviated subgroup/subcommand names
