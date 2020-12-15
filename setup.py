@@ -58,6 +58,7 @@ setup(
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
                   'mock_tables/asic1/*.json',
+                  'mock_tables/asic2/*.json',
                   'filter_fdb_input/*',
                   'pfcwd_input/*',
                   'wm_input/*']
@@ -110,7 +111,8 @@ setup(
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
-        'scripts/sonic-kdump-config'
+        'scripts/sonic-kdump-config',
+        'scripts/centralize_database'
     ],
     entry_points={
         'console_scripts': [

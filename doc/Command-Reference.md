@@ -36,9 +36,6 @@
   * [Console config commands](#console-config-commands)
   * [Console connect commands](#console-connect-commands)
   * [Console clear commands](#console-clear-commands)
-* [Container Auto-restart](#container-auto-restart)
-  * [Container Auto-restart show commands](#container-auto-restart-show-commands)
-  * [Container Auto-restart config command](#container-auto-restart-config-command)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
@@ -48,6 +45,9 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Feature](#feature)
+  * [Feature show commands](#feature-show-commands)
+  * [Feature config commands](#feature-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -81,6 +81,9 @@
 * [Mirroring](#mirroring)
   * [Mirroring Show commands](#mirroring-show-commands)
   * [Mirroring Config commands](#mirroring-config-commands)
+* [Muxcable](#muxcable)
+  * [Muxcable Show commands](#muxcable-show-commands)
+  * [Muxcable Config commands](#muxcable-config-commands)
 * [NAT](#nat)
   * [NAT Show commands](#nat-show-commands)
   * [NAT Config commands](#nat-config-commands)
@@ -282,6 +285,7 @@ This command lists all the possible configuration commands at the top level.
     acl                    ACL-related configuration tasks
     bgp                    BGP-related configuration tasks
     ecn                    ECN-related configuration tasks
+    feature                Modify configuration of features
     hostname               Change device hostname without impacting traffic
     interface              Interface-related configuration tasks
     interface_naming_mode  Modify interface naming mode for interacting...
@@ -302,7 +306,6 @@ This command lists all the possible configuration commands at the top level.
     vrf                    VRF-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
-    container              Modify configuration of containers
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#getting-help)
 
@@ -333,6 +336,7 @@ This command displays the full list of show commands available in the software; 
     clock                 Show date and time
     ecn                   Show ECN configuration
     environment           Show environmentals (voltages, fans, temps)
+    feature               Show feature status
     interfaces            Show details of the network interfaces
     ip                    Show IP (IPv4) commands
     ipv6                  Show IPv6 commands
@@ -342,6 +346,7 @@ This command displays the full list of show commands available in the software; 
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
     mmu                   Show mmu configuration
+    muxcable              Show muxcable information
     nat                   Show details of the nat
     ndp                   Show IPv6 Neighbour table
     ntp                   Show NTP information
@@ -365,7 +370,6 @@ This command displays the full list of show commands available in the software; 
     vrf                   Show vrf config
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
-    container             Show details of container
   ```
 
 The same syntax applies to all subgroups of `show` which themselves contain subcommands, and subcommands which accept options/arguments.
@@ -546,6 +550,26 @@ This command displays the cause of the previous reboot
   ```
   admin@sonic:~$ show reboot-cause
   User issued reboot command [User: admin, Time: Mon Mar 25 01:02:03 UTC 2019]
+  ```
+
+**show reboot-cause history**
+
+This command displays the history of the previous reboots up to 10 entry
+
+- Usage:
+  ```
+  show reboot-cause history
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show reboot-cause history
+  Name                 Cause        Time                          User    Comment
+  -------------------  -----------  ----------------------------  ------  ---------
+  2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
+  2020_10_09_01_56_59  reboot       Fri Oct  9 01:53:49 UTC 2020  admin
+  2020_10_09_02_00_53  fast-reboot  Fri Oct  9 01:58:04 UTC 2020  admin
+  2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
   ```
 
 **show uptime**
@@ -2052,6 +2076,24 @@ Optionally, you can connect with a remote device name by specifying the `-d` or 
   Press ^A ^X to disconnect
   ```
 
+**connect device**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  connect device <devicename>
+  ```
+
+The command is same with `connect line --devicename <devicename>`
+
+- Example:
+  ```
+  admin@sonic:~$ connect line 1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
 ### Console clear commands
 
 **sonic-clear line**
@@ -2079,64 +2121,6 @@ Optionally, you can clear with a remote device name by specifying the `-d` or `-
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#console)
 
-## Container Auto-restart
-
-SONiC includes a feature in which Docker containers can be automatically shut
-down and restarted if one of critical processes running in the container exits
-unexpectedly. Restarting the entire container ensures that configuration is 
-reloaded and all processes in the container get restarted, thus increasing the
-likelihood of entering a healthy state.
-
-### Container Auto-restart show commands
-
-**show container feature autorestart**
-
-This command will display the status of auto-restart feature for containers.
-
-- Usage:
-  ```
-  show container feature autorestart [<container_name>]
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ show container feature autorestart
-  Container Name    Status
-  --------------    --------
-  database          enabled
-  syncd             enabled
-  teamd             disabled
-  dhcp_relay        enabled
-  lldp              enabled
-  pmon              enabled
-  bgp               enabled
-  swss              disabled
-  telemetry         enabled
-  sflow             enabled
-  snmp              enabled
-  radv              disabled
-  ```
-
-Optionally, you can specify a container name in order to display the auto-restart
-feature status for that container only.
-
-### Container Auto-restart config command
-
-**config container feature autorestart <container_name> <autorestart_status>**
-
-This command will configure the status of auto-restart feature for a specific container.
-
-- Usage:
-  ```
-  config container feature autorestart <container_name> (enabled | disabled)
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config container feature autorestart database disabled
-  ``` 
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#container-auto-restart)
 
 ## DHCP Relay
 
@@ -2174,7 +2158,6 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
   admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
   Removed DHCP relay destination address 7.7.7.7 from Vlan1000
   Restarting DHCP relay service...
-  Running command: systemctl restart dhcp_relay
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
@@ -2436,6 +2419,109 @@ The list of the WRED profile fields that are configurable is listed in the below
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
+
+## Feature
+
+SONiC includes a capability in which Feature state can be enabled/disabled
+which will make corresponding feature docker container to start/stop.
+
+Also SONiC provide capability in which Feature docker container can be automatically shut
+down and restarted if one of critical processes running in the container exits
+unexpectedly. Restarting the entire feature container ensures that configuration is 
+reloaded and all processes in the feature container get restarted, thus increasing the
+likelihood of entering a healthy state.
+
+### Feature show commands
+
+**show feature status**
+
+This command will display the status of feature state.
+
+- Usage:
+  ```
+  show feature status [<feature_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature status
+  Feature     State           AutoRestart
+  ----------  --------------  --------------
+  bgp         enabled         enabled
+  database    always_enabled  always_enabled
+  dhcp_relay  enabled         enabled
+  lldp        enabled         enabled
+  pmon        enabled         enabled
+  radv        enabled         enabled
+  snmp        enabled         enabled
+  swss        always_enabled  enabled
+  syncd       always_enabled  enabled
+  teamd       always_enabled  enabled
+  telemetry   enabled         enabled
+  ```
+**show feature autorestart**
+
+This command will display the status of auto-restart for feature container.
+
+- Usage:
+  ```
+  show feature autorestart [<feature_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature autorestart
+  Feature     AutoRestart
+  ----------  --------------
+  bgp         enabled
+  database    always_enabled
+  dhcp_relay  enabled
+  lldp        enabled
+  pmon        enabled
+  radv        enabled
+  snmp        enabled
+  swss        enabled
+  syncd       enabled
+  teamd       enabled
+  telemetry   enabled
+  ```
+
+Optionally, you can specify a feature name in order to display
+status for that feature
+
+### Feature config commands
+
+**config feature state <feature_name> <state>**
+
+This command will configure the state for a specific feature.
+
+- Usage:
+  ```
+  config feature state <feature_name> (enabled | disabled)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature state bgp disabled
+  ``` 
+
+**config feature autorestart <feature_name> <autorestart_status>**
+
+This command will configure the status of auto-restart for a specific feature container.
+
+- Usage:
+  ```
+  config feature autorestart <feature_name> (enabled | disabled)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature autorestart bgp disabled
+  ``` 
+NOTE: If the existing state or auto-restart value for a feature is "always_enabled" then config
+commands are don't care and will not update state/auto-restart value.
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
 
 ## Gearbox
 
@@ -4087,6 +4173,199 @@ This command deletes the SNMP Trap server IP address to which SNMP agent is expe
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#management-vrf)
+
+## Muxcable
+
+### Muxcable Show commands
+
+**show muxcable status**
+
+This command displays all the status of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current status of muxcable on the port (auto/active) and also the health of the muxcable.
+
+- Usage:
+  ```
+  show muxcable status [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable status, users can configure the following fields  
+
+- PORT     optional - Port name should be a valid port  
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.  
+
+With no optional argument, all the ports muxcable status will be displayed in tabular form, or user can pass --json option to display in json format  
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable status  
+      PORT        STATUS    HEALTH  
+      ----------  --------  --------  
+      Ethernet32  active    HEALTHY  
+      Ethernet0   auto      HEALTHY  
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status --json  
+    ```
+    ```json
+           {  
+               "MUX_CABLE": {  
+                     "Ethernet32": {  
+                         "STATUS": "active",  
+                         "HEALTH": "HEALTHY"  
+                    },  
+                    "Ethernet0": {  
+                          "STATUS": "auto",  
+                          "HEALTH": "HEALTHY"  
+                     }   
+                }  
+           }  
+
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status Ethernet0  
+      PORT       STATUS    HEALTH  
+      ---------  --------  --------  
+      Ethernet0  auto      HEALTHY  
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status Ethernet0 --json  
+    ```
+    ```json
+           {  
+                "MUX_CABLE": {  
+                    "Ethernet0": {  
+                         "STATUS": "auto",  
+                         "HEALTH": "HEALTHY"  
+                     }  
+                }  
+          }  
+    ```
+
+**show muxcable config**
+
+This command displays all the configurations of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current configurations of muxcable on the port(active/standby) and also the ipv4 and ipv6 address of the port as well as peer TOR ip address with the hostname.
+
+- Usage:
+  ```
+  show muxcable config [OPTIONS] [PORT]
+  ```
+
+With no optional argument, all the ports muxcable configuration will be displayed in tabular form  
+While displaying the muxcable configuration, users can configure the following fields 
+ 
+- PORT   optional - Port name should be a valid port
+- --json optional -  option to display the result in json format. By default output will be in tabular format.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable config
+        SWITCH_NAME    PEER_TOR
+        -------------  ----------
+        sonic          10.1.1.1
+        port       state    ipv4      ipv6
+        ---------  -------  --------  --------
+        Ethernet0  active  10.1.1.1  fc00::75
+    ```
+    ```
+        admin@sonic:~$ show muxcable config --json
+    ```
+    ```json
+	{
+            "MUX_CABLE": {
+                "PEER_TOR": "10.1.1.1",
+                "PORTS": {
+                    "Ethernet0": {
+                        "STATE": "active",
+                        "SERVER": {
+                            "IPv4": "10.1.1.1",
+                            "IPv6": "fc00::75"
+                         }
+                     }
+                 }
+             }
+        }
+    ```
+    ```
+        admin@sonic:~$ show muxcable config Ethernet0
+        SWITCH_NAME    PEER_TOR
+        -------------  ----------
+        sonic          10.1.1.1
+        port       state    ipv4      ipv6
+        ---------  -------  --------  --------
+        Ethernet0  active  10.1.1.1  fc00::75
+    ```
+    ```
+        admin@sonic:~$ show muxcable config Ethernet0 --json
+    ```
+    ```json
+           {
+              "MUX_CABLE": {
+                  "PORTS": {
+                       "Ethernet0": {
+                           "STATE": "active",
+                           "SERVER": {
+                                "IPv4": "10.1.1.1",
+                                "IPv6": "fc00::75"
+                            }
+                        }
+                    }
+               }
+          }
+    ```
+
+
+### Muxcable Config commands
+
+
+**config muxcable mode**
+
+This command is used for setting the configuration of a muxcable Port/all ports to be active or auto. The user has to enter a port number or else all to make the muxcable config operation on all the ports. Depending on the status of the muxcable port state the resultant output could be OK or INPROGRESS . OK would imply no change on the state, INPROGRESS would mean the toggle is happening in the background.
+
+- Usage:
+  ```
+  config muxcable mode [OPTIONS] <operation_status> <port_name>
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation  
+
+- <auto/active> operation_state, permitted operation to be configured which can only be auto or active  
+- PORT   optional - Port name should be a valid port
+-  --json optional -  option to display the result in json format. By default output will be in tabular format.
+  
+
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active Ethernet0  
+        port       state  
+        ---------  -------  
+        Ethernet0  OK
+    ```
+    ```
+        admin@sonic:~$ sudo config muxcable  mode --json active Ethernet0
+    ```
+    ```json
+           {  
+               "Ethernet0": "OK"  
+           }
+    ```    
+  
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active all  
+        port        state  
+        ----------  ----------  
+        Ethernet0   OK  
+        Ethernet32  INPROGRESS    
+    ```
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active all --json  
+    ```
+    ```json
+           {  
+                "Ethernet32": "INPROGRESS",  
+                "Ethernet0": "OK"
+           }
+    ```    
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 
 ## Mirroring
 
