@@ -56,9 +56,9 @@ class TestConfigMgmt(TestCase):
             len(out['ACL_TABLE'][k]) == 1
         return
 
-	def test_shutdownIntf_call(self):
+    def test_shutdownIntf_call(self):
         '''
-        Verify that verifyAppDB() is called with deleted ports while calling
+        Verify that _shutdownIntf() is called with deleted ports while calling
         breakOutPort()
         '''
         conf = dict(configDbJson)
