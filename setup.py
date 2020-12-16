@@ -111,6 +111,8 @@ setup(
         'scripts/syseeprom-to-json',
         'scripts/tempershow',
         'scripts/update_json.py',
+        'scripts/thresholdbreach',
+        'scripts/thresholdcfg',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',

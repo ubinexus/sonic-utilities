@@ -582,6 +582,28 @@ def pwm_q_multi():
     command = 'watermarkstat -p -t q_shared_multi'
     run_command(command)
 
+@queue.group()
+def threshold():
+    """Show queue threshold config"""
+    pass
+
+@threshold.command('unicast')
+def th_q_uni():
+    """Show threshold config for unicast queues"""
+    command = 'thresholdcfg -t q_shared_uni'
+    run_command(command)
+
+@threshold.command('multicast')
+def th_q_multi():
+    """Show threshold config for multicast queues"""
+    command = 'thresholdcfg -t q_shared_multi'
+    run_command(command)
+
+@threshold.command('CPU')
+def th_q_multi_cpu():
+    """Show threshold config for CPU queues"""
+    command = 'thresholdcfg -t q_shared_multi_cpu'
+    run_command(command)
 
 #
 # 'priority-group' group ("show priority-group ...")
@@ -625,6 +647,23 @@ def pwm_pg_shared():
     command = 'watermarkstat -p -t pg_shared'
     run_command(command)
 
+@priority_group.group()
+def threshold():
+    """Show priority group threshold config"""
+    pass
+
+@threshold.command('headroom')
+def th_pg_headroom():
+    """Show headroom threshold config for pg"""
+    command = 'thresholdcfg -t pg_headroom'
+    run_command(command)
+
+@threshold.command('shared')
+def th_pg_shared():
+    """Show shared threshold config for pg"""
+    command = 'thresholdcfg -t pg_shared'
+    run_command(command)
+
 
 #
 # 'buffer_pool' group ("show buffer_pool ...")
@@ -646,6 +685,16 @@ def pwm_buffer_pool():
     command = 'watermarkstat -p -t buffer_pool'
     run_command(command)
 
+@buffer_pool.group()
+def threshold():
+    """Show priority group threshold config"""
+    pass
+
+@threshold.command('buffer_pool_all')
+def th_buffer_pool():
+    """Show threshold config for buffer pool """
+    command = 'thresholdcfg -t buffer_pool_all'
+    run_command(command)
 
 #
 # 'headroom-pool' group ("show headroom-pool ...")
@@ -1526,6 +1575,29 @@ def line(brief, verbose):
     """Show all console lines and their info include available ttyUSB devices unless specified brief mode"""
     cmd = "consutil show" + (" -b" if brief else "")
     run_command(cmd, display_cmd=verbose)
+    return
+
+
+#
+# 'threshold breaches' command ("show threshold breaches")
+#
+
+@cli.group('threshold')
+def threshold():
+    """Show threshold breaches"""
+    pass
+
+@threshold.command('breaches')
+@click.argument('count', metavar='<count>', required=False, type=int)
+def threshold_breaches(count):
+    """Show threshold breaches"""
+
+    if count is not None:
+        cmd = "thresholdbreach -cnt {}".format(count)
+    else:
+        cmd = "thresholdbreach"
+
+    run_command(cmd)
     return
 
 

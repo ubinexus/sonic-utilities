@@ -1,0 +1,125 @@
+#!/usr/bin/python
+
+############################################################################
+#
+# thresholdbreach is a tool for displaying threshold breaches.
+#
+############################################################################
+
+import argparse
+import getopt
+import json
+import sys
+import swsssdk
+from natsort import natsorted
+from tabulate import tabulate
+from swsssdk import ConfigDBConnector
+
+
+THRESHOLD_BREACH_TABLE_PREFIX = "THRESHOLD_BREACH_TABLE"
+header = ['Event-id', 'Buffer', 'Type', 'Port', 'Index', 'Breach Value(%)', 'Breach Value(bytes)', 'Time-stamp']
+
+class Thresholdbreach(object):
+
+    def __init__(self):
+        # connect COUNTER DB
+        self.counters_db = ConfigDBConnector()
+        self.counters_db.db_connect('COUNTERS_DB')
+
+    def get_threshold_breach_info(self, k):
+        breach_data = {}
+        key = THRESHOLD_BREACH_TABLE_PREFIX + ':' + k
+        # k is of the format "breach-report:1". Extract event-id "1"
+        id = k.split(':')
+        eventid = id[1]
+        breach_data['eventid'] = eventid
+        data = self.counters_db.get_all(self.counters_db.COUNTERS_DB, key)
+        if data is not None:
+            breach_data['buffer'] = data['buffer']
+            breach_data['type'] = data['type']
+            breach_data['port'] = data['port']
+            breach_data['index'] = data['index']
+            breach_data['breach_value'] = data['breach_value']
+            breach_data['time-stamp'] = data['time-stamp']
+            if data['type'] == 'shared':
+                breach_data['counter'] = data['SAI_INGRESS_PRIORITY_GROUP_STAT_SHARED_WATERMARK_BYTES']
+            elif data['type'] == 'headroom':
+                breach_data['counter'] = data['SAI_INGRESS_PRIORITY_GROUP_STAT_XOFF_ROOM_WATERMARK_BYTES']
+            elif data['type'] == 'unicast':
+                breach_data['counter'] = data['SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES']
+            elif data['type'] == 'multicast':
+                breach_data['counter'] = data['SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES']
+            elif data['type'] == 'ingress':
+                breach_data['counter'] = data['SAI_BUFFER_POOL_STAT_WATERMARK_BYTES']
+            elif data['type'] == 'egress':
+                breach_data['counter'] = data['SAI_BUFFER_POOL_STAT_WATERMARK_BYTES']
+
+        return breach_data
+
+    def get_print_all_threshold_breach(self, count):
+        table_data = self.counters_db.get_keys(THRESHOLD_BREACH_TABLE_PREFIX)
+        # Get data for all keys
+        table = []
+        iter = 0
+        maxcount = int(count)
+
+        for k in natsorted(table_data, reverse=True):
+            if (maxcount != 0) and (iter == maxcount):
+                break
+            
+            if k == "event-id":
+                continue
+
+            iter = iter + 1
+            data = self.get_threshold_breach_info(k)
+            table.append((data['eventid'], data['buffer'], data['type'], data['port'], data['index'],
+                          data['breach_value'], data['counter'], data['time-stamp']))
+
+        print tabulate(table, header, tablefmt='simple', stralign='right')
+        return
+
+    def clear_all_threshold_breach(self, count):
+        if count is 0:
+            table_data = self.counters_db.get_keys(THRESHOLD_BREACH_TABLE_PREFIX)
+            # Get data for all keys
+            for k in natsorted(table_data):
+                self.counters_db.set_entry(THRESHOLD_BREACH_TABLE_PREFIX, k, None)
+        else:
+            key = "breach-report" + ":" + str(count)
+            entry = self.counters_db.get_entry(THRESHOLD_BREACH_TABLE_PREFIX, key)
+            if entry:
+                self.counters_db.set_entry(THRESHOLD_BREACH_TABLE_PREFIX, key, None)
+        return
+
+def main():
+
+    parser = argparse.ArgumentParser(description='Display the queue/pg/buffer-pool threshold breaches',
+                                      version='1.0.0',
+                                      formatter_class=argparse.RawTextHelpFormatter,
+                                      epilog=""")
+Examples:
+  thresholdbreach
+  thresholdbreach -c
+  thresholdbreach -cnt count
+""")  
+
+    parser.add_argument('-c', '--clear', action='store_true', help='Clear threshold breach entries')
+    parser.add_argument('-cnt', '--count', required=False, help='Display threshold breach entries as per count')
+    args = parser.parse_args()
+
+    thresholdbreach = Thresholdbreach()
+    count = 0
+
+    if args.clear:
+        if args.count:
+            count = args.count
+        thresholdbreach.clear_all_threshold_breach(count)
+    else:
+        if args.count:
+            count = args.count
+        thresholdbreach.get_print_all_threshold_breach(count)
+
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()

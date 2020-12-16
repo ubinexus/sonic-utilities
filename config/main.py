@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import swsssdk
 import threading
 import time
 
@@ -766,6 +767,7 @@ def _reset_failed_services(config_db):
         'snmp',
         'swss',
         'syncd',
+        'tam',
         'teamd',
         'telemetry'
     ]
@@ -793,6 +795,7 @@ def _restart_services(config_db):
         'lldp',
         'hostcfgd',
         'nat',
+        'tam',
         'sflow',
         'restapi',
         'telemetry'
@@ -3829,6 +3832,152 @@ def interval(interval):
     """Configure watermark telemetry interval"""
     command = 'watermarkcfg --config-interval ' + interval
     clicommon.run_command(command)
+
+
+@config.group('priority-group')
+def priority_group():
+    """ Configure priority group thresholds """
+    pass
+
+@priority_group.command('threshold')
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.argument('pg_index', metavar='<pg_index>', required=True, type=int)
+@click.argument('threshold_type', type=click.Choice(['shared', 'headroom']))
+@click.argument('threshold_value', metavar='<threshold_value>', required=True, type=int)
+@click.pass_context
+def threshold(ctx, port_name, pg_index, threshold_type, threshold_value):
+    """ Configure priority group threshold value for a priority group on a port """
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    if pg_index not in range(0, 8):
+        ctx.fail("priority-group must be in range 0-7")
+
+    if threshold_value not in range(1, 101):
+        ctx.fail("threshold value must be in range 1-100")
+
+    if interface_name_is_valid(config_db, port_name) is False:
+        ctx.fail("Interface name is invalid!!")
+
+    key = 'priority-group' + '|' + threshold_type + '|' + port_name + '|' + str(pg_index)
+    entry = config_db.get_entry('THRESHOLD_TABLE', key)
+    if entry is None:
+        config_db.set_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
+    else:
+        entry_value = entry.get('threshold', [])
+        if entry_value != threshold_value:
+            config_db.mod_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
+
+@config.group('queue')
+def queue():
+    """ Configure queue thresholds """
+    pass
+
+@queue.command('threshold')
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.argument('queue_index', metavar='<queue_index>', required=True, type=int)
+@click.argument('queue_type', type=click.Choice(['unicast', 'multicast', 'CPU']))
+@click.argument('threshold_value', metavar='<threshold_value>', required=True, type=int)
+@click.pass_context
+def threshold(ctx, port_name, queue_index, queue_type, threshold_value):
+    """ Configure queue threshold value for a queue on a port """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    if port_name != 'CPU':
+        if queue_index not in range(0, 8):
+            ctx.fail("queue index must be in range 0-7")
+    else:
+        if queue_index not in range(0, 47):
+            ctx.fail("CPU queue index must be in range 0-47")
+
+    if threshold_value not in range(1, 101):
+        ctx.fail("threshold value must be in range 1-100")
+
+    if (port_name.startswith("CPU") is False):
+      if interface_name_is_valid(config_db, port_name) is False:
+          ctx.fail("Interface name is invalid!!")
+
+    ## Validate if queue index is supported.
+    counters_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB)
+
+    counters_queue_name_map = counters_db.get_all(counters_db.COUNTERS_DB, "COUNTERS_QUEUE_NAME_MAP")
+    counters_queue_type_map = counters_db.get_all(counters_db.COUNTERS_DB, "COUNTERS_QUEUE_TYPE_MAP")
+
+    if counters_queue_name_map is None or counters_queue_type_map is None:
+        ctx.fail("Queue maps not generated yet.")
+
+    num_uc_queues = 0
+    num_mc_queues = 0
+
+    for queue in counters_queue_name_map:
+        portstr = queue.split(':')
+        port = portstr[0]
+        if port == port_name:
+            if counters_queue_type_map[counters_queue_name_map[queue]] == "SAI_QUEUE_TYPE_MULTICAST":
+                num_mc_queues += 1
+            elif counters_queue_type_map[counters_queue_name_map[queue]] == "SAI_QUEUE_TYPE_UNICAST":
+                num_uc_queues += 1
+
+    if queue_type == 'unicast':
+        if queue_index not in range(0, num_uc_queues):
+            ctx.fail("Invalid queue index provided. Only {} unicast queues supported on port.".format(num_uc_queues))
+    elif queue_type == 'multicast':
+        if queue_index not in range(0, num_mc_queues):
+            ctx.fail("Invalid queue index provided. Only {} multicast queues supported on port.". format(num_mc_queues))
+
+    key = 'queue' + '|' + queue_type + '|' + port_name + '|' + str(queue_index)
+    if queue_type == 'CPU':
+        key = 'queue' + '|' + 'multicast' + '|' + 'CPU' + '|' + str(queue_index)
+    else:
+        key = 'queue' + '|' + queue_type + '|' + port_name + '|' + str(queue_index)
+
+    entry = config_db.get_entry('THRESHOLD_TABLE', key)
+    if entry is None:
+        config_db.set_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
+    else:
+        entry_value = entry.get('threshold', [])
+        if entry_value != threshold_value:
+            config_db.mod_entry('THRESHOLD_TABLE', key, {'threshold' : threshold_value})
+
+@config.group('buffer-pool')
+def buffer_pool():
+    """ Configure Buffer pool thresholds """
+    pass
+
+@buffer_pool.command('threshold')
+@click.argument('pool_name', metavar='<pool_name>', required=True)
+@click.argument('threshold_value', metavar='<threshold_value>', required=True, type=int)
+@click.pass_context
+def threshold(ctx, pool_name, threshold_value):
+    """ Configure Buffer pool threshold value """
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    counters_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB)
+
+    buffer_pool_name_to_oid_map = counters_db.get_all(counters_db.COUNTERS_DB, "COUNTERS_BUFFER_POOL_NAME_MAP")
+    if buffer_pool_name_to_oid_map is None:
+        ctx.fail("Buffer pools not created!!")
+
+    if pool_name not in buffer_pool_name_to_oid_map:
+        ctx.fail("Pool  name is invalid!!")
+
+    if threshold_value not in range(1, 101):
+        ctx.fail("threshold value must be in range 1-100")
+
+    key =  pool_name
+    entry = config_db.get_entry('THRESHOLD_BUFFERPOOL_TABLE', key)
+    if entry is None:
+        config_db.set_entry('THRESHOLD_BUFFERPOOL_TABLE', key, {'threshold' : threshold_value})
+    else:
+        entry_value = entry.get('threshold', [])
+        if entry_value != threshold_value:
+            config_db.mod_entry('THRESHOLD_BUFFERPOOL_TABLE', key, {'threshold' : threshold_value})
 
 
 #

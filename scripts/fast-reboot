@@ -571,6 +571,11 @@ debug "Stopped sflow ..."
 container kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
 systemctl stop lldp
 
+# Kill tam docker
+debug "Stopping tam"
+docker kill tam > /dev/null || true
+debug "Stopped tam"
+
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     debug "Stopping teamd ..."
     systemctl stop teamd
