@@ -1,6 +1,5 @@
 from click.testing import CliRunner
 from importlib import reload
-from utilities_common.db import Db
 from utilities_common.multi_asic import MultiAsicDb
 
 show_feature_status_output="""\
