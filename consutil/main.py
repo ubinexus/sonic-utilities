@@ -17,10 +17,10 @@ except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 @click.group()
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def consutil(db):
     """consutil - Command-line utility for interacting with switches via console device"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
     data = config_db.get_entry(CONSOLE_SWITCH_TABLE, FEATURE_KEY)
     if FEATURE_ENABLED_KEY not in data or data[FEATURE_ENABLED_KEY] == "no":
         click.echo("Console switch feature is disabled")
@@ -30,7 +30,7 @@ def consutil(db):
 
 # 'show' subcommand
 @consutil.command()
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.option('--brief', '-b', metavar='<brief_mode>', required=False, is_flag=True)
 def show(db, brief):
     """Show all ports and their info include available ttyUSB devices unless specified brief mode"""
@@ -54,7 +54,7 @@ def show(db, brief):
 
 # 'clear' subcommand
 @consutil.command()
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('target')
 @click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
 def clear(db, target, devicename):
@@ -76,7 +76,7 @@ def clear(db, target, devicename):
 
 # 'connect' subcommand
 @consutil.command()
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('target')
 @click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret target as device name instead")
 def connect(db, target, devicename):

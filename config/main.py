@@ -18,7 +18,8 @@ from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from swsssdk import ConfigDBConnector, SonicDBConfig
 from swsscommon.swsscommon import SonicV2Connector
-from utilities_common.db import Db
+from utilities_common import constants
+from utilities_common.multi_asic import MultiAsicDb
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
 from .utils import log
@@ -870,7 +871,7 @@ def config(ctx):
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
-    ctx.obj = Db()
+    ctx.obj = MultiAsicDb()
 
 
 # Add groups from other modules
@@ -3358,10 +3359,10 @@ def profile(ctx):
 @click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
 @click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
 @click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def add_profile(db, profile, xon, xoff, size, dynamic_th, pool):
     """Add or modify a buffer profile"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
     ctx = click.get_current_context()
 
     profile_entry = config_db.get_entry('BUFFER_PROFILE', profile)
@@ -3378,10 +3379,10 @@ def add_profile(db, profile, xon, xoff, size, dynamic_th, pool):
 @click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
 @click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
 @click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def set_profile(db, profile, xon, xoff, size, dynamic_th, pool):
     """Add or modify a buffer profile"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
     ctx = click.get_current_context()
 
     profile_entry = config_db.get_entry('BUFFER_PROFILE', profile)
@@ -3455,10 +3456,10 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
 
 @profile.command('remove')
 @click.argument('profile', metavar='<profile>', required=True)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def remove_profile(db, profile):
     """Delete a buffer profile"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
     ctx = click.get_current_context()
 
     full_profile_name = '[BUFFER_PROFILE|{}]'.format(profile)

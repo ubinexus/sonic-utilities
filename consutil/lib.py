@@ -12,6 +12,7 @@ try:
     import sys
     import os
     from sonic_py_common import device_info
+    from utilities_common import constants
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -82,8 +83,8 @@ class ConsolePortProvider(object):
         raise LineNotFoundError
 
     def _init_all(self):
-        config_db = self._db.cfgdb
-        state_db = self._db.db
+        config_db = self._db.cfgdb[constants.DEFAULT_NAMESPACE]
+        state_db = self._db.db[constants.DEFAULT_NAMESPACE]
 
         # Querying CONFIG_DB to get configured console ports
         keys = config_db.get_keys(CONSOLE_PORT_TABLE)
@@ -226,7 +227,7 @@ class ConsolePortInfo(object):
                 self._update_state(IDLE_FLAG, "", "")
 
     def _update_state(self, state, pid, date, line_num=None):
-        state_db = self._db.db
+        state_db = self._db.db[constants.DEFAULT_NAMESPACE]
         line_key = "{}|{}".format(CONSOLE_PORT_TABLE, self.line_num if line_num is None else line_num)
         state_db.set(state_db.STATE_DB, line_key, STATE_KEY, state)
         state_db.set(state_db.STATE_DB, line_key, PID_KEY, pid)

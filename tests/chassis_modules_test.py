@@ -9,7 +9,7 @@ sys.path.insert(0, modules_path)
 import show.main as show
 import config.main as config
 import tests.mock_tables.dbconnector
-from utilities_common.db import Db
+from utilities_common.multi_asic import MultiAsicDb
 
 show_linecard0_shutdown_output="""\
 LINE-CARD0 line-card 1 Empty down
@@ -71,7 +71,7 @@ class TestChassisModules(object):
 
     def test_config_shutdown_module(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(config.config.commands["chassis-modules"].commands["shutdown"], ["LINE-CARD0"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -90,7 +90,7 @@ class TestChassisModules(object):
 
     def test_config_startup_module(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(config.config.commands["chassis-modules"].commands["startup"], ["LINE-CARD0"], obj=db)
         print(result.exit_code)
         print(result.output)
@@ -106,7 +106,7 @@ class TestChassisModules(object):
 
     def test_config_incorrect_module(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(config.config.commands["chassis-modules"].commands["shutdown"], ["TEST-CARD0"], obj=db)
         print(result.exit_code)
         print(result.output)

@@ -11,9 +11,10 @@ import consutil.main as consutil
 import tests.mock_tables.dbconnector
 
 from click.testing import CliRunner
-from utilities_common.db import Db
 from consutil.lib import *
 from sonic_py_common import device_info
+from utilities_common import constants
+from utilities_common.multi_asic import MultiAsicDb
 
 class TestConfigConsoleCommands(object):
     @classmethod
@@ -22,7 +23,7 @@ class TestConfigConsoleCommands(object):
     
     def test_enable_console_switch(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(config.config.commands["console"].commands["enable"])
         print(result.exit_code)
@@ -31,7 +32,7 @@ class TestConfigConsoleCommands(object):
 
     def test_disable_console_switch(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(config.config.commands["console"].commands["disable"])
         print(result.exit_code)
@@ -40,8 +41,8 @@ class TestConfigConsoleCommands(object):
 
     def test_console_add_exists(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "baud_rate" : "9600" })
 
         # add a console setting which the port exists
         result = runner.invoke(config.config.commands["console"].commands["add"], ["1", '--baud', "9600"], obj=db)
@@ -52,7 +53,7 @@ class TestConfigConsoleCommands(object):
     
     def test_console_add_no_baud(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # add a console setting without baud
         result = runner.invoke(config.config.commands["console"].commands["add"], ["1"], obj=db)
@@ -63,8 +64,8 @@ class TestConfigConsoleCommands(object):
 
     def test_console_add_name_conflict(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch1" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch1" })
 
         # add a console setting which the device name has been used by other port
         result = runner.invoke(config.config.commands["console"].commands["add"], ["1", '--baud', "9600", "--devicename", "switch1"], obj=db)
@@ -75,7 +76,7 @@ class TestConfigConsoleCommands(object):
 
     def test_console_add_success(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # add a console setting without flow control option
         result = runner.invoke(config.config.commands["console"].commands["add"], ["0", '--baud', "9600"], obj=db)
@@ -97,7 +98,7 @@ class TestConfigConsoleCommands(object):
 
     def test_console_del_non_exists(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # remote a console port setting which is not exists
         result = runner.invoke(config.config.commands["console"].commands["del"], ["0"], obj=db)
@@ -108,8 +109,8 @@ class TestConfigConsoleCommands(object):
 
     def test_console_del_success(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
         # add a console setting which the port exists
         result = runner.invoke(config.config.commands["console"].commands["del"], ["1"], obj=db)
@@ -119,7 +120,7 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_remote_device_name_non_exists(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # trying to update a console line remote device configuration which is not exists
         result = runner.invoke(config.config.commands["console"].commands["remote_device"], ["1", "switch1"], obj=db)
@@ -130,9 +131,9 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_remote_device_name_conflict(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "baud": "9600" })
-        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "baud": "9600", "remote_device" : "switch1" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "baud": "9600" })
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 2, { "baud": "9600", "remote_device" : "switch1" })
 
         # trying to update a console line remote device configuration which is not exists
         result = runner.invoke(config.config.commands["console"].commands["remote_device"], ["1", "switch1"], obj=db)
@@ -143,8 +144,8 @@ class TestConfigConsoleCommands(object):
     
     def test_update_console_remote_device_name_existing_and_same(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch1" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch1" })
 
         # trying to update a console line remote device configuration which is existing and same with user provided value
         result = runner.invoke(config.config.commands["console"].commands["remote_device"], ["2", "switch1"], obj=db)
@@ -154,8 +155,8 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_remote_device_name_reset(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch1" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch1" })
 
         # trying to reset a console line remote device configuration which is not exists
         result = runner.invoke(config.config.commands["console"].commands["remote_device"], ["2"], obj=db)
@@ -165,8 +166,8 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_remote_device_name_success(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
         # trying to set a console line remote device configuration
         result = runner.invoke(config.config.commands["console"].commands["remote_device"], ["1", "switch1"], obj=db)
@@ -176,8 +177,8 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_baud_no_change(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
         # trying to set a console line baud which is same with existing one
         result = runner.invoke(config.config.commands["console"].commands["baud"], ["1", "9600"], obj=db)
@@ -187,7 +188,7 @@ class TestConfigConsoleCommands(object):
     
     def test_update_console_baud_non_exists(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # trying to set a console line baud which is not exists
         result = runner.invoke(config.config.commands["console"].commands["baud"], ["1", "9600"], obj=db)
@@ -198,8 +199,8 @@ class TestConfigConsoleCommands(object):
     
     def test_update_console_baud_success(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
         # trying to set a console line baud
         result = runner.invoke(config.config.commands["console"].commands["baud"], ["1", "115200"], obj=db)
@@ -209,8 +210,8 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_flow_control_no_change(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600", "flow_control" : "0" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600", "flow_control" : "0" })
 
         # trying to set a console line flow control option which is same with existing one
         result = runner.invoke(config.config.commands["console"].commands["flow_control"], ["disable", "1"], obj=db)
@@ -220,7 +221,7 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_flow_control_non_exists(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # trying to set a console line flow control option which is not exists
         result = runner.invoke(config.config.commands["console"].commands["flow_control"], ["enable", "1"], obj=db)
@@ -231,8 +232,8 @@ class TestConfigConsoleCommands(object):
 
     def test_update_console_flow_control_success(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600", "flow_control" : "0" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600", "flow_control" : "0" })
 
         # trying to set a console line flow control option
         result = runner.invoke(config.config.commands["console"].commands["flow_control"], ["enable", "1"], obj=db)
@@ -246,21 +247,21 @@ class TestConsutilLib(object):
         print("SETUP")
 
     def test_console_port_provider_get_all_configured_only_empty(self):
-        db = Db()
+        db = MultiAsicDb()
         provider = ConsolePortProvider(db, configured_only=True)
         assert len(list(provider.get_all())) == 0
 
     def test_console_port_provider_get_all_configured_only_nonempty(self):
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
         provider = ConsolePortProvider(db, configured_only=True)
         assert len(list(provider.get_all())) == 1
 
     @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB0", "/dev/ttyUSB1"]))
     def test_console_port_provider_get_all_with_ttys(self):
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
         provider = ConsolePortProvider(db, configured_only=False)
         ports = list(provider.get_all())
@@ -268,8 +269,8 @@ class TestConsutilLib(object):
         assert len(ports) == 2
 
     def test_console_port_provider_get_line_success(self):
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
 
         provider = ConsolePortProvider(db, configured_only=True)
         port = provider.get("1")
@@ -278,13 +279,13 @@ class TestConsutilLib(object):
 
     def test_console_port_provider_get_line_not_found(self):
         with pytest.raises(LineNotFoundError):
-            db = Db()
+            db = MultiAsicDb()
             provider = ConsolePortProvider(db, configured_only=True)
             provider.get("1")
 
     def test_console_port_provider_get_line_by_device_success(self):
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2" })
 
         provider = ConsolePortProvider(db, configured_only=True)
         port = provider.get("switch2", use_device=True)
@@ -293,15 +294,15 @@ class TestConsutilLib(object):
 
     def test_console_port_provider_get_line_by_device_not_found(self):
         with pytest.raises(LineNotFoundError):
-            db = Db()
-            db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2" })
+            db = MultiAsicDb()
+            db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2" })
 
             provider = ConsolePortProvider(db, configured_only=True)
             provider.get("switch1")
 
     @mock.patch('consutil.lib.SysInfoProvider.list_active_console_processes', mock.MagicMock(return_value={ "1" : ("223", "2020/11/2")}))
     def test_console_port_info_refresh_without_session(self):
-        db = Db()
+        db = MultiAsicDb()
 
         port = ConsolePortInfo(db, { "LINE" : "1" })
         port.refresh()
@@ -311,7 +312,7 @@ class TestConsutilLib(object):
 
     @mock.patch('consutil.lib.SysInfoProvider.list_active_console_processes', mock.MagicMock(return_value={ "2" : ("223", "2020/11/2")}))
     def test_console_port_info_refresh_without_session_idle(self):
-        db = Db()
+        db = MultiAsicDb()
 
         port = ConsolePortInfo(db, { "LINE" : "1" })
         port.refresh()
@@ -319,7 +320,7 @@ class TestConsutilLib(object):
 
     @mock.patch('consutil.lib.SysInfoProvider.get_active_console_process_info', mock.MagicMock(return_value=("1", "223", "2020/11/2")))
     def test_console_port_info_refresh_with_session(self):
-        db = Db()
+        db = MultiAsicDb()
 
         port = ConsolePortInfo(db, { "LINE" : "1" })
         port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
@@ -332,7 +333,7 @@ class TestConsutilLib(object):
 
     @mock.patch('consutil.lib.SysInfoProvider.get_active_console_process_info', mock.MagicMock(return_value=("2", "223", "2020/11/2")))
     def test_console_port_info_refresh_with_session_line_mismatch(self):
-        db = Db()
+        db = MultiAsicDb()
 
         port = ConsolePortInfo(db, { "LINE" : "1" })
         port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
@@ -345,7 +346,7 @@ class TestConsutilLib(object):
 
     @mock.patch('consutil.lib.SysInfoProvider.get_active_console_process_info', mock.MagicMock(return_value=None))
     def test_console_port_info_refresh_with_session_process_ended(self):
-        db = Db()
+        db = MultiAsicDb()
 
         port = ConsolePortInfo(db, { "LINE" : "1" })
         port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
@@ -355,7 +356,7 @@ class TestConsutilLib(object):
         assert port.busy == False
 
     def test_console_port_info_connect_state_busy(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "CUR_STATE" : { "state" : "busy" } })
 
         port.refresh = mock.MagicMock(return_value=None)
@@ -363,7 +364,7 @@ class TestConsutilLib(object):
             port.connect()
 
     def test_console_port_info_connect_invalid_config(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
@@ -371,7 +372,7 @@ class TestConsutilLib(object):
             port.connect()
 
     def test_console_port_info_connect_device_busy(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
@@ -383,7 +384,7 @@ class TestConsutilLib(object):
                 port.connect()
 
     def test_console_port_info_connect_connection_fail(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
@@ -395,7 +396,7 @@ class TestConsutilLib(object):
                 port.connect()
 
     def test_console_port_info_connect_success(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
@@ -408,7 +409,7 @@ class TestConsutilLib(object):
             assert session.port.line_num == "1"
 
     def test_console_port_info_clear_session_line_not_busy(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
@@ -416,14 +417,14 @@ class TestConsutilLib(object):
 
     @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=None))
     def test_console_port_info_clear_session_with_state_db(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy", "pid" : "223" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         assert port.clear_session()
 
     def test_console_port_info_clear_session_with_existing_session(self):
-        db = Db()
+        db = MultiAsicDb()
         port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy" } })
         port._session = ConsoleSession(port, None)
         port._session.close = mock.MagicMock(return_value=None)
@@ -492,7 +493,7 @@ class TestConsutil(object):
     @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
     def test_consutil_feature_disabled_null_config(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(consutil.consutil, ['show'], obj=db)
         print(result.exit_code)
@@ -504,8 +505,8 @@ class TestConsutil(object):
     @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
     def test_consutil_feature_disabled_config(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "no" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "no" })
 
         result = runner.invoke(consutil.consutil, ['show'], obj=db)
         print(result.exit_code)
@@ -517,8 +518,8 @@ class TestConsutil(object):
     @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
     def test_consutil_feature_enabled(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "yes" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "yes" })
 
         result = runner.invoke(consutil.consutil, ['show'], obj=db)
         print(result.exit_code)
@@ -540,14 +541,14 @@ class TestConsutilShow(object):
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
     def test_show(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
-        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2", "baud_rate" : "9600" })
-        db.cfgdb.set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2", "baud_rate" : "9600" })
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600" })
 
-        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "state", "busy")
-        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "pid", "223")
-        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "start_time", "Wed Mar  6 08:31:35 2019")
+        db.db[constants.DEFAULT_NAMESPACE].set(db.db[constants.DEFAULT_NAMESPACE].STATE_DB, "CONSOLE_PORT|2", "state", "busy")
+        db.db[constants.DEFAULT_NAMESPACE].set(db.db[constants.DEFAULT_NAMESPACE].STATE_DB, "CONSOLE_PORT|2", "pid", "223")
+        db.db[constants.DEFAULT_NAMESPACE].set(db.db[constants.DEFAULT_NAMESPACE].STATE_DB, "CONSOLE_PORT|2", "start_time", "Wed Mar  6 08:31:35 2019")
 
         # use '--brief' option to avoid access system
         result = runner.invoke(consutil.consutil.commands["show"], ['--brief'], obj=db)
@@ -565,8 +566,8 @@ class TestConsutilConnect(object):
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
     def test_connect_target_nonexists(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
 
         result = runner.invoke(consutil.consutil.commands["connect"], ['2'], obj=db)
         print(result.exit_code)
@@ -585,8 +586,8 @@ class TestConsutilConnect(object):
     @mock.patch('consutil.lib.ConsolePortInfo.connect', mock.MagicMock(side_effect=LineBusyError()))
     def test_connect_line_busy(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
 
         result = runner.invoke(consutil.consutil.commands["connect"], ['1'], obj=db)
         print(result.exit_code)
@@ -604,7 +605,7 @@ class TestConsutilConnect(object):
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
     def test_connect_no_baud(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(consutil.consutil.commands["connect"], ['1'], obj=db)
         print(result.exit_code)
@@ -617,7 +618,7 @@ class TestConsutilConnect(object):
     @mock.patch('consutil.lib.ConsolePortInfo.connect', mock.MagicMock(side_effect=ConnectionFailedError()))
     def test_connect_picocom_err(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(consutil.consutil.commands["connect"], ['1'], obj=db)
         print(result.exit_code)
@@ -630,8 +631,8 @@ class TestConsutilConnect(object):
     @mock.patch('consutil.lib.ConsolePortInfo.connect', mock.MagicMock(return_value=mock.MagicMock(interact=mock.MagicMock(return_value=None))))
     def test_connect_success(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
 
         result = runner.invoke(consutil.consutil.commands["connect"], ['1'], obj=db)
         print(result.exit_code)
@@ -649,7 +650,7 @@ class TestConsutilClear(object):
     @mock.patch('os.geteuid', mock.MagicMock(return_value=1))
     def test_clear_without_root(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(consutil.consutil.commands["clear"], ['1'], obj=db)
         print(result.exit_code)
@@ -662,7 +663,7 @@ class TestConsutilClear(object):
     @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
     def test_clear_line_not_found(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(consutil.consutil.commands["clear"], ['2'], obj=db)
         print(result.exit_code)
@@ -676,8 +677,8 @@ class TestConsutilClear(object):
     @mock.patch('consutil.lib.ConsolePortInfo.clear_session', mock.MagicMock(return_value=False))
     def test_clear_idle(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
 
         result = runner.invoke(consutil.consutil.commands["clear"], ['1'], obj=db)
         print(result.exit_code)
@@ -691,8 +692,8 @@ class TestConsutilClear(object):
     @mock.patch('consutil.lib.ConsolePortInfo.clear_session', mock.MagicMock(return_value=True))
     def test_clear_success(self):
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
 
         result = runner.invoke(consutil.consutil.commands["clear"], ['1'], obj=db)
         print(result.exit_code)

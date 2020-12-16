@@ -3,28 +3,29 @@ import utilities_common.cli as clicommon
 from natsort import natsorted
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
+from utilities_common import constants
 
 
 #
 # 'sflow group ("show sflow ...")
 #
 @click.group(invoke_without_command=True)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.pass_context
 def sflow(ctx, db):
     """Show sFlow related information"""
     if ctx.invoked_subcommand is None:
-        show_sflow_global(db.cfgdb)
+        show_sflow_global(db.cfgdb[constants.DEFAULT_NAMESPACE])
 
 
 #
 # 'interface' command ("show sflow interface ...")
 #
 @sflow.command('interface')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def sflow_interface(db):
     """Show sFlow interface information"""
-    show_sflow_interface(db.cfgdb)
+    show_sflow_interface(db.cfgdb[constants.DEFAULT_NAMESPACE])
 
 
 def sflow_appDB_connect():

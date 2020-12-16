@@ -1,10 +1,10 @@
+from importlib import reload
 import os
 import sys
-from importlib import reload
 
 from click.testing import CliRunner
 import crm.main as crm
-from utilities_common.db import Db
+from utilities_common.multi_asic import MultiAsicDb
 
 # Expected output for CRM
 
@@ -718,7 +718,7 @@ class TestCrm(object):
 
     def test_crm_show_summary(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'summary'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -732,7 +732,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_acl_group(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'group'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -748,7 +748,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_acl_table(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'table'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -771,7 +771,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_fdb(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'fdb'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -787,7 +787,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_ipv4_neighbor(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'neighbor'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -803,7 +803,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_ipv4_nexthop(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'nexthop'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -819,7 +819,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_ipv4_route(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'route'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -835,7 +835,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_ipv6_neighbor(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'neighbor'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -851,7 +851,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_ipv6_nexthop(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'nexthop'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -867,7 +867,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_ipv6_route(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'route'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -883,7 +883,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_nexthop_group_member(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'member'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -899,7 +899,7 @@ class TestCrm(object):
 
     def test_crm_show_thresholds_nexthop_group_object(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'object'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1015,7 +1015,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_summary(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'summary'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1029,7 +1029,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_acl_group(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'group'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1045,7 +1045,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_acl_table(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'acl', 'table'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1068,7 +1068,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_fdb(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'fdb'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1084,7 +1084,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_ipv4_neighbor(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'neighbor'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1100,7 +1100,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_ipv4_nexthop(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'nexthop'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1116,7 +1116,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_ipv4_route(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv4', 'route'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1132,7 +1132,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_ipv6_neighbor(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'neighbor'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1148,7 +1148,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_ipv6_nexthop(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'nexthop'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1164,7 +1164,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_ipv6_route(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipv6', 'route'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1180,7 +1180,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_nexthop_group_member(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'member'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
@@ -1196,7 +1196,7 @@ class TestCrmMultiAsic(object):
 
     def test_crm_show_thresholds_nexthop_group_object(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(crm.cli, ['show', 'thresholds', 'nexthop', 'group', 'object'], obj=db)
         print(sys.stderr, result.output)
         assert result.exit_code == 0

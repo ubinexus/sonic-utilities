@@ -9,12 +9,11 @@ import json
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
-from utilities_common.db import Db
+from utilities_common import constants
 from utilities_common.multi_asic import MultiAsicDb
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
-pass_db = click.make_pass_decorator(Db, ensure=True)
 pass_multi_asic_db = click.make_pass_decorator(MultiAsicDb, ensure=True)
 
 class AbbreviationGroup(click.Group):
@@ -122,7 +121,7 @@ class InterfaceAliasConverter(object):
         if db is None:
             self.port_dict = multi_asic.get_port_table()
         else:
-            self.config_db = db.cfgdb
+            self.config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
             self.port_dict = self.config_db.get_table('PORT')
         self.alias_max_length = 0
 

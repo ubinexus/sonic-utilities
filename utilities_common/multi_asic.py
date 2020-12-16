@@ -124,13 +124,13 @@ def run_on_multi_asic(func):
         for ns in ns_list:
             self.multi_asic.current_namespace = ns
             # if object instance already has db connections, use them
-            if self.multi_asic.db and self.multi_asic.db.cfgdb_clients.get(ns):
-                self.config_db = self.multi_asic.db.cfgdb_clients[ns]
+            if self.multi_asic.db and self.multi_asic.db.cfgdb.get(ns):
+                self.config_db = self.multi_asic.db.cfgdb[ns]
             else:
                 self.config_db = multi_asic.connect_config_db_for_ns(ns)
 
-            if self.multi_asic.db and self.multi_asic.db.db_clients.get(ns):
-                self.db = self.multi_asic.db.db_clients[ns]
+            if self.multi_asic.db and self.multi_asic.db.db.get(ns):
+                self.db = self.multi_asic.db.db[ns]
             else:
                 self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
 
@@ -158,3 +158,7 @@ class MultiAsicDb(object):
         for ns in ns_list:
             self.db[ns] = multi_asic.connect_to_all_dbs_for_ns(ns)
             self.cfgdb[ns] = multi_asic.connect_config_db_for_ns(ns)
+
+    def get_default_namespace_data(self, table, key):
+        data = self.cfgdb[constants.DEFAULT_NAMESPACE].get_table(table)
+        return data[key] if key in data else None

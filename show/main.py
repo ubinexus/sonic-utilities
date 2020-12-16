@@ -12,7 +12,7 @@ from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
-from utilities_common.db import Db
+from utilities_common.multi_asic import MultiAsicDb
 
 from . import acl
 from . import bgp_common 
@@ -134,7 +134,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli(ctx):
     """SONiC command line - 'show' command"""
 
-    ctx.obj = Db()
+    ctx.obj = MultiAsicDb()
 
 
 # Add groups from other modules

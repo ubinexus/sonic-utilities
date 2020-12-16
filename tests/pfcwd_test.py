@@ -3,7 +3,7 @@ import os
 import sys
 
 from click.testing import CliRunner
-from utilities_common.db import Db
+from utilities_common.multi_asic import MultiAsicDb
 
 from .pfcwd_input.pfcwd_test_vectors import *
 
@@ -48,7 +48,7 @@ class TestPfcwd(object):
     def executor(self, testcase):
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         for input in testcase:
             exec_cmd = ""
@@ -82,7 +82,7 @@ class TestPfcwd(object):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # get initial config
         result = runner.invoke(
@@ -116,7 +116,7 @@ class TestPfcwd(object):
         # pfcwd start --action fwd --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # get initial config
         result = runner.invoke(
@@ -190,7 +190,7 @@ class TestPfcwd(object):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(
             pfcwd.cli.commands["start"],
@@ -271,7 +271,7 @@ class TestMultiAsicPfcwdShow(object):
         # pfcwd start --action forward --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         # get initial config
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
@@ -304,7 +304,7 @@ class TestMultiAsicPfcwdShow(object):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         # get initial config
         result = runner.invoke(
             pfcwd.cli.commands["show"].commands["config"],
@@ -377,7 +377,7 @@ class TestMultiAsicPfcwdShow(object):
         # --action drop --restoration-time 200 Ethernet0 Ethernet500 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(
             pfcwd.cli.commands["start"],

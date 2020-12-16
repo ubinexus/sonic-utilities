@@ -4,7 +4,8 @@ import pytest
 from unittest import mock
 
 from click.testing import CliRunner
-from utilities_common.db import Db
+from utilities_common import constants
+from utilities_common.multi_asic import MultiAsicDb
 
 import show.main as show
 import config.main as config
@@ -47,23 +48,23 @@ class TestShowSflow(object):
 
     def test_show_sflow(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["sflow"], [], obj=Db())
+        result = runner.invoke(show.cli.commands["sflow"], [], obj=MultiAsicDb())
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_output
 
     def test_show_sflow_intf(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=Db())
+        result = runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=MultiAsicDb())
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_intf_output
 
     def test_config_sflow_disable_enable(self):
         # config sflow <enable|disable>
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
 
         #disable
         result = runner.invoke(config.config.commands["sflow"].commands["disable"], [], obj=obj)
@@ -98,9 +99,9 @@ class TestShowSflow(object):
         return
 
     def test_config_sflow_agent_id(self):
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
 
         # mock netifaces.interface
         config.netifaces.interfaces = mock.MagicMock(return_value = "Ethernet0")
@@ -138,9 +139,9 @@ class TestShowSflow(object):
         return
 
     def test_config_sflow_collector(self):
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
 
         # del a collector
         result = runner.invoke(config.config.commands["sflow"].
@@ -178,9 +179,9 @@ class TestShowSflow(object):
         return
 
     def test_config_sflow_polling_interval(self):
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
 
         # set to 20
         result = runner.invoke(config.config.commands["sflow"].
@@ -209,9 +210,9 @@ class TestShowSflow(object):
         return
 
     def test_config_sflow_intf_enable_disable(self):
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
 
         # mock interface_name_is_valid
         config.interface_name_is_valid = mock.MagicMock(return_value = True)
@@ -224,7 +225,7 @@ class TestShowSflow(object):
 
         # we can not use 'show sflow interface', becasue 'show sflow interface'
         # gets data from appDB, we need to fetch data from configDB for verification
-        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        sflowSession = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('SFLOW_SESSION')
         assert sflowSession["Ethernet1"]["admin_state"] == "up"
 
         # intf disable
@@ -234,15 +235,15 @@ class TestShowSflow(object):
         assert result.exit_code == 0
 
         # verify in configDb
-        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        sflowSession = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('SFLOW_SESSION')
         assert sflowSession["Ethernet1"]["admin_state"] == "down"
 
         return
 
     def test_config_sflow_intf_sample_rate(self):
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
 
         # mock interface_name_is_valid
         config.interface_name_is_valid = mock.MagicMock(return_value = True)
@@ -256,15 +257,15 @@ class TestShowSflow(object):
 
         # we can not use 'show sflow interface', becasue 'show sflow interface'
         # gets data from appDB, we need to fetch data from configDB for verification
-        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        sflowSession = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('SFLOW_SESSION')
         assert sflowSession["Ethernet2"]["sample_rate"] == "2500"
 
         return
 
     def test_config_disable_all_intf(self):
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
 
         # disable all interfaces
         result = runner.invoke(config.config.commands["sflow"].
@@ -273,13 +274,13 @@ class TestShowSflow(object):
         assert result.exit_code == 0
 
         # verify in configDb
-        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        sflowSession = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('SFLOW_SESSION')
         assert sflowSession["all"]["admin_state"] == "down"
 
     def test_config_enable_all_intf(self):
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
-        obj = {'db':db.cfgdb}
+        obj = {'db':db.cfgdb[constants.DEFAULT_NAMESPACE]}
         # enable all interfaces
         result = runner.invoke(config.config.commands["sflow"].commands["interface"].
                                commands["enable"], ["all"], obj=obj)
@@ -287,7 +288,7 @@ class TestShowSflow(object):
         assert result.exit_code == 0
         
         # verify in configDb
-        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        sflowSession = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('SFLOW_SESSION')
         assert sflowSession["all"]["admin_state"] == "up"
 
     @classmethod

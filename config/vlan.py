@@ -3,6 +3,7 @@ import utilities_common.cli as clicommon
 
 from time import sleep
 from .utils import log
+from utilities_common import constants
 
 #
 # 'vlan' group ('config vlan ...')
@@ -14,7 +15,7 @@ def vlan():
 
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def add_vlan(db, vid):
     """Add VLAN"""
 
@@ -24,14 +25,14 @@ def add_vlan(db, vid):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
     vlan = 'Vlan{}'.format(vid)
-    if clicommon.check_if_vlanid_exist(db.cfgdb, vlan):
+    if clicommon.check_if_vlanid_exist(db.cfgdb[constants.DEFAULT_NAMESPACE], vlan):
         ctx.fail("{} already exists".format(vlan))
 
-    db.cfgdb.set_entry('VLAN', vlan, {'vlanid': vid})
+    db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN', vlan, {'vlanid': vid})
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def del_vlan(db, vid):
     """Delete VLAN"""
 
@@ -43,13 +44,13 @@ def del_vlan(db, vid):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
     vlan = 'Vlan{}'.format(vid)
-    if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
+    if clicommon.check_if_vlanid_exist(db.cfgdb[constants.DEFAULT_NAMESPACE], vlan) == False:
         ctx.fail("{} does not exist".format(vlan))
 
-    keys = [ (k, v) for k, v in db.cfgdb.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
+    keys = [ (k, v) for k, v in db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
     for k in keys:
-        db.cfgdb.set_entry('VLAN_MEMBER', k, None)
-    db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN_MEMBER', k, None)
+    db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
 def restart_ndppd():
     verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
@@ -71,7 +72,7 @@ def restart_ndppd():
 @vlan.command('proxy_arp')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enabled", "disabled"]))
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def config_proxy_arp(db, vid, mode):
     """Configure proxy ARP for a VLAN"""
 
@@ -81,10 +82,10 @@ def config_proxy_arp(db, vid, mode):
 
     vlan = 'Vlan{}'.format(vid)
 
-    if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
+    if not clicommon.is_valid_vlan_interface(db.cfgdb[constants.DEFAULT_NAMESPACE], vlan):
         ctx.fail("Interface {} does not exist".format(vlan))
 
-    db.cfgdb.set_entry('VLAN_INTERFACE', vlan, {"proxy_arp": mode})
+    db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN_INTERFACE', vlan, {"proxy_arp": mode})
     click.echo('Proxy ARP setting saved to ConfigDB')
     restart_ndppd()
 #
@@ -98,7 +99,7 @@ def vlan_member():
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('port', metavar='port', required=True)
 @click.option('-u', '--untagged', is_flag=True)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def add_vlan_member(db, vid, port, untagged):
     """Add VLAN member"""
 
@@ -110,7 +111,7 @@ def add_vlan_member(db, vid, port, untagged):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
     vlan = 'Vlan{}'.format(vid)
-    if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
+    if clicommon.check_if_vlanid_exist(db.cfgdb[constants.DEFAULT_NAMESPACE], vlan) == False:
         ctx.fail("{} does not exist".format(vlan))
 
     if clicommon.get_interface_naming_mode() == "alias":
@@ -120,29 +121,29 @@ def add_vlan_member(db, vid, port, untagged):
         if port is None:
             ctx.fail("cannot find port name for alias {}".format(alias))
 
-    if clicommon.is_port_mirror_dst_port(db.cfgdb, port):
+    if clicommon.is_port_mirror_dst_port(db.cfgdb[constants.DEFAULT_NAMESPACE], port):
         ctx.fail("{} is configured as mirror destination port".format(port))
 
-    if clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
+    if clicommon.is_port_vlan_member(db.cfgdb[constants.DEFAULT_NAMESPACE], port, vlan):
         ctx.fail("{} is already a member of {}".format(port, vlan))
 
-    if clicommon.is_valid_port(db.cfgdb, port):
+    if clicommon.is_valid_port(db.cfgdb[constants.DEFAULT_NAMESPACE], port):
         is_port = True
-    elif clicommon.is_valid_portchannel(db.cfgdb, port):
+    elif clicommon.is_valid_portchannel(db.cfgdb[constants.DEFAULT_NAMESPACE], port):
         is_port = False
     else:
         ctx.fail("{} does not exist".format(port))
 
-    if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
-       (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
+    if (is_port and clicommon.is_port_router_interface(db.cfgdb[constants.DEFAULT_NAMESPACE], port)) or \
+       (not is_port and clicommon.is_pc_router_interface(db.cfgdb[constants.DEFAULT_NAMESPACE], port)):
         ctx.fail("{} is a router interface!".format(port))
 
-    db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
+    db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
 
 @vlan_member.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('port', metavar='<port>', required=True)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def del_vlan_member(db, vid, port):
     """Delete VLAN member"""
 
@@ -154,7 +155,7 @@ def del_vlan_member(db, vid, port):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
     vlan = 'Vlan{}'.format(vid)
-    if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
+    if clicommon.check_if_vlanid_exist(db.cfgdb[constants.DEFAULT_NAMESPACE], vlan) == False:
         ctx.fail("{} does not exist".format(vlan))
 
     if clicommon.get_interface_naming_mode() == "alias":
@@ -164,10 +165,10 @@ def del_vlan_member(db, vid, port):
         if port is None:
             ctx.fail("cannot find port name for alias {}".format(alias))
 
-    if not clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
+    if not clicommon.is_port_vlan_member(db.cfgdb[constants.DEFAULT_NAMESPACE], port, vlan):
         ctx.fail("{} is not a member of {}".format(port, vlan))
 
-    db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), None)
+    db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN_MEMBER', (vlan, port), None)
 
 @vlan.group(cls=clicommon.AbbreviationGroup, name='dhcp_relay')
 def vlan_dhcp_relay():
@@ -176,7 +177,7 @@ def vlan_dhcp_relay():
 @vlan_dhcp_relay.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
     """ Add a destination IP address to the VLAN's DHCP relay """
 
@@ -186,7 +187,7 @@ def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
         ctx.fail('{} is invalid IP address'.format(dhcp_relay_destination_ip))
 
     vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.cfgdb.get_entry('VLAN', vlan_name)
+    vlan = db.cfgdb[constants.DEFAULT_NAMESPACE].get_entry('VLAN', vlan_name)
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
 
@@ -197,7 +198,7 @@ def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
 
     dhcp_relay_dests.append(dhcp_relay_destination_ip)
     vlan['dhcp_servers'] = dhcp_relay_dests
-    db.cfgdb.set_entry('VLAN', vlan_name, vlan)
+    db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN', vlan_name, vlan)
     click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
     try:
         click.echo("Restarting DHCP relay service...")
@@ -210,7 +211,7 @@ def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
 @vlan_dhcp_relay.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
     """ Remove a destination IP address from the VLAN's DHCP relay """
 
@@ -220,7 +221,7 @@ def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
         ctx.fail('{} is invalid IP address'.format(dhcp_relay_destination_ip))
 
     vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.cfgdb.get_entry('VLAN', vlan_name)
+    vlan = db.cfgdb[constants.DEFAULT_NAMESPACE].get_entry('VLAN', vlan_name)
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
 
@@ -233,7 +234,7 @@ def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
         del vlan['dhcp_servers']
     else:
         vlan['dhcp_servers'] = dhcp_relay_dests
-    db.cfgdb.set_entry('VLAN', vlan_name, vlan)
+    db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry('VLAN', vlan_name, vlan)
     click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
     try:
         click.echo("Restarting DHCP relay service...")

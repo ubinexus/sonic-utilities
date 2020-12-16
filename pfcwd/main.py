@@ -415,7 +415,7 @@ class Show(object):
     @multi_asic_util.multi_asic_click_options
     @click.option('-e', '--empty', is_flag=True)
     @click.argument('queues', nargs=-1)
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def stats(db, namespace, display, empty, queues):
         """ Show PFC Watchdog stats per queue """
         if (len(queues)):
@@ -426,7 +426,7 @@ class Show(object):
     @show.command()
     @multi_asic_util.multi_asic_click_options
     @click.argument('ports', nargs=-1)
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def config(db, namespace, display, ports):
         """ Show PFC Watchdog configuration """
         PfcwdCli(db, namespace, display).config(ports)
@@ -441,7 +441,7 @@ class Start(object):
     @click.option('--restoration-time', '-r', type=click.IntRange(100, 60000))
     @click.argument('ports', nargs=-1)
     @click.argument('detection-time', type=click.IntRange(100, 5000))
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def start(db, action, restoration_time, ports, detection_time):
         """
         Start PFC watchdog on port(s). To config all ports, use all as input.
@@ -460,7 +460,7 @@ class Start(object):
 class Interval(object):
     @cli.command()
     @click.argument('poll_interval', type=click.IntRange(100, 3000))
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def interval(db, poll_interval):
         """ Set PFC watchdog counter polling interval """
         PfcwdCli(db).interval(poll_interval)
@@ -470,7 +470,7 @@ class Interval(object):
 class Stop(object):
     @cli.command()
     @click.argument('ports', nargs=-1)
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def stop(db, ports):
         """ Stop PFC watchdog on port(s) """
         PfcwdCli(db).stop(ports)
@@ -479,7 +479,7 @@ class Stop(object):
 # Set WD default configuration on server facing ports when enable flag is on
 class StartDefault(object):
     @cli.command("start_default")
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def start_default(db):
         """ Start PFC WD by default configurations  """
         PfcwdCli(db).start_default()
@@ -489,7 +489,7 @@ class StartDefault(object):
 class CounterPoll(object):
     @cli.command('counter_poll')
     @click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def counter_poll(db, counter_poll):
         """ Enable/disable counter polling """
         PfcwdCli(db).counter_poll(counter_poll)
@@ -499,7 +499,7 @@ class CounterPoll(object):
 class BigRedSwitch(object):
     @cli.command('big_red_switch')
     @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
-    @clicommon.pass_db
+    @clicommon.pass_multi_asic_db
     def big_red_switch(db, big_red_switch):
         """ Enable/disable BIG_RED_SWITCH mode """
         PfcwdCli(db).big_red_switch(big_red_switch)

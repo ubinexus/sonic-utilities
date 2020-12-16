@@ -6,7 +6,8 @@ from click.testing import CliRunner
 
 import config.main as config
 import show.main as show
-from utilities_common.db import Db
+from utilities_common import constants
+from utilities_common.multi_asic import MultiAsicDb
 
 show_vlan_brief_output="""\
 +-----------+-----------------+------------+----------------+-----------------------+-------------+
@@ -193,9 +194,9 @@ class TestVlan(object):
 
     def test_show_vlan_brief_explicit_proxy_arp_disable(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
-        db.cfgdb.set_entry("VLAN_INTERFACE", "Vlan1000", {"proxy_arp": "disabled"})
+        db.cfgdb[constants.DEFAULT_NAMESPACE].set_entry("VLAN_INTERFACE", "Vlan1000", {"proxy_arp": "disabled"})
 
     def test_show_vlan_config(self):
         runner = CliRunner()
@@ -290,7 +291,7 @@ class TestVlan(object):
 
     def test_config_vlan_add_portchannel_member(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
 				["1000", "PortChannel1001", "--untagged"], obj=db)
@@ -307,7 +308,7 @@ class TestVlan(object):
 
     def test_config_vlan_add_rif_portchannel_member(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
 				["1000", "PortChannel0001", "--untagged"], obj=db)
@@ -318,7 +319,7 @@ class TestVlan(object):
 
     def test_config_vlan_del_vlan(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
@@ -344,7 +345,7 @@ class TestVlan(object):
 
     def test_config_add_del_vlan_and_vlan_member(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # add vlan 1001
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1001"], obj=db)
@@ -387,7 +388,7 @@ class TestVlan(object):
 
     def test_config_add_del_vlan_and_vlan_member_in_alias_mode(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
 
@@ -487,7 +488,7 @@ class TestVlan(object):
 
     def test_config_vlan_add_del_dhcp_relay_dest(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         # add new relay dest
         with mock.patch("utilities_common.cli.run_command") as mock_run_command:
@@ -548,8 +549,8 @@ class TestVlan(object):
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
         modes = ["enabled", "disabled"]
         runner = CliRunner()
-        db = Db()
-        db.cfgdb.delete_table("VLAN_INTERFACE")
+        db = MultiAsicDb()
+        db.cfgdb[constants.DEFAULT_NAMESPACE].delete_table("VLAN_INTERFACE")
 
         for mode in modes:
             result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", mode], obj=db)
@@ -563,7 +564,7 @@ class TestVlan(object):
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf(self):
         modes = ["enabled", "disabled"]
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         for mode in modes:
             result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1001", mode], obj=db)
@@ -576,7 +577,7 @@ class TestVlan(object):
 
     def test_config_vlan_proxy_arp_enable(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", "enabled"], obj=db)
 
@@ -584,11 +585,11 @@ class TestVlan(object):
         print(result.output)
 
         assert result.exit_code == 0 
-        assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
+        assert db.cfgdb[constants.DEFAULT_NAMESPACE].get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
 
     def test_config_vlan_proxy_arp_disable(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
 
         result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["2000", "disabled"], obj=db)
 
@@ -596,7 +597,7 @@ class TestVlan(object):
         print(result.output)
 
         assert result.exit_code == 0
-        assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan2000") == {"proxy_arp": "disabled"}
+        assert db.cfgdb[constants.DEFAULT_NAMESPACE].get_entry("VLAN_INTERFACE", "Vlan2000") == {"proxy_arp": "disabled"}
 
     @classmethod
     def teardown_class(cls):

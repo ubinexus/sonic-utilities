@@ -12,7 +12,7 @@ import utilities_common.cli as clicommon
 import yaml
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
-from utilities_common.db import Db
+from utilities_common.multi_asic import MultiAsicDb
 
 from .utils import log
 
@@ -31,7 +31,7 @@ def _update_kube_server(field, val):
     config_db.connect()
     table = "KUBERNETES_MASTER"
     key = "SERVER"
-    db_data = Db().get_data(table, key)
+    db_data = MultiAsicDb().get_default_namespace_data(table, key)
     def_data = {
         "IP": "",
         "insecure": "False",
@@ -112,7 +112,7 @@ def _get_labels():
 
     labels.append("sonic_version={}".format(version_info['build_version']))
     labels.append("hwsku={}".format(hwsku))
-    lh = Db().get_data('DEVICE_METADATA', 'localhost')
+    lh = MultiAsicDb().get_default_namespace_data('DEVICE_METADATA', 'localhost')
     labels.append("deployment_type={}".format(
         lh['type'] if lh and 'type' in lh else "Unknown"))
     labels.append("enable_pods=True")
@@ -215,7 +215,7 @@ def kube_join(force=False):
         log.log_error("Lock {} is active; Bail out".format(LOCK_FILE))
         return
 
-    db_data = Db().get_data('KUBERNETES_MASTER', 'SERVER')
+    db_data = MultiAsicDb().get_default_namespace_data('KUBERNETES_MASTER', 'SERVER')
     if not db_data or 'IP' not in db_data or not db_data['IP']:
         log.log_error("Kubernetes server is not configured")
 

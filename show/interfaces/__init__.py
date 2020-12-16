@@ -1,11 +1,11 @@
 import json
-
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
-from tabulate import tabulate
 from sonic_py_common import multi_asic
+from tabulate import tabulate
+from utilities_common import constants
 
 from . import portchannel
 
@@ -223,16 +223,16 @@ def neighbor():
 # 'expected' subcommand ("show interface neighbor expected")
 @neighbor.command()
 @click.argument('interfacename', required=False)
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def expected(db, interfacename):
     """Show expected neighbor information by interfaces"""
 
-    neighbor_dict = db.cfgdb.get_table("DEVICE_NEIGHBOR")
+    neighbor_dict = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table("DEVICE_NEIGHBOR")
     if neighbor_dict is None:
         click.echo("DEVICE_NEIGHBOR information is not present.")
         return
 
-    neighbor_metadata_dict = db.cfgdb.get_table("DEVICE_NEIGHBOR_METADATA")
+    neighbor_metadata_dict = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table("DEVICE_NEIGHBOR_METADATA")
     if neighbor_metadata_dict is None:
         click.echo("DEVICE_NEIGHBOR_METADATA information is not present.")
         return
@@ -330,7 +330,7 @@ def lpmode(interfacename, verbose):
 @click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
               type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def presence(db, interfacename, namespace, verbose):
     """Show interface transceiver presence"""
 

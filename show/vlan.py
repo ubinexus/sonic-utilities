@@ -1,8 +1,8 @@
 import click
+import utilities_common.cli as clicommon
 from natsort import natsorted
 from tabulate import tabulate
-
-import utilities_common.cli as clicommon
+from utilities_common import constants
 
 @click.group(cls=clicommon.AliasedGroup)
 def vlan():
@@ -11,16 +11,16 @@ def vlan():
 
 @vlan.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def brief(db, verbose):
     """Show all bridge information"""
     header = ['VLAN ID', 'IP Address', 'Ports', 'Port Tagging', 'DHCP Helper Address', 'Proxy ARP']
     body = []
 
     # Fetching data from config db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
-    vlan_dhcp_helper_data = db.cfgdb.get_table('VLAN')
-    vlan_ip_data = db.cfgdb.get_table('VLAN_INTERFACE')
-    vlan_ports_data = db.cfgdb.get_table('VLAN_MEMBER')
+    vlan_dhcp_helper_data = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('VLAN')
+    vlan_ip_data = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('VLAN_INTERFACE')
+    vlan_ports_data = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('VLAN_MEMBER')
 
     # Defining dictionaries for DHCP Helper address, Interface Gateway IP,
     # VLAN ports and port tagging
@@ -104,11 +104,11 @@ def brief(db, verbose):
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 @vlan.command()
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def config(db):
-    data = db.cfgdb.get_table('VLAN')
+    data = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('VLAN')
     keys = list(data.keys())
-    member_data = db.cfgdb.get_table('VLAN_MEMBER')
+    member_data = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('VLAN_MEMBER')
 
     def tablelize(keys, data):
         table = []
@@ -129,7 +129,7 @@ def config(db):
                 else:
                     r.append(m)
 
-                entry = db.cfgdb.get_entry('VLAN_MEMBER', (k, m))
+                entry = db.cfgdb[constants.DEFAULT_NAMESPACE].get_entry('VLAN_MEMBER', (k, m))
                 mode = entry.get('tagging_mode')
                 if mode is None:
                     r.append('?')

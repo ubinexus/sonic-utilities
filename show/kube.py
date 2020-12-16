@@ -1,9 +1,9 @@
 import os
 
 import click
-from sonic_py_common import device_info
-from utilities_common.db import Db
 import utilities_common.cli as clicommon
+from sonic_py_common import device_info
+from utilities_common.multi_asic import MultiAsicDb
 
 KUBE_ADMIN_CONF = "/etc/sonic/kube_admin.conf"
 KUBECTL_CMD = "kubectl --kubeconfig /etc/sonic/kube_admin.conf {}"
@@ -58,7 +58,7 @@ def status():
 @kubernetes.command()
 def server():
     """Show kube configuration"""
-    kube_fvs = Db().get_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
+    kube_fvs = MultiAsicDb().get_default_namespace_data(REDIS_KUBE_TABLE, REDIS_KUBE_KEY)
     if kube_fvs:
         _print_entry(kube_fvs, "{} {}".format(
             REDIS_KUBE_TABLE, REDIS_KUBE_KEY))

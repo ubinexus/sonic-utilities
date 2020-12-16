@@ -1,9 +1,9 @@
 import click
+import utilities_common.cli as clicommon
 from natsort import natsorted
 from tabulate import tabulate
 from swsssdk import SonicV2Connector
-
-import utilities_common.cli as clicommon
+from utilities_common import constants
 
 CHASSIS_MODULE_INFO_TABLE = 'CHASSIS_MODULE_TABLE'
 CHASSIS_MODULE_INFO_KEY_TEMPLATE = 'CHASSIS_MODULE {}'
@@ -18,13 +18,13 @@ def chassis_modules():
     pass
 
 @chassis_modules.command()
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('chassis_module_name', metavar='<module_name>', required=False)
 def status(db, chassis_module_name):
     """Show chassis-modules status"""
 
     header = ['Name', 'Description', 'Physical-Slot', 'Oper-Status', 'Admin-Status']
-    chassis_cfg_table = db.cfgdb.get_table('CHASSIS_MODULE')
+    chassis_cfg_table = db.cfgdb[constants.DEFAULT_NAMESPACE].get_table('CHASSIS_MODULE')
 
     state_db = SonicV2Connector(host="127.0.0.1")
     state_db.connect(state_db.STATE_DB)

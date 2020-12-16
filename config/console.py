@@ -1,5 +1,6 @@
 import click
 import utilities_common.cli as clicommon
+from utilities_common import constants
 
 #
 # 'console' group ('config console ...')
@@ -13,10 +14,10 @@ def console():
 # 'console enable' group ('config console enable')
 #
 @console.command('enable')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def enable_console_switch(db):
     """Enable console switch"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
 
     table = "CONSOLE_SWITCH"
     dataKey1 = 'console_mgmt'
@@ -29,10 +30,10 @@ def enable_console_switch(db):
 # 'console disable' group ('config console disable')
 #
 @console.command('disable')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 def disable_console_switch(db):
     """Disable console switch"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
 
     table = "CONSOLE_SWITCH"
     dataKey1 = 'console_mgmt'
@@ -45,14 +46,14 @@ def disable_console_switch(db):
 # 'console add' group ('config console add ...')
 #
 @console.command('add')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
 @click.option('--baud', '-b', metavar='<baud>', required=True, type=click.INT)
 @click.option('--flowcontrol', '-f', metavar='<flow_control>', required=False, is_flag=True)
 @click.option('--devicename', '-d', metavar='<device_name>', required=False)
 def add_console_setting(db, linenum, baud, flowcontrol, devicename):
     """Add Console-realted configuration tasks"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
 
     table = "CONSOLE_PORT"
     dataKey1 = 'baud_rate'
@@ -79,11 +80,11 @@ def add_console_setting(db, linenum, baud, flowcontrol, devicename):
 # 'console del' group ('config console del ...')
 #
 @console.command('del')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
 def remove_console_setting(db, linenum):
     """Remove Console-related configuration tasks"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
 
     table = "CONSOLE_PORT"
 
@@ -98,12 +99,12 @@ def remove_console_setting(db, linenum):
 # 'console remote_device' group ('config console remote_device ...')
 #
 @console.command('remote_device')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
 @click.argument('devicename', metavar='<device_name>', required=False)
 def upate_console_remote_device_name(db, linenum, devicename):
     """Update remote device name for a console line"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
     ctx = click.get_current_context()
 
     table = "CONSOLE_PORT"
@@ -130,12 +131,12 @@ def upate_console_remote_device_name(db, linenum, devicename):
 # 'console baud' group ('config console baud ...')
 #
 @console.command('baud')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
 @click.argument('baud', metavar='<baud>', required=True, type=click.INT)
 def update_console_baud(db, linenum, baud):
     """Update baud for a console line"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
     ctx = click.get_current_context()
 
     table = "CONSOLE_PORT"
@@ -157,12 +158,12 @@ def update_console_baud(db, linenum, baud):
 # 'console flow_control' group ('config console flow_control ...')
 #
 @console.command('flow_control')
-@clicommon.pass_db
+@clicommon.pass_multi_asic_db
 @click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enable", "disable"]))
 @click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
 def update_console_flow_control(db, mode, linenum):
     """Update flow control setting for a console line"""
-    config_db = db.cfgdb
+    config_db = db.cfgdb[constants.DEFAULT_NAMESPACE]
     ctx = click.get_current_context()
 
     table = "CONSOLE_PORT"

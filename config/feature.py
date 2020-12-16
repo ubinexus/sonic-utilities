@@ -61,7 +61,7 @@ def feature_autorestart(db, name, autorestart):
     if len(entry_data_set) > 1:
         click.echo("Feature '{}' auto-restart is not consistent across namespaces".format(name))
         sys.exit(1)
-
+    
     if entry_data['auto_restart'] == "always_enabled":
         click.echo("Feature '{}' auto-restart is always enabled and can not be modified".format(name))
         return

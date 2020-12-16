@@ -1,7 +1,7 @@
 import os
 import sys
 from click.testing import CliRunner
-from utilities_common.db import Db
+from utilities_common.multi_asic import MultiAsicDb
 
 show_server_output_0="""\
 Kubernetes server is not configured
@@ -43,7 +43,7 @@ class kube(object):
 
     def test_kube_server(self, get_cmd_module):
         (config, show) = get_cmd_module
-        db = Db()
+        db = MultiAsicDb()
         runner = CliRunner()
 
         # Check server not configured

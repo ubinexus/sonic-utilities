@@ -3,8 +3,9 @@
 import click
 import swsssdk
 from tabulate import tabulate
-from utilities_common import multi_asic as multi_asic_util
 from sonic_py_common import multi_asic
+from utilities_common import multi_asic as multi_asic_util
+from utilities_common import constants
 
 class Crm:
     def __init__(self, db=None):
@@ -197,7 +198,7 @@ def cli(ctx):
     Utility entry point.
     """
     # Use the db object if given as input.
-    db = None if ctx.obj is None else ctx.obj.cfgdb
+    db = None if ctx.obj is None else ctx.obj.cfgdb[constants.DEFAULT_NAMESPACE]
 
     context = {
         "crm": Crm(db)

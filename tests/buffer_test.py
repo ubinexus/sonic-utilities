@@ -9,7 +9,8 @@ from .mock_tables import dbconnector
 
 import show.main as show
 import config.main as config
-from utilities_common.db import Db
+from utilities_common import constants
+from utilities_common.multi_asic import MultiAsicDb
 
 from .buffer_input.buffer_test_vectors import *
 
@@ -34,24 +35,24 @@ class TestBuffer(object):
 
     def test_config_buffer_profile_headroom(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
                                ["testprofile", "--dynamic_th", "3", "--xon", "18432", "--xoff", "32768"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'testprofile')
+        profile = db.cfgdb[constants.DEFAULT_NAMESPACE].get_entry('BUFFER_PROFILE', 'testprofile')
         assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '18432', 'xoff': '32768', 'size': '51200'}
 
     def test_config_buffer_profile_dynamic_th(self):
         runner = CliRunner()
-        db = Db()
+        db = MultiAsicDb()
         result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
                                ["testprofile", "--dynamic_th", "3"], obj=db)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'testprofile')
+        profile = db.cfgdb[constants.DEFAULT_NAMESPACE].get_entry('BUFFER_PROFILE', 'testprofile')
         assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'headroom_type': 'dynamic'}
 
     def test_config_buffer_profile_add_existing(self):
