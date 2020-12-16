@@ -112,7 +112,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_tunnel(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["tunnel"], [])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotevtep"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -145,7 +145,7 @@ class TestVxlan(object):
 
     def test_show_vxlan_tunnel_cnt(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["vxlan"].commands["tunnel"], ["count"])
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotevtep"], ["count"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0

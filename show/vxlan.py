@@ -41,7 +41,7 @@ def name(vxlan_name):
     click.echo(tabulate(table, header))
 
 @vxlan.command()
-def tunnel_cfg():
+def tunnel():
     """Show vxlan tunnel information"""
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -174,8 +174,8 @@ def vrfvnimap():
 
 @vxlan.command()
 @click.argument('count', required=False)
-def tunnel(count):
-    """Show All VXLAN Tunnels Information"""
+def remotevtep(count):
+    """Show All Remote VTEP Information"""
 
     if (count is not None) and (count != 'count'):
         click.echo("Unacceptable argument {}".format(count))
