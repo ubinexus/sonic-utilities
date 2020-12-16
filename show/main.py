@@ -1128,11 +1128,16 @@ def users(verbose):
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(since, verbose):
+@click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
+def techsupport(since, verbose, allow_process_stop):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
+    if allow_process_stop:
+        cmd += " -a"
+
     if since:
         cmd += " -s {}".format(since)
+
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1452,14 +1457,41 @@ def boot():
     click.echo(proc.stdout.read())
 
 
+#
 # 'mmu' command ("show mmu")
 #
 @cli.command('mmu')
 def mmu():
     """Show mmu configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd)
+
+#
+# 'buffer' command ("show buffer")
+#
+@cli.group(cls=clicommon.AliasedGroup)
+def buffer():
+    """Show buffer information"""
+    pass
+
+#
+# 'configuration' command ("show buffer command")
+#
+@buffer.command()
+def configuration():
+    """show buffer configuration"""
+    cmd = "mmuconfig -l"
+    run_command(cmd)
+
+#
+# 'information' command ("show buffer state")
+#
+@buffer.command()
+def information():
+    """show buffer information"""
+    cmd = "buffershow -l"
+    run_command(cmd)
+
 
 #
 # 'line' command ("show line")
