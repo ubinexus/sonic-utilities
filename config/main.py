@@ -2976,7 +2976,7 @@ def add_vrf_vni_map(ctx, vrfname, vni):
 @click.pass_context
 def del_vrf_vni_map(ctx, vrfname):
     config_db = ctx.obj['config_db']
-    if vrfname not in db.get_table('VRF').keys():
+    if vrfname not in config_db.get_table('VRF').keys():
         ctx.fail("vrf {} doesnt exists".format(vrfname))
 
     config_db.mod_entry('VRF', vrfname, {"vni": 0})
