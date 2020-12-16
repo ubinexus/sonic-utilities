@@ -17,7 +17,6 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         from .mock_tables import mock_multi_asic_3_asics
-        reload(mock_multi_asic_3_asics)
         from .mock_tables import dbconnector
         dbconnector.load_namespace_config()
 
@@ -226,5 +225,7 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
-        from .mock_tables import mock_single_asic
-        reload(mock_single_asic)
+        import imp
+        from sonic_py_common import multi_asic
+        imp.reload(multi_asic)
+        import mock_tables.dbconnector

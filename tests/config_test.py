@@ -5,7 +5,7 @@ from unittest import mock
 import click
 from click.testing import CliRunner
 
-from utilities_common.multi_asic import MultiAsicDb
+from utilities_common.db import Db
 
 load_minigraph_command_output="""\
 Executing stop of service telemetry...
@@ -77,7 +77,7 @@ class TestLoadMinigraph(object):
     def test_load_minigraph_with_disabled_telemetry(self, get_cmd_module, setup_single_broacom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             (config, show) = get_cmd_module
-            db = MultiAsicDb()
+            db = Db()
             runner = CliRunner()
             result = runner.invoke(config.config.commands["feature"].commands["state"], ["telemetry", "disabled"], obj=db)
             assert result.exit_code == 0

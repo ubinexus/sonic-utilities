@@ -1001,7 +1001,7 @@ def load(filename, yes):
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.argument('filename', required=False)
-@clicommon.pass_multi_asic_db
+@clicommon.pass_db
 def reload(db, filename, yes, load_sysinfo, no_service_restart):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
@@ -1044,7 +1044,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'reload' stopping services...")
-        _stop_services(db.cfgdb[DEFAULT_NAMESPACE])
+        _stop_services(db.cfgdb)
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1115,9 +1115,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb[DEFAULT_NAMESPACE])
+        _reset_failed_services(db.cfgdb)
         log.log_info("'reload' restarting services...")
-        _restart_services(db.cfgdb[DEFAULT_NAMESPACE])
+        _restart_services(db.cfgdb)
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1148,7 +1148,7 @@ def load_mgmt_config(filename):
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
-@clicommon.pass_multi_asic_db
+@clicommon.pass_db
 def load_minigraph(db, no_service_restart):
     """Reconfigure based on minigraph."""
     log.log_info("'load_minigraph' executing...")
@@ -1156,7 +1156,7 @@ def load_minigraph(db, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'load_minigraph' stopping services...")
-        _stop_services(db.cfgdb[DEFAULT_NAMESPACE])
+        _stop_services(db.cfgdb)
 
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
@@ -1212,10 +1212,10 @@ def load_minigraph(db, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb[DEFAULT_NAMESPACE])
+        _reset_failed_services(db.cfgdb)
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
         log.log_info("'load_minigraph' restarting services...")
-        _restart_services(db.cfgdb[DEFAULT_NAMESPACE])
+        _restart_services(db.cfgdb)
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 

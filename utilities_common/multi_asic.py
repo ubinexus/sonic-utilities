@@ -148,13 +148,3 @@ def multi_asic_args(parser=None):
     parser.add_argument('-n', '--namespace', default=None,
                         help='Display interfaces for specific namespace')
     return parser
-
-class MultiAsicDb(object):
-    def __init__(self):
-        self.db = {}
-        self.cfgdb = {}
-        ns_list = { constants.DEFAULT_NAMESPACE }
-        ns_list.update(multi_asic.get_namespace_list())
-        for ns in ns_list:
-            self.db[ns] = multi_asic.connect_to_all_dbs_for_ns(ns)
-            self.cfgdb[ns] = multi_asic.connect_config_db_for_ns(ns)
