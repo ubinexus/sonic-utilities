@@ -1,6 +1,6 @@
+from importlib import reload
 import os
 import sys
-from importlib import reload
 
 from click.testing import CliRunner
 import crm.main as crm

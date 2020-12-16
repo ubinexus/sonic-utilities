@@ -1,5 +1,5 @@
-import os
 from importlib import reload
+import os
 
 import pytest
 
