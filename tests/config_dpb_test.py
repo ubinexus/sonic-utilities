@@ -7,11 +7,10 @@ import pytest
 from click.testing import CliRunner
 from utilities_common.db import Db
 
-import show.main as show
 import config.main as config
 
 load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-from sonic_cfggen import deep_update, FormatConverter, sort_data
+from sonic_cfggen import deep_update, FormatConverter
 
 load_source('config_mgmt', \
     os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py'))
@@ -466,7 +465,6 @@ class TestConfigDPB(object):
         print("TEARDOWN")
         os.system("rm /tmp/startConfigDb.json")
         os.system("rm /tmp/portBreakOutConfigDb.json")
-        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         return
 
