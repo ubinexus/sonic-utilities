@@ -1,3 +1,70 @@
+"""
+Mellanox buffer migrator:
+    Migrate buffer configuration to the default one in the new version automatically
+    if the configuration matched the default on in the old version.
+
+    Current version: 1.0.5 for shared headroom pool support.
+
+    The dict mellanox_default_parameter is introduced to represent:
+     - The default configuration of BUFFER_POOL and BUFFER_PROFILE for all versions
+     - The mapping from the old version to new version
+       In each version there are variant configuration sets according to the topology, SKU, platform, etc.
+       It's possible that there are more flavors in old version and less flavors in the new one or vice versa.
+       In both case, a mapping is required to map from the old version to the new version.
+
+    It includes the following data for each of the version (Mandatory except explicitly mentioned)
+     - pool_configuration_list: Represents all the flavors of the pool configuration
+     - pool_mapped_from_old_version: Optional.
+         A dict represents the mapping from a flavor of buffer pool configuration in the old version to that in the new one
+         Not having this field means all the flavors in the old version will be mapped to that in the new version with the same name
+         The keys are the name of flavors and the data can be in the following forms:
+           - a string, representing the name of the flavor to which the key is mapped in the new version
+           - a tuple consisting of:
+              - a "type" which can be "sku" only for now (probably support "platform" in the future)
+              - a "map" which should be a key in pool_convert_map. The map represents to which flavor the current flavor will be mapped according to the device's SKU
+     - pool_convert_map: Optional.
+         A map from SKU to flavor in the new image. Referenced by pool_mapped_from_old_version. (see above for details)
+     - buffer_pool_list: The list of buffer pools in each flavor. For testing whether the configuration in old version matches one of the default
+     - buffer_pools: The detailed information of each flavor of the pools
+         Most of the pools in each flavor share the same number. To avoid repeating code the pool info is represented in a "condensed" way.
+         Basically, each flavor has the following convention:
+           flavor: {"doublepool|singlepool": { "size": <size>, "xoff": <xoff>}, "egress_lossless_pool": { "size": <size>}}
+           doublepool: The flavor has two ingress pools. Each pool's size is <size>.
+                       The field "xoff" is optional. Providing it means the xoff of ingress_lossless_pool is <xoff>.
+           singlepool: The same as doublepool except that the flavor has only one ingress pools
+           egress_lossless_pool: The size of egress_lossless_pool.
+
+     - headrooms: Optional. A dict representing the headrooms of different series of platforms, including the following keys:
+        - spc1_headroom: Represents headroom data for all SPC1 switches
+        - spc2_headroom: Represents headroom data for all SPC2 switches except 3800
+        - spc2_3800_headroom: Represents headroom data for 3800 switch (for gearbox)
+        - spc3_headroom: Represents headroom data for all SPC3 switches
+       Value for each of the above keys is an object, including the following type:
+        - default: The default headroom information for generic SKUs.
+        - msft: The headroom info for MSFT SKUs, calculated with dedicated parameters for MSFT
+        - shp: The default headroom with shared headroom pool support. Based on msft parameters and size == xon
+       Each of the above object can be:
+        - A dict object. In this case, it represents the headroom info.
+          The key is the profile name with convention "pg_lossless_<speed>_<cable-length>_profile" and the object is a dict containing the size and xon or xoff and xon. The other value can be deducted.
+        - A tuple. This is a backtrace pointer, consisting of the version and the key to the headroom.
+          It means the headroom info is exactly the same as that in a previous version.
+          For example, ("version_1_0_4", "spc1_headroom") means the headroom info is the same as param["version_1_0_4"][headrooms]["spc1_headroom"]["default"]
+        Besides the spcxxx_headroom, there is a mappings dict in the headrooms, representing to which headroom info the old headroom should be mapped.
+        For example, in the following example, 
+         - the headroom info "msft" in the old version should be mapped to "shp" in the new version
+         - the headroom info "default" in th old version should be mapped to "shp" in the new version if the SKU is Mellanox-xxxx or "default" otherwise
+                "mapping": {
+                    "msft": "shp",
+                    "default": ("skumap", {"Mellanox-SN2700": "shp", "Mellanox-SN2700-C28D8": "shp", "Mellanox-SN2700-D48C8": "shp"})
+                },
+
+     - buffer_profiles: Optional. A dict representing the default buffer profile configuration in the current version.
+       There are following flavors:
+        - default: The default buffer profile configuration for generic SKUs
+        - singlepool: The buffer profile configuration for MSFT SKUs which has only one ingress pool.
+       During migration, if the profiles match one of the flavor in the old version, it will be migrated to the new flavor with the same name
+       Not providing it means no buffer profile migration required.
+"""
 from sonic_py_common import logger
 
 SYSLOG_IDENTIFIER = 'mellanox_buffer_migrator'
@@ -207,7 +274,7 @@ class MellanoxBufferMigrator():
             }
         },
         "version_1_0_5": {
-            # version 1.0.4 is introduced for updating the buffer settings
+            # version 1.0.5 is introduced for shared headroom pools
             "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc2_3800_t0_pool", "spc2_3800_t1_pool"],
             "pool_convert_map": {
                 "spc1_t0_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700_t0_pool_shp",
@@ -353,7 +420,7 @@ class MellanoxBufferMigrator():
                 new_config_name = new_config_map
         return new_config_name
 
-    def mlnx_migrate_extend_condensed_pool(self, pool_config, config_name = None):
+    def mlnx_migrate_extend_condensed_pool(self, pool_config, config_name=None):
         condensedpool = pool_config.get("doublepool")
         doublepool = False
         if not condensedpool:
@@ -395,7 +462,7 @@ class MellanoxBufferMigrator():
     def mlnx_migrate_get_headroom_profiles(self, headroom_profile_set):
         if type(headroom_profile_set) is tuple:
             version, key = lossless_profile_set
-            result = self.mlnx_default_buffer_parameters(version, "headrooms")[key]
+            result = self.mlnx_default_buffer_parameters(version, "headrooms")[key]["default"]
         elif type(headroom_profile_set) is dict:
             result = headroom_profile_set
 
@@ -484,13 +551,6 @@ class MellanoxBufferMigrator():
         """
         This is to migrate BUFFER_PROFILE configuration
         """
-        device_data = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-        if device_data:
-            platform = device_data.get('platform')
-        if not platform:
-            log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
-            return False
-
         spc1_platforms = ["x86_64-mlnx_msn2010-r0", "x86_64-mlnx_msn2100-r0", "x86_64-mlnx_msn2410-r0", "x86_64-mlnx_msn2700-r0", "x86_64-mlnx_msn2740-r0"]
         spc2_platforms = ["x86_64-mlnx_msn3700-r0", "x86_64-mlnx_msn3700c-r0"]
 
@@ -506,21 +566,19 @@ class MellanoxBufferMigrator():
         default_headroom_sets_new = self.mlnx_default_buffer_parameters(new_version, "headrooms")
         default_headrooms_old = None
         default_headrooms_new = None
-        if platform == 'x86_64-mlnx_msn3800-r0':
+        if self.platform == 'x86_64-mlnx_msn3800-r0':
             default_headrooms_old = default_headroom_sets_old.get("spc2_3800_headroom")
             default_headrooms_new = default_headroom_sets_new.get("spc2_3800_headroom")
-        elif platform in spc2_platforms:
+        elif self.platform in spc2_platforms:
             default_headrooms_old = default_headroom_sets_old.get("spc2_headroom")
             default_headrooms_new = default_headroom_sets_new.get("spc2_headroom")
-        elif platform in spc1_platforms:
+        elif self.platform in spc1_platforms:
             default_headrooms_old = default_headroom_sets_old.get("spc1_headroom")
             default_headrooms_new = default_headroom_sets_new.get("spc1_headroom")
 
         if default_headrooms_old and default_headrooms_new:
             # match the old lossless profiles?
             for headroom_set_name, lossless_profiles in default_headrooms_old.iteritems():
-                if headroom_set_name == "mapping":
-                    continue
                 lossless_profiles = self.mlnx_migrate_get_headroom_profiles(lossless_profiles)
                 matched = True
                 for name, profile in configdb_buffer_profiles.iteritems():
@@ -540,9 +598,9 @@ class MellanoxBufferMigrator():
                         new_headroom_set_name = mapping.get(headroom_set_name)
                         if type(new_headroom_set_name) is tuple:
                             log.log_info("Use headroom profiles map {}".format(mapping))
-                            maptype, mapping = new_headroom_set_name
+                            maptype, sku_mapping = new_headroom_set_name
                             if maptype == "skumap":
-                                new_headroom_set_name = mapping.get(self.sku)
+                                new_headroom_set_name = sku_mapping.get(self.sku)
                         if not new_headroom_set_name:
                             new_headroom_set_name = headroom_set_name
                     log.log_info("{} has been mapped to {} according to sku".format(headroom_set_name, new_headroom_set_name))
