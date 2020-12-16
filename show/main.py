@@ -768,6 +768,119 @@ def protocol(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+
+def get_dhcp_relay_intf_db(ctx, interface_name):
+    db = ConfigDBConnector()
+    db.connect()
+
+    intf = None
+    if interface_name.startswith("Ethernet"):
+        interface_type = "INTERFACE"
+    elif interface_name.startswith("PortChannel"):
+        interface_type = "PORTCHANNEL_INTERFACE"
+    elif interface_name.startswith("Vlan"):
+        interface_type = "VLAN"
+    else:
+        ctx.fail("{} is not valid/supported interface.".format(interface_name))
+
+    interface_dict = db.get_table(interface_type)
+    if interface_dict:
+        for interface in interface_dict.keys():
+            if interface_name == interface:
+                intf = db.get_entry(interface_type, interface_name)
+                break
+
+    if intf is None:
+        ctx.fail("{} not found. Please check if interface exists and an IP address is assigned".format(interface_name))
+
+    server_exists = False
+    server_exists = intf.has_key('dhcp_servers')
+
+    if not server_exists:
+        ctx.fail("Invalid interface. DHCP servers are not configured on the interface {}".format(interface_name))
+
+    return intf
+
+def show_dhcp_relay_detailed(intf):
+
+    dhcp_servers_list = intf.get('dhcp_servers', [])
+    dhcp_servers = ','.replace(',', ', ').join(dhcp_servers_list)
+
+    click.echo("\nServer Address: " + dhcp_servers)
+    if intf.has_key('dhcp_relay_src_intf'):
+        click.echo("Source Interface: " + intf['dhcp_relay_src_intf'])
+    if intf.has_key('dhcp_relay_link_select'):
+        click.echo("Link Select: " + intf['dhcp_relay_link_select'])
+    click.echo("\n")
+
+#
+# 'dhcp_relay' subcommand ("show ip dhcp_relay ...")
+#
+@ip.group(cls=clicommon.AliasedGroup)
+@click.pass_context
+def dhcp_relay(ctx):
+    """Show IP DHCP relay information"""
+    pass
+
+
+#
+# 'brief' command ("show ip dhcp_relay brief")
+#
+@dhcp_relay.command()
+@click.pass_context
+def brief(ctx):
+    """Show IP DHCP relay information"""
+    header = ['Interface Name', 'DHCP Helper Address']
+    body = []
+    dhcp_servers = []
+    interfaces = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN']
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    for i in interfaces:
+        dhcp_helper_dict = config_db.get_table(i)
+        dhcp_helper_data = {}
+
+        if dhcp_helper_dict:
+          for interface,value in dhcp_helper_dict.items():
+             if 'dhcp_servers' in value:
+                 dhcp_helper_data[interface] = dhcp_helper_dict[interface]['dhcp_servers']
+                 dhcp_servers = ','.replace(',', ' ').join(dhcp_helper_data[interface])
+                 if len(dhcp_servers) != 0:
+                     body.append([interface, dhcp_servers])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
+
+#
+# 'detailed' command ("show ip dhcp_relay detailed")
+#
+@dhcp_relay.command()
+@click.argument('interface_name', metavar='<interface_name>', required=False)
+@click.pass_context
+def detailed(ctx, interface_name):
+    """Show detailed DHCP Relay configuration"""
+
+    db = ConfigDBConnector()
+    db.connect()
+
+    if interface_name is not None:
+        intf = get_dhcp_relay_intf_db(ctx, interface_name)
+        show_dhcp_relay_detailed(intf)
+    else:
+        interfaces = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN']
+        intf = None
+
+        for i in interfaces:
+            interface_dict = db.get_table(i)
+
+            if interface_dict:
+                for interface, value in interface_dict.items():
+                    if 'dhcp_servers' in value:
+                        intf = interface_dict[interface]
+                        click.echo("\nRelay Interface: " + interface)
+                        show_dhcp_relay_detailed(intf)
+
+
 #
 # 'ipv6' group ("show ipv6 ...")
 #
