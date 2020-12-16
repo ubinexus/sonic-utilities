@@ -1,7 +1,7 @@
 import os
 from importlib import reload
 
-`import pytest
+import pytest
 
 from . import show_ip_route_common
 from click.testing import CliRunner
