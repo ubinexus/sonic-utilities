@@ -66,46 +66,27 @@ save_bcmcmd() {
     # This is required if $cmd has quoted strings that should be bunched
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
     # "COMMAND HERE" bunched together as 1 arg to vtysh -c
-    if $do_gzip
-    then
-        if $NOOP; then
-            echo "${timeout_cmd} $cmd &> '${filepath}'"
-        else
-            eval "${timeout_cmd} $cmd" &> "${filepath}"
-            ret=$?
-            if [ $ret -ne 0 ]; then
-                if [ $ret -eq 124 ]; then
-                    echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
-                else
-                    grep "polling socket timeout: Success" ${filepath} &>/dev/null
-                    if [ $? -eq 0 ]; then
-                        echo "bcmcmd command timeout. Setting SKIP_BCMCMD to true ..."
-                        SKIP_BCMCMD=1
-                    fi
+    if $NOOP; then
+        echo "${timeout_cmd} $cmd &> '${filepath}'"
+    else
+        eval "${timeout_cmd} $cmd" &> "${filepath}"
+        ret=$?
+        if [ $ret -ne 0 ]; then
+            if [ $ret -eq 124 ]; then
+                echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+            else
+                grep "polling socket timeout: Success" ${filepath} &>/dev/null
+                if [ $? -eq 0 ]; then
+                    echo "bcmcmd command timeout. Setting SKIP_BCMCMD to true ..."
+                    SKIP_BCMCMD=1
                 fi
             fi
         fi
+    fi
+    if $do_gzip
         gzip ${filepath} 2>/dev/null
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
-    else
-        if $NOOP; then
-            echo "${timeout_cmd} $cmd &> '$filepath'"
-        else
-            eval "${timeout_cmd} $cmd" &> "$filepath"
-            ret=$?
-            if [ $ret -ne 0 ]; then
-                if [ $ret -eq 124 ]; then
-                    echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
-                else
-                    grep "polling socket timeout: Success" ${filepath} &>/dev/null
-                    if [ $? -eq 0 ]; then
-                        echo "bcmcmd command timeout. Setting SKIP_BCMCMD to true ..."
-                        SKIP_BCMCMD=1
-                    fi
-                fi
-            fi
-        fi
     fi
     ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
         || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
@@ -334,7 +315,6 @@ save_bridge() {
 save_bridge_info() {
     save_bridge "fdb show" "fdb"
     save_bridge "vlan show" "vlan"
-
 }
 
 ###############################################################################
@@ -985,7 +965,6 @@ save_counter_snapshot() {
     save_cmd_all_ns "ifconfig -a" "ifconfig.counters_$idx"
 }
 
-
 ###############################################################################
 # Main generate_dump routine
 # Globals:
@@ -1038,7 +1017,6 @@ main() {
 
     # Save reboot cause information
     save_cmd "show reboot-cause" reboot.cause
-
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
@@ -1168,7 +1146,7 @@ main() {
         fi
     fi
     save_log_files
-	save_warmboot_files
+    save_warmboot_files
     save_crash_files
 
     # run 'hw-management-generate-dump.sh' script and save the result file

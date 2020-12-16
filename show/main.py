@@ -1127,8 +1127,8 @@ def users(verbose):
 
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
-@click.option('-g', '--global-timeout', default=30, type=int, help="Global timeout for techsupport in minutes. Default 30 mins")
-@click.option('-c', '--cmd-timeout', default=5, type=int, help="Command timeout for techsupport in minutes. Default 5 mins")
+@click.option('-g', '--global-timeout', default=30, type=int, help="Global timeout in minutes. Default 30 mins")
+@click.option('-c', '--cmd-timeout', default=5, type=int, help="Individual command timeout in minutes. Default 5 mins")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
 @click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
@@ -1141,7 +1141,7 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
 
     if silent:
         cmd += " generate_dump"
-        click.echo("Techsupport is running with silent option. This command might take a long time.\n")
+        click.echo("Techsupport is running with silent option. This command might take a long time.")
     else:
         cmd += " generate_dump -v"
 
