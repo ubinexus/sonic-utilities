@@ -17,8 +17,6 @@ load_source('config_mgmt', \
     os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py'))
 import config_mgmt
 
-config.asic_type = mock.MagicMock(return_value = "broadcom")
-
 breakout_cfg_file_json = {
     "interfaces": {
         "Ethernet0": {
@@ -77,11 +75,14 @@ def sonic_db(scope='module'):
     write_config_db(db.cfgdb, configDbJson)
     return db
 
-mock_funcs = [None]*3
+mock_funcs = [None]*4
 @pytest.fixture(scope='function')
 def mock_func(breakout_cfg_file, sonic_db):
     '''
     Mock functions in config/main.py, then unmocked them after test funtion.
+    Note: Always remember to unmock the function if done in a file after
+    importing.
+
     @Param: breakout_cfg_file [PyFixture], Equivalent to platform.json
     @Param: sonic_db [PyFixture], db.cfgdb -> Config DB.
     '''
@@ -90,7 +91,9 @@ def mock_func(breakout_cfg_file, sonic_db):
     mock_funcs[0] = config.device_info.get_path_to_port_config_file
     mock_funcs[1] = config.load_ConfigMgmt
     mock_funcs[2] = config.breakout_warnUser_extraTables
+    mock_funcs[3] = config.asic_type
 
+    config.asic_type = mock.MagicMock(return_value = "broadcom")
     config.device_info.get_path_to_port_config_file = \
         mock.MagicMock(return_value = breakout_cfg_file)
     config.load_ConfigMgmt = \
@@ -102,6 +105,7 @@ def mock_func(breakout_cfg_file, sonic_db):
     config.device_info.get_path_to_port_config_file = mock_funcs[0]
     config.load_ConfigMgmt = mock_funcs[1]
     config.breakout_warnUser_extraTables = mock_funcs[2]
+    config.asic_type = mock_funcs[3]
 
     return
 
