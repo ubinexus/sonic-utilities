@@ -3023,13 +3023,6 @@ def dhcp_relay_add_src_intf(ctx, interface_name, src_intf):
     if intf.has_key('dhcp_relay_src_intf') and intf['dhcp_relay_src_intf'] == src_intf:
         ctx.fail("Source interface is already configured")
 
-    if interface_type == 'VLAN':
-        intf_type = 'VLAN_INTERFACE'
-    else:
-        intf_type = interface_type
-
-    intf_db = db.get_entry(intf_type, interface_name)
-
     [intf_exists, addr_exists] = is_valid_dhcp_relay_src_intf(src_intf)
 
     if intf_exists is False:
