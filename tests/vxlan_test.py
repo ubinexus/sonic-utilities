@@ -31,6 +31,17 @@ Total count : 4
 
 """
 
+show_vxlan_vrfvnimap_output="""\
++-------+-------+
+| VRF   |   VNI |
++=======+=======+
+| Vrf1  |  1000 |
++-------+-------+
+Total count : 1 
+
+"""
+
+
 show_vxlan_tunnel_output="""\
 +---------+-------------+-------------------+--------------+
 | SIP     | DIP         | Creation Source   | OperStatus   |
@@ -109,6 +120,14 @@ class TestVxlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vxlan_vlanvnimap_output
+
+    def test_show_vxlan_vrfvnimap(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["vrfvnimap"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_vrfvnimap_output
 
     def test_show_vxlan_tunnel(self):
         runner = CliRunner()

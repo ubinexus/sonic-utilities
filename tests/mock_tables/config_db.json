@@ -1355,6 +1355,10 @@
          "vni" : "200",
          "vlan": "Vlan200"
     },
+    "VRF|Vrf1": {
+         "fallback": "false",
+         "vni" : "1000"
+    },
     "BUFFER_POOL|egress_lossless_pool": {
         "mode": "dynamic",
         "size": "13945824",

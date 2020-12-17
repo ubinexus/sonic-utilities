@@ -301,37 +301,6 @@ def is_port_mirror_dst_port(config_db, port):
 
     return False
 
-#
-# Use this method to validate unicast IPv4 address
-#
-def is_ip4_addr_valid(addr, display):
-    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
-    try:
-        ip = ipaddress.ip_address(unicode(addr))
-        if (ip.version == 4):
-            if (ip.is_reserved):
-                if display:
-                    click.echo ("{} Not Valid, Reason: IPv4 reserved address range.".format(addr))
-                return False
-            elif (ip.is_multicast):
-                if display:
-                    click.echo ("{} Not Valid, Reason: IPv4 Multicast address range.".format(addr))
-                return False
-            elif (ip in v4_invalid_list):
-                if display:
-                    click.echo ("{} Not Valid.".format(addr))
-                return False
-            else:
-                return True
-
-        else:
-            if display:
-                click.echo ("{} Not Valid, Reason: Not an IPv4 address".format(addr))
-            return False
-
-    except ValueError:
-        return False
-
 def vni_id_is_valid(vni):
     """Check if the vni id is in acceptable range (between 1 and 2^24)
     """
