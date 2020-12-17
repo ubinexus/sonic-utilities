@@ -1954,60 +1954,56 @@ def mac_address_is_valid(mac):
 @click.argument('mac', metavar='<mac-address as xx:xx:xx:xx:xx:xx>', required=True)
 @click.argument('vlan', metavar='<vlan>', required=True, type=int)
 @click.argument('interface_name', metavar='<interface name>', required=True)
-@click.pass_context
-def add_mac(ctx, mac, vlan, interface_name):
-    db = ctx.obj['db']
-
+@clicommon.pass_db
+def add_mac(db, mac, vlan, interface_name):
     mac_valid = bool(mac_address_is_valid(mac))
     if mac_valid == False:
-        ctx.fail("Incorrect mac-address format!!")
+        click.echo("Incorrect mac-address format!!")
 
     mac_valid = not bool(re.match('^' + '[\:\-]'.join(['([00]{2})']*6) + '$', mac.lower()))
     if mac_valid == False:
-        ctx.fail("Invalid (Zero) mac-address!!")
+        click.echo("Invalid (Zero) mac-address!!")
 
     mac_valid = not bool(re.match('^' + '[\:\-]'.join(['([ff]{2})']*6) + '$', mac.lower()))
     if mac_valid == False:
-        ctx.fail("Invalid (Bcast) mac-address!!")
+        click.echo("Invalid (Bcast) mac-address!!")
 
     mac_is_multicast = int(mac[:2]) & 1;
     if mac_is_multicast == True:
-        ctx.fail("Invalid (Multicast) mac-address!!")
+        click.echo("Invalid (Multicast) mac-address!!")
 
     vlan_valid = bool(vlan_id_is_valid(vlan))
     if vlan_valid == False:
-        ctx.fail("Invalid VlanId!!")
+        click.echo("Invalid VlanId!!")
 
     vlan_name = 'Vlan{}'.format(vlan)
 
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(db, interface_name)
+        interface_name = interface_alias_to_name(db.cfgdb, interface_name)
         if interface_name is None:
-            ctx.fail("'interface_name' is None!")
+            click.echo("'interface_name' is None!")
 
-    if interface_name_is_valid(db, interface_name) is False:
-        ctx.fail("Interface name is invalid!!")
+    if interface_name_is_valid(db.cfgdb, interface_name) is False:
+        click.echo("Interface name is invalid!!")
 
-    db.set_entry('FDB', (vlan_name, mac), {'port': interface_name })
+    db.cfgdb.set_entry('FDB', (vlan_name, mac), {'port': interface_name })
 
 @mac.command('del')
 @click.argument('mac', metavar='<mac-address as xx:xx:xx:xx:xx:xx>', required=True)
 @click.argument('vlan', metavar='<vlan>', required=True, type=int)
-@click.pass_context
-def del_mac(ctx, mac, vlan):
-    db = ctx.obj['db']
-
+@clicommon.pass_db
+def del_mac(db, mac, vlan):
     mac_valid = bool(mac_address_is_valid(mac))
     if mac_valid == False:
-        ctx.fail("Incorrect mac-address format!!")
+        click.echo("Incorrect mac-address format!!")
 
     vlan_valid = bool(vlan_id_is_valid(vlan))
     if vlan_valid == False:
-        ctx.fail("Invalid VlanId!!")
+        click.echo("Invalid VlanId!!")
 
     vlan_name = 'Vlan{}'.format(vlan)
 
-    db.set_entry('FDB', (vlan_name, mac), None)
+    db.cfgdb.set_entry('FDB', (vlan_name, mac), None)
 
 #
 # 'bgp' group ('config bgp ...')

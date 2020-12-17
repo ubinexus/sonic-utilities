@@ -556,6 +556,19 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vlan_config_output_range
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["range"].commands["del"], ["3001", "3003", "Ethernet4"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["range"].commands["del"], ["3001", "3003", "Ethernet8"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        result = runner.invoke(show.cli.commands["vlan"].commands["config"], [], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vlan_config_output
 
     def test_config_vlan_remove_nonexist_dhcp_relay_dest(self):
         runner = CliRunner()

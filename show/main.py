@@ -691,6 +691,28 @@ def count():
     output += ('%s \n' % (str(fdb_count)))
     click.echo(output)
 
+@mac.command()
+@clicommon.pass_db
+def config(db):
+    data = db.cfgdb.get_table('FDB')
+    keys = list(data.keys())
+
+    def tablelize(keys, data):
+        table = []
+
+        for k in natsorted(keys):
+            entry = db.cfgdb.get_entry('FDB', k)
+            r = []
+            r.append(k[0])
+            r.append(k[1])
+            r.append(data[k]['port'])
+            table.append(r)
+
+        return table
+
+    header = ['Vlan', 'MAC', 'Port']
+    click.echo(tabulate(tablelize(keys, data), header))
+
 #
 # 'show route-map' command ("show route-map")
 #
