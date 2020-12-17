@@ -566,15 +566,16 @@ class MellanoxBufferMigrator():
         default_headroom_sets_new = self.mlnx_default_buffer_parameters(new_version, "headrooms")
         default_headrooms_old = None
         default_headrooms_new = None
-        if self.platform == 'x86_64-mlnx_msn3800-r0':
-            default_headrooms_old = default_headroom_sets_old.get("spc2_3800_headroom")
-            default_headrooms_new = default_headroom_sets_new.get("spc2_3800_headroom")
-        elif self.platform in spc2_platforms:
-            default_headrooms_old = default_headroom_sets_old.get("spc2_headroom")
-            default_headrooms_new = default_headroom_sets_new.get("spc2_headroom")
-        elif self.platform in spc1_platforms:
-            default_headrooms_old = default_headroom_sets_old.get("spc1_headroom")
-            default_headrooms_new = default_headroom_sets_new.get("spc1_headroom")
+        if default_headroom_sets_old and default_headroom_sets_old:
+            if self.platform == 'x86_64-mlnx_msn3800-r0':
+                default_headrooms_old = default_headroom_sets_old.get("spc2_3800_headroom")
+                default_headrooms_new = default_headroom_sets_new.get("spc2_3800_headroom")
+            elif self.platform in spc2_platforms:
+                default_headrooms_old = default_headroom_sets_old.get("spc2_headroom")
+                default_headrooms_new = default_headroom_sets_new.get("spc2_headroom")
+            elif self.platform in spc1_platforms:
+                default_headrooms_old = default_headroom_sets_old.get("spc1_headroom")
+                default_headrooms_new = default_headroom_sets_new.get("spc1_headroom")
 
         if default_headrooms_old and default_headrooms_new:
             # match the old lossless profiles?
