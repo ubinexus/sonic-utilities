@@ -9,6 +9,7 @@ REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
+IGNORE_ASIC=no
 STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
@@ -55,6 +56,7 @@ function showHelpAndExit()
     echo "    -h,-? : get this help"
     echo "    -v    : turn on verbose"
     echo "    -f    : force execution"
+    echo "    -i    : ignore MD5-checksum-verification of ASIC configuration files"
     echo "    -r    : reboot with /sbin/reboot"
     echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
@@ -67,7 +69,7 @@ function showHelpAndExit()
 
 function parseOptions()
 {
-    while getopts "vfh?rkxc:s" opt; do
+    while getopts "vfih?rkxc:s" opt; do
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -77,6 +79,9 @@ function parseOptions()
                 ;;
             f )
                 FORCE=yes
+                ;;
+            i )
+                IGNORE_ASIC=yes
                 ;;
             r )
                 REBOOT_METHOD="/sbin/reboot"
@@ -242,15 +247,19 @@ function backup_database()
         for _, k in ipairs(redis.call('keys', '*')) do
             if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
                                           and not string.match(k, 'MIRROR_SESSION_TABLE|') \
-                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') then
+                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
+                                          and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') then
                 redis.call('del', k)
             end
         end
     " 0 > /dev/null
-    sonic-db-cli SAVE > /dev/null
-    #TODO : need a script to copy all rdb files if there is multiple db instances config
-    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/redis/$REDIS_FILE
+
+    # move all db data into the instance where APPL_DB locates
+    target_db_inst=`centralize_database APPL_DB`
+
+    # Dump redis content to a file 'dump.rdb' in warmboot directory
+    docker cp database:/var/lib/$target_db_inst/$REDIS_FILE $WARM_DIR
+    docker exec -i database rm /var/lib/$target_db_inst/$REDIS_FILE
 }
 
 function setup_control_plane_assistant()
@@ -332,7 +341,7 @@ function reboot_pre_check()
         ${ASIC_CONFIG_CHECK_SCRIPT} || ASIC_CONFIG_CHECK_EXIT_CODE=$?
 
         if [[ "${ASIC_CONFIG_CHECK_EXIT_CODE}" != "${ASIC_CONFIG_CHECK_SUCCESS}" ]]; then
-            if [[ x"${FORCE}" == x"yes" ]]; then
+            if [[ x"${IGNORE_ASIC}" == x"yes" ]]; then
                 debug "Ignoring ASIC config checksum failure..."
             else
                 error "ASIC config may have changed: errno=${ASIC_CONFIG_CHECK_EXIT_CODE}"
