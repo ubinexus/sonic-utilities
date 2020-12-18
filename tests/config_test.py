@@ -111,7 +111,10 @@ class TestConfigQos(object):
         import config.main
         imp.reload(config.main)
 
-    def test_qos_reload_single(self, get_cmd_module, setup_single_broadcom_asic):
+    def test_qos_reload_single(
+            self, get_cmd_module, setup_qos_mock_apis,
+            setup_single_broadcom_asic
+        ):
         (config, show) = get_cmd_module
         runner = CliRunner()
         output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")
@@ -150,7 +153,10 @@ class TestConfigQosMasic(object):
         import config.main
         imp.reload(config.main)
 
-    def test_qos_reload_masic(self, get_cmd_module, setup_multi_broadcom_masic):
+    def test_qos_reload_masic(
+            self, get_cmd_module, setup_qos_mock_apis,
+            setup_multi_broadcom_masic
+        ):
         (config, show) = get_cmd_module
         runner = CliRunner()
         output_file = os.path.join(os.sep, "tmp", "qos_config_output.json")

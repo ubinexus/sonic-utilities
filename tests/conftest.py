@@ -59,6 +59,11 @@ def get_cmd_module():
 def set_mock_apis():
     import config.main as config
     cwd = os.path.dirname(os.path.realpath(__file__))
+    config.asic_type = mock.MagicMock(return_value="broadcom")
+    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
+
+@pytest.fixture
+def setup_qos_mock_apis():
     device_info.get_paths_to_platform_and_hwsku_dirs = mock.MagicMock(
         return_value=(
             os.path.join(cwd, "."), os.path.join(cwd, "qos_config_input")
@@ -67,9 +72,6 @@ def set_mock_apis():
     device_info.get_sonic_version_file = mock.MagicMock(
         return_value=os.path.join(cwd, "qos_config_input/sonic_version.yml")
     )
-    config.asic_type = mock.MagicMock(return_value="broadcom")
-    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
-
 
 @pytest.fixture
 def setup_single_broadcom_asic():
