@@ -668,7 +668,6 @@ def aging_time(db):
                 age_time = switch_table[key]['fdb_aging_time']
             except KeyError:
                 age_time = '0'
-                pass
     output = 'Mac Aging-Time : '
     output += ('%s seconds\n' % (str(age_time)))
     click.echo(output)
@@ -701,7 +700,6 @@ def config(db):
         table = []
 
         for k in natsorted(keys):
-            entry = db.cfgdb.get_entry('FDB', k)
             r = []
             r.append(k[0])
             r.append(k[1])
