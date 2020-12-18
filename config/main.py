@@ -2955,7 +2955,7 @@ def add_vrf_vni_map(ctx, vrfname, vni):
                 break
 
     if (found == 0):
-        ctx.fail(" VLAN VNI not mapped. Please create VLAN VNI map entry first ")
+        ctx.fail("VLAN VNI not mapped. Please create VLAN VNI map entry first")
 
     found = 0
     vrf_table = config_db.get_table('VRF')
