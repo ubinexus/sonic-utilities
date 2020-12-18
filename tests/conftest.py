@@ -64,6 +64,7 @@ def set_mock_apis():
 
 @pytest.fixture
 def setup_qos_mock_apis():
+    cwd = os.path.dirname(os.path.realpath(__file__))
     device_info.get_paths_to_platform_and_hwsku_dirs = mock.MagicMock(
         return_value=(
             os.path.join(cwd, "."), os.path.join(cwd, "qos_config_input")
