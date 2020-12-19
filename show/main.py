@@ -280,7 +280,7 @@ def is_mgmt_vrf_enabled(ctx):
 #
 
 @cli.group('mgmt-vrf', invoke_without_command=True)
-@click.argument('routes', required=False)
+@click.argument('routes', required=False, type=click.Choice(["routes"]))
 @click.pass_context
 def mgmt_vrf(ctx,routes):
     """Show management VRF attributes"""
@@ -631,6 +631,27 @@ def wm_buffer_pool():
 def pwm_buffer_pool():
     """Show persistent WM for buffer pools"""
     command = 'watermarkstat -p -t buffer_pool'
+    run_command(command)
+
+
+#
+# 'headroom-pool' group ("show headroom-pool ...")
+#
+
+@cli.group(name='headroom-pool', cls=clicommon.AliasedGroup)
+def headroom_pool():
+    """Show details of headroom pool"""
+
+@headroom_pool.command('watermark')
+def wm_headroom_pool():
+    """Show user WM for headroom pool"""
+    command = 'watermarkstat -t headroom_pool'
+    run_command(command)
+
+@headroom_pool.command('persistent-watermark')
+def pwm_headroom_pool():
+    """Show persistent WM for headroom pool"""
+    command = 'watermarkstat -p -t headroom_pool'
     run_command(command)
 
 
@@ -1107,11 +1128,16 @@ def users(verbose):
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(since, verbose):
+@click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
+def techsupport(since, verbose, allow_process_stop):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
+    if allow_process_stop:
+        cmd += " -a"
+
     if since:
         cmd += " -s {}".format(since)
+
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1431,14 +1457,41 @@ def boot():
     click.echo(proc.stdout.read())
 
 
+#
 # 'mmu' command ("show mmu")
 #
 @cli.command('mmu')
 def mmu():
     """Show mmu configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd)
+
+#
+# 'buffer' command ("show buffer")
+#
+@cli.group(cls=clicommon.AliasedGroup)
+def buffer():
+    """Show buffer information"""
+    pass
+
+#
+# 'configuration' command ("show buffer command")
+#
+@buffer.command()
+def configuration():
+    """show buffer configuration"""
+    cmd = "mmuconfig -l"
+    run_command(cmd)
+
+#
+# 'information' command ("show buffer state")
+#
+@buffer.command()
+def information():
+    """show buffer information"""
+    cmd = "buffershow -l"
+    run_command(cmd)
+
 
 #
 # 'line' command ("show line")
@@ -1468,7 +1521,6 @@ def ztp(status, verbose):
     if verbose:
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
-
 
 if __name__ == '__main__':
     cli()
