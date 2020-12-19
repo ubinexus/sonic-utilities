@@ -220,6 +220,20 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         assert result.exit_code == 0
         assert result.output == "" 
 
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['ip_route_summary'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_show_multi_asic_ip_route_summay(
+            self,
+            setup_ip_route_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["route"], ["summary"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ip_route_common.show_ip_route_summary_expected_output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
