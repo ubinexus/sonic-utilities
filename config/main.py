@@ -54,7 +54,8 @@ CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
-
+PORT_MTU_CONFIG_MAX = 9216
+PORT_MTU_CONFIG_MIN = 68
 
 asic_type = None
 
@@ -2376,6 +2377,10 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    if not interface_mtu.isdigit() or int(interface_mtu) < PORT_MTU_CONFIG_MIN or int(interface_mtu) > PORT_MTU_CONFIG_MAX:
+        print("Error mtu value! Please Enter threshold [68, 9216]")
+        return
 
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
         command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
