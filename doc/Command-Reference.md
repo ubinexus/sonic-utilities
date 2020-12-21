@@ -1315,8 +1315,7 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
 This command is used to perform incremental update of ACL rule table. This command gets existing rules from Config DB and compares with rules specified in input file and performs corresponding modifications.
 
-With respect to DATA ACLs, the command does not assume that new dataplane ACLs can be inserted in betweeen by shifting existing ACLs in all ASICs. Therefore, this command performs a full update on dataplane ACLs.
-With respect to control plane ACLs, this command performs an incremental update.
+This command performs an incremental update. The DATA ACL behaviour will be same as control plane ACL which is explained below. The ASICs which doesnt support shuffling (insert in between by shifting) use full or load commands.
 If we assume that "file1.json" is the already loaded ACL rules file and if "file2.json" is the input file that is passed as parameter for this command, the following requirements are valid for the input file.
 1) First copy the file1.json to file2.json.
 2) Remove the unwanted ACL rules from file2.json
@@ -1355,6 +1354,48 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
   Refer the example file [acl_incremental_snmp_1_3_ssh_4.json](#) that adds two rules for SNMP (Rule1 and Rule3) and one rule for SSH (Rule4)
   When this "incremental" command is executed after "full" command, it has removed SNMP Rule2 and added SNMP Rule3 in the example.
+  File "acl_full_snmp_1_2_ssh_4.json" has got SNMP Rule1, SNMP Rule2 and SSH Rule4.
+  File "acl_incremental_snmp_1_3_ssh_4.json" has got SNMP Rule1, SNMP Rule3 and SSH Rule4.
+  This file is created by copying the file "acl_full_snmp_1_2_ssh_4.json" to "acl_incremental_snmp_1_3_ssh_4.json" and then removing SNMP Rule2 and adding SNMP Rule3.
+
+**config acl update load**
+
+This command is used to perform incremental update of ACL rule table. The difference with above 'update incremental' command is that this doesnt remove any rules from the table. This command gets existing rules from Config DB and compares with rules specified in input file and performs corresponding modifications.
+
+If we assume that "file1.json" is the already loaded ACL rules file and if "file2.json" is the input file that is passed as parameter for this command, the following requirements are valid for the input file.
+1) First copy the file1.json to file2.json.
+2) Add the newly required ACL rules into file2.json.
+3) Modify the existing ACL rules (that require changes) in file2.json.
+
+When "--session_name" optional argument is specified, command sets the session_name for the ACL table with this mirror session name. It fails if the specified mirror session name does not exist.
+
+When "--mirror_stage" optional argument is specified, command sets the mirror action to ingress/egress based on this parameter. By default command sets ingress mirror action in case argument is not specified.
+
+When the optional argument "max_priority"  is specified, each rule’s priority is calculated by subtracting its “sequence_id” value from the “max_priority”. If this value is not passed, the default “max_priority” 10000 is used.
+
+- Usage:
+  ```
+  config acl update load [--session_name <session_name>] [--mirror_stage (ingress | egress)] [--max_priority <priority_value>] <acl_json_file_name>
+  ```
+
+  - Parameters:
+    - table_name: Specifiy the name of the ACL table to load. Example: config acl update full "--table_name DT_ACL_T1  /etc/sonic/acl_table_1.json"
+    - session_name: Specifiy the name of the ACL session to load. Example: config acl update full "--session_name mirror_ses1 /etc/sonic/acl_table_1.json"
+    - priority_value: Specify the maximum priority to use when loading ACL rules. Example: config acl update full "--max-priority 100  /etc/sonic/acl_table_1.json"
+
+    *NOTE 1: All these optional parameters should be inside double quotes. If none of the options are provided, double quotes are not required for specifying filename alone.*
+    *NOTE 2: Any number of optional parameters can be configured in the same command.*
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config acl update load /etc/sonic/acl_incremental_snmp_1_3_ssh_4.json
+  ```
+  ```
+  admin@sonic:~$ sudo config acl update load "--session_name everflow0 /etc/sonic/acl_incremental_snmp_1_3_ssh_4.json"
+  ```
+
+  Refer the example file [acl_incremental_snmp_1_3_ssh_4.json](#) that adds two rules for SNMP (Rule1 and Rule3) and one rule for SSH (Rule4)
+  When this "load" command is executed after "full" command, it has NOT removed SNMP Rule2 and added SNMP Rule3 in the example.
   File "acl_full_snmp_1_2_ssh_4.json" has got SNMP Rule1, SNMP Rule2 and SSH Rule4.
   File "acl_incremental_snmp_1_3_ssh_4.json" has got SNMP Rule1, SNMP Rule3 and SSH Rule4.
   This file is created by copying the file "acl_full_snmp_1_2_ssh_4.json" to "acl_incremental_snmp_1_3_ssh_4.json" and then removing SNMP Rule2 and adding SNMP Rule3.
