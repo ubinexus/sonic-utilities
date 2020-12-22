@@ -6,15 +6,6 @@
 
 set -u
 
-trap 'handle_signal' 2
-
-handle_signal()
-{
-    echo "Generate Dump received interrupt"
-    $RM $V -rf $TARDIR
-    exit 1
-}
-
 ERROR_TAR_FAILED=5
 ERROR_PROCFS_SAVE_FAILED=6
 ERROR_INVALID_ARGUMENT=10
@@ -35,7 +26,7 @@ DO_COMPRESS=true
 CMD_PREFIX=
 SINCE_DATE="@0" # default is set to January 1, 1970 at 00:00:00 GMT
 REFERENCE_FILE=/tmp/reference
-TECHSUPPORT_TIME_INFO=/tmp/techsupport_time_info
+TECHSUPPORT_TIME_INFO=`mktemp "/tmp/techsupport_time_info.XXXXXXXXXX"`
 BASE=sonic_dump_`hostname`_`date +%Y%m%d_%H%M%S`
 DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
@@ -46,6 +37,14 @@ HOME=${HOME:-/root}
 USER=${USER:-root}
 TIMEOUT_MIN="5"
 SKIP_BCMCMD=0
+
+handle_signal()
+{
+    echo "Generate Dump received interrupt" >&2
+    $RM $V -rf $TARDIR
+    exit 1
+}
+trap 'handle_signal' SIGINT
 
 save_bcmcmd() {
     local start_t=$(date +%s%3N)
@@ -233,7 +232,6 @@ get_vtysh_namespace() {
     else
         ns=" -n  ${asic_id}"
     fi
-    #echo "$ns"
 }
 
 ###############################################################################
@@ -333,7 +331,7 @@ save_bgp_neighbor() {
     local asic_id=${1:-""}
     local ns=$(get_vtysh_namespace $asic_id)
 
-    neighbor_list_v4=$( ${timeout_cmd} vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
+    neighbor_list_v4=$(${timeout_cmd} vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
     for word in $neighbor_list_v4; do
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
@@ -407,7 +405,6 @@ save_bfd_info() {
     save_vtysh "show bfd peers counters" "frr.bfd.peers.counters"
     save_vtysh "show bfd peers json" "frr.bfd.peers.json"
     save_vtysh "show bfd peers counters json" "frr.bfd.peers.counters.json"
-
 }
 
 ###############################################################################
@@ -512,8 +509,8 @@ save_proc() {
 ###############################################################################
 # Dumps all fields and values from given Redis DB.
 # Arguments:
-#  DB id: id of DB for sonic-db-cli
-#  DB name: filename to which output will be saved
+#  DB name: DB name 
+#  Filename: Destination filename, if not given then filename would be DB name 
 # Returns:
 #  None
 ###############################################################################
@@ -856,7 +853,6 @@ save_log_files() {
     end_t=$(date +%s%3N)
     echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
-
     enable_logrotate
 }
 
@@ -993,8 +989,7 @@ main() {
     $TAR $V -chf $TARFILE -C $DUMPDIR $BASE
     $RM $V -f $TARDIR/sonic_dump
 
-    $TOUCH $TECHSUPPORT_TIME_INFO
-    # if old data is present clear it
+    # Start populating timing data
     echo $BASE > $TECHSUPPORT_TIME_INFO
     start_t=$(date +%s%3N)
 
