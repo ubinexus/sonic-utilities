@@ -137,6 +137,12 @@ def add_vlan_member(db, vid, port, untagged):
        (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
         ctx.fail("{} is a router interface!".format(port))
 
+    if untagged:
+        vlan_ports_data = db.cfgdb.get_table('VLAN_MEMBER')
+        for key in vlan_ports_data.keys():
+            if str(key[1]) == port and vlan_ports_data[key]['tagging_mode'] == "untagged":
+                db.cfgdb.set_entry('VLAN_MEMBER', (key[0], port), {'tagging_mode': "tagged" })
+
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
 
 @vlan_member.command('del')
