@@ -592,7 +592,7 @@ class AclLoader(object):
         for namespace_configdb in self.per_npu_configdb.values():
             namespace_configdb.mod_config({self.ACL_RULE: self.rules_info})
 
-    def incremental_update(self, update=False):
+    def incremental_update(self, dont_del=False):
         """
         Perform incremental ACL rules configuration update. Get existing rules from
         Config DB. Compare with rules specified in file and perform corresponding
@@ -639,7 +639,7 @@ class AclLoader(object):
             for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key,  self.rules_info[key]) 
 
-        if not update:
+        if not dont_del:
             for key in removed_dataplane_rules:
                 self.configdb.mod_entry(self.ACL_RULE, key, None)
             # Program for per-asic namespace also if present
@@ -664,7 +664,7 @@ class AclLoader(object):
             for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
-        if not update:
+        if not dont_del:
             for key in removed_controlplane_rules:
                 self.configdb.mod_entry(self.ACL_RULE, key, None)
                 # Program for per-asic namespace corresponding to front asic also if present. 
