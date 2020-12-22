@@ -60,6 +60,11 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
+CFG_PORTCHANNEL_PREFIX = "PortChannel"
+CFG_PORTCHANNEL_PREFIX_LEN = 11
+CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
+CFG_PORTCHANNEL_MAX_VAL = 9999
+CFG_PORTCHANNEL_NO="<0-9999>"
 
 asic_type = None
 
@@ -387,6 +392,32 @@ def is_interface_bind_to_vrf(config_db, interface_name):
         return False
     entry = config_db.get_entry(table_name, interface_name)
     if entry and entry.get("vrf_name"):
+        return True
+    return False
+
+def is_portchannel_name_valid(portchannel_name):
+    """Port channel name validation
+    """
+
+    # Return True if Portchannel name is PortChannelXXXX (XXXX can be 0-9999)
+    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX :
+        return False
+    if (portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:].isdigit() is False or
+          int(portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:]) > CFG_PORTCHANNEL_MAX_VAL) :
+        return False
+    if len(portchannel_name) > CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
+
+def is_portchannel_present_in_db(db, portchannel_name):
+    """Check if Portchannel is present in Config DB
+    """
+
+    # Return True if Portchannel name exists in the CONFIG_DB
+    portchannel_list = db.get_table(CFG_PORTCHANNEL_PREFIX)
+    if portchannel_list is None:
+        return False
+    if portchannel_name in portchannel_list:
         return True
     return False
 
@@ -1294,7 +1325,15 @@ def portchannel(ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    if is_portchannel_present_in_db(db, portchannel_name):
+        ctx.fail("{} already exists!".format(portchannel_name))
+
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
     if min_links != 0:
@@ -1308,7 +1347,16 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
