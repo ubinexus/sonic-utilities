@@ -806,12 +806,11 @@ def show_dhcp_relay_detailed(intf):
     dhcp_servers_list = intf.get('dhcp_servers', [])
     dhcp_servers = ','.replace(',', ', ').join(dhcp_servers_list)
 
-    click.echo("\nServer Address: " + dhcp_servers)
+    click.echo("Server Address: " + dhcp_servers)
     if intf.has_key('dhcp_relay_src_intf'):
         click.echo("Source Interface: " + intf['dhcp_relay_src_intf'])
     if intf.has_key('dhcp_relay_link_select'):
         click.echo("Link Select: " + intf['dhcp_relay_link_select'])
-    click.echo("\n")
 
 #
 # 'dhcp_relay' subcommand ("show ip dhcp_relay ...")
@@ -845,7 +844,7 @@ def brief(ctx):
           for interface,value in dhcp_helper_dict.items():
              if 'dhcp_servers' in value:
                  dhcp_helper_data[interface] = dhcp_helper_dict[interface]['dhcp_servers']
-                 dhcp_servers = ','.replace(',', ' ').join(dhcp_helper_data[interface])
+                 dhcp_servers = ','.replace(',', '\n').join(dhcp_helper_data[interface])
                  if len(dhcp_servers) != 0:
                      body.append([interface, dhcp_servers])
 

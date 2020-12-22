@@ -558,7 +558,8 @@
         "NULL": "NULL"
     },
     "INTERFACE|Ethernet0|14.14.0.1/24": {
-        "NULL": "NULL"
+        "NULL": "NULL",
+        "dhcp_servers@": "12.0.0.1,12.0.0.2,12.0.0.3"
     },
     "DEBUG_COUNTER|DEBUG_0": {
         "type": "PORT_INGRESS_DROPS"
