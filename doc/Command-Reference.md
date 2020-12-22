@@ -42,6 +42,9 @@
   * [Drop Counter show commands](#drop-counters-show-commands)
   * [Drop Counter config commands](#drop-counters-config-commands)
   * [Drop Counter clear commands](#drop-counters-clear-commands)
+* [Dynamic Buffer Management](#dynamic-buffer-management)
+  * [Configuration commands](#configuration-commands)
+  * [Show commands](#show-commands)
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
@@ -62,6 +65,9 @@
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
+* [Kubernetes](#Kubernetes)
+  * [Kubernetes show commands](#Kubernetes-show-commands)
+  * [Kubernetes config commands](#Kubernetes-config-commands)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -289,6 +295,7 @@ This command lists all the possible configuration commands at the top level.
     hostname               Change device hostname without impacting traffic
     interface              Interface-related configuration tasks
     interface_naming_mode  Modify interface naming mode for interacting...
+    kubernetes             Kubernetes server related configuration
     load                   Import a previous saved config DB dump file.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
@@ -340,6 +347,7 @@ This command displays the full list of show commands available in the software; 
     interfaces            Show details of the network interfaces
     ip                    Show IP (IPv4) commands
     ipv6                  Show IPv6 commands
+    kubernetes            Show kubernetes commands
     line                  Show all /dev/ttyUSB lines and their info
     lldp                  LLDP (Link Layer Discovery Protocol)...
     logging               Show system log
@@ -2163,7 +2171,7 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
 
 
-# Drop Counters
+## Drop Counters
 
 This section explains all the Configurable Drop Counters show commands and configuration options that are supported in SONiC.
 
@@ -2345,8 +2353,310 @@ This comnmand is used to clear drop counters. This is done on a per-user basis.
   Cleared drop counters
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#drop-counters)
+Go Back To [Beginning of the document](#) or [Beginning of this section](##drop-counters)
 
+## Dynamic Buffer Management
+
+This section explains all the show and configuration commands regarding the dynamic buffer management.
+
+Dynamic buffer management is responsible for calculating buffer size according to the ports' configured speed and administrative state. In order to enable dynamic buffer management feature, the ports' speed must be configured. For this please refer [Interface naming mode config commands](#interface-naming-mode-config-commands)
+
+### Configuration commands
+
+**configure a lossless buffer profile**
+
+This command is used to configure a lossless buffer profile.
+
+- Usage:
+
+  ```
+  config buffer_profile add <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer_profile set <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer_profile remove <profile_name>
+  ```
+
+  All the parameters are devided to two groups, one for headroom and one for dynamic_th. For any command at lease one group of parameters should be provided.
+  For headroom parameters:
+
+  - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
+  All other parameters are optional.
+  - `xon` is madantory.
+  - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
+
+  If only headroom parameters are provided, the `dynamic_th` will be taken from `CONFIG_DB.DEFAULT_LOSSLESS_BUFFER_PARAMETER.default_dynamic_th`.
+
+  If only dynamic_th parameter is provided, the `headroom_type` will be set as `dynamic` and `xon`, `xoff` and `size` won't be set. This is only used for non default dynamic_th. In this case, the profile won't be deployed to ASIC directly. It can be configured to a lossless PG and then a dynamic profile will be generated based on the port's speed, cable length, and MTU and deployed to the ASIC.
+
+  The subcommand `add` is designed for adding a new buffer profile to the system.
+
+  The subcommand `set` is designed for modifying an existing buffer profile in the system.
+  For a profile with dynamically calculated headroom information, only `dynamic_th` can be modified. 
+
+  The subcommand `remove` is designed for removing an existing buffer profile from the system. When removing a profile, it shouldn't be referenced by any entry in `CONFIG_DB.BUFFER_PG`.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config buffer_profile add profile1 -xon 18432 -xoff 18432
+  admin@sonic:~$ sudo config buffer_profile remove profile1
+  ```
+
+**config interface cable_length**
+
+This command is used to configure the length of the cable connected to a port. The cable_length is in unit of meters and must be suffixed with "m".
+
+- Usage:
+
+  ```
+  config interface cable_length <interface_name> <cable_length>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config interface cable_length Ethernet0 40m
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
+**config interface buffer priority-group lossless**
+
+This command is used to configure the priority groups on which lossless traffic runs.
+
+- Usage:
+
+  ```
+  config interface buffer priority-group lossless add <interface_name> <pg_map> [profile]
+  config interface buffer priority-group lossless set <interface_name> <pg_map> [profile]
+  config interface buffer priority-group lossless remove <interface_name> [<pg_map>]
+  ```
+
+  The <pg_map> can be in one of the following two forms:
+
+  - For a range of priorities, the lower bound and upper bound connected by a dash, like `3-4`
+  - For a single priority, the number, like `6`
+
+  The `pg-map` represents the map of priorities for lossless traffic. It should be a string and in form of a bit map like `3-4`. The `-` connects the lower bound and upper bound of a range of priorities.
+
+  The subcommand `add` is designed for adding a new lossless PG on top of current PGs. The new PG range must be disjoint with all existing PGs.
+
+  For example, currently the PG range 3-4 exist on port Ethernet4, to add PG range 4-5 will fail because it isn't disjoint with 3-4. To add PG range 5-6 will succeed. After that both range 3-4 and 5-6 will work as lossless PG.
+
+  The `override-profile` parameter is optional. When provided, it represents the predefined buffer profile for headroom override.
+
+  The subcommand `set` is designed for modifying an existing PG from dynamic calculation to headroom override or vice versa. The `pg-map` must be an existing PG.
+
+  The subcommand `remove` is designed for removing an existing PG. The option `pg-map` must be an existing PG. All lossless PGs will be removed in case no `pg-map` provided.
+
+- Example:
+
+  To configure lossless_pg on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless add Ethernet0 3-4
+  ```
+
+  To change the profile used for lossless_pg on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless set Ethernet0 3-4 new-profile
+  ```
+
+  To remove one lossless priority from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless remove Ethernet0 6
+  ```
+
+  To remove all lossless priorities from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless remove Ethernet0
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
+### Show commands
+
+**show buffer information**
+
+This command is used to display the status of buffer pools and profiles currently deployed to the ASIC.
+
+- Usage:
+
+  ```
+  show buffer information
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show buffer information
+  Pool: ingress_lossless_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Pool: egress_lossless_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  34340822
+  ----  --------
+
+  Pool: ingress_lossy_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Pool: egress_lossy_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Profile: pg_lossless_100000_5m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        18432
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        36864
+  ----------  -----------------------------------
+
+  Profile: q_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        0
+  ----------  -------------------------------
+
+  Profile: egress_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        4096
+  ----------  -------------------------------
+
+  Profile: egress_lossless_profile
+  ----------  ----------------------------------
+  dynamic_th  7
+  pool        [BUFFER_POOL:egress_lossless_pool]
+  size        0
+  ----------  ----------------------------------
+
+  Profile: ingress_lossless_profile
+  ----------  -----------------------------------
+  dynamic_th  0
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        0
+  ----------  -----------------------------------
+
+  Profile: pg_lossless_100000_79m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        60416
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        78848
+  ----------  -----------------------------------
+
+  Profile: pg_lossless_100000_40m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        38912
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        57344
+  ----------  -----------------------------------
+
+  Profile: ingress_lossy_profile
+  ----------  --------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:ingress_lossy_pool]
+  size        0
+  ----------  --------------------------------
+  ```
+
+**show buffer configuration**
+
+This command is used to display the status of buffer pools and profiles currently configured.
+
+- Usage:
+
+  ```
+  show buffer configuration
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show buffer configuration
+  Pool: ingress_lossless_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  ----  --------
+
+  Pool: egress_lossless_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  34340822
+  ----  --------
+
+  Pool: ingress_lossy_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  ----  --------
+
+  Pool: egress_lossy_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  ----  --------
+
+  Profile: q_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        0
+  ----------  -------------------------------
+
+  Profile: egress_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        4096
+  ----------  -------------------------------
+
+  Profile: egress_lossless_profile
+  ----------  ----------------------------------
+  dynamic_th  7
+  pool        [BUFFER_POOL:egress_lossless_pool]
+  size        0
+  ----------  ----------------------------------
+
+  Profile: ingress_lossless_profile
+  ----------  -----------------------------------
+  dynamic_th  0
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        0
+  ----------  -----------------------------------
+
+  Profile: ingress_lossy_profile
+  ----------  --------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:ingress_lossy_pool]
+  size        0
+  ----------  --------------------------------
+  ```
 
 ## ECN
 
@@ -2420,7 +2730,7 @@ The list of the WRED profile fields that are configurable is listed in the below
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
 
-## Feature
+## Feature 
 
 SONiC includes a capability in which Feature state can be enabled/disabled
 which will make corresponding feature docker container to start/stop.
@@ -2433,32 +2743,95 @@ likelihood of entering a healthy state.
 
 ### Feature show commands
 
-**show feature status**
+**show feature config**
 
-This command will display the status of feature state.
+Shows the config of given feature or all if no feature is given. The "fallback" is shown only if configured. The fallback defaults to "true" when not configured.
 
 - Usage:
   ```
-  show feature status [<feature_name>]
+  show feature config [<feature name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature config
+  Feature         State     AutoRestart    Owner    fallback
+  --------------  --------  -------------  -------  ----------
+  bgp             enabled   enabled        local
+  database        enabled   disabled       local
+  dhcp_relay      enabled   enabled        kube
+  lldp            enabled   enabled        kube     true
+  mgmt-framework  enabled   enabled        local
+  nat             disabled  enabled        local
+  pmon            enabled   enabled        kube
+  radv            enabled   enabled        kube
+  sflow           disabled  enabled        local
+  snmp            enabled   enabled        kube
+  swss            enabled   enabled        local
+  syncd           enabled   enabled        local
+  teamd           enabled   enabled        local
+  telemetry       enabled   enabled        kube
+  ```
+
+**show feature status**
+
+Shows the status of given feature or all if no feature is given. The "fallback" defaults to "true" when not configured.
+The subset of features are configurable for remote management and only those report additional data.
+
+- Usage:
+  ```
+  show feature status [<feature name>]
   ```
 
 - Example:
   ```
   admin@sonic:~$ show feature status
-  Feature     State           AutoRestart
-  ----------  --------------  --------------
-  bgp         enabled         enabled
-  database    always_enabled  always_enabled
-  dhcp_relay  enabled         enabled
-  lldp        enabled         enabled
-  pmon        enabled         enabled
-  radv        enabled         enabled
-  snmp        enabled         enabled
-  swss        always_enabled  enabled
-  syncd       always_enabled  enabled
-  teamd       always_enabled  enabled
-  telemetry   enabled         enabled
+  Feature         State     AutoRestart    SystemState    UpdateTime           ContainerId    ContainerVersion    SetOwner    CurrentOwner    RemoteState
+  --------------  --------  -------------  -------------  -------------------  -------------  ------------------  ----------  --------------  -------------
+  bgp             enabled   enabled        up                                                                     local       local           none
+  database        enabled   disabled                                                                              local
+  dhcp_relay      enabled   enabled        up             2020-11-15 18:21:09  249e70102f55   20201230.100        kube        local
+  lldp            enabled   enabled        up             2020-11-15 18:21:09  779c2d55ee12   20201230.100        kube        local
+  mgmt-framework  enabled   enabled        up                                                                     local       local           none
+  nat             disabled  enabled                                                                               local
+  pmon            enabled   enabled        up             2020-11-15 18:20:27  a2b9ffa8aba3   20201230.100        kube        local
+  radv            enabled   enabled        up             2020-11-15 18:21:05  d8ff27dcfe46   20201230.100        kube        local
+  sflow           disabled  enabled                                                                               local
+  snmp            enabled   enabled        up             2020-11-15 18:25:51  8b7d5529e306   20201230.111        kube        kube            running
+  swss            enabled   enabled        up                                                                     local       local           none
+  syncd           enabled   enabled        up                                                                     local       local           none
+  teamd           enabled   enabled        up                                                                     local       local           none
+  telemetry       enabled   enabled        down           2020-11-15 18:24:59                 20201230.100        kube        none
   ```
+
+**config feature owner**
+
+Configures the owner for a feature as "local" or  "kube". The "local" implies starting the feature container from local image. The "kube" implies that kubernetes server is made eligible to deploy the feature. The deployment of a feature by kubernetes is conditional based on many factors like, whether the kube server is configured or not, connected-to-kube-server or not and if that master has manifest for this feature for this switch or not and more. At some point in future, the deployment *could* happen and till that point the feature can run from local image, called "fallback". The fallback is allowed by default and it could be toggled to "not allowed". When fallback is not allowed, the feature would run only upon deployment by kubernetes master.
+
+- Usage:
+  ```
+  config feature owner [<feature name>] [local/kube]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature owner snmp kube
+  ```
+
+**config feature fallback**
+
+Features configured for "kube" deployment could be allowed to fallback to using local image, until the point of successful kube deployment. The fallback is allowed by default.
+
+- Usage:
+  ```
+  config feature fallback [<feature name>] [on/off]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature fallback snmp on
+  ```
+
 **show feature autorestart**
 
 This command will display the status of auto-restart for feature container.
@@ -2466,10 +2839,6 @@ This command will display the status of auto-restart for feature container.
 - Usage:
   ```
   show feature autorestart [<feature_name>]
-  ```
-
-- Example:
-  ```
   admin@sonic:~$ show feature autorestart
   Feature     AutoRestart
   ----------  --------------
@@ -2498,10 +2867,6 @@ This command will configure the state for a specific feature.
 - Usage:
   ```
   config feature state <feature_name> (enabled | disabled)
-  ```
-
-- Example:
-  ```
   admin@sonic:~$ sudo config feature state bgp disabled
   ``` 
 
@@ -2512,10 +2877,6 @@ This command will configure the status of auto-restart for a specific feature co
 - Usage:
   ```
   config feature autorestart <feature_name> (enabled | disabled)
-  ```
-
-- Example:
-  ```
   admin@sonic:~$ sudo config feature autorestart bgp disabled
   ``` 
 NOTE: If the existing state or auto-restart value for a feature is "always_enabled" then config
@@ -3259,6 +3620,29 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
+**config interface cable_length (Versions >= 202006)**
+
+This command is used to configure the length of the cable connected to a port. The cable_length is in unit of meters and must be suffixed with "m".
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface lossless_pg (Versions >= 202006)**
+
+This command is used to configure the priority groups on which lossless traffic runs.
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface headroom_override (Versions >= 202006)**
+
+This command is used to configure a static buffer profile on a port's lossless priorities. There shouldn't be any `lossless_pg` configured on the port when configuring `headroom_override`. The port's headroom won't be updated after `headroom_override` has been configured on the port.
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
 
@@ -3639,6 +4023,44 @@ Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/q
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ip--ipv6)
 
+
+## Kubernetes
+
+### Kubernetes show commands
+
+**show kubernetes server config**
+
+This command displays the kubernetes server configuration, if any, else would report as not configured.
+
+- Usage:
+  ```
+  show kubernetes server config
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kubernetes server config
+  ip           port    insecure    disable
+  -----------  ------  ----------  ---------
+  10.3.157.24  6443    True        False
+  ```
+
+**show kubernetes server status**
+
+This command displays the kubernetes server status.
+
+- Usage:
+  ```
+  show kubernetes server status
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kubernetes server status
+  ip           port    connected    update-time
+  -----------  ------  -----------  -------------------
+  10.3.157.24  6443    true         2020-11-15 18:25:05
+  ```
 
 ## LLDP
 
