@@ -1400,7 +1400,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # Dont allow a port to be member of port channel if it is configured as a VLAN member
     for k,v in db.get_table('VLAN_MEMBER'):
         if v == port_name:
-            ctx.fail("Error: %s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))
+            ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))
             return
 
     # Dont allow a port to be member of port channel if it is already member of a port channel
