@@ -559,7 +559,7 @@ debug "Stopped  bgp ..."
 
 # Kill sflow docker	
 debug "Stopping sflow ..."	
-docker kill sflow &> /dev/null || debug "Docker sflow is not running ($?) ..."
+container kill sflow &> /dev/null || debug "Docker sflow is not running ($?) ..."
 systemctl stop sflow
 debug "Stopped sflow ..."
 
