@@ -330,8 +330,7 @@ def show_routes(args, namespace, display, verbose, ipver):
     device = multi_asic_util.MultiAsic(display, namespace)
     arg_strg = ""
     found_json = 0
-    found_tables = 0
-    found_summary = 0
+    found_other_parms = 0
     ns_l = []
     print_ns_str = False
     filter_by_ip = False
@@ -354,30 +353,24 @@ def show_routes(args, namespace, display, verbose, ipver):
     else:
         back_end_intf_set = None
     # get all the other arguments except json that needs to be the last argument of the cmd if present
-    # Handling of multi-asic show ip/v6 route summary will print directly FRR result of each namespace
-    check_summary_set = set(["sum", "summ", "summa", "summar", "summary"])
+    # For Multi-ASIC platform the support for combining routes will be supported for "show ip/v6 route"
+    # and optionally with specific IP address as parameter and the json option.  If any other option is
+    # specified, the handling will always be handled by the specific namespace FRR.
     for arg in args:
         arg_strg += str(arg) + " "
         if str(arg) == "json":
             found_json = 1
-        elif str(arg) == "tables":
-            found_tables = 1
-        elif set([str(arg)]).issubset(check_summary_set):
-            found_summary = 1
         else:
             try:
                 filter_by_ip = ipaddress.ip_network(arg)
             except ValueError:
                 # Not ip address just ignore it
-                pass
-    # Due to option such as "tables" is not yet supported in multi-asic platform
-    # we will let FRR handle all the processing instead of handling it here for non multi-asic platform
+                found_other_parms = 1
+
     if multi_asic.is_multi_asic():
-        if found_tables:
-            print("% Unknown command: show {} route {}".format(ipver, arg_strg))
-            return
-        if not found_json and not found_summary:
+        if not found_json and not found_other_parms:
             arg_strg += "json"
+
     combined_route = {}
     for ns in ns_l:
         # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
@@ -404,8 +397,8 @@ def show_routes(args, namespace, display, verbose, ipver):
             print(error_msg)
             return
 
-        # Multi-asic show ip route summary is handled by going to FRR directly and get those outputs from each namespace
-        if multi_asic.is_multi_asic() and found_summary:
+        # Multi-asic show ip route with additional parms are handled by going to FRR directly and get those outputs from each namespace
+        if found_other_parms:
             print("{}:".format(ns))
             print(output)
             continue

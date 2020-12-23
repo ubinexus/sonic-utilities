@@ -584,10 +584,6 @@ show_ip_route_multi_asic_invalid_display_err_output = """\
 dislay option 'everything' is not a valid option.
 """
 
-show_ip_route_multi_asic_invalid_tables_cmd_err_output = """\
-% Unknown command: show ip route tables 
-"""
-
 show_ip_route_multi_asic_specific_route_output = """\
 Routing entry for 10.0.0.4/31
   Known via "connected", distance 0, metric 0, best
