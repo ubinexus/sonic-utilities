@@ -8,6 +8,7 @@ import argparse
 import ipaddress
 import syslog
 import json
+import threading
 import time
 from enum import Enum
 from swsssdk import ConfigDBConnector
@@ -30,6 +31,20 @@ class Level(Enum):
 
 
 report_level = syslog.LOG_ERR
+
+THREAD_INST = "inst"
+THREAD_DB = "db"
+THREAD_SET = "set"
+THREAD_DEL = "del"
+thread_data = {
+        THREAD_INST: None,
+        THREAD_DB: None,
+        THREAD_SET: [],
+        THREAD_DEL: []
+        }
+ASIC_TABLE_SUBS = 'ASIC_STATE'
+ASIC_TABLE_KEYVAL = 'SAI_OBJECT_TYPE_ROUTE_ENTRY:'
+ASIC_TABLE_NAME = 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY'
 
 
 def set_level(lvl):
@@ -120,22 +135,64 @@ def get_routes():
         if not is_local(k):
             valid_rt.append(add_prefix_ifnot(k.lower()))
 
-    print_message(syslog.LOG_DEBUG, json.dumps({"ROUTE_TABLE": sorted(valid_rt)}, indent=4))
+    print_message(syslog.LOG_DEBUG, json.dumps(
+        {"ROUTE_TABLE": sorted(valid_rt)}, indent=4))
     return sorted(valid_rt)
 
 
+def strip_ip_asic_route_entry(k):
+    return k.lower().split("\"", -1)[3]
+
+
+def upd_handler(key, data):
+    db = thread_data[THREAD_DB]
+    if not db:
+        print_message(syslog.LOG_DEBUG, "subscriber thread for ASIC_DB:{} exiting".
+                format(ASIC_TABLE_NAME))
+        sys.exit(0)
+    key = ConfigDBConnector.deserialize_key(key)
+    if key.startswith(ASIC_TABLE_KEYVAL):
+        keys = db.get_keys(ASIC_TABLE_NAME)
+        if key in keys:
+            thread_data[THREAD_SET].append(strip_ip_asic_route_entry(key))
+        else:
+            thread_data[THREAD_DEL].append(strip_ip_asic_route_entry(key))
+        print_message(syslog.LOG_DEBUG, "key={} op={}".format(
+            key, "set" if key in keys else "del"))
+
+
+def subs_thread():
+    db = thread_data[THREAD_DB]
+    db.subscribe(ASIC_TABLE_SUBS, lambda table,
+            key, data: upd_handler(key, data))
+    print_message(syslog.LOG_DEBUG, "Listen on ASIC DB for {}".
+            format(ASIC_TABLE_NAME))
+    db.listen()
+
+
 def get_route_entries():
+    global thread_data
+
     db = ConfigDBConnector()
     db.db_connect('ASIC_DB')
     print_message(syslog.LOG_DEBUG, "ASIC DB connected")
-    keys = db.get_keys('ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY', False)
+
+    # Start thread to collect subscriptions to ASIC DB table.
+    thread_data[THREAD_DB] = db
+    x = threading.Thread(target=subs_thread)
+    x.daemon=True
+    x.start()
+    thread_data[THREAD_INST] = x
+
+    keys = db.get_keys(ASIC_TABLE_NAME, False)
 
     rt = []
     for k in keys:
-        e = k.lower().split("\"", -1)[3]
+        e = strip_ip_asic_route_entry(k)
         if not is_local(e):
             rt.append(e)
-    print_message(syslog.LOG_DEBUG, json.dumps({"ASIC_ROUTE_ENTRY": sorted(rt)}, indent=4))
+    print_message(syslog.LOG_DEBUG, json.dumps(
+        {"ASIC_ROUTE_ENTRY": sorted(rt)}, indent=4))
     return sorted(rt)
 
 
@@ -157,7 +214,8 @@ def get_interfaces():
         if not is_local(ip):
             intf.append(ip)
 
-    print_message(syslog.LOG_DEBUG, json.dumps({"APPL_DB_INTF": sorted(intf)}, indent=4))
+    print_message(syslog.LOG_DEBUG, json.dumps(
+        {"APPL_DB_INTF": sorted(intf)}, indent=4))
     return sorted(intf)
 
 
@@ -195,10 +253,9 @@ def check_routes():
     rt_asic_miss = []
 
     results = {}
-    err_present = False
 
-    rt_appl = get_routes()
     rt_asic = get_route_entries()
+    rt_appl = get_routes()
     intf_appl = get_interfaces()
 
     # Diff APPL-DB routes & ASIC-DB routes
@@ -211,24 +268,43 @@ def check_routes():
     # Check APPL-DB INTF_TABLE with ASIC table route entries
     intf_appl_miss, _ = do_diff(intf_appl, rt_asic)
 
-    if (len(rt_appl_miss) != 0):
+    if rt_appl_miss:
         rt_appl_miss = filter_out_local_interfaces(rt_appl_miss)
 
-    if (len(rt_appl_miss) != 0):
+    if rt_appl_miss or rt_asic_miss:
+        # Sleep for a second to collect all subs updates for ASIC-DB
+        time.sleep(1)
+
+        # Drop all those for which SET received
+        rt_appl_miss, _ = do_diff(rt_appl_miss, sorted(thread_data[THREAD_SET]))
+
+        # Drop all those for which DEL received
+        rt_asic_miss, _ = do_diff(rt_asic_miss, sorted(thread_data[THREAD_DEL]))
+
+    # Stop collection/thread
+    thread_data[THREAD_DB] = None
+
+    # Wait for thread to terminate.
+    thread_data[THREAD_INST].join(2)
+
+    if rt_appl_miss:
         results["missed_ROUTE_TABLE_routes"] = rt_appl_miss
-        err_present = True
 
-    if (len(intf_appl_miss) != 0):
+    if intf_appl_miss:
         results["missed_INTF_TABLE_entries"] = intf_appl_miss
-        err_present = True
 
-    if (len(rt_asic_miss) != 0):
+    if rt_asic_miss:
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
-        err_present = True
 
-    if err_present:
-        print_message(syslog.LOG_ERR, "results: {",  json.dumps(results, indent=4), "}")
-        print_message(syslog.LOG_ERR, "Failed. Look at reported mismatches above")
+    if results:
+        print_message(syslog.LOG_ERR,
+                "failed results: {",  json.dumps(results, indent=4), "}")
+        print_message(syslog.LOG_ERR,
+                "Failed. Look at reported mismatches above")
+        print_message(syslog.LOG_ERR,
+                "SET: {", json.dumps(sorted(thread_data[THREAD_SET]), indent=4), "}")
+        print_message(syslog.LOG_ERR,
+                "DEL: {", json.dumps(sorted(thread_data[THREAD_DEL]), indent=4), "}")
         return -1
     else:
         print_message(syslog.LOG_INFO, "All good!")
@@ -237,9 +313,12 @@ def check_routes():
 
 def main(argv):
     interval = 0
-    parser=argparse.ArgumentParser(description="Verify routes between APPL-DB & ASIC-DB are in sync")
-    parser.add_argument('-m', "--mode", type=Level, choices=list(Level), default='ERR')
-    parser.add_argument("-i", "--interval", type=int, default=0, help="Scan interval in seconds")
+    parser=argparse.ArgumentParser(
+            description="Verify routes between APPL-DB & ASIC-DB are in sync")
+    parser.add_argument('-m', "--mode", type=Level, choices=list(Level),
+            default='ERR')
+    parser.add_argument("-i", "--interval", type=int, default=0,
+            help="Scan interval in seconds")
     args = parser.parse_args()
 
     set_level(args.mode)
