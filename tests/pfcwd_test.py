@@ -1,9 +1,9 @@
 import imp
 import os
 import sys
+from unittest.mock import patch
 
 from click.testing import CliRunner
-from unittest.mock import patch
 
 from utilities_common.db import Db
 
