@@ -619,12 +619,13 @@ def _clear_qos():
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
             
-        # Find and remove references to deleted BUFFER_PROFILE table
+        # Find and remove references to deleted tables
         for table_with_qos in TABLE_NAMES_CONTAIN_QOS:
             for key in config_db.get_keys(table_with_qos):
-                dictionary_value = config_db.get_entry(table_with_qos, key)['profile_list']
-                if dictionary_value.find('BUFFER_PROFILE'):
-                    config_db.mod_entry(table_with_qos, key, None)
+                for k,v in config_db.get_entry(table_with_qos, key).items():
+                    for qos_table in QOS_TABLE_NAMES:
+                        if v.find(qos_table):
+                            config_db.mod_entry(table_with_qos, key, None)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
