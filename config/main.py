@@ -598,6 +598,11 @@ def _clear_qos():
             'BUFFER_PROFILE',
             'BUFFER_PG',
             'BUFFER_QUEUE']
+         
+    TABLE_NAMES_CONTAIN_QOS = [
+            'BUFFER_PORT_EGRESS_PROFILE_LIST',
+            'BUFFER_PORT_INGRESS_PROFILE_LIST'
+    ]
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
@@ -613,6 +618,13 @@ def _clear_qos():
         config_db.connect()
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
+            
+        # Find and remove references to deleted BUFFER_PROFILE table
+        for table_with_qos in TABLE_NAMES_CONTAIN_QOS:
+            for key in config_db.get_keys(table_with_qos):
+                dictionary_value = config_db.get_entry(table_with_qos, key)['profile_list']
+                if dictionary_value.find('BUFFER_PROFILE'):
+                    config_db.mod_entry(table_with_qos, key, None)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
