@@ -108,6 +108,7 @@
   * [PortChannel Config commands](#portchannel-config-commands)
 * [QoS](#qos)
   * [QoS Show commands](#qos-show-commands)
+    * [CoPP](#copp)
     * [PFC](#pfc)
     * [Queue And Priority-Group](#queue-and-priority-group)
   * [QoS config commands](#qos-config-commands)
@@ -359,6 +360,7 @@ This command displays the full list of show commands available in the software; 
     ndp                   Show IPv6 Neighbour table
     ntp                   Show NTP information
     pfc                   Show details of the priority-flow-control...
+    copp                  Show CoPP config details
     platform              Show platform-specific hardware info
     priority-group        Show details of the PGs
     processes             Display process information
@@ -5748,6 +5750,35 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#portch
 ## QoS
 
 ### QoS Show commands
+
+#### CoPP
+
+**show copp config**
+
+This command displays the configured copp entries
+
+- Usage:
+  ```
+  show copp config
+  ```
+
+- Example:
+   ```
+   admin@sonic:~$ show copp config
+   {
+      "COPP_TABLE:default": {
+        "value": {
+          "cbs": "600", 
+          "cir": "600", 
+          "meter_type": "packets", 
+          "mode": "sr_tcm", 
+          "queue": "0", 
+          "red_action": "drop"
+        }
+      }
+   }
+   ...
+   ```
 
 #### PFC
 
