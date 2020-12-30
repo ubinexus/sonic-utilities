@@ -1,5 +1,6 @@
 import os
 import traceback
+from unittest import mock
 
 from click.testing import CliRunner
 
@@ -8,85 +9,85 @@ import show.main as show
 from utilities_common.db import Db
 
 show_vlan_brief_output="""\
-+-----------+-----------------+------------+----------------+-----------------------+
-|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   |
-+===========+=================+============+================+=======================+
-|      1000 | 192.168.0.1/21  | Ethernet4  | untagged       | 192.0.0.1             |
-|           | fc02:1000::1/64 | Ethernet8  | untagged       | 192.0.0.2             |
-|           |                 | Ethernet12 | untagged       | 192.0.0.3             |
-|           |                 | Ethernet16 | untagged       | 192.0.0.4             |
-+-----------+-----------------+------------+----------------+-----------------------+
-|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
-|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
-|           |                 |            |                | 192.0.0.3             |
-|           |                 |            |                | 192.0.0.4             |
-+-----------+-----------------+------------+----------------+-----------------------+
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
++===========+=================+============+================+=======================+=============+
+|      1000 | 192.168.0.1/21  | Ethernet4  | untagged       | 192.0.0.1             | disabled    |
+|           | fc02:1000::1/64 | Ethernet8  | untagged       | 192.0.0.2             |             |
+|           |                 | Ethernet12 | untagged       | 192.0.0.3             |             |
+|           |                 | Ethernet16 | untagged       | 192.0.0.4             |             |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             | enabled     |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |             |
+|           |                 |            |                | 192.0.0.3             |             |
+|           |                 |            |                | 192.0.0.4             |             |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
 """
 
 show_vlan_brief_in_alias_mode_output="""\
-+-----------+-----------------+---------+----------------+-----------------------+
-|   VLAN ID | IP Address      | Ports   | Port Tagging   | DHCP Helper Address   |
-+===========+=================+=========+================+=======================+
-|      1000 | 192.168.0.1/21  | etp2    | untagged       | 192.0.0.1             |
-|           | fc02:1000::1/64 | etp3    | untagged       | 192.0.0.2             |
-|           |                 | etp4    | untagged       | 192.0.0.3             |
-|           |                 | etp5    | untagged       | 192.0.0.4             |
-+-----------+-----------------+---------+----------------+-----------------------+
-|      2000 | 192.168.0.10/21 | etp7    | untagged       | 192.0.0.1             |
-|           | fc02:1011::1/64 | etp8    | untagged       | 192.0.0.2             |
-|           |                 |         |                | 192.0.0.3             |
-|           |                 |         |                | 192.0.0.4             |
-+-----------+-----------------+---------+----------------+-----------------------+
++-----------+-----------------+---------+----------------+-----------------------+-------------+
+|   VLAN ID | IP Address      | Ports   | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
++===========+=================+=========+================+=======================+=============+
+|      1000 | 192.168.0.1/21  | etp2    | untagged       | 192.0.0.1             | disabled    |
+|           | fc02:1000::1/64 | etp3    | untagged       | 192.0.0.2             |             |
+|           |                 | etp4    | untagged       | 192.0.0.3             |             |
+|           |                 | etp5    | untagged       | 192.0.0.4             |             |
++-----------+-----------------+---------+----------------+-----------------------+-------------+
+|      2000 | 192.168.0.10/21 | etp7    | untagged       | 192.0.0.1             | enabled     |
+|           | fc02:1011::1/64 | etp8    | untagged       | 192.0.0.2             |             |
+|           |                 |         |                | 192.0.0.3             |             |
+|           |                 |         |                | 192.0.0.4             |             |
++-----------+-----------------+---------+----------------+-----------------------+-------------+
 """
 
 show_vlan_brief_empty_output="""\
-+-----------+-----------------+------------+----------------+-----------------------+
-|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   |
-+===========+=================+============+================+=======================+
-|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
-|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
-|           |                 |            |                | 192.0.0.3             |
-|           |                 |            |                | 192.0.0.4             |
-+-----------+-----------------+------------+----------------+-----------------------+
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
++===========+=================+============+================+=======================+=============+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             | enabled     |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |             |
+|           |                 |            |                | 192.0.0.3             |             |
+|           |                 |            |                | 192.0.0.4             |             |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
 """
 
 show_vlan_brief_with_portchannel_output="""\
-+-----------+-----------------+-----------------+----------------+-----------------------+
-|   VLAN ID | IP Address      | Ports           | Port Tagging   | DHCP Helper Address   |
-+===========+=================+=================+================+=======================+
-|      1000 | 192.168.0.1/21  | Ethernet4       | untagged       | 192.0.0.1             |
-|           | fc02:1000::1/64 | Ethernet8       | untagged       | 192.0.0.2             |
-|           |                 | Ethernet12      | untagged       | 192.0.0.3             |
-|           |                 | Ethernet16      | untagged       | 192.0.0.4             |
-|           |                 | PortChannel1001 | untagged       |                       |
-+-----------+-----------------+-----------------+----------------+-----------------------+
-|      2000 | 192.168.0.10/21 | Ethernet24      | untagged       | 192.0.0.1             |
-|           | fc02:1011::1/64 | Ethernet28      | untagged       | 192.0.0.2             |
-|           |                 |                 |                | 192.0.0.3             |
-|           |                 |                 |                | 192.0.0.4             |
-+-----------+-----------------+-----------------+----------------+-----------------------+
++-----------+-----------------+-----------------+----------------+-----------------------+-------------+
+|   VLAN ID | IP Address      | Ports           | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
++===========+=================+=================+================+=======================+=============+
+|      1000 | 192.168.0.1/21  | Ethernet4       | untagged       | 192.0.0.1             | disabled    |
+|           | fc02:1000::1/64 | Ethernet8       | untagged       | 192.0.0.2             |             |
+|           |                 | Ethernet12      | untagged       | 192.0.0.3             |             |
+|           |                 | Ethernet16      | untagged       | 192.0.0.4             |             |
+|           |                 | PortChannel1001 | untagged       |                       |             |
++-----------+-----------------+-----------------+----------------+-----------------------+-------------+
+|      2000 | 192.168.0.10/21 | Ethernet24      | untagged       | 192.0.0.1             | enabled     |
+|           | fc02:1011::1/64 | Ethernet28      | untagged       | 192.0.0.2             |             |
+|           |                 |                 |                | 192.0.0.3             |             |
+|           |                 |                 |                | 192.0.0.4             |             |
++-----------+-----------------+-----------------+----------------+-----------------------+-------------+
 """
 
 show_vlan_config_output="""\
 Name        VID  Member      Mode
 --------  -----  ----------  --------
-Vlan1000   1000  Ethernet8   untagged
-Vlan1000   1000  Ethernet16  untagged
-Vlan1000   1000  Ethernet12  untagged
 Vlan1000   1000  Ethernet4   untagged
-Vlan2000   2000  Ethernet28  untagged
+Vlan1000   1000  Ethernet8   untagged
+Vlan1000   1000  Ethernet12  untagged
+Vlan1000   1000  Ethernet16  untagged
 Vlan2000   2000  Ethernet24  untagged
+Vlan2000   2000  Ethernet28  untagged
 """
 
 show_vlan_config_in_alias_mode_output="""\
 Name        VID  Member    Mode
 --------  -----  --------  --------
-Vlan1000   1000  etp3      untagged
-Vlan1000   1000  etp5      untagged
-Vlan1000   1000  etp4      untagged
 Vlan1000   1000  etp2      untagged
-Vlan2000   2000  etp8      untagged
+Vlan1000   1000  etp3      untagged
+Vlan1000   1000  etp4      untagged
+Vlan1000   1000  etp5      untagged
 Vlan2000   2000  etp7      untagged
+Vlan2000   2000  etp8      untagged
 """
 
 config_vlan_add_dhcp_relay_output="""\
@@ -100,56 +101,56 @@ Restarting DHCP relay service...
 """
 
 show_vlan_brief_output_with_new_dhcp_relay_address="""\
-+-----------+-----------------+------------+----------------+-----------------------+
-|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   |
-+===========+=================+============+================+=======================+
-|      1000 | 192.168.0.1/21  | Ethernet4  | untagged       | 192.0.0.1             |
-|           | fc02:1000::1/64 | Ethernet8  | untagged       | 192.0.0.2             |
-|           |                 | Ethernet12 | untagged       | 192.0.0.3             |
-|           |                 | Ethernet16 | untagged       | 192.0.0.4             |
-|           |                 |            |                | 192.0.0.100           |
-+-----------+-----------------+------------+----------------+-----------------------+
-|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
-|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
-|           |                 |            |                | 192.0.0.3             |
-|           |                 |            |                | 192.0.0.4             |
-+-----------+-----------------+------------+----------------+-----------------------+
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
++===========+=================+============+================+=======================+=============+
+|      1000 | 192.168.0.1/21  | Ethernet4  | untagged       | 192.0.0.1             | disabled    |
+|           | fc02:1000::1/64 | Ethernet8  | untagged       | 192.0.0.2             |             |
+|           |                 | Ethernet12 | untagged       | 192.0.0.3             |             |
+|           |                 | Ethernet16 | untagged       | 192.0.0.4             |             |
+|           |                 |            |                | 192.0.0.100           |             |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             | enabled     |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |             |
+|           |                 |            |                | 192.0.0.3             |             |
+|           |                 |            |                | 192.0.0.4             |             |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
 """
 
 config_add_del_vlan_and_vlan_member_output="""\
-+-----------+-----------------+------------+----------------+-----------------------+
-|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   |
-+===========+=================+============+================+=======================+
-|      1000 | 192.168.0.1/21  | Ethernet4  | untagged       | 192.0.0.1             |
-|           | fc02:1000::1/64 | Ethernet8  | untagged       | 192.0.0.2             |
-|           |                 | Ethernet12 | untagged       | 192.0.0.3             |
-|           |                 | Ethernet16 | untagged       | 192.0.0.4             |
-+-----------+-----------------+------------+----------------+-----------------------+
-|      1001 |                 | Ethernet20 | untagged       |                       |
-+-----------+-----------------+------------+----------------+-----------------------+
-|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             |
-|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |
-|           |                 |            |                | 192.0.0.3             |
-|           |                 |            |                | 192.0.0.4             |
-+-----------+-----------------+------------+----------------+-----------------------+
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|   VLAN ID | IP Address      | Ports      | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
++===========+=================+============+================+=======================+=============+
+|      1000 | 192.168.0.1/21  | Ethernet4  | untagged       | 192.0.0.1             | disabled    |
+|           | fc02:1000::1/64 | Ethernet8  | untagged       | 192.0.0.2             |             |
+|           |                 | Ethernet12 | untagged       | 192.0.0.3             |             |
+|           |                 | Ethernet16 | untagged       | 192.0.0.4             |             |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|      1001 |                 | Ethernet20 | untagged       |                       | disabled    |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
+|      2000 | 192.168.0.10/21 | Ethernet24 | untagged       | 192.0.0.1             | enabled     |
+|           | fc02:1011::1/64 | Ethernet28 | untagged       | 192.0.0.2             |             |
+|           |                 |            |                | 192.0.0.3             |             |
+|           |                 |            |                | 192.0.0.4             |             |
++-----------+-----------------+------------+----------------+-----------------------+-------------+
 """
 
 config_add_del_vlan_and_vlan_member_in_alias_mode_output="""\
-+-----------+-----------------+---------+----------------+-----------------------+
-|   VLAN ID | IP Address      | Ports   | Port Tagging   | DHCP Helper Address   |
-+===========+=================+=========+================+=======================+
-|      1000 | 192.168.0.1/21  | etp2    | untagged       | 192.0.0.1             |
-|           | fc02:1000::1/64 | etp3    | untagged       | 192.0.0.2             |
-|           |                 | etp4    | untagged       | 192.0.0.3             |
-|           |                 | etp5    | untagged       | 192.0.0.4             |
-+-----------+-----------------+---------+----------------+-----------------------+
-|      1001 |                 | etp6    | untagged       |                       |
-+-----------+-----------------+---------+----------------+-----------------------+
-|      2000 | 192.168.0.10/21 | etp7    | untagged       | 192.0.0.1             |
-|           | fc02:1011::1/64 | etp8    | untagged       | 192.0.0.2             |
-|           |                 |         |                | 192.0.0.3             |
-|           |                 |         |                | 192.0.0.4             |
-+-----------+-----------------+---------+----------------+-----------------------+
++-----------+-----------------+---------+----------------+-----------------------+-------------+
+|   VLAN ID | IP Address      | Ports   | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
++===========+=================+=========+================+=======================+=============+
+|      1000 | 192.168.0.1/21  | etp2    | untagged       | 192.0.0.1             | disabled    |
+|           | fc02:1000::1/64 | etp3    | untagged       | 192.0.0.2             |             |
+|           |                 | etp4    | untagged       | 192.0.0.3             |             |
+|           |                 | etp5    | untagged       | 192.0.0.4             |             |
++-----------+-----------------+---------+----------------+-----------------------+-------------+
+|      1001 |                 | etp6    | untagged       |                       | disabled    |
++-----------+-----------------+---------+----------------+-----------------------+-------------+
+|      2000 | 192.168.0.10/21 | etp7    | untagged       | 192.0.0.1             | enabled     |
+|           | fc02:1011::1/64 | etp8    | untagged       | 192.0.0.2             |             |
+|           |                 |         |                | 192.0.0.3             |             |
+|           |                 |         |                | 192.0.0.4             |             |
++-----------+-----------------+---------+----------------+-----------------------+-------------+
 """
 class TestVlan(object):
     @classmethod
@@ -189,6 +190,12 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_in_alias_mode_output
+
+    def test_show_vlan_brief_explicit_proxy_arp_disable(self):
+        runner = CliRunner()
+        db = Db()
+
+        db.cfgdb.set_entry("VLAN_INTERFACE", "Vlan1000", {"proxy_arp": "disabled"})
 
     def test_show_vlan_config(self):
         runner = CliRunner()
@@ -400,6 +407,7 @@ class TestVlan(object):
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
+        print(result.exit_code)
         print(result.output)
         assert result.output == config_add_del_vlan_and_vlan_member_in_alias_mode_output
 
@@ -423,59 +431,73 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_in_alias_mode_output
 
-        os.environ['SONIC_CLI_IFACE_MODE'] = ""
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
 
     def test_config_vlan_add_dhcp_relay_with_nonexist_vlanid(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                ["1001", "192.0.0.100"])
-        print(result.exit_code)
-        print(result.output)
-        # traceback.print_tb(result.exc_info[2])
-        assert result.exit_code != 0
-        assert "Error: Vlan1001 doesn't exist" in result.output
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
+                                   ["1001", "192.0.0.100"])
+            print(result.exit_code)
+            print(result.output)
+            # traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+            assert "Error: Vlan1001 doesn't exist" in result.output
+            assert mock_run_command.call_count == 0
 
     def test_config_vlan_add_dhcp_relay_with_invalid_vlanid(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                ["4096", "192.0.0.100"])
-        print(result.exit_code)
-        print(result.output)
-        # traceback.print_tb(result.exc_info[2])
-        assert result.exit_code != 0
-        assert "Error: Vlan4096 doesn't exist" in result.output
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
+                                   ["4096", "192.0.0.100"])
+            print(result.exit_code)
+            print(result.output)
+            # traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+            assert "Error: Vlan4096 doesn't exist" in result.output
+            assert mock_run_command.call_count == 0
 
     def test_config_vlan_add_dhcp_relay_with_invalid_ip(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                ["1000", "192.0.0.1000"])
-        print(result.exit_code)
-        print(result.output)
-        # traceback.print_tb(result.exc_info[2])
-        assert result.exit_code != 0
-        assert "Error: 192.0.0.1000 is invalid IP address" in result.output
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
+                                   ["1000", "192.0.0.1000"])
+            print(result.exit_code)
+            print(result.output)
+            # traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+            assert "Error: 192.0.0.1000 is invalid IP address" in result.output
+            assert mock_run_command.call_count == 0
 
     def test_config_vlan_add_dhcp_relay_with_exist_ip(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                ["1000", "192.0.0.1"])
-        print(result.exit_code)
-        print(result.output)
-        # traceback.print_tb(result.exc_info[2])
-        assert result.exit_code == 0
-        assert "192.0.0.1 is already a DHCP relay destination for Vlan1000" in result.output
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
+                                   ["1000", "192.0.0.1"])
+            print(result.exit_code)
+            print(result.output)
+            # traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "192.0.0.1 is already a DHCP relay destination for Vlan1000" in result.output
+            assert mock_run_command.call_count == 0
 
     def test_config_vlan_add_del_dhcp_relay_dest(self):
         runner = CliRunner()
         db = Db()
 
         # add new relay dest
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                ["1000", "192.0.0.100"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_vlan_add_dhcp_relay_output
+        with mock.patch("utilities_common.cli.run_command") as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
+                                   ["1000", "192.0.0.100"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_vlan_add_dhcp_relay_output
+            assert mock_run_command.call_count == 3
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -483,12 +505,14 @@ class TestVlan(object):
         assert result.output == show_vlan_brief_output_with_new_dhcp_relay_address
 
         # del relay dest
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
-                ["1000", "192.0.0.100"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_vlan_del_dhcp_relay_output
+        with mock.patch("utilities_common.cli.run_command") as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
+                                   ["1000", "192.0.0.100"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_vlan_del_dhcp_relay_output
+            assert mock_run_command.call_count == 3
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -497,23 +521,82 @@ class TestVlan(object):
 
     def test_config_vlan_remove_nonexist_dhcp_relay_dest(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
-                ["1000", "192.0.0.100"])
-        print(result.exit_code)
-        print(result.output)
-        # traceback.print_tb(result.exc_info[2])
-        assert result.exit_code != 0
-        assert "Error: 192.0.0.100 is not a DHCP relay destination for Vlan1000" in result.output
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
+                                   ["1000", "192.0.0.100"])
+            print(result.exit_code)
+            print(result.output)
+            # traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+            assert "Error: 192.0.0.100 is not a DHCP relay destination for Vlan1000" in result.output
+            assert mock_run_command.call_count == 0
 
     def test_config_vlan_remove_dhcp_relay_dest_with_nonexist_vlanid(self):
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
-                ["1001", "192.0.0.1"])
+
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
+                                   ["1001", "192.0.0.1"])
+            print(result.exit_code)
+            print(result.output)
+            # traceback.print_tb(result.exc_info[2])
+            assert result.exit_code != 0
+            assert "Error: Vlan1001 doesn't exist" in result.output
+            assert mock_run_command.call_count == 0
+
+    def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
+        modes = ["enabled", "disabled"]
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.delete_table("VLAN_INTERFACE")
+
+        for mode in modes:
+            result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", mode], obj=db)
+
+            print(result.exit_code)
+            print(result.output)
+
+            assert result.exit_code != 0
+            assert "Interface Vlan1000 does not exist" in result.output
+
+    def test_config_vlan_proxy_arp_with_nonexist_vlan_intf(self):
+        modes = ["enabled", "disabled"]
+        runner = CliRunner()
+        db = Db()
+
+        for mode in modes:
+            result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1001", mode], obj=db)
+
+            print(result.exit_code)
+            print(result.output)
+
+            assert result.exit_code != 0
+            assert "Interface Vlan1001 does not exist" in result.output
+
+    def test_config_vlan_proxy_arp_enable(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", "enabled"], obj=db)
+
         print(result.exit_code)
         print(result.output)
-        # traceback.print_tb(result.exc_info[2])
-        assert result.exit_code != 0
-        assert "Error: Vlan1001 doesn't exist" in result.output
+
+        assert result.exit_code == 0 
+        assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
+
+    def test_config_vlan_proxy_arp_disable(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["2000", "disabled"], obj=db)
+
+        print(result.exit_code)
+        print(result.output)
+
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan2000") == {"proxy_arp": "disabled"}
 
     @classmethod
     def teardown_class(cls):

@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import click
-import ipaddr
+import ipaddress
 import json
 import syslog
 
@@ -10,7 +10,8 @@ import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
 from natsort import natsorted
 from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
+from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector
 
 
 def info(msg):
@@ -29,7 +30,7 @@ def error(msg):
 
 
 def deep_update(dst, src):
-    for key, value in src.iteritems():
+    for key, value in src.items():
         if isinstance(value, dict):
             node = dst.setdefault(key, {})
             deep_update(node, value)
@@ -181,7 +182,7 @@ class AclLoader(object):
         # For multi-npu platforms we will read from any one of front asic namespace 
         # config db as the information should be same across all config db
         if self.per_npu_configdb:
-            namespace_configdb = (self.per_npu_configdb.values())[0]
+            namespace_configdb = list(self.per_npu_configdb.values())[0]
             self.policers_db_info = namespace_configdb.get_table(self.POLICER)
         else:
             self.policers_db_info = self.configdb.get_table(self.POLICER)
@@ -198,11 +199,11 @@ class AclLoader(object):
         # For multi-npu platforms we will read from any one of front asic namespace 
         # config db as the information should be same across all config db
         if self.per_npu_configdb:
-            namespace_configdb = (self.per_npu_configdb.values())[0]
+            namespace_configdb = list(self.per_npu_configdb.values())[0]
             self.sessions_db_info = namespace_configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
         else:
             self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
-        for key in self.sessions_db_info.keys():
+        for key in self.sessions_db_info:
             if self.per_npu_statedb:
                 # For multi-npu platforms we will read from all front asic name space 
                 # statedb as the monitor port will be differnt for each asic 
@@ -210,7 +211,7 @@ class AclLoader(object):
                 # We will store them as dict of 'asic' : value
                 self.sessions_db_info[key]["status"] = {}
                 self.sessions_db_info[key]["monitor_port"] = {}
-                for namespace_key, namespace_statedb in self.per_npu_statedb.iteritems():
+                for namespace_key, namespace_statedb in self.per_npu_statedb.items():
                     state_db_info = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
                     self.sessions_db_info[key]["status"][namespace_key] = state_db_info.get("status", "inactive") if state_db_info else "error"
                     self.sessions_db_info[key]["monitor_port"][namespace_key] = state_db_info.get("monitor_port", "") if state_db_info else ""
@@ -366,7 +367,7 @@ class AclLoader(object):
             # For multi-npu we will read using anyone statedb connector for front asic namespace. 
             # Same information should be there in all state DB's 
             # as it is static information about switch capability
-            namespace_statedb = (self.per_npu_statedb.values())[0]
+            namespace_statedb = list(self.per_npu_statedb.values())[0]
             capability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         else: 
             capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
@@ -413,8 +414,10 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        if rule.ip.config.protocol or rule.ip.config.protocol == 0:  # 0 is a valid protocol number
-            if self.ip_protocol_map.has_key(rule.ip.config.protocol):
+        # FIXME: 0 is a valid protocol number, but openconfig seems to use it as a default value,
+        # so there isn't currently a good way to check if the user defined proto=0 or not.
+        if rule.ip.config.protocol:
+            if rule.ip.config.protocol in self.ip_protocol_map:
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
                 try:
@@ -426,15 +429,15 @@ class AclLoader(object):
                 rule_props["IP_PROTOCOL"] = rule.ip.config.protocol
 
         if rule.ip.config.source_ip_address:
-            source_ip_address = rule.ip.config.source_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(source_ip_address).version == 4:
+            source_ip_address = rule.ip.config.source_ip_address
+            if ipaddress.ip_network(source_ip_address).version == 4:
                 rule_props["SRC_IP"] = source_ip_address
             else:
                 rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
-            destination_ip_address = rule.ip.config.destination_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(destination_ip_address).version == 4:
+            destination_ip_address = rule.ip.config.destination_ip_address
+            if ipaddress.ip_network(destination_ip_address).version == 4:
                 rule_props["DST_IP"] = destination_ip_address
             else:
                 rule_props["DST_IPV6"] = destination_ip_address
@@ -536,7 +539,7 @@ class AclLoader(object):
         rule_props["PRIORITY"] = str(self.min_priority)
         rule_props["PACKET_ACTION"] = "DROP"
         if 'v6' in table_name.lower():
-            rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV6"])
+            rule_props["IP_TYPE"] = "IPV6ANY"  # ETHERTYPE is not supported for DATAACLV6
         else:
             rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         return rule_data
@@ -547,7 +550,7 @@ class AclLoader(object):
         :return:
         """
         for acl_set_name in self.yang_acl.acl.acl_sets.acl_set:
-            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper().encode('ascii')
+            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper()
             acl_set = self.yang_acl.acl.acl_sets.acl_set[acl_set_name]
 
             if not self.is_table_valid(table_name):
@@ -576,7 +579,7 @@ class AclLoader(object):
         be removed and new rules in that table will be installed.
         :return:
         """
-        for key in self.rules_db_info.keys():
+        for key in self.rules_db_info:
             if self.current_table is None or self.current_table == key[0]:
                 self.configdb.mod_entry(self.ACL_RULE, key, None)
                 # Program for per front asic namespace also if present
@@ -602,10 +605,10 @@ class AclLoader(object):
         # update on dataplane ACLs, and only perform an incremental update on
         # control plane ACLs.
 
-        new_rules = set(self.rules_info.iterkeys())
+        new_rules = set(self.rules_info.keys())
         new_dataplane_rules = set()
         new_controlplane_rules = set()
-        current_rules = set(self.rules_db_info.iterkeys())
+        current_rules = set(self.rules_db_info.keys())
         current_dataplane_rules = set()
         current_controlplane_rules = set()
 
@@ -670,7 +673,7 @@ class AclLoader(object):
         :param rule:
         :return:
         """
-        for key in self.rules_db_info.iterkeys():
+        for key in self.rules_db_info:
             if not table or table == key[0]:
                 if not rule or rule == key[1]:
                     self.configdb.set_entry(self.ACL_RULE, key, None)
@@ -687,7 +690,7 @@ class AclLoader(object):
         header = ("Name", "Type", "Binding", "Description", "Stage")
 
         data = []
-        for key, val in self.get_tables_db_info().iteritems():
+        for key, val in self.get_tables_db_info().items():
             if table_name and key != table_name:
                 continue
 
@@ -725,7 +728,7 @@ class AclLoader(object):
 
         erspan_data = []
         span_data = []
-        for key, val in self.get_sessions_db_info().iteritems():
+        for key, val in self.get_sessions_db_info().items():
             if session_name and key != session_name:
                 continue
 
@@ -753,7 +756,7 @@ class AclLoader(object):
         header = ("Name", "Type", "Mode", "CIR", "CBS")
 
         data = []
-        for key, val in self.get_policers_db_info().iteritems():
+        for key, val in self.get_policers_db_info().items():
             if policer_name and key != policer_name:
                 continue
 
@@ -804,7 +807,7 @@ class AclLoader(object):
             return matches
 
         raw_data = []
-        for (tname, rid), val in self.get_rules_db_info().iteritems():
+        for (tname, rid), val in self.get_rules_db_info().items():
 
             if table_name and table_name != tname:
                 continue
@@ -823,11 +826,7 @@ class AclLoader(object):
 
             raw_data.append([priority, rule_data])
 
-        def cmp_rules(a, b):
-            return cmp(a[0], b[0])
-
-        raw_data.sort(cmp_rules)
-        raw_data.reverse()
+        raw_data.sort(key=lambda x: x[0], reverse=True)
 
         data = []
         for _, d in raw_data:

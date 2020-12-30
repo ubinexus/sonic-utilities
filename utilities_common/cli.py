@@ -1,14 +1,15 @@
+import configparser
 import os
 import re
-import sys
-import netaddr
 import subprocess
+import sys
 
 import click
-from natsort import natsorted
+import json
 
-from utilities_common.db import Db
+from natsort import natsorted
 from sonic_py_common import multi_asic
+from utilities_common.db import Db
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -52,10 +53,6 @@ class AbbreviationGroup(click.Group):
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
@@ -126,13 +123,13 @@ class InterfaceAliasConverter(object):
             self.config_db = db.cfgdb
             self.port_dict = self.config_db.get_table('PORT')
         self.alias_max_length = 0
-        
+
 
         if not self.port_dict:
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
             self.port_dict = {}
 
-        for port_name in self.port_dict.keys():
+        for port_name in self.port_dict:
             try:
                 if self.alias_max_length < len(
                         self.port_dict[port_name]['alias']):
@@ -154,7 +151,7 @@ class InterfaceAliasConverter(object):
                 # interface_name holds the parent port name
                 interface_name = interface_name[:sub_intf_sep_idx]
 
-            for port_name in self.port_dict.keys():
+            for port_name in self.port_dict:
                 if interface_name == port_name:
                     return self.port_dict[port_name]['alias'] if sub_intf_sep_idx == -1 \
                             else self.port_dict[port_name]['alias'] + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
@@ -175,7 +172,7 @@ class InterfaceAliasConverter(object):
                 # interface_alias holds the parent port alias
                 interface_alias = interface_alias[:sub_intf_sep_idx]
 
-            for port_name in self.port_dict.keys():
+            for port_name in self.port_dict:
                 if interface_alias == self.port_dict[port_name]['alias']:
                     return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
@@ -193,6 +190,7 @@ def get_interface_naming_mode():
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
+    import netaddr
     if not val:
         return False
     try:
@@ -214,7 +212,7 @@ def is_valid_port(config_db, port):
     """Check if port is in PORT table"""
 
     port_table = config_db.get_table('PORT')
-    if port in port_table.keys():
+    if port in port_table:
         return True
 
     return False
@@ -223,7 +221,7 @@ def is_valid_portchannel(config_db, port):
     """Check if port is in PORT_CHANNEL table"""
 
     pc_table = config_db.get_table('PORTCHANNEL')
-    if port in pc_table.keys():
+    if port in pc_table:
         return True
 
     return False
@@ -248,7 +246,7 @@ def is_port_vlan_member(config_db, port, vlan):
     """Check if port is a member of vlan"""
 
     vlan_ports_data = config_db.get_table('VLAN_MEMBER')
-    for key in vlan_ports_data.keys():
+    for key in vlan_ports_data:
         if key[0] == vlan and key[1] == port:
             return True
 
@@ -256,15 +254,19 @@ def is_port_vlan_member(config_db, port, vlan):
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
-    for _,intf in vlan_member_table.keys():
+    for _,intf in vlan_member_table:
         if intf == interface_name:
             return True
 
     return False
 
+def is_valid_vlan_interface(config_db, interface):
+    """ Check an interface is a valid VLAN interface """
+    return interface in config_db.get_table("VLAN_INTERFACE")
+
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _,intf in portchannel_member_table.keys():
+    for _,intf in portchannel_member_table:
         if intf == interface_name:
             return True
 
@@ -274,7 +276,7 @@ def is_port_router_interface(config_db, port):
     """Check if port is a router interface"""
 
     interface_table = config_db.get_table('INTERFACE')
-    for intf in interface_table.keys():
+    for intf in interface_table:
         if port == intf[0]:
             return True
 
@@ -284,7 +286,7 @@ def is_pc_router_interface(config_db, pc):
     """Check if portchannel is a router interface"""
 
     pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
-    for intf in pc_interface_table.keys():
+    for intf in pc_interface_table:
         if pc == intf[0]:
             return True
 
@@ -298,6 +300,34 @@ def is_port_mirror_dst_port(config_db, port):
             return True
 
     return False
+
+def vni_id_is_valid(vni):
+    """Check if the vni id is in acceptable range (between 1 and 2^24)
+    """
+
+    if (vni < 1) or (vni > 16777215):
+        return False
+
+    return True
+
+def is_vni_vrf_mapped(db, vni):
+    """Check if the vni is mapped to vrf
+    """
+
+    found = 0
+    vrf_table = db.cfgdb.get_table('VRF')
+    vrf_keys = vrf_table.keys()
+    if vrf_keys is not None:
+      for vrf_key in vrf_keys:
+        if ('vni' in vrf_table[vrf_key] and vrf_table[vrf_key]['vni'] == vni):
+           found = 1
+           break
+
+    if (found == 1):
+        print("VNI {} mapped to Vrf {}, Please remove VRF VNI mapping".format(vni, vrf_key))
+        return False
+
+    return True
 
 def interface_has_mirror_config(mirror_table, interface_name):
     """Check if port is already configured with mirror config """
@@ -331,7 +361,7 @@ def print_output_in_alias_mode(output, index):
     if word:
         interface_name = word[index]
         interface_name = interface_name.replace(':', '')
-    for port_name in natsorted(iface_alias_converter.port_dict.keys()):
+    for port_name in natsorted(list(iface_alias_converter.port_dict.keys())):
             if interface_name == port_name:
                 alias_name = iface_alias_converter.port_dict[port_name]['alias']
     if alias_name:
@@ -347,7 +377,7 @@ def run_command_in_alias_mode(command):
        in output with vendor-sepecific interface aliases.
     """
 
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    process = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     while True:
         output = process.stdout.readline()
@@ -444,7 +474,7 @@ def run_command_in_alias_mode(command):
                 or a comma followed by whitespace
                 """
                 converted_output = raw_output
-                for port_name in iface_alias_converter.port_dict.keys():
+                for port_name in iface_alias_converter.port_dict:
                     converted_output = re.sub(r"(^|\s){}($|,{{0,1}}\s)".format(port_name),
                             r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
                             converted_output)
@@ -456,25 +486,31 @@ def run_command_in_alias_mode(command):
 
 
 def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False):
-    """Run bash command and print output to stdout
+    """
+    Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
+    return code, the function will exit with that return code.
+
+    Args:
+        display_cmd: Boolean; If True, will print the command being run to stdout before executing the command
+        ignore_error: Boolean; If true, do not exit if command returns a non-zero return code
+        return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
+        interactive_mode: Boolean; If true, it will treat the process as a long-running process which may generate
+                          multiple lines of output over time
     """
 
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
-    if os.getenv("UTILITIES_UNIT_TESTING") == "1":
-        return
-
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
     if get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
         run_command_in_alias_mode(command)
-        raise sys.exit(0)
+        sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
-        output = proc.communicate()[0].decode("utf-8")
+        output = proc.communicate()[0]
         return output
 
     if not interactive_mode:
@@ -501,7 +537,10 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         sys.exit(rc)
 
 
-def do_exit(msg):
-    m = "FATAL failure: {}. Exiting...".format(msg)
-    _log_msg(syslog.LOG_ERR, True, inspect.stack()[1][1], inspect.stack()[1][2], m)
-    raise SystemExit(m)
+def json_dump(data):
+    """
+    Dump data in JSON format
+    """
+    return json.dumps(
+        data, sort_keys=True, indent=2, ensure_ascii=False
+    )
