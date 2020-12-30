@@ -402,9 +402,9 @@ def copp():
     """ Show COPP"""
     pass
 
-@copp.command('config')
-def copp_config():
-    """ Show COPP configuration """
+@copp.command('status')
+def copp_status():
+    """ Shows active COPP entries in the system"""
 
     cmd = "sonic-db-dump -n 'APPL_DB' -k \"COPP_TABLE:*\" -y | grep -v hash | grep -v expireat | grep -v ttl"
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)

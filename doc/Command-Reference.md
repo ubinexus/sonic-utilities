@@ -5753,18 +5753,18 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#portch
 
 #### CoPP
 
-**show copp config**
+**show copp status**
 
-This command displays the configured copp entries
+This command displays the active copp entries in the system
 
 - Usage:
   ```
-  show copp config
+  show copp status
   ```
 
 - Example:
    ```
-   admin@sonic:~$ show copp config
+   admin@sonic:~$ show copp status 
    {
       "COPP_TABLE:default": {
         "value": {
