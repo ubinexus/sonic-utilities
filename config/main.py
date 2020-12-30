@@ -53,6 +53,11 @@ SYSTEMCTL_ACTION_STOP="stop"
 SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
+CFG_PORTCHANNEL_PREFIX = "PortChannel"
+CFG_PORTCHANNEL_PREFIX_LEN = 11
+CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
+CFG_PORTCHANNEL_MAX_VAL = 9999
+
 DEFAULT_NAMESPACE = ''
 CFG_LOOPBACK_PREFIX = "Loopback"
 CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
@@ -415,6 +420,50 @@ def interface_ipaddr_dependent_on_interface(config_db, interface_name):
         if interface_name in key and len(key) == 2:
             data.append(key)
     return data
+
+#
+# Use this method to validate unicast IPv4 address
+#
+def is_ip4_addr_valid(addr, display):
+    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
+    try:
+        ip = ipaddress.ip_address(unicode(addr))
+        if (ip.version == 4):
+            if (ip.is_reserved):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 reserved address range.".format(addr))
+                return False
+            elif (ip.is_multicast):
+                if display:
+                    click.echo ("{} Not Valid, Reason: IPv4 Multicast address range.".format(addr))
+                return False
+            elif (ip in v4_invalid_list):
+                if display:
+                    click.echo ("{} Not Valid.".format(addr))
+                return False
+            else:
+                return True
+
+        else:
+            if display:
+                click.echo ("{} Not Valid, Reason: Not an IPv4 address".format(addr))
+            return False
+
+    except ValueError:
+        return False
+
+def is_portchannel_name_valid(portchannel_name):
+    """Port Channel name validation
+    """
+
+    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX :
+        return False
+    if (portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:].isdigit() is False or
+          int(portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:]) > CFG_PORTCHANNEL_MAX_VAL) :
+        return False
+    if len(portchannel_name) > CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
 
 def get_intf_vrf_bind_unique_ip(db, interface_name, interface_type):
     intfvrf = db.get_table(interface_type)
@@ -4235,7 +4284,7 @@ def add_mclag_domain(ctx, domain_id, source_ip_addr, peer_ip_addr, peer_ifname):
     if peer_ifname is not None:
         if (peer_ifname.startswith("Ethernet") is False) and (peer_ifname.startswith("PortChannel") is False):
             ctx.fail("peer interface is invalid, should be Ethernet interface or portChannel !!")
-        if (peer_ifname.startswith("Ethernet") is True) and (interface_name_is_valid(peer_ifname) is False):
+        if (peer_ifname.startswith("Ethernet") is True) and (interface_name_is_valid(db, peer_ifname) is False):
             ctx.fail("peer Ethernet interface name is invalid. it is not present in port table of configDb!!")
         if (peer_ifname.startswith("PortChannel")) and (is_portchannel_name_valid(peer_ifname) is False):
             ctx.fail("peer PortChannel interface name is invalid !!")
