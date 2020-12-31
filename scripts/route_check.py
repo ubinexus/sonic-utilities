@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import argparse
+from enum import Enum
+import ipaddress
+import json
 import os
 import re
 import sys
-import argparse
-import ipaddress
 import syslog
-import json
 import time
-from enum import Enum
-from swsssdk import ConfigDBConnector
+
+from swsscommon import swsscommon
+
+APPL_DB_NAME = 'APPL_DB'
+ASIC_DB_NAME = 'ASIC_DB'
+ASIC_TABLE_NAME = 'ASIC_STATE'
+ASIC_KEY_PREFIX = 'SAI_OBJECT_TYPE_ROUTE_ENTRY:'
+
+SUBSCRIBE_WAIT_SECS = 1
+
+UNIT_TESTING = 0
 
 os.environ['PYTHONUNBUFFERED']='True'
 
@@ -112,11 +122,44 @@ def do_diff(t1, t2):
     return t1_miss, t2_miss
 
 
+def checkout_rt_entry(k):
+    if k.startswith(ASIC_KEY_PREFIX):
+        e = k.lower().split("\"", -1)[3]
+        if not is_local(e):
+            return True, e
+    return False, None
+
+
+def get_subscribe_updates(selector, subs):
+    adds = []
+    deletes = []
+    t_end = time.time() + SUBSCRIBE_WAIT_SECS
+    t_wait = SUBSCRIBE_WAIT_SECS
+
+    while t_wait > 0:
+        selector.select(t_wait)
+        t_wait = int(t_end - time.time())
+        while True:
+            key, op, val = subs.pop()
+            if not key:
+                break
+            res, e = checkout_rt_entry(key)
+            if res:
+                if op == "SET":
+                    adds.append(e)
+                elif op == "DEL":
+                    deletes.append(e)
+
+    print_message(syslog.LOG_DEBUG, "adds={}".format(adds))
+    print_message(syslog.LOG_DEBUG, "dels={}".format(deletes))
+    return (sorted(adds), sorted(deletes))
+
+
 def get_routes():
-    db = ConfigDBConnector()
-    db.db_connect('APPL_DB')
+    db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     print_message(syslog.LOG_DEBUG, "APPL DB connected for routes")
-    keys = db.get_keys('ROUTE_TABLE')
+    tbl = swsscommon.Table(db, 'ROUTE_TABLE')
+    keys = tbl.getKeys()
 
     valid_rt = []
     for k in keys:
@@ -128,28 +171,33 @@ def get_routes():
 
 
 def get_route_entries():
-    db = ConfigDBConnector()
-    db.db_connect('ASIC_DB')
+    db = swsscommon.DBConnector(ASIC_DB_NAME, 0)
+    subs = swsscommon.SubscriberStateTable(db, ASIC_TABLE_NAME)
     print_message(syslog.LOG_DEBUG, "ASIC DB connected")
-    keys = db.get_keys('ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY', False)
 
     rt = []
-    for k in keys:
-        e = k.lower().split("\"", -1)[3]
-        if not is_local(e):
+    while True:
+        k, _, _ = subs.pop()
+        if not k:
+            break
+        res, e = checkout_rt_entry(k)
+        if res:
             rt.append(e)
+                                
     print_message(syslog.LOG_DEBUG, json.dumps({"ASIC_ROUTE_ENTRY": sorted(rt)}, indent=4))
-    return sorted(rt)
+
+    selector = swsscommon.Select()
+    selector.addSelectable(subs)
+    return (selector, subs, sorted(rt))
 
 
 def get_interfaces():
-    db = ConfigDBConnector()
-    db.db_connect('APPL_DB')
+    db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     print_message(syslog.LOG_DEBUG, "APPL DB connected for interfaces")
+    tbl = swsscommon.Table(db, 'INTF_TABLE')
+    keys = tbl.getKeys()
 
     intf = []
-    keys = db.get_keys('INTF_TABLE')
-
     for k in keys:
         lst = re.split(':', k.lower(), maxsplit=1)
         if len(lst) == 1:
@@ -168,14 +216,14 @@ def filter_out_local_interfaces(keys):
     rt = []
     local_if = set(['eth0', 'lo', 'docker0'])
 
-    db = ConfigDBConnector()
-    db.db_connect('APPL_DB')
+    db = swsscommon.DBConnector(APPL_DB_NAME, 0)
+    tbl = swsscommon.Table(db, 'ROUTE_TABLE')
 
     for k in keys:
-        e = db.get_entry('ROUTE_TABLE', k)
+        e = dict(tbl.get(k)[1])
         if not e:
             # Prefix might have been added. So try w/o it.
-            e = db.get_entry('ROUTE_TABLE', k.split("/")[0])
+            e = dict(tbl.get(k.split("/"))[1])
         if not e or (e['ifname'] not in local_if):
             rt.append(k)
 
@@ -198,10 +246,10 @@ def check_routes():
     rt_asic_miss = []
 
     results = {}
-    err_present = False
+
+    selector, subs, rt_asic = get_route_entries()
 
     rt_appl = get_routes()
-    rt_asic = get_route_entries()
     intf_appl = get_interfaces()
 
     # Diff APPL-DB routes & ASIC-DB routes
@@ -214,31 +262,40 @@ def check_routes():
     # Check APPL-DB INTF_TABLE with ASIC table route entries
     intf_appl_miss, _ = do_diff(intf_appl, rt_asic)
 
-    if (len(rt_appl_miss) != 0):
+    if rt_appl_miss:
         rt_appl_miss = filter_out_local_interfaces(rt_appl_miss)
 
-    if (len(rt_appl_miss) != 0):
+    if rt_appl_miss or rt_asic_miss:
+        # Look for subscribe updates for a second
+        adds, deletes = get_subscribe_updates(selector, subs)
+
+        # Drop all those for which SET received
+        rt_appl_miss, _ = do_diff(rt_appl_miss, adds)
+
+        # Drop all those for which DEL received
+        rt_asic_miss, _ = do_diff(rt_asic_miss, deletes)
+
+    if rt_appl_miss:
         results["missed_ROUTE_TABLE_routes"] = rt_appl_miss
-        err_present = True
 
-    if (len(intf_appl_miss) != 0):
+    if intf_appl_miss:
         results["missed_INTF_TABLE_entries"] = intf_appl_miss
-        err_present = True
 
-    if (len(rt_asic_miss) != 0):
+    if rt_asic_miss:
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
-        err_present = True
 
-    if err_present:
-        print_message(syslog.LOG_ERR, "results: {",  json.dumps(results, indent=4), "}")
+    if results:
+        print_message(syslog.LOG_ERR, "Failure results: {",  json.dumps(results, indent=4), "}")
         print_message(syslog.LOG_ERR, "Failed. Look at reported mismatches above")
-        return -1
+        print_message(syslog.LOG_ERR, "add: {", json.dumps(adds, indent=4), "}")
+        print_message(syslog.LOG_ERR, "del: {", json.dumps(deletes, indent=4), "}")
+        return -1, results
     else:
         print_message(syslog.LOG_INFO, "All good!")
-        return 0
+        return 0, None
 
 
-def main(argv):
+def main():
     interval = 0
     parser=argparse.ArgumentParser(description="Verify routes between APPL-DB & ASIC-DB are in sync")
     parser.add_argument('-m', "--mode", type=Level, choices=list(Level), default='ERR')
@@ -255,15 +312,20 @@ def main(argv):
             interval = MAX_SCAN_INTERVAL
         else:
             interval = args.interval
+        if UNIT_TESTING:
+            interval = 1
 
     while True:
-        ret = check_routes()
+        ret, res= check_routes()
 
         if interval:
             time.sleep(interval)
+            if UNIT_TESTING:
+                return ret, res
         else:
-            sys.exit(ret)
+            return ret, res
+            
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main()[0])
