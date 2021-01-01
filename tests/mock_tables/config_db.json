@@ -546,10 +546,10 @@
     "PORTCHANNEL_INTERFACE|PortChannel0004|FC00::7D/126": {
         "NULL": "NULL"
     },
-    "INTERFACE|Ethernet1": {
-        "dhcp_servers@": "12.0.0.1,12.0.0.2,12.0.0.3"
+    "INTERFACE|Ethernet0": {
+        "NULL": "NULL"
     },
-    "INTERFACE|Ethernet1|14.14.0.1/24": {
+    "INTERFACE|Ethernet0|14.14.0.1/24": {
         "NULL": "NULL"
     },
     "DEBUG_COUNTER|DEBUG_0": {
