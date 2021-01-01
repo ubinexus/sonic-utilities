@@ -19,7 +19,7 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # add a portchannel member with invalid portchannel name
-        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChan005", "Ethernet1"], obj=obj)
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChan005", "Ethernet0"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -31,7 +31,7 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # delete a portchannel member with invalid portchannel name
-        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["del"], ["PortChan005", "Ethernet1"], obj=obj)
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["del"], ["PortChan005", "Ethernet0"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -43,7 +43,7 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # add a portchannel member with portchannel is not yet created
-        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0005", "Ethernet1"], obj=obj)
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0005", "Ethernet0"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -55,7 +55,7 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # delete a portchannel member with portchannel is not yet created
-        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["del"], ["PortChannel0005", "Ethernet1"], obj=obj)
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["del"], ["PortChannel0005", "Ethernet0"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -67,7 +67,7 @@ class TestPortChannel(object):
         obj = {'db':db.cfgdb}
 
         # add a portchannel member with port which has ip-address
-        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel1001", "Ethernet1"], obj=obj)
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel1001", "Ethernet0"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
