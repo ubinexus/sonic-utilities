@@ -167,6 +167,9 @@ class PfcwdCli(object):
         port_set = set(ports)
         # "all" is a valid option, remove before performing set diff
         port_set.discard("all")
+        # "detection-time" and "ports" are part of the arg tuple, remove before performing set diff
+        port_set.discard("detection-time")
+        port_set.discard("ports")
         return port_set - set(self.all_ports)
 
     @multi_asic_util.run_on_multi_asic
