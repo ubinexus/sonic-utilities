@@ -68,41 +68,44 @@ class TestDhcpRelay(object):
     def test_show_dhcp_relay_brief(self):
         runner = CliRunner()
         db = Db()
+        obj = {'db':db.cfgdb}
 
         # show brief output
-        result = runner.invoke(show.cli.commands["ip"].commands["dhcp-relay"].commands["brief"], [], obj=db)
+        result = runner.invoke(show.cli.commands["ip"].commands["dhcp-relay"].commands["brief"], [], obj=obj)
         print(result.output)
         assert result.output == show_dhcp_relay_brief_output
 
     def test_show_dhcp_relay_detailed(self):
         runner = CliRunner()
         db = Db()
+        obj = {'db':db.cfgdb}
 
         # show detailed output
-        result = runner.invoke(show.cli.commands["ip"].commands["dhcp-relay"].commands["detailed"], [], obj=db)
+        result = runner.invoke(show.cli.commands["ip"].commands["dhcp-relay"].commands["detailed"], [], obj=obj)
         print(result.output)
         assert result.output == show_dhcp_relay_detailed_output
 
     def test_config_add_delete_dhcp_relay_physical_interface(self):
         runner = CliRunner()
         db = Db()
+        obj = {'db':db.cfgdb}
 
         # add a same dhcp relay server address to Ethernet1
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet1", "12.0.0.3"], obj=db)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet1", "12.0.0.3"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
         assert "Error: IP address 12.0.0.3 is already configured" in result.output
 
         # remove dhcp relay server address from Ethernet1
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Ethernet1", "12.0.0.3"], obj=db)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Ethernet1", "12.0.0.3"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == config_physical_rem_dhcp_relay_output
 
         # add a new dhcp relay server address to Ethernet1
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet1", "12.0.0.4"], obj=db)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet1", "12.0.0.4"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -111,16 +114,17 @@ class TestDhcpRelay(object):
     def test_config_add_delete_dhcp_relay_vlan_interface(self):
         runner = CliRunner()
         db = Db()
+        obj = {'db':db.cfgdb}
 
         # add a new dhcp relay server address to Vlan1000
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Vlan1000", "192.0.0.5"], obj=db)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Vlan1000", "192.0.0.5"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
         assert "Error: Maximum number of Servers configured on the relay interface Vlan1000" in result.output
 
         # remove a existing dhcp relay server address from Vlan1000
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Vlan1000", "192.0.0.4"], obj=db)
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Vlan1000", "192.0.0.4"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
