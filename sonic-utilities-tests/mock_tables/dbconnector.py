@@ -9,6 +9,7 @@ from sonic_py_common import multi_asic
 from swsssdk import SonicDBConfig, SonicV2Connector
 from swsssdk.interface import redis
 
+dedicated_dbs = {}
 
 def clean_up_config():
     # Set SonicDBConfig variables to initial state
@@ -41,7 +42,11 @@ def connect_SonicV2Connector(self, db_name, retry_on=True):
     # add the namespace to kwargs for testing multi asic
     self.dbintf.redis_kwargs['namespace'] = self.namespace
     # Mock DB filename for unit-test
-    self.dbintf.redis_kwargs['db_name'] = db_name
+    global dedicated_dbs
+    if dedicated_dbs and dedicated_dbs.get(db_name):
+        self.dbintf.redis_kwargs['db_name'] = dedicated_dbs[db_name]
+    else:
+        self.dbintf.redis_kwargs['db_name'] = db_name
     _old_connect_SonicV2Connector(self, db_name, retry_on)
 
 

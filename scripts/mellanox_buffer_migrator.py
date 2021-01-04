@@ -84,6 +84,9 @@ class MellanoxBufferMigrator():
             self.sku = device_data.get('hwsku')
         if not self.platform or not self.sku:
             log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            return
+
+        self.is_buffer_config_default = True
 
     mellanox_default_parameter = {
         "version_1_0_2": {
@@ -186,7 +189,8 @@ class MellanoxBufferMigrator():
         "version_1_0_4": {
             # version 1.0.4 is introduced for updating the buffer settings
             "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool",
-                                        "spc1_2700_t0_pool", "spc1_2700_t1_pool", "spc1_2700-d48c8_t0_pool", "spc1_2700-d48c8_t1_pool"],
+                                        "spc1_2700_t0_pool", "spc1_2700_t1_pool", "spc1_2700-d48c8_t0_pool", "spc1_2700-d48c8_t1_pool",
+                                        "spc3_t0_pool", "spc3_t1_pool"],
             # Buffer pool info for normal mode
             "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
             "buffer_pools": {
@@ -199,7 +203,10 @@ class MellanoxBufferMigrator():
                 "spc1_2700_t0_pool": {"singlepool": {"size": "9489408"}, "egress_lossless_pool": {"size": "13945824"}},
                 "spc1_2700_t1_pool": {"singlepool": {"size": "7719936"}, "egress_lossless_pool": {"size": "13945824"}},
                 "spc1_2700-d48c8_t0_pool": {"singlepool": {"size": "6687744"}, "egress_lossless_pool": {"size": "13945824"}},
-                "spc1_2700-d48c8_t1_pool": {"singlepool": {"size": "8506368"}, "egress_lossless_pool": {"size": "13945824"}}
+                "spc1_2700-d48c8_t1_pool": {"singlepool": {"size": "8506368"}, "egress_lossless_pool": {"size": "13945824"}},
+
+                "spc3_t0_pool": {"doublepool": { "size": "26451968" }, "egress_lossless_pool": { "size": "60817392" }},
+                "spc3_t1_pool": {"doublepool": { "size": "20627456" }, "egress_lossless_pool": { "size": "60817392" }}
             },
 
             "headrooms": {
@@ -277,10 +284,10 @@ class MellanoxBufferMigrator():
             # version 1.0.5 is introduced for shared headroom pools
             "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc2_3800_t0_pool", "spc2_3800_t1_pool"],
             "pool_convert_map": {
-                "spc1_t0_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700_t0_pool_shp",
+                "spc1_t0_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700-d48c8_t0_pool_shp",
                                          "Mellanox-SN2700-D48C8": "spc1_2700-d48c8_t0_pool_shp",
                                          "Mellanox-SN2700": "spc1_2700_t0_pool_shp"},
-                "spc1_t1_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700_t1_pool_shp",
+                "spc1_t1_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700-d48c8_t1_pool_shp",
                                          "Mellanox-SN2700-D48C8": "spc1_2700-d48c8_t1_pool_shp",
                                          "Mellanox-SN2700": "spc1_2700_t1_pool_shp"}
             },
@@ -482,6 +489,8 @@ class MellanoxBufferMigrator():
         """
         To migrate buffer pool configuration
         """
+        self.is_buffer_config_default = False
+
         # Buffer pools defined in old version
         default_buffer_pool_list_old = self.mlnx_default_buffer_parameters(old_version, "buffer_pool_list")
 
@@ -545,12 +554,19 @@ class MellanoxBufferMigrator():
 
             log.log_info("Successfully migrate mlnx buffer pool {} size to the latest.".format(pool))
 
+        self.is_buffer_config_default = True
+
         return True
 
     def mlnx_migrate_buffer_profile(self, old_version, new_version):
         """
         This is to migrate BUFFER_PROFILE configuration
         """
+        if not self.is_buffer_config_default:
+            return True
+        else:
+            self.is_buffer_config_default = False
+
         spc1_platforms = ["x86_64-mlnx_msn2010-r0", "x86_64-mlnx_msn2100-r0", "x86_64-mlnx_msn2410-r0", "x86_64-mlnx_msn2700-r0", "x86_64-mlnx_msn2740-r0"]
         spc2_platforms = ["x86_64-mlnx_msn3700-r0", "x86_64-mlnx_msn3700c-r0"]
 
@@ -622,6 +638,7 @@ class MellanoxBufferMigrator():
         if not default_buffer_profiles_new:
             # Not providing new profile configure in new version means they do need to be changed
             log.log_notice("No buffer profile in {}, don't need to migrate non-lossless profiles".format(new_version))
+            self.is_buffer_config_default = True
             return True
 
         profile_matched = True
@@ -640,5 +657,7 @@ class MellanoxBufferMigrator():
         for name, profile in default_buffer_profiles_new["default"].iteritems():
             log.log_info("Successfully migrate profile {}".format(name))
             self.configDB.set_entry('BUFFER_PROFILE', name, profile)
+
+        self.is_buffer_config_default = True
 
         return True

@@ -1,11 +1,24 @@
 #!/usr/bin/env python
 
+import os
 import argparse
 import sys
 import traceback
 
 from sonic_py_common import device_info, logger
 from swsssdk import ConfigDBConnector, SonicDBConfig, SonicV2Connector
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        mocked_db_path = os.path.join(tests_path, "db_migrator_input")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+except KeyError:
+    pass
 
 
 SYSLOG_IDENTIFIER = 'db_migrator'
