@@ -1,16 +1,11 @@
-#import imp
 import os
 import pytest
 import sys
-import json
 
-from unittest import TestCase
-from swsssdk import SonicV2Connector
 from sonic_py_common import device_info
 
 import mock_tables.dbconnector
 
-import config.main as config
 from utilities_common.db import Db
 
 test_path = os.path.dirname(os.path.abspath(__file__))

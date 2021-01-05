@@ -3,7 +3,15 @@ Mellanox buffer migrator:
     Migrate buffer configuration to the default one in the new version automatically
     if the configuration matched the default on in the old version.
 
-    Current version: 1.0.5 for shared headroom pool support.
+    Current version: 1.0.5 for shared headroom pool support on 201911
+    Historical version:
+     - 201911:
+       - 1.0.4 for optimized headroom calculation:
+          - For Microsoft SKUs, calculate headroom with small packet percentage as 50%
+          - For all SKUs, fix some bugs in the formula
+       - 1.0.3 for updating the buffer pool size according to the SDK update
+     - 201811:
+       - 1.0.2 initial version. Also used in early 201911.
 
     The dict mellanox_default_parameter is introduced to represent:
      - The default configuration of BUFFER_POOL and BUFFER_PROFILE for all versions
