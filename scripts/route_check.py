@@ -1,6 +1,39 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+What it is:
+    The routes flow from APPL-DB to ASIC-DB, via orchagent.
+    This tool's job is to verify that all routes added to APPL-DB do
+    get into ASIC-DB.
+
+
+How:
+    NOTE: The flow from APPL-DB to ASIC-DB takes non zero milliseconds.
+    1) Initiate subscribe for ASIC-DB updates.
+    2) Read APPL-DB & ASIC-DB 
+    3) Get the diff.
+    4) If any diff, 
+        4.1) Collect subscribe messages for a second
+        4.2) check diff against the subscribe messages 
+    5) Rule out local interfaces & default routes
+    6) If still outstanding diffs, report failure.
+
+To verify:
+    Run this tool in SONiC switch and watch the result. In case of failure
+    checkout the result to validate the failure.
+    To simulate failure:
+        Stop Orchagent.
+        Run this tool, and likely you would see some failures.
+        You could potentially remove / add routes in APPL / ASIC DBs with orchagent
+        down to ensure failure.
+        Analyze the reported failures to match expected.
+    You may use the exit code to verify the result as success or not.
+    
+
+
+"""
+
 import argparse
 from enum import Enum
 import ipaddress
@@ -43,6 +76,12 @@ report_level = syslog.LOG_ERR
 write_to_syslog = False
 
 def set_level(lvl, log_to_syslog):
+    """
+    Sets the log level
+    :param lvl: Log level as ERR/INFO/DEBUG; default: syslog.LOG_ERR
+    :param log_to_syslog; True - write into syslog. False: skip
+    :return None
+    """
     global report_level
     global write_to_syslog
 
@@ -55,6 +94,12 @@ def set_level(lvl, log_to_syslog):
 
 
 def print_message(lvl, *args):
+    """
+    print and log the message for give level.
+    :param lvl: Log level for this message as ERR/INFO/DEBUG
+    :param args: message as list of strings or convertible to string
+    :return None
+    """
     if (lvl <= report_level):
         msg = ""
         for arg in args:
@@ -65,6 +110,11 @@ def print_message(lvl, *args):
 
 
 def add_prefix(ip):
+    """
+    helper add static prefix based on IP type
+    :param ip: IP to add prefix as string.
+    :return ip + "/32 or /128"
+    """
     if ip.find(IPV6_SEPARATOR) == -1:
         ip = ip + PREFIX_SEPARATOR + "32"
     else:
@@ -73,20 +123,41 @@ def add_prefix(ip):
 
 
 def add_prefix_ifnot(ip):
+    """
+    helper add static prefix if absent
+    :param ip: IP to add prefix as string.
+    :return ip with prefix
+    """
     return ip if ip.find(PREFIX_SEPARATOR) != -1 else add_prefix(ip)
 
 
 def is_local(ip):
+    """
+    helper to check if this IP qualify as link local
+    :param ip: IP to check as string
+    :return True if link local, else False
+    """
     t = ipaddress.ip_address(ip.split("/")[0])
     return t.is_link_local
 
 
 def is_default_route(ip):
+    """
+    helper to check if this IP is default route
+    :param ip: IP to check as string
+    :return True if default, else False
+    """
     t = ipaddress.ip_address(ip.split("/")[0])
     return t.is_unspecified and ip.split("/")[1] == "0"
 
 
 def cmps(s1, s2):
+    """
+    helper to compare two strings
+    :param s1: left string
+    :param s2: right string
+    :return comparison result as -1/0/1
+    """
     if (s1 == s2):
         return 0
     if (s1 < s2):
@@ -95,6 +166,12 @@ def cmps(s1, s2):
 
 
 def do_diff(t1, t2):
+    """
+    helper to compare two sorted lists.
+    :param t1: list 1
+    :param t2: list 2
+    :return (<t1 entries that are not in t2>, <t2 entries that are not in t1>)
+    """
     t1_x = t2_x = 0
     t1_miss = []
     t2_miss = []
@@ -123,6 +200,11 @@ def do_diff(t1, t2):
 
 
 def checkout_rt_entry(k):
+    """
+    helper to filter out correct keys and strip out IP alone.
+    :param ip: key to check as string
+    :return (True, ip) or (False, None)
+    """
     if k.startswith(ASIC_KEY_PREFIX):
         e = k.lower().split("\"", -1)[3]
         if not is_local(e):
@@ -131,6 +213,12 @@ def checkout_rt_entry(k):
 
 
 def get_subscribe_updates(selector, subs):
+    """
+    helper to collect subscribe messages for a period
+    :param selector: Selector object to wait
+    :param subs: Subscription object to pop messages
+    :return (add, del) messages as sorted
+    """
     adds = []
     deletes = []
     t_end = time.time() + SUBSCRIBE_WAIT_SECS
@@ -156,6 +244,10 @@ def get_subscribe_updates(selector, subs):
 
 
 def get_routes():
+    """
+    helper to read route table from APPL-DB.
+    :return list of sorted routes with prefix ensured
+    """
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     print_message(syslog.LOG_DEBUG, "APPL DB connected for routes")
     tbl = swsscommon.Table(db, 'ROUTE_TABLE')
@@ -171,6 +263,11 @@ def get_routes():
 
 
 def get_route_entries():
+    """
+    helper to read present route entries from ASIC-DB and 
+    as well initiate selector for ASIC-DB:ASIC-state updates.
+    :return (selector,  subscriber, <list of sorted routes>)
+    """
     db = swsscommon.DBConnector(ASIC_DB_NAME, 0)
     subs = swsscommon.SubscriberStateTable(db, ASIC_TABLE_NAME)
     print_message(syslog.LOG_DEBUG, "ASIC DB connected")
@@ -192,6 +289,10 @@ def get_route_entries():
 
 
 def get_interfaces():
+    """
+    helper to read interface table from APPL-DB.
+    :return sorted list of IP addresses with added prefix
+    """
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     print_message(syslog.LOG_DEBUG, "APPL DB connected for interfaces")
     tbl = swsscommon.Table(db, 'INTF_TABLE')
@@ -213,6 +314,11 @@ def get_interfaces():
 
 
 def filter_out_local_interfaces(keys):
+    """
+    helper to filter out local interfaces
+    :param keys: APPL-DB:ROUTE_TABLE Routes to check.
+    :return keys filtered out of local
+    """
     rt = []
     local_if_re = ['eth0', 'lo', 'docker0', 'Loopback\d+']
 
@@ -231,6 +337,11 @@ def filter_out_local_interfaces(keys):
 
 
 def filter_out_default_routes(lst):
+    """
+    helper to filter out default routes
+    :param lst: list to filter
+    :return filtered list.
+    """
     upd = []
 
     for rt in lst:
@@ -241,6 +352,21 @@ def filter_out_default_routes(lst):
 
 
 def check_routes():
+    """
+    The heart of this script which runs the checks.
+    Read APPL-DB & ASIC-DB, the relevant tables for route checking.
+    Checkout routes in ASIC-DB to match APPL-DB, discounting local & 
+    default routes. In case of missed / unexpected entries in ASIC,
+    it might be due to update latency between APPL & ASIC DBs. So collect
+    ASIC-DB subscribe updates for a second, and checkout if you see SET
+    command for missing ones & DEL command for unexpectes ones in ASIC.
+
+    If there are still some unjustifiable diffs, between APPL & ASIC DB,
+    related to routes report failure, else all good.
+
+    :return (0, None) on sucess, else (-1, results) where results holds
+    the unjustifiable entries.
+    """
     intf_appl_miss = []
     rt_appl_miss = []
     rt_asic_miss = []
@@ -296,6 +422,12 @@ def check_routes():
 
 
 def main():
+    """
+    main entry point, which mainly parses the args and call check_routes
+    In case of single run, it returns on one call or stays in forever loop
+    with given interval in-between calls to check_route
+    :return Same return value as returned by check_route.
+    """
     interval = 0
     parser=argparse.ArgumentParser(description="Verify routes between APPL-DB & ASIC-DB are in sync")
     parser.add_argument('-m', "--mode", type=Level, choices=list(Level), default='ERR')
