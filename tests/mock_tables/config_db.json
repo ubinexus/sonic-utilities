@@ -570,72 +570,86 @@
     "FEATURE|bgp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|database": {
         "state": "always_enabled",
         "auto_restart": "always_enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|dhcp_relay": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "kube"
     },
     "FEATURE|lldp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "kube"
     },
     "FEATURE|nat": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|pmon": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "kube"
     },
     "FEATURE|radv": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "kube"
     },
     "FEATURE|restapi": {
         "state": "disabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|sflow": {
         "state": "disabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|snmp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "kube"
     },
     "FEATURE|swss": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|syncd": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|teamd": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "local"
     },
     "FEATURE|telemetry": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_alert": "disabled",
+        "set_owner": "kube"
     },
     "DEVICE_METADATA|localhost": {
         "default_bgp_status": "down",
@@ -1300,7 +1314,16 @@
         "ipv6_route_low_threshold": "70",
         "acl_entry_high_threshold": "85",
         "fdb_entry_low_threshold": "70",
-        "ipv6_nexthop_high_threshold": "85"
+        "ipv6_nexthop_high_threshold": "85",
+        "snat_entry_threshold_type": "percentage",
+        "snat_entry_high_threshold": "85",
+        "snat_entry_low_threshold": "70",
+        "dnat_entry_threshold_type": "percentage",
+        "dnat_entry_high_threshold": "85",
+        "dnat_entry_low_threshold": "70",
+        "ipmc_entry_threshold_type": "percentage",
+        "ipmc_entry_high_threshold": "85",
+        "ipmc_entry_low_threshold": "70"
     },
     "CHASSIS_MODULE|LINE-CARD1": {
         "admin_status": "down"
@@ -1332,5 +1355,83 @@
     },
     "PEER_SWITCH|sonic-switch" : {
       "address_ipv4": "10.2.2.2"
+    },
+    "VXLAN_TUNNEL|vtep1": {
+         "src_ip": "1.1.1.1"
+    },
+    "VXLAN_EVPN_NVO|nvo1": {
+         "source_vtep": "vtep1"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_100_Vlan100": {
+         "vni" : "100",
+         "vlan": "Vlan100"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_101_Vlan101": {
+         "vni" : "101",
+         "vlan": "Vlan101"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_102_Vlan102": {
+         "vni" : "102",
+         "vlan": "Vlan102"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_200_Vlan200": {
+         "vni" : "200",
+         "vlan": "Vlan200"
+    },
+    "VRF|Vrf1": {
+         "fallback": "false",
+         "vni" : "1000"
+    },
+    "BUFFER_POOL|egress_lossless_pool": {
+        "mode": "dynamic",
+        "size": "13945824",
+        "type": "egress"
+    },
+    "BUFFER_POOL|egress_lossy_pool": {
+        "mode": "dynamic",
+        "type": "egress"
+    },
+    "BUFFER_POOL|ingress_lossless_pool": {
+        "mode": "dynamic",
+        "type": "ingress"
+    },
+    "BUFFER_POOL|ingress_lossy_pool": {
+        "mode": "dynamic",
+        "type": "ingress"
+    },
+    "BUFFER_PROFILE|ingress_lossy_profile": {
+	"dynamic_th": "3",
+	"pool": "[BUFFER_POOL|ingress_lossy_pool]",
+	"size": "0"
+    },
+    "BUFFER_PROFILE|headroom_profile": {
+        "dynamic_th": "0",
+        "pool": "[BUFFER_POOL|ingress_lossless_pool]",
+        "xon": "18432",
+        "xoff": "32768",
+        "size": "51200"
+    },
+    "BUFFER_PROFILE|alpha_profile": {
+        "dynamic_th": "0",
+        "pool": "[BUFFER_POOL|ingress_lossless_pool]",
+        "headroom_type": "dynamic"
+    },
+    "BUFFER_PG|Ethernet0|3-4": {
+        "profile": "NULL"
+    },
+    "BUFFER_PG|Ethernet0|0": {
+        "profile": "[BUFFER_PROFILE|ingress_lossy_profile]"
+    },
+    "PORT_QOS_MAP|Ethernet0": {
+        "pfc_enable": "3,4"
+    },
+    "DEFAULT_LOSSLESS_BUFFER_PARAMETER|AZURE": {
+        "default_dynamic_th": "0"
+    },
+    "KUBERNETES_MASTER|SERVER": {
+        "ip": "10.3.157.24",
+        "insecure": "True",
+        "disable": "False",
+        "port": "6443"
     }
 }
