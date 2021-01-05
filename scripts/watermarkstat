@@ -1,12 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 #####################################################################
 #
 # watermarkstat is a tool for displaying watermarks.
 #
 #####################################################################
-
-from __future__ import print_function
 
 import argparse
 import json
@@ -169,6 +167,9 @@ class Watermarkstat(object):
                                "header_prefix": "MC"},
             "buffer_pool"   : {"message": "Shared pool maximum occupancy:",
                                "wm_name": "SAI_BUFFER_POOL_STAT_WATERMARK_BYTES",
+                               "header" : headerBufferPool},
+            "headroom_pool" : {"message": "Headroom pool maximum occupancy:",
+                               "wm_name": "SAI_BUFFER_POOL_STAT_XOFF_ROOM_WATERMARK_BYTES",
                                "header" : headerBufferPool}
         }
 
@@ -195,7 +196,7 @@ class Watermarkstat(object):
 
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
-        single_key = header_map.keys()[0]
+        single_key = list(header_map.keys())[0]
         header_len = len(header_map[single_key])
         min_idx = sys.maxsize
 
@@ -228,12 +229,15 @@ class Watermarkstat(object):
     def print_all_stat(self, table_prefix, key):
         table = []
         type = self.watermark_types[key]
-        if key == 'buffer_pool':
+        if key in ['buffer_pool', 'headroom_pool']:
             self.header_list = type['header']
             # Get stats for each buffer pool
             for buf_pool, bp_oid in natsorted(self.buffer_pool_name_to_oid_map.items()):
-                key = table_prefix + bp_oid
-                data = self.counters_db.get(self.counters_db.COUNTERS_DB, key, type["wm_name"])
+                if key == 'headroom_pool' and 'ingress_lossless' not in buf_pool:
+                    continue
+
+                db_key = table_prefix + bp_oid
+                data = self.counters_db.get(self.counters_db.COUNTERS_DB, db_key, type["wm_name"])
                 if data is None:
                     data = STATUS_NA
                 table.append((buf_pool, data))
@@ -260,7 +264,6 @@ class Watermarkstat(object):
 def main():
 
     parser = argparse.ArgumentParser(description='Display the watermark counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -278,8 +281,9 @@ Examples:
     parser.add_argument('-c', '--clear', action='store_true', help='Clear watermarks request')
     parser.add_argument('-p', '--persistent', action='store_true', help='Do the operations on the persistent watermark')
     parser.add_argument('-t', '--type', required=True, action='store',
-                        choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool'],
+                        choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool', 'headroom_pool'],
                         help='The type of watermark')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
     watermarkstat = Watermarkstat()
    

@@ -9,7 +9,8 @@ modules_path = os.path.dirname(test_path)
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
-import mock_tables.dbconnector
+from .mock_tables import dbconnector
+
 import show.main as show
 
 # Expected output for 'show breakout current-mode'
@@ -61,5 +62,4 @@ class TestBreakout(TestCase):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-        os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"

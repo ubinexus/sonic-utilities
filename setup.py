@@ -58,6 +58,7 @@ setup(
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
                   'mock_tables/asic1/*.json',
+                  'mock_tables/asic2/*.json',
                   'filter_fdb_input/*',
                   'pfcwd_input/*',
                   'wm_input/*']
@@ -66,6 +67,7 @@ setup(
         'scripts/aclshow',
         'scripts/asic_config_check',
         'scripts/boot_part',
+        'scripts/buffershow',
         'scripts/coredump-compress',
         'scripts/configlet',
         'scripts/db_migrator.py',
@@ -110,7 +112,8 @@ setup(
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
-        'scripts/sonic-kdump-config'
+        'scripts/sonic-kdump-config',
+        'scripts/centralize_database'
     ],
     entry_points={
         'console_scripts': [
@@ -146,16 +149,16 @@ setup(
         'ipaddress==1.0.23',
         'jsondiff==1.2.0',
         'm2crypto==0.31.0',
-        'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2
+        'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr==0.8.0',
         'netifaces==0.10.7',
         'pexpect==4.8.0',
+        'requests==2.25.0',
         'sonic-py-common',
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0',
-        'zipp==1.2.0'  # Need to pin this down for Python 2, for Python 3 we should be able to remove altogether
     ],
     setup_requires= [
         'pytest-runner',
@@ -163,7 +166,6 @@ setup(
     ],
     tests_require = [
         'pytest',
-        'mock>=2.0.0',
         'mockredispy>=2.9.3',
         'sonic-config-engine'
     ],
@@ -176,7 +178,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC utilities command line cli CLI',

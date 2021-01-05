@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
@@ -30,11 +30,13 @@ class Level(Enum):
 
 
 report_level = syslog.LOG_ERR
+write_to_syslog = False
 
-
-def set_level(lvl):
+def set_level(lvl, log_to_syslog):
     global report_level
+    global write_to_syslog
 
+    write_to_syslog = log_to_syslog
     if (lvl == Level.INFO):
         report_level = syslog.LOG_INFO
 
@@ -48,7 +50,8 @@ def print_message(lvl, *args):
         for arg in args:
             msg += " " + str(arg)
         print(msg)
-        syslog.syslog(lvl, msg)
+        if write_to_syslog:
+            syslog.syslog(lvl, msg)
 
 
 def add_prefix(ip):
@@ -64,12 +67,12 @@ def add_prefix_ifnot(ip):
 
 
 def is_local(ip):
-    t = ipaddress.ip_address(ip.split("/")[0].decode('utf-8'))
+    t = ipaddress.ip_address(ip.split("/")[0])
     return t.is_link_local
 
 
 def is_default_route(ip):
-    t = ipaddress.ip_address(ip.split("/")[0].decode('utf-8'))
+    t = ipaddress.ip_address(ip.split("/")[0])
     return t.is_unspecified and ip.split("/")[1] == "0"
 
 
@@ -163,17 +166,17 @@ def get_interfaces():
 
 def filter_out_local_interfaces(keys):
     rt = []
-    local_if = set(['eth0', 'lo', 'docker0'])
+    local_if_re = ['eth0', 'lo', 'docker0', 'Loopback\d+']
 
     db = ConfigDBConnector()
     db.db_connect('APPL_DB')
-    
+
     for k in keys:
         e = db.get_entry('ROUTE_TABLE', k)
         if not e:
             # Prefix might have been added. So try w/o it.
             e = db.get_entry('ROUTE_TABLE', k.split("/")[0])
-        if not e or (e['ifname'] not in local_if):
+        if not e or all([not re.match(x, e['ifname']) for x in local_if_re]):
             rt.append(k)
 
     return rt
@@ -240,9 +243,10 @@ def main(argv):
     parser=argparse.ArgumentParser(description="Verify routes between APPL-DB & ASIC-DB are in sync")
     parser.add_argument('-m', "--mode", type=Level, choices=list(Level), default='ERR')
     parser.add_argument("-i", "--interval", type=int, default=0, help="Scan interval in seconds")
+    parser.add_argument("-s", "--log_to_syslog", action="store_true", default=False, help="Write message to syslog")
     args = parser.parse_args()
 
-    set_level(args.mode)
+    set_level(args.mode, args.log_to_syslog)
 
     if args.interval:
         if (args.interval < MIN_SCAN_INTERVAL):
