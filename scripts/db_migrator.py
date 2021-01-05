@@ -16,7 +16,7 @@ try:
         mocked_db_path = os.path.join(tests_path, "db_migrator_input")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
-        import mock_tables.dbconnector
+#        import mock_tables.dbconnector
 except KeyError:
     pass
 

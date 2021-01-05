@@ -60,7 +60,7 @@ class TestMellanoxBufferMigrator(object):
         db_before_migrate = scenario + '-input'
         db_after_migrate = scenario + '-expected'
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
-        db = self.mock_dedicated_config_db(db_before_migrate)
+        _ = self.mock_dedicated_config_db(db_before_migrate)
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
@@ -88,7 +88,6 @@ class TestMellanoxBufferMigrator(object):
     def test_mellanox_buffer_migrator_for_cold_reboot(self, sku_version, topo):
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
         sku, start_version = sku_version
-        version = start_version
         start_index = self.version_list.index(start_version)
         # Eventually, the config db should be migrated to the latest version
         expected_db = self.mock_dedicated_config_db(self.make_db_name_by_sku_topo_version(sku, topo, self.version_list[-1]))
