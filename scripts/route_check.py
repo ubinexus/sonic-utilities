@@ -165,7 +165,7 @@ def cmps(s1, s2):
     return 1
 
 
-def do_diff(t1, t2):
+def diff_sorted_lists(t1, t2):
     """
     helper to compare two sorted lists.
     :param t1: list 1
@@ -379,14 +379,14 @@ def check_routes():
     intf_appl = get_interfaces()
 
     # Diff APPL-DB routes & ASIC-DB routes
-    rt_appl_miss, rt_asic_miss = do_diff(rt_appl, rt_asic)
+    rt_appl_miss, rt_asic_miss = diff_sorted_lists(rt_appl, rt_asic)
 
     # Check missed ASIC routes against APPL-DB INTF_TABLE
-    _, rt_asic_miss = do_diff(intf_appl, rt_asic_miss)
+    _, rt_asic_miss = diff_sorted_lists(intf_appl, rt_asic_miss)
     rt_asic_miss = filter_out_default_routes(rt_asic_miss)
 
     # Check APPL-DB INTF_TABLE with ASIC table route entries
-    intf_appl_miss, _ = do_diff(intf_appl, rt_asic)
+    intf_appl_miss, _ = diff_sorted_lists(intf_appl, rt_asic)
 
     if rt_appl_miss:
         rt_appl_miss = filter_out_local_interfaces(rt_appl_miss)
@@ -396,10 +396,10 @@ def check_routes():
         adds, deletes = get_subscribe_updates(selector, subs)
 
         # Drop all those for which SET received
-        rt_appl_miss, _ = do_diff(rt_appl_miss, adds)
+        rt_appl_miss, _ = diff_sorted_lists(rt_appl_miss, adds)
 
         # Drop all those for which DEL received
-        rt_asic_miss, _ = do_diff(rt_asic_miss, deletes)
+        rt_asic_miss, _ = diff_sorted_lists(rt_asic_miss, deletes)
 
     if rt_appl_miss:
         results["missed_ROUTE_TABLE_routes"] = rt_appl_miss
