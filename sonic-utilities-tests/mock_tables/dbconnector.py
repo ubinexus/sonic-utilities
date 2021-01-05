@@ -92,7 +92,6 @@ class SwssSyncClient(mockredis.MockRedis):
             fname = os.path.join(INPUT_DIR, namespace, fname)
         else:
             fname = os.path.join(INPUT_DIR, fname)
-        
 
         if os.path.exists(fname):
             with open(fname) as f:

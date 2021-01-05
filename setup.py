@@ -57,6 +57,7 @@ setup(
     package_data={
         'show': ['aliases.ini'],
         'sonic-utilities-tests': ['acl_input/*',
+                                  'db_migrator_input/config_db/*.json',
                                   'mock_tables/*.py',
                                   'mock_tables/*.json',
                                   'mock_tables/asic0/*.json',
