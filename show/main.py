@@ -1103,17 +1103,215 @@ def interfaces(interfacename, verbose):
 
 
 # 'snmp' subcommand ("show runningconfiguration snmp")
-@runningconfiguration.command()
-@click.argument('server', required=False)
+@runningconfiguration.group(invoke_without_command=True)
+@clicommon.pass_db
+@click.pass_context
+def snmp(ctx, db):
+    """Show SNMP running configuration"""
+    if ctx.invoked_subcommand is None:
+       show_run_snmp_global(db.cfgdb)
+
+
+# ("show runningconfiguration snmp location")
+@snmp.command('location')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="Display the output in JSON format")
+@clicommon.pass_db
+def location(config_db, json_output):
+    """show SNMP running configuration location"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    snmp = config_db.get_table('SNMP')
+    snmp_header = ["Location"]
+    snmp_body = []
+    if json_output:
+        try:
+            if snmp['LOCATION']:
+                click.echo(snmp['LOCATION'])
+        except KeyError:
+            click.echo("SNMP Location not set")
+    else:
+        try:
+            if snmp['LOCATION']:
+                snmp_location = [snmp['LOCATION']['Location']]
+                snmp_body.append(snmp_location)
+        except KeyError:
+            snmp['LOCATION'] = ''        
+        click.echo(tabulate(snmp_body, snmp_header))
+
+
+# '("show runningconfiguration snmp contact")
+@snmp.command('contact')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="Display the output in JSON format")
+@clicommon.pass_db
+def contact(config_db, json_output):
+    """show SNMP running configuration contact"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    snmp = config_db.get_table('SNMP')
+    snmp_header = ["Contact", "Contact Email"]
+    snmp_body = []
+    if json_output:
+        try:
+            if snmp['CONTACT']:
+                click.echo(snmp['CONTACT'])
+        except KeyError:
+            click.echo("SNMP Contact not set")
+    else:
+        try:
+            if snmp['CONTACT']:
+                snmp_contact = list(snmp['CONTACT'].keys())
+                snmp_contact_email = [snmp['CONTACT'][snmp_contact[0]]]
+                snmp_body.append([snmp_contact[0], snmp_contact_email[0]])
+        except KeyError:
+            snmp['CONTACT'] = ''
+        click.echo(tabulate(snmp_body, snmp_header))
+
+
+# '("show runningconfiguration snmp community")
+@snmp.command('community')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="Display the output in JSON format")
+@clicommon.pass_db
+def community(config_db, json_output):
+    """show SNMP running configuration community"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    snmp_comm_header = ["Community String", "Community Type"]
+    snmp_comm_body = []
+    snmp_comm_keys = config_db.get_table('SNMP_COMMUNITY')
+    snmp_comm_strings = snmp_comm_keys.keys()
+    if json_output:
+        try:
+            if snmp_comm_keys:
+                click.echo(snmp_comm_keys)
+        except KeyError:
+            click.echo("SNMP Community not set")
+    else:
+        for line in snmp_comm_strings:
+            comm_string = line
+            comm_string_type = snmp_comm_keys[line]['TYPE']
+            snmp_comm_body.append([comm_string, comm_string_type])
+        click.echo(tabulate(snmp_comm_body, snmp_comm_header))
+
+
+# ("show runningconfiguration snmp server")
+@snmp.command('server')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def snmp(server, verbose):
-    """Show SNMP information"""
-    cmd = "sudo docker exec snmp cat /etc/snmp/snmpd.conf"
+@clicommon.pass_db
+def users(server, verbose):
+    """show SNMP running configuration server"""
+    cmd = "sudo docker exec snmp cat /etc/snmp/snmpd.conf | grep -i agentAddress"
+    run_command(cmd,display_cmd=verbose)
 
-    if server is not None:
-        cmd += " | grep -i agentAddress"
 
-    run_command(cmd, display_cmd=verbose)
+# '("show runningconfiguration snmp user")
+@snmp.command('user')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="Display the output in JSON format")
+@clicommon.pass_db
+def users(config_db, json_output):
+    """show SNMP running configuration user"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    snmp_users_keys = config_db.get_table('SNMP_USER')
+    snmp_users = snmp_users_keys.keys()
+    snmp_user_header = ['User', "Type", "Auth Type", "Auth Password", "Encryption Type", "Encryption Password"]
+    snmp_user_body = []
+    if json_output:
+        try:
+            if snmp_users_keys:
+                click.echo(snmp_users_keys)
+        except KeyError:
+            click.echo("SNMP User not set")
+    else:
+        for line in snmp_users:
+            snmp_user = line
+            try:
+                snmp_user_auth_type = snmp_users_keys[line]['SNMP_USER_AUTH_TYPE']
+            except KeyError:
+                snmp_user_auth_type = 'Null'
+            try:
+                snmp_user_auth_password = snmp_users_keys[line]['SNMP_USER_AUTH_PASSWORD']
+            except KeyError:
+                snmp_user_auth_password = 'Null'
+            try:
+                snmp_user_encryption_type = snmp_users_keys[line]['SNMP_USER_ENCRYPTION_TYPE']
+            except KeyError:
+                snmp_user_encryption_type = 'Null'
+            try:
+                snmp_user_encryption_password = snmp_users_keys[line]['SNMP_USER_ENCRYPTION_PASSWORD']
+            except KeyError:
+                snmp_user_encryption_password = 'Null'
+            try:
+                snmp_user_type = snmp_users_keys[line]['SNMP_USER_TYPE']
+            except KeyError:
+                snmp_user_type = 'Null'
+            snmp_user_body.append([snmp_user, snmp_user_type, snmp_user_auth_type, snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
+        click.echo(tabulate(snmp_user_body, snmp_user_header))
+
+
+# ("show runningconfiguration snmp")
+def show_run_snmp_global(config_db):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    snmp_global_table = config_db.get_table('SNMP')
+    snmp_comm_table = config_db.get_table('SNMP_COMMUNITY')
+    snmp_users_table = config_db.get_table('SNMP_USER')
+    snmp_location_header = ["Location"]
+    snmp_location_body = []
+    snmp_contact_header = ["SNMP_CONTACT", "SNMP_CONTACT_EMAIL"]
+    snmp_contact_body = []
+    snmp_comm_header = ["Community String", "Community Type"]
+    snmp_comm_body = []
+    snmp_user_header = ['User', "Type", "Auth Type", "Auth Password", "Encryption Type", "Encryption Password"]
+    snmp_user_body = []
+    try:
+        if snmp_global_table['LOCATION']:
+            snmp_location = [snmp_global_table['LOCATION']['Location']]
+            snmp_location_body.append(snmp_location)
+    except KeyError:
+        snmp_global_table['LOCATION'] = ''
+    click.echo(tabulate(snmp_location_body, snmp_location_header))
+    click.echo("\n")
+    try:
+        if snmp_global_table['CONTACT']:
+            snmp_contact = list(snmp_global_table['CONTACT'].keys())
+            snmp_contact_email = [snmp_global_table['CONTACT'][snmp_contact[0]]]
+            snmp_contact_body.append([snmp_contact[0], snmp_contact_email[0]])
+    except KeyError:
+        snmp_global_table['CONTACT'] = ''
+    click.echo(tabulate(snmp_contact_body, snmp_contact_header))
+    click.echo("\n")
+    snmp_comm_strings = snmp_comm_table.keys()
+    snmp_users = snmp_users_table.keys() 
+    for line in snmp_comm_strings:
+        comm_string = line
+        comm_string_type = snmp_comm_table[line]['TYPE']
+        snmp_comm_body.append([comm_string, comm_string_type])
+    click.echo(tabulate(snmp_comm_body, snmp_comm_header))
+    click.echo("\n")
+    for line in snmp_users:
+        snmp_user = line
+        try:
+            snmp_user_auth_type = snmp_users_table[line]['SNMP_USER_AUTH_TYPE']
+        except KeyError:
+            snmp_user_auth_type = 'Null'
+        try:
+            snmp_user_auth_password = snmp_users_table[line]['SNMP_USER_AUTH_PASSWORD']
+        except KeyError:
+            snmp_user_auth_password = 'Null'
+        try:
+            snmp_user_encryption_type = snmp_users_table[line]['SNMP_USER_ENCRYPTION_TYPE']
+        except KeyError:
+            snmp_user_encryption_type = 'Null'
+        try:
+            snmp_user_encryption_password = snmp_users_table[line]['SNMP_USER_ENCRYPTION_PASSWORD']
+        except KeyError:
+            snmp_user_encryption_password = 'Null'
+        try:
+            snmp_user_type = snmp_users_table[line]['SNMP_USER_TYPE']
+        except KeyError:
+            snmp_user_type = 'Null'
+        snmp_user_body.append([snmp_user, snmp_user_type, snmp_user_auth_type, snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
+    click.echo(tabulate(snmp_user_body, snmp_user_header))
 
 
 # 'ntp' subcommand ("show runningconfiguration ntp")
