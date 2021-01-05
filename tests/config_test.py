@@ -11,7 +11,7 @@ load_minigraph_command_output="""\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: pfcwd start_default
-Running command: config qos reload
+Running command: config qos reload --no-dynamic-buffer
 Restarting SONiC target ...
 Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
@@ -46,3 +46,4 @@ class TestLoadMinigraph(object):
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")
+
