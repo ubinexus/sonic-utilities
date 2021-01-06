@@ -1709,38 +1709,38 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
 
 **show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
 
-This command displays all the details of IPv6 Border Gateway Protocol (BGP) prefixes.  
+This command displays all the details of IPv6 Border Gateway Protocol (BGP) prefixes.
 
-- Usage: 
+- Usage:
 
-  
+
   ```
-  show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]   
+  show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
   ```
 
 - Example:
 
   NOTE: The "longer-prefixes" option is only available when a network prefix with a "/" notation is used.
- 
+
   ```
   admin@sonic:~$ show ipv6 bgp network
 
-  admin@sonic:~$ show ipv6 bgp network fc00::72 bestpath 
+  admin@sonic:~$ show ipv6 bgp network fc00::72 bestpath
 
   admin@sonic:~$ show ipv6 bgp network fc00::72 multipath
 
-  admin@sonic:~$ show ipv6 bgp network fc00::72 json 
+  admin@sonic:~$ show ipv6 bgp network fc00::72 json
 
   admin@sonic:~$ show ipv6 bgp network fc00::72/64 bestpath
 
   admin@sonic:~$ show ipv6 bgp network fc00::72/64 multipath
 
-  admin@sonic:~$ show ipv6 bgp network fc00::72/64 json 
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 json
 
   admin@sonic:~$ show ipv6 bgp network fc00::72/64 longer-prefixes
   ```
- 
-  
+
+
 
 
 **show route-map**
@@ -2196,7 +2196,7 @@ which will make corresponding feature docker container to start/stop.
 
 Also SONiC provide capability in which Feature docker container can be automatically shut
 down and restarted if one of critical processes running in the container exits
-unexpectedly. Restarting the entire feature container ensures that configuration is 
+unexpectedly. Restarting the entire feature container ensures that configuration is
 reloaded and all processes in the feature container get restarted, thus increasing the
 likelihood of entering a healthy state.
 
@@ -2272,7 +2272,7 @@ This command will configure the state for a specific feature.
 - Example:
   ```
   admin@sonic:~$ sudo config feature state bgp disabled
-  ``` 
+  ```
 
 **config feature autorestart <feature_name> <autorestart_status>**
 
@@ -2286,7 +2286,7 @@ This command will configure the status of auto-restart for a specific feature co
 - Example:
   ```
   admin@sonic:~$ sudo config feature autorestart bgp disabled
-  ``` 
+  ```
 NOTE: If the existing state or auto-restart value for a feature is "always_enabled" then config
 commands are don't care and will not update state/auto-restart value.
 
@@ -2340,13 +2340,16 @@ Subsequent pages explain each of these commands in detail.
 
 **show interfaces counters**
 
-This show command displays packet counters for all interfaces since the last time the counters were cleared. There is no facility to display counters for one specific interface. Optional argument "-a" does not have any significance in this command.
+This show command displays packet counters for all interfaces since the last time the counters were cleared.
+In order to diplay L3 counters, "rif" subcommand can be used.
+There is no facility to display counters for one specific interface. Optional argument "-a" does not have any significance in this command.
 Optional argument "-c" can be used to clear the counters for all interfaces.
 Optional argument "-p" specify a period (in seconds) with which to gather counters over.
 
 - Usage:
   ```
   show interfaces counters [-a|--printall] [-p|--period <period>]
+  show interfaces counters rif [-p|--period <period>] [<interface_name>] [--versbose]
   ```
 
 - Example:
@@ -2361,6 +2364,49 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet16        U   16,679,692,972   13.83 MB/s      0.27%         0    17,605         0   18,206,586,265   17.51 MB/s      0.34%         0         0         0
    Ethernet20        U   47,983,339,172   35.89 MB/s      0.70%         0     2,174         0   58,986,354,359   51.83 MB/s      1.01%         0         0         0
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
+  ```
+
+The "rif" subcommand is used to display L3 interface counters. L3 interfaces include router interfaces, portchannels and vlan interfaces.
+
+- NOTE:
+
+  In order to enable rif counters, use ```counterpoll rif enable``` command.
+
+  In order to disable rif counters, use ```counterpoll rif disable``` command.
+
+
+- Example:
+
+    ```
+    admin@sonic:~$ show interfaces counters rif
+              IFACE    RX_OK      RX_BPS    RX_PPS    RX_ERR    TX_OK    TX_BPS    TX_PPS    TX_ERR
+    ---------------  -------  ----------  --------  --------  -------  --------  --------  --------
+    PortChannel0001   62,668  107.81 B/s    1.34/s         3        6  0.02 B/s    0.00/s         0
+    PortChannel0002   62,645  107.77 B/s    1.34/s         3        2  0.01 B/s    0.00/s         0
+    PortChannel0003   62,481  107.56 B/s    1.34/s         3        3  0.01 B/s    0.00/s         0
+    PortChannel0004   62,732  107.88 B/s    1.34/s         2        3  0.01 B/s    0.00/s         0
+           Vlan1000        0    0.00 B/s    0.00/s         0        0  0.00 B/s    0.00/s         0
+
+    ```
+
+Optionally, you can specify a layer 3 interface name to display the counters in single interface mode.
+
+- Example
+
+  ```
+  admin@sonic:~$ show interfaces counters rif PortChannel0001
+  PortChannel0001
+  ---------------
+          RX:
+                3269 packets
+              778494 bytesq
+                   3 error packets
+                 292 error bytes
+          TX:
+                   0 packets
+                   0 bytes
+                   0 error packets
+                   0 error bytes
   ```
 
 Optionally, you can specify a period (in seconds) with which to gather counters over. Note that this function will take `<period>` seconds to execute.
@@ -2379,10 +2425,19 @@ Optionally, you can specify a period (in seconds) with which to gather counters 
   Ethernet24        U      173   16.09 KB/s      0.00%         0         0         0      169   11.39 KB/s      0.00%         0         0         0
   ```
 
+
+
 - NOTE: Interface counters can be cleared by the user with the following command:
   ```
   root@sonic:~# sonic-clear counters
   ```
+
+- NOTE: Layer 3 interface counters can be cleared by the user with the following command:
+
+  ```
+  root@sonic:~# sonic-clear rifcounters
+  ```
+
 
 **show interfaces description**
 
@@ -3395,7 +3450,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#mirror
 
 **show nat config**
 
-This command displays the NAT configuration. 
+This command displays the NAT configuration.
 
 - Usage:
   ```
@@ -3448,7 +3503,7 @@ With no optional arguments, the whole NAT configuration is displayed.
 
 **show nat statistics**
 
-This command displays the NAT translation statistics for each entry. 
+This command displays the NAT translation statistics for each entry.
 
 - Usage:
   ```
@@ -3461,24 +3516,24 @@ This command displays the NAT translation statistics for each entry.
 
   Protocol Source           Destination          Packets          Bytes
   -------- ---------        --------------       -------------    -------------
-  all      10.0.0.1         ---                            802          1009280     
-  all      10.0.0.2         ---                             23             5590            
-  tcp      20.0.0.1:4500    ---                            110            12460         
-  udp      20.0.0.1:4000    ---                           1156           789028            
-  tcp      20.0.0.1:6000    ---                             30            34800         
-  tcp      20.0.0.1:5000    65.55.42.1:2000                128           110204     
+  all      10.0.0.1         ---                            802          1009280
+  all      10.0.0.2         ---                             23             5590
+  tcp      20.0.0.1:4500    ---                            110            12460
+  udp      20.0.0.1:4000    ---                           1156           789028
+  tcp      20.0.0.1:6000    ---                             30            34800
+  tcp      20.0.0.1:5000    65.55.42.1:2000                128           110204
   tcp      20.0.0.1:5500    65.55.42.1:2000                  8             3806
   ```
 
 **show nat translations**
 
-This command displays the NAT translation entries. 
+This command displays the NAT translation entries.
 
 - Usage:
   ```
   show nat translations [count]
   ```
-Giving the optional count argument displays only the details about the number of translation entries. 
+Giving the optional count argument displays only the details about the number of translation entries.
 - Example:
   ```
   root@sonic:/# show nat translations
@@ -3640,7 +3695,7 @@ config nat remove {binding (binding-name) | bindings}
   --------------  -----------  -------------  ----------  --------------
   bind1           pool1        acl1           snat        ---
   bind2           pool2                       snat        ---
-  ```  
+  ```
 
 **config nat add interface**
 
@@ -3666,7 +3721,7 @@ config nat remove {interface (interface-name) | interfaces}
   Ethernet28       1
   Ethernet22       0
   Vlan2091         0
-  ```  
+  ```
 
 **config nat set**
 
@@ -3687,7 +3742,7 @@ config nat reset {tcp-timeout | timeout | udp-timeout}
   ```
   root@sonic:/# config nat add set tcp-timeout 3600
 
-  root@sonic:/# show nat config globalvalues 
+  root@sonic:/# show nat config globalvalues
 
   Admin Mode     : enabled
   Global Timeout : 600 secs
@@ -3851,7 +3906,7 @@ This command starts PFC Watchdog with the default settings.
   config pfcwd start_default
   ```
 
-Default values are the following:  
+Default values are the following:
 
    - detection time - 200ms
    - restoration time - 200ms
@@ -3907,7 +3962,7 @@ Chassis1   N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Ou
 
 **config platform firmware install**
 
-This command is used to install a platform component firmware.  
+This command is used to install a platform component firmware.
 Both modular and non modular chassis platforms are supported.
 
 - Usage:
@@ -3936,10 +3991,10 @@ Supported options:
 
 **config platform firmware update**
 
-This command is used for automatic FW update of all available platform components.  
+This command is used for automatic FW update of all available platform components.
 Both modular and non modular chassis platforms are supported.
 
-Automatic FW update requires `platform_components.json` to be created and placed at:  
+Automatic FW update requires `platform_components.json` to be created and placed at:
 sonic-buildimage/device/<platform_name>/<onie_platform>/platform_components.json
 
 Example:
@@ -4050,8 +4105,8 @@ Note: the default option is --image=current (current/next values are taken from 
 
 **CPLD update**
 
-On Mellanox platforms CPLD update can be done either for single or for all components at once.  
-The second approach is preferred. In this case an aggregated `vme` binary is used and  
+On Mellanox platforms CPLD update can be done either for single or for all components at once.
+The second approach is preferred. In this case an aggregated `vme` binary is used and
 CPLD component can be specified arbitrary.
 
 - Example:
@@ -4204,7 +4259,7 @@ Command takes two optional arguements given below.
 1) min-links  - minimum number of links required to bring up the portchannel
 2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/Azure/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
 
-A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked. 
+A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked.
 
 - Usage:
   ```
@@ -4895,9 +4950,9 @@ This command displays the state of all the SONiC processes running inside a dock
   ---------------------------
   USER       PID PPID  C STIME TTY          TIME CMD
   root         1    0  0 05:26 ?        00:00:12 /usr/bin/python /usr/bin/supervisord
-  root        18    1  0 05:26 ?        00:00:00 /usr/sbin/rsyslogd -n               
-  root        23    1  0 05:26 ?        00:00:01 /usr/bin/natmgrd                    
-  root        34    1  0 05:26 ?        00:00:00 /usr/bin/natsyncd 
+  root        18    1  0 05:26 ?        00:00:00 /usr/sbin/rsyslogd -n
+  root        23    1  0 05:26 ?        00:00:01 /usr/bin/natmgrd
+  root        34    1  0 05:26 ?        00:00:00 /usr/bin/natsyncd
 
   snmp    docker
   ---------------------------
