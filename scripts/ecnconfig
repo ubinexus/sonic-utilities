@@ -52,7 +52,7 @@ import json
 import os
 import sys
 
-import swsssdk
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 
 # mock the redis for unit test purposes #
@@ -104,7 +104,7 @@ class EcnConfig(object):
         self.verbose = verbose
 
         # Set up db connections
-        self.db = swsssdk.ConfigDBConnector()
+        self.db = ConfigDBConnector()
         self.db.connect()
 
     def list(self):
@@ -204,10 +204,10 @@ class EcnQ(object):
         self.verbose = verbose
 
         # Set up db connections
-        self.config_db = swsssdk.ConfigDBConnector()
+        self.config_db = ConfigDBConnector()
         self.config_db.connect()
 
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector(host="127.0.0.1")
         self.db.connect(self.db.CONFIG_DB)
 
         self.gen_ports_key()
