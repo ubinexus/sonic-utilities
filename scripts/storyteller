@@ -11,7 +11,7 @@ import subprocess
 
 regex_dict = {
                 'bgp'       : 'bgpcfgd',
-                'crash'     : 'what\|unexpected exception\|notify_OA_about_syncd_exception\|SIG',
+                'crash'     : 'what\|unexpected exception\|notify_OA_about_syncd_exception\|SIG\|not expected',
                 'interface' : 'updatePortOperStatus\|Configure .* to',
                 'lag'       : 'link becomes\|addLag',
                 'reboot'    : 'BOOT\|rc.local\|old_config\|minigraph.xml\|Rebooting\|reboot\|executeOperationsOnAsic\|getAsicView\|dumpVidToAsicOperatioId',
