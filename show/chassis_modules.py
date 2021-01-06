@@ -35,7 +35,7 @@ def status(db, chassis_module_name):
 
     key_pattern = '*'
     if chassis_module_name:
-        key_pattern = '|'+chassis_module_name
+        key_pattern = '|' + chassis_module_name
 
     keys = state_db.keys(state_db.STATE_DB, CHASSIS_MODULE_INFO_TABLE + key_pattern)
     if not keys:
@@ -45,7 +45,7 @@ def status(db, chassis_module_name):
     table = []
     for key in natsorted(keys):
         key_list = key.split('|')
-        if len(key_list) != 2: # error data in DB, log it and ignore
+        if len(key_list) != 2:  # error data in DB, log it and ignore
             print('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MODULE_INFO_TABLE))
             continue
 
@@ -78,7 +78,7 @@ def midplane_status(chassis_module_name):
 
     key_pattern = '*'
     if chassis_module_name:
-        key_pattern = '|'+chassis_module_name
+        key_pattern = '|' + chassis_module_name
 
     keys = state_db.keys(state_db.STATE_DB, CHASSIS_MIDPLANE_INFO_TABLE + key_pattern)
     if not keys:
@@ -88,7 +88,7 @@ def midplane_status(chassis_module_name):
     table = []
     for key in natsorted(keys):
         key_list = key.split('|')
-        if len(key_list) != 2: # error data in DB, log it and ignore
+        if len(key_list) != 2:  # error data in DB, log it and ignore
             print('Warn: Invalid Key {} in {} table'.format(key, CHASSIS_MIDPLANE_INFO_TABLE))
             continue
 
