@@ -20,9 +20,9 @@ regex_dict = {
 
 
 def exec_cmd(cmd):
-    out = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+    out = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, text=True)
     stdout, stderr = out.communicate()
-    return out.returncode, stdout.decode(encoding='UTF-8'), stderr.decode(encoding='UTF-8')
+    return out.returncode, stdout, stderr
 
 
 def build_options(after=0, before=0, context=0):
