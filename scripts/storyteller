@@ -78,7 +78,6 @@ def main():
     log = args.log
     reg = build_regex(args.category)
 
-
     find_log(log, reg, args.after, args.before, args.context)
 
 
