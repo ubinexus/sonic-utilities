@@ -4457,7 +4457,7 @@ def add_mclag_unique_ip(ctx, interface_names):
             ctx.fail("%s is configured with Non default VRF, remove the VRF configuration and reconfigure after enabling unique IP configuration."%(str(interface_name)))
 
         #IP should be configured after unique IP configuration
-        for k,v in db.get_table('VLAN_INTERFACE').iteritems():
+        for k,v in db.get_table('VLAN_INTERFACE').items():
             if type(k) == tuple:
                 (intf_name, ip) = k
                 if intf_name == interface_name and ip != 0:
@@ -4480,7 +4480,7 @@ def del_mclag_unique_ip(ctx, interface_names):
         if intf_vrf:
             ctx.fail("%s is configured with Non default VRF, remove the VRF configuration and reconfigure after disabling unique IP configuration."%(str(interface_name)))
         #IP should be configured after removing unique IP configuration
-        for k,v in db.get_table('VLAN_INTERFACE').iteritems():
+        for k,v in db.get_table('VLAN_INTERFACE').items():
             if type(k) == tuple:
                 (intf_name, ip) = k
                 if intf_name == interface_name and ip != 0:
