@@ -105,9 +105,7 @@ class PfcwdCli(object):
     ):
         self.db = None
         self.config_db = None
-        self.multi_asic = multi_asic_util.MultiAsic(
-            display, namespace, db
-        )
+        self.multi_asic = multi_asic_util.MultiAsic(display, namespace, db)
         self.table = []
         self.all_ports = []
 
@@ -339,6 +337,10 @@ class PfcwdCli(object):
         )
 
         if len(ports) == 0:
+            click.echo("Ports not selected")
+            return
+
+        if 'all' in ports:
             ports = all_ports
 
         for port in ports:
