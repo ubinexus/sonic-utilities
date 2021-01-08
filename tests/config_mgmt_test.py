@@ -184,9 +184,9 @@ class TestConfigMgmt(TestCase):
                         if isinstance(conf[it], list) and isinstance(uconf[it], list):
                             conf[it] = list(uconf[it])
                             '''
-                                config db and yang model, both converts []->[""].
-                                i.e. empty list to list of empty string. So we need
-                                to replicate same behaviour here.
+                                configDb stores []->[""], i.e. empty list as
+                                list of empty string. So we need to replicate
+                                same behaviour here.
                             '''
                             if len(conf[it]) == 0:
                                 conf[it] = [""]
@@ -273,7 +273,7 @@ class TestConfigMgmt(TestCase):
                     'ports': ['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
                 },
                 'NO-NSW-PACL-TEST': {
-                    'ports': ['', 'Ethernet11']
+                    'ports': ['Ethernet11']
                 }
             },
             'INTERFACE': {
