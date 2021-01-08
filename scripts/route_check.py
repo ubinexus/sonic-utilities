@@ -95,7 +95,7 @@ def set_level(lvl, log_to_syslog):
 
 def print_message(lvl, *args):
     """
-    print and log the message for give level.
+    print and log the message for given level.
     :param lvl: Log level for this message as ERR/INFO/DEBUG
     :param args: message as list of strings or convertible to string
     :return None
