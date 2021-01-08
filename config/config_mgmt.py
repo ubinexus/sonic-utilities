@@ -146,7 +146,7 @@ class ConfigMgmt():
         # log debug only if enabled
         if self.DEBUG == False and logLevel == syslog.LOG_DEBUG:
             return
-        if flags.interactive !=0 and doPrint == True:
+        if doPrint == True:
             print("{}".format(msg))
         syslog.openlog(self.SYSLOG_IDENTIFIER)
         syslog.syslog(logLevel, msg)
