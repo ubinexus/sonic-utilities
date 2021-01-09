@@ -2524,7 +2524,8 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_is_in_portchannel(config_db, interface_name):
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("'interface_name' is in portchannel!")
 
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
