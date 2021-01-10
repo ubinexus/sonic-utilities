@@ -846,6 +846,50 @@ def status(interfacename, namespace, display, verbose):
         cmd += " -n {}".format(namespace)
     run_command(cmd, display_cmd=verbose)
 
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def tx_error_monitor():
+    """show tx error monitor"""
+    pass
+
+# show tx_error_monitor config
+@tx_error_monitor.command()
+def config():
+    """show tx error monitor configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('TX_ERROR_CFG')
+
+    for param in data:
+        value = data[param]['value']
+        if param.lower().endswith('period'):
+            conf = 'polling_period'
+        else:
+            conf = 'threshold'
+
+        click.echo('%s value is %s' % (conf, value))
+
+#show tx_error_monitor state
+@tx_error_monitor.command()
+def state():
+    """show tx error monitor ports states"""
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.STATE_DB, False) # make only one attempt
+    statedb_perfix = 'TX_ERROR_STATE_TABLE|'
+    _hash = '{}{}'.format(statedb_perfix, '*')
+    statedb_keys = db.keys(db.STATE_DB, _hash)
+
+    state_list = []
+    for key in sorted(statedb_keys):
+        curr_state = db.get(db.STATE_DB, key, 'port_state')
+        if key.startswith(statedb_perfix):
+            key = key[len(statedb_perfix):]
+        state_list.append([key, curr_state])
+
+    header = ['Port', 'State']
+    if not state_list:
+        click.echo("State list is empty.")
+    else:
+        click.echo(tabulate(state_list, headers=header))
 
 # 'counters' subcommand ("show interfaces counters")
 @interfaces.group(invoke_without_command=True)

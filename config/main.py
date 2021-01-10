@@ -1015,6 +1015,23 @@ def load_minigraph(no_service_restart):
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 
+@config.command("tx_error_monitor")
+@click.argument('param', required=True)
+@click.argument('value', required=True)
+def tx_error_monitor_set(param, value):
+    if param.lower() != 'threshold' and param.lower() != 'polling_period':
+        click.echo("Invalid argument")
+        return
+    if value.isnumeric() == False:
+        click.echo("Invalid value")
+        return
+
+    table_name = "TX_ERROR_CFG"
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    click.echo(param)
+    config_db.set_entry(table_name, param, {"value":value})
+
 #
 # 'hostname' command
 #
