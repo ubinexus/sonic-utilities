@@ -1333,6 +1333,11 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     if interface_name_is_valid(db, port_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
+    # if port is a member of a portchannel. can't be startup while portchannel is down
+    entry = db.get_entry("PORTCHANNEL", portchannel_name)
+    if entry and entry.get('admin_status') == "down":
+        db.mod_entry('PORT', (port_name), {'admin_status': "down"})
+
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -2171,12 +2176,20 @@ def startup(ctx, interface_name):
     port_dict = config_db.get_table('PORT')
     for port_name in port_dict:
         if port_name in intf_fs:
+            # if port is a member of a portchannel. can't startup when portchannel is down
+            keys = [ (k, v) for k, v in config_db.get_table('PORTCHANNEL_MEMBER') if v == port_name ]
+            for k in keys:
+                if config_db.get_entry("PORTCHANNEL",  k[0]).get('admin_status') == "down":
+                    ctx.fail("{} is a member of a portchannel. and portchannel admin is down".format(port_name))
             config_db.mod_entry("PORT", port_name, {"admin_status": "up"})
-
     portchannel_list = config_db.get_table("PORTCHANNEL")
     for po_name in portchannel_list:
         if po_name in intf_fs:
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
+            # if PORTCHANNEL startup, PORTCHANNEL member will be up.
+            keys = [ (k, v) for k, v in config_db.get_table('PORTCHANNEL_MEMBER') if k == po_name ]
+            for k in keys:
+                config_db.mod_entry('PORT', (k[1]), {"admin_status": "up"})
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
     for sp_name in subport_list:
@@ -2216,6 +2229,10 @@ def shutdown(ctx, interface_name):
     portchannel_list = config_db.get_table("PORTCHANNEL")
     for po_name in portchannel_list:
         if po_name in intf_fs:
+            # if PORTCHANNEL shutdown, PORTCHANNEL member should be shutdown.
+            portchannel_member_list = config_db.get_table("PORTCHANNEL_MEMBER")
+            for pc_mbr in portchannel_member_list.keys():
+                config_db.mod_entry('PORT', (pc_mbr[1]), {"admin_status": "down"})
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
