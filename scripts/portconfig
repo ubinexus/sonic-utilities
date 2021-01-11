@@ -17,14 +17,30 @@ optional arguments:
   -m     --mtu                 port mtu in bytes
   -n     --namesapce           Namespace name
 """
+import os
 import sys
 import argparse
-import swsssdk
+from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+except KeyError:
+    pass
 
 PORT_TABLE_NAME = "PORT"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
 PORT_FEC_CONFIG_FIELD_NAME = "fec"
 PORT_MTU_CONFIG_FIELD_NAME = "mtu"
+PORT_AUTONEG_CONFIG_FIELD_NAME = "autoneg"
+PORT_ADV_SPEEDS_CONFIG_FIELD_NAME = "adv_speeds"
+PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME = "interface_type"
+PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME = "adv_interface_types"
 
 class portconfig(object):
     """
@@ -35,9 +51,9 @@ class portconfig(object):
 
         # Set up db connections
         if namespace is None:
-            self.db = swsssdk.ConfigDBConnector()
+            self.db = ConfigDBConnector()
         else:
-            self.db = swsssdk.ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            self.db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         self.db.connect()
 
         # check whether table for this port exists
@@ -66,6 +82,27 @@ class portconfig(object):
             print("Setting mtu %s on port %s" % (mtu, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
 
+    def set_autoneg(self, port, mode):
+        if self.verbose:
+            print("Setting autoneg %s on port %s" % (mode, port))
+        mode = '1' if mode == 'enabled' else '0'
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_AUTONEG_CONFIG_FIELD_NAME: mode})
+
+    def set_adv_speeds(self, port, adv_speeds):
+        if self.verbose:
+            print("Setting adv_speeds %s on port %s" % (adv_speeds, port))
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
+
+    def set_interface_type(self, port, interface_type):
+        if self.verbose:
+            print("Setting interface_type %s on port %s" % (interface_type, port))
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
+
+    def set_adv_interface_types(self, port, adv_interface_types):
+        if self.verbose:
+            print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME: adv_interface_types})
+
 def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',
                          formatter_class=argparse.RawTextHelpFormatter)
@@ -78,22 +115,38 @@ def main():
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
                         help = 'The asic namespace whose DB instance we need to connect', default=None)
+    parser.add_argument('-an', '--autoneg', type = str, required = False,
+                        help = 'port auto negotiation value in str', default=None)
+    parser.add_argument('-S', '--adv-speeds', type = str, required = False,
+                        help = 'port advertised speeds value in str', default=None)
+    parser.add_argument('-t', '--interface-type', type = str, required = False,
+                        help = 'port interface type value in str', default=None)
+    parser.add_argument('-T', '--adv-interface-types', type = str, required = False,
+                        help = 'port advertised interface types value in str', default=None)
     args = parser.parse_args()
 
     if args.namespace is not None:
-        swsssdk.SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+        SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
 
     try:
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
             port.list_params(args.port)
-        elif args.speed or args.fec or args.mtu:
+        elif args.speed or args.fec or args.mtu or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types:
             if args.speed:
                 port.set_speed(args.port, args.speed)
             if args.fec:
                 port.set_fec(args.port, args.fec)
             if args.mtu:
                 port.set_mtu(args.port, args.mtu)
+            if args.autoneg:
+                port.set_autoneg(args.port, args.autoneg)
+            if args.adv_speeds:
+                port.set_adv_speeds(args.port, args.adv_speeds)
+            if args.interface_type:
+                port.set_interface_type(args.port, args.interface_type)
+            if args.adv_interface_types:
+                port.set_adv_interface_types(args.port, args.adv_interface_types)
         else:
             parser.print_help()
             sys.exit(1)

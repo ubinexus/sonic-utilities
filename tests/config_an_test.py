@@ -1,0 +1,53 @@
+import click
+import config.main as config
+import operator
+import os
+import pytest
+import sys
+
+from click.testing import CliRunner
+from utilities_common.db import Db
+
+test_path = os.path.dirname(os.path.abspath(__file__))
+modules_path = os.path.dirname(test_path)
+scripts_path = os.path.join(modules_path, "scripts")
+sys.path.insert(0, modules_path)
+
+
+@pytest.fixture(scope='module')
+def ctx(scope='module'):
+    db = Db()
+    obj = {'config_db':db.cfgdb, 'namespace': ''}  
+    yield obj
+
+
+class TestConfigInterface(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ["PATH"] += os.pathsep + scripts_path
+        os.environ["UTILITIES_UNIT_TESTING"] = "1"
+
+    def test_config_autoneg(self, ctx):
+        self.basic_check("autoneg", ["Ethernet0", "enabled"], ctx)
+        self.basic_check("autoneg", ["Ethernet0", "disabled"], ctx)
+        self.basic_check("autoneg", ["Invalid", "enabled"], ctx, operator.ne)
+        self.basic_check("autoneg", ["Ethernet0", "invalid"], ctx, operator.ne)
+
+    def test_config_adv_speeds(self, ctx):
+        self.basic_check("advertised-speeds", ["Ethernet0", "50000,100000"], ctx)
+        self.basic_check("advertised-speeds", ["Invalid", "50000,100000"], ctx, operator.ne)
+
+    def test_config_interface_type(self, ctx):
+        self.basic_check("interface-type", ["Ethernet0", "CR4"], ctx)
+        self.basic_check("interface-type", ["Invalid", "CR4"], ctx, operator.ne)
+
+    def test_config_adv_interface_types(self, ctx):
+        self.basic_check("advertised-interface-types", ["Ethernet0", "CR4,KR4"], ctx)
+        self.basic_check("advertised-interface-types", ["Invalid", "CR4,KR4"], ctx, operator.ne)
+
+    def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["interface"].commands[command_name], para_list, obj = ctx)
+        assert op(result.exit_code, expect_result)
+        return result
