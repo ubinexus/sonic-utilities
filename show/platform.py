@@ -5,6 +5,7 @@ import sys
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import device_info, multi_asic
+from swsscommon.swsscommon import SonicV2Connector
 
 
 def get_hw_info_dict():
@@ -62,7 +63,16 @@ def summary(json):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def syseeprom(verbose):
     """Show system EEPROM information"""
-    cmd = "sudo decode-syseeprom -d"
+
+    # Check if EEPROM info is present in DB. If yes, use the '-d' option.
+    # TODO, Remove this check when all platforms support EEPROM info in DB.
+    db = SonicV2Connector()
+    db.connect(db.STATE_DB)
+    if db.keys(db.STATE_DB, 'EEPROM_INFO|*'):
+        cmd = "sudo decode-syseeprom -d"
+    else:
+        cmd = "sudo decode-syseeprom"
+
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
