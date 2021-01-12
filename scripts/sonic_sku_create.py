@@ -485,7 +485,7 @@ class SkuCreate(object):
 
         with open(new_file, 'w') as outfile:
             json.dump(data, outfile, indent=4, sort_keys=True)
-        #shutil.copy(new_file,cfg_file)
+        shutil.copy(new_file,cfg_file)
 
         print("--------------------------------------------------------")
 
@@ -496,7 +496,7 @@ class SkuCreate(object):
         self.port_config_split_analyze(self.ini_file)
         self.form_port_config_dict_from_ini(self.ini_file)
         self.platform_specific()	
-        #shutil.copy(new_file,self.ini_file)
+        shutil.copy(new_file,self.ini_file)
         if lanes_str_result is None:
             print("break_in_ini function returned empty lanes string, Exiting...", file=sys.stderr)
             exit(1)
