@@ -4391,10 +4391,10 @@ def add_mclag_domain(ctx, domain_id, source_ip_addr, peer_ip_addr, peer_ifname):
 
     if not mclag_domain_id_valid(domain_id):
         ctx.fail("{} invalid domain ID, valid range is 1 to 4095".format(domain_id))  
-    if not is_ip4_addr_valid(source_ip_addr, True):
-        ctx.fail("{} invalid local ip address".format(source_ip_addr))  
-    if not is_ip4_addr_valid(peer_ip_addr, True):
-        ctx.fail("{} invalid peer ip address".format(peer_ip_addr))  
+    if not clicommon.is_ipaddress(source_ip_addr):
+        ctx.fail("{} invalid local ip address".format(source_ip_addr))
+    if not clicommon.is_ipaddress(peer_ip_addr):
+        ctx.fail("{} invalid peer ip address".format(peer_ip_addr))
 
     db = ctx.obj['db']
     fvs = {}
