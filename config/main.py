@@ -66,6 +66,9 @@ CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
 CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NO="<0-9999>"
 
+PORT_MTU = "mtu"
+PORT_SPEED = "speed"
+
 asic_type = None
 
 #
@@ -419,6 +422,19 @@ def is_portchannel_present_in_db(db, portchannel_name):
         return False
     if portchannel_name in portchannel_list:
         return True
+    return False
+
+def is_port_member_of_this_portchannel(db, port_name, portchannel_name):
+    """Check if a port is member of given portchannel
+    """
+    portchannel_list = db.get_table(CFG_PORTCHANNEL_PREFIX)
+    if portchannel_list is None:
+        return False
+
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if (k == portchannel_name) and (v == port_name):
+            return True
+
     return False
 
 # Return the namespace where an interface belongs
@@ -1289,7 +1305,7 @@ def synchronous_mode(sync_mode):
                config reload -y \n
             2. systemctl restart swss
     """
-    
+
     if sync_mode == 'enable' or sync_mode == 'disable':
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1378,8 +1394,63 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
 
     # Check if the member interface given by user is valid in the namespace.
-    if interface_name_is_valid(db, port_name) is False:
+    if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    # Dont proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
+    # Dont allow a port to be member of port channel if it is configured with an IP address
+    for key in db.get_table('INTERFACE').keys():
+        if type(key) != tuple:
+            continue
+        if key[0] == port_name:
+            ctx.fail(" {} has ip address {} configured".format(port_name, key[1]))
+            return
+
+    # Dont allow a port to be member of port channel if it is configured as a VLAN member
+    for k,v in db.get_table('VLAN_MEMBER'):
+        if v == port_name:
+            ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))
+            return
+
+    # Dont allow a port to be member of port channel if it is already member of a port channel
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if v == port_name:
+            ctx.fail("{} Interface is already member of {} ".format(v,k))
+
+    # Dont allow a port to be member of port channel if its speed does not match with existing members
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if k == portchannel_name:
+            member_port_entry = db.get_entry('PORT', v)
+            port_entry = db.get_entry('PORT', port_name)
+
+            if member_port_entry is not None and port_entry is not None:
+                member_port_speed = member_port_entry.get(PORT_SPEED)
+
+                port_speed = port_entry.get(PORT_SPEED)
+                if member_port_speed != port_speed:
+                    ctx.fail("Port speed of {} is different than the other members of the portchannel {}"
+                             .format(port_name, portchannel_name))
+
+    # Dont allow a port to be member of port channel if its MTU does not match with portchannel
+    portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
+    if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
+       port_entry = db.get_entry('PORT', port_name)
+
+       if port_entry and port_entry.get(PORT_MTU) is not None:
+            port_mtu = port_entry.get(PORT_MTU)
+
+            portchannel_mtu = portchannel_entry.get(PORT_MTU)
+            if portchannel_mtu != port_mtu:
+                ctx.fail("Port MTU of {} is different than the {} MTU size"
+                         .format(port_name, portchannel_name))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -1390,11 +1461,24 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 @click.pass_context
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
+    # Dont proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
 
     # Check if the member interface given by user is valid in the namespace.
     if interface_name_is_valid(db, port_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
+    # Dont proceed if the the port is not an existing member of the port channel
+    if not is_port_member_of_this_portchannel(db, port_name, portchannel_name):
+        ctx.fail("{} is not a member of portchannel {}".format(port_name, portchannel_name))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
     db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
@@ -2400,12 +2484,12 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         portJson = dict(); portJson['PORT'] = port_dict
 
         # breakout_Ports will abort operation on failure, So no need to check return
-        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, 
+        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies,
                        loadDefConfig=load_predefined_config, verbose=verbose)
 
         # Set Current Breakout mode in config DB
         brkout_cfg_keys = config_db.get_keys('BREAKOUT_CFG')
-        if interface_name.decode("utf-8") not in  brkout_cfg_keys:
+        if interface_name not in  brkout_cfg_keys:
             click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".format(interface_name), fg='red')
             raise click.Abort()
         config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
@@ -2415,6 +2499,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     except Exception as e:
         click.secho("Failed to break out Port. Error: {}".format(str(e)), fg='magenta')
+
         sys.exit(0)
 
 def _get_all_mgmtinterface_keys():
@@ -2456,6 +2541,10 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    if interface_is_in_portchannel(portchannel_member_table, interface_name):
+        ctx.fail("'interface_name' is in portchannel!")
 
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
         command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
