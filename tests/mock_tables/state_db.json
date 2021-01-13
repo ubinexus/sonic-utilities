@@ -328,6 +328,68 @@
     "MUX_CABLE_TABLE|Ethernet12": {
         "state": "unknown"
     },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.25": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.25",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.26": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.26",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.27": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.27",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "BUFFER_POOL_TABLE|egress_lossless_pool": {
+        "mode": "dynamic",
+        "size": "13945824",
+        "type": "egress"
+    },
+    "BUFFER_POOL_TABLE|egress_lossy_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "egress"
+    },
+    "BUFFER_POOL_TABLE|ingress_lossless_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "ingress"
+    },
+    "BUFFER_POOL_TABLE|ingress_lossy_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "ingress"
+    },
+    "BUFFER_PROFILE_TABLE|ingress_lossy_profile": {
+        "dynamic_th": "3",
+        "pool": "[BUFFER_POOL_TABLE|ingress_lossy_pool]",
+        "size": "0"
+    },
+    "BUFFER_PROFILE_TABLE|headroom_profile": {
+        "dynamic_th": "0",
+        "pool": "[BUFFER_POOL_TABLE|ingress_lossless_pool]",
+        "xon": "18432",
+        "xoff": "32768",
+        "size": "51200"
+    },
+    "CHASSIS_MIDPLANE_TABLE|SUPERVISOR0": {
+        "ip_address": "192.168.1.100",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD0": {
+        "ip_address": "192.168.1.1",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD1": {
+        "ip_address": "192.168.1.2",
+        "access": "False"
+    },
     "PCIE_DEVICE|00:01.0": {
         "correctable|BadDLLP": "0",
         "correctable|BadTLP": "0",

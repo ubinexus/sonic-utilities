@@ -280,7 +280,7 @@ def is_mgmt_vrf_enabled(ctx):
 #
 
 @cli.group('mgmt-vrf', invoke_without_command=True)
-@click.argument('routes', required=False)
+@click.argument('routes', required=False, type=click.Choice(["routes"]))
 @click.pass_context
 def mgmt_vrf(ctx,routes):
     """Show management VRF attributes"""
@@ -1127,12 +1127,27 @@ def users(verbose):
 
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
+@click.option('-g', '--global-timeout', default=30, type=int, help="Global timeout in minutes. Default 30 mins")
+@click.option('-c', '--cmd-timeout', default=5, type=int, help="Individual command timeout in minutes. Default 5 mins")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(since, verbose):
+@click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
+@click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
+def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent):
     """Gather information for troubleshooting"""
-    cmd = "sudo generate_dump -v"
+    cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
+
+    if allow_process_stop:
+        cmd += " -a"
+
+    if silent:
+        cmd += " generate_dump"
+        click.echo("Techsupport is running with silent option. This command might take a long time.")
+    else:
+        cmd += " generate_dump -v"
+
     if since:
-        cmd += " -s {}".format(since)
+        cmd += " -s '{}'".format(since)
+    cmd += " -t {}".format(cmd_timeout)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1452,14 +1467,41 @@ def boot():
     click.echo(proc.stdout.read())
 
 
+#
 # 'mmu' command ("show mmu")
 #
 @cli.command('mmu')
 def mmu():
     """Show mmu configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd)
+
+#
+# 'buffer' command ("show buffer")
+#
+@cli.group(cls=clicommon.AliasedGroup)
+def buffer():
+    """Show buffer information"""
+    pass
+
+#
+# 'configuration' command ("show buffer command")
+#
+@buffer.command()
+def configuration():
+    """show buffer configuration"""
+    cmd = "mmuconfig -l"
+    run_command(cmd)
+
+#
+# 'information' command ("show buffer state")
+#
+@buffer.command()
+def information():
+    """show buffer information"""
+    cmd = "buffershow -l"
+    run_command(cmd)
+
 
 #
 # 'line' command ("show line")
@@ -1489,7 +1531,6 @@ def ztp(status, verbose):
     if verbose:
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
-
 
 if __name__ == '__main__':
     cli()

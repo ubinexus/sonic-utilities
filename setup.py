@@ -58,6 +58,7 @@ setup(
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
                   'mock_tables/asic1/*.json',
+                  'mock_tables/asic2/*.json',
                   'filter_fdb_input/*',
                   'pfcwd_input/*',
                   'wm_input/*']
@@ -66,6 +67,7 @@ setup(
         'scripts/aclshow',
         'scripts/asic_config_check',
         'scripts/boot_part',
+        'scripts/buffershow',
         'scripts/coredump-compress',
         'scripts/configlet',
         'scripts/db_migrator.py',
@@ -104,6 +106,7 @@ setup(
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
+        'scripts/storyteller',
         'scripts/syseeprom-to-json',
         'scripts/tempershow',
         'scripts/update_json.py',

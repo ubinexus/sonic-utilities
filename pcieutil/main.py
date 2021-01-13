@@ -96,7 +96,7 @@ def print_test_title(testname):
 
 
 @cli.command()
-def pcie_show():
+def show():
     '''Display PCIe Device '''
     testname = "Display PCIe Device"
     print_test_title(testname)
@@ -266,7 +266,7 @@ def all_errors(ctx, no_zero, device_key):
 
 #  Show PCIE Vender ID and Device ID
 @cli.command()
-def pcie_check():
+def check():
     '''Check PCIe Device '''
     testname = "PCIe Device Check"
     err = 0
@@ -287,7 +287,7 @@ def pcie_check():
 
 @cli.command()
 @click.confirmation_option(prompt="Are you sure to overwrite config file pcie.yaml with current pcie device info?")
-def pcie_generate():
+def generate():
     '''Generate config file with current pci device'''
     platform_pcieutil.dump_conf_yaml()
     click.echo("Generate config file pcie.yaml under path %s" % platform_plugins_path)
