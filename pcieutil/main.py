@@ -144,24 +144,36 @@ class PcieDevice(click.ParamType):
 
 
 _pcie_aer_click_options = [
-    click.option('-d', '--device', 'device_key',
+    click.Option(['-d', '--device', 'device_key'],
                  type=PcieDevice(),
                  help="Display stats only for the specified device"),
-    click.option('-nz', '--no-zero',
+    click.Option(['-v', '--verbose'],
                  is_flag=True,
-                 help="Display non-zero AER stats")
+                 help="Display all stats")
 ]
 
 
-def pcie_aer_click_options(func):
-    for option in reversed(_pcie_aer_click_options):
-        func = option(func)
-    return func
+class PcieAerCommand(click.Command):
+    '''This subclass of click.Command provides common options, help
+    and short help text for PCIe AER commands'''
+
+    def __init__(self, *args, **kwargs):
+        super(PcieAerCommand, self).__init__(*args, **kwargs)
+        self.params = _pcie_aer_click_options
+
+    def format_help_text(self, ctx, formatter):
+        formatter.write_paragraph()
+        with formatter.indentation():
+            formatter.write_text("Show {} PCIe AER attributes".format(self.name.replace("_", "-")))
+            formatter.write_text("(Default: Display only non-zero attributes)")
+
+    def get_short_help_str(self, limit):
+        return "Show {} PCIe AER attributes".format(self.name.replace("_", "-"))
 
 
 def pcie_aer_display(ctx, severity):
     device_key = ctx.params['device_key']
-    no_zero = ctx.params['no_zero']
+    no_zero = not ctx.params['verbose']
     header = ["AER - " + severity.upper().replace("_", "")]
     fields = aer_fields[severity]
     pcie_dev_list = list()
@@ -230,35 +242,31 @@ def pcie_aer(ctx):
     ctx.obj = False
 
 
-@pcie_aer.command()
-@pcie_aer_click_options
+@pcie_aer.command(cls=PcieAerCommand)
 @click.pass_context
-def correctable(ctx, no_zero, device_key):
-    '''Show PCIe AER correctable attributes'''
+def correctable(ctx, device_key, verbose):
+    '''Show correctable PCIe AER attributes'''
     pcie_aer_display(ctx, "correctable")
 
 
-@pcie_aer.command()
-@pcie_aer_click_options
+@pcie_aer.command(cls=PcieAerCommand)
 @click.pass_context
-def fatal(ctx, no_zero, device_key):
-    '''Show PCIe AER fatal attributes'''
+def fatal(ctx, device_key, verbose):
+    '''Show fatal PCIe AER attributes'''
     pcie_aer_display(ctx, "fatal")
 
 
-@pcie_aer.command()
-@pcie_aer_click_options
+@pcie_aer.command(cls=PcieAerCommand)
 @click.pass_context
-def non_fatal(ctx, no_zero, device_key):
-    '''Show PCIe AER non-fatal attributes '''
+def non_fatal(ctx, device_key, verbose):
+    '''Show non-fatal PCIe AER attributes'''
     pcie_aer_display(ctx, "non_fatal")
 
 
-@pcie_aer.command(name='all')
-@pcie_aer_click_options
+@pcie_aer.command(name='all', cls=PcieAerCommand)
 @click.pass_context
-def all_errors(ctx, no_zero, device_key):
-    '''Show all PCIe AER attributes '''
+def all_errors(ctx, device_key, verbose):
+    '''Show all PCIe AER attributes'''
     pcie_aer_display(ctx, "correctable")
     pcie_aer_display(ctx, "fatal")
     pcie_aer_display(ctx, "non_fatal")

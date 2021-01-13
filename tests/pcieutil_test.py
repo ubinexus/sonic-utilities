@@ -19,6 +19,30 @@ pcieutil_pcie_aer_correctable_output = """\
 +---------------------+-----------+-----------+
 | BadTLP              |         1 |         0 |
 +---------------------+-----------+-----------+
+| TOTAL_ERR_COR       |         1 |         1 |
++---------------------+-----------+-----------+
+"""
+
+pcieutil_pcie_aer_nonfatal_output = """\
++--------------------+-----------+
+| AER - NONFATAL     |   00:01.0 |
+|                    |    0x0001 |
++====================+===========+
+| MalfTLP            |         1 |
++--------------------+-----------+
+| TOTAL_ERR_NONFATAL |         1 |
++--------------------+-----------+
+"""
+
+pcieutil_pcie_aer_correctable_verbose_output = """\
++---------------------+-----------+-----------+
+| AER - CORRECTABLE   |   00:01.0 |   01:00.0 |
+|                     |    0x0001 |    0x0002 |
++=====================+===========+===========+
+| RxErr               |         0 |         1 |
++---------------------+-----------+-----------+
+| BadTLP              |         1 |         0 |
++---------------------+-----------+-----------+
 | BadDLLP             |         0 |         0 |
 +---------------------+-----------+-----------+
 | Rollover            |         0 |         0 |
@@ -35,7 +59,7 @@ pcieutil_pcie_aer_correctable_output = """\
 +---------------------+-----------+-----------+
 """
 
-pcieutil_pcie_aer_fatal_output = """\
+pcieutil_pcie_aer_fatal_verbose_output = """\
 +-----------------+-----------+-----------+
 | AER - FATAL     |   00:01.0 |   01:00.0 |
 |                 |    0x0001 |    0x0002 |
@@ -78,7 +102,7 @@ pcieutil_pcie_aer_fatal_output = """\
 +-----------------+-----------+-----------+
 """
 
-pcieutil_pcie_aer_nonfatal_output = """\
+pcieutil_pcie_aer_nonfatal_verbose_output = """\
 +--------------------+-----------+-----------+
 | AER - NONFATAL     |   00:01.0 |   01:00.0 |
 |                    |    0x0001 |    0x0002 |
@@ -121,50 +145,12 @@ pcieutil_pcie_aer_nonfatal_output = """\
 +--------------------+-----------+-----------+
 """
 
-pcieutil_pcie_aer_correctable_nozero_output = """\
-+---------------------+-----------+-----------+
-| AER - CORRECTABLE   |   00:01.0 |   01:00.0 |
-|                     |    0x0001 |    0x0002 |
-+=====================+===========+===========+
-| RxErr               |         0 |         1 |
-+---------------------+-----------+-----------+
-| BadTLP              |         1 |         0 |
-+---------------------+-----------+-----------+
-| TOTAL_ERR_COR       |         1 |         1 |
-+---------------------+-----------+-----------+
-"""
-
-pcieutil_pcie_aer_nonfatal_nozero_output = """\
-+--------------------+-----------+
-| AER - NONFATAL     |   00:01.0 |
-|                    |    0x0001 |
-+====================+===========+
-| MalfTLP            |         1 |
-+--------------------+-----------+
-| TOTAL_ERR_NONFATAL |         1 |
-+--------------------+-----------+
-"""
-
 pcieutil_pcie_aer_correctable_dev_output = """\
 +---------------------+-----------+
 | AER - CORRECTABLE   |   00:01.0 |
 |                     |    0x0001 |
 +=====================+===========+
-| RxErr               |         0 |
-+---------------------+-----------+
 | BadTLP              |         1 |
-+---------------------+-----------+
-| BadDLLP             |         0 |
-+---------------------+-----------+
-| Rollover            |         0 |
-+---------------------+-----------+
-| Timeout             |         0 |
-+---------------------+-----------+
-| NonFatalErr         |         0 |
-+---------------------+-----------+
-| CorrIntErr          |         0 |
-+---------------------+-----------+
-| HeaderOF            |         0 |
 +---------------------+-----------+
 | TOTAL_ERR_COR       |         1 |
 +---------------------+-----------+
@@ -176,11 +162,10 @@ class TestPcieUtil(object):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
-    def test_aer_non_all(self):
+    def test_aer_all(self):
         runner = CliRunner()
         result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["all"], [])
-        assert result.output == (pcieutil_pcie_aer_correctable_output + "\n"\
-                                 + pcieutil_pcie_aer_fatal_output + "\n"\
+        assert result.output == (pcieutil_pcie_aer_correctable_output + "\n"
                                  + pcieutil_pcie_aer_nonfatal_output)
 
     def test_aer_correctable(self):
@@ -191,23 +176,23 @@ class TestPcieUtil(object):
     def test_aer_fatal(self):
         runner = CliRunner()
         result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["fatal"], [])
-        assert result.output == pcieutil_pcie_aer_fatal_output
+        assert result.output == ""
 
     def test_aer_non_fatal(self):
         runner = CliRunner()
         result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["non-fatal"], [])
         assert result.output == pcieutil_pcie_aer_nonfatal_output
 
-    def test_aer_option_non_zero(self):
+    def test_aer_option_verbose(self):
         runner = CliRunner()
-        result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["correctable"], ["-nz"])
-        assert result.output == pcieutil_pcie_aer_correctable_nozero_output
+        result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["correctable"], ["-v"])
+        assert result.output == pcieutil_pcie_aer_correctable_verbose_output
 
-        result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["fatal"], ["-nz"])
-        assert result.output == ""
+        result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["fatal"], ["-v"])
+        assert result.output == pcieutil_pcie_aer_fatal_verbose_output
 
-        result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["non-fatal"], ["-nz"])
-        assert result.output == pcieutil_pcie_aer_nonfatal_nozero_output
+        result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["non-fatal"], ["-v"])
+        assert result.output == pcieutil_pcie_aer_nonfatal_verbose_output
 
     def test_aer_option_device(self):
         runner = CliRunner()
