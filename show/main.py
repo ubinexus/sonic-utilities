@@ -801,17 +801,6 @@ def get_dhcp_relay_intf_db(ctx, interface_name):
 
     return intf
 
-def show_dhcp_relay_detailed(intf):
-
-    dhcp_servers_list = intf.get('dhcp_servers', [])
-    dhcp_servers = ','.replace(',', ', ').join(dhcp_servers_list)
-
-    click.echo("Server Address: " + dhcp_servers)
-    if intf.has_key('dhcp_relay_src_intf'):
-        click.echo("Source Interface: " + intf['dhcp_relay_src_intf'])
-    if intf.has_key('dhcp_relay_link_select'):
-        click.echo("Link Select: " + intf['dhcp_relay_link_select'])
-
 #
 # 'dhcp_relay' subcommand ("show ip dhcp_relay ...")
 #
@@ -849,36 +838,6 @@ def brief(ctx):
                      body.append([interface, dhcp_servers])
 
     click.echo(tabulate(body, header, tablefmt="grid"))
-
-#
-# 'detailed' command ("show ip dhcp_relay detailed")
-#
-@dhcp_relay.command()
-@click.argument('interface_name', metavar='<interface_name>', required=False)
-@click.pass_context
-def detailed(ctx, interface_name):
-    """Show detailed DHCP Relay configuration"""
-
-    db = ConfigDBConnector()
-    db.connect()
-
-    if interface_name is not None:
-        intf = get_dhcp_relay_intf_db(ctx, interface_name)
-        show_dhcp_relay_detailed(intf)
-    else:
-        interfaces = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN']
-        intf = None
-
-        for i in interfaces:
-            interface_dict = db.get_table(i)
-
-            if interface_dict:
-                for interface, value in interface_dict.items():
-                    if 'dhcp_servers' in value:
-                        intf = interface_dict[interface]
-                        click.echo("\nRelay Interface: " + interface)
-                        show_dhcp_relay_detailed(intf)
-
 
 #
 # 'ipv6' group ("show ipv6 ...")

@@ -2726,41 +2726,6 @@ def dhcp_relay_intf_validate(ctx, interface_name, interface_type):
                 return intf
     return None
 
-def is_valid_dhcp_relay_src_intf(src_intf):
-    db = ConfigDBConnector()
-    db.connect()
-
-    intf_exists = False
-    addr_exists = False
-
-    interface_type = None
-
-    if src_intf.startswith("Ethernet"):
-        interface_type = "INTERFACE"
-    elif src_intf.startswith("PortChannel"):
-        interface_type = "PORTCHANNEL_INTERFACE"
-    elif src_intf.startswith("Vlan"):
-        interface_type = "VLAN_INTERFACE"
-    elif src_intf.startswith("Loopback"):
-        interface_type = "LOOPBACK_INTERFACE"
-
-    if interface_type is None:
-        return [intf_exists, addr_exists]
-
-    for k,v in db.get_table(interface_type).items():
-        if type(k) == tuple:
-            (intf_name, addr) = k
-            if intf_name == src_intf and addr != 0:
-                intf_exists = True
-                addr_exists = True
-                break
-        else:
-            if k == src_intf:
-                intf_exists = True
-
-    return [intf_exists, addr_exists]
-
-
 #
 # 'dhcp-relay' subgroup ('config interface ip dhcp-relay ...')
 #
@@ -2778,14 +2743,8 @@ def dhcp_relay(ctx):
 @click.argument('ip_addr2', metavar='<ip_addr2>', required=False)
 @click.argument('ip_addr3', metavar='<ip_addr3>', required=False)
 @click.argument('ip_addr4', metavar='<ip_addr4>', required=False)
-@click.option('-src-intf', metavar='<src_intf>', required=False, type=click.STRING, help="Set the source to be used for relaying the DHCP packets")
-@click.option('-link-select', metavar='<link_select>', required=False, type=click.Choice(['enable', 'disable']), help="Enable/Disable link selection option")
 @click.pass_context
-def dhcp_relay_add(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4, src_intf, link_select):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
+def dhcp_relay_add(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4):
     db = ctx.obj["config_db"]
     intf = None
 
@@ -2853,50 +2812,6 @@ def dhcp_relay_add(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4, 
                 dhcp_servers.append(ip_addr4)
                 addrs += "," + str(ip_addr4)
 
-    if src_intf:
-        if src_intf.startswith("Ethernet"):
-            intf_type = "INTERFACE"
-        elif src_intf.startswith("PortChannel"):
-            intf_type = "PORTCHANNEL_INTERFACE"
-        elif src_intf.startswith("Vlan"):
-            intf_type = "VLAN_INTERFACE"
-        elif src_intf.startswith("Loopback"):
-            intf_type = "LOOPBACK_INTERFACE"
-        else:
-            ctx.fail("Source interface specified is not supported.")
-
-        if (intf_type == "INTERFACE" ) or (intf_type == "PORTCHANNEL_INTERFACE"):
-            if interface_name_is_valid(db, src_intf) is False:
-                ctx.fail("Interface name {} is invalid. Please enter a valid source interface name!!".format(src_intf))
-
-        if (intf_type == "LOOPBACK_INTERFACE"):
-            loopback_dict = db.get_table('LOOPBACK_INTERFACE')
-            is_valid = False
-            if loopback_dict:
-                for loopback_name in loopback_dict.keys():
-                    if src_intf == loopback_name:
-                        is_valid = True
-            if is_valid is False:
-                ctx.fail("Interface name {} is invalid. Please enter a valid source interface name!!".format(src_intf))
-
-        if (intf_type == "VLAN_INTERFACE"):
-            vlan = db.get_entry('VLAN', src_intf)
-            if len(vlan) == 0:
-                ctx.fail("Interface name {} is invalid. Please enter a valid source interface name!!".format(src_intf))
-
-        intf['dhcp_relay_src_intf'] = src_intf
-
-    if link_select:
-        if link_select == 'enable':
-            if src_intf:
-                intf['dhcp_relay_link_select'] = link_select
-            else:
-                ctx.fail("Source interface must be specified to enable link select")
-        else:
-            if intf.get('dhcp_relay_link_select') == 'enable':
-                intf['dhcp_relay_link_select'] = link_select
-
-
     intf['dhcp_servers'] = dhcp_servers
     db.set_entry(interface_type, interface_name, intf)
 
@@ -2924,10 +2839,6 @@ def dhcp_relay_add(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4, 
 @click.argument('ip_addr4', metavar='<ip_addr4>', required=False)
 @click.pass_context
 def dhcp_relay_remove(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
     db = ctx.obj["config_db"]
     intf = None
 
@@ -2983,196 +2894,12 @@ def dhcp_relay_remove(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr
 
     if len(dhcp_servers) == 0:
         del intf['dhcp_servers']
-        if intf.has_key('dhcp_relay_src_intf'):
-            del intf['dhcp_relay_src_intf']
-        if intf.has_key('dhcp_relay_link_select'):
-            del intf['dhcp_relay_link_select']
     else:
         intf['dhcp_servers'] = dhcp_servers
 
     db.set_entry(interface_type, interface_name, intf)
 
     click.echo("Removed DHCP relay address {} from {}".format(addrs, interface_name))
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
-
-
-@dhcp_relay.group('src-intf')
-@click.pass_context
-def dhcp_relay_src_intf(ctx):
-    """Add/Remove DHCP relay source interface configuration"""
-
-@dhcp_relay_src_intf.command('add')
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('src_intf', metavar='<src_intf>', required=True)
-@click.pass_context
-def dhcp_relay_add_src_intf(ctx, interface_name, src_intf):
-    """Set DHCP relay source interface"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
-    db = ctx.obj["config_db"]
-    intf = None
-
-    interface_type = dhcp_relay_intf_type_validate(interface_name)
-    if interface_type is None:
-        ctx.fail("{} is not valid/supported.".format(interface_name))
-
-    intf = dhcp_relay_intf_validate(ctx, interface_name, interface_type)
-
-    if intf is None:
-        ctx.fail("{} not found. Please check if interface exists and an IP address is assigned".format(interface_name))
-
-    if not intf.has_key('dhcp_servers'):
-        ctx.fail("Invalid interface. DHCP servers are not configured on the interface {}".format(interface_name))
-
-    if intf.has_key('dhcp_relay_src_intf') and intf['dhcp_relay_src_intf'] == src_intf:
-        ctx.fail("Source interface is already configured")
-
-    [intf_exists, addr_exists] = is_valid_dhcp_relay_src_intf(src_intf)
-
-    if intf_exists is False:
-        ctx.fail("Interface {} is invalid. Please enter a valid source interface!!".format(src_intf))
-
-    if addr_exists is False:
-        click.echo("Source interface must have a valid address to be functional!!")
-
-    intf['dhcp_relay_src_intf'] = src_intf
-    db.set_entry(interface_type, interface_name, intf)
-
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
-
-
-@dhcp_relay_src_intf.command('remove')
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def dhcp_relay_remove_src_intf(ctx, interface_name):
-    """Remove DHCP relay source interface"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
-    db = ctx.obj["config_db"]
-    intf = None
-
-    interface_type = dhcp_relay_intf_type_validate(interface_name)
-    if interface_type is None:
-        ctx.fail("{} is not valid/supported.".format(interface_name))
-
-    intf = dhcp_relay_intf_validate(ctx, interface_name, interface_type)
-
-    if intf is None:
-        ctx.fail("{} not found. Please check if interface exists and an IP address is assigned".format(interface_name))
-
-    if not intf.has_key('dhcp_servers'):
-        ctx.fail("Invalid interface. DHCP servers are not configured on the interface {}".format(interface_name))
-
-    if not intf.has_key('dhcp_relay_src_intf'):
-        ctx.fail("Source interface is not configured")
-
-    if intf.has_key('dhcp_relay_link_select'):
-        ctx.fail("Disable link selection suboption before removing source interface")
-
-    del intf['dhcp_relay_src_intf']
-    db.set_entry(interface_type, interface_name, intf)
-
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
-
-
-@dhcp_relay.group('link-select')
-@click.pass_context
-def dhcp_relay_link_select(ctx):
-    """Enable/Disable link selection suboption for DHCP Relay"""
-
-@dhcp_relay_link_select.command('add')
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def dhcp_relay_add_link_select(ctx, interface_name):
-    """Enable DHCP relay link selection suboption"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
-    db = ctx.obj["config_db"]
-    intf = None
-
-    interface_type = dhcp_relay_intf_type_validate(interface_name)
-    if interface_type is None:
-        ctx.fail("{} is not valid/supported.".format(interface_name))
-
-    intf = dhcp_relay_intf_validate(ctx, interface_name, interface_type)
-
-    if intf is None:
-        ctx.fail("{} not found. Please check if interface exists and an IP address is assigned".format(interface_name))
-
-    if not intf.has_key('dhcp_servers'):
-        ctx.fail("Invalid interface. DHCP servers are not configured on the interface {}".format(interface_name))
-
-    if intf.has_key('dhcp_relay_link_select'):
-        ctx.fail("Link selection suboption is already enabled")
-
-    if not intf.has_key('dhcp_relay_src_intf'):
-        ctx.fail("Source interface must be specified to enable link select")
-
-    intf['dhcp_relay_link_select'] = 'enable'
-    db.set_entry(interface_type, interface_name, intf)
-
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
-
-@dhcp_relay_link_select.command('remove')
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def dhcp_relay_remove_link_select(ctx, interface_name):
-    """Disable DHCP relay link selection suboption"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
-    db = ctx.obj["config_db"]
-    intf = None
-
-    interface_type = dhcp_relay_intf_type_validate(interface_name)
-    if interface_type is None:
-        ctx.fail("{} is not valid/supported.".format(interface_name))
-
-    intf = dhcp_relay_intf_validate(ctx, interface_name, interface_type)
-
-    if intf is None:
-        ctx.fail("{} not found. Please check if interface exists and an IP address is assigned".format(interface_name))
-
-    if not intf.has_key('dhcp_servers'):
-        ctx.fail("Invalid interface. DHCP servers are not configured on the interface {}".format(interface_name))
-
-    if not intf.has_key('dhcp_relay_link_select'):
-        ctx.fail("Link selection suboption is not enabled")
-
-    del intf['dhcp_relay_link_select']
-    db.set_entry(interface_type, interface_name, intf)
-
     try:
         click.echo("Restarting DHCP relay service...")
         clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
