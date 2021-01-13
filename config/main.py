@@ -2745,6 +2745,10 @@ def dhcp_relay(ctx):
 @click.argument('ip_addr4', metavar='<ip_addr4>', required=False)
 @click.pass_context
 def dhcp_relay_add(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
     db = ctx.obj["config_db"]
     intf = None
 
@@ -2839,6 +2843,10 @@ def dhcp_relay_add(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4):
 @click.argument('ip_addr4', metavar='<ip_addr4>', required=False)
 @click.pass_context
 def dhcp_relay_remove(ctx, interface_name, ip_addr1, ip_addr2, ip_addr3, ip_addr4):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
     db = ctx.obj["config_db"]
     intf = None
 
