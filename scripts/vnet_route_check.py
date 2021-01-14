@@ -3,13 +3,10 @@
 import os
 import sys
 import json
+import syslog
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from collections import defaultdict
-
-
-RC_OK = 0
-RC_ERR = -1
 
 
 ''' vnet_route_check.py: tool that verifies VNET routes consistancy between SONiC and vendor SDK DBs.
@@ -49,6 +46,32 @@ Format of differences output:
     }
 }
 '''
+
+
+RC_OK = 0
+RC_ERR = -1
+
+
+report_level = syslog.LOG_ERR
+write_to_syslog = True
+
+
+def set_level(lvl, log_to_syslog):
+    global report_level
+    global write_to_syslog
+
+    write_to_syslog = log_to_syslog
+    report_level = lvl
+
+
+def print_message(lvl, *args):
+    if (lvl <= report_level):
+        msg = ""
+        for arg in args:
+            msg += " " + str(arg)
+        print(msg)
+        if write_to_syslog:
+            syslog.syslog(lvl, msg)
 
 
 def get_vnet_intfs():
@@ -307,7 +330,8 @@ def main():
 
     if res['results']:
         rc = RC_ERR
-        print(json.dumps(res, indent=4))
+        print_message(syslog.LOG_ERR, json.dumps(res, indent=4))
+        print_message(syslog.LOG_ERR, 'Vnet Route Mismatch reported')
 
     sys.exit(rc)
 
