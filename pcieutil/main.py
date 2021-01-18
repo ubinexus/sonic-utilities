@@ -46,7 +46,6 @@ def load_platform_pcieutil():
     # Load platform module from source
     try:
         platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
-        sys.path.append(os.path.abspath(platform_path))
         from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
         platform_pcieutil = PcieUtil(platform_path)
     except ImportError as e:
