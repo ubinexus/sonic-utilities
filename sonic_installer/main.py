@@ -5,7 +5,6 @@ try:
 except ImportError:
     import configparser
 
-import configparser
 import os
 import re
 import subprocess
