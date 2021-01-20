@@ -36,6 +36,21 @@ from . import vlan
 from . import vxlan
 from .config_mgmt import ConfigMgmtDPB
 
+# mock masic APIs for unit test
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+except KeyError:
+    pass
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
@@ -55,6 +70,14 @@ CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
+CFG_PORTCHANNEL_PREFIX = "PortChannel"
+CFG_PORTCHANNEL_PREFIX_LEN = 11
+CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
+CFG_PORTCHANNEL_MAX_VAL = 9999
+CFG_PORTCHANNEL_NO="<0-9999>"
+
+PORT_MTU = "mtu"
+PORT_SPEED = "speed"
 
 asic_type = None
 
@@ -88,7 +111,7 @@ def _get_breakout_options(ctx, args, incomplete):
             for i in breakout_mode_list.split(','):
                     breakout_mode_options.append(i)
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
-            return all_mode_options
+        return all_mode_options
 
 def shutdown_interfaces(ctx, del_intf_dict):
     """ shut down all the interfaces before deletion """
@@ -335,6 +358,45 @@ def is_interface_bind_to_vrf(config_db, interface_name):
     entry = config_db.get_entry(table_name, interface_name)
     if entry and entry.get("vrf_name"):
         return True
+    return False
+
+def is_portchannel_name_valid(portchannel_name):
+    """Port channel name validation
+    """
+
+    # Return True if Portchannel name is PortChannelXXXX (XXXX can be 0-9999)
+    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX :
+        return False
+    if (portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:].isdigit() is False or
+          int(portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:]) > CFG_PORTCHANNEL_MAX_VAL) :
+        return False
+    if len(portchannel_name) > CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
+
+def is_portchannel_present_in_db(db, portchannel_name):
+    """Check if Portchannel is present in Config DB
+    """
+
+    # Return True if Portchannel name exists in the CONFIG_DB
+    portchannel_list = db.get_table(CFG_PORTCHANNEL_PREFIX)
+    if portchannel_list is None:
+        return False
+    if portchannel_name in portchannel_list:
+        return True
+    return False
+
+def is_port_member_of_this_portchannel(db, port_name, portchannel_name):
+    """Check if a port is member of given portchannel
+    """
+    portchannel_list = db.get_table(CFG_PORTCHANNEL_PREFIX)
+    if portchannel_list is None:
+        return False
+
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if (k == portchannel_name) and (v == port_name):
+            return True
+
     return False
 
 # Return the namespace where an interface belongs
@@ -1173,7 +1235,15 @@ def portchannel(ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    if is_portchannel_present_in_db(db, portchannel_name):
+        ctx.fail("{} already exists!".format(portchannel_name))
+
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
     if min_links != 0:
@@ -1187,7 +1257,16 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
@@ -1209,8 +1288,63 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
 
     # Check if the member interface given by user is valid in the namespace.
-    if interface_name_is_valid(db, port_name) is False:
+    if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    # Dont proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
+    # Dont allow a port to be member of port channel if it is configured with an IP address
+    for key in db.get_table('INTERFACE').keys():
+        if type(key) != tuple:
+            continue
+        if key[0] == port_name:
+            ctx.fail(" {} has ip address {} configured".format(port_name, key[1]))
+            return
+
+    # Dont allow a port to be member of port channel if it is configured as a VLAN member
+    for k,v in db.get_table('VLAN_MEMBER'):
+        if v == port_name:
+            ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))
+            return
+
+    # Dont allow a port to be member of port channel if it is already member of a port channel
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if v == port_name:
+            ctx.fail("{} Interface is already member of {} ".format(v,k))
+
+    # Dont allow a port to be member of port channel if its speed does not match with existing members
+    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+        if k == portchannel_name:
+            member_port_entry = db.get_entry('PORT', v)
+            port_entry = db.get_entry('PORT', port_name)
+
+            if member_port_entry is not None and port_entry is not None:
+                member_port_speed = member_port_entry.get(PORT_SPEED)
+
+                port_speed = port_entry.get(PORT_SPEED)
+                if member_port_speed != port_speed:
+                    ctx.fail("Port speed of {} is different than the other members of the portchannel {}"
+                             .format(port_name, portchannel_name))
+
+    # Dont allow a port to be member of port channel if its MTU does not match with portchannel
+    portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
+    if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
+       port_entry = db.get_entry('PORT', port_name)
+
+       if port_entry and port_entry.get(PORT_MTU) is not None:
+            port_mtu = port_entry.get(PORT_MTU)
+
+            portchannel_mtu = portchannel_entry.get(PORT_MTU)
+            if portchannel_mtu != port_mtu:
+                ctx.fail("Port MTU of {} is different than the {} MTU size"
+                         .format(port_name, portchannel_name))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -1221,11 +1355,24 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 @click.pass_context
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
+    # Dont proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
 
     # Check if the member interface given by user is valid in the namespace.
     if interface_name_is_valid(db, port_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
+    # Dont proceed if the the port is not an existing member of the port channel
+    if not is_port_member_of_this_portchannel(db, port_name, portchannel_name):
+        ctx.fail("{} is not a member of portchannel {}".format(port_name, portchannel_name))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
     db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
@@ -1434,10 +1581,10 @@ def start(action, restoration_time, ports, detection_time, verbose):
 
     if ports:
         ports = set(ports) - set(['ports', 'detection-time'])
-        cmd += " ports {}".format(' '.join(ports))
+        cmd += " {}".format(' '.join(ports))
 
     if detection_time:
-        cmd += " detection-time {}".format(detection_time)
+        cmd += " {}".format(detection_time)
 
     if restoration_time:
         cmd += " --restoration-time {}".format(restoration_time)
@@ -1520,12 +1667,24 @@ def _update_buffer_calculation_model(config_db, model):
 @qos.command('reload')
 @click.pass_context
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
-def reload(ctx, no_dynamic_buffer):
+@click.option(
+    '--json-data', type=click.STRING,
+    help="json string with additional data, valid with --dry-run option"
+)
+@click.option(
+    '--dry_run', type=click.STRING,
+    help="Dry run, writes config to the given file"
+)
+def reload(ctx, no_dynamic_buffer, dry_run, json_data):
     """Reload QoS configuration"""
     log.log_info("'qos reload' executing...")
     _clear_qos()
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+    from_db = "-d --write-to-db"
+    if dry_run:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
@@ -1562,17 +1721,17 @@ def reload(ctx, no_dynamic_buffer):
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
             if asic_type in vendors_supporting_dynamic_buffer:
                 buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
+
         if os.path.isfile(buffer_template_file):
-            qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
+            qos_template_file = os.path.join(
+                hwsku_path, asic_id_suffix, "qos.json.j2"
+            )
             if os.path.isfile(qos_template_file):
                 cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
-                sonic_version_file = os.path.join('/', "etc", "sonic", "sonic_version.yml")
-                command = "{} {} -d -t {},config-db -t {},config-db -y {} --write-to-db".format(
-                    SONIC_CFGGEN_PATH,
-                    cmd_ns,
-                    buffer_template_file,
-                    qos_template_file,
-                    sonic_version_file
+                fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "config-db"
+                command = "{} {} {} -t {},{} -t {},{} -y {}".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
+                    fname, qos_template_file, fname, sonic_version_file
                 )
                 # Apply the configurations only when both buffer and qos
                 # configuration files are present
@@ -2159,6 +2318,14 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     # Get current breakout mode
     cur_brkout_dict = config_db.get_table('BREAKOUT_CFG')
+    if len(cur_brkout_dict) == 0:
+        click.secho("[ERROR] BREAKOUT_CFG table is NOT present in CONFIG DB", fg='red')
+        raise click.Abort()
+
+    if interface_name not in cur_brkout_dict.keys():
+        click.secho("[ERROR] {} interface is NOT present in BREAKOUT_CFG table of CONFIG DB".format(interface_name), fg='red')
+        raise click.Abort()
+
     cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
 
     # Validate Interface and Breakout mode
@@ -2288,6 +2455,10 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    if interface_is_in_portchannel(portchannel_member_table, interface_name):
+        ctx.fail("'interface_name' is in portchannel!")
 
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
         command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
