@@ -91,6 +91,13 @@ def get_proxy_arp(ctx, vlan):
 
 
 class VlanBrief:
+    """ This class is used as a namespace to
+    define columns for "show vlan brief" command.
+    The usage of this class is for external plugin
+    (in this case dhcp-relay) to append new columns
+    to this list.
+    """
+
     COLUMNS = [
         ("VLAN ID", get_vlan_id),
         ("IP Address", get_vlan_ip_address),
