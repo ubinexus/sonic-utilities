@@ -12,7 +12,8 @@ def vlan():
 
 
 def get_vlan_id(ctx, vlan):
-    return vlan.split('Vlan')[1]
+    vlan_prefix, vid = vlan.split('Vlan')
+    return vid
 
 
 def get_vlan_ip_address(ctx, vlan):
@@ -34,6 +35,13 @@ def get_vlan_ports(ctx, vlan):
     _, _, vlan_ports_data = cfg
     vlan_ports = []
     iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+    # Here natsorting is important in relation to another
+    # column which prints port tagging mode.
+    # If we sort both in the same way using same keys
+    # we will result in right order in both columns.
+    # This should be fixed by cli code autogeneration tool
+    # and we won't need this specific approach with
+    # VlanBrief.COLUMNS anymore.
     for key in natsorted(list(vlan_ports_data.keys())):
         ports_key, ports_value = key
         if vlan != ports_key:
@@ -51,6 +59,13 @@ def get_vlan_ports_tagging(ctx, vlan):
     cfg, db = ctx
     _, _, vlan_ports_data = cfg
     vlan_ports_tagging = []
+    # Here natsorting is important in relation to another
+    # column which prints port tagging mode.
+    # If we sort both in the same way using same keys
+    # we will result in right order in both columns.
+    # This should be fixed by cli code autogeneration tool
+    # and we won't need this specific approach with
+    # VlanBrief.COLUMNS anymore.
     for key in natsorted(list(vlan_ports_data.keys())):
         ports_key, ports_value = key
         if vlan != ports_key:
@@ -94,12 +109,12 @@ def brief(db, verbose):
     body = []
 
     # Fetching data from config db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
-    vlan_dhcp_helper_data = db.cfgdb.get_table('VLAN')
+    vlan_data = db.cfgdb.get_table('VLAN')
     vlan_ip_data = db.cfgdb.get_table('VLAN_INTERFACE')
     vlan_ports_data = db.cfgdb.get_table('VLAN_MEMBER')
-    vlan_cfg = (vlan_dhcp_helper_data, vlan_ip_data, vlan_ports_data)
+    vlan_cfg = (vlan_data, vlan_ip_data, vlan_ports_data)
 
-    for vlan in natsorted(vlan_dhcp_helper_data):
+    for vlan in natsorted(vlan_data):
         row = []
         for column in VlanBrief.COLUMNS:
             column_name, getter = column
