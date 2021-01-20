@@ -273,6 +273,18 @@
 	"30" : "200.200.200.5@Vlan1000",
 	"31" : "200.200.200.5@Vlan1000"	
     },
+    "REBOOT_CAUSE|2020_10_09_04_53_58": {
+        "cause": "warm-reboot",
+        "time": "Fri Oct  9 04:51:47 UTC 2020",
+        "user": "admin",
+        "comment": "N/A"
+    },
+    "REBOOT_CAUSE|2020_10_09_02_33_06": {
+        "cause": "reboot",
+        "time": "Fri Oct  9 02:29:44 UTC 2020",
+        "user": "admin",
+        "comment": "N/A"
+    },
     "CHASSIS_TABLE|CHASSIS 1": {
         "module_num": "5"
     },
@@ -300,5 +312,82 @@
         "desc": "fabric-card",
         "oper_status": "Offline",
         "slot": "18"
+    },
+    "MUX_CABLE_TABLE|Ethernet32": {
+        "state": "active"
+    },
+    "MUX_CABLE_TABLE|Ethernet0": {
+        "state": "active"
+    },
+    "MUX_CABLE_TABLE|Ethernet4": {
+        "state": "standby"
+    },
+    "MUX_CABLE_TABLE|Ethernet8": {
+        "state": "standby"
+    },
+    "MUX_CABLE_TABLE|Ethernet12": {
+        "state": "unknown"
+    },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.25": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.25",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.26": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.26",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.27": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.27",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "BUFFER_POOL_TABLE|egress_lossless_pool": {
+        "mode": "dynamic",
+        "size": "13945824",
+        "type": "egress"
+    },
+    "BUFFER_POOL_TABLE|egress_lossy_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "egress"
+    },
+    "BUFFER_POOL_TABLE|ingress_lossless_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "ingress"
+    },
+    "BUFFER_POOL_TABLE|ingress_lossy_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "ingress"
+    },
+    "BUFFER_PROFILE_TABLE|ingress_lossy_profile": {
+        "dynamic_th": "3",
+        "pool": "[BUFFER_POOL_TABLE|ingress_lossy_pool]",
+        "size": "0"
+    },
+    "BUFFER_PROFILE_TABLE|headroom_profile": {
+        "dynamic_th": "0",
+        "pool": "[BUFFER_POOL_TABLE|ingress_lossless_pool]",
+        "xon": "18432",
+        "xoff": "32768",
+        "size": "51200"
+    },
+    "CHASSIS_MIDPLANE_TABLE|SUPERVISOR0": {
+        "ip_address": "192.168.1.100",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD0": {
+        "ip_address": "192.168.1.1",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD1": {
+        "ip_address": "192.168.1.2",
+        "access": "False"
     }
 }

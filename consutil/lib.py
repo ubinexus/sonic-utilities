@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # lib.py
 #
@@ -23,6 +22,8 @@ ERR_CFG = 4
 ERR_BUSY = 5
 
 CONSOLE_PORT_TABLE = "CONSOLE_PORT"
+CONSOLE_SWITCH_TABLE = "CONSOLE_SWITCH"
+
 LINE_KEY = "LINE"
 CUR_STATE_KEY = "CUR_STATE"
 
@@ -30,6 +31,8 @@ CUR_STATE_KEY = "CUR_STATE"
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
+FEATURE_KEY = "console_mgmt"
+FEATURE_ENABLED_KEY = "enabled"
 
 # STATE_DB Keys
 STATE_KEY = "state"
@@ -276,7 +279,7 @@ class SysInfoProvider(object):
         cmd = "ls " + SysInfoProvider.DEVICE_PREFIX + "*"
         output, _ = SysInfoProvider.run_command(cmd, abort=False)
         ttys = output.split('\n')
-        ttys = list(filter(lambda dev: re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None, ttys))
+        ttys = list([dev for dev in ttys if re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None])
         return ttys
 
     @staticmethod
@@ -292,8 +295,8 @@ class SysInfoProvider(object):
         cmd = 'ps -p {} -o pid,lstart,cmd | grep -E "(mini|pico)com"'.format(pid)
         output = SysInfoProvider.run_command(cmd)
         processes = SysInfoProvider._parse_processes_info(output)
-        if len(processes.keys()) == 1:
-            return (processes.keys()[0],) + list(processes.values())[0]
+        if len(list(processes.keys())) == 1:
+            return (list(processes.keys())[0],) + list(processes.values())[0]
         else:
             return None
 
@@ -324,7 +327,7 @@ class SysInfoProvider(object):
     @staticmethod
     def run_command(cmd, abort=True):
         """runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise"""
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
         output = proc.stdout.read()
         error = proc.stderr.read()
         if abort and error != "":

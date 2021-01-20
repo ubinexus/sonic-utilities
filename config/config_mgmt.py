@@ -20,7 +20,7 @@ try:
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
     # since /usr/local/bin/sonic-cfggen does not have .py extension.
     load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    from sonic_cfggen import deep_update, FormatConverter, sort_data
+    from sonic_cfggen import deep_update, FormatConverter
 
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -77,7 +77,7 @@ class ConfigMgmt():
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
-            raise(Exception('ConfigMgmt Class creation failed'))
+            raise Exception('ConfigMgmt Class creation failed')
 
         return
 
@@ -168,7 +168,7 @@ class ConfigMgmt():
         self.configdbJsonIn = readJsonFile(source)
         #self.sysLog(msg=type(self.configdbJsonIn))
         if not self.configdbJsonIn:
-            raise(Exception("Can not load config from config DB json file"))
+            raise Exception("Can not load config from config DB json file")
         self.sysLog(msg='Reading Input {}'.format(self.configdbJsonIn))
 
         return
@@ -213,7 +213,6 @@ class ConfigMgmt():
         configdb = ConfigDBConnector(**db_kwargs)
         configdb.connect(False)
         deep_update(data, FormatConverter.to_deserialized(jDiff))
-        data = sort_data(data)
         self.sysLog(msg="Write in DB: {}".format(data))
         configdb.mod_config(FormatConverter.output_to_db(data))
 
@@ -247,7 +246,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
-            raise(Exception('ConfigMgmtDPB Class creation failed'))
+            raise Exception('ConfigMgmtDPB Class creation failed')
 
         return
 
@@ -331,8 +330,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             if waitTime + 1 == timeout:
                 self.sysLog(syslog.LOG_CRIT, "!!!  Critical Failure, Ports \
                     are not Deleted from ASIC DB, Bail Out  !!!", doPrint=True)
-                raise(Exception("Ports are present in ASIC DB after {} secs".\
-                    format(timeout)))
+                raise Exception("Ports are present in ASIC DB after {} secs".format(timeout))
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
@@ -470,7 +468,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             (configToLoad, ret) (tuple)[dict, bool]
         '''
         configToLoad = None
-        ports = portJson['PORT'].keys()
+        ports = list(portJson['PORT'].keys())
         try:
             self.sysLog(doPrint=True, msg='Start Port Addition')
             self.sysLog(msg="addPorts Args portjson: {} loadDefConfig: {}".\
@@ -546,7 +544,7 @@ class ConfigMgmtDPB(ConfigMgmt):
                     pass
                 return
 
-            for it in D1.keys():
+            for it in D1:
                 # D2 has the key
                 if D2.get(it):
                     _mergeItems(D1[it], D2[it])
@@ -578,7 +576,7 @@ class ConfigMgmtDPB(ConfigMgmt):
         '''
         found = False
         if isinstance(In, dict):
-            for key in In.keys():
+            for key in In:
                 for skey in skeys:
                     # pattern is very specific to current primary keys in
                     # config DB, may need to be updated later.
