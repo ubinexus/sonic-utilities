@@ -1,16 +1,10 @@
-#! /usr/bin/python -u
-
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
-
+import configparser
 import os
 import re
 import subprocess
 import sys
 import time
-import urllib
+from urllib.request import urlopen, urlretrieve
 
 import click
 from sonic_py_common import logger
@@ -145,7 +139,7 @@ def echo_and_log(msg, priority=LOG_NOTICE, fg='white'):
 def validate_url_or_abort(url):
     # Attempt to retrieve HTTP response code
     try:
-        urlfile = urllib.request.urlopen(url)
+        urlfile = urlopen(url)
         response_code = urlfile.getcode()
         urlfile.close()
     except IOError:
@@ -302,7 +296,7 @@ def install(url, force, skip_migration=False):
         echo_and_log('Downloading image...')
         validate_url_or_abort(url)
         try:
-            urllib.request.urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
+            urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
             click.echo('')
         except Exception as e:
             echo_and_log("Download error", e)
@@ -494,7 +488,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         echo_and_log('Downloading image...')
         validate_url_or_abort(url)
         try:
-            urllib.request.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
+            urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
         except Exception as e:
             echo_and_log("Download error: {}".format(e), LOG_ERR)
             raise click.Abort()
