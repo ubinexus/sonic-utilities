@@ -2,8 +2,8 @@ import os
 import sys
 import subprocess
 import pexpect
+from unittest import mock
 
-import mock
 import pytest
 
 import config.main as config
@@ -20,6 +20,24 @@ class TestConfigConsoleCommands(object):
     def setup_class(cls):
         print("SETUP")
     
+    def test_enable_console_switch(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["console"].commands["enable"])
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+
+    def test_disable_console_switch(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["console"].commands["disable"])
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+
     def test_console_add_exists(self):
         runner = CliRunner()
         db = Db()
@@ -421,7 +439,7 @@ class TestConsutilLib(object):
     @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
     @mock.patch('os.path.exists', mock.MagicMock(return_value=True))
     def test_sys_info_provider_init_device_prefix_plugin(self):
-        with mock.patch("__builtin__.open", mock.mock_open(read_data="C0-")):
+        with mock.patch("builtins.open", mock.mock_open(read_data="C0-")):
             SysInfoProvider.init_device_prefix()
             assert SysInfoProvider.DEVICE_PREFIX == "/dev/C0-"
             SysInfoProvider.DEVICE_PREFIX = "/dev/ttyUSB"
@@ -446,8 +464,8 @@ class TestConsutilLib(object):
     def test_sys_info_provider_list_active_console_processes(self):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         procs = SysInfoProvider.list_active_console_processes()
-        assert len(procs.keys()) == 1
-        assert "0" in procs.keys()
+        assert len(procs) == 1
+        assert "0" in procs
         assert procs["0"] == ("8", "Mon Nov  2 04:29:41 2020")
 
     active_process_output = "13751 Wed Mar  6 08:31:35 2019 /usr/bin/sudo picocom -b 9600 -f n /dev/ttyUSB1"
@@ -464,6 +482,48 @@ class TestConsutilLib(object):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         proc = SysInfoProvider.get_active_console_process_info("2")
         assert proc is None
+
+class TestConsutil(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
+    def test_consutil_feature_disabled_null_config(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(consutil.consutil, ['show'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 1
+        assert result.output == "Console switch feature is disabled\n"
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
+    def test_consutil_feature_disabled_config(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "no" })
+
+        result = runner.invoke(consutil.consutil, ['show'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 1
+        assert result.output == "Console switch feature is disabled\n"
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
+    def test_consutil_feature_enabled(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "yes" })
+
+        result = runner.invoke(consutil.consutil, ['show'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
 
 class TestConsutilShow(object):
     @classmethod
@@ -578,3 +638,64 @@ class TestConsutilConnect(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == "Successful connection to line [1]\nPress ^A ^X to disconnect\n"
+
+class TestConsutilClear(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB1"]))
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('os.geteuid', mock.MagicMock(return_value=1))
+    def test_clear_without_root(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(consutil.consutil.commands["clear"], ['1'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 2
+        assert "Root privileges are required for this operation" in result.output
+
+    @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB1"]))
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
+    def test_clear_line_not_found(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(consutil.consutil.commands["clear"], ['2'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 3
+        assert "Target [2] does not exist" in result.output
+
+    @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB1"]))
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
+    @mock.patch('consutil.lib.ConsolePortInfo.clear_session', mock.MagicMock(return_value=False))
+    def test_clear_idle(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+
+        result = runner.invoke(consutil.consutil.commands["clear"], ['1'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert "No process is connected to line 1" in result.output
+
+    @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB1"]))
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
+    @mock.patch('consutil.lib.ConsolePortInfo.clear_session', mock.MagicMock(return_value=True))
+    def test_clear_success(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+
+        result = runner.invoke(consutil.consutil.commands["clear"], ['1'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == ""

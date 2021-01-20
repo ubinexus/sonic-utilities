@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -12,13 +12,20 @@ try:
     import utilities_common.cli as clicommon
 
     from tabulate import tabulate
-    from lib import *
+    from .lib import *
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 @click.group()
-def consutil():
+@clicommon.pass_db
+def consutil(db):
     """consutil - Command-line utility for interacting with switches via console device"""
+    config_db = db.cfgdb
+    data = config_db.get_entry(CONSOLE_SWITCH_TABLE, FEATURE_KEY)
+    if FEATURE_ENABLED_KEY not in data or data[FEATURE_ENABLED_KEY] == "no":
+        click.echo("Console switch feature is disabled")
+        sys.exit(ERR_DISABLE)
+
     SysInfoProvider.init_device_prefix()
 
 # 'show' subcommand
