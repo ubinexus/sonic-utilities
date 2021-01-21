@@ -2474,8 +2474,8 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    #add ad validation to check this interface is not a member in vlan before 
-    #changing it to router port 
+    # Add a validation to check this interface is not a member in vlan before 
+    # changing it to a router port 
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
             click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
