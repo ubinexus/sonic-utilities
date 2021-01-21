@@ -21,8 +21,14 @@ def readJsonFile(fileName):
     try:
         with open(fileName) as f:
             result = json.load(f)
+    except FileNotFoundError as e:
+        click.echo("{}".format(str(e)), err=True)
+        raise click.Abort()
+    except json.decoder.JSONDecodeError as e:
+        click.echo("Invalid JSON file format('{}')\n{}".format(fileName, str(e)), err=True)
+        raise click.Abort()
     except Exception as e:
-        click.echo(str(e))
+        click.echo("{}\n{}".format(type(e), str(e)), err=True)
         raise click.Abort()
     return result
 
