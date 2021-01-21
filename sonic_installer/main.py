@@ -15,7 +15,7 @@ from .common import run_command, run_command_or_raise
 from .exception import SonicRuntimeException
 
 SYSLOG_IDENTIFIER = "sonic-installer"
-LOG_ERR = logger.Logger.LOG_PRIORITY_NOTICE
+LOG_ERR = logger.Logger.LOG_PRIORITY_ERROR 
 LOG_NOTICE = logger.Logger.LOG_PRIORITY_NOTICE
 
 # Global Config object
@@ -125,9 +125,9 @@ def get_docker_tag_name(image):
     return tag
 
 
-def echo_and_log(msg, priority=LOG_NOTICE, fg='white'):
-    if priority == LOG_ERR:
-        #print to stderr if priority is error
+def echo_and_log(msg, priority=LOG_NOTICE, fg=None):
+    if priority >= LOG_ERR:
+        # Print to stderr if priority is error
         click.secho(msg, fg=fg, err=True)
     else:
         click.secho(msg, fg=fg)
