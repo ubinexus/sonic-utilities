@@ -6,7 +6,6 @@ import json
 import syslog
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
-from collections import defaultdict
 
 
 ''' vnet_route_check.py: tool that verifies VNET routes consistancy between SONiC and vendor SDK DBs.
