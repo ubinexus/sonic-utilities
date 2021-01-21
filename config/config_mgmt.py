@@ -147,9 +147,8 @@ class ConfigMgmt():
         # log debug only if enabled
         if self.DEBUG == False and logLevel == syslog.LOG_DEBUG:
             return
-        # always print >Info level msg with doPrint flag
-        if doPrint == True and (logLevel < syslog.LOG_INFO or
-            flags.interactive !=0):
+        # always print < Info level msg with doPrint flag
+        if doPrint == True and (logLevel < syslog.LOG_INFO or flags.interactive != 0):
             print("{}".format(msg))
         syslog.openlog(self.SYSLOG_IDENTIFIER)
         syslog.syslog(logLevel, msg)
@@ -728,8 +727,6 @@ class ConfigMgmtDPB(ConfigMgmt):
                         else:
                             self.sysLog(logLevel=syslog.LOG_DEBUG, \
                                 msg="Delete Dict key:{}".format(key))
-                            # assign current lists as empty.
-                            config[key] = []
                             # assign key to None(null), redis will delete entire key
                             config[key] = None
                     else:
