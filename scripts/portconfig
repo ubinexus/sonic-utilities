@@ -25,6 +25,7 @@ optional arguments:
 import os
 import sys
 import argparse
+from sonic_py_common import interface
 
 # mock the redis for unit test purposes #
 try:
@@ -42,6 +43,9 @@ from utilities_common.general import load_db_config
 
 # APPL_DB constants
 PORT_TABLE_NAME = "PORT"
+PORTCHANNEL_TABLE_NAME = "PORTCHANNEL"
+PORT_PREFIX_ETHERNET = "Ethernet"
+PORT_PREFIX_PORTCHANNEL = "PortChannel"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
 PORT_FEC_CONFIG_FIELD_NAME = "fec"
 PORT_MTU_CONFIG_FIELD_NAME = "mtu"
@@ -122,10 +126,10 @@ class portconfig(object):
             print("Setting fec %s on port %s" % (fec, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
 
-    def set_mtu(self, port, mtu):
+    def set_mtu(self, table_name, port, mtu):
         if self.verbose:
             print("Setting mtu %s on port %s" % (mtu, port))
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
+        self.db.mod_entry(table_name, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
 
     def set_autoneg(self, port, mode):
         if self.verbose:
@@ -258,6 +262,10 @@ def main():
     # Load database config files
     load_db_config()
     try:
+        port_table_name = interface.get_port_table_name(args.port)
+        if not port_table_name:
+            raise Exception("Invalid port type specified")
+
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
             port.list_params(args.port)
@@ -267,7 +275,7 @@ def main():
             if args.fec:
                 port.set_fec(args.port, args.fec)
             if args.mtu:
-                port.set_mtu(args.port, args.mtu)
+                port.set_mtu(port_table_name, args.port, args.mtu)
             if args.autoneg:
                 port.set_autoneg(args.port, args.autoneg)
             if args.adv_speeds:
