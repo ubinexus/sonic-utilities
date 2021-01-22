@@ -303,6 +303,42 @@ def interface_alias_to_name(config_db, interface_alias):
     # portchannel is passed in as argument, which does not have an alias
     return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
+def loopback_name_is_valid(config_db, loopback_name):
+    """Check if the loopback name is valid
+    """
+    # If the input parameter config_db is None, try DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = DEFAULT_NAMESPACE
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
+    config_db.connect()
+    loopback_dict = config_db.get_table('LOOPBACK_INTERFACE')
+
+    if loopback_name is not None:
+        if loopback_dict:
+            for loopback_dict_keys in loopback_dict.keys():
+                if loopback_name == loopback_dict_keys:
+                    return True
+    return False
+
+def vlan_name_is_valid(config_db, vlan_name):
+    """Check if the vlan name is valid
+    """
+    # If the input parameter config_db is None, try DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = DEFAULT_NAMESPACE
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
+    config_db.connect()
+    vlan_dict = config_db.get_table('VLAN')
+
+    if vlan_name is not None:
+        if vlan_dict:
+            for vlan_dict_keys in vlan_dict.keys():
+                if vlan_name == vlan_dict_keys:
+                    return True
+    return False
+
 def interface_name_is_valid(config_db, interface_name):
     """Check if the interface name is valid
     """
@@ -2473,9 +2509,12 @@ def add(ctx, interface_name, ip_addr, gw):
 
             return
 
-        table_name = get_interface_table_name(interface_name)
-        if table_name == "":
+        if not (interface_name_is_valid(config_db, interface_name)
+                or vlan_name_is_valid(config_db, interface_name)
+                or loopback_name_is_valid(config_db, interface_name)):
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+
+        table_name = get_interface_table_name(interface_name)
         interface_entry = config_db.get_entry(table_name, interface_name)
         if len(interface_entry) == 0:
             if table_name == "VLAN_SUB_INTERFACE":
@@ -2514,9 +2553,12 @@ def remove(ctx, interface_name, ip_addr):
             mgmt_ip_restart_services()
             return
 
-        table_name = get_interface_table_name(interface_name)
-        if table_name == "":
+        if not (interface_name_is_valid(config_db, interface_name)
+                or vlan_name_is_valid(config_db, interface_name)
+                or loopback_name_is_valid(config_db, interface_name)):
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+
+        table_name = get_interface_table_name(interface_name)
         config_db.set_entry(table_name, (interface_name, ip_addr), None)
         interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
         if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
