@@ -56,7 +56,7 @@ bko_dict_4 = {
     "1x1":   { "lanes":4, "speed":1000,   "step":4, "bko":0, "name": "etp" },
     "4x10":  { "lanes":4, "speed":10000,  "step":1, "bko":1, "name": "etp" },
     "4x25":  { "lanes":4, "speed":25000,  "step":1, "bko":1, "name": "etp" },
-    "2x50":  { "lanes":4, "speed":25000,  "step":2, "bko":1, "name": "etp" },
+    "2x50":  { "lanes":4, "speed":50000,  "step":2, "bko":1, "name": "etp" },
 }
 
 bko_dict_8 = {
@@ -398,11 +398,11 @@ class SkuCreate(object):
 
                 #find split partition
                 for i in range(0,base_lanes,step):
-                    port_str = "Ethernet{:d}".format(line_port_index + i/step)
-                    lanes_str = "{:d}".format(lane_index + i/step)
+                    port_str = "Ethernet{:d}".format(line_port_index + i)
+                    lanes_str = "{:d}".format(lane_index + i)
                     if step > 1:
                         for j in range(1,step):
-                            lanes_str += ",{:d}".format(lane_index + j)
+                            lanes_str += ",{:d}".format(lane_index + i + j)
                     if bko == 0:
                         alias_str = "etp{:d}".format(alias_index)
                     else:
@@ -446,7 +446,6 @@ class SkuCreate(object):
 
         for port_index in range (port_idx,port_idx+self.base_lanes):
             port_str = "Ethernet" + str(port_index)
-            print("Port String ",port_str)
                 
             if data['PORT'].get(port_str) != None:
                 port_instance = data['PORT'].get(port_str)
@@ -467,7 +466,7 @@ class SkuCreate(object):
         bko = self.bko_dict[port_split]["bko"]
 
         for i in range(0,self.base_lanes,step):
-            port_str = "Ethernet{:d}".format(port_idx + i/step)
+            port_str = "Ethernet{:d}".format(port_idx + i)
             lanes_str = lanes_arr[j]
             j += 1
                  
@@ -475,7 +474,6 @@ class SkuCreate(object):
                 alias_str = "etp{:d}".format((port_idx/self.base_lanes)+1)
             else:
                 alias_str = "etp{:d}{:s}".format((port_idx/self.base_lanes)+1,alias_arr[i/step])
-                print("i= ",i," alias_str= ",alias_str)
             port_inst["lanes"] = lanes_str
             port_inst["alias"] = alias_str
             port_inst["speed"] = speed*1000
@@ -489,6 +487,7 @@ class SkuCreate(object):
             json.dump(data, outfile, indent=4, sort_keys=True)
 
         print("--------------------------------------------------------")
+        shutil.copy(new_file,cfg_file)
 
     def break_a_port(self, port_name, port_split):
         # Function to split or unsplit a port based on user input in both port_config.ini file and config_db.json file
@@ -751,6 +750,19 @@ def main(argv):
             sku.json_file_parser(args.json_file[0])
             return
         elif args.port_split:
+            if sku.platform in platform_4:
+                sku.base_lanes = 4
+                sku.bko_dict = bko_dict_4
+            else:
+                sku.base_lanes = 8
+                sku.bko_dict = bko_dict_8
+            try:
+                sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
+            except KeyError:
+                print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
+                exit(1)
+            sku.ini_file = sku.default_sku_path + "/" + sku_name + "/port_config.ini"
+            sku.cfg_file = "/etc/sonic/config_db.json"
             sku.break_a_port(args.port_split[0], args.port_split[1])
             return
 
