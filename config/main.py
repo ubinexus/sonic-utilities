@@ -916,7 +916,6 @@ def config(ctx):
     #
     # Load asic_type for further use
     #
-    print('Init DB context')
     global asic_type
 
     try:
@@ -2453,7 +2452,7 @@ def autoneg(ctx, interface_name, mode, verbose):
 @click.argument('speed_list', metavar='<speed_list>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def advertised_speeds(ctx, interface_name, speed_list, verbose):
-    """Set interface advertised speed list"""
+    """Set interface advertised speeds"""
     # Get the config_db connector
     config_db = ctx.obj['config_db']
 
@@ -2477,7 +2476,7 @@ def advertised_speeds(ctx, interface_name, speed_list, verbose):
 # 'interface-type' subcommand
 #
 
-@interface.command()
+@interface.command(name='type')
 @click.pass_context
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('interface_type_value', metavar='<interface_type_value>', required=True)
@@ -2512,8 +2511,8 @@ def interface_type(ctx, interface_name, interface_type_value, verbose):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('interface_type_list', metavar='<interface_type_list>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def advertised_interface_types(ctx, interface_name, interface_type_list, verbose):
-    """Set advertised interface types"""
+def advertised_types(ctx, interface_name, interface_type_list, verbose):
+    """Set interface advertised types"""
     # Get the config_db connector
     config_db = ctx.obj['config_db']
 

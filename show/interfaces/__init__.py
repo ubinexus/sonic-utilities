@@ -442,52 +442,27 @@ def detailed(interface, period, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
-# 'auto-neg-config' subcommand ("show interfaces auto-neg-config")
+# 'autoneg-status' subcommand ("show interfaces autoneg_status")
 @interfaces.command()
 @click.argument('interfacename', required=False)
 @multi_asic_util.multi_asic_click_options
-def auto_neg_config(interfacename, namespace, display):
-    """Show Interface Name/Alias Mapping"""
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def autoneg_status(interfacename, namespace, display, verbose):
+    """Show interface autoneg status"""
 
     ctx = click.get_current_context()
 
-    port_dict = multi_asic.get_port_table(namespace=namespace)
+    cmd = "intfutil -c autoneg"
 
-    header = ['Name', 'Auto-Neg Mode', 'Speed', 'Advertised Speeds', 'Interface Type', 'Advertised Interface Types']
-    body = []
-
+    #ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        # If we're given an interface name, output name and alias for that interface only
-        if interfacename in port_dict:
-            body.append(_get_autoneg_config(interfacename, port_dict[interfacename]))
-        else:
-            ctx.fail("Invalid interface name {}".format(interfacename))
+        cmd += " -i {}".format(interfacename)
     else:
-        # Output name and alias for all interfaces
-        for port_name in natsorted(list(port_dict.keys())):
-            body.append(_get_autoneg_config(port_name, port_dict[port_name]))
-            
-    click.echo(tabulate(body, header))
+        cmd += " -d {}".format(display)
 
-def _get_autoneg_config(interfacename, port_config_dict):
-    autoneg_mode = port_config_dict.get('autoneg', 'N/A')
-    if autoneg_mode == '1':
-        autoneg_mode = 'enabled'
-    else:
-        autoneg_mode = 'disabled'
-    speed = port_config_dict.get('speed', 'N/A')
-    if speed != "N/A":
-        speed = '{}G'.format(speed[:-3])
-    adv_speeds = port_config_dict.get('adv_speeds', 'N/A')
-    if adv_speeds != "N/A":
-        speed_list = adv_speeds.split(',')
-        new_speed_list = []
-        for s in speed_list:
-            new_speed_list.append('{}G'.format(s[:-3]))
-        adv_speeds = ','.join(new_speed_list)
-    interface_type = port_config_dict.get('interface_type', 'N/A')
-    adv_interface_types = port_config_dict.get('adv_interface_types', 'N/A')
-    return (interfacename, autoneg_mode, speed, adv_speeds, interface_type, adv_interface_types)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
+    clicommon.run_command(cmd, display_cmd=verbose)

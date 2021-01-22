@@ -35,19 +35,27 @@ class TestConfigInterface(object):
         self.basic_check("autoneg", ["Ethernet0", "invalid"], ctx, operator.ne)
 
     def test_config_adv_speeds(self, ctx):
-        self.basic_check("advertised-speeds", ["Ethernet0", "50000,100000"], ctx)
-        self.basic_check("advertised-speeds", ["Invalid", "50000,100000"], ctx, operator.ne)
+        self.basic_check("advertised-speeds", ["Ethernet0", "40000,100000"], ctx)
+        self.basic_check("advertised-speeds", ["Ethernet0", "all"], ctx)
+        self.basic_check("advertised-speeds", ["Invalid", "40000,100000"], ctx, operator.ne)
+        self.basic_check("advertised-speeds", ["Ethernet0", "50000,100000"], ctx, operator.ne)
 
-    def test_config_interface_type(self, ctx):
-        self.basic_check("interface-type", ["Ethernet0", "CR4"], ctx)
-        self.basic_check("interface-type", ["Invalid", "CR4"], ctx, operator.ne)
+    def test_config_type(self, ctx):
+        self.basic_check("type", ["Ethernet0", "CR4"], ctx)
+        self.basic_check("type", ["Invalid", "CR4"], ctx, operator.ne)
+        self.basic_check("type", ["Ethernet0", "Invalid"], ctx, operator.ne)
+        self.basic_check("type", ["Ethernet0", ""], ctx, operator.ne)
 
-    def test_config_adv_interface_types(self, ctx):
-        self.basic_check("advertised-interface-types", ["Ethernet0", "CR4,KR4"], ctx)
-        self.basic_check("advertised-interface-types", ["Invalid", "CR4,KR4"], ctx, operator.ne)
+    def test_config_adv_types(self, ctx):
+        self.basic_check("advertised-types", ["Ethernet0", "CR4,KR4"], ctx)
+        self.basic_check("advertised-types", ["Ethernet0", "all"], ctx)
+        self.basic_check("advertised-types", ["Invalid", "CR4,KR4"], ctx, operator.ne)
+        self.basic_check("advertised-types", ["Ethernet0", "CR4,Invalid"], ctx, operator.ne)
+        self.basic_check("advertised-types", ["Ethernet0", ""], ctx, operator.ne)
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["interface"].commands[command_name], para_list, obj = ctx)
+        print(result.output)
         assert op(result.exit_code, expect_result)
         return result

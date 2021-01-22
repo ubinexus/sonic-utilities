@@ -33,6 +33,7 @@ try:
 except KeyError:
     pass
 
+# APPL_DB constants
 PORT_TABLE_NAME = "PORT"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
 PORT_FEC_CONFIG_FIELD_NAME = "fec"
@@ -42,13 +43,23 @@ PORT_ADV_SPEEDS_CONFIG_FIELD_NAME = "adv_speeds"
 PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME = "interface_type"
 PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME = "adv_interface_types"
 
+# STATE_DB constants
+PORT_STATE_TABLE_NAME = "PORT_TABLE"
+PORT_STATE_SUPPORTED_SPEEDS = "supported_speeds"
+
+
+VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','SR','SR2','SR4',
+                                'LR','LR4','KR','KR4','CAUI','GMII',
+                                'SFI','XLAUI','KR2','CAUI4','XAUI',
+                                'XFI','XGMII'])
+
 class portconfig(object):
     """
     Process aclstat
     """
     def __init__(self, verbose, port, namespace):
         self.verbose = verbose
-
+        self.namespace = namespace
         # Set up db connections
         if namespace is None:
             self.db = ConfigDBConnector()
@@ -70,6 +81,12 @@ class portconfig(object):
     def set_speed(self, port, speed):
         if self.verbose:
             print("Setting speed %s on port %s" % (speed, port))
+        supported_speeds_str = self.get_supported_speeds(port)
+        if supported_speeds_str:
+            if supported_speeds_str.find(speed) == -1:
+                print('Invalid speed value {}'.format(speed))
+                print('Valid speed value:{}'.format(','.join(supported_speeds)))
+                exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
     def set_fec(self, port, fec):
@@ -91,17 +108,49 @@ class portconfig(object):
     def set_adv_speeds(self, port, adv_speeds):
         if self.verbose:
             print("Setting adv_speeds %s on port %s" % (adv_speeds, port))
+
+        if adv_speeds != 'all':
+            supported_speeds_str = self.get_supported_speeds(port)
+            if supported_speeds_str:
+                supported_speeds = set([x for x in supported_speeds_str.split(',')])
+                for speed in adv_speeds.split(','):
+                    if speed not in supported_speeds:
+                        print('Invalid speed value {}'.format(speed))
+                        print('Valid speed value:{}'.format(','.join(supported_speeds)))
+                        exit(1)
+
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
 
     def set_interface_type(self, port, interface_type):
         if self.verbose:
             print("Setting interface_type %s on port %s" % (interface_type, port))
+        if interface_type not in VALID_INTERFACE_TYPE_SET:
+            print("Invalid interface type value {}".format(interface_type))
+            print("Valid interface type:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
+            exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
 
     def set_adv_interface_types(self, port, adv_interface_types):
         if self.verbose:
             print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
+        
+        if adv_interface_types != 'all':
+            interface_type_list = adv_interface_types.split(',')
+            for interface_type in interface_type_list:
+                if interface_type not in VALID_INTERFACE_TYPE_SET:
+                    print("Invalid interface type value {}".format(interface_type))
+                    print("Valid interface type:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
+                    exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME: adv_interface_types})
+    
+    def get_supported_speeds(self, port):
+        if not self.namespace:
+            state_db = SonicV2Connector(host="127.0.0.1")
+        else:
+            state_db = SonicV2Connector(host="127.0.0.1", namesapce=namesapce, use_unix_socket_path=True)
+        state_db.connect(state_db.STATE_DB)
+        return state_db.get(state_db.STATE_DB, '{}|{}'.format(PORT_STATE_TABLE_NAME, port), PORT_STATE_SUPPORTED_SPEEDS)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',

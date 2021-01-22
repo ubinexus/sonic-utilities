@@ -338,6 +338,12 @@ class DBMigrator():
 
         return True
 
+    def migrate_config_db_port_table_for_auto_neg(self):
+        port_table = self.configDB.get_table('PORT')
+        for key, value in port_table.items():
+            if 'autoneg' in value and value['autoneg'] == 1 and 'speed' in value and 'adv_speeds' not in value:
+                self.configDB.set_entry('PORT', 'adv_speeds', value['speed'])
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -452,7 +458,12 @@ class DBMigrator():
         Current latest version. Nothing to do here.
         """
         log.log_info('Handling version_2_0_0')
+        self.migrate_config_db_port_table_for_auto_neg()
+        self.set_version('version_2_0_1')
+        return version_2_0_1
 
+    def version_2_0_1(self):
+        log.log_info('Handling version_2_0_1')
         return None
 
     def get_version(self):

@@ -142,43 +142,6 @@ Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
  1001  PortChannel1001  N/A
 """
 
-show_interfaces_auto_neg_config_output="""\
-Name         Auto-Neg Mode    Speed    Advertised Speeds    Interface Type    Advertised Interface Types
------------  ---------------  -------  -------------------  ----------------  ----------------------------
-Ethernet0    disabled         40G      N/A                  N/A               N/A
-Ethernet4    disabled         40G      N/A                  N/A               N/A
-Ethernet8    disabled         40G      N/A                  N/A               N/A
-Ethernet12   disabled         40G      N/A                  N/A               N/A
-Ethernet16   disabled         40G      N/A                  N/A               N/A
-Ethernet20   disabled         40G      N/A                  N/A               N/A
-Ethernet24   disabled         40G      N/A                  N/A               N/A
-Ethernet28   disabled         40G      N/A                  N/A               N/A
-Ethernet32   disabled         40G      N/A                  N/A               N/A
-Ethernet36   disabled         40G      N/A                  N/A               N/A
-Ethernet40   disabled         40G      N/A                  N/A               N/A
-Ethernet44   disabled         40G      N/A                  N/A               N/A
-Ethernet48   disabled         40G      N/A                  N/A               N/A
-Ethernet52   disabled         40G      N/A                  N/A               N/A
-Ethernet56   disabled         40G      N/A                  N/A               N/A
-Ethernet60   disabled         40G      N/A                  N/A               N/A
-Ethernet64   disabled         40G      N/A                  N/A               N/A
-Ethernet68   disabled         40G      N/A                  N/A               N/A
-Ethernet72   disabled         40G      N/A                  N/A               N/A
-Ethernet76   disabled         40G      N/A                  N/A               N/A
-Ethernet80   disabled         40G      N/A                  N/A               N/A
-Ethernet84   disabled         40G      N/A                  N/A               N/A
-Ethernet88   disabled         40G      N/A                  N/A               N/A
-Ethernet92   disabled         40G      N/A                  N/A               N/A
-Ethernet96   disabled         40G      N/A                  N/A               N/A
-Ethernet100  disabled         40G      N/A                  N/A               N/A
-Ethernet104  disabled         40G      N/A                  N/A               N/A
-Ethernet108  disabled         40G      N/A                  N/A               N/A
-Ethernet112  disabled         40G      N/A                  N/A               N/A
-Ethernet116  disabled         40G      N/A                  N/A               N/A
-Ethernet120  disabled         40G      N/A                  N/A               N/A
-Ethernet124  disabled         40G      N/A                  N/A               N/A
-"""
-
 class TestInterfaces(object):
     @classmethod
     def setup_class(cls):
@@ -329,15 +292,6 @@ class TestInterfaces(object):
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_portchannel_in_alias_mode_output
-
-    def test_show_interfaces_auto_neg_config(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["auto-neg-config"], [])
-        print(result.exit_code)
-        print(result.output)
-        traceback.print_tb(result.exc_info[2])
-        assert result.exit_code == 0
-        assert result.output == show_interfaces_auto_neg_config_output
 
     @classmethod
     def teardown_class(cls):
