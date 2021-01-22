@@ -314,11 +314,10 @@ def loopback_name_is_valid(config_db, loopback_name):
     config_db.connect()
     loopback_dict = config_db.get_table('LOOPBACK_INTERFACE')
 
-    if loopback_name is not None:
-        if loopback_dict:
-            for loopback_dict_keys in loopback_dict.keys():
-                if loopback_name == loopback_dict_keys:
-                    return True
+    if loopback_name is not None and loopback_dict:
+        for loopback_dict_keys in loopback_dict.keys():
+            if loopback_name == loopback_dict_keys:
+                return True
     return False
 
 def vlan_name_is_valid(config_db, vlan_name):
@@ -332,11 +331,10 @@ def vlan_name_is_valid(config_db, vlan_name):
     config_db.connect()
     vlan_dict = config_db.get_table('VLAN')
 
-    if vlan_name is not None:
-        if vlan_dict:
-            for vlan_dict_keys in vlan_dict.keys():
-                if vlan_name == vlan_dict_keys:
-                    return True
+    if vlan_name is not None and vlan_dict:
+        for vlan_dict_keys in vlan_dict.keys():
+            if vlan_name == vlan_dict_keys:
+                return True
     return False
 
 def interface_name_is_valid(config_db, interface_name):
