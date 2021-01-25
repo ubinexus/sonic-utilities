@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import swsssdk
 import json
@@ -12,6 +12,7 @@ import argparse
 import syslog
 import traceback
 import ipaddress
+from builtins import str #for unicode conversion in python2
 
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
@@ -39,7 +40,7 @@ def generate_neighbor_entries(filename, all_available_macs):
         arp_output.append(obj)
 
         ip_addr = key.split(':')[2]
-        if ipaddress.ip_interface(ip_addr).ip.version != 4:
+        if ipaddress.ip_interface(str(ip_addr)).ip.version != 4:
             #This is ipv6 address
             ip_addr = key.replace(key.split(':')[0] + ':' + key.split(':')[1] + ':', '')
         neighbor_entries.append((vlan_name, mac, ip_addr))
@@ -85,6 +86,8 @@ def get_map_port_id_2_iface_name(db):
     keys = [] if keys is None else keys
     for key in keys:
         value = db.get_all(db.ASIC_DB, key)
+        if value['SAI_HOSTIF_ATTR_TYPE'] != 'SAI_HOSTIF_TYPE_NETDEV':
+            continue
         port_id = value['SAI_HOSTIF_ATTR_OBJ_ID']
         iface_name = value['SAI_HOSTIF_ATTR_NAME']
         port_id_2_iface[port_id] = iface_name
@@ -181,7 +184,7 @@ def generate_fdb_entries(filename):
 
 def get_if(iff, cmd):
     s = socket.socket()
-    ifreq = ioctl(s, cmd, struct.pack("16s16x",iff))
+    ifreq = ioctl(s, cmd, struct.pack("16s16x",bytes(iff.encode())))
     s.close()
     return ifreq
 
@@ -232,7 +235,7 @@ def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
     # send arp/ndp packets
     for vlan_name, dst_mac, dst_ip in neighbor_entries:
         src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
-        if ipaddress.ip_interface(dst_ip).ip.version == 4:
+        if ipaddress.ip_interface(str(dst_ip)).ip.version == 4:
             send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
         else:
             send_ndp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)

@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 """
     Script to show MAC/FDB entries learnt in Hardware
     
@@ -30,7 +31,8 @@ import json
 import sys
 
 from natsort import natsorted
-from swsssdk import SonicV2Connector, port_util
+from swsssdk import port_util
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 class FdbShow(object):
@@ -64,14 +66,14 @@ class FdbShow(object):
 
         oid_pfx = len("oid:0x")
         for s in fdb_str:
-            fdb_entry = s.decode()
+            fdb_entry = s
             fdb = json.loads(fdb_entry .split(":", 2)[-1])
             if not fdb:
                 continue
 
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
-            br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
-            ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
+            br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            ent_type = ent["SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
             if br_port_id not in self.if_br_oid_map:
                 continue
@@ -145,7 +147,7 @@ def main():
         fdb = FdbShow()
         fdb.display(args.vlan, args.port)
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 if __name__ == "__main__":
