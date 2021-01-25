@@ -186,8 +186,7 @@ class TestConfigDPB(object):
         #Negattive case, Wrong Interface
         args = ['config', 'interface', 'breakout', 'Etherne']
         output = config._get_breakout_options(ctx, args, incomplete)
-        #TODO: Uncomment it after Dev Fix, Right now Python BT for this.
-        #assert output == []
+        assert output == []
         return
 
     def test_config_breakout_extra_table_warning(self, breakout_cfg_file, sonic_db):
@@ -287,8 +286,7 @@ class TestConfigDPB(object):
             commands["breakout"], ['Ethern', '2x50G', '-v', '-y'], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 1
-        #TODO: Uncomment it after Dev Fix, right now it is python bt
-        #assert "Ethern is not present" in result.output
+        assert "Ethern is not present" in result.output
 
         # Wrong mode
         result = runner.invoke(config.config.commands["interface"].\
