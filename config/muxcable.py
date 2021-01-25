@@ -5,6 +5,7 @@ import sys
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
+from sonic_y_cable import y_cable
 from swsssdk import ConfigDBConnector
 from swsscommon import swsscommon
 from tabulate import tabulate
@@ -188,3 +189,30 @@ def mode(state, port, json_output):
                 click.echo(tabulate(data, headers=headers))
 
         sys.exit(CONFIG_SUCCESSFUL)
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type= click.INT)
+@click.argument('target', required=True, default=None, type = click.INT)
+@click.argument('mode_value', required=True, default=None, type= click.INT)
+@click.argument('lane_map', required=True, default=None, type = click.INT)
+def prbs(port, target, mode_value, lane_map):
+
+    res = y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
+    if res != True:
+        click.echo("PRBS config unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("PRBS config sucessful")
+    sys.exit(0)
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type= click.INT)
+@click.argument('target', required=True, default=None, type = click.INT)
+@click.argument('lane_map', required=True, default=None, type = click.INT)
+def loopback(port, target, lane_map):
+
+    res = y_cable.enable_loopback_mode(port, target, lane_map)
+    if res != True:
+        click.echo("loopback config unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("loopback config sucessful")
+    sys.exit(0)
