@@ -4155,7 +4155,7 @@ def delete(ctx):
 # Load plugins and register them
 helper = util_base.UtilHelper()
 for plugin in helper.load_plugins(plugins):
-    plugin.register(config)
+    helper.register_plugin(plugin, cli)
 
 
 if __name__ == '__main__':

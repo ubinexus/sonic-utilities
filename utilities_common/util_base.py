@@ -4,7 +4,10 @@ try:
     import pkgutil
     import importlib
 
-    from sonic_py_common import device_info
+    from sonic_py_common import (
+        device_info,
+        logger
+    )
 except ImportError as e:
     raise ImportError (str(e) + " - required module not found")
 
@@ -15,6 +18,8 @@ PDDF_FILE_PATH = '/usr/share/sonic/platform/pddf_support'
 
 EEPROM_MODULE_NAME = 'eeprom'
 EEPROM_CLASS_NAME = 'board'
+
+log = logger.Logger()
 
 
 class UtilHelper(object):
@@ -30,7 +35,14 @@ class UtilHelper(object):
         for _, module_name, ispkg in iter_namespace(plugins_namespace):
             if ispkg:
                 continue
+            log.log_debug('importing plugin: {}'.format(module_name))
             yield importlib.import_module(module_name)
+
+    def register_plugin(self, plugin, root_command):
+        """ Register plugin in top-level command root_command. """
+
+        log.log_debug('registering plugin: {}'.format(plugin.__name__))
+        plugin.register(root_command)
 
     # Loads platform specific psuutil module from source
     def load_platform_util(self, module_name, class_name):
