@@ -41,7 +41,14 @@ class UtilHelper(object):
     def register_plugin(self, plugin, root_command):
         """ Register plugin in top-level command root_command. """
 
-        log.log_debug('registering plugin: {}'.format(plugin.__name__))
+        name = plugin.__name__
+        log.log_debug('registering plugin: {}'.format(name))
+        if hasattr(plugin, 'is_compatible'):
+            if not plugin.is_compatible():
+                log.log_error('plugin {} reports that it is not '
+                              'compatible with this version of CLI'.format(name),
+                              also_print_to_console=True)
+                return
         plugin.register(root_command)
 
     # Loads platform specific psuutil module from source
