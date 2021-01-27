@@ -217,4 +217,4 @@ def loopback(port, target, lane_map):
         click.echo("loopback config unsuccesful")
         sys.exit(CONFIG_FAIL)
     click.echo("loopback config sucessful")
-    sys.exit(0)
+    sys.exit(CONFIG_SUCCESSFUL)

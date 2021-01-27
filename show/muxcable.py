@@ -352,7 +352,6 @@ def berinfo(port, target):
     if res == False or res == -1:
         click.echo("Unable to fetch ber info")
         sys.exit(CONFIG_FAIL)
-    #res1 = y_cable.get_eye_info(port, target)
     headers = ['Lane1', 'Lane2']
     lane_data = []
     lane_data.append(res)
