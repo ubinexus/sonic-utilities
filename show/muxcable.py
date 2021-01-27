@@ -339,9 +339,10 @@ def config(port, json_output):
 
         sys.exit(CONFIG_SUCCESSFUL)
 
+
 @muxcable.command()
-@click.argument('port', required=True, default=None, type= click.INT)
-@click.argument('target', required=True, default=None, type = click.INT)
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
 def berinfo(port, target):
 
     if os.geteuid() != 0:
@@ -357,9 +358,10 @@ def berinfo(port, target):
     lane_data.append(res)
     click.echo(tabulate(lane_data, headers=headers))
 
+
 @muxcable.command()
-@click.argument('port', required=True, default=None, type= click.INT)
-@click.argument('target', required=True, default=None, type = click.INT)
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
 def eyeinfo(port, target):
 
     if os.geteuid() != 0:

@@ -72,7 +72,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
-    if (state == "active" and configdb_state == "active") or (state == "standby" and configdb_state == "active") or (state == "unknown" and  configdb_state == "active") :
+    if (state == "active" and configdb_state == "active") or (state == "standby" and configdb_state == "active") or (state == "unknown" and configdb_state == "active"):
         if state_cfg_val == "active":
             # status is already active, so right back error
             port_status_dict[port] = 'OK'
@@ -91,7 +91,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
             # dont write anything to db, write OK to user
             port_status_dict[port] = 'OK'
 
-    elif (state == "standby" and configdb_state == "auto") or (state == "unknown" and  configdb_state == "auto"):
+    elif (state == "standby" and configdb_state == "auto") or (state == "unknown" and configdb_state == "auto"):
         if state_cfg_val == "active":
             # make the state active
             config_db.set_entry("MUX_CABLE", port, {"state": "active",
@@ -190,11 +190,12 @@ def mode(state, port, json_output):
 
         sys.exit(CONFIG_SUCCESSFUL)
 
+
 @muxcable.command()
-@click.argument('port', required=True, default=None, type= click.INT)
-@click.argument('target', required=True, default=None, type = click.INT)
-@click.argument('mode_value', required=True, default=None, type= click.INT)
-@click.argument('lane_map', required=True, default=None, type = click.INT)
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('mode_value', required=True, default=None, type=click.INT)
+@click.argument('lane_map', required=True, default=None, type=click.INT)
 def prbs(port, target, mode_value, lane_map):
 
     res = y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
@@ -204,10 +205,11 @@ def prbs(port, target, mode_value, lane_map):
     click.echo("PRBS config sucessful")
     sys.exit(0)
 
+
 @muxcable.command()
-@click.argument('port', required=True, default=None, type= click.INT)
-@click.argument('target', required=True, default=None, type = click.INT)
-@click.argument('lane_map', required=True, default=None, type = click.INT)
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('lane_map', required=True, default=None, type=click.INT)
 def loopback(port, target, lane_map):
 
     res = y_cable.enable_loopback_mode(port, target, lane_map)
