@@ -36,20 +36,25 @@ class UtilHelper(object):
             if ispkg:
                 continue
             log.log_debug('importing plugin: {}'.format(module_name))
-            yield importlib.import_module(module_name)
+            try:
+                module = importlib.import_module(module_name)
+            except Exception as err:
+                log.log_error('failed to import plugin {}: {}'.format(module_name, err),
+                              also_print_to_console=True)
+                continue
+
+            yield module
 
     def register_plugin(self, plugin, root_command):
         """ Register plugin in top-level command root_command. """
 
         name = plugin.__name__
         log.log_debug('registering plugin: {}'.format(name))
-        if hasattr(plugin, 'is_compatible'):
-            if not plugin.is_compatible():
-                log.log_error('plugin {} reports that it is not '
-                              'compatible with this version of CLI'.format(name),
-                              also_print_to_console=True)
-                return
-        plugin.register(root_command)
+        try:
+            plugin.register(root_command)
+        except Exception as err:
+            log.log_error('failed to import plugin {}: {}'.format(name, err),
+                          also_print_to_console=True)
 
     # Loads platform specific psuutil module from source
     def load_platform_util(self, module_name, class_name):
