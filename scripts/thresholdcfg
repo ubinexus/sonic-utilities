@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ############################################################################
 #
@@ -7,8 +7,6 @@
 ############################################################################
 
 import argparse
-import getopt
-import json
 import sys
 import swsssdk
 from swsssdk import ConfigDBConnector
@@ -61,7 +59,7 @@ class Thresholdcfg(object):
         def get_queue_type(table_id):
             queue_type = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_TYPE_MAP, table_id)
             if queue_type is None:
-                print "Queue Type is not available!", table_id
+                print("Queue Type is not available!", table_id)
                 sys.exit(1)
             elif queue_type == SAI_QUEUE_TYPE_MULTICAST:
                 return QUEUE_TYPE_MC
@@ -71,13 +69,13 @@ class Thresholdcfg(object):
             elif queue_type == SAI_QUEUE_TYPE_ALL:
                 return QUEUE_TYPE_ALL
             else:
-                print "Queue Type is invalid:", table_id, queue_type
+                print("Queue Type is invalid:", table_id, queue_type)
                 sys.exit(1)
 
         def get_queue_port(table_id):
             port_table_id = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_PORT_MAP, table_id)
             if port_table_id is None:
-                print "Port is not available!", table_id
+                print("Port is not available!", table_id)
                 sys.exit(1)
 
             return port_table_id
@@ -85,7 +83,7 @@ class Thresholdcfg(object):
         def get_pg_port(table_id):
             port_table_id = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_PORT_MAP, table_id)
             if port_table_id is None:
-                print "Port is not available!", table_id
+                print("Port is not available!", table_id)
                 sys.exit(1)
 
             return port_table_id
@@ -93,7 +91,7 @@ class Thresholdcfg(object):
         # Get all ports
         self.counter_port_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
         if self.counter_port_name_map is None:
-            print "COUNTERS_PORT_NAME_MAP is empty!"
+            print("COUNTERS_PORT_NAME_MAP is empty!")
             sys.exit(1)
 
         self.port_uc_queues_map = {}
@@ -110,7 +108,7 @@ class Thresholdcfg(object):
         # Get Queues for each port
         counter_queue_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_NAME_MAP)
         if counter_queue_name_map is None:
-            print "COUNTERS_QUEUE_NAME_MAP is empty!"
+            print("COUNTERS_QUEUE_NAME_MAP is empty!")
             sys.exit(1)
 
         for queue in counter_queue_name_map:
@@ -124,7 +122,7 @@ class Thresholdcfg(object):
         # Get PGs for each port
         counter_pg_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PG_NAME_MAP)
         if counter_pg_name_map is None:
-            print "COUNTERS_PG_NAME_MAP is empty!"
+            print("COUNTERS_PG_NAME_MAP is empty!")
             sys.exit(1)
 
         for pg in counter_pg_name_map:
@@ -172,7 +170,7 @@ class Thresholdcfg(object):
     def get_queue_index(self, table_id):
         queue_index = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_INDEX_MAP, table_id)
         if queue_index is None:
-            print "Queue index is not available!", table_id
+            print("Queue index is not available!", table_id)
             sys.exit(1)
 
         return queue_index
@@ -180,7 +178,7 @@ class Thresholdcfg(object):
     def get_pg_index(self, table_id):
         pg_index = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_INDEX_MAP, table_id)
         if pg_index is None:
-            print "Priority group index is not available!", table_id
+            print("Priority group index is not available!", table_id)
             sys.exit(1)
 
         return pg_index
@@ -214,7 +212,7 @@ class Thresholdcfg(object):
         table = []
         buffer_pool_name_to_oid_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_BUFFER_POOL_NAME_MAP)
         if buffer_pool_name_to_oid_map is None:
-           print "Buffer pools are empty.Not created"
+           print("Buffer pools are empty.Not created")
            return
 
         for buf_pool,buf_oid in natsorted(buffer_pool_name_to_oid_map.items()):
@@ -224,7 +222,7 @@ class Thresholdcfg(object):
             if data is None:
                 data = 0
             table.append((buf_pool, data))
-        print tabulate(table, type["header"], tablefmt='simple', stralign='right')
+        print(tabulate(table, type["header"], tablefmt='simple', stralign='right'))
         return
 
     def get_print_cpu_queue_stat(self, table_prefix, type, th_type):
@@ -237,7 +235,7 @@ class Thresholdcfg(object):
             if data is None:
                data = 0
             table.append((item, data))
-        print tabulate(table, type["header"], tablefmt='simple', stralign='right')
+        print(tabulate(table, type["header"], tablefmt='simple', stralign='right'))
         return
 
     def get_print_all_stat(self, table_prefix, type, th_type):
@@ -248,14 +246,13 @@ class Thresholdcfg(object):
                                      type["obj_map"][port], type["idx_func"], type["th_name"], th_type)
             table.append((port, data[0], data[1], data[2], data[3],
                         data[4], data[5], data[6], data[7]))
-        print tabulate(table, type["header"], tablefmt='simple', stralign='right')
+        print(tabulate(table, type["header"], tablefmt='simple', stralign='right'))
         return
 
 
 def main():
 
     parser = argparse.ArgumentParser(description='Display the queue/pg thresholds',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:

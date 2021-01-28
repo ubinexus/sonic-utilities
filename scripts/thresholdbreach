@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 ############################################################################
 #
@@ -7,10 +7,7 @@
 ############################################################################
 
 import argparse
-import getopt
-import json
 import sys
-import swsssdk
 from natsort import natsorted
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
@@ -75,7 +72,7 @@ class Thresholdbreach(object):
             table.append((data['eventid'], data['buffer'], data['type'], data['port'], data['index'],
                           data['breach_value'], data['counter'], data['time-stamp']))
 
-        print tabulate(table, header, tablefmt='simple', stralign='right')
+        print(tabulate(table, header, tablefmt='simple', stralign='right'))
         return
 
     def clear_all_threshold_breach(self, count):
@@ -94,7 +91,6 @@ class Thresholdbreach(object):
 def main():
 
     parser = argparse.ArgumentParser(description='Display the queue/pg/buffer-pool threshold breaches',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog=""")
 Examples:
