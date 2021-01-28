@@ -247,26 +247,26 @@ def buffer_pool():
 @buffer_pool.command('threshold')
 def clear_buffer_pool_threshold():
 
-	# connect to COUNTERS DB
-	counters_db = SonicV2Connector(host='127.0.0.1')
-        counters_db.connect(counters_db.COUNTERS_DB)
+    # connect to COUNTERS DB
+    counters_db = SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB)
 
-	# connect to CONFIG DB
-        config_db = ConfigDBConnector()
-        config_db.connect()
+    # connect to CONFIG DB
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
-        buffer_pool_name_to_oid_map = counters_db.get_all(counters_db.COUNTERS_DB, COUNTERS_BUFFER_POOL_NAME_MAP)
+    buffer_pool_name_to_oid_map = counters_db.get_all(counters_db.COUNTERS_DB, COUNTERS_BUFFER_POOL_NAME_MAP)
 
-        if buffer_pool_name_to_oid_map is None:
-           print "Buffer pools are empty!!. Not yet created"
-           return
+    if buffer_pool_name_to_oid_map is None:
+        print("Buffer pools are empty!!. Not yet created")
+        return
 
-        # Delete buffer pool table entries from threshold table
-	for buf_pool,buf_oid in natsorted(buffer_pool_name_to_oid_map.items()):
-	   key = buf_pool
-	   entry = config_db.get_entry('THRESHOLD_BUFFERPOOL_TABLE', key)
-           if entry:
-		config_db.set_entry('THRESHOLD_BUFFERPOOL_TABLE', key, None)
+    # Delete buffer pool table entries from threshold table
+    for buf_pool,buf_oid in natsorted(buffer_pool_name_to_oid_map.items()):
+        key = buf_pool
+        entry = config_db.get_entry('THRESHOLD_BUFFERPOOL_TABLE', key)
+        if entry:
+            config_db.set_entry('THRESHOLD_BUFFERPOOL_TABLE', key, None)
 
 def interface_name_is_valid(interface_name):
     """Check if the interface name is valid
@@ -310,7 +310,7 @@ def threshold(ctx, port_name, pg_index, threshold_type):
     elif port_name is None or pg_index is None or threshold_type is None:
         ctx.fail("port_name, pg_index and threshold_type are mandatory parameters.")
     else:
-	if pg_index not in range(0, 8):
+        if pg_index not in range(0, 8):
             ctx.fail("priority-group must be in range 0-7")
         if interface_name_is_valid(port_name) is False:
             ctx.fail("Interface name is invalid!!")
