@@ -4891,9 +4891,6 @@ While configuring the muxcable, users needs to configure the following fields fo
 Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 
 ## Mirroring
-Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
-
-## Mirroring
 
 ### Mirroring Show commands
 
