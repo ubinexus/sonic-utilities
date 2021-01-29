@@ -2673,9 +2673,9 @@ def remove(ctx, interface_name, ip_addr):
 # Use this method to validate unicast IPv4 address
 #
 def is_ip4_addr_valid(addr, display):
-    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
+    v4_invalid_list = [ipaddress.IPv4Address('0.0.0.0'), ipaddress.IPv4Address('255.255.255.255')]
     try:
-        ip = ipaddress.ip_address(unicode(addr))
+        ip = ipaddress.ip_address(addr)
         if (ip.version == 4):
             if (ip.is_reserved):
                 if display:
