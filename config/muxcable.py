@@ -203,7 +203,7 @@ def prbs(port, target, mode_value, lane_map):
         click.echo("PRBS config unsuccesful")
         sys.exit(CONFIG_FAIL)
     click.echo("PRBS config sucessful")
-    sys.exit(0)
+    sys.exit(CONFIG_SUCCESSFUL)
 
 
 @muxcable.command()

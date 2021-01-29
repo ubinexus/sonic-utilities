@@ -4734,6 +4734,54 @@ While displaying the muxcable configuration, users can configure the following f
           }
     ```
 
+**show muxcable ber-info**
+
+This command displays the ber(Bit error rate) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable ber-info [OPTIONS] PORT TARGET
+  ```
+
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the ber info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        0       0
+    ```
+
+**show muxcable ber-info**
+
+This command displays the eye info in mv(milli volts) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable eye-info [OPTIONS] PORT TARGET
+  ```
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the eye info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        632      622
+    ```
 
 ### Muxcable Config commands
 
@@ -4769,7 +4817,6 @@ While configuring the muxcable, users needs to configure the following fields fo
                "Ethernet0": "OK"  
            }
     ```    
-  
     ```
         admin@sonic:~$ sudo config muxcable  mode active all  
         port        state  
@@ -4785,8 +4832,65 @@ While configuring the muxcable, users needs to configure the following fields fo
                 "Ethernet32": "INPROGRESS",  
                 "Ethernet0": "OK"
            }
-    ```    
+    ```
+**config muxcable prbs**
 
+This command is used for setting the configuration of prbs on a port user provides. In addition to port the user also needs to provides the target, prbs mode and lane map on which the user intends to run prbs on.
+
+- Usage:
+  ```
+  config muxcable prbs [OPTIONS] PORT TARGET MODE_VALUE LANE_MAP
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the prbs on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- MODE_VALUE  required - the mode/type for configuring the PRBS mode.
+             0x00 = PRBS 9, 0x01 = PRBS 15, 0x02 = PRBS 23, 0x03 = PRBS 31
+- LANE_MAP  required - an integer representing the lane_map to be run PRBS on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable prbs 1 1 3 3
+	PRBS config sucessful
+    ```
+
+**config muxcable loopback**
+
+This command is used for setting the configuration of loopback on a port user provides. In addition to port the user also needs to provides the target and lane map on which the user intends to run loopback on.
+
+- Usage:
+  ```
+  config muxcable loopback [OPTIONS] PORT TARGET LANE_MAP
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the loopback on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- LANE_MAP  required - an integer representing the lane_map to be run loopback on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable loopback 1 1 3
+	loopback config sucessful
+    ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
+
+## Mirroring
 Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 
 ## Mirroring

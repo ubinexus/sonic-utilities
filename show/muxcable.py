@@ -17,6 +17,8 @@ REDIS_TIMEOUT_MSECS = 0
 
 CONFIG_SUCCESSFUL = 101
 CONFIG_FAIL = 1
+BER_CONFIG_FAIL = 1
+EYE_CONFIG_FAIL = 1
 STATUS_FAIL = 1
 STATUS_SUCCESSFUL = 102
 
@@ -347,11 +349,11 @@ def berinfo(port, target):
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
-        sys.exit(CONFIG_FAIL)
+        sys.exit(BER_CONFIG_FAIL)
     res = y_cable.get_ber_info(port, target)
     if res == False or res == -1:
         click.echo("Unable to fetch ber info")
-        sys.exit(CONFIG_FAIL)
+        sys.exit(BER_CONFIG_FAIL)
     headers = ['Lane1', 'Lane2']
     lane_data = []
     lane_data.append(res)
@@ -365,11 +367,11 @@ def eyeinfo(port, target):
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
-        sys.exit(CONFIG_FAIL)
+        sys.exit(EYE_CONFIG_FAIL)
     res = y_cable.get_eye_info(port, target)
     if res == False or res == -1:
         click.echo("Unable to fetch eye info")
-        sys.exit(CONFIG_FAIL)
+        sys.exit(EYE_CONFIG_FAIL)
     headers = ['Lane1', 'Lane2']
     lane_data = []
     lane_data.append(res)
