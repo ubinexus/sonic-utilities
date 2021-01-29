@@ -24,8 +24,11 @@ Please note setting loaded from minigraph will be lost after system reboot. To p
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
 
-    if 'display_cmd' in kwargs and kwargs['display_cmd'] == True:
+    if kwargs.get('display_cmd'):
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    if kwargs.get('return_cmd'):
+        return ''
 
 
 class TestLoadMinigraph(object):
