@@ -166,7 +166,7 @@ class EcnConfig(object):
         return result
 
     def set_wred_threshold(self, profile, threshold, value):
-        if os.geteuid() != 0:
+        if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
             sys.exit("Root privileges required for this operation")
 
         field = WRED_CONFIG_FIELDS[threshold]
@@ -179,7 +179,7 @@ class EcnConfig(object):
                 json.dump(prof_table, fd)
 
     def set_wred_prob(self, profile, drop_color, value):
-        if os.geteuid() != 0:
+        if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
             sys.exit("Root privileges required for this operation")
 
         field = WRED_CONFIG_FIELDS[drop_color]
@@ -227,7 +227,7 @@ class EcnQ(object):
             )
 
     def set(self, enable):
-        if os.geteuid() != 0:
+        if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
             sys.exit("Root privileges required for this operation")
         for queue in self.queues:
             if self.verbose:
