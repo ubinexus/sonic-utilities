@@ -20,7 +20,8 @@ regex_dict = {
 
 
 def exec_cmd(cmd):
-    out = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, text=True)
+    # Use universal_newlines (instead of text) so that this tool can work with any python versions.
+    out = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, universal_newlines=True)
     stdout, stderr = out.communicate()
     return out.returncode, stdout, stderr
 
