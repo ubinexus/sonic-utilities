@@ -52,7 +52,6 @@ import json
 import os
 import sys
 
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 
 # mock the redis for unit test purposes #
@@ -66,6 +65,9 @@ try:
 
 except KeyError:
     pass
+
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+
 
 WRED_PROFILE_TABLE_NAME = "WRED_PROFILE"
 WRED_CONFIG_FIELDS = {
