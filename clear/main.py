@@ -123,7 +123,6 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'Clear' command"""
-
     pass
 
 #
