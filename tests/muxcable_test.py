@@ -10,6 +10,11 @@ from utilities_common.db import Db
 sys.modules['sonic_platform_base'] = mock.Mock()
 sys.modules['sonic_platform_base.sonic_sfp'] = mock.Mock()
 sys.modules['sonic_platform_base.sonic_sfp.sfputilhelper'] = mock.Mock()
+sys.modules['sonic_y_cable'] = mock.Mock()
+sys.modules['y_cable'] = mock.Mock()
+sys.modules['sonic_y_cable.y_cable'] = mock.Mock()
+#sys.modules['os'] = mock.Mock()
+#sys.modules['os.geteuid'] = mock.Mock()
 #sys.modules['platform_sfputil'] = mock.Mock()
 import config.main as config
 import show.main as show
@@ -415,6 +420,84 @@ class TestMuxcable(object):
                                    "active", "Ethernet33"], obj=db)
 
         assert(result.exit_code == 1)
+
+    def test_show_muxcable_eye_info(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('os.geteuid') as patched_util_outer:
+            os.geteuid.return_value = 0
+            with mock.patch('sonic_y_cable.y_cable') as patched_util:
+                patched_util.get_eye_info.return_value = [0, 0]
+                result = runner.invoke(show.cli.commands["muxcable"].commands["eyeinfo"], [
+                                       "0", "0"], obj=db)
+
+        assert(result.exit_code == 0)
+
+    def test_show_muxcable_ber_info(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('os.geteuid') as patched_util_outer:
+            os.geteuid.return_value = 0
+            with mock.patch('sonic_y_cable.y_cable') as patched_util:
+                patched_util.get_ber_info.return_value = [0, 0]
+                result = runner.invoke(show.cli.commands["muxcable"].commands["berinfo"], [
+                                       "0", "0"], obj=db)
+
+        assert(result.exit_code == 0)
+
+    def test_config_muxcable_enable_prbs(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('os.geteuid') as patched_util_outer:
+            os.geteuid.return_value = 0
+            with mock.patch('sonic_y_cable.y_cable') as patched_util:
+                patched_util.enable_prbs_mode.return_value = 1
+                result = runner.invoke(config.config.commands["muxcable"].commands["enable-prbs"], [
+                                       "0", "0", "0", "0"], obj=db)
+
+        assert(result.exit_code == 100)
+
+    def test_config_muxcable_enable_loopback(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('os.geteuid') as patched_util_outer:
+            os.geteuid.return_value = 0
+            with mock.patch('sonic_y_cable.y_cable') as patched_util:
+                patched_util.enable_loopback_mode.return_value = 1
+                result = runner.invoke(config.config.commands["muxcable"].commands["enable-loopback"], [
+                                       "0", "0", "0"], obj=db)
+
+        assert(result.exit_code == 100)
+
+    def test_config_muxcable_disble_prbs(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('os.geteuid') as patched_util_outer:
+            os.geteuid.return_value = 0
+            with mock.patch('sonic_y_cable.y_cable') as patched_util:
+                patched_util.disable_prbs_mode.return_value = 1
+                result = runner.invoke(config.config.commands["muxcable"].commands["disable-prbs"], [
+                                       "0", "0"], obj=db)
+
+        assert(result.exit_code == 100)
+
+    def test_config_muxcable_disable_loopback(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('os.geteuid') as patched_util_outer:
+            os.geteuid.return_value = 0
+            with mock.patch('sonic_y_cable.y_cable') as patched_util:
+                patched_util.disable_loopback_mode.return_value = 1
+                result = runner.invoke(config.config.commands["muxcable"].commands["disable-loopback"], [
+                                       "0", "0"], obj=db)
+
+        assert(result.exit_code == 100)
 
     @classmethod
     def teardown_class(cls):

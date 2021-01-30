@@ -5,7 +5,6 @@ import sys
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
-from sonic_y_cable import y_cable
 from swsscommon import swsscommon
 from swsssdk import ConfigDBConnector
 from tabulate import tabulate
@@ -350,7 +349,8 @@ def berinfo(port, target):
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
         sys.exit(EXIT_FAIL)
-    res = y_cable.get_ber_info(port, target)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.get_ber_info(port, target)
     if res == False or res == -1:
         click.echo("Unable to fetch ber info")
         sys.exit(EXIT_FAIL)
@@ -358,6 +358,7 @@ def berinfo(port, target):
     lane_data = []
     lane_data.append(res)
     click.echo(tabulate(lane_data, headers=headers))
+    sys.exit(EXIT_SUCCESS)
 
 
 @muxcable.command()
@@ -368,7 +369,8 @@ def eyeinfo(port, target):
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
         sys.exit(EXIT_FAIL)
-    res = y_cable.get_eye_info(port, target)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.get_eye_info(port, target)
     if res == False or res == -1:
         click.echo("Unable to fetch eye info")
         sys.exit(EXIT_FAIL)
@@ -376,3 +378,4 @@ def eyeinfo(port, target):
     lane_data = []
     lane_data.append(res)
     click.echo(tabulate(lane_data, headers=headers))
+    sys.exit(EXIT_SUCCESS)

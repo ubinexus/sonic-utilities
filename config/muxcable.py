@@ -5,7 +5,6 @@ import sys
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
-from sonic_y_cable import y_cable
 from swsssdk import ConfigDBConnector
 from swsscommon import swsscommon
 from tabulate import tabulate
@@ -196,13 +195,27 @@ def mode(state, port, json_output):
 @click.argument('target', required=True, default=None, type=click.INT)
 @click.argument('mode_value', required=True, default=None, type=click.INT)
 @click.argument('lane_map', required=True, default=None, type=click.INT)
-def prbs(port, target, mode_value, lane_map):
+def enable_prbs(port, target, mode_value, lane_map):
 
-    res = y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
     if res != True:
         click.echo("PRBS config unsuccesful")
         sys.exit(CONFIG_FAIL)
     click.echo("PRBS config sucessful")
+    sys.exit(CONFIG_SUCCESSFUL)
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def disable_prbs(port, target):
+
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.disable_prbs_mode(port, target)
+    if res != True:
+        click.echo("PRBS disable unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("PRBS disbale sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
 
 
@@ -210,11 +223,25 @@ def prbs(port, target, mode_value, lane_map):
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
 @click.argument('lane_map', required=True, default=None, type=click.INT)
-def loopback(port, target, lane_map):
+def enable_loopback(port, target, lane_map):
 
-    res = y_cable.enable_loopback_mode(port, target, lane_map)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.enable_loopback_mode(port, target, lane_map)
     if res != True:
         click.echo("loopback config unsuccesful")
         sys.exit(CONFIG_FAIL)
     click.echo("loopback config sucessful")
+    sys.exit(CONFIG_SUCCESSFUL)
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def disable_loopback(port, target):
+
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.disable_loopback_mode(port, target)
+    if res != True:
+        click.echo("loopback disable unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("loopback disable sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
