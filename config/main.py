@@ -1878,13 +1878,17 @@ def is_dynamic_buffer_enabled(config_db):
 #
 @config.group(cls=clicommon.AbbreviationGroup, name='warm_restart')
 @click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
     """warm_restart-related configuration tasks"""
-    config_db = ConfigDBConnector(use_unix_socket_path=True)
+    # Note: redis_unix_socket_path is a path string, and the ground truth is now from database_config.json.
+    # We only use it as a bool indicator on either unix_socket_path or tcp port
+    use_unix_socket_path = bool(redis_unix_socket_path)
+    config_db = ConfigDBConnector(use_unix_socket_path=use_unix_socket_path)
     config_db.connect(wait_for_init=False)
 
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(use_unix_socket_path=True)
+    state_db = SonicV2Connector(use_unix_socket_path=use_unix_socket_path)
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR

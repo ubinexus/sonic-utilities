@@ -57,7 +57,7 @@ class DropConfig(object):
         self.config_db = ConfigDBConnector()
         self.config_db.connect()
 
-        self.state_db = SonicV2Connector(host='127.0.0.1')
+        self.state_db = SonicV2Connector(use_unix_socket_path=False)
         self.state_db.connect(self.state_db.STATE_DB)
 
     # -c show_config
