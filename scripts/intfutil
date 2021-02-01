@@ -556,7 +556,8 @@ class IntfAutoNegStatus(object):
                 if self.multi_asic.skip_display(constants.PORT_OBJ, key):
                         continue
                 autoneg_mode = appl_db_port_status_get(self.db, key, PORT_AUTONEG)
-                autoneg_mode = 'enabled' if autoneg_mode == '1' else 'disabled'
+                if autoneg_mode != 'N/A':
+                    autoneg_mode = 'enabled' if autoneg_mode == '1' else 'disabled'
                 table.append((key,
                               autoneg_mode,
                               appl_db_port_status_get(self.db, key, PORT_SPEED),
