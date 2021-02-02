@@ -20,7 +20,6 @@ import sys
 import argparse
 import tabulate
 import traceback
-=======
 
 BUFFER_POOL_TABLE_NAME = "BUFFER_POOL"
 BUFFER_PROFILE_TABLE_NAME = "BUFFER_PROFILE"
