@@ -56,7 +56,7 @@ eth0                       172.17.0.3/16        error/down    N/A             N/
 lo                         127.0.0.1/8          error/down    N/A             N/A
 """
 
-show_ipv6_intf = """Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
+show_ipv6_intf= """Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------------  ------------  --------------  -------------
 Ethernet0                  aa00::1/64                                    error/down    N/A             N/A
                            fe80::64be:a1ff:fe85:c6c4%Ethernet0/64                      N/A             N/A
@@ -64,7 +64,8 @@ PortChannel0001            ab00::1/64                                    error/d
                            fe80::cc8d:60ff:fe08:139f%PortChannel0001/64                N/A             N/A
 Vlan100                    cc00::1/64                                    error/down    N/A             N/A
                            fe80::c029:3fff:fe41:cf56%Vlan100/64                        N/A             N/A
-eth0                       fe80::42:acff:fe11:3%eth0/64                  error/down    N/A             N/A
+eth0                       2603:10a0:100:830:0:242:ac11:3/64             error/down    N/A             N/A
+                           fe80::42:acff:fe11:3%eth0/64                                N/A             N/A
 lo                         ::1/128                                       error/down    N/A             N/A
 """
 
@@ -87,7 +88,8 @@ PortChannel0001            ab00::1/64                                    error/d
                            fe80::cc8d:60ff:fe08:139f%PortChannel0001/64                N/A             N/A
 Vlan100                    cc00::1/64                                    error/down    N/A             N/A
                            fe80::c029:3fff:fe41:cf56%Vlan100/64                        N/A             N/A
-eth0                       fe80::42:acff:fe11:3%eth0/64                  error/down    N/A             N/A
+eth0                       2603:10a0:100:830:0:242:ac11:3/64             error/down    N/A             N/A
+                           fe80::42:acff:fe11:3%eth0/64                                N/A             N/A
 lo                         ::1/128                                       error/down    N/A             N/A
 """
 
