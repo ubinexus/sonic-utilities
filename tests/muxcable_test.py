@@ -455,7 +455,7 @@ class TestMuxcable(object):
             os.geteuid.return_value = 0
             with mock.patch('sonic_y_cable.y_cable') as patched_util:
                 patched_util.enable_prbs_mode.return_value = 1
-                result = runner.invoke(config.config.commands["muxcable"].commands["enable-prbs"], [
+                result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["enable"], [
                                        "0", "0", "0", "0"], obj=db)
 
         assert(result.exit_code == 100)
@@ -468,7 +468,7 @@ class TestMuxcable(object):
             os.geteuid.return_value = 0
             with mock.patch('sonic_y_cable.y_cable') as patched_util:
                 patched_util.enable_loopback_mode.return_value = 1
-                result = runner.invoke(config.config.commands["muxcable"].commands["enable-loopback"], [
+                result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["enable"], [
                                        "0", "0", "0"], obj=db)
 
         assert(result.exit_code == 100)
@@ -481,7 +481,7 @@ class TestMuxcable(object):
             os.geteuid.return_value = 0
             with mock.patch('sonic_y_cable.y_cable') as patched_util:
                 patched_util.disable_prbs_mode.return_value = 1
-                result = runner.invoke(config.config.commands["muxcable"].commands["disable-prbs"], [
+                result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["enable"], [
                                        "0", "0"], obj=db)
 
         assert(result.exit_code == 100)
@@ -494,7 +494,7 @@ class TestMuxcable(object):
             os.geteuid.return_value = 0
             with mock.patch('sonic_y_cable.y_cable') as patched_util:
                 patched_util.disable_loopback_mode.return_value = 1
-                result = runner.invoke(config.config.commands["muxcable"].commands["disable-loopback"], [
+                result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["disbale"], [
                                        "0", "0"], obj=db)
 
         assert(result.exit_code == 100)
