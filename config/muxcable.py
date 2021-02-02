@@ -189,13 +189,17 @@ def mode(state, port, json_output):
 
         sys.exit(CONFIG_SUCCESSFUL)
 
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def prbs():
+    """Enable prbs on a port"""
+    pass
 
-@muxcable.command()
+@prbs.command()
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
 @click.argument('mode_value', required=True, default=None, type=click.INT)
 @click.argument('lane_map', required=True, default=None, type=click.INT)
-def enable_prbs(port, target, mode_value, lane_map):
+def enable(port, target, mode_value, lane_map):
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
@@ -205,10 +209,10 @@ def enable_prbs(port, target, mode_value, lane_map):
     click.echo("PRBS config sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
 
-@muxcable.command()
+@prbs.command()
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
-def disable_prbs(port, target):
+def disable(port, target):
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.disable_prbs_mode(port, target)
@@ -218,12 +222,17 @@ def disable_prbs(port, target):
     click.echo("PRBS disbale sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
 
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def loopback():
+    """Enable loopback on a port"""
+    pass
 
-@muxcable.command()
+
+@loopback.command()
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
 @click.argument('lane_map', required=True, default=None, type=click.INT)
-def enable_loopback(port, target, lane_map):
+def enable(port, target, lane_map):
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.enable_loopback_mode(port, target, lane_map)
@@ -233,10 +242,10 @@ def enable_loopback(port, target, lane_map):
     click.echo("loopback config sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
 
-@muxcable.command()
+@loopback.command()
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
-def disable_loopback(port, target):
+def disable(port, target):
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.disable_loopback_mode(port, target)
