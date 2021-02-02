@@ -25,6 +25,7 @@ optional arguments:
 import os
 import sys
 import argparse
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig, SonicV2Connector
 
 # mock the redis for unit test purposes #
 try:
@@ -42,6 +43,7 @@ from utilities_common.general import load_db_config
 
 # APPL_DB constants
 PORT_TABLE_NAME = "PORT"
+PORT_TABLE_PREFIX_APPL = "PORT_TABLE:"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
 PORT_FEC_CONFIG_FIELD_NAME = "fec"
 PORT_MTU_CONFIG_FIELD_NAME = "mtu"
@@ -75,6 +77,7 @@ class portconfig(object):
         self.is_lag = False
         self.is_lag_mbr = False
         self.parent = port
+
         # Set up db connections
         if namespace is None:
             self.db = ConfigDBConnector()
@@ -109,13 +112,27 @@ class portconfig(object):
     def set_speed(self, port, speed):
         if self.verbose:
             print("Setting speed %s on port %s" % (speed, port))
-        supported_speeds_str = self.get_supported_speeds(port)
-        if supported_speeds_str:
-            if supported_speeds_str.find(str(speed)) == -1:
-                print('Invalid speed specified: {}'.format(speed))
-                print('Valid speeds:{}'.format(supported_speeds_str))
-                exit(1)
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
+
+        appl_db = SonicV2Connector(namespace=self.namespace)
+        appl_db.connect(appl_db.APPL_DB)
+
+        # if port table does not exist in APPL_DB, then set speed without checking supported value
+        if not appl_db.exists(appl_db.APPL_DB, PORT_TABLE_PREFIX_APPL + port):
+            self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
+            return
+
+        supported_speed = appl_db.get_all(appl_db.APPL_DB, PORT_TABLE_PREFIX_APPL + port).get("supp_speed", None)
+        # if port table in APPL_DB does not contain related field, or the field is empty,
+        # set speed without checking supported value
+        if not supported_speed:
+            self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
+            return
+
+        # set speed only if it is supported
+        if any(int(speed) == int(x) for x in supported_speed.split(",")):
+            self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
+        else:
+            raise Exception(f"Unsupported speed {speed} for port {port}. Available values: {supported_speed}")
 
     def set_fec(self, port, fec):
         if self.verbose:
