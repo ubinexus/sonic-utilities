@@ -4859,7 +4859,7 @@ While configuring the muxcable, users needs to configure the following fields fo
 - Example:
     ```
         admin@sonic:~$ sudo config muxcable prbs enable 1 1 3 3
-	PRBS config sucessful
+        PRBS config sucessful
         admin@sonic:~$  sudo config muxcable prbs disable 1 0
         PRBS disable sucessful
     ```
@@ -4889,7 +4889,7 @@ While configuring the muxcable, users needs to configure the following fields fo
 - Example:
     ```
         admin@sonic:~$ sudo config muxcable loopback enable 1 1 3
-	loopback config sucessful
+        loopback config sucessful
         admin@sonic:~$  sudo config muxcable loopback disable 1 0
         loopback disable sucessfull
     ```

@@ -427,8 +427,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(show.cli.commands["muxcable"].commands["eyeinfo"], [
-                               "0", "0"], obj=db)
+        result = runner.invoke(show.cli.commands["muxcable"].commands["eyeinfo"],
+                               ["0", "0"], obj=db)
 
         assert(result.exit_code == 0)
 
@@ -438,8 +438,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(show.cli.commands["muxcable"].commands["berinfo"], [
-                               "0", "0"], obj=db)
+        result = runner.invoke(show.cli.commands["muxcable"].commands["berinfo"],
+                               ["0", "0"], obj=db)
 
         assert(result.exit_code == 0)
 
@@ -449,8 +449,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["enable"], [
-                               "0", "0", "0", "0"], obj=db)
+        result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["enable"],
+                               ["0", "0", "0", "0"], obj=db)
 
         assert(result.exit_code == 100)
 
@@ -460,8 +460,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["enable"], [
-                               "0", "0", "0"], obj=db)
+        result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["enable"],
+                               ["0", "0", "0"], obj=db)
 
         assert(result.exit_code == 100)
 
@@ -471,8 +471,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["disable"], [
-                               "0", "0"], obj=db)
+        result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["disable"],
+                               ["0", "0"], obj=db)
 
         assert(result.exit_code == 100)
 
@@ -482,8 +482,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["disable"], [
-                               "0", "0"], obj=db)
+        result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["disable"],
+                               ["0", "0"], obj=db)
 
         assert(result.exit_code == 100)
 
