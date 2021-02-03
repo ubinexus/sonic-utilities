@@ -17,8 +17,7 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -36,6 +35,21 @@ from . import nat
 from . import vlan
 from . import vxlan
 from .config_mgmt import ConfigMgmtDPB
+
+# mock masic APIs for unit test
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+except KeyError:
+    pass
+
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -101,7 +115,7 @@ def _get_breakout_options(ctx, args, incomplete):
             for i in breakout_mode_list.split(','):
                     breakout_mode_options.append(i)
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
-            return all_mode_options
+        return all_mode_options
 
 def shutdown_interfaces(ctx, del_intf_dict):
     """ shut down all the interfaces before deletion """
@@ -1341,7 +1355,15 @@ def portchannel(ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    if is_portchannel_present_in_db(db, portchannel_name):
+        ctx.fail("{} already exists!".format(portchannel_name))
+
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
     if min_links != 0:
@@ -1355,7 +1377,16 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
@@ -1670,10 +1701,10 @@ def start(action, restoration_time, ports, detection_time, verbose):
 
     if ports:
         ports = set(ports) - set(['ports', 'detection-time'])
-        cmd += " ports {}".format(' '.join(ports))
+        cmd += " {}".format(' '.join(ports))
 
     if detection_time:
-        cmd += " detection-time {}".format(detection_time)
+        cmd += " {}".format(detection_time)
 
     if restoration_time:
         cmd += " --restoration-time {}".format(restoration_time)
@@ -1756,12 +1787,24 @@ def _update_buffer_calculation_model(config_db, model):
 @qos.command('reload')
 @click.pass_context
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
-def reload(ctx, no_dynamic_buffer):
+@click.option(
+    '--json-data', type=click.STRING,
+    help="json string with additional data, valid with --dry-run option"
+)
+@click.option(
+    '--dry_run', type=click.STRING,
+    help="Dry run, writes config to the given file"
+)
+def reload(ctx, no_dynamic_buffer, dry_run, json_data):
     """Reload QoS configuration"""
     log.log_info("'qos reload' executing...")
     _clear_qos()
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+    from_db = "-d --write-to-db"
+    if dry_run:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
@@ -1798,17 +1841,17 @@ def reload(ctx, no_dynamic_buffer):
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
             if asic_type in vendors_supporting_dynamic_buffer:
                 buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
+
         if os.path.isfile(buffer_template_file):
-            qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
+            qos_template_file = os.path.join(
+                hwsku_path, asic_id_suffix, "qos.json.j2"
+            )
             if os.path.isfile(qos_template_file):
                 cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
-                sonic_version_file = os.path.join('/', "etc", "sonic", "sonic_version.yml")
-                command = "{} {} -d -t {},config-db -t {},config-db -y {} --write-to-db".format(
-                    SONIC_CFGGEN_PATH,
-                    cmd_ns,
-                    buffer_template_file,
-                    qos_template_file,
-                    sonic_version_file
+                fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "config-db"
+                command = "{} {} {} -t {},{} -t {},{} -y {}".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
+                    fname, qos_template_file, fname, sonic_version_file
                 )
                 # Apply the configurations only when both buffer and qos
                 # configuration files are present
@@ -1838,14 +1881,14 @@ def is_dynamic_buffer_enabled(config_db):
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
     """warm_restart-related configuration tasks"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
+    # Note: redis_unix_socket_path is a path string, and the ground truth is now from database_config.json.
+    # We only use it as a bool indicator on either unix_socket_path or tcp port
+    use_unix_socket_path = bool(redis_unix_socket_path)
+    config_db = ConfigDBConnector(use_unix_socket_path=use_unix_socket_path)
     config_db.connect(wait_for_init=False)
 
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db = SonicV2Connector(use_unix_socket_path=use_unix_socket_path)
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
@@ -2395,6 +2438,14 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     # Get current breakout mode
     cur_brkout_dict = config_db.get_table('BREAKOUT_CFG')
+    if len(cur_brkout_dict) == 0:
+        click.secho("[ERROR] BREAKOUT_CFG table is NOT present in CONFIG DB", fg='red')
+        raise click.Abort()
+
+    if interface_name not in cur_brkout_dict.keys():
+        click.secho("[ERROR] {} interface is NOT present in BREAKOUT_CFG table of CONFIG DB".format(interface_name), fg='red')
+        raise click.Abort()
+
     cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
 
     # Validate Interface and Breakout mode
@@ -2592,6 +2643,13 @@ def add(ctx, interface_name, ip_addr, gw):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    # Add a validation to check this interface is not a member in vlan before 
+    # changing it to a router port 
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+    if (interface_is_in_vlan(vlan_member_table, interface_name)):
+            click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+            return
 
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
@@ -3021,7 +3079,7 @@ def bind(ctx, interface_name, vrf_name):
         state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
-    while state_db.get_all(state_db.STATE_DB, _hash) != None:
+    while state_db.exists(state_db.STATE_DB, _hash):
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
     config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
@@ -3481,8 +3539,11 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-ymin', metavar='<yellow threshold min>', type=int, help="Set yellow min threshold")
 @click.option('-gmax', metavar='<green threshold max>', type=int, help="Set green max threshold")
 @click.option('-gmin', metavar='<green threshold min>', type=int, help="Set green min threshold")
+@click.option('-rdrop', metavar='<red drop probability>', type=click.IntRange(0, 100), help="Set red drop probability")
+@click.option('-ydrop', metavar='<yellow drop probability>', type=click.IntRange(0, 100), help="Set yellow drop probability")
+@click.option('-gdrop', metavar='<green drop probability>', type=click.IntRange(0, 100), help="Set green drop probability")
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
+def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbose):
     """ECN-related configuration tasks"""
     log.log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
@@ -3492,6 +3553,9 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     if ymin is not None: command += " -ymin %d" % ymin
     if gmax is not None: command += " -gmax %d" % gmax
     if gmin is not None: command += " -gmin %d" % gmin
+    if rdrop is not None: command += " -rdrop %d" % rdrop
+    if ydrop is not None: command += " -ydrop %d" % ydrop
+    if gdrop is not None: command += " -gdrop %d" % gdrop
     if verbose: command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
 

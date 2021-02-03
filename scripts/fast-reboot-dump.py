@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import swsssdk
+from swsscommon.swsscommon import SonicV2Connector
 import json
 import socket
 import struct
@@ -19,7 +19,7 @@ ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the p
 ARP_PAD = binascii.unhexlify('00' * 18)
 
 def generate_neighbor_entries(filename, all_available_macs):
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    db = SonicV2Connector(use_unix_socket_path=False)
     db.connect(db.APPL_DB, False)   # Make one attempt only
 
     arp_output = []
@@ -286,7 +286,7 @@ def get_default_entries(db, route):
     return obj
 
 def generate_default_route_entries(filename):
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    db = SonicV2Connector(unix_socket_path=False)
     db.connect(db.APPL_DB, False)   # Make one attempt only
 
     default_routes_output = []
