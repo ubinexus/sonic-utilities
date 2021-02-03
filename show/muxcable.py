@@ -345,6 +345,7 @@ def config(port, json_output):
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
 def berinfo(port, target):
+    """Show muxcable ber (bit error rate) information"""
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
@@ -365,6 +366,7 @@ def berinfo(port, target):
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
 def eyeinfo(port, target):
+    """Show muxcable eye information"""
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
