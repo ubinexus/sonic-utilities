@@ -21,7 +21,7 @@ PLATFORM_SPECIFIC_MODULE_NAME = "pcieutil"
 
 # Global platform-specific psuutil class instance
 platform_pcieutil = None
-platform_plugins_path = None
+platform_path = None
 
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
@@ -125,7 +125,7 @@ def check():
 def generate():
     '''Generate config file with current pci device'''
     platform_pcieutil.dump_conf_yaml()
-    click.echo("Generate config file pcie.yaml under path %s" % platform_path)
+    click.echo("Generate config file '{}/pcie.yaml'".format(platform_path))
 
 
 if __name__ == '__main__':
