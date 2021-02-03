@@ -191,7 +191,7 @@ def mode(state, port, json_output):
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def prbs():
-    """Enable prbs on a port"""
+    """Enable/disable PRBS mode on a port"""
     pass
 
 @prbs.command()
@@ -200,6 +200,7 @@ def prbs():
 @click.argument('mode_value', required=True, default=None, type=click.INT)
 @click.argument('lane_map', required=True, default=None, type=click.INT)
 def enable(port, target, mode_value, lane_map):
+    """Enable PRBS mode on a port"""
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
@@ -213,18 +214,19 @@ def enable(port, target, mode_value, lane_map):
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
 def disable(port, target):
+    """Disable PRBS mode on a port"""
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.disable_prbs_mode(port, target)
     if res != True:
         click.echo("PRBS disable unsuccesful")
         sys.exit(CONFIG_FAIL)
-    click.echo("PRBS disbale sucessful")
+    click.echo("PRBS disable sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def loopback():
-    """Enable loopback on a port"""
+    """Enable/disable loopback mode on a port"""
     pass
 
 
@@ -233,6 +235,7 @@ def loopback():
 @click.argument('target', required=True, default=None, type=click.INT)
 @click.argument('lane_map', required=True, default=None, type=click.INT)
 def enable(port, target, lane_map):
+    """Enable loopback mode on a port"""
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.enable_loopback_mode(port, target, lane_map)
@@ -246,6 +249,7 @@ def enable(port, target, lane_map):
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
 def disable(port, target):
+    """Disable loopback mode on a port"""
 
     import sonic_y_cable.y_cable
     res = sonic_y_cable.y_cable.disable_loopback_mode(port, target)

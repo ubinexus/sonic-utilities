@@ -4833,13 +4833,14 @@ While configuring the muxcable, users needs to configure the following fields fo
                 "Ethernet0": "OK"
            }
     ```
-**config muxcable prbs**
+**config muxcable prbs enable/disable**
 
-This command is used for setting the configuration of prbs on a port user provides. In addition to port the user also needs to provides the target, prbs mode and lane map on which the user intends to run prbs on.
+This command is used for setting the configuration and enable/diable of prbs on a port user provides. While enabling in addition to port the user also needs to provides the target, prbs mode and lane map on which the user intends to run prbs on. The target reflects where the enable/dsiable will happen.
 
 - Usage:
   ```
-  config muxcable prbs [OPTIONS] PORT TARGET MODE_VALUE LANE_MAP
+  config muxcable prbs enable [OPTIONS] PORT TARGET MODE_VALUE LANE_MAP
+  config muxcable prbs disable [OPTIONS] PORT TARGET
   ```
 
 While configuring the muxcable, users needs to configure the following fields for the operation
@@ -4857,17 +4858,20 @@ While configuring the muxcable, users needs to configure the following fields fo
              for example 3 -> 0b'0011 , means running on lane0 and lane1
 - Example:
     ```
-        admin@sonic:~$ sudo config muxcable prbs 1 1 3 3
+        admin@sonic:~$ sudo config muxcable prbs enable 1 1 3 3
 	PRBS config sucessful
+        admin@sonic:~$  sudo config muxcable prbs disable 1 0
+        PRBS disable sucessful
     ```
 
-**config muxcable loopback**
+**config muxcable loopback enable/disable**
 
-This command is used for setting the configuration of loopback on a port user provides. In addition to port the user also needs to provides the target and lane map on which the user intends to run loopback on.
+This command is used for setting the configuration and enable/disable of loopback on a port user provides. While enabling in addition to port the user also needs to provides the target and lane map on which the user intends to run loopback on. The target reflects where the enable/dsiable will happen.
 
 - Usage:
   ```
-  config muxcable loopback [OPTIONS] PORT TARGET LANE_MAP
+  config muxcable loopback enable [OPTIONS] PORT TARGET LANE_MAP
+  config muxcable loopback disable [OPTIONS] PORT TARGET
   ```
 
 While configuring the muxcable, users needs to configure the following fields for the operation
@@ -4884,8 +4888,10 @@ While configuring the muxcable, users needs to configure the following fields fo
 
 - Example:
     ```
-        admin@sonic:~$ sudo config muxcable loopback 1 1 3
+        admin@sonic:~$ sudo config muxcable loopback enable 1 1 3
 	loopback config sucessful
+        admin@sonic:~$  sudo config muxcable loopback disable 1 0
+        loopback disable sucessfull
     ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
