@@ -83,8 +83,8 @@ class TestConfigMgmt(TestCase):
         Verify that _shutdownIntf() is called with deleted ports while calling
         breakOutPort()
         '''
-        conf = dict(configDbJson)
-        cmdpb = self.config_mgmt_dpb(conf)
+        curConfig = deepcopy(configDbJson)
+        cmdpb = self.config_mgmt_dpb(curConfig)
 
         # create ARGS
         dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \

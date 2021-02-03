@@ -2472,7 +2472,8 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     # validate all del_ports before calling breakOutPort
     for intf in del_intf_dict.keys():
         if not interface_name_is_valid(intf):
-            raise Exception("Interface name {} is invalid")
+            click.secho("[ERROR] Interface name {} is invalid".format(intf))
+            raise click.Abort()
 
     click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
     if not add_intf_dict:
