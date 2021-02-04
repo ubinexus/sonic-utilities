@@ -15,6 +15,8 @@ test_sfp_eeprom_with_dom_output = """\
 Ethernet0: SFP EEPROM detected
         Application Advertisement: N/A
         Connector: No separable connector
+        DOM Capability: 
+                sff8472_dom_support: yes
         Encoding: 64B66B
         Extended Identifier: Power Class 3(2.5W max), CDR present in Rx Tx
         Extended RateSelect Compliance: QSFP+ Rate Select Version 1
@@ -137,6 +139,8 @@ test_sfp_eeprom_output = """\
 Ethernet0: SFP EEPROM detected
         Application Advertisement: N/A
         Connector: No separable connector
+        DOM Capability: 
+                sff8472_dom_support: yes
         Encoding: 64B66B
         Extended Identifier: Power Class 3(2.5W max), CDR present in Rx Tx
         Extended RateSelect Compliance: QSFP+ Rate Select Version 1
