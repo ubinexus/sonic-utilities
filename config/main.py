@@ -2471,7 +2471,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     # validate all del_ports before calling breakOutPort
     for intf in del_intf_dict.keys():
-        if not interface_name_is_valid(intf):
+        if not interface_name_is_valid(config_db, intf):
             click.secho("[ERROR] Interface name {} is invalid".format(intf))
             raise click.Abort()
 
