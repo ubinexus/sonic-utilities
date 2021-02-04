@@ -125,7 +125,7 @@ def check():
 def generate():
     '''Generate config file with current pci device'''
     platform_pcieutil.dump_conf_yaml()
-    click.echo("Generate config file '{}/pcie.yaml'".format(platform_path))
+    click.echo("Generated config file '{}/pcie.yaml'".format(platform_path))
 
 
 if __name__ == '__main__':
