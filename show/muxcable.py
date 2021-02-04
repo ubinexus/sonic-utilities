@@ -355,7 +355,7 @@ def berinfo(port, target):
     if res == False or res == -1:
         click.echo("Unable to fetch ber info")
         sys.exit(EXIT_FAIL)
-    headers = ['Lane1', 'Lane2']
+    headers = ['Lane1', 'Lane2', 'Lane3', 'Lane4']
     lane_data = []
     lane_data.append(res)
     click.echo(tabulate(lane_data, headers=headers))
@@ -376,7 +376,7 @@ def eyeinfo(port, target):
     if res == False or res == -1:
         click.echo("Unable to fetch eye info")
         sys.exit(EXIT_FAIL)
-    headers = ['Lane1', 'Lane2']
+    headers = ['Lane1', 'Lane2', 'Lane3', 'Lane4']
     lane_data = []
     lane_data.append(res)
     click.echo(tabulate(lane_data, headers=headers))
