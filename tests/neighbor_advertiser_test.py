@@ -28,6 +28,8 @@ class TestNeighborAdvertiser(object):
         subprocess.check_output(cmd.split())
         cmd = "sudo ip link add Vlan2000 type dummy"
         subprocess.check_output(cmd.split())
+        cmd = "sudo ip -6 address add dev Vlan2000 scope link fe80::1e43:dfaf:fe2e:1800/64"
+        subprocess.check_output(cmd.split())
         output = neighbor_advertiser.construct_neighbor_advertiser_slice()
         expected_output = dict(
             {
@@ -50,7 +52,8 @@ class TestNeighborAdvertiser(object):
                             {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': '192.168.0.10', 'ipPrefixLen': '21'}
                         ],
                         'ipv6AddrMappings': [
-                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fc02:1011::1', 'ipPrefixLen': '64'}
+                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fc02:1011::1', 'ipPrefixLen': '64'},
+                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fe80::1e43:dfaf:fe2e:1800', 'ipPrefixLen': '128'}
                         ],
                         'vxlanId': '2000',
                         'vlanId': '2000',

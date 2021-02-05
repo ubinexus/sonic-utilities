@@ -242,9 +242,10 @@ def get_vlan_addresses(vlan_interface):
                 keys = line.split()
                 if keys[0] == 'inet6':
                     ip = IPNetwork(keys[1])
-                    if str(ip.ip).startswith("fe80"):
+                    if str(ip.ip).startswith("fe80") and str(ip.ip) not in ipv6_addr:
+                        # Link local ipv6 address
                         ipv6_addr.append(str(ip.ip))
-                        ipv6_prefix.append(ip.prefixlen)
+                        ipv6_prefix.append('128')
         except Exception:
             log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
             pass
