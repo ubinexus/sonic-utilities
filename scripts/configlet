@@ -93,6 +93,15 @@ def init():
         db.connect(False)
         connected = True
 
+def uniq(lst):
+    prv = object()
+    for item in lst:
+        if item == prv:
+            print(f"Duplicate found: {item}")
+            continue
+        yield item
+        prv = item
+
 def db_update(t, k, lst):
     init()
     to_upd = False
@@ -108,6 +117,8 @@ def db_update(t, k, lst):
         to_upd = True
 
     if to_upd:
+        for key, value in lst.items():
+            lst[key] = list(uniq(list(value)))
         db.mod_entry(t, k, lst)
 
 def db_delete_fields(t, k, lst):
@@ -159,7 +170,7 @@ def do_delete(t, k, lst):
 
 def do_operate(op_upd, t, k, lst):
     if lst:
-        if type(lst[lst.keys()[0]]) == dict:
+        if type(lst[list(lst.keys())[0]]) == dict:
             for i in lst:
                 do_operate(op_upd, t, k+(i,), lst[i])
             return
