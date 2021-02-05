@@ -118,7 +118,8 @@ def db_update(t, k, lst):
 
     if to_upd:
         for key, value in lst.items():
-            lst[key] = list(uniq(list(value)))
+            if type(value) == list:
+                lst[key] = list(uniq(sorted(list(value))))
         db.mod_entry(t, k, lst)
 
 def db_delete_fields(t, k, lst):
