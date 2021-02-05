@@ -248,7 +248,6 @@ def get_vlan_addresses(vlan_interface):
                         ipv6_prefix.append('128')
         except Exception:
             log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
-            pass
 
     metadata = config_db.get_table('DEVICE_METADATA')
     mac_addr = metadata['localhost']['mac']
