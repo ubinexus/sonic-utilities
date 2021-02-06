@@ -16,6 +16,10 @@ show_dhcp_relay_brief_output="""\
 |                  | 12.0.0.2              |
 |                  | 12.0.0.3              |
 +------------------+-----------------------+
+| PortChannel0001  | 11.0.0.1              |
+|                  | 11.0.0.2              |
+|                  | 11.0.0.3              |
++------------------+-----------------------+
 | Vlan1000         | 192.0.0.1             |
 |                  | 192.0.0.2             |
 |                  | 192.0.0.3             |
@@ -45,6 +49,16 @@ Restarting DHCP relay service...
 
 config_physical_rem_dhcp_relay_output="""\
 Removed DHCP relay address 12.0.0.3 from Ethernet0
+Restarting DHCP relay service...
+"""
+
+config_portchannel_add_dhcp_relay_output="""\
+Added DHCP relay address 11.0.0.4 to PortChannel0001
+Restarting DHCP relay service...
+"""
+
+config_portchannel_rem_dhcp_relay_output="""\
+Removed DHCP relay address 11.0.0.3 from PortChannel0001
 Restarting DHCP relay service...
 """
 
@@ -113,6 +127,35 @@ class TestDhcpRelay(object):
             assert result.exit_code == 0
             assert result.output == config_vlan_rem_dhcp_relay_output
             assert mock_run_command.call_count == 3
+
+    def test_config_add_delete_dhcp_server_on_portchannel_interface(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        with mock.patch("utilities_common.cli.run_command") as mock_run_command:
+            # add a same dhcp relay server address to PortChannel0001
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["PortChannel0001", "11.0.0.3"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code != 0
+            assert "Error: IP address 11.0.0.3 is already configured" in result.output
+
+            # remove dhcp relay server address from PortChannel0001
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["PortChannel0001", "11.0.0.3"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_portchannel_rem_dhcp_relay_output
+            assert mock_run_command.call_count == 3
+
+            # add a new dhcp relay server address to PortChannel0001
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["PortChannel0001", "11.0.0.4"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_portchannel_add_dhcp_relay_output
+            assert mock_run_command.call_count == 6
 
     @classmethod
     def teardown_class(cls):

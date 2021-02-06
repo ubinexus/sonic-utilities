@@ -520,7 +520,7 @@
     },
     "PORTCHANNEL_INTERFACE|PortChannel0001": {
         "NULL": "NULL",
-        "dhcp_servers@": "11.0.0.1,11.0.0.2,11.0.0.3",
+        "dhcp_servers@": "11.0.0.1,11.0.0.2,11.0.0.3"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0002": {
         "NULL": "NULL"
