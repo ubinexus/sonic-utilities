@@ -1,5 +1,6 @@
 import os
 import traceback
+from unittest import mock
 
 from click.testing import CliRunner
 
@@ -28,7 +29,7 @@ show_dhcp_relay_brief_output="""\
 """
 
 config_vlan_add_dhcp_relay_output="""\
-Added DHCP relay address 192.0.0.4 to Vlan2000
+Added DHCP relay address 192.0.0.4 to Vlan1000
 Restarting DHCP relay service...
 """
 
@@ -63,50 +64,55 @@ class TestDhcpRelay(object):
         print(result.output)
         assert result.output == show_dhcp_relay_brief_output
 
-    def test_config_add_delete_dhcp_relay_physical_interface(self):
+    def test_config_add_delete_dhcp_server_on_physical_interface(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
 
-        # add a same dhcp relay server address to Ethernet0
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet0", "12.0.0.3"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: IP address 12.0.0.3 is already configured" in result.output
+        with mock.patch("utilities_common.cli.run_command") as mock_run_command:
+            # add a same dhcp relay server address to Ethernet0
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet0", "12.0.0.3"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code != 0
+            assert "Error: IP address 12.0.0.3 is already configured" in result.output
 
-        # remove dhcp relay server address from Ethernet0
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Ethernet0", "12.0.0.3"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_physical_rem_dhcp_relay_output
+            # remove dhcp relay server address from Ethernet0
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Ethernet0", "12.0.0.3"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_physical_rem_dhcp_relay_output
+            assert mock_run_command.call_count == 3
 
-        # add a new dhcp relay server address to Ethernet0
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet0", "12.0.0.4"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_physical_add_dhcp_relay_output
+            # add a new dhcp relay server address to Ethernet0
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Ethernet0", "12.0.0.4"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_physical_add_dhcp_relay_output
+            assert mock_run_command.call_count == 3
 
-    def test_config_add_delete_dhcp_relay_vlan_interface(self):
+    def test_config_add_delete_dhcp_server_on_vlan_interface(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
 
-        # add a new dhcp relay server address to Vlan1000
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Vlan1000", "192.0.0.5"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0
-        assert "Error: Maximum number of Servers configured on the relay interface Vlan1000" in result.output
+        with mock.patch("utilities_common.cli.run_command") as mock_run_command:
+            # add a new dhcp relay server address to Vlan1000
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["add"], ["Vlan1000", "192.0.0.5"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code != 0
+            assert "Error: Maximum number of Servers configured on the relay interface Vlan1000" in result.output
 
-        # remove a existing dhcp relay server address from Vlan1000
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Vlan1000", "192.0.0.4"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_vlan_rem_dhcp_relay_output
+            # remove a existing dhcp relay server address from Vlan1000
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["dhcp-relay"].commands["remove"], ["Vlan1000", "192.0.0.4"], obj=obj)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_vlan_rem_dhcp_relay_output
+            assert mock_run_command.call_count == 3
 
     @classmethod
     def teardown_class(cls):
