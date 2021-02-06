@@ -91,7 +91,7 @@ class TestDhcpRelay(object):
             print(result.output)
             assert result.exit_code == 0
             assert result.output == config_physical_add_dhcp_relay_output
-            assert mock_run_command.call_count == 3
+            assert mock_run_command.call_count == 6
 
     def test_config_add_delete_dhcp_server_on_vlan_interface(self):
         runner = CliRunner()
