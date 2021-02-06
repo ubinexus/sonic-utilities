@@ -86,7 +86,7 @@ qsfp_dom_channel_threshold_map = {
 dom_module_threshold_map = {
     'temphighalarm':  'TempHighAlarm',
     'templowalarm':   'TempLowAlarm',
-    'temphighwarning':'TempHighWarning',
+    'temphighwarning': 'TempHighWarning',
     'templowwarning': 'TempLowWarning',
     'vcchighalarm':   'VccHighAlarm',
     'vcclowalarm':    'VccLowAlarm',
@@ -218,16 +218,18 @@ def display_invalid_intf_eeprom(intf_name):
     output = intf_name + ': SFP EEPROM Not detected\n'
     click.echo(output)
 
+
 def display_invalid_intf_presence(intf_name):
     header = ['Port', 'Presence']
     port_table = []
     port_table.append((intf_name, 'Not present'))
     click.echo(tabulate(port_table, header))
 
+
 class SFPShow(object):
 
     def __init__(self, intf_name, namespace_option, dump_dom=False):
-        super(SFPShow,self).__init__()
+        super(SFPShow, self).__init__()
         self.db = None
         self.config_db = None
         self.intf_name = intf_name
@@ -239,7 +241,7 @@ class SFPShow(object):
     # Convert dict values to cli output string
     def format_dict_value_to_string(self, sorted_key_table,
                                     dom_info_dict, dom_value_map,
-                                    dom_unit_map, alignment = 0):
+                                    dom_unit_map, alignment=0):
         output = ''
         indent = ' ' * 8
         separator = ": "
@@ -247,7 +249,7 @@ class SFPShow(object):
             if dom_info_dict is not None and key in dom_info_dict and dom_info_dict[key] != 'N/A':
                 current_val = (indent * 2) + dom_value_map[key]
                 current_val = (current_val + separator.rjust(len(separator) +
-                               alignment - len(dom_value_map[key])))
+                                                             alignment - len(dom_value_map[key])))
                 if dom_info_dict[key] == 'Unknown':
                     current_val = (current_val + dom_info_dict[key])
                 else:
@@ -268,17 +270,17 @@ class SFPShow(object):
                 output_dom += (indent + 'ChannelMonitorValues:\n')
                 sorted_key_table = natsorted(qsfp_dd_dom_channel_monitor_map)
                 output_channel = self.format_dict_value_to_string(
-                                                sorted_key_table, dom_info_dict,
-                                                qsfp_dd_dom_channel_monitor_map,
-                                                qsfp_dd_dom_value_unit_map)
+                    sorted_key_table, dom_info_dict,
+                    qsfp_dd_dom_channel_monitor_map,
+                    qsfp_dd_dom_value_unit_map)
                 output_dom += output_channel
             else:
                 output_dom += (indent + 'ChannelMonitorValues:\n')
                 sorted_key_table = natsorted(qsfp_dom_channel_monitor_map)
                 output_channel = self.format_dict_value_to_string(
-                                                sorted_key_table, dom_info_dict,
-                                                qsfp_dom_channel_monitor_map,
-                                                dom_value_unit_map)
+                    sorted_key_table, dom_info_dict,
+                    qsfp_dom_channel_monitor_map,
+                    dom_value_unit_map)
                 output_dom += output_channel
 
             # Channel Threshold
@@ -290,45 +292,45 @@ class SFPShow(object):
             output_dom += (indent + 'ChannelThresholdValues:\n')
             sorted_key_table = natsorted(dom_map)
             output_channel_threshold = self.format_dict_value_to_string(
-                                         sorted_key_table, dom_info_dict,
-                                         dom_map,
-                                         dom_channel_threshold_unit_map,
-                                         channel_threshold_align)
+                sorted_key_table, dom_info_dict,
+                dom_map,
+                dom_channel_threshold_unit_map,
+                channel_threshold_align)
             output_dom += output_channel_threshold
 
             # Module Monitor
             output_dom += (indent + 'ModuleMonitorValues:\n')
             sorted_key_table = natsorted(dom_module_monitor_map)
             output_module = self.format_dict_value_to_string(
-                                            sorted_key_table, dom_info_dict,
-                                            dom_module_monitor_map,
-                                            dom_value_unit_map)
+                sorted_key_table, dom_info_dict,
+                dom_module_monitor_map,
+                dom_value_unit_map)
             output_dom += output_module
 
             # Module Threshold
             output_dom += (indent + 'ModuleThresholdValues:\n')
             sorted_key_table = natsorted(dom_module_threshold_map)
             output_module_threshold = self.format_dict_value_to_string(
-                                         sorted_key_table, dom_info_dict,
-                                         dom_module_threshold_map,
-                                         dom_module_threshold_unit_map,
-                                         module_threshold_align)
+                sorted_key_table, dom_info_dict,
+                dom_module_threshold_map,
+                dom_module_threshold_unit_map,
+                module_threshold_align)
             output_dom += output_module_threshold
 
         else:
             output_dom += (indent + 'MonitorData:\n')
             sorted_key_table = natsorted(sfp_dom_channel_monitor_map)
             output_channel = self.format_dict_value_to_string(
-                                            sorted_key_table, dom_info_dict,
-                                            sfp_dom_channel_monitor_map,
-                                            dom_value_unit_map)
+                sorted_key_table, dom_info_dict,
+                sfp_dom_channel_monitor_map,
+                dom_value_unit_map)
             output_dom += output_channel
 
             sorted_key_table = natsorted(dom_module_monitor_map)
             output_module = self.format_dict_value_to_string(
-                                            sorted_key_table, dom_info_dict,
-                                            dom_module_monitor_map,
-                                            dom_value_unit_map)
+                sorted_key_table, dom_info_dict,
+                dom_module_monitor_map,
+                dom_value_unit_map)
             output_dom += output_module
 
             output_dom += (indent + 'ThresholdData:\n')
@@ -336,19 +338,19 @@ class SFPShow(object):
             # Module Threshold
             sorted_key_table = natsorted(dom_module_threshold_map)
             output_module_threshold = self.format_dict_value_to_string(
-                                         sorted_key_table, dom_info_dict,
-                                         dom_module_threshold_map,
-                                         dom_module_threshold_unit_map,
-                                         module_threshold_align)
+                sorted_key_table, dom_info_dict,
+                dom_module_threshold_map,
+                dom_module_threshold_unit_map,
+                module_threshold_align)
             output_dom += output_module_threshold
 
             # Channel Threshold
             sorted_key_table = natsorted(sfp_dom_channel_threshold_map)
             output_channel_threshold = self.format_dict_value_to_string(
-                                         sorted_key_table, dom_info_dict,
-                                         sfp_dom_channel_threshold_map,
-                                         dom_channel_threshold_unit_map,
-                                         channel_threshold_align)
+                sorted_key_table, dom_info_dict,
+                sfp_dom_channel_threshold_map,
+                dom_channel_threshold_unit_map,
+                channel_threshold_align)
             output_dom += output_channel_threshold
 
         return output_dom
@@ -401,9 +403,10 @@ class SFPShow(object):
         if self.intf_name is not None:
             presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(self.intf_name))
             if presence:
-                self.output = self.convert_interface_sfp_info_to_cli_output_string(self.db, self.intf_name, self.dump_dom)
+                self.output = self.convert_interface_sfp_info_to_cli_output_string(
+                    self.db, self.intf_name, self.dump_dom)
             else:
-               self.output += (self.intf_name + ': ' + 'SFP EEPROM Not detected' + '\n')
+                self.output += (self.intf_name + ': ' + 'SFP EEPROM Not detected' + '\n')
         else:
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             sorted_table_keys = natsorted(port_table_keys)
@@ -412,9 +415,10 @@ class SFPShow(object):
                 if interface and interface.startswith(front_panel_prefix()) and not interface.startswith(backplane_prefix()):
                     presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
                     if presence:
-                        self.output += self.convert_interface_sfp_info_to_cli_output_string(self.db, interface, self.dump_dom)
+                        self.output += self.convert_interface_sfp_info_to_cli_output_string(
+                            self.db, interface, self.dump_dom)
                     else:
-                       self.output += (interface + ': ' + 'SFP EEPROM Not detected' + '\n')
+                        self.output += (interface + ': ' + 'SFP EEPROM Not detected' + '\n')
 
                     self.output += '\n'
 
@@ -435,9 +439,9 @@ class SFPShow(object):
                 if key and key.startswith(front_panel_prefix()) and not key.startswith(backplane_prefix()):
                     presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(key))
                     if presence:
-                        port_table.append((key,'Present'))
+                        port_table.append((key, 'Present'))
                     else:
-                        port_table.append((key,'Not present'))
+                        port_table.append((key, 'Not present'))
 
         self.table += port_table
 
@@ -450,12 +454,16 @@ class SFPShow(object):
         click.echo(tabulate(sorted_port_table, header))
 
 # This is our main entrypoint - the main 'sfpshow' command
+
+
 @click.group()
 def cli():
     """sfpshow - Command line utility for display SFP transceivers information"""
     pass
 
 # 'eeprom' subcommand
+
+
 @cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP EEPROM data for port <port_name> only")
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
@@ -473,6 +481,8 @@ def eeprom(port, dump_dom, namespace):
     sfp.display_eeprom()
 
 # 'presence' subcommand
+
+
 @cli.command()
 @click.option('-p', '--port', metavar='<port_name>', help="Display SFP presence for port <port_name> only")
 @click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
@@ -487,6 +497,7 @@ def presence(port, namespace):
     sfp = SFPShow(port, namespace)
     sfp.get_presence()
     sfp.display_presence()
+
 
 if __name__ == "__main__":
     cli()
