@@ -119,7 +119,8 @@ def db_update(t, k, lst):
     if to_upd:
         for key, value in lst.items():
             if type(value) == list:
-                lst[key] = list(uniq(sorted(list(value))))
+                # If value is list check its on dublicate
+                lst[key] = list(uniq(sorted(value)))
         db.mod_entry(t, k, lst)
 
 def db_delete_fields(t, k, lst):
