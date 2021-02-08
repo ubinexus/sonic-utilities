@@ -62,7 +62,7 @@ Ethernet8     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/
 """
 
 show_buffer_pool_wm_output="""\
-Shared pool maximum occupancy:
+Buffer pool maximum occupancy:
                  Pool    Bytes
 ---------------------  -------
  egress_lossless_pool     1000
@@ -71,7 +71,7 @@ ingress_lossless_pool     3000
 """
 
 show_buffer_pool_persistent_wm_output="""\
-Shared pool maximum occupancy:
+Buffer pool maximum occupancy:
                  Pool    Bytes
 ---------------------  -------
  egress_lossless_pool     2000
