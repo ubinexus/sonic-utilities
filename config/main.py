@@ -16,8 +16,7 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -668,6 +667,7 @@ def _get_disabled_services_list(config_db):
 
     return disabled_services_list
 
+  
 def _stop_services():
     click.echo("Stopping SONiC target ...")
     clicommon.run_command("sudo systemctl stop sonic.target")
@@ -1761,14 +1761,14 @@ def is_dynamic_buffer_enabled(config_db):
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
     """warm_restart-related configuration tasks"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
+    # Note: redis_unix_socket_path is a path string, and the ground truth is now from database_config.json.
+    # We only use it as a bool indicator on either unix_socket_path or tcp port
+    use_unix_socket_path = bool(redis_unix_socket_path)
+    config_db = ConfigDBConnector(use_unix_socket_path=use_unix_socket_path)
     config_db.connect(wait_for_init=False)
 
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db = SonicV2Connector(use_unix_socket_path=use_unix_socket_path)
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
@@ -2524,6 +2524,13 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
+    # Add a validation to check this interface is not a member in vlan before 
+    # changing it to a router port 
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+    if (interface_is_in_vlan(vlan_member_table, interface_name)):
+            click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+            return
+
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
@@ -2952,7 +2959,7 @@ def bind(ctx, interface_name, vrf_name):
         state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
-    while state_db.get_all(state_db.STATE_DB, _hash) != None:
+    while state_db.exists(state_db.STATE_DB, _hash):
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
     config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
@@ -3412,8 +3419,11 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-ymin', metavar='<yellow threshold min>', type=int, help="Set yellow min threshold")
 @click.option('-gmax', metavar='<green threshold max>', type=int, help="Set green max threshold")
 @click.option('-gmin', metavar='<green threshold min>', type=int, help="Set green min threshold")
+@click.option('-rdrop', metavar='<red drop probability>', type=click.IntRange(0, 100), help="Set red drop probability")
+@click.option('-ydrop', metavar='<yellow drop probability>', type=click.IntRange(0, 100), help="Set yellow drop probability")
+@click.option('-gdrop', metavar='<green drop probability>', type=click.IntRange(0, 100), help="Set green drop probability")
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
+def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbose):
     """ECN-related configuration tasks"""
     log.log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
@@ -3423,6 +3433,9 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     if ymin is not None: command += " -ymin %d" % ymin
     if gmax is not None: command += " -gmax %d" % gmax
     if gmin is not None: command += " -gmin %d" % gmin
+    if rdrop is not None: command += " -rdrop %d" % rdrop
+    if ydrop is not None: command += " -ydrop %d" % ydrop
+    if gdrop is not None: command += " -gdrop %d" % gdrop
     if verbose: command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
 

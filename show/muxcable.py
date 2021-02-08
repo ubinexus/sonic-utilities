@@ -1,11 +1,11 @@
 import json
+import os
 import sys
 
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
-from swsscommon import swsscommon
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
 
@@ -15,6 +15,8 @@ REDIS_TIMEOUT_MSECS = 0
 
 CONFIG_SUCCESSFUL = 101
 CONFIG_FAIL = 1
+EXIT_FAIL = 1
+EXIT_SUCCESS = 0
 STATUS_FAIL = 1
 STATUS_SUCCESSFUL = 102
 
@@ -131,7 +133,7 @@ def status(port, json_output):
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
@@ -233,7 +235,7 @@ def config(port, json_output):
         # TO-DO replace the macros with correct swsscommon names
         #config_db[asic_id] = swsscommon.DBConnector("CONFIG_DB", REDIS_TIMEOUT_MSECS, True, namespace)
         #mux_tbl_cfg_db[asic_id] = swsscommon.Table(config_db[asic_id], swsscommon.CFG_MUX_CABLE_TABLE_NAME)
-        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=False, namespace=namespace)
         per_npu_configdb[asic_id].connect()
         mux_tbl_cfg_db[asic_id] = per_npu_configdb[asic_id].get_table("MUX_CABLE")
         peer_switch_tbl_cfg_db[asic_id] = per_npu_configdb[asic_id].get_table("PEER_SWITCH")
@@ -336,3 +338,45 @@ def config(port, json_output):
             click.echo(tabulate(print_data, headers=headers))
 
         sys.exit(CONFIG_SUCCESSFUL)
+
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def berinfo(port, target):
+    """Show muxcable BER (bit error rate) information"""
+
+    if os.geteuid() != 0:
+        click.echo("Root privileges are required for this operation")
+        sys.exit(EXIT_FAIL)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.get_ber_info(port, target)
+    if res == False or res == -1:
+        click.echo("Unable to fetch ber info")
+        sys.exit(EXIT_FAIL)
+    headers = ['Lane1', 'Lane2', 'Lane3', 'Lane4']
+    lane_data = []
+    lane_data.append(res)
+    click.echo(tabulate(lane_data, headers=headers))
+    sys.exit(EXIT_SUCCESS)
+
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def eyeinfo(port, target):
+    """Show muxcable eye information in mv"""
+
+    if os.geteuid() != 0:
+        click.echo("Root privileges are required for this operation")
+        sys.exit(EXIT_FAIL)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.get_eye_info(port, target)
+    if res == False or res == -1:
+        click.echo("Unable to fetch eye info")
+        sys.exit(EXIT_FAIL)
+    headers = ['Lane1', 'Lane2', 'Lane3', 'Lane4']
+    lane_data = []
+    lane_data.append(res)
+    click.echo(tabulate(lane_data, headers=headers))
+    sys.exit(EXIT_SUCCESS)

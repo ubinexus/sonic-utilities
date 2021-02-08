@@ -61,7 +61,8 @@ setup(
                   'mock_tables/asic2/*.json',
                   'filter_fdb_input/*',
                   'pfcwd_input/*',
-                  'wm_input/*']
+                  'wm_input/*',
+                  'ecn_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -155,6 +156,7 @@ setup(
         'netifaces==0.10.7',
         'pexpect==4.8.0',
         'requests==2.25.0',
+        'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
