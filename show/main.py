@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+import re
 
 import click
 import netifaces
@@ -9,8 +10,7 @@ import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
 from sonic_py_common import device_info, multi_asic
-from swsssdk import ConfigDBConnector
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
@@ -46,6 +46,8 @@ PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
+GEARBOX_TABLE_PHY_PATTERN = r"_GEARBOX_TABLE:phy:*"
+
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
@@ -56,8 +58,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                text=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
@@ -120,7 +121,20 @@ def connect_config_db():
     config_db.connect()
     return config_db
 
+def is_gearbox_configured():
+    """
+    Checks whether Gearbox is configured or not
+    """
+    app_db = SonicV2Connector()
+    app_db.connect(app_db.APPL_DB)
 
+    keys = app_db.keys(app_db.APPL_DB, '*')
+
+    # If any _GEARBOX_TABLE:phy:* records present in APPL_DB, then the gearbox is configured
+    if any(re.match(GEARBOX_TABLE_PHY_PATTERN, key) for key in keys):
+        return True
+    else:
+        return False
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -161,10 +175,7 @@ cli.add_command(system_health.system_health)
 cli.add_command(warm_restart.warm_restart)
 
 # Add greabox commands only if GEARBOX is configured
-# TODO: Find a cleaner way to do this
-app_db = SonicV2Connector(host='127.0.0.1')
-app_db.connect(app_db.APPL_DB)
-if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
+if is_gearbox_configured():
     cli.add_command(gearbox.gearbox)
 
 
@@ -1450,11 +1461,11 @@ def policer(policer_name, verbose):
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
-def ecn():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ecn(verbose):
     """Show ECN configuration"""
     cmd = "ecnconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd, display_cmd=verbose)
 
 
 #
