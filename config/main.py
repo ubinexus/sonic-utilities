@@ -767,7 +767,8 @@ def _reset_failed_services(config_db):
         'swss',
         'syncd',
         'teamd',
-        'telemetry'
+        'telemetry',
+        'macsec',
     ]
 
     disabled_services = _get_disabled_services_list(config_db)
@@ -796,7 +797,8 @@ def _restart_services(config_db):
         'nat',
         'sflow',
         'restapi',
-        'telemetry'
+        'telemetry',
+        'macsec',
     ]
 
     disabled_services = _get_disabled_services_list(config_db)
