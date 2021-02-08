@@ -2646,8 +2646,8 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before 
-    # changing it to a router port 
+    # Add a validation to check this interface is not a member in vlan before
+    # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
             click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
@@ -3544,8 +3544,11 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-rdrop', metavar='<red drop probability>', type=click.IntRange(0, 100), help="Set red drop probability")
 @click.option('-ydrop', metavar='<yellow drop probability>', type=click.IntRange(0, 100), help="Set yellow drop probability")
 @click.option('-gdrop', metavar='<green drop probability>', type=click.IntRange(0, 100), help="Set green drop probability")
+@click.option('-renable', metavar="<true|false>", type=click.Choice(['true', 'false']))
+@click.option('-yenable', metavar="<true|false>", type=click.Choice(['true', 'false']))
+@click.option('-genable', metavar="<true|false>", type=click.Choice(['true', 'false']))
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbose):
+def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, renable, yenable, genable, verbose):
     """ECN-related configuration tasks"""
     log.log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
@@ -3558,6 +3561,9 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbos
     if rdrop is not None: command += " -rdrop %d" % rdrop
     if ydrop is not None: command += " -ydrop %d" % ydrop
     if gdrop is not None: command += " -gdrop %d" % gdrop
+    if renable is not None: command += " -renable %s" % renable
+    if yenable is not None: command += " -yenable %s" % yenable
+    if genable is not None: command += " -genable %s" % genable
     if verbose: command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
 
