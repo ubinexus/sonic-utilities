@@ -37,7 +37,7 @@ def get_bgp_peer():
     {
      'local_addr1':['neighbor_device1_name', 'neighbor_device1_ip'],
      'local_addr2':['neighbor_device2_name', 'neighbor_device2_ip']
-     }
+    }
     """
     bgp_peer = {}
     config_db = ConfigDBConnector()
@@ -50,12 +50,13 @@ def get_bgp_peer():
         bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
     return bgp_peer
 
+
 def cmd_exec_in_root():
     if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
         sys.exit("Root privileges required for this operation")
 
-def skip_ip_intf_display(interface, display_option):
 
+def skip_ip_intf_display(interface, display_option):
     if display_option != constants.DISPLAY_ALL:
         if interface.startswith('Ethernet') and multi_asic.is_port_internal(interface):
             return True
@@ -79,7 +80,11 @@ def get_if_admin_state(iface, namespace):
         cmd = "sudo ip netns exec {} {}".format(namespace, cmd)
     try:
         proc = subprocess.Popen(
-            cmd, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+            cmd,
+            shell=True,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+            text=True)
         state_file = proc.communicate()[0]
         proc.wait()
 
@@ -108,7 +113,11 @@ def get_if_oper_state(iface, namespace):
         cmd = "sudo ip netns exec {} {}".format(namespace, cmd)
     try:
         proc = subprocess.Popen(
-            cmd, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+            cmd,
+            shell=True,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+            text=True)
         state_file = proc.communicate()[0]
         proc.wait()
 

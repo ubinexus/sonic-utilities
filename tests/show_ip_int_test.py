@@ -44,7 +44,7 @@ cleanup_ip_intfs_single_asic = [
     'sudo ip link del Vlan100',
     'sudo sysctl -w net.ipv6.conf.default.addr_gen_mode=1',
     'sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1'
-    
+
 ]
 
 show_ip_intf = """Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
@@ -52,11 +52,9 @@ show_ip_intf = """Interface        Master    IPv4 address/mask    Admin/Oper    
 Ethernet0                  20.1.1.1/24          error/down    T2-Peer         20.1.1.5
 PortChannel0001            30.1.1.1/24          error/down    T0-Peer         30.1.1.5
 Vlan100                    40.1.1.1/24          error/down    N/A             N/A
-eth0                       172.17.0.3/16        error/down    N/A             N/A
-lo                         127.0.0.1/8          error/down    N/A             N/A
-"""
+lo                         127.0.0.1/8          error/down    N/A             N/A"""
 
-show_ipv6_intf= """Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
+show_ipv6_intf = """Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------------  ------------  --------------  -------------
 Ethernet0                  aa00::1/64                                    error/down    N/A             N/A
                            fe80::64be:a1ff:fe85:c6c4%Ethernet0/64                      N/A             N/A
@@ -64,10 +62,7 @@ PortChannel0001            ab00::1/64                                    error/d
                            fe80::cc8d:60ff:fe08:139f%PortChannel0001/64                N/A             N/A
 Vlan100                    cc00::1/64                                    error/down    N/A             N/A
                            fe80::c029:3fff:fe41:cf56%Vlan100/64                        N/A             N/A
-eth0                       2603:10a0:100:830:0:242:ac11:3/64             error/down    N/A             N/A
-                           fe80::42:acff:fe11:3%eth0/64                                N/A             N/A
-lo                         ::1/128                                       error/down    N/A             N/A
-"""
+lo                         ::1/128                                       error/down    N/A             N/A"""
 
 show_ipv4_intf_with_multple_ips = """Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  -------------------  ------------  --------------  -------------
@@ -75,9 +70,7 @@ Ethernet0                  20.1.1.1/24          error/down    T2-Peer         20
                            21.1.1.1/24                        N/A             N/A
 PortChannel0001            30.1.1.1/24          error/down    T0-Peer         30.1.1.5
 Vlan100                    40.1.1.1/24          error/down    N/A             N/A
-eth0                       172.17.0.3/16        error/down    N/A             N/A
-lo                         127.0.0.1/8          error/down    N/A             N/A
-"""
+lo                         127.0.0.1/8          error/down    N/A             N/A"""
 
 show_ipv6_intf_with_multiple_ips = """Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------------  ------------  --------------  -------------
@@ -88,10 +81,7 @@ PortChannel0001            ab00::1/64                                    error/d
                            fe80::cc8d:60ff:fe08:139f%PortChannel0001/64                N/A             N/A
 Vlan100                    cc00::1/64                                    error/down    N/A             N/A
                            fe80::c029:3fff:fe41:cf56%Vlan100/64                        N/A             N/A
-eth0                       2603:10a0:100:830:0:242:ac11:3/64             error/down    N/A             N/A
-                           fe80::42:acff:fe11:3%eth0/64                                N/A             N/A
-lo                         ::1/128                                       error/down    N/A             N/A
-"""
+lo                         ::1/128                                       error/down    N/A             N/A"""
 
 show_multi_asic_ip_intf = """Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  -------------------  ------------  --------------  -------------
@@ -131,7 +121,7 @@ def setup_teardown_single_asic():
     os.environ["PATH"] += os.pathsep + scripts_path
     os.environ["UTILITIES_UNIT_TESTING"] = "2"
     yield
-    
+
     print("cleaning up...")
     run_commands(cleanup_ip_intfs_single_asic)
 
@@ -151,45 +141,58 @@ class TestShowIpInt(object):
     def setup_class(cls):
         print("SETUP")
 
+    def verify_output(self, output, expected_output):
+        lines = output.splitlines()
+
+        # the output should have line to display the ip address of eth0
+        assert len([line for line in lines if line.startswith('eth0')]) == 1
+
+        # ignore the lines with eth0 in them because the ip address keeps on changing
+        # difficult to compare
+        new_output = '\n'.join([line for line in lines if 'eth0' not in line])
+        print(new_output)
+        assert new_output == expected_output
+
     def test_show_ip_intf_v4(self):
         return_code, result = get_result_and_return_code(" ipintutil")
         assert return_code == 0
-        assert result == show_ip_intf
+        self.verify_output(result, show_ip_intf)
 
     def test_show_ip_intf_v6(self):
         return_code, result = get_result_and_return_code(" ipintutil -a ipv6")
 
         assert return_code == 0
-        assert result == show_ipv6_intf
+        self.verify_output(result, show_ipv6_intf)
 
     def test_show_ip_intf_with_no_ip(self):
         run_commands(['sudo ip link add Ethernet1 type dummy'])
-        
+
         return_code, result = get_result_and_return_code(" ipintutil -a ipv4")
         run_commands(['sudo ip link del Ethernet1'])
- 
+
         assert return_code == 0
-        assert result == show_ip_intf
+        self.verify_output(result, show_ip_intf)
 
     def test_show_ipv4_intf_With_multiple_ips(self):
         run_commands(['sudo ip addr add 21.1.1.1/24 dev Ethernet0 '])
         return_code, result = get_result_and_return_code(" ipintutil -a ipv4")
         print(result)
         assert return_code == 0
-        assert result == show_ipv4_intf_with_multple_ips
+        self.verify_output(result, show_ipv4_intf_with_multple_ips)
 
     def test_show_ipv6_intf_With_multiple_ips(self):
         run_commands(['sudo ip -6 addr add 2100::1/24 dev Ethernet0 '])
         return_code, result = get_result_and_return_code(" ipintutil -a ipv6")
         print(result)
         assert return_code == 0
-        assert result == show_ipv6_intf_with_multiple_ips
-    
+        self.verify_output(result, show_ipv6_intf_with_multiple_ips)
+
     def test_show_intf_invalid_af_option(self):
         return_code, result = get_result_and_return_code(" ipintutil -a ipv5")
         assert return_code == 1
         assert result == show_error_invalid_af
-    
+
+
 @pytest.mark.usefixtures('setup_teardown_multi_asic')
 class TestMultiAsicShowIpInt(object):
 
@@ -207,7 +210,7 @@ class TestMultiAsicShowIpInt(object):
         return_code, result = get_result_and_return_code("ipintutil -d all")
         assert return_code == 0
         assert result == show_multi_asic_ip_intf_all
-    
+
     def test_show_intf_invalid_af_option(self):
         return_code, result = get_result_and_return_code(" ipintutil -a ipv5")
         assert return_code == 1
