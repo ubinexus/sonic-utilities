@@ -12,7 +12,7 @@ scripts_path = os.path.join(modules_path, "scripts")
 
 
 setup_ip_intfs_single_asic = [
-#    # ipv6 is disabled by default ,
+    # ipv6 is disabled by default ,
     'sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0',
     # this flag is need to stop kernel auto generating Linklocal address
     'sudo sysctl -w net.ipv6.conf.default.addr_gen_mode=1',
@@ -23,38 +23,39 @@ setup_ip_intfs_single_asic = [
     'sudo ip -6 addr add aa00::1/64 dev Ethernet0',
     'sudo ip link set Ethernet0 up',
 
-    #dummy portchannel
+    # dummy portchannel
     'sudo ip link add PortChannel0001 type dummy',
     'sudo ip addr add 30.1.1.1/24 dev PortChannel0001',
     'sudo ip -6 address add dev PortChannel0001 scope link fe80::cc8d:60ff:fe08:139f/64',
     'sudo ip -6 addr add ab00::1/64 dev PortChannel0001',
     'sudo ip link set PortChannel0001 up',
 
-    #dummy Vlan interface
+    # dummy Vlan interface
     'sudo ip link add Vlan100 type dummy',
     'sudo ip addr add 40.1.1.1/24 dev Vlan100',
     'sudo ip -6 address add dev Vlan100 scope link fe80::c029:3fff:fe41:cf56/64',
     'sudo ip -6 addr add cc00::1/64 dev Vlan100',
     'sudo ip link set Vlan100 up',
-
 ]
+
 cleanup_ip_intfs_single_asic = [
     'sudo ip link del Ethernet0',
     'sudo ip link del PortChannel0001',
     'sudo ip link del Vlan100',
     'sudo sysctl -w net.ipv6.conf.default.addr_gen_mode=1',
     'sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1'
-
 ]
 
-show_ip_intf = """Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
+show_ip_intf = """\
+Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  -------------------  ------------  --------------  -------------
 Ethernet0                  20.1.1.1/24          error/down    T2-Peer         20.1.1.5
 PortChannel0001            30.1.1.1/24          error/down    T0-Peer         30.1.1.5
 Vlan100                    40.1.1.1/24          error/down    N/A             N/A
 lo                         127.0.0.1/8          error/down    N/A             N/A"""
 
-show_ipv6_intf = """Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
+show_ipv6_intf = """\
+Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------------  ------------  --------------  -------------
 Ethernet0                  aa00::1/64                                    error/down    N/A             N/A
                            fe80::64be:a1ff:fe85:c6c4%Ethernet0/64                      N/A             N/A
@@ -64,7 +65,8 @@ Vlan100                    cc00::1/64                                    error/d
                            fe80::c029:3fff:fe41:cf56%Vlan100/64                        N/A             N/A
 lo                         ::1/128                                       error/down    N/A             N/A"""
 
-show_ipv4_intf_with_multple_ips = """Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
+show_ipv4_intf_with_multple_ips = """\
+Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  -------------------  ------------  --------------  -------------
 Ethernet0                  20.1.1.1/24          error/down    T2-Peer         20.1.1.5
                            21.1.1.1/24                        N/A             N/A
@@ -72,7 +74,8 @@ PortChannel0001            30.1.1.1/24          error/down    T0-Peer         30
 Vlan100                    40.1.1.1/24          error/down    N/A             N/A
 lo                         127.0.0.1/8          error/down    N/A             N/A"""
 
-show_ipv6_intf_with_multiple_ips = """Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
+show_ipv6_intf_with_multiple_ips = """\
+Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------------  ------------  --------------  -------------
 Ethernet0                  2100::1/24                                    error/down    N/A             N/A
                            aa00::1/64                                                  N/A             N/A
@@ -83,14 +86,16 @@ Vlan100                    cc00::1/64                                    error/d
                            fe80::c029:3fff:fe41:cf56%Vlan100/64                        N/A             N/A
 lo                         ::1/128                                       error/down    N/A             N/A"""
 
-show_multi_asic_ip_intf = """Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
+show_multi_asic_ip_intf = """\
+Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  -------------------  ------------  --------------  -------------
 Loopback0                  40.1.1.1/32          error/down    N/A             N/A
 PortChannel0001            20.1.1.1/24          error/down    T2-Peer         20.1.1.5
 eth0                       10.1.1.1/24          error/down    N/A             N/A
 """
 
-show_multi_asic_ip_intf_all = """Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
+show_multi_asic_ip_intf_all = """\
+Interface        Master    IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  -------------------  ------------  --------------  -------------
 Loopback0                  40.1.1.1/32          error/down    N/A             N/A
 Loopback4096               1.1.1.1/24           error/down    N/A             N/A

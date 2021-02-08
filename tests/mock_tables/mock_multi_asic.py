@@ -15,12 +15,12 @@ mock_intf_table = {
             17: [{'addr': '62:a5:9d:f4:16:96', 'broadcast': 'ff:ff:ff:ff:ff:ff'}], 
             2: [{'addr': '40.1.1.1', 'netmask': '255.255.255.255', 'broadcast': '40.1.1.1'}], 
             10: [{'addr': 'fe80::60a5:9dff:fef4:1696%Loopback0', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]
-            },
+        },
         'PortChannel0001': {
             17: [{'addr': '82:fd:d1:5b:45:2f', 'broadcast': 'ff:ff:ff:ff:ff:ff'}], 
             2: [{'addr': '20.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '20.1.1.1'}], 
             10: [{'addr': 'aa00::1', 'netmask': 'ffff:ffff:ffff:ffff::/64'}, {'addr': 'fe80::80fd:d1ff:fe5b:452f', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]
-            },
+        },
         'Loopback4096': {
             2: [{'addr': '1.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '1.1.1.1'}]
         },
@@ -33,12 +33,12 @@ mock_intf_table = {
             17: [{'addr': '62:a5:9d:f4:16:96', 'broadcast': 'ff:ff:ff:ff:ff:ff'}], 
             2: [{'addr': '40.1.1.1', 'netmask': '255.255.255.255', 'broadcast': '40.1.1.1'}], 
             10: [{'addr': 'fe80::60a5:9dff:fef4:1696%Loopback0', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]
-            },
+        },
         'PortChannel0002': {
             17: [{'addr': '82:fd:d1:5b:45:2f', 'broadcast': 'ff:ff:ff:ff:ff:ff'}], 
             2: [{'addr': '30.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '30.1.1.1'}], 
             10: [{'addr': 'bb00::1', 'netmask': 'ffff:ffff:ffff:ffff::/64'}, {'addr': 'fe80::80fd:abff:fe5b:452f', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]
-            },
+        },
         'Loopback4096': {
             2: [{'addr': '2.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '2.1.1.1'}]
         },

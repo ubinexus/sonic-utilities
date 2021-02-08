@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
 import subprocess
 import sys
@@ -35,8 +34,8 @@ def get_bgp_peer():
     """
     collects local and bgp neighbor ip along with device name in below format
     {
-     'local_addr1':['neighbor_device1_name', 'neighbor_device1_ip'],
-     'local_addr2':['neighbor_device2_name', 'neighbor_device2_ip']
+        'local_addr1':['neighbor_device1_name', 'neighbor_device1_ip'],
+        'local_addr2':['neighbor_device2_name', 'neighbor_device2_ip']
     }
     """
     bgp_peer = {}
@@ -173,7 +172,7 @@ def get_ip_intfs_in_namespace(af, namespace, display):
                 try:
                     neighbor_name = bgp_peer[local_ip][0]
                     neighbor_ip = bgp_peer[local_ip][1]
-                except:
+                except KeyError:
                     pass
 
                 bgp_neighs.update({local_ip_with_mask: [neighbor_name, neighbor_ip]})
@@ -183,12 +182,14 @@ def get_ip_intfs_in_namespace(af, namespace, display):
                 oper = get_if_oper_state(iface, namespace)
                 master = get_if_master(iface)
 
-            ip_intf_attr = {"vrf": master,
-                              "ipaddr": natsorted(ifaddresses),
-                              "admin": admin,
-                              "oper": oper,
-                              "bgp_neighs": bgp_neighs,
-                              "ns": namespace}
+            ip_intf_attr = {
+                "vrf": master,
+                "ipaddr": natsorted(ifaddresses),
+                "admin": admin,
+                "oper": oper,
+                "bgp_neighs": bgp_neighs,
+                "ns": namespace
+            }
 
             ip_intfs[iface] = ip_intf_attr
     return ip_intfs
