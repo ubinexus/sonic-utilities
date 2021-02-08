@@ -40,9 +40,6 @@ def generate_neighbor_entries(filename, all_available_macs):
         arp_output.append(obj)
 
         ip_addr = key.split(':', 2)[2]
-        if ipaddress.ip_interface(str(ip_addr)).ip.version != 4:
-            #This is ipv6 address
-            ip_addr = key.replace(key.split(':')[0] + ':' + key.split(':')[1] + ':', '')
         neighbor_entries.append((vlan_name, mac, ip_addr))
         syslog.syslog(syslog.LOG_INFO, "Neighbor entry: [Vlan: %s, Mac: %s, Ip: %s]" % (vlan_name, mac, ip_addr))
 
