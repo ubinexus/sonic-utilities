@@ -1,4 +1,15 @@
 [run]
 omit =
+    /etc/*
+    /usr/*
+    .eggs/*
+    docs/*
+    tests/*
+
+[report]
+omit =
+    /etc/*
+    /usr/*
+    .eggs/*
     docs/*
     tests/*
