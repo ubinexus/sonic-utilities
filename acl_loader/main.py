@@ -9,7 +9,7 @@ import openconfig_acl
 import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
 from natsort import natsorted
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 
 
