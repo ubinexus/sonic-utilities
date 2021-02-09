@@ -889,6 +889,18 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
+def validate_ip_address(ctx, ip_addr):
+        split_ip_mask = ip_addr.split("/")
+        # Check if the IP is correct and return the IP or try to fix it or throw a ValueError exception.
+        ip_addr = str(ipaddress.ip_address(split_ip_mask[0]))
+        # Check the correctness of the mask and add it to IP.
+        if len(split_ip_mask) < 2 or len(split_ip_mask[1]) > 2 or not int(split_ip_mask[1]) in range(32):
+            ctx.fail("ip mask is not valid.")
+        else:
+            ip_addr += '/' + split_ip_mask[1]
+
+        return ip_addr
+
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
     """
@@ -2656,14 +2668,7 @@ def add(ctx, interface_name, ip_addr, gw):
         if '/' not in ip_addr:
             ip_addr = str(net)
 
-        split_ip_mask = ip_addr.split("/")
-        # Check if the IP is correct and return the IP or try to fix it or throw a ValueError exception.
-        ip_addr = str(ipaddress.ip_address(split_ip_mask[0]))
-        # Check the correctness of the mask and add it to IP.
-        if len(split_ip_mask) < 2 or len(split_ip_mask[1]) > 2 or not int(split_ip_mask[1]) in range(31):
-            ctx.fail("ip mask is not valid.")
-        else:
-            ip_addr += '/' + split_ip_mask[1]
+        ip_addr = validate_ip_address(ctx, ip_addr)
 
         if interface_name == 'eth0':
 
@@ -2726,14 +2731,7 @@ def remove(ctx, interface_name, ip_addr):
         if '/' not in ip_addr:
             ip_addr = str(net)
 
-        split_ip_mask = ip_addr.split("/")
-        # Check if the IP is correct and return the IP or try to fix it or throw a ValueError exception.
-        ip_addr = str(ipaddress.ip_address(split_ip_mask[0]))
-        # Check the correctness of the mask and add it to IP.
-        if len(split_ip_mask) < 2 or len(split_ip_mask[1]) > 2 or not int(split_ip_mask[1]) in range(31):
-            ctx.fail("ip mask is not valid.")
-        else:
-            ip_addr += '/' + split_ip_mask[1]
+        ip_addr = validate_ip_address(ctx, ip_addr)
 
         if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
