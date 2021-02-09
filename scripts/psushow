@@ -42,7 +42,6 @@ def psu_status_show(index):
     status_table = []
 
     for psu in psu_ids:
-        msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
             print("Error! The {} is not available on the platform.\n"
