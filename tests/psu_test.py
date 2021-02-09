@@ -33,13 +33,32 @@ class TestPsu(object):
         print(result.output)
         assert result.output.split('\n')[0] == "Running command: psushow -s"
 
+    def test_all_psus(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["platform"].commands["psustatus"])
+        expected = """\
+PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
+-----  -------  ----------------------------  -------------  -------------  -----------  --------  -----
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37        102.1  OK        green
+PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07        122.7  OK        green
+"""
+        assert result.output == expected
+
     def test_single_psu(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["platform"].commands["psustatus"], ["--index=1"])
         expected = """\
-PSU    Status    LED
------  --------  -----
-PSU 1  OK        green
+PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
+-----  -------  ----------------------------  -------------  -------------  -----------  --------  -----
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37        102.1  OK        green
+"""
+        assert result.output == expected
+
+        result = runner.invoke(show.cli.commands["platform"].commands["psustatus"], ["--index=2"])
+        expected = """\
+PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
+-----  -------  ----------------------------  -------------  -------------  -----------  --------  -----
+PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07        122.7  OK        green
 """
         assert result.output == expected
 
