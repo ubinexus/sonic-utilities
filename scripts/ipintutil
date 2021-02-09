@@ -26,6 +26,8 @@ try:
         if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
             import mock_tables.mock_multi_asic
             mock_tables.dbconnector.load_namespace_config()
+        else:
+            import mock_tables.mock_single_asic
 except KeyError:
     pass
 

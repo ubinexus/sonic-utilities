@@ -722,9 +722,13 @@ def ip():
 # excluded.
 #
 @ip.command()
-def interfaces():
+@multi_asic_util.multi_asic_click_options
+def interfaces(namespace, display):
     cmd = "sudo ipintutil -a ipv4"
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
+    cmd += " -d {}".format(display)
     clicommon.run_command(cmd)
 
 #
@@ -801,8 +805,14 @@ def prefix_list(prefix_list_name, verbose):
 # excluded.
 #
 @ipv6.command()
-def interfaces():
+@multi_asic_util.multi_asic_click_options
+def interfaces(namespace, display):
     cmd = "sudo ipintutil -a ipv6"
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    cmd += " -d {}".format(display)
 
     clicommon.run_command(cmd)
 

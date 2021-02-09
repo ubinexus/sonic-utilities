@@ -7,7 +7,12 @@ from utilities_common import multi_asic as multi_asic_util
 mock_intf_table = {
     '': {
         'eth0': {
-            2: [{'addr': '10.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '10.1.1.1'}] 
+            2: [{'addr': '10.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '10.1.1.1'}],
+            10: [{'addr': '3100::1', 'netmask': 'ffff:ffff:ffff:ffff::/64'}]
+        },
+        'lo': {
+            2: [{'addr': '127.0.0.1', 'netmask': '255.0.0.0', 'broadcast': '127.255.255.255'}],
+            10: [{'addr': '::1', 'netmask':'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128'}]
         }
     },
     'asic0': {
@@ -25,7 +30,7 @@ mock_intf_table = {
             2: [{'addr': '1.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '1.1.1.1'}]
         },
         'veth@eth1': {
-             2: [{'addr': '192.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '192.1.1.1'}]
+            2: [{'addr': '192.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '192.1.1.1'}]
         }
     },
     'asic1': {
@@ -43,7 +48,7 @@ mock_intf_table = {
             2: [{'addr': '2.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '2.1.1.1'}]
         },
         'veth@eth2': {
-             2: [{'addr': '193.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '193.1.1.1'}]
+            2: [{'addr': '193.1.1.1', 'netmask': '255.255.255.0', 'broadcast': '193.1.1.1'}]
         }
     }
 }
