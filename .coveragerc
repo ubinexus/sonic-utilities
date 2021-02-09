@@ -1,15 +1,36 @@
 [run]
+branch = True
+source =
+    acl_loader
+    clear
+    config
+    connect
+    consutil
+    counterpoll
+    crm
+    debug
+    fdbutil
+    fwutil
+    pcieutil
+    pddf_fanutil
+    pddf_ledutil
+    pddf_psuutil
+    pddf_thermalutil
+    pfc
+    pfcwd
+    psuutil
+    scripts
+    sfputil
+    show
+    sonic_installer
+    ssdutil
+    undebug
+    utilities_common
+    watchdogutil
 omit =
     /etc/*
     /usr/*
     .eggs/*
     docs/*
-    tests/*
-
-[report]
-omit =
-    /etc/*
-    /usr/*
-    .eggs/*
-    docs/*
+    sonic-utilities-data/*
     tests/*
