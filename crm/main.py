@@ -217,8 +217,12 @@ def cli(ctx):
 
     ctx.obj = context
 
-    # Load the global config file database_global.json once.
-    SonicDBConfig.load_sonic_global_db_config()
+    num_asic = multi_asic.get_num_asics()
+    if num_asic > 1:
+        # Load the global config file database_global.json once.
+        SonicDBConfig.load_sonic_global_db_config()
+    else:
+        SonicDBConfig.initialize()
 
 @cli.group()
 @click.pass_context

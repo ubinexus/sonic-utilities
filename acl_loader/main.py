@@ -114,8 +114,13 @@ class AclLoader(object):
         self.tables_db_info = {}
         self.rules_db_info = {}
         self.rules_info = {}
-        # Load global db config. This call is no-op in single npu platforms
-        SonicDBConfig.load_sonic_global_db_config()
+        num_asic = multi_asic.get_num_asics()
+        if num_asic > 1:
+            # Load global db config
+            SonicDBConfig.load_sonic_global_db_config()
+        else:
+            SonicDBConfig.initialize()
+
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
