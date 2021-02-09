@@ -27,10 +27,3 @@ source =
     undebug
     utilities_common
     watchdogutil
-omit =
-    /etc/*
-    /usr/*
-    .eggs/*
-    docs/*
-    sonic-utilities-data/*
-    tests/*
