@@ -52,11 +52,6 @@ def get_bgp_peer():
     return bgp_peer
 
 
-def cmd_exec_in_root():
-    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
-        sys.exit("Root privileges required for this operation")
-
-
 def skip_ip_intf_display(interface, display_option):
     if display_option != constants.DISPLAY_ALL:
         if interface.startswith('Ethernet') and multi_asic.is_port_internal(interface):
@@ -251,7 +246,8 @@ def get_ip_intfs(af, namespace, display):
 def main():
     # This script gets the ip interfaces from different linux
     # network namespaces. This can be only done from root user.
-    cmd_exec_in_root()
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        sys.exit("Root privileges required for this operation")
     
     parser = multi_asic_util.multi_asic_args()
     parser.add_argument('-a', '--address_family', type=str, help='ipv4 or ipv6 interfaces', default="ipv4")
