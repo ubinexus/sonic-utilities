@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
 import os
+import sys
+
 from tabulate import tabulate
 
 # mock the redis for unit test purposes #
@@ -17,6 +18,7 @@ except KeyError:
     pass
 
 from swsscommon.swsscommon import SonicV2Connector
+
 
 def psu_status_show(index):
     db = SonicV2Connector(host="127.0.0.1")
@@ -36,7 +38,7 @@ def psu_status_show(index):
     else:
         psu_ids = [index]
 
-    header = ['PSU', 'Status', 'LED']
+    header = ['PSU',  'Model', 'Serial', 'Voltage (V)', 'Current (A)', 'Power (W)', 'Status', 'LED']
     status_table = []
 
     for psu in psu_ids:
@@ -46,18 +48,29 @@ def psu_status_show(index):
             print("Error! The {} is not available on the platform.\n"
                   "Number of supported PSU - {}.".format(psu_name, num_psus))
             continue
+
         presence = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'presence')
         if presence == 'true':
             oper_status = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'status')
-            msg = 'OK' if oper_status == 'true' else "NOT OK"
+            status = 'OK' if oper_status == 'true' else "NOT OK"
         else:
-            msg = 'NOT PRESENT'
+            status = 'NOT PRESENT'
+
         led_status = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'led_status')
-        status_table.append([psu_name, msg, led_status])
+
+        model = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'model') if presence else 'N/A'
+        serial = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'serial') if presence else 'N/A'
+        voltage = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'voltage') if presence else 'N/A'
+        current = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'current') if presence else 'N/A'
+        power = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'power') if presence else 'N/A'
+
+        status_table.append([psu_name, model, serial, voltage, current, power, status, led_status])
 
     if status_table:
         print(tabulate(status_table, header, tablefmt="simple"))
+
     return 0
+
 
 def main():
     parser = argparse.ArgumentParser(description='Display the psu status information',
@@ -80,6 +93,6 @@ Examples:
             print("Error: fail to get psu status from state DB")
             sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-
