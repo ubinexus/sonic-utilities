@@ -189,7 +189,7 @@ def status(port, json_output):
             port_status_dict["MUX_CABLE"] = {}
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-                for key in port_table_keys[asic_id]:
+                for key in sorted(port_table_keys[asic_id], key=lambda x: int(x.split("|")[1].replace("Ethernet", ""))):
                     port = key.split("|")[1]
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
@@ -200,7 +200,7 @@ def status(port, json_output):
             print_data = []
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-                for key in port_table_keys[asic_id]:
+                for key in sorted(port_table_keys[asic_id], key=lambda x: int(x.split("|")[1].replace("Ethernet", ""))):
                     port = key.split("|")[1]
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
@@ -316,7 +316,7 @@ def config(port, json_output):
             port_status_dict["MUX_CABLE"]["PORTS"] = {}
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-                for port in port_mux_tbl_keys[asic_id]:
+                for port in sorted(port_mux_tbl_keys[asic_id], key=lambda x: int(x.replace("Ethernet", ""))):
                     create_json_dump_per_port_config(port_status_dict, per_npu_configdb, asic_id, port)
 
             click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
@@ -325,7 +325,7 @@ def config(port, json_output):
             print_peer_tor = []
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-                for port in port_mux_tbl_keys[asic_id]:
+                for port in sorted(port_mux_tbl_keys[asic_id], key=lambda x: int(x.replace("Ethernet", ""))):
                     create_table_dump_per_port_config(print_data, per_npu_configdb, asic_id, port)
 
             headers = ['SWITCH_NAME', 'PEER_TOR']
