@@ -60,7 +60,7 @@ def get_vlan_ports_tagging(ctx, vlan):
     _, _, vlan_ports_data = cfg
     vlan_ports_tagging = []
     # Here natsorting is important in relation to another
-    # column which prints port tagging mode.
+    # column which prints vlan ports.
     # If we sort both in the same way using same keys
     # we will result in right order in both columns.
     # This should be fixed by cli code autogeneration tool
@@ -105,6 +105,14 @@ class VlanBrief:
         ("Port Tagging", get_vlan_ports_tagging),
         ("Proxy ARP", get_proxy_arp)
     ]
+
+    @classmethod
+    def register_column(cls, column_name, callback):
+        """ Adds a new column to "vlan brief" output.
+        Expected to be used from plugins code to extend
+        this command with  additional VLAN fields. """
+
+        cls.COLUMNS.append((column_name, callback))
 
 
 @vlan.command()
