@@ -23,11 +23,11 @@ import show.main as show
 tabular_data_status_output_expected = """\
 PORT        STATUS    HEALTH
 ----------  --------  --------
-Ethernet32  active    HEALTHY
 Ethernet0   active    HEALTHY
 Ethernet4   standby   HEALTHY
 Ethernet8   standby   HEALTHY
 Ethernet12  unknown   HEALTHY
+Ethernet32  active    HEALTHY
 """
 
 json_data_status_output_expected = """\
