@@ -46,6 +46,13 @@ def del_vlan(db, vid):
     if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
         ctx.fail("{} does not exist".format(vlan))
 
+    intf_table = db.cfgdb.get_table('VLAN_INTERFACE')
+    for intf_key in intf_table:
+        if type(intf_key) is str and intf_key == 'Vlan{}'.format(vid):
+            db.cfgdb.set_entry('VLAN_INTERFACE', intf_key, None)
+        if type(intf_key) is tuple and intf_key[0] == 'Vlan{}'.format(vid):
+            db.cfgdb.set_entry('VLAN_INTERFACE', intf_key, None)
+
     keys = [ (k, v) for k, v in db.cfgdb.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
     for k in keys:
         db.cfgdb.set_entry('VLAN_MEMBER', k, None)
