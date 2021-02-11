@@ -5,7 +5,6 @@
 # Command-line utility for interacting with SFP transceivers within SONiC
 #
 
-import operator
 import os
 import sys
 
@@ -246,24 +245,23 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
     indent = ' ' * 8
     output = ''
 
-    sorted_qsfp_data_map = sorted(QSFP_DATA_MAP.items(), key=operator.itemgetter(1))
-    for key in sorted_qsfp_data_map:
-        key1 = key[0]
-        if key1 == 'cable_type':
-            output += (indent + sfp_info_dict['cable_type'] + ': ' + sfp_info_dict['cable_length'] + '\n')
-        elif key1 == 'cable_length':
+    sorted_qsfp_data_map_keys = sorted(QSFP_DATA_MAP, key=QSFP_DATA_MAP.get)
+    for key in sorted_qsfp_data_map_keys:
+        if key == 'cable_type':
+            output += '{}{}: {}\n'.format(indent, sfp_info_dict['cable_type'], sfp_info_dict['cable_length'])
+        elif key == 'cable_length':
             pass
-        elif key1 == 'specification_compliance':
+        elif key == 'specification_compliance':
             if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver":
-                output += (indent + QSFP_DATA_MAP[key1] + ': ' + sfp_info_dict[key1] + '\n')
+                output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
             else:
-                output += (indent + QSFP_DATA_MAP['specification_compliance'] + ':\n')
+                output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
                 spefic_compliance_dict = eval(sfp_info_dict['specification_compliance'])
                 sorted_compliance_key_table = natsorted(spefic_compliance_dict)
                 for compliance_key in sorted_compliance_key_table:
-                    output += ((indent * 2) + compliance_key + ': ' + spefic_compliance_dict[compliance_key] + '\n')
+                    output += '{}{}: {}\n'.format((indent * 2), compliance_key, spefic_compliance_dict[compliance_key])
         else:
-            output += (indent + QSFP_DATA_MAP[key1] + ': ' + sfp_info_dict[key1] + '\n')
+            output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
     return output
 
