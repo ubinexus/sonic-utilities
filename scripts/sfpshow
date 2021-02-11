@@ -32,7 +32,7 @@ try:
 except KeyError:
     pass
 
-qsfp_data_map = {
+QSFP_DATA_MAP = {
     'model': 'Vendor PN',
     'vendor_oui': 'Vendor OUI',
     'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
@@ -51,13 +51,13 @@ qsfp_data_map = {
     'application_advertisement': 'Application Advertisement'
 }
 
-sfp_dom_channel_monitor_map = {
+SFP_DOM_CHANNEL_MONITOR_MAP = {
     'rx1power': 'RXPower',
     'tx1bias': 'TXBias',
     'tx1power': 'TXPower'
 }
 
-sfp_dom_channel_threshold_map = {
+SFP_DOM_CHANNEL_THRESHOLD_MAP = {
     'txpowerhighalarm':   'TxPowerHighAlarm',
     'txpowerlowalarm':    'TxPowerLowAlarm',
     'txpowerhighwarning': 'TxPowerHighWarning',
@@ -72,7 +72,7 @@ sfp_dom_channel_threshold_map = {
     'txbiaslowwarning':   'TxBiasLowWarning'
 }
 
-qsfp_dom_channel_threshold_map = {
+QSFP_DOM_CHANNEL_THRESHOLD_MAP = {
     'rxpowerhighalarm':   'RxPowerHighAlarm',
     'rxpowerlowalarm':    'RxPowerLowAlarm',
     'rxpowerhighwarning': 'RxPowerHighWarning',
@@ -83,7 +83,7 @@ qsfp_dom_channel_threshold_map = {
     'txbiaslowwarning':   'TxBiasLowWarning'
 }
 
-dom_module_threshold_map = {
+DOM_MODULE_THRESHOLD_MAP = {
     'temphighalarm':  'TempHighAlarm',
     'templowalarm':   'TempLowAlarm',
     'temphighwarning': 'TempHighWarning',
@@ -94,7 +94,7 @@ dom_module_threshold_map = {
     'vcclowwarning':  'VccLowWarning'
 }
 
-qsfp_dom_channel_monitor_map = {
+QSFP_DOM_CHANNEL_MONITOR_MAP = {
     'rx1power': 'RX1Power',
     'rx2power': 'RX2Power',
     'rx3power': 'RX3Power',
@@ -109,7 +109,7 @@ qsfp_dom_channel_monitor_map = {
     'tx4power': 'TX4Power'
 }
 
-qsfp_dd_dom_channel_monitor_map = {
+QSFP_DD_DOM_CHANNEL_MONITOR_MAP = {
     'rx1power': 'RX1Power',
     'rx2power': 'RX2Power',
     'rx3power': 'RX3Power',
@@ -136,12 +136,12 @@ qsfp_dd_dom_channel_monitor_map = {
     'tx8power': 'TX8Power'
 }
 
-dom_module_monitor_map = {
+DOM_MODULE_MONITOR_MAP = {
     'temperature': 'Temperature',
     'voltage': 'Vcc'
 }
 
-dom_channel_threshold_unit_map = {
+DOM_CHANNEL_THRESHOLD_UNIT_MAP = {
     'txpowerhighalarm':   'dBm',
     'txpowerlowalarm':    'dBm',
     'txpowerhighwarning': 'dBm',
@@ -156,7 +156,7 @@ dom_channel_threshold_unit_map = {
     'txbiaslowwarning':   'mA'
 }
 
-dom_module_threshold_unit_map = {
+DOM_MODULE_THRESHOLD_UNIT_MAP = {
     'temphighalarm':   'C',
     'templowalarm':    'C',
     'temphighwarning': 'C',
@@ -167,7 +167,7 @@ dom_module_threshold_unit_map = {
     'vcclowwarning':   'Volts'
 }
 
-dom_value_unit_map = {
+DOM_VALUE_UNIT_MAP = {
     'rx1power': 'dBm',
     'rx2power': 'dBm',
     'rx3power': 'dBm',
@@ -184,7 +184,7 @@ dom_value_unit_map = {
     'voltage': 'Volts'
 }
 
-qsfp_dd_dom_value_unit_map = {
+QSFP_DD_DOM_VALUE_UNIT_MAP = {
     'rx1power': 'dBm',
     'rx2power': 'dBm',
     'rx3power': 'dBm',
@@ -268,88 +268,88 @@ class SFPShow(object):
             # Channel Monitor
             if sfp_type.startswith('QSFP-DD'):
                 output_dom += (indent + 'ChannelMonitorValues:\n')
-                sorted_key_table = natsorted(qsfp_dd_dom_channel_monitor_map)
+                sorted_key_table = natsorted(QSFP_DD_DOM_CHANNEL_MONITOR_MAP)
                 output_channel = self.format_dict_value_to_string(
                     sorted_key_table, dom_info_dict,
-                    qsfp_dd_dom_channel_monitor_map,
-                    qsfp_dd_dom_value_unit_map)
+                    QSFP_DD_DOM_CHANNEL_MONITOR_MAP,
+                    QSFP_DD_DOM_VALUE_UNIT_MAP)
                 output_dom += output_channel
             else:
                 output_dom += (indent + 'ChannelMonitorValues:\n')
-                sorted_key_table = natsorted(qsfp_dom_channel_monitor_map)
+                sorted_key_table = natsorted(QSFP_DOM_CHANNEL_MONITOR_MAP)
                 output_channel = self.format_dict_value_to_string(
                     sorted_key_table, dom_info_dict,
-                    qsfp_dom_channel_monitor_map,
-                    dom_value_unit_map)
+                    QSFP_DOM_CHANNEL_MONITOR_MAP,
+                    DOM_VALUE_UNIT_MAP)
                 output_dom += output_channel
 
             # Channel Threshold
             if sfp_type.startswith('QSFP-DD'):
-                dom_map = sfp_dom_channel_threshold_map
+                dom_map = SFP_DOM_CHANNEL_THRESHOLD_MAP
             else:
-                dom_map = qsfp_dom_channel_threshold_map
+                dom_map = QSFP_DOM_CHANNEL_THRESHOLD_MAP
 
             output_dom += (indent + 'ChannelThresholdValues:\n')
             sorted_key_table = natsorted(dom_map)
             output_channel_threshold = self.format_dict_value_to_string(
                 sorted_key_table, dom_info_dict,
                 dom_map,
-                dom_channel_threshold_unit_map,
+                DOM_CHANNEL_THRESHOLD_UNIT_MAP,
                 channel_threshold_align)
             output_dom += output_channel_threshold
 
             # Module Monitor
             output_dom += (indent + 'ModuleMonitorValues:\n')
-            sorted_key_table = natsorted(dom_module_monitor_map)
+            sorted_key_table = natsorted(DOM_MODULE_MONITOR_MAP)
             output_module = self.format_dict_value_to_string(
                 sorted_key_table, dom_info_dict,
-                dom_module_monitor_map,
-                dom_value_unit_map)
+                DOM_MODULE_MONITOR_MAP,
+                DOM_VALUE_UNIT_MAP)
             output_dom += output_module
 
             # Module Threshold
             output_dom += (indent + 'ModuleThresholdValues:\n')
-            sorted_key_table = natsorted(dom_module_threshold_map)
+            sorted_key_table = natsorted(DOM_MODULE_THRESHOLD_MAP)
             output_module_threshold = self.format_dict_value_to_string(
                 sorted_key_table, dom_info_dict,
-                dom_module_threshold_map,
-                dom_module_threshold_unit_map,
+                DOM_MODULE_THRESHOLD_MAP,
+                DOM_MODULE_THRESHOLD_UNIT_MAP,
                 module_threshold_align)
             output_dom += output_module_threshold
 
         else:
             output_dom += (indent + 'MonitorData:\n')
-            sorted_key_table = natsorted(sfp_dom_channel_monitor_map)
+            sorted_key_table = natsorted(SFP_DOM_CHANNEL_MONITOR_MAP)
             output_channel = self.format_dict_value_to_string(
                 sorted_key_table, dom_info_dict,
-                sfp_dom_channel_monitor_map,
-                dom_value_unit_map)
+                SFP_DOM_CHANNEL_MONITOR_MAP,
+                DOM_VALUE_UNIT_MAP)
             output_dom += output_channel
 
-            sorted_key_table = natsorted(dom_module_monitor_map)
+            sorted_key_table = natsorted(DOM_MODULE_MONITOR_MAP)
             output_module = self.format_dict_value_to_string(
                 sorted_key_table, dom_info_dict,
-                dom_module_monitor_map,
-                dom_value_unit_map)
+                DOM_MODULE_MONITOR_MAP,
+                DOM_VALUE_UNIT_MAP)
             output_dom += output_module
 
             output_dom += (indent + 'ThresholdData:\n')
 
             # Module Threshold
-            sorted_key_table = natsorted(dom_module_threshold_map)
+            sorted_key_table = natsorted(DOM_MODULE_THRESHOLD_MAP)
             output_module_threshold = self.format_dict_value_to_string(
                 sorted_key_table, dom_info_dict,
-                dom_module_threshold_map,
-                dom_module_threshold_unit_map,
+                DOM_MODULE_THRESHOLD_MAP,
+                DOM_MODULE_THRESHOLD_UNIT_MAP,
                 module_threshold_align)
             output_dom += output_module_threshold
 
             # Channel Threshold
-            sorted_key_table = natsorted(sfp_dom_channel_threshold_map)
+            sorted_key_table = natsorted(SFP_DOM_CHANNEL_THRESHOLD_MAP)
             output_channel_threshold = self.format_dict_value_to_string(
                 sorted_key_table, dom_info_dict,
-                sfp_dom_channel_threshold_map,
-                dom_channel_threshold_unit_map,
+                SFP_DOM_CHANNEL_THRESHOLD_MAP,
+                DOM_CHANNEL_THRESHOLD_UNIT_MAP,
                 channel_threshold_align)
             output_dom += output_channel_threshold
 
@@ -360,7 +360,7 @@ class SFPShow(object):
         indent = ' ' * 8
         output = ''
 
-        sorted_qsfp_data_map = sorted(qsfp_data_map.items(), key=operator.itemgetter(1))
+        sorted_qsfp_data_map = sorted(QSFP_DATA_MAP.items(), key=operator.itemgetter(1))
         for key in sorted_qsfp_data_map:
             key1 = key[0]
             if key1 == 'cable_type':
@@ -369,15 +369,15 @@ class SFPShow(object):
                 pass
             elif key1 == 'specification_compliance':
                 if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver":
-                    output += (indent + qsfp_data_map[key1] + ': ' + sfp_info_dict[key1] + '\n')
+                    output += (indent + QSFP_DATA_MAP[key1] + ': ' + sfp_info_dict[key1] + '\n')
                 else:
-                    output += (indent + qsfp_data_map['specification_compliance'] + ':\n')
+                    output += (indent + QSFP_DATA_MAP['specification_compliance'] + ':\n')
                     spefic_compliance_dict = eval(sfp_info_dict['specification_compliance'])
                     sorted_compliance_key_table = natsorted(spefic_compliance_dict)
                     for compliance_key in sorted_compliance_key_table:
                         output += ((indent * 2) + compliance_key + ': ' + spefic_compliance_dict[compliance_key] + '\n')
             else:
-                output += (indent + qsfp_data_map[key1] + ': ' + sfp_info_dict[key1] + '\n')
+                output += (indent + QSFP_DATA_MAP[key1] + ': ' + sfp_info_dict[key1] + '\n')
 
         return output
 
