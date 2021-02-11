@@ -17,4 +17,4 @@ class TestSfputil(object):
     def test_version(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands["version"], [])
-        assert result.output == "sfputil version {}".format(sfputil.VERSION)
+        assert result.output.rstrip() == "sfputil version {}".format(sfputil.VERSION)
