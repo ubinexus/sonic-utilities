@@ -233,11 +233,15 @@ def format_dict_value_to_string(sorted_key_table,
     separator = ": "
     for key in sorted_key_table:
         if dom_info_dict is not None and key in dom_info_dict and dom_info_dict[key] != 'N/A':
+            value = dom_info_dict[key]
+            units = ''
+            if type(value) != str or (value != 'Unknown' and not value.endswith(dom_unit_map[key])):
+                units = dom_unit_map[key]
             output += '{}{}{}{}{}\n'.format((indent * 2),
                                             dom_value_map[key],
                                             separator.rjust(len(separator) + alignment - len(dom_value_map[key])),
-                                            dom_info_dict[key],
-                                            '' if dom_info_dict[key] == 'Unknown' else dom_unit_map[key])
+                                            value,
+                                            units)
     return output
 
 
