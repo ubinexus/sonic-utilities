@@ -114,8 +114,8 @@ class AclLoader(object):
         self.tables_db_info = {}
         self.rules_db_info = {}
         self.rules_info = {}
-        num_asic = multi_asic.get_num_asics()
-        if num_asic > 1:
+
+        if multi_asic.is_multi_asic():
             # Load global db config
             SonicDBConfig.load_sonic_global_db_config()
         else:

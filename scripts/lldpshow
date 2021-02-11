@@ -47,8 +47,8 @@ class Lldpshow(object):
         # So far only find Router and Bridge two capabilities in lldpctl, so any other capacility types will be read as Other
         # if further capability type is supported like WLAN, can just add the tag definition here
         self.ctags = {'Router': 'R', 'Bridge': 'B'}
-        num_asic = multi_asic.get_num_asics()
-        if num_asic > 1:
+
+        if multi_asic.is_multi_asic():
             SonicDBConfig.load_sonic_global_db_config()
         else:
             SonicDBConfig.initialize()
