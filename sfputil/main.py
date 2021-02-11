@@ -524,6 +524,8 @@ def eeprom(port, dump_dom, namespace):
             ganged = True
 
         for physical_port in physical_port_list:
+            port_name = get_physical_port_name(logical_port_name, i, ganged)
+
             try:
                 presence = platform_chassis.get_sfp(physical_port).get_presence()
             except NotImplementedError:
@@ -531,9 +533,9 @@ def eeprom(port, dump_dom, namespace):
                 sys.exit(ERROR_NOT_IMPLEMENTED)
 
             if not presence:
-                output += "{}: SFP EEPROM not detected\n".format(logical_port_name)
+                output += "{}: SFP EEPROM not detected\n".format(port_name)
             else:
-                output += "{}: SFP EEPROM detected\n".format(logical_port_name)
+                output += "{}: SFP EEPROM detected\n".format(port_name)
 
                 try:
                     xcvr_info = platform_chassis.get_sfp(physical_port).get_transceiver_info()
