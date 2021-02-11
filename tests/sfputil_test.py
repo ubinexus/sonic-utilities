@@ -9,7 +9,7 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
 
-mock.patch.dict("sys.modules", sonic_platform=mock.MagicMock())
+sys.modules["sonic_platform"] = mock.MagicMock()
 import sfputil.main as sfputil
 
 
