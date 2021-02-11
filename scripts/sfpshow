@@ -31,6 +31,7 @@ try:
 except KeyError:
     pass
 
+# TODO: We should share these maps and the formatting functions between sfputil and sfpshow
 QSFP_DATA_MAP = {
     'model': 'Vendor PN',
     'vendor_oui': 'Vendor OUI',
