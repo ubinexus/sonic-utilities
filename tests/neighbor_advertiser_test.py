@@ -1,7 +1,7 @@
 import sys
 import os
 import pytest
-import mock
+from unittest import mock
 import subprocess
 from swsscommon.swsscommon import ConfigDBConnector
 
