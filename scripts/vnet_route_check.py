@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 import os
+import re
 import sys
 import json
 import syslog
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-
+from swsscommon import swsscommon
 
 ''' vnet_route_check.py: tool that verifies VNET routes consistancy between SONiC and vendor SDK DBs.
 
@@ -77,29 +76,22 @@ def get_vnet_intfs():
     ''' Returns dictionary of VNETs and related VNET interfaces.
     Format: { <vnet_name>: [ <vnet_rif_name> ] }
     '''
-    config_db = ConfigDBConnector()
-    config_db.connect('CONFIG_DB')
+    db = swsscommon.DBConnector('APPL_DB', 0)
 
-    intfs_data = config_db.get_table('INTERFACE')
-    vlan_intfs_data = config_db.get_table('VLAN_INTERFACE')
+    intfs_table = swsscommon.Table(db, 'INTF_TABLE')
+    intfs_keys = swsscommon.Table(db, 'INTF_TABLE').getKeys()
 
     vnet_intfs = {}
 
-    for intf_name, intf_attrs in intfs_data.items():
-        if 'vnet_name' in intf_attrs:
-            vnet_name = intf_attrs['vnet_name']
-            if vnet_name in vnet_intfs:
-                vnet_intfs[vnet_name].append(intf_name)
-            else:
-                vnet_intfs[vnet_name] = [intf_name]
+    for intf_key in intfs_keys:
+        intf_attrs = intfs_table.get(intf_key)[1]
 
-    for intf_name, intf_attrs in vlan_intfs_data.items():
         if 'vnet_name' in intf_attrs:
             vnet_name = intf_attrs['vnet_name']
             if vnet_name in vnet_intfs:
-                vnet_intfs[vnet_name].append(intf_name)
+                vnet_intfs[vnet_name].append(intf_key)
             else:
-                vnet_intfs[vnet_name] = [intf_name]
+                vnet_intfs[vnet_name] = [intf_key]
 
     return vnet_intfs
 
@@ -108,10 +100,10 @@ def get_all_rifs_oids():
     ''' Returns dictionary of all router interfaces and their OIDs.
     Format: { <rif_name>: <rif_oid> }
     '''
-    db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.COUNTERS_DB)
+    db = swsscommon.DBConnector('COUNTERS_DB', 0)
 
-    rif_name_oid_map = db.get_all(db.COUNTERS_DB, 'COUNTERS_RIF_NAME_MAP')
+    rif_table = swsscommon.Table(db, 'COUNTERS_RIF_NAME_MAP')
+    rif_keys = rif_table.getKeys()
 
     return rif_name_oid_map
 
@@ -139,8 +131,7 @@ def get_vrf_entries():
     ''' Returns dictionary of VNET interfaces and corresponding VRF OIDs.
     Format: { <vnet_rif_name>: <vrf_oid> }
     '''
-    db = ConfigDBConnector()
-    db.db_connect('ASIC_DB')
+    db = swsscommon.DBConnector('ASIC_DB', 0)
 
     vnet_rifs_oids = get_vnet_rifs_oids()
 
@@ -148,6 +139,8 @@ def get_vrf_entries():
     for vnet_rif_name in vnet_rifs_oids:
         rif_attrs = db.get_all(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTER_INTERFACE:{}'.format(vnet_rifs_oids[vnet_rif_name]))
         rif_vrf_map[vnet_rif_name] = rif_attrs['SAI_ROUTER_INTERFACE_ATTR_VIRTUAL_ROUTER_ID']
+
+    print("*** {}".format(rif_vrf_map))
 
     return rif_vrf_map
 
@@ -191,13 +184,15 @@ def get_vnet_routes_from_app_db():
     ''' Returns dictionary of VNET routes configured per each VNET in APP_DB.
     Format: { <vnet_name>: { 'routes': [ <pfx/pfx_len> ], 'vrf_oid': <oid> } }
     '''
-    db = ConfigDBConnector()
-    db.db_connect('APPL_DB')
+    db = swsscommon.DBConnector('APPL_DB', 0)
 
     vnet_intfs = get_vnet_intfs()
     vnet_vrfs = get_vrf_entries()
 
-    vnet_routes_db_keys = db.get_keys('VNET_ROUTE_TABLE') + db.get_keys('VNET_ROUTE_TUNNEL_TABLE')
+    vnet_route_table = swsscommon.Table(db, 'VNET_ROUTE_TABLE')
+    vnet_route_tunnel_table = swsscommon.Table(db, 'VNET_ROUTE_TUNNEL_TABLE')
+
+    vnet_routes_db_keys = vnet_route_table.getKeys() + vnet_route_tunnel_table.getKeys()
 
     vnet_routes = {}
 
@@ -222,8 +217,9 @@ def get_vnet_routes_from_asic_db():
     ''' Returns dictionary of VNET routes configured per each VNET in ASIC_DB.
     Format: { <vnet_name>: { 'routes': [ <pfx/pfx_len> ], 'vrf_oid': <oid> } }
     '''
-    db = ConfigDBConnector()
-    db.db_connect('ASIC_DB')
+    db = swsscommon.DBConnector('ASIC_DB', 0)
+
+    tbl = swsscommon.Table(db, 'ASIC_STATE')
 
     vnet_vrfs = get_vrf_entries()
     vnet_vrfs_oids = [vnet_vrfs[k] for k in vnet_vrfs]
@@ -237,7 +233,8 @@ def get_vnet_routes_from_asic_db():
             if vnet_rif in vnet_rifs:
                 vrf_oid_to_vnet_map[vrf_oid] = vnet_name
 
-    routes_db_keys = db.get_keys('ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY', False)   
+    routes_db_keys = tbl.getKeys()
+
     vnet_routes = {}
 
     for route_db_key in routes_db_keys:
