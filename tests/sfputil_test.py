@@ -10,14 +10,13 @@ modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture(scope="module")
 def do_imports():
-    with mock.patch.dict('sys.modules', sonic_platform=mock.MagicMock()):
+    with mock.patch.dict("sys.modules", sonic_platform=mock.MagicMock()):
         import sfputil.main as sfputil
         yield
 
 
-@pytest.mark.usefixtures("do_imports")
 class TestSfputil(object):
     def test_version(self):
         runner = CliRunner()
