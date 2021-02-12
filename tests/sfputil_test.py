@@ -9,15 +9,15 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
 
-sys.modules["sonic_platform"] = mock.MagicMock()
+sys.modules['sonic_platform'] = mock.MagicMock()
 import sfputil.main as sfputil
 
 
 class TestSfputil(object):
     def test_version(self):
         runner = CliRunner()
-        result = runner.invoke(sfputil.cli.commands["version"], [])
-        assert result.output.rstrip() == "sfputil version {}".format(sfputil.VERSION)
+        result = runner.invoke(sfputil.cli.commands['version'], [])
+        assert result.output.rstrip() == 'sfputil version {}'.format(sfputil.VERSION)
 
     def test_format_dict_value_to_string(self):
         sorted_key_table = [
@@ -77,4 +77,47 @@ class TestSfputil(object):
                                                      dom_info_dict,
                                                      sfputil.QSFP_DOM_CHANNEL_MONITOR_MAP,
                                                      sfputil.DOM_VALUE_UNIT_MAP)
+        assert output == expected_output
+
+    def test_convert_sfp_info_to_output_string(self):
+        sfp_info_dict = {
+            'type': 'QSFP28 or later',
+            'type_abbrv_name': 'QSFP28',
+            'manufacturer': 'Mellanox',
+            'model': 'MCP1600-C003',
+            'hardware_rev': 'A2',
+            'serial': 'MT1636VS10561',
+            'vendor_oui': '00-02-c9',
+            'vendor_date': '2016-07-18',
+            'connector': 'No separable connector',
+            'encoding': '64B66B',
+            'ext_identifier': 'Power Class 1(1.5W max)',
+            'ext_rateselect_compliance': 'QSFP+ Rate Select Version 1',
+            'cable_type': 'Length Cable Assembly(m)',
+            'cable_length': '3',
+            'application_advertisement': 'N/A',
+            'specification_compliance': "{'10/40G Ethernet Compliance Code': '40GBASE-CR4'}",
+            'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
+            'nominal_bit_rate': '255'
+        }
+
+        expected_output = '''\
+        Application Advertisement: N/A
+        Connector: No separable connector
+        Encoding: 64B66B
+        Extended Identifier: Power Class 1(1.5W max)
+        Extended RateSelect Compliance: QSFP+ Rate Select Version 1
+        Identifier: QSFP28 or later
+        Length Cable Assembly(m): 3
+        Nominal Bit Rate(100Mbs): 255
+        Specification compliance:
+                10/40G Ethernet Compliance Code: 40GBASE-CR4
+        Vendor Date Code(YYYY-MM-DD Lot): 2016-07-18
+        Vendor Name: Mellanox
+        Vendor OUI: 00-02-c9
+        Vendor PN: MCP1600-C003
+        Vendor Rev: A2
+        Vendor SN: MT1636VS10561
+'''
+        output = sfputil.convert_sfp_info_to_output_string(sfp_info_dict)
         assert output == expected_output
