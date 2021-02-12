@@ -330,8 +330,8 @@ class TestVlan(object):
         runner = CliRunner()
         db = Db()
 
-        runner.invoke(config.config.commands["interface"].commands["ip"].commands["del"], ["Vlan1000", "192.168.0.1/21"], obj=db)
-        runner.invoke(config.config.commands["interface"].commands["ip"].commands["del"], ["Vlan1000", "fc02:1000::1/64"], obj=db)
+        runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Vlan1000", "192.168.0.1/21"], obj=db)
+        runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Vlan1000", "fc02:1000::1/64"], obj=db)
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
         print(result.output)
