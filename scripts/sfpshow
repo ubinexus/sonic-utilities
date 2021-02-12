@@ -231,7 +231,6 @@ class SFPShow(object):
     def __init__(self, intf_name, namespace_option, dump_dom=False):
         super(SFPShow, self).__init__()
         self.db = None
-        self.config_db = None
         self.intf_name = intf_name
         self.dump_dom = dump_dom
         self.table = []
