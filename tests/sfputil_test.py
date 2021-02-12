@@ -14,11 +14,6 @@ import sfputil.main as sfputil
 
 
 class TestSfputil(object):
-    def test_version(self):
-        runner = CliRunner()
-        result = runner.invoke(sfputil.cli.commands['version'], [])
-        assert result.output.rstrip() == 'sfputil version {}'.format(sfputil.VERSION)
-
     def test_format_dict_value_to_string(self):
         sorted_key_table = [
             'rx1power',
@@ -174,3 +169,8 @@ class TestSfputil(object):
 
         output = get_physical_port_name('Ethernet0', 0, True)
         assert output == 'Ethernet0:0 (ganged)'
+
+    def test_version(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['version'], [])
+        assert result.output.rstrip() == 'sfputil version {}'.format(sfputil.VERSION)
