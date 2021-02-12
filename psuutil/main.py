@@ -10,7 +10,7 @@ import sys
 
 import click
 import sonic_platform
-from sonic_py_common import device_info, logger
+from sonic_py_common import logger
 from tabulate import tabulate
 
 
@@ -101,11 +101,9 @@ def status(index):
 
         if psu.get_presence():
             try:
-                power_good = psu.get_powergood_status()
+                status = 'OK' if psu.get_powergood_status() else 'NOT OK'
             except NotImplementedError:
                 status = 'UNKNOWN'
-
-            status = 'OK' if power_good else 'NOT OK'
 
             try:
                 model = psu.get_model()
