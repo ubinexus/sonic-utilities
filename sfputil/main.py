@@ -383,7 +383,7 @@ def get_physical_port_name(logical_port, physical_port, ganged):
     if logical_port == physical_port:
         return logical_port
     elif ganged:
-        return logical_port + ":{} (ganged)".format(physical_port)
+        return "{}:{} (ganged)".format(logical_port, physical_port)
     else:
         return logical_port
 
