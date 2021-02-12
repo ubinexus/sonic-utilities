@@ -216,6 +216,17 @@ def clear_wm_pg_shared():
     command = 'watermarkstat -c -t pg_shared'
     run_command(command)
 
+@priority_group.group()
+def drop():
+    """Clear priority group dropped packets stats"""
+    pass
+
+@drop.command('counters')
+def clear_pg_counters():
+    """Clear PG dropped packets stats counter """
+    command = 'pg-drop -c clear'
+    run_command(command)
+
 @priority_group.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
