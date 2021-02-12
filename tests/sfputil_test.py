@@ -164,3 +164,13 @@ class TestSfputil(object):
         assert output == expected_output
 
         # TODO: Add tests for other SFP types
+
+    def test_get_physical_port_name(self):
+        output = get_physical_port_name(0, 0, False)
+        assert output == '0'
+
+        output = get_physical_port_name('Ethernet0', 0, False)
+        assert output == 'Ethernet0'
+
+        output = get_physical_port_name('Ethernet0', 0, True)
+        assert output == 'Ethernet0:0 (ganged)'
