@@ -68,3 +68,13 @@ class TestSfputil(object):
                                                      sfputil.QSFP_DOM_CHANNEL_MONITOR_MAP,
                                                      sfputil.DOM_VALUE_UNIT_MAP)
         assert output == expected_output
+
+        # Change temperature and voltage to floats and ensure units get appended
+        dom_info_dict['temperature'] = 41.7539
+        dom_info_dict['voltage'] = 3.2577
+
+        output = sfputil.format_dict_value_to_string(sorted_key_table,
+                                                     dom_info_dict,
+                                                     sfputil.QSFP_DOM_CHANNEL_MONITOR_MAP,
+                                                     sfputil.DOM_VALUE_UNIT_MAP)
+        assert output == expected_output
