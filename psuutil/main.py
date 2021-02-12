@@ -116,17 +116,17 @@ def status(index):
                 pass
 
             try:
-                voltage = '{0:.2f}'.format(psu.get_voltage())
+                voltage = psu.get_voltage()
             except NotImplementedError:
                 pass
 
             try:
-                current = '{0:.2f}'.format(psu.get_current())
+                current = psu.get_current()
             except NotImplementedError:
                 pass
 
             try:
-                power = '{0:.2f}'.format(psu.get_power())
+                power = psu.get_power()
             except NotImplementedError:
                 pass
 
@@ -138,7 +138,7 @@ def status(index):
         status_table.append([psu_name, model, serial, voltage, current, power, status, led_color])
 
     if status_table:
-        click.echo(tabulate(status_table, header, tablefmt="simple"))
+        click.echo(tabulate(status_table, header, tablefmt='simple', floatfmt='.2f'))
 
 
 if __name__ == '__main__':
