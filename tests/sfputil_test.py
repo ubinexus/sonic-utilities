@@ -152,7 +152,6 @@ class TestSfputil(object):
                 Temperature: 41.7539C
                 Vcc: 3.2577Volts
         ModuleThresholdValues:
-
 '''
 
         output = sfputil.convert_dom_to_output_string(sfp_type, dom_info_dict)
@@ -161,13 +160,13 @@ class TestSfputil(object):
         # TODO: Add tests for other SFP types
 
     def test_get_physical_port_name(self):
-        output = get_physical_port_name(0, 0, False)
+        output = sfputil.get_physical_port_name(0, 0, False)
         assert output == '0'
 
-        output = get_physical_port_name('Ethernet0', 0, False)
+        output = sfputil.get_physical_port_name('Ethernet0', 0, False)
         assert output == 'Ethernet0'
 
-        output = get_physical_port_name('Ethernet0', 0, True)
+        output = sfputil.get_physical_port_name('Ethernet0', 0, True)
         assert output == 'Ethernet0:0 (ganged)'
 
     def test_version(self):
