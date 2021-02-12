@@ -316,10 +316,22 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: PortChannel0001 is a router interface!" in result.output
 
+    def test_config_vlan_del_vlan_with_ip(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Vlan1000 can not be removed. First remove IP addresses assigned to this VLAN" in result.output
+
     def test_config_vlan_del_vlan(self):
         runner = CliRunner()
         db = Db()
 
+        runner.invoke(config.config.commands["interface"].commands["ip"].commands["del"], ["Vlan1000", "192.168.0.1/21"], obj=db)
+        runner.invoke(config.config.commands["interface"].commands["ip"].commands["del"], ["Vlan1000", "fc02:1000::1/64"], obj=db)
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
         print(result.output)
