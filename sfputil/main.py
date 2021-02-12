@@ -381,7 +381,7 @@ def get_physical_port_name(logical_port, physical_port, ganged):
           logical_port if logical and not ganged
     """
     if logical_port == physical_port:
-        return logical_port
+        return str(logical_port)
     elif ganged:
         return "{}:{} (ganged)".format(logical_port, physical_port)
     else:
