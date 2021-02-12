@@ -121,3 +121,46 @@ class TestSfputil(object):
 '''
         output = sfputil.convert_sfp_info_to_output_string(sfp_info_dict)
         assert output == expected_output
+
+    def test_convert_dom_to_output_string(self):
+        sfp_type = 'QSFP28 or later'
+
+        dom_info_dict = {
+            'temperature': '41.7539C',
+            'voltage': '3.2577Volts',
+            'rx1power': '-1.6622dBm',
+            'rx2power': '-1.7901dBm',
+            'rx3power': '-1.6973dBm',
+            'rx4power': '-2.0915dBm',
+            'tx1bias': '35.8400mA',
+            'tx2bias': '37.5780mA',
+            'tx3bias': '35.8400mA',
+            'tx4bias': '35.8400mA',
+            'tx1power': 'N/A',
+            'tx2power': 'N/A',
+            'tx3power': 'N/A',
+            'tx4power': 'N/A'
+        }
+
+        expected_output = '''\
+        ChannelMonitorValues:
+                RX1Power: -1.6622dBm
+                RX2Power: -1.7901dBm
+                RX3Power: -1.6973dBm
+                RX4Power: -2.0915dBm
+                TX1Bias: 35.8400mA
+                TX2Bias: 37.5780mA
+                TX3Bias: 35.8400mA
+                TX4Bias: 35.8400mA
+        ChannelThresholdValues:
+        ModuleMonitorValues:
+                Temperature: 41.7539C
+                Vcc: 3.2577Volts
+        ModuleThresholdValues:
+
+'''
+
+        output = sfputil.convert_dom_to_output_string(sfp_type, dom_info_dict)
+        assert output == expected_output
+
+        # TODO: Add tests for other SFP types
