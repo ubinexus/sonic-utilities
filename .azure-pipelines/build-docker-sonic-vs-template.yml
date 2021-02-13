@@ -8,7 +8,7 @@ parameters:
 
 jobs:
 - job:
-  displayName: ${{ parameters.arch }}
+  displayName: "docker-sonic-vs"
   timeoutInMinutes: ${{ parameters.timeout }}
 
   pool:
