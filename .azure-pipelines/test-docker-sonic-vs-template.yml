@@ -30,9 +30,14 @@ jobs:
       runBranch: 'refs/heads/master'
     displayName: "Download sonic swss common deb packages"
 
+  - checkout: self
+    displayName: "Checkout sonic-swss-common"
+  - checkout: sonic-swss
+    displayName: "Checkout sonic-swss"
+
   - script: |
       set -x
-      sudo .azure-pipelines/build_and_install_module.sh
+      sudo sonic-utilities/.azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
       sudo dpkg -i --force-confask,confnew ../libswsscommon_1.0.0_amd64.deb || apt-get install -f
@@ -49,7 +54,7 @@ jobs:
       sudo docker load -i ../docker-sonic-vs.gz
       docker ps
       ip netns list
-      pushd tests
+      pushd sonic-swss/tests
       sudo py.test -v --force-flaky --junitxml=tr.xml --imgname=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber)
     displayName: "Run vs tests"
 
