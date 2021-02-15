@@ -337,9 +337,6 @@ class TestVlan(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
 
-        vlan_member = db.cfgdb.get_table('VLAN_INTERFACE')
-        print(vlan_member)
-
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
         print(result.output)
