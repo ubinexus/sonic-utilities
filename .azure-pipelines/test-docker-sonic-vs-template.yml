@@ -65,7 +65,7 @@ jobs:
     condition: always()
 
   - script: |
-      cp -r tests/log $(Build.ArtifactStagingDirectory)/
+      cp -r sonic-swss/tests/log $(Build.ArtifactStagingDirectory)/
     displayName: "Collect logs"
     condition: always()
 
