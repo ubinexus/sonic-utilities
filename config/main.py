@@ -893,11 +893,10 @@ def validate_ip_address(ctx, ip_addr):
     mask_range = 32
     split_ip_mask = ip_addr.split("/")
 
-    try:
-        ip_addr = str(ipaddress.IPv4Address(split_ip_mask[0]))
-    except ipaddress.AddressValueError:
-        ip_addr = str(ipaddress.IPv6Address(split_ip_mask[0]))
+    ip_obj = ipaddress.ip_address(split_ip_mask[0])
+    if type(ip_obj) is ipaddress.IPv6Address:
         mask_range = 65
+    ip_addr = str(ip_obj)
 
     # Check the correctness of the mask and add it to IP.
     split_ip_mask[1] = int(split_ip_mask[1])
