@@ -252,7 +252,7 @@ class TestConfigMgmt(TestCase):
         Return:
             void
         '''
-        calls = [call(delConfig), call(addConfig)]
+        calls = [mock.call(delConfig), mock.call(addConfig)]
         assert cmdpb.writeConfigDB.call_count == 3
         cmdpb.writeConfigDB.assert_has_calls(calls, any_order=False)
         return
