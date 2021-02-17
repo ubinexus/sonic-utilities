@@ -11,7 +11,7 @@ class TestFastRebootDump(object):
     def setup_class(cls):
         print("SETUP")
 
-        test_db_dumps_directory = os.getcwd() + '/fast_reboot_dump_dbs'
+        test_db_dumps_directory = os.getcwd() + '/tests/fast_reboot_dump_dbs'
         asic_db_object = Db()
         app_db_object = Db()
         asic_db = asic_db_object.db
