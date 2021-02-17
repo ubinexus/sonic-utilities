@@ -3254,9 +3254,9 @@ This show command displays the port auto negotiation status for all interfaces i
     Ethernet8         disabled     100G           N/A     CR4          N/A      up       up
   ```
 
-**show interfaces breakout**
+**show interfaces breakout (Versions >= 202006)**
 
-This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. all the available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
+This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
 
 - Usage:
   ```
@@ -3857,12 +3857,19 @@ This command is used for administratively bringing up the Physical interface or 
   admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
 
+**config interface <interface_name> speed (Versions >= 202006)**
+
+Dynamic breakout feature is supported in SONiC from 202006 version.
+User can configure any speed specified under "breakout_modes" keys under the parent interface in the platform-specific port configuration file (i.e. platform.json). Remember, Speed specified in the current breakout mode are the only available speed for the interface at that point of time.
+
+For details please refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
+
 **config interface speed <interface_name> (Versions >= 201904)**
 
 **config interface <interface_name> speed (Versions <= 201811)**
 
 This command is used to configure the speed for the Physical interface. Use the value 40000 for setting it to 40G and 100000 for 100G. Users need to know the device to configure it properly.
-Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
+Dynamic breakout feature is not supported in SONiC yet.
 
 - Usage:
 
@@ -3955,9 +3962,12 @@ This command is used to configure the TPID for the Physical/PortChannel interfac
   admin@sonic:~$ sudo config interface tpid Ethernet64 0x9200
   ```
 
-**config interface breakout**
+**config interface breakout (Versions >= 202006)**
 
-This command is used to set breakout mode available for user-specified interface.
+This command is used to set breakout mode available for user-specified interface. Check the platform-specific port configuration file(i.e. platform.json)
+to get available breakout mode for each parent interface.Based on the platform.json and the current mode set in interface, this command acts on setting
+breakout mode for the interface.
+
 kindly use, double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
 
 - Usage:
@@ -3981,9 +3991,14 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
   admin@sonic:~$ sudo config interface breakout  Ethernet0 <tab><tab>
   <tab provides option for breakout mode>
   1x100G[40G]  2x50G        4x25G[10G]
+  ```
 
+  This command also provides  "--force-remove-dependencies/-f" option to CLI, which will remove the configuration dependencies automatically.
+  ```
   admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
+
+For details please refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
