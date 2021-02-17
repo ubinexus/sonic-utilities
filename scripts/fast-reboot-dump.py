@@ -177,24 +177,14 @@ def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
     return fdb_entries, available_macs, map_mac_ip
 
 def generate_fdb_entries(filename):
-    fdb_entries = []
-
     asic_db = swsssdk.SonicV2Connector(host='127.0.0.1')
     app_db = swsssdk.SonicV2Connector(host='127.0.0.1')
     asic_db.connect(asic_db.ASIC_DB, False)   # Make one attempt only
     app_db.connect(app_db.APPL_DB, False)   # Make one attempt only
 
-    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(asic_db, app_db)
-
     vlan_ifaces = get_vlan_ifaces()
 
-    all_available_macs = set()
-    map_mac_ip_per_vlan = {}
-    for vlan in vlan_ifaces:
-        vlan_id = int(vlan.replace('Vlan', ''))
-        fdb_entry, available_macs, map_mac_ip_per_vlan[vlan] = get_fdb(asic_db, vlan, vlan_id, bridge_id_2_iface)
-        all_available_macs |= available_macs
-        fdb_entries.extend(fdb_entry)
+    fdb_entries, all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries_logic(asic_db, app_db, vlan_ifaces)
 
     asic_db.close(asic_db.ASIC_DB)
     app_db.close(app_db.APPL_DB)
@@ -203,6 +193,21 @@ def generate_fdb_entries(filename):
         json.dump(fdb_entries, fp, indent=2, separators=(',', ': '))
 
     return all_available_macs, map_mac_ip_per_vlan
+
+def generate_fdb_entries_logic(asic_db, app_db, vlan_ifaces):
+    fdb_entries = []
+    all_available_macs = set()
+    map_mac_ip_per_vlan = {}
+
+    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(asic_db, app_db)
+
+    for vlan in vlan_ifaces:
+        vlan_id = int(vlan.replace('Vlan', ''))
+        fdb_entry, available_macs, map_mac_ip_per_vlan[vlan] = get_fdb(asic_db, vlan, vlan_id, bridge_id_2_iface)
+        all_available_macs |= available_macs
+        fdb_entries.extend(fdb_entry)
+
+    return fdb_entries, all_available_macs, map_mac_ip_per_vlan
 
 def get_if(iff, cmd):
     s = socket.socket()
