@@ -72,6 +72,17 @@ def print_message(lvl, *args):
             syslog.syslog(lvl, msg)
 
 
+def check_vnet_cfg():
+    ''' Returns True if VNET is configured in APP_DB or False if no VNET configuration.
+    '''
+    db = ConfigDBConnector()
+    db.db_connect('APPL_DB')
+
+    vnet_db_keys = db.get_keys('VNET_TABLE')
+
+    return True if vnet_db_keys else False
+
+
 def get_vnet_intfs():
     ''' Returns dictionary of VNETs and related VNET interfaces.
     Format: { <vnet_name>: [ <vnet_rif_name> ] }
@@ -305,6 +316,12 @@ def get_sdk_vnet_routes_diff(routes):
 
 
 def main():
+
+    rc = RC_OK
+
+    # Don't run VNET routes consistancy logic if there is no VNET configuration
+    if not check_vnet_cfg():
+        return rc
 
     app_db_vnet_routes = get_vnet_routes_from_app_db()
     asic_db_vnet_routes = get_vnet_routes_from_asic_db()
