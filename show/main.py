@@ -989,12 +989,17 @@ def users(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
 @click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
-def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent):
+@click.option('-n', '--noop', default=False, is_flag=True, help="Show commands without executing them")
+def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, noop):
     """Gather information for troubleshooting"""
     cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
 
     if allow_process_stop:
         cmd += " -a"
+
+    if noop:
+        cmd += " -n"
+        silent = False
 
     if silent:
         cmd += " generate_dump"
