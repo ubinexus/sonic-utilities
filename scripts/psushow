@@ -7,6 +7,8 @@ import sys
 
 from tabulate import tabulate
 
+VERSION = '1.0'
+
 # mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "1":
@@ -132,7 +134,7 @@ Examples:
     parser.add_argument('-s', '--status', action='store_true', help='Show PSU status information')
     parser.add_argument('-i', '--index', type=int, default=-1, help='The index of PSU to display')
     parser.add_argument('-j', '--json', action='store_true', help='Display output in JSON format')
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(VERSION))
     args = parser.parse_args()
 
     status_show = args.status
