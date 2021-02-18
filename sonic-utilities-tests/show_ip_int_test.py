@@ -1,9 +1,5 @@
 import os
 import pytest
-import subprocess
-from click.testing import CliRunner
-
-import show.main as show
 from utils import get_result_and_return_code
 
 root_path = os.path.dirname(os.path.abspath(__file__))

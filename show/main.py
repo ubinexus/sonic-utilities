@@ -2,8 +2,6 @@
 
 import errno
 import json
-import netaddr
-import netifaces
 import os
 import re
 import subprocess
