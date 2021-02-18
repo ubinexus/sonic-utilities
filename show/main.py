@@ -1005,7 +1005,6 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
 
     if noop:
         cmd += " -n"
-        silent = False
 
     if since:
         cmd += " -s '{}'".format(since)
