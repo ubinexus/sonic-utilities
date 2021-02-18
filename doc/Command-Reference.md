@@ -2363,6 +2363,31 @@ Dynamic buffer management is responsible for calculating buffer size according t
 
 ### Configuration commands
 
+**configure shared headroom pool**
+
+This command is used to configure the shared headroom pool. The shared headroom pool can be enabled in the following ways:
+
+- Configure the over subscribe ratio. In this case, the size of shared headroom pool is calculated as the accumulative xoff of all of the lossless PG divided by the over subscribe ratio.
+- Configure the size.
+
+In case both of the above parameters have been configured, the `size` will take effect. To disable shared headroom pool, configure both parameters to zero.
+
+- Usage:
+
+  ```
+  config buffer shared-headroom-pool over-subscribe-ratio <over-subscribe-ratio>
+  config buffer shared-headroom-pool size <size>
+  ```
+
+  The range of over-subscribe-ratio is from 1 to number of ports inclusive.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config shared-headroom-pool over-subscribe-ratio 2
+  admin@sonic:~$ sudo config shared-headroom-pool size 1024000
+  ```
+
 **configure a lossless buffer profile**
 
 This command is used to configure a lossless buffer profile.
@@ -2370,18 +2395,21 @@ This command is used to configure a lossless buffer profile.
 - Usage:
 
   ```
-  config buffer_profile add <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
-  config buffer_profile set <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
-  config buffer_profile remove <profile_name>
+  config buffer profile add <profile_name> --xon <xon_threshold> --xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer profile set <profile_name> --xon <xon_threshold> --xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer profile remove <profile_name>
   ```
 
   All the parameters are devided to two groups, one for headroom and one for dynamic_th. For any command at lease one group of parameters should be provided.
   For headroom parameters:
 
-  - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
-  All other parameters are optional.
   - `xon` is madantory.
-  - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
+  - If shared headroom pool is disabled:
+    - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
+    - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
+  - If shared headroom pool is enabled:
+    - `xoff` should be provided.
+    - `size` = `xoff` if it is not provided.
 
   If only headroom parameters are provided, the `dynamic_th` will be taken from `CONFIG_DB.DEFAULT_LOSSLESS_BUFFER_PARAMETER.default_dynamic_th`.
 
@@ -2397,8 +2425,8 @@ This command is used to configure a lossless buffer profile.
 - Example:
 
   ```
-  admin@sonic:~$ sudo config buffer_profile add profile1 -xon 18432 -xoff 18432
-  admin@sonic:~$ sudo config buffer_profile remove profile1
+  admin@sonic:~$ sudo config buffer profile add profile1 --xon 18432 --xoff 18432
+  admin@sonic:~$ sudo config buffer profile remove profile1
   ```
 
 **config interface cable_length**
@@ -2597,6 +2625,12 @@ This command is used to display the status of buffer pools and profiles currentl
 
   ```
   admin@sonic:~$ show buffer configuration
+  Lossless traffic pattern:
+  --------------------  -
+  default_dynamic_th    0
+  over_subscribe_ratio  0
+  --------------------  -
+
   Pool: ingress_lossless_pool
   ----  --------
   type  ingress
@@ -4734,6 +4768,54 @@ While displaying the muxcable configuration, users can configure the following f
           }
     ```
 
+**show muxcable ber-info**
+
+This command displays the ber(Bit error rate) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable ber-info [OPTIONS] PORT TARGET
+  ```
+
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the ber info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        0       0
+    ```
+
+**show muxcable ber-info**
+
+This command displays the eye info in mv(milli volts) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable eye-info [OPTIONS] PORT TARGET
+  ```
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the eye info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        632      622
+    ```
 
 ### Muxcable Config commands
 
@@ -4769,7 +4851,6 @@ While configuring the muxcable, users needs to configure the following fields fo
                "Ethernet0": "OK"  
            }
     ```    
-  
     ```
         admin@sonic:~$ sudo config muxcable  mode active all  
         port        state  
@@ -4785,7 +4866,67 @@ While configuring the muxcable, users needs to configure the following fields fo
                 "Ethernet32": "INPROGRESS",  
                 "Ethernet0": "OK"
            }
-    ```    
+    ```
+**config muxcable prbs enable/disable**
+
+This command is used for setting the configuration and enable/diable of prbs on a port user provides. While enabling in addition to port the user also needs to provides the target, prbs mode and lane map on which the user intends to run prbs on. The target reflects where the enable/dsiable will happen.
+
+- Usage:
+  ```
+  config muxcable prbs enable [OPTIONS] PORT TARGET MODE_VALUE LANE_MAP
+  config muxcable prbs disable [OPTIONS] PORT TARGET
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the prbs on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- MODE_VALUE  required - the mode/type for configuring the PRBS mode.
+             0x00 = PRBS 9, 0x01 = PRBS 15, 0x02 = PRBS 23, 0x03 = PRBS 31
+- LANE_MAP  required - an integer representing the lane_map to be run PRBS on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable prbs enable 1 1 3 3
+        PRBS config sucessful
+        admin@sonic:~$  sudo config muxcable prbs disable 1 0
+        PRBS disable sucessful
+    ```
+
+**config muxcable loopback enable/disable**
+
+This command is used for setting the configuration and enable/disable of loopback on a port user provides. While enabling in addition to port the user also needs to provides the target and lane map on which the user intends to run loopback on. The target reflects where the enable/dsiable will happen.
+
+- Usage:
+  ```
+  config muxcable loopback enable [OPTIONS] PORT TARGET LANE_MAP
+  config muxcable loopback disable [OPTIONS] PORT TARGET
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the loopback on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- LANE_MAP  required - an integer representing the lane_map to be run loopback on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable loopback enable 1 1 3
+        loopback config sucessful
+        admin@sonic:~$  sudo config muxcable loopback disable 1 0
+        loopback disable sucessfull
+    ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 

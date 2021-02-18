@@ -17,8 +17,7 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -641,7 +640,7 @@ def _change_hostname(hostname):
     if current_hostname != hostname:
         clicommon.run_command('echo {} > /etc/hostname'.format(hostname), display_cmd=True)
         clicommon.run_command('hostname -F /etc/hostname', display_cmd=True)
-        clicommon.run_command('sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
+        clicommon.run_command(r'sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         clicommon.run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
 
 def _clear_qos():
@@ -659,7 +658,9 @@ def _clear_qos():
             'BUFFER_POOL',
             'BUFFER_PROFILE',
             'BUFFER_PG',
-            'BUFFER_QUEUE']
+            'BUFFER_QUEUE',
+            'DEFAULT_LOSSLESS_BUFFER_PARAMETER',
+            'LOSSLESS_TRAFFIC_PATTERN']
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
@@ -756,6 +757,7 @@ def _reset_failed_services(config_db):
         'hostname-config',
         'interfaces-config',
         'lldp',
+        'mux',
         'nat',
         'ntp-config',
         'pmon',
@@ -767,7 +769,8 @@ def _reset_failed_services(config_db):
         'swss',
         'syncd',
         'teamd',
-        'telemetry'
+        'telemetry',
+        'macsec',
     ]
 
     disabled_services = _get_disabled_services_list(config_db)
@@ -788,6 +791,7 @@ def _restart_services(config_db):
         'ntp-config',
         'rsyslog-config',
         'swss',
+        'mux',
         'bgp',
         'pmon',
         'lldp',
@@ -795,7 +799,8 @@ def _restart_services(config_db):
         'nat',
         'sflow',
         'restapi',
-        'telemetry'
+        'telemetry',
+        'macsec',
     ]
 
     disabled_services = _get_disabled_services_list(config_db)
@@ -928,7 +933,11 @@ def config(ctx):
         platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
-    SonicDBConfig.load_sonic_global_db_config()
+    num_asic = multi_asic.get_num_asics()
+    if num_asic > 1:
+        SonicDBConfig.load_sonic_global_db_config()
+    else:
+        SonicDBConfig.initialize()
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
@@ -1882,14 +1891,14 @@ def is_dynamic_buffer_enabled(config_db):
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
     """warm_restart-related configuration tasks"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
+    # Note: redis_unix_socket_path is a path string, and the ground truth is now from database_config.json.
+    # We only use it as a bool indicator on either unix_socket_path or tcp port
+    use_unix_socket_path = bool(redis_unix_socket_path)
+    config_db = ConfigDBConnector(use_unix_socket_path=use_unix_socket_path)
     config_db.connect(wait_for_init=False)
 
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db = SonicV2Connector(use_unix_socket_path=use_unix_socket_path)
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
@@ -1981,7 +1990,7 @@ def vrf_add_management_vrf(config_db):
         Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
          eth0    00000000        01803B0A        0003    0       0       202     00000000        0       0       0
     """
-    cmd = "cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
+    cmd = r"cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     output = proc.communicate()
     if int(output[0]) >= 1:
@@ -3080,7 +3089,7 @@ def bind(ctx, interface_name, vrf_name):
         state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
-    while state_db.get_all(state_db.STATE_DB, _hash) != None:
+    while state_db.exists(state_db.STATE_DB, _hash):
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
     config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
@@ -3678,11 +3687,28 @@ def set_profile(db, profile, xon, xoff, size, dynamic_th, pool):
     update_profile(ctx, config_db, profile, xon, xoff, size, dynamic_th, pool, profile_entry)
 
 
+def _is_shared_headroom_pool_enabled(ctx, config_db):
+    ingress_lossless_pool = config_db.get_entry('BUFFER_POOL', 'ingress_lossless_pool')
+    if 'xoff' in ingress_lossless_pool:
+        return True
+
+    default_lossless_param_table = config_db.get_table('DEFAULT_LOSSLESS_BUFFER_PARAMETER')
+    if not default_lossless_param_table:
+        ctx.fail("Dynamic buffer calculation is enabled while no entry found in DEFAULT_LOSSLESS_BUFFER_PARAMETER table")
+    default_lossless_param = list(default_lossless_param_table.values())[0]
+    over_subscribe_ratio = default_lossless_param.get('over_subscribe_ratio')
+    if over_subscribe_ratio and over_subscribe_ratio != '0':
+        return True
+
+    return False
+
+
 def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, pool, profile_entry = None):
     params = {}
     if profile_entry:
         params = profile_entry
-    dynamic_calculate = True
+
+    shp_enabled = _is_shared_headroom_pool_enabled(ctx, config_db)
 
     if not pool:
         pool = 'ingress_lossless_pool'
@@ -3692,48 +3718,62 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
 
     if xon:
         params['xon'] = xon
-        dynamic_calculate = False
     else:
         xon = params.get('xon')
 
     if xoff:
         params['xoff'] = xoff
-        dynamic_calculate = False
     else:
         xoff = params.get('xoff')
 
     if size:
         params['size'] = size
-        dynamic_calculate = False
-        if xon and not xoff:
-            xoff = int(size) - int (xon)
-            params['xoff'] = xoff
-    elif not dynamic_calculate:
-        if xon and xoff:
-            size = int(xon) + int(xoff)
-            params['size'] = size
-        else:
-            ctx.fail("Either both xon and xoff or size should be provided")
+    else:
+        size = params.get('size')
+
+    dynamic_calculate = False if (xon or xoff or size) else True
 
     if dynamic_calculate:
         params['headroom_type'] = 'dynamic'
         if not dynamic_th:
             ctx.fail("Either size information (xon, xoff, size) or dynamic_th needs to be provided")
-
-    if dynamic_th:
         params['dynamic_th'] = dynamic_th
     else:
-        # Fetch all the keys of default_lossless_buffer_parameter table
-        # and then get the default_dynamic_th from that entry (should be only one)
-        keys = config_db.get_keys('DEFAULT_LOSSLESS_BUFFER_PARAMETER')
-        if len(keys) > 1 or len(keys) == 0:
-            ctx.fail("Multiple or no entry in DEFAULT_LOSSLESS_BUFFER_PARAMETER found while no dynamic_th specified")
+        if not xon:
+            ctx.fail("Xon is mandatory for non-dynamic profile")
 
-        default_lossless_param = config_db.get_entry('DEFAULT_LOSSLESS_BUFFER_PARAMETER', keys[0])
-        if 'default_dynamic_th' in default_lossless_param.keys():
-            params['dynamic_th'] = default_lossless_param['default_dynamic_th']
-        else:
-            ctx.fail("No dynamic_th defined in DEFAULT_LOSSLESS_BUFFER_PARAMETER")
+        if not xoff:
+            if shp_enabled:
+                ctx.fail("Shared headroom pool is enabled, xoff is mandatory for non-dynamic profile")
+            elif not size:
+                ctx.fail("Neither xoff nor size is provided")
+            else:
+                xoff_number = int(size) - int(xon)
+                if xoff_number <= 0:
+                    ctx.fail("The xoff must be greater than 0 while we got {} (calculated by: size {} - xon {})".format(xoff_number, size, xon))
+                params['xoff'] = str(xoff_number)
+
+        if not size:
+            if shp_enabled:
+                size = int(xon)
+            else:
+                size = int(xon) + int(xoff)
+            params['size'] = size
+
+        if dynamic_th:
+            params['dynamic_th'] = dynamic_th
+        elif not params.get('dynamic_th'):
+            # Fetch all the keys of default_lossless_buffer_parameter table
+            # and then get the default_dynamic_th from that entry (should be only one)
+            keys = config_db.get_keys('DEFAULT_LOSSLESS_BUFFER_PARAMETER')
+            if len(keys) != 1:
+                ctx.fail("Multiple entries are found in DEFAULT_LOSSLESS_BUFFER_PARAMETER while no dynamic_th specified")
+
+            default_lossless_param = config_db.get_entry('DEFAULT_LOSSLESS_BUFFER_PARAMETER', keys[0])
+            if 'default_dynamic_th' in default_lossless_param:
+                params['dynamic_th'] = default_lossless_param['default_dynamic_th']
+            else:
+                ctx.fail("No dynamic_th defined in DEFAULT_LOSSLESS_BUFFER_PARAMETER")
 
     config_db.set_entry("BUFFER_PROFILE", (profile_name), params)
 
@@ -3758,6 +3798,68 @@ def remove_profile(db, profile):
         config_db.set_entry("BUFFER_PROFILE", profile, None)
     else:
         ctx.fail("Profile {} doesn't exist".format(profile))
+
+@buffer.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def shared_headroom_pool(ctx):
+    """Configure buffer shared headroom pool"""
+    pass
+
+
+@shared_headroom_pool.command()
+@click.argument('ratio', metavar='<ratio>', type=int, required=True)
+@clicommon.pass_db
+def over_subscribe_ratio(db, ratio):
+    """Configure over subscribe ratio"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    port_number = len(config_db.get_table('PORT'))
+    if ratio < 0 or ratio > port_number:
+        ctx.fail("Invalid over-subscribe-ratio value {}. It should be in range [0, {}]".format(ratio, port_number))
+
+    default_lossless_param = config_db.get_table("DEFAULT_LOSSLESS_BUFFER_PARAMETER")
+    first_item = True
+    for k, v in default_lossless_param.items():
+        if not first_item:
+            ctx.fail("More than one item in DEFAULT_LOSSLESS_BUFFER_PARAMETER table. Only the first one is updated")
+        first_item = False
+
+        if ratio == 0:
+            if "over_subscribe_ratio" in v.keys():
+                v.pop("over_subscribe_ratio")
+        else:
+            v["over_subscribe_ratio"] = ratio
+
+        config_db.set_entry("DEFAULT_LOSSLESS_BUFFER_PARAMETER", k, v)
+
+
+@shared_headroom_pool.command()
+@click.argument('size', metavar='<size>', type=int, required=True)
+@clicommon.pass_db
+def size(db, size):
+    """Configure shared headroom pool size"""
+    config_db = db.cfgdb
+    state_db = db.db
+    ctx = click.get_current_context()
+
+    _hash = 'BUFFER_MAX_PARAM_TABLE|global'
+    buffer_max_params = state_db.get_all(state_db.STATE_DB, _hash)
+    if buffer_max_params:
+        mmu_size = buffer_max_params.get('mmu_size')
+        if mmu_size and int(mmu_size) < size:
+            ctx.fail("Shared headroom pool must be less than mmu size ({})".format(mmu_size))
+
+    ingress_lossless_pool = config_db.get_entry("BUFFER_POOL", "ingress_lossless_pool")
+
+    if size == 0:
+        if "xoff" in ingress_lossless_pool:
+            ingress_lossless_pool.pop("xoff")
+    else:
+        ingress_lossless_pool["xoff"] = size
+
+    config_db.set_entry("BUFFER_POOL", "ingress_lossless_pool", ingress_lossless_pool)
+
 
 #
 # 'platform' group ('config platform ...')
