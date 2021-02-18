@@ -97,6 +97,7 @@ setup(
         'scripts/reboot',
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
+        'scripts/vnet_route_check.py',
         'scripts/sfpshow',
         'scripts/syseeprom-to-json',
         'scripts/teamshow',
