@@ -1,8 +1,10 @@
-import sys
+import importlib
 import os
-import pytest
-from unittest import mock
 import subprocess
+import sys
+from unittest import mock
+
+import pytest
 from swsscommon.swsscommon import ConfigDBConnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -10,9 +12,13 @@ modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, modules_path)
 
-from imp import load_source
-load_source('neighbor_advertiser', scripts_path+'/neighbor_advertiser')
-import neighbor_advertiser
+# Load the file under test
+neighbor_advertiser_path = os.path.join(scripts_path, 'neighbor_advertiser')
+loader = importlib.machinery.SourceFileLoader('neighbor_advertiser', neighbor_advertiser_path)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+neighbor_advertiser = importlib.util.module_from_spec(spec)
+loader.exec_module(neighbor_advertiser)
+
 
 class TestNeighborAdvertiser(object):
     @pytest.fixture

@@ -3,12 +3,12 @@ config_mgmt.py provides classes for configuration validation and for Dynamic
 Port Breakout.
 '''
 try:
+    import importlib
     import re
     import syslog
 
     from json import load
     from time import sleep as tsleep
-    from imp import load_source
     from jsondiff import diff
     from sys import flags
 
@@ -19,8 +19,10 @@ try:
 
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
     # since /usr/local/bin/sonic-cfggen does not have .py extension.
-    load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    from sonic_cfggen import deep_update, FormatConverter
+    loader = importlib.machinery.SourceFileLoader('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    sonic_cfggen = importlib.util.module_from_spec(spec)
+    loader.exec_module(sonic_cfggen)
 
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -193,8 +195,8 @@ class ConfigMgmt():
         data = dict()
         configdb = ConfigDBConnector()
         configdb.connect()
-        deep_update(data, FormatConverter.db_to_output(configdb.get_config()))
-        self.configdbJsonIn =  FormatConverter.to_serialized(data)
+        sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.db_to_output(configdb.get_config()))
+        self.configdbJsonIn = sonic_cfggen.FormatConverter.to_serialized(data)
         self.sysLog(syslog.LOG_DEBUG, 'Reading Input from ConfigDB {}'.\
             format(self.configdbJsonIn))
 
@@ -214,9 +216,9 @@ class ConfigMgmt():
         data = dict()
         configdb = ConfigDBConnector()
         configdb.connect(False)
-        deep_update(data, FormatConverter.to_deserialized(jDiff))
+        sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.to_deserialized(jDiff))
         self.sysLog(msg="Write in DB: {}".format(data))
-        configdb.mod_config(FormatConverter.output_to_db(data))
+        configdb.mod_config(sonic_cfggen.FormatConverter.output_to_db(data))
 
         return
 

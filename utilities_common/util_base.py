@@ -82,4 +82,3 @@ class UtilHelper(object):
             return True
         else:
             return False
-

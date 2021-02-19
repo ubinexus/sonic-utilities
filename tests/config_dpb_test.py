@@ -1,7 +1,7 @@
+import importlib
 import json
 import os
 import re
-from imp import load_source
 from unittest import mock
 
 import pytest
@@ -10,12 +10,20 @@ from utilities_common.db import Db
 
 import config.main as config
 
-load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-from sonic_cfggen import deep_update, FormatConverter
+# Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
+# since /usr/local/bin/sonic-cfggen does not have .py extension.
+loader = importlib.machinery.SourceFileLoader('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
+spec = importlib.util.spec_from_loader(loader.name, loader)
+sonic_cfggen = importlib.util.module_from_spec(spec)
+loader.exec_module(sonic_cfggen)
 
-load_source('config_mgmt', \
-    os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py'))
-import config_mgmt
+# Import config_mgmt.py
+config_mgmt_py_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py')
+loader = importlib.machinery.SourceFileLoader('config_mgmt', config_mgmt_py_path)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+config_mgmt = importlib.util.module_from_spec(spec)
+loader.exec_module(config_mgmt)
+
 
 # Sample platform.json for Test
 BRKOUT_CFG_FILE_JSON = {
@@ -137,14 +145,14 @@ def mock_func(breakout_cfg_file, sonic_db):
 
 def write_config_db(cfgdb, config):
     data = dict()
-    deep_update(data, FormatConverter.to_deserialized(config))
-    cfgdb.mod_config(FormatConverter.output_to_db(data))
+    sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.to_deserialized(config))
+    cfgdb.mod_config(sonic_cfggen.FormatConverter.output_to_db(data))
     return
 
 def read_config_db(cfgdb):
     data = dict()
-    deep_update(data, FormatConverter.db_to_output(cfgdb.get_config()))
-    return FormatConverter.to_serialized(data)
+    sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.db_to_output(cfgdb.get_config()))
+    return sonic_cfggen.FormatConverter.to_serialized(data)
 
 def writeJson(d, file):
     with open(file, 'w') as f:

@@ -1,6 +1,7 @@
-import sys
+import importlib
+import json
 import os
-from imp import load_source
+import sys
 from io import StringIO
 from unittest import mock
 
@@ -10,8 +11,12 @@ modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, modules_path)
 
-load_source('aclshow', scripts_path+'/aclshow')
-from aclshow import *
+# Load the file under test
+aclshow_path = os.path.join(scripts_path, 'aclshow')
+loader = importlib.machinery.SourceFileLoader('aclshow', aclshow_path)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+aclshow = importlib.util.module_from_spec(spec)
+loader.exec_module(aclshow)
 
 from .mock_tables import dbconnector
 
@@ -146,8 +151,8 @@ class Aclshow():
         This method is used to empty dumped counters
         if exist in /tmp/.counters_acl.p (by default).
         """
-        if os.path.isfile(COUNTER_POSITION):
-            with open(COUNTER_POSITION, 'w') as fp:
+        if os.path.isfile(aclshow.COUNTER_POSITION):
+            with open(aclshow.COUNTER_POSITION, 'w') as fp:
                 json.dump([], fp)
 
     def runTest(self):
@@ -157,7 +162,7 @@ class Aclshow():
         """
         @mock.patch('argparse.ArgumentParser.parse_args', return_value = argparse.Namespace(**self.kwargs))
         def run(mock_args):
-            main()
+            aclshow.main()
         run()
 
     def setUp(self):

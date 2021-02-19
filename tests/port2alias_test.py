@@ -1,10 +1,15 @@
-import sys
+import importlib
 import os
+import sys
 from unittest import TestCase
 
-import imp
+# Load the file under test
+port2alias_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port2alias')
+loader = importlib.machinery.SourceFileLoader('port2alias', port2alias_path)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+port2alias = importlib.util.module_from_spec(spec)
+loader.exec_module(port2alias)
 
-port2alias = imp.load_source('port2alias', os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port2alias'))
 
 class TestPort2Alias(TestCase):
     def setUp(self):
