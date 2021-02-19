@@ -14,9 +14,9 @@ sys.path.insert(0, modules_path)
 
 sys.modules['sonic_platform'] = mock.MagicMock()
 
-loader = importlib.machinery.SourceFileLoader(
-        'psushow',
-        '{}/psushow'.format(scripts_path))
+# Load the file under test
+psushow_path = os.path.join(scripts_path, 'psushow')
+loader = importlib.machinery.SourceFileLoader('psushow', psushow_path)
 spec = importlib.util.spec_from_loader(loader.name, loader)
 psushow = importlib.util.module_from_spec(spec)
 loader.exec_module(psushow)
