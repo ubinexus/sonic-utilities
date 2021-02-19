@@ -381,3 +381,36 @@ def eyeinfo(port, target):
     lane_data.append(res)
     click.echo(tabulate(lane_data, headers=headers))
     sys.exit(EXIT_SUCCESS)
+
+@muxcable.command()
+@click.argument('port', required=True, default=None)
+def cableinfo(port):
+    """Show muxcable cable information"""
+
+    if platform_sfputil is not None:
+        physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+    if not isinstance(physical_port_list, list):
+        click.echo("ERR: Unable to get a port on muxcable port")
+        sys.exit(EXIT_FAIL)
+        if len(physical_port_list) != 1:
+            click.echo("ERR: Unable to get a single port on muxcable")
+            sys.exit(EXIT_FAIL)
+
+    physical_port = physical_port_list[0]
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.get_pn_number_and_vendor_name(physical_port)
+    if res == False or res == -1:
+        click.echo("ERR: Unable to get cable info")
+        sys.exit(EXIT_FAIL)
+    headers = ['pin_number', 'vendor_name']
+    lane_data = []
+    pin = str(res[0].decode())
+    vendor = str(res[1].decode())
+    temp_list = []
+
+    temp_list.append(pin)
+    temp_list.append(vendor)
+    lane_data.append(temp_list)
+    click.echo(tabulate(lane_data, headers=headers))
+    sys.exit(EXIT_SUCCESS)
