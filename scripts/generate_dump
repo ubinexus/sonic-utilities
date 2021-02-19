@@ -156,8 +156,7 @@ save_cmd() {
     # This is required if $cmd has quoted strings that should be bunched
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
     # "COMMAND HERE" bunched together as 1 arg to vtysh -c
-    if $do_gzip
-    then
+    if $do_gzip; then
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
         local cmds="$cmd 2>&1 | gzip -c > '${filepath}'"
@@ -297,6 +296,7 @@ get_vtysh_namespace() {
     else
         ns=" -n  ${asic_id}"
     fi
+    echo "$ns"
 }
 
 ###############################################################################
@@ -620,41 +620,6 @@ save_saidump() {
 }
 
 ###############################################################################
-# Runs a 'show platform' command, append the output to 'filename' and add to the incrementally built tar.
-# Globals:
-#  LOGDIR
-#  BASE
-#  MKDIR
-#  TAR
-#  TARFILE
-#  DUMPDIR
-#  V
-#  RM
-# Arguments:
-#  type: the type of platform information
-#  filename: the filename to save the output as in $BASE/dump
-# Returns:
-#  None
-###############################################################################
-save_platform() {
-    local start_t=$(date +%s%3N)
-    local end_t=0
-    local type="$1"
-    local filename=$2
-    local filepath="${LOGDIR}/$filename"
-    local tarpath="${BASE}/dump/$filename"
-    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
-
-    eval "show platform $type" &>> "$filepath"
-    echo $'\r' >> "$filepath"
-
-    ($TAR $V -uhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.")
-    end_t=$(date +%s%3N)
-    echo "[ save_platform:$type ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
-}
-
-###############################################################################
 # Save platform related info
 # Globals:
 #  None
@@ -664,11 +629,11 @@ save_platform() {
 #  None
 ###############################################################################
 save_platform_info() {
-    save_platform "syseeprom" "platform"
-    save_platform "psustatus" "platform"
-    save_platform "ssdhealth" "platform"
-    save_platform "temperature" "platform"
-    save_platform "fan" "platform"
+    save_cmd "show platform syseeprom" "syseeprom"
+    save_cmd "show platform psustatus" "psustatus"
+    save_cmd "show platform ssdhealth" "ssdhealth"
+    save_cmd "show platform temperature" "temperature"
+    save_cmd "show platform fan" "fan"
 }
 
 ###############################################################################
