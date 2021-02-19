@@ -570,8 +570,7 @@ save_proc() {
     for f in $procfiles
     do
         if $NOOP; then
-            if [ -e $f ]
-            then
+            if [ -e $f ]; then
                 echo "$CP $V -r $f $TARDIR/proc"
             fi
         else
