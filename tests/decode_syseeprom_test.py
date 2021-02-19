@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from click.testing import CliRunner
 
+from .mock_tables import dbconnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -21,94 +22,112 @@ spec = importlib.util.spec_from_loader(loader.name, loader)
 decode_syseeprom = importlib.util.module_from_spec(spec)
 loader.exec_module(decode_syseeprom)
 
+# Replace swsscommon objects with mocked objects
+decode_syseeprom.SonicV2Connector = dbconnector.SonicV2Connector
+
+SAMPLE_TLV_DICT = {
+    'header': {
+        'id': 'TlvInfo',
+        'version': '1',
+        'length': '170'
+    },
+    'tlv_list': [
+        {
+            'code': '0x21',
+            'name': 'Product Name',
+            'length': '8',
+            'value': 'S6100-ON'
+        },
+        {
+            'code': '0x22',
+            'name': 'Part Number',
+            'length': '6',
+            'value': '0F6N2R'
+        },
+        {
+            'code': '0x23',
+            'name': 'Serial Number',
+            'length': '20',
+            'value': 'TH0F6N2RCET0007600NG'
+        },
+        {
+            'code': '0x24',
+            'name': 'Base MAC Address',
+            'length': '6',
+            'value': '0C:29:EF:CF:AC:A0'
+        },
+        {
+            'code': '0x25',
+            'name': 'Manufacture Date',
+            'length': '19',
+            'value': '07/07/2020 15:05:34'
+        },
+        {
+            'code': '0x26',
+            'name': 'Device Version',
+            'length': '1',
+            'value': '1'
+        },
+        {
+            'code': '0x27',
+            'name': 'Label Revision',
+            'length': '3',
+            'value': 'A08'
+        },
+        {
+            'code': '0x28',
+            'name': 'Platform Name',
+            'length': '26',
+            'value': 'x86_64-dell_s6100_c2538-r0'
+        },
+        {
+            'code': '0x29',
+            'name': 'ONIE Version',
+            'length': '8',
+            'value': '3.15.1.0'
+        },
+        {
+            'code': '0x2a',
+            'name': 'MAC Addresses',
+            'length': '2',
+            'value': '384'
+        },
+        {
+            'code': '0x2b',
+            'name': 'Manufacturer',
+            'length': '5',
+            'value': 'CET00'
+        },
+        {
+            'code': '0x2c',
+            'name': 'Manufacture Country',
+            'length': '2',
+            'value': 'TH'
+        },
+        {
+            'code': '0x2d',
+            'name': 'Vendor Name',
+            'length': '4',
+            'value': 'DELL'
+        },
+        {
+            'code': '0x2e',
+            'name': 'Diag Version',
+            'length': '8',
+            'value': '3.25.4.1'
+        },
+        {
+            'code': '0x2f',
+            'name': 'Service Tag',
+            'length': '7',
+            'value': 'F3CD9Z2'
+        }
+    ],
+    'checksum_valid': True
+}
 
 class TestDecodeSyseeprom(object):
     def test_print_eeprom_dict(self, capsys):
-        tlv_dict = {
-            'header': {
-                'id': 'TlvInfo',
-                'version': '1',
-                'length': '170'
-            },
-            'tlv_list': [{
-                    'code': '0x21',
-                    'name': 'Product Name',
-                    'length': '8',
-                    'value': 'S6100-ON'
-                }, {
-                    'code': '0x22',
-                    'name': 'Part Number',
-                    'length': '6',
-                    'value': '0F6N2R'
-                }, {
-                    'code': '0x23',
-                    'name': 'Serial Number',
-                    'length': '20',
-                    'value': 'TH0F6N2RCET0007600NG'
-                }, {
-                    'code': '0x24',
-                    'name': 'Base MAC Address',
-                    'length': '6',
-                    'value': '0C:29:EF:CF:AC:A0'
-                }, {
-                    'code': '0x25',
-                    'name': 'Manufacture Date',
-                    'length': '19',
-                    'value': '07/07/2020 15:05:34'
-                }, {
-                    'code': '0x26',
-                    'name': 'Device Version',
-                    'length': '1',
-                    'value': '1'
-                }, {
-                    'code': '0x27',
-                    'name': 'Label Revision',
-                    'length': '3',
-                    'value': 'A08'
-                }, {
-                    'code': '0x28',
-                    'name': 'Platform Name',
-                    'length': '26',
-                    'value': 'x86_64-dell_s6100_c2538-r0'
-                }, {
-                    'code': '0x29',
-                    'name': 'ONIE Version',
-                    'length': '8',
-                    'value': '3.15.1.0'
-                }, {
-                    'code': '0x2a',
-                    'name': 'MAC Addresses',
-                    'length': '2',
-                    'value': '384'
-                }, {
-                    'code': '0x2b',
-                    'name': 'Manufacturer',
-                    'length': '5',
-                    'value': 'CET00'
-                }, {
-                    'code': '0x2c',
-                    'name': 'Manufacture Country',
-                    'length': '2',
-                    'value': 'TH'
-                }, {
-                    'code': '0x2d',
-                    'name': 'Vendor Name',
-                    'length': '4',
-                    'value': 'DELL'
-                }, {
-                    'code': '0x2e',
-                    'name': 'Diag Version',
-                    'length': '8',
-                    'value': '3.25.4.1'
-                }, {
-                    'code': '0x2f',
-                    'name': 'Service Tag',
-                    'length': '7',
-                    'value': 'F3CD9Z2'
-                }
-            ],
-            'checksum_valid': True
-        }
 
         expected_output = '''\
 TlvInfo Header:
@@ -136,6 +155,10 @@ Service Tag          0X2F        7  F3CD9Z2
 (checksum valid)
 '''
 
-        decode_syseeprom.print_eeprom_dict(tlv_dict)
+        decode_syseeprom.print_eeprom_dict(SAMPLE_TLV_DICT)
         captured = capsys.readouterr()
         assert captured.out == expected_output
+
+    def test_read_eeprom_from_db(self):
+        tlv_dict = decode_syseeprom.read_eeprom_from_db()
+        assert tlv_dict == SAMPLE_TLV_DICT
