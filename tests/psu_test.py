@@ -39,8 +39,8 @@ class TestPsu(object):
         expected = """\
 PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
 -----  -------  ----------------------------  -------------  -------------  -----------  --------  -----
-PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37        102.1  OK        green
-PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07        122.7  OK        green
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37       102.70  OK        green
+PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07       122.00  OK        green
 """
         assert result.output == expected
 
@@ -50,7 +50,7 @@ PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07      
         expected = """\
 PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
 -----  -------  ----------------------------  -------------  -------------  -----------  --------  -----
-PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37        102.1  OK        green
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37       102.70  OK        green
 """
         assert result.output == expected
 
@@ -58,7 +58,7 @@ PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37      
         expected = """\
 PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
 -----  -------  ----------------------------  -------------  -------------  -----------  --------  -----
-PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07        122.7  OK        green
+PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07       122.00  OK        green
 """
         assert result.output == expected
 
