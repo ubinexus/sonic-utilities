@@ -2,8 +2,7 @@ import sys
 import os
 import pytest
 import mock
-import subprocess
-from swsscommon.swsscommon import ConfigDBConnector
+from swsssdk import ConfigDBConnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
