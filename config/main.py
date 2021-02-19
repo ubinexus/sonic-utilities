@@ -3504,14 +3504,18 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
     # Get the config_db connector
     config_db = ctx.obj['config_db']
-    if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(config_db, interface_name)
-        if interface_name is None:
-            ctx.fail("'interface_name' is None!")
 
-    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
-    if interface_is_in_portchannel(portchannel_member_table, interface_name):
-        ctx.fail("'interface_name' is in portchannel!")
+    if not interface_name.startswith("PortChannel"):
+        # The checks are only for Ethernet interfaces and their aliases
+        if clicommon.get_interface_naming_mode() == "alias":
+            name_from_alias = interface_alias_to_name(config_db, interface_name)
+            if interface_name is None or name_from_alias == interface_name:
+                ctx.fail(f"Failed to convert alias {interface_name} to interface name. Result: {str(interface_name)}")
+            interface_name = name_from_alias
+
+        portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+        if interface_is_in_portchannel(portchannel_member_table, interface_name):
+            ctx.fail(f"{interface_name} is in portchannel!")
 
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
         command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
