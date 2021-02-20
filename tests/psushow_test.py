@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from click.testing import CliRunner
 
+from .mock_tables import dbconnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -20,6 +21,9 @@ loader = importlib.machinery.SourceFileLoader('psushow', psushow_path)
 spec = importlib.util.spec_from_loader(loader.name, loader)
 psushow = importlib.util.module_from_spec(spec)
 loader.exec_module(psushow)
+
+# Replace swsscommon objects with mocked objects
+psushow.SonicV2Connector = dbconnector.SonicV2Connector
 
 
 class TestPsushow(object):
