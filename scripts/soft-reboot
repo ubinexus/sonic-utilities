@@ -38,6 +38,7 @@ SSD_FW_UPDATE="ssd-fw-upgrade"
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
+BOOT_TYPE_ARG="soft"
 TAG_LATEST=yes
 
 function debug()
@@ -100,13 +101,8 @@ function setup_reboot_variables()
     NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
-        if is_secureboot; then
-            KERNEL_IMAGE=""
-            BOOT_OPTIONS="SONIC_BOOT_TYPE=${BOOT_TYPE_ARG} secure_boot_enable=1"
-        else
-            KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-            BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
-        fi
+        KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
+        BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
     elif grep -q onie_platform= /host/machine.conf; then
         KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
         KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
@@ -118,18 +114,10 @@ function setup_reboot_variables()
     INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
-function load_aboot_secureboot_kernel() {
-    local next_image="$IMAGE_PATH/sonic.swi"
-    echo "Loading next image from $next_image"
-    unzip -qp "$next_image" boot0 | \
-        swipath=$next_image kexec=true loadonly=true ENV_EXTRA_CMDLINE="$BOOT_OPTIONS" bash -
-}
-
 function load_kernel() {
     # Load kernel into the memory
     /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 }
-
 
 function reboot_pre_check()
 {
@@ -176,6 +164,11 @@ if [[ "$EUID" -ne 0 ]]; then
     exit "${EXIT_FAILURE}"
 fi
 
+if [ -x ${LOG_SSD_HEALTH} ]; then
+    debug "Collecting logs to check ssd health before ${REBOOT_TYPE}..."
+    ${LOG_SSD_HEALTH}
+fi
+
 debug "User requested rebooting device ..."
 
 setup_reboot_variables
@@ -189,24 +182,18 @@ stop_sonic_services
 
 clear_warm_boot
 
-if is_secureboot && grep -q aboot_machine= /host/machine.conf; then
-    load_aboot_secureboot_kernel
-else
-    load_kernel
-fi
+echo "$KERNEL_IMAGE : $INITRD : $BOOT_OPTIONS"
 
-if [ -x ${LOG_SSD_HEALTH} ]; then
-    debug "Collecting logs to check ssd health before ${REBOOT_TYPE}..."
-    ${LOG_SSD_HEALTH}
-fi
+load_kernel
 
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
 echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+
 sync
-/sbin/fstrim -av
 sleep 3
+sync
 
 # sync the current system time to CMOS
 if [ -x /sbin/hwclock ]; then
@@ -219,8 +206,9 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
-# Reboot: explicitly call Linux native reboot under sbin
+# Reboot: explicitly call Linux "kexec -u"
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
+echo `cat ${REBOOT_CAUSE_FILE}`
 exec ${REBOOT_METHOD}
 
 # Should never reach here
