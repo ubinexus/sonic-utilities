@@ -6173,13 +6173,13 @@ This command displays the user persistet-watermark for the queues (Egress shared
 
 #### Buffer Pool
 
-This sub-section explains the following buffer-pool parameters that can be displayed using "show buffer_pool" command.
-1) buffer_pool watermark
-2) buffer_pool persistent-watermark
+This sub-section explains the following buffer pool parameters that can be displayed using "show buffer_pool" command.
+1) buffer pool watermark
+2) buffer pool persistent-watermark
 
 **show buffer_pool watermark**
 
-This command displays the user watermark for all the buffer_pools(Total Buffer pool maximum occupancy per pool)
+This command displays the user watermark for all the buffer pools
 
 - Usage:
   ```
@@ -6199,7 +6199,7 @@ This command displays the user watermark for all the buffer_pools(Total Buffer p
 
 **show buffer_pool persistent-watermark**
 
-This command displays the user persistet-watermark for all the buffer_pools(Total Buffer pool maximum occupancy per pool)
+This command displays the user persistent-watermark for all the buffer pools
 
 - Usage:
   ```
