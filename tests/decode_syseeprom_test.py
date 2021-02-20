@@ -162,3 +162,22 @@ Service Tag          0X2F        7  F3CD9Z2
     def test_read_eeprom_from_db(self):
         tlv_dict = decode_syseeprom.read_eeprom_from_db()
         assert tlv_dict == SAMPLE_TLV_DICT
+
+    def test_get_tlv_value_from_db(self):
+        value = decode_syseeprom.get_tlv_value_from_db(0x28)
+        assert value == 'x86_64-dell_s6100_c2538-r0'
+
+    def test_print_mgmt_mac_db(self, capsys):
+        decode_syseeprom.print_mgmt_mac(True)
+        captured = capsys.readouterr()
+        assert captured.out == '0C:29:EF:CF:AC:A0\n'
+
+    def test_print_serial(self, capsys):
+        decode_syseeprom.print_serial(True)
+        captured = capsys.readouterr()
+        assert captured.out == 'TH0F6N2RCET0007600NG\n'
+
+    def test_print_model(self, capsys):
+        decode_syseeprom.print_model(True)
+        captured = capsys.readouterr()
+        assert captured.out == 'S6100-ON\n'
