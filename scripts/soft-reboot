@@ -206,7 +206,7 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
-# Reboot: explicitly call Linux "kexec -u"
+# Reboot: explicitly call Linux "kexec -e"
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
 echo `cat ${REBOOT_CAUSE_FILE}`
 exec ${REBOOT_METHOD}
