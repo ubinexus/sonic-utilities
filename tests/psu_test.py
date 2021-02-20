@@ -2,31 +2,22 @@ import sys
 import os
 from unittest import mock
 
-import pytest
 from click.testing import CliRunner
 
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
-scripts_path = os.path.join(modules_path, 'scripts')
 sys.path.insert(0, modules_path)
-
 import show.main as show
 
 
-@pytest.fixture(scope='class')
-def configure_path():
-    original_path = os.environ['PATH']
-
-    os.environ['PATH'] += os.pathsep + scripts_path
-
-    yield
-
-    os.environ['PATH'] = original_path
-
-
-@pytest.mark.usefixtures('configure_path')
-class TestPsu(object):
+class TestShowPlatformPsu(object):
+    """
+        Note: `show platform psustatus` simply calls the `psushow` utility and
+        passes a variety of options. Here we test that the utility is called
+        with the appropriate option(s). The functionality of the underlying
+        `psushow` utility is expected to be tested by a separate suite of unit tests
+    """
     def test_all_psus(self):
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             CliRunner().invoke(show.cli.commands['platform'].commands['psustatus'], [])
