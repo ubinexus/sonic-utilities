@@ -921,9 +921,9 @@ save_warmboot_files() {
             $BASE/warmboot \
             || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
             && $RM $V -rf $TARDIR
-        end_t=$(date +%s%3N)
-        echo "[ Warm-boot Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
     fi
+    end_t=$(date +%s%3N)
+    echo "[ Warm-boot Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
 
 ###############################################################################
