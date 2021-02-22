@@ -13,6 +13,9 @@ sys.modules['sonic_platform_base.sonic_sfp.sfputilhelper'] = mock.Mock()
 sys.modules['sonic_y_cable'] = mock.Mock()
 sys.modules['y_cable'] = mock.Mock()
 sys.modules['sonic_y_cable.y_cable'] = mock.Mock()
+sys.modules['platform_sfputil'] = mock.Mock()
+sys.modules['platform_sfputil_helper'] = mock.Mock()
+sys.modules['utilities_common.platform_sfputil_helper'] = mock.Mock()
 #sys.modules['os'] = mock.Mock()
 #sys.modules['os.geteuid'] = mock.Mock()
 #sys.modules['platform_sfputil'] = mock.Mock()
@@ -486,6 +489,51 @@ class TestMuxcable(object):
                                ["0", "0"], obj=db)
 
         assert result.exit_code == 100
+
+    @mock.patch('sonic_y_cable.y_cable.get_pn_number_and_vendor_name', mock.MagicMock(return_value=(bytearray(b'CACL1X321P2PA1M'), bytearray(b'Credo          '))))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_cableinfo(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
+                               ["Ethernet0"], obj=db)
+
+        assert result.exit_code == 0
+
+    @mock.patch('sonic_y_cable.y_cable.get_pn_number_and_vendor_name', mock.MagicMock(return_value=(False)))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_cableinfo_incorrect_port(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
+                               ["Ethernet0"], obj=db)
+        assert result.exit_code == 1
+
+    @mock.patch('sonic_y_cable.y_cable.get_pn_number_and_vendor_name', mock.MagicMock(return_value=(False)))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=0))
+    def test_show_muxcable_cableinfo_incorrect_port_return_value(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
+                               ["Ethernet0"], obj=db)
+        assert result.exit_code == 1
+
+    @mock.patch('sonic_y_cable.y_cable.get_pn_number_and_vendor_name', mock.MagicMock(return_value=(False)))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0,1]))
+    def test_show_muxcable_cableinfo_incorrect_logical_port_return_value(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
+                               ["Ethernet0"], obj=db)
+        assert result.exit_code == 1
 
     @classmethod
     def teardown_class(cls):
