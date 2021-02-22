@@ -20,7 +20,8 @@ optional arguments:
 import os
 import sys
 import argparse
-from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
+# APPL_DB constants
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 
 # mock the redis for unit test purposes #
 try:
@@ -33,7 +34,8 @@ try:
 except KeyError:
     pass
 
-# APPL_DB constants
+
+
 PORT_TABLE_NAME = "PORT"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
 PORT_FEC_CONFIG_FIELD_NAME = "fec"
@@ -176,6 +178,8 @@ def main():
 
     if args.namespace is not None:
         SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+    else:
+        SonicDBConfig.initialize()
 
     try:
         port = portconfig(args.verbose, args.port, args.namespace)

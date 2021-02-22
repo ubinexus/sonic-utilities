@@ -1,15 +1,15 @@
 import imp
 import os
 import sys
+from unittest import mock, TestCase
 
 # import file under test i.e. config_mgmt.py
 imp.load_source('config_mgmt', \
     os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py'))
 import config_mgmt
 
-from unittest import TestCase
-from mock import MagicMock, call
 from json import dump
+from copy import deepcopy
 
 class TestConfigMgmt(TestCase):
     '''
@@ -22,14 +22,14 @@ class TestConfigMgmt(TestCase):
         return
 
     def test_config_validation(self):
-        curConfig = dict(configDbJson)
+        curConfig = deepcopy(configDbJson)
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
         cm = config_mgmt.ConfigMgmt(source=config_mgmt.CONFIG_DB_JSON_FILE)
         assert cm.validateConfigData() == True
         return
 
     def test_table_without_yang(self):
-        curConfig = dict(configDbJson)
+        curConfig = deepcopy(configDbJson)
         unknown = {"unknown_table": {"ukey": "uvalue"}}
         self.updateConfig(curConfig, unknown)
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
@@ -38,7 +38,7 @@ class TestConfigMgmt(TestCase):
         return
 
     def test_search_keys(self):
-        curConfig = dict(configDbJson)
+        curConfig = deepcopy(configDbJson)
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
         cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
         out = cmdpb.configWithKeys(portBreakOutConfigDbJson, \
@@ -61,7 +61,7 @@ class TestConfigMgmt(TestCase):
         self.writeJson(portBreakOutConfigDbJson, \
             config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE)
         # prepare config dj json to start with
-        curConfig = dict(configDbJson)
+        curConfig = deepcopy(configDbJson)
         #Ethernet8: start from 4x25G-->2x50G with -f -l
         self.dpb_port8_4x25G_2x50G_f_l(curConfig)
         #Ethernet8: move from 2x50G-->1x100G without force, list deps
@@ -107,8 +107,8 @@ class TestConfigMgmt(TestCase):
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
         cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
         # mock funcs
-        cmdpb.writeConfigDB = MagicMock(return_value=True)
-        cmdpb._verifyAsicDB = MagicMock(return_value=True)
+        cmdpb.writeConfigDB = mock.MagicMock(return_value=True)
+        cmdpb._verifyAsicDB = mock.MagicMock(return_value=True)
         from .mock_tables import dbconnector
         return cmdpb
 
@@ -182,6 +182,13 @@ class TestConfigMgmt(TestCase):
                     else:
                         if isinstance(conf[it], list) and isinstance(uconf[it], list):
                             conf[it] = list(uconf[it])
+                            '''
+                                configDb stores []->[""], i.e. empty list as
+                                list of empty string. So we need to replicate
+                                same behaviour here.
+                            '''
+                            if len(conf[it]) == 0:
+                                conf[it] = [""]
                         elif isinstance(conf[it], dict) and isinstance(uconf[it], dict):
                             self.updateConfig(conf[it], uconf[it])
                         else:
@@ -210,7 +217,7 @@ class TestConfigMgmt(TestCase):
         Return:
             void
         '''
-        calls = [call(delConfig), call(addConfig)]
+        calls = [mock.call(delConfig), mock.call(addConfig)]
         assert cmdpb.writeConfigDB.call_count == 2
         cmdpb.writeConfigDB.assert_has_calls(calls, any_order=False)
         return
@@ -442,7 +449,7 @@ class TestConfigMgmt(TestCase):
                     'ports': ['Ethernet0', 'Ethernet4']
                 },
                 'NO-NSW-PACL-TEST': {
-                    'ports': None
+                    'ports': []
                 }
             },
             'INTERFACE': None,

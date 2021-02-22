@@ -11,14 +11,14 @@ import argparse
 import json
 import os
 import requests
+import subprocess
 import sys
 import time
 import traceback
 import warnings
 
 from sonic_py_common import logger
-from swsssdk import ConfigDBConnector
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from netaddr import IPAddress, IPNetwork
 
 
@@ -234,6 +234,21 @@ def get_vlan_addresses(vlan_interface):
     ipv4_addr, ipv4_prefix = get_vlan_addr_prefix(vlan_interface, 4)
     ipv6_addr, ipv6_prefix = get_vlan_addr_prefix(vlan_interface, 6)
 
+    if len(ipv6_addr):
+        try:
+            out = subprocess.check_output(['ip', '-6', 'addr', 'show', vlan_interface])
+            out = out.decode('UTF-8')
+            for line in out.splitlines():
+                keys = line.split()
+                if keys[0] == 'inet6':
+                    ip = IPNetwork(keys[1])
+                    if str(ip.ip).startswith("fe80") and str(ip.ip) not in ipv6_addr:
+                        # Link local ipv6 address
+                        ipv6_addr.append(str(ip.ip))
+                        ipv6_prefix.append('128')
+        except Exception:
+            log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
+
     metadata = config_db.get_table('DEVICE_METADATA')
     mac_addr = metadata['localhost']['mac']
     if not mac_addr:
@@ -302,17 +317,18 @@ def construct_neighbor_advertiser_slice():
             ipv6_mappings.append(mapping)
             ctr += 1
 
-        vlan_interface_obj = {
-            'vlanId': vlan_id,
-            'vxlanId': vxlan_id,
-            'ipv4AddrMappings': ipv4_mappings,
-            'ipv6AddrMappings': ipv6_mappings
-        }
+        if len(ipv4_mappings) > 0 or len(ipv6_mappings) > 0:
+            vlan_interface_obj = {
+                'vlanId': vlan_id,
+                'vxlanId': vxlan_id,
+                'ipv4AddrMappings': ipv4_mappings,
+                'ipv6AddrMappings': ipv6_mappings
+            }
 
-        if vxlanPort:
-            vlan_interface_obj['vxlanPort'] = vxlanPort
+            if vxlanPort:
+                vlan_interface_obj['vxlanPort'] = vxlanPort
 
-        vlan_interfaces_obj.append(vlan_interface_obj)
+            vlan_interfaces_obj.append(vlan_interface_obj)
 
     slice_obj = {
         'switchInfo': switch_info_obj,
