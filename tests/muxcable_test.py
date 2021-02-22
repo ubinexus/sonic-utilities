@@ -156,6 +156,13 @@ json_data_config_output_active_expected = """\
 }
 """
 
+expected_muxcable_cableinfo_output = """\
+pin_number       vendor_name
+---------------  -------------
+CACL1X321P2PA1M  Credo
+"""
+
+
 
 class TestMuxcable(object):
     @classmethod
@@ -501,6 +508,7 @@ class TestMuxcable(object):
                                ["Ethernet0"], obj=db)
 
         assert result.exit_code == 0
+        assert result.output == expected_muxcable_cableinfo_output
 
     @mock.patch('sonic_y_cable.y_cable.get_pn_number_and_vendor_name', mock.MagicMock(return_value=(False)))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
