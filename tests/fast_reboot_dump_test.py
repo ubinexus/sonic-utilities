@@ -22,6 +22,7 @@ class TestFastRebootDump(object):
         cls.asic_db = asic_db
         cls.app_db = app_db
 
+    #Test fast-reboot-dump script to generate all required objects when there is a VLAN interface with a PortChannel member.
     def test_generate_fdb_entries_vlan_portcahnnel_member(self):
         vlan_ifaces = ['Vlan2']
 
