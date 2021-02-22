@@ -163,7 +163,6 @@ CACL1X321P2PA1M  Credo
 """
 
 
-
 class TestMuxcable(object):
     @classmethod
     def setup_class(cls):
@@ -534,7 +533,7 @@ class TestMuxcable(object):
 
     @mock.patch('sonic_y_cable.y_cable.get_pn_number_and_vendor_name', mock.MagicMock(return_value=(False)))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
-    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0,1]))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0, 1]))
     def test_show_muxcable_cableinfo_incorrect_logical_port_return_value(self):
         runner = CliRunner()
         db = Db()
