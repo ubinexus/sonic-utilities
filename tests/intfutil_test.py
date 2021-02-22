@@ -253,14 +253,14 @@ class TestIntfutil(TestCase):
         os.environ["SONIC_CLI_IFACE_MODE"] = "default"
 
     def test_show_interfaces_autoneg_status(self):
-        result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg-status"], [])
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["auto-neg"].commands["status"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interface_auto_neg_status_output
 
     def test_show_interfaces_autoneg_status_Ethernet0(self):
-        result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg-status"], ["Ethernet0"])
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["auto-neg"].commands["status"], ["Ethernet0"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -268,7 +268,7 @@ class TestIntfutil(TestCase):
   
     def test_show_interfaces_autoneg_status_etp9_in_alias_mode(self):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
-        result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg-status"], ["etp9"])
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["auto-neg"].commands["status"], ["etp9"])
         os.environ["SONIC_CLI_IFACE_MODE"] = "default"
         print(result.exit_code)
         print(result.output)

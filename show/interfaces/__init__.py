@@ -442,8 +442,18 @@ def detailed(interface, period, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
-# 'autoneg-status' subcommand ("show interfaces autoneg_status")
-@interfaces.command()
+
+#
+# auto-neg group (show interfaces auto-neg ...)
+#
+@interfaces.group(name='auto-neg', cls=clicommon.AliasedGroup)
+def autoneg():
+    """Show interface autoneg information"""
+    pass
+
+
+# 'auto-neg status' subcommand ("show interfaces auto-neg status")
+@autoneg.command(name='status')
 @click.argument('interfacename', required=False)
 @multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")

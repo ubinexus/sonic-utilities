@@ -83,9 +83,9 @@ class portconfig(object):
             print("Setting speed %s on port %s" % (speed, port))
         supported_speeds_str = self.get_supported_speeds(port)
         if supported_speeds_str:
-            if supported_speeds_str.find(speed) == -1:
+            if supported_speeds_str.find(str(speed)) == -1:
                 print('Invalid speed value {}'.format(speed))
-                print('Valid speed value:{}'.format(','.join(supported_speeds)))
+                print('Valid speed value:{}'.format(supported_speeds_str))
                 exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
@@ -116,7 +116,7 @@ class portconfig(object):
                 for speed in adv_speeds.split(','):
                     if speed not in supported_speeds:
                         print('Invalid speed value {}'.format(speed))
-                        print('Valid speed value:{}'.format(','.join(supported_speeds)))
+                        print('Valid speed value:{}'.format(supported_speeds_str))
                         exit(1)
 
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
