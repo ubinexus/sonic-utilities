@@ -910,13 +910,13 @@ save_log_files() {
 ###############################################################################
 save_warmboot_files() {
     # Copy the warmboot files
+    start_t=$(date +%s%3N)
     if $NOOP; then
         echo "$CP $V -rf /host/warmboot $TARDIR"
     else
         mkdir -p $TARDIR
         $CP $V -rf /host/warmboot $TARDIR
 
-        start_t=$(date +%s%3N)
         ($TAR $V --warning=no-file-removed  -rhf $TARFILE -C $DUMPDIR --mode=+rw \
             $BASE/warmboot \
             || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
