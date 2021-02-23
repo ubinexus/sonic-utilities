@@ -40,7 +40,6 @@ breakout_cfg_file_json = {
         "Ethernet8": {
             "index": "3,3,3,3",
             "lanes": "73,74,75,76",
-            "alias_at_lanes": "Eth3/1, Eth3/2, Eth3/3, Eth3/4",
             "breakout_modes": {
                 "1x100G[40G]": ["Eth3"],
                 "2x50G": ["Eth3/1", "Eth3/2"],
