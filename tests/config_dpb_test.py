@@ -57,7 +57,7 @@ breakout_cfg_file_json = {
             "breakout_modes": {
                 "1x100G[40G]": ["Eth4"],
                 "2x50G": ["Eth4/1", "Eth4/3"],
-                "4x25G[10G]": ["Eth4/1", "Eth1/2", "Eth4/3", "Eth4/4"]
+                "4x25G[10G]": ["Eth4/1", "Eth4/2", "Eth4/3", "Eth4/4"]
             }
         }
     }
