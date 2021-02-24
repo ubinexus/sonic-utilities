@@ -167,7 +167,7 @@ class Watermarkstat(object):
                                "idx_func": self.get_queue_index,
                                "wm_name" : "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES",
                                "header_prefix": "MC"},
-            "buffer_pool"   : {"message": "Shared pool maximum occupancy:",
+            "buffer_pool"   : {"message": "Buffer pool maximum occupancy:",
                                "wm_name": "SAI_BUFFER_POOL_STAT_WATERMARK_BYTES",
                                "header" : headerBufferPool},
             "headroom_pool" : {"message": "Headroom pool maximum occupancy:",
