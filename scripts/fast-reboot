@@ -398,6 +398,15 @@ function save_counters_folder() {
     fi
 }
 
+function check_warm_restart_in_progress() {
+    sonic-db-cli STATE_DB keys "WARM_RESTART_ENABLE_TABLE|*" | while read key ; do
+        if [[ "$(sonic-db-cli STATE_DB hget $key enable)" = "true" ]]; then
+            echo "Warm restart flag for ${key#*|} is set. Please check if a warm restart for ${key#*|} is in progress."
+            exit "${EXIT_FAILURE}"
+        fi
+    done
+}
+
 # main starts here
 parseOptions $@
 
@@ -419,6 +428,7 @@ case "$REBOOT_TYPE" in
         sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
     "warm-reboot")
+        check_warm_restart_in_progress
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
             REBOOT_TYPE="fastfast-reboot"
             BOOT_TYPE_ARG="fastfast"
