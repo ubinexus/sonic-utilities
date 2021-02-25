@@ -4,7 +4,7 @@ REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 REBOOT_TIME=$(date)
 REBOOT_METHOD="/sbin/kexec -e"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
-
+WATCHDOG_UTIL="/usr/local/bin/watchdogutil"
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
@@ -68,10 +68,12 @@ function stop_sonic_services()
     fi
 }
 
-function clear_warm_boot()
+function clear_lingering_reboot_config()
 {
-    # If reboot is requested, make sure the outstanding warm-boot is cleared
-    # So the system will come up from a cold boot.
+    # Clear any outstanding warm-reboot config
+    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    debug "Cancel warm-reboot: ${result}"
+
     WARM_DIR="/host/warmboot"
     REDIS_FILE=dump.rdb
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
@@ -180,9 +182,7 @@ tag_images
 # Stop SONiC services gracefully.
 stop_sonic_services
 
-clear_warm_boot
-
-echo "$KERNEL_IMAGE : $INITRD : $BOOT_OPTIONS"
+clear_lingering_reboot_config
 
 load_kernel
 
@@ -200,6 +200,17 @@ if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
 fi
 
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
+    debug "updating ssd fw for${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
+fi
+
+# Enable Watchdog Timer
+if [ -x ${WATCHDOG_UTIL} ]; then
+    debug "Enabling Watchdog before ${REBOOT_TYPE}"
+    ${WATCHDOG_UTIL} arm
+fi
+
 # Run platform specific reboot plugin
 if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     debug "Running ${PLATFORM} specific plugin..."
@@ -208,7 +219,6 @@ fi
 
 # Reboot: explicitly call Linux "kexec -e"
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
-echo `cat ${REBOOT_CAUSE_FILE}`
 exec ${REBOOT_METHOD}
 
 # Should never reach here
