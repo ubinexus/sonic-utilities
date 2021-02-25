@@ -400,8 +400,8 @@ function save_counters_folder() {
 
 function check_warm_restart_in_progress() {
     sonic-db-cli STATE_DB keys "WARM_RESTART_ENABLE_TABLE|*" | while read key ; do
-        if [[ "$(sonic-db-cli STATE_DB hget $key enable)" = "true" ]]; then
-            if [[ "${FORCE}" = "yes" ]]; then
+        if [[ x"$(sonic-db-cli STATE_DB hget $key enable)" == x"true" ]]; then
+            if [[ x"${FORCE}" == x"yes" ]]; then
                 debug "Ignoring warm restart flag for ${key#*|}"
             else
                 echo "Warm restart flag for ${key#*|} is set. Please check if a warm restart for ${key#*|} is in progress."
