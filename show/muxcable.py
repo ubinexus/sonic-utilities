@@ -382,6 +382,7 @@ def eyeinfo(port, target):
     click.echo(tabulate(lane_data, headers=headers))
     sys.exit(EXIT_SUCCESS)
 
+
 @muxcable.command()
 @click.argument('port', required=True, default=None)
 def cableinfo(port):
