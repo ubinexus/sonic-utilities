@@ -74,24 +74,25 @@ def get_switch_name(config_db):
         sys.exit(STATUS_FAIL)
 
 
-def create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port):
+def create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_index, port):
 
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     port_status_dict["MUX_CABLE"][port] = {}
     port_status_dict["MUX_CABLE"][port]["STATUS"] = status_value
-    # TODO : Fix the health status of the port
-    port_status_dict["MUX_CABLE"][port]["HEALTH"] = "HEALTHY"
+    health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
+    port_status_dict["MUX_CABLE"][port]["HEALTH"] = health_value
 
-
-def create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_index, port):
+def create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_health_dict, asic_index, port):
 
     print_port_data = []
 
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     #status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
+    health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
+    port_status_dict["MUX_CABLE"][port]["HEALTH"] = health_value
     print_port_data.append(port)
     print_port_data.append(status_value)
-    print_port_data.append("HEALTHY")
+    print_port_data.append(health_value)
     print_data.append(print_port_data)
 
 
@@ -128,6 +129,7 @@ def status(port, json_output):
     port_table_keys = {}
     per_npu_statedb = {}
     muxcable_info_dict = {}
+    muxcable_health_dict = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -155,22 +157,25 @@ def status(port, json_output):
 
         muxcable_info_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
+        muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
         if muxcable_info_dict[asic_index] is not None:
             logical_key = "MUX_CABLE_TABLE"+"|"+port
+            logical_health_key = "MUX_LINKMGR_TABLE"+"|"+port
             if logical_key in port_table_keys[asic_index]:
 
                 if json_output:
                     port_status_dict = {}
                     port_status_dict["MUX_CABLE"] = {}
 
-                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port)
+                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_index, port)
 
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                     sys.exit(STATUS_SUCCESSFUL)
                 else:
                     print_data = []
 
-                    create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_index, port)
+                    create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_health_dict, asic_index, port)
 
                     headers = ['PORT', 'STATUS', 'HEALTH']
 
@@ -194,7 +199,9 @@ def status(port, json_output):
                     port = key.split("|")[1]
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
-                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_id, port)
+                    muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+                        per_npu_statedb[asic_index].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
+                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_id, port)
 
             click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
         else:
@@ -381,7 +388,6 @@ def eyeinfo(port, target):
     lane_data.append(res)
     click.echo(tabulate(lane_data, headers=headers))
     sys.exit(EXIT_SUCCESS)
-
 
 @muxcable.command()
 @click.argument('port', required=True, default=None)
