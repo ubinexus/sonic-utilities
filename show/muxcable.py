@@ -399,8 +399,8 @@ def cableinfo(port):
 
     physical_port = physical_port_list[0]
     import sonic_y_cable.y_cable
-    part = sonic_y_cable.y_cable.get_part_number(physical_port)
-    if part == False or part == -1:
+    part_num = sonic_y_cable.y_cable.get_part_number(physical_port)
+    if part_num == False or part_num == -1:
         click.echo("ERR: Unable to get cable info part number")
         sys.exit(EXIT_FAIL)
     vendor = sonic_y_cable.y_cable.get_vendor(physical_port)
@@ -408,11 +408,6 @@ def cableinfo(port):
         click.echo("ERR: Unable to get cable info vendor name")
         sys.exit(EXIT_FAIL)
     headers = ['Vendor', 'Model']
-    lane_data = []
-    temp_list = []
 
-    temp_list.append(vendor)
-    temp_list.append(part)
-    lane_data.append(temp_list)
-    click.echo(tabulate(lane_data, headers=headers))
-    sys.exit(EXIT_SUCCESS)
+    body = [[vendor, part_num]]
+    click.echo(tabulate(body, headers=headers))
