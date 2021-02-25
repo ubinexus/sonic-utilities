@@ -283,6 +283,7 @@ Examples:
   watermarkstat -t pg_shared
   watermarkstat -t q_shared_all
   watermarkstat -p -t q_shared_all
+  watermarkstat -t q_shared_all -c
   watermarkstat -t q_shared_uni -c
   watermarkstat -t q_shared_multi -c
   watermarkstat -p -t pg_shared
