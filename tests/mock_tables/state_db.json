@@ -490,6 +490,21 @@
     "MUX_CABLE_TABLE|Ethernet12": {
         "state": "unknown"
     },
+    "MUX_LINKMGR_TABLE|Ethernet32": {
+        "state": "healthy"
+    },
+    "MUX_LINKMGR_TABLE|Ethernet0": {
+        "state": "healthy"
+    },
+    "MUX_LINKMGR_TABLE|Ethernet4": {
+        "state": "healthy"
+    },
+    "MUX_LINKMGR_TABLE|Ethernet8": {
+        "state": "healthy"
+    },
+    "MUX_LINKMGR_TABLE|Ethernet12": {
+        "state": "healthy"
+    },
     "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.25": {
         "src_ip": "1.1.1.1",
         "dst_ip": "25.25.25.25",

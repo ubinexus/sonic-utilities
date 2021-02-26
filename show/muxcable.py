@@ -89,7 +89,6 @@ def create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_h
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     #status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
     health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
-    port_status_dict["MUX_CABLE"][port]["HEALTH"] = health_value
     print_port_data.append(port)
     print_port_data.append(status_value)
     print_port_data.append(health_value)
@@ -199,8 +198,8 @@ def status(port, json_output):
                     port = key.split("|")[1]
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
-                    muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-                        per_npu_statedb[asic_index].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
+                    muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
                     create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_id, port)
 
             click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
@@ -210,10 +209,12 @@ def status(port, json_output):
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for key in natsorted(port_table_keys[asic_id]):
                     port = key.split("|")[1]
+                    muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
 
-                    create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_id, port)
+                    create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_health_dict, asic_id, port)
 
             headers = ['PORT', 'STATUS', 'HEALTH']
             click.echo(tabulate(print_data, headers=headers))

@@ -26,11 +26,11 @@ import show.main as show
 tabular_data_status_output_expected = """\
 PORT        STATUS    HEALTH
 ----------  --------  --------
-Ethernet0   active    HEALTHY
-Ethernet4   standby   HEALTHY
-Ethernet8   standby   HEALTHY
-Ethernet12  unknown   HEALTHY
-Ethernet32  active    HEALTHY
+Ethernet0   active    healthy
+Ethernet4   standby   healthy
+Ethernet8   standby   healthy
+Ethernet12  unknown   healthy
+Ethernet32  active    healthy
 """
 
 json_data_status_output_expected = """\
@@ -38,23 +38,23 @@ json_data_status_output_expected = """\
     "MUX_CABLE": {
         "Ethernet0": {
             "STATUS": "active",
-            "HEALTH": "HEALTHY"
+            "HEALTH": "healthy"
         },
         "Ethernet4": {
             "STATUS": "standby",
-            "HEALTH": "HEALTHY"
+            "HEALTH": "healthy"
         },
         "Ethernet8": {
             "STATUS": "standby",
-            "HEALTH": "HEALTHY"
+            "HEALTH": "healthy"
         },
         "Ethernet12": {
             "STATUS": "unknown",
-            "HEALTH": "HEALTHY"
+            "HEALTH": "healthy"
         },
         "Ethernet32": {
             "STATUS": "active",
-            "HEALTH": "HEALTHY"
+            "HEALTH": "healthy"
         }
     }
 }
