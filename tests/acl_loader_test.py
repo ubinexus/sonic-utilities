@@ -19,7 +19,7 @@ class TestAclLoader(object):
 
     def test_valid(self):
         yang_acl = AclLoader.parse_acl_json(os.path.join(test_path, 'acl_input/acl1.json'))
-        assert len(yang_acl.acl.acl_sets.acl_set) == 4
+        assert len(yang_acl.acl.acl_sets.acl_set) == 6
 
     def test_invalid(self):
         with pytest.raises(AclLoaderException):

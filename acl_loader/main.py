@@ -290,6 +290,14 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]['type'].upper().startswith(self.ACL_TABLE_TYPE_MIRROR)
 
+    def is_table_ipv6(self, tname):
+        """
+        Check if ACL table type is IPv6 (L3V6 or MIRRORV6)
+        :param tname: ACL table name
+        :return: True if table type is IPv6 else False
+        """
+        return "V6" in self.tables_db_info[tname]["type"].upper()
+
     def is_table_control_plane(self, tname):
         """
         Check if ACL table type is ACL_TABLE_TYPE_CTRLPLANE
@@ -409,9 +417,16 @@ class AclLoader(object):
             else:
                 try:
                     rule_props["ETHER_TYPE"] = int(rule.l2.config.ethertype)
-                except:
-                    raise AclLoaderException("Failed to convert ethertype %s table %s rule %s" % (
+                except Exception:
+                    raise AclLoaderException("Failed to convert ethertype %s; table %s rule %s" % (
                         rule.l2.config.ethertype, table_name, rule_idx))
+
+        if rule.l2.config.vlan_id:
+            try:
+                rule_props["VLAN_ID"] = int(rule.l2.config.vlan_id)
+            except Exception:
+                raise AclLoaderException("Failed to convert VLAN ID %s; table %s rule %s" % (
+                    rule.l2.config.vlan_id, table_name, rule_idx))
 
         return rule_props
 
@@ -450,6 +465,27 @@ class AclLoader(object):
         if self.is_table_mirror(table_name):
             if rule.ip.config.dscp:
                 rule_props["DSCP"] = rule.ip.config.dscp
+
+        return rule_props
+
+    def convert_icmp(self, table_name, rule_idx, rule):
+        rule_props = {}
+
+        is_table_v6 = self.is_table_ipv6(table_name)
+        type_key = "ICMPV6_TYPE" if is_table_v6 else "ICMP_TYPE"
+        code_key = "ICMPV6_CODE" if is_table_v6 else "ICMP_CODE"
+
+        if rule.icmp.config.type:
+            try:
+                rule_props[type_key] = int(rule.icmp.config.type)
+            except Exception:
+                raise AclLoaderException("Failed to convert %s; table %s, rule %s" % (type_key, table_name, rule_idx))
+
+        if rule.icmp.config.code:
+            try:
+                rule_props[code_key] = int(rule.icmp.config.code)
+            except Exception:
+                raise AclLoaderException("Failed to convert %s; table %s, rule %s" % (code_key, table_name, rule_idx))
 
         return rule_props
 
@@ -527,6 +563,7 @@ class AclLoader(object):
         deep_update(rule_props, self.convert_action(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_l2(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_ip(table_name, rule_idx, rule))
+        deep_update(rule_props, self.convert_icmp(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_transport(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_input_interface(table_name, rule_idx, rule))
 
