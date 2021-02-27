@@ -82,6 +82,7 @@ def create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxca
     health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
     port_status_dict["MUX_CABLE"][port]["HEALTH"] = health_value
 
+
 def create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_health_dict, asic_index, port):
 
     print_port_data = []
@@ -140,6 +141,8 @@ def status(port, json_output):
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
+        port__health_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|*')
 
     if port is not None:
         asic_index = None
@@ -161,20 +164,22 @@ def status(port, json_output):
         if muxcable_info_dict[asic_index] is not None:
             logical_key = "MUX_CABLE_TABLE"+"|"+port
             logical_health_key = "MUX_LINKMGR_TABLE"+"|"+port
-            if logical_key in port_table_keys[asic_index]:
+            if logical_key in port_table_keys[asic_index] and logical_health_key in port_health_table_keys[asic_index]:
 
                 if json_output:
                     port_status_dict = {}
                     port_status_dict["MUX_CABLE"] = {}
 
-                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_index, port)
+                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict,
+                                                     muxcable_health_dict, asic_index, port)
 
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                     sys.exit(STATUS_SUCCESSFUL)
                 else:
                     print_data = []
 
-                    create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_health_dict, asic_index, port)
+                    create_table_dump_per_port_status(print_data, muxcable_info_dict,
+                                                      muxcable_health_dict, asic_index, port)
 
                     headers = ['PORT', 'STATUS', 'HEALTH']
 
@@ -200,7 +205,8 @@ def status(port, json_output):
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
                     muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
-                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_id, port)
+                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict,
+                                                     muxcable_health_dict, asic_id, port)
 
             click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
         else:
@@ -214,7 +220,8 @@ def status(port, json_output):
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
 
-                    create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_health_dict, asic_id, port)
+                    create_table_dump_per_port_status(print_data, muxcable_info_dict,
+                                                      muxcable_health_dict, asic_id, port)
 
             headers = ['PORT', 'STATUS', 'HEALTH']
             click.echo(tabulate(print_data, headers=headers))
@@ -390,6 +397,7 @@ def eyeinfo(port, target):
     click.echo(tabulate(lane_data, headers=headers))
     sys.exit(EXIT_SUCCESS)
 
+
 @muxcable.command()
 @click.argument('port', required=True, default=None)
 def cableinfo(port):
@@ -419,3 +427,97 @@ def cableinfo(port):
 
     body = [[vendor, part_num]]
     click.echo(tabulate(body, headers=headers))
+
+
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def hwmode():
+    """start configuring cable in hardware mode on a port"""
+    pass
+
+
+@hwmode.command()
+@click.argument('port', metavar='<port_name>', required=False, default=None)
+def mux_direction(port):
+    if port is not None:
+
+        """Show muxcable summary information"""
+        if platform_sfputil is not None:
+            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+        if not isinstance(physical_port_list, list):
+            click.echo("ERR: Unable to get a port on muxcable port")
+            sys.exit(EXIT_FAIL)
+            if len(physical_port_list) != 1:
+                click.echo("ERR: Unable to get a single port on muxcable")
+                sys.exit(EXIT_FAIL)
+
+        physical_port = physical_port_list[0]
+        import sonic_y_cable.y_cable
+        read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
+        if read_side == False or read_side == -1:
+            click.echo("ERR: Unable to get read_side for the cable")
+            sys.exit(EXIT_FAIL)
+
+        mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
+        if mux_direction == False or mux_direction == -1:
+            click.echo("ERR: Unable to get mux direction for the cable")
+            sys.exit(EXIT_FAIL)
+
+        if int(read_side) == 1:
+            if mux_direction == 1:
+                state = "active"
+            elif mux_direction == 2:
+                state = "standby"
+            click.echo("mux direction for the cable at port {} is {}".format(port, state))
+        elif int(read_side) == 2:
+            if mux_direction == 1:
+                state = "standby"
+            elif mux_direction == 2:
+                state = "active"
+            click.echo("mux direction for the cable at port {} is {}".format(port, state))
+        else:
+            click.echo("ERR: Unable to get mux direction, direction in unknown")
+
+    else:
+
+        logical_port_list = platform_sfputil.logical
+
+        for port in logical_port_list:
+
+            """Show muxcable summary information"""
+            if platform_sfputil is not None:
+                physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+            if not isinstance(physical_port_list, list):
+                click.echo("ERR: Unable to get a port on muxcable port")
+                sys.exit(EXIT_FAIL)
+                if len(physical_port_list) != 1:
+                    click.echo("ERR: Unable to get a single port on muxcable")
+                    sys.exit(EXIT_FAIL)
+
+            physical_port = physical_port_list[0]
+            import sonic_y_cable.y_cable
+            read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
+            if read_side == False or read_side == -1:
+                click.echo("ERR: Unable to get read_side for the cable")
+                sys.exit(EXIT_FAIL)
+
+            mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
+            if mux_direction == False or mux_direction == -1:
+                click.echo("ERR: Unable to get mux direction for the cable")
+                sys.exit(EXIT_FAIL)
+
+            if int(read_side) == 1:
+                if mux_direction == 1:
+                    state = "active"
+                elif mux_direction == 2:
+                    state = "standby"
+                click.echo("mux direction for the cable at port {} is {}".format(port, state))
+            elif int(read_side) == 2:
+                if mux_direction == 1:
+                    state = "standby"
+                elif mux_direction == 2:
+                    state = "active"
+                click.echo("mux direction for the cable at port {} is {}".format(port, state))
+            else:
+                click.echo("ERR: Unable to get mux direction, direction in unknown")

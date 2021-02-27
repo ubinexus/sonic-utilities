@@ -188,10 +188,12 @@ def mode(state, port, json_output):
 
         sys.exit(CONFIG_SUCCESSFUL)
 
+
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def prbs():
     """Enable/disable PRBS mode on a port"""
     pass
+
 
 @prbs.command()
 @click.argument('port', required=True, default=None, type=click.INT)
@@ -209,6 +211,7 @@ def enable(port, target, mode_value, lane_map):
     click.echo("PRBS config sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
 
+
 @prbs.command()
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
@@ -222,6 +225,7 @@ def disable(port, target):
         sys.exit(CONFIG_FAIL)
     click.echo("PRBS disable sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
+
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def loopback():
@@ -244,6 +248,7 @@ def enable(port, target, lane_map):
     click.echo("loopback config sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
 
+
 @loopback.command()
 @click.argument('port', required=True, default=None, type=click.INT)
 @click.argument('target', required=True, default=None, type=click.INT)
@@ -257,3 +262,107 @@ def disable(port, target):
         sys.exit(CONFIG_FAIL)
     click.echo("loopback disable sucessful")
     sys.exit(CONFIG_SUCCESSFUL)
+
+
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def hwmode():
+    """start configuring cable in hardware mode on a port"""
+    pass
+
+
+@hwmode.command()
+@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "standby"]))
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+def state(state, port):
+    """Show muxcable summary information"""
+    if port is not None and port != "all":
+        click.confirm(('Do you wish to change the port {} to {} state, Continue?'.format(port, state)), abort=True)
+
+        if platform_sfputil is not None:
+            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+        if not isinstance(physical_port_list, list):
+            click.echo("ERR: Unable to get a port on muxcable port")
+            sys.exit(CONFIG_FAIL)
+            if len(physical_port_list) != 1:
+                click.echo("ERR: Unable to get a single port on muxcable")
+                sys.exit(CONFIG_FAIL)
+
+        physical_port = physical_port_list[0]
+        import sonic_y_cable.y_cable
+        read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
+        if read_side == False or read_side == -1:
+            click.echo("ERR: Unable to get read_side for the cable")
+            sys.exit(CONFIG_FAIL)
+
+        mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
+        if mux_direction == False or mux_direction == -1:
+            click.echo("ERR: Unable to get mux direction for the cable")
+            sys.exit(CONFIG_FAIL)
+
+        if int(read_side) == 1:
+            if state == "active":
+                res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
+            elif state == "standby":
+                res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
+            click.echo("Success in toggling port {} to {}".format(port, state))
+        elif int(read_side) == 2:
+            if state == "active":
+                res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
+            elif state == "standby":
+                res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
+            click.echo("Success in toggling port {} to {}".format(port, state))
+
+        if res == False:
+            click.echo("ERR: Unable to toggle port to {}".format(port, state))
+            sys.exit(CONFIG_FAIL)
+
+    elif port == "all" and port is not None:
+
+        click.confirm(('Do you wish to change all the ports to {} state Continue?'.format(state)), abort=True)
+        logical_port_list = platform_sfputil.logical
+
+        rc = True
+        for port in logical_port_list:
+            if platform_sfputil is not None:
+                physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+            if not isinstance(physical_port_list, list):
+                click.echo("ERR: Unable to get a port on muxcable port")
+                rc = False
+                if len(physical_port_list) != 1:
+                    click.echo("ERR: Unable to get a single port on muxcable")
+                    rc = False
+
+            physical_port = physical_port_list[0]
+            import sonic_y_cable.y_cable
+            read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
+            if read_side == False or read_side == -1:
+                click.echo("ERR: Unable to get read_side for the cable")
+                rc = False
+
+            mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
+            if mux_direction == False or mux_direction == -1:
+                click.echo("ERR: Unable to get mux direction for the cable")
+                rc = False
+
+            if int(read_side) == 1:
+                if state == "active":
+                    res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
+                elif state == "standby":
+                    res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
+                click.echo("Success in toggling port {} to {}".format(port, state))
+            elif int(read_side) == 2:
+                if state == "active":
+                    res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
+                elif state == "standby":
+                    res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
+                click.echo("Success in toggling port {} to {}".format(port, state))
+
+            if res == False:
+                rc = False
+                click.echo("ERR: Unable to toggle port {} to {}".format(port, state))
+
+        if rc == False:
+            click.echo("ERR: Unable to toggle one or more ports to {}".format(state))
+            sys.exit(CONFIG_FAIL)
