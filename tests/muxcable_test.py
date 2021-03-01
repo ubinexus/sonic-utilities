@@ -28,8 +28,8 @@ PORT        STATUS    HEALTH
 ----------  --------  --------
 Ethernet0   active    healthy
 Ethernet4   standby   healthy
-Ethernet8   standby   healthy
-Ethernet12  unknown   healthy
+Ethernet8   standby   unhealthy
+Ethernet12  unknown   unhealthy
 Ethernet32  active    healthy
 """
 
@@ -46,11 +46,11 @@ json_data_status_output_expected = """\
         },
         "Ethernet8": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "unhealthy"
         },
         "Ethernet12": {
             "STATUS": "unknown",
-            "HEALTH": "healthy"
+            "HEALTH": "unhealthy"
         },
         "Ethernet32": {
             "STATUS": "active",

@@ -500,10 +500,10 @@
         "state": "healthy"
     },
     "MUX_LINKMGR_TABLE|Ethernet8": {
-        "state": "healthy"
+        "state": "unhealthy"
     },
     "MUX_LINKMGR_TABLE|Ethernet12": {
-        "state": "healthy"
+        "state": "unhealthy"
     },
     "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.25": {
         "src_ip": "1.1.1.1",

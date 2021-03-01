@@ -276,7 +276,7 @@ def hwmode():
 def state(state, port):
     """Show muxcable summary information"""
     if port is not None and port != "all":
-        click.confirm(('Do you wish to change the muxcable port {} to {} state, Continue?'.format(port, state)), abort=True)
+        click.confirm(('Muxcable at port {} will be changed to {} state. Continue?'.format(port, state)), abort=True)
         logical_port_list = platform_sfputil.logical
         if port not in logical_port_list:
             click.echo("ERR: This is not a valid muxcable port, valid Ports:")
@@ -322,12 +322,12 @@ def state(state, port):
             click.echo("Success in toggling port {} to {}".format(port, state))
 
         if res == False:
-            click.echo("ERR: Unable to toggle port to {}".format(port, state))
+            click.echo("ERR: Unable to toggle port {} to {}".format(port, state))
             sys.exit(CONFIG_FAIL)
 
     elif port == "all" and port is not None:
 
-        click.confirm(('Do you wish to change all the muxcable ports to {} state Continue?'.format(state)), abort=True)
+        click.confirm(('Muxcable at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
         logical_port_list = platform_sfputil.logical
 
         rc = True
