@@ -126,7 +126,7 @@ def create_json_dump_per_port_config(port_status_dict, per_npu_configdb, asic_id
 def status(port, json_output):
     """Show muxcable status information"""
 
-    port_table_keys = {}
+    port_table_keys, port_health_table_keys = {}, {}
     per_npu_statedb = {}
     muxcable_info_dict = {}
     muxcable_health_dict = {}
@@ -141,7 +141,7 @@ def status(port, json_output):
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
-        port__health_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+        port_health_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|*')
 
     if port is not None:
