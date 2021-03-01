@@ -544,7 +544,6 @@ class SkuCreate(object):
     def get_default_lanes(self):
         #Internal function to get lanes of the ports accroding to the base default SKU 
         try:
-            print("base_file_path = " + self.base_file_path)
             with open(self.base_file_path,"r") as f:
                 line_header = f.next().split() # get the file header split into columns 
                 if line_header[0] == "#" : del line_header[0] # if hashtag is in a different column, remove it to align column header and data
@@ -725,6 +724,7 @@ def main(argv):
     parser.add_argument('--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-d', '--default_sku_path', action='store',nargs=1, help='Specify Default SKU path', default=None)
     parser.add_argument('-q', '--port_split_path', action='store',nargs=1, help='Specify Port split path', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     args = parser.parse_args()
 

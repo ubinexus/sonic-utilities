@@ -58,8 +58,6 @@ class TestSkuCreate(object):
             f2_line = re.sub('[\s+]','',f2_line)
 
             if f1_line!=f2_line:
-                print("f1_line = " + f1_line)
-                print("f2_line = " + f2_line)
                 f1.close()
                 f2.close()
                 return False
@@ -164,8 +162,8 @@ class TestSkuCreate(object):
 
         for line in f_in.readlines():
             port_info = line.split()
-	    eth16_info = ['Ethernet16', '16,17', 'etp5a', '5', '50000']
-	    eth18_info = ['Ethernet18', '18,19', 'etp5b', '5', '50000']
+            eth16_info = ['Ethernet16', '16,17', 'etp5a', '5', '50000']
+            eth18_info = ['Ethernet18', '18,19', 'etp5b', '5', '50000']
 
 	    if port_info == eth16_info:
                 eth16_found = True
@@ -240,7 +238,7 @@ class TestSkuCreate(object):
                 break
       
         if eth112_found:
-	    print("Success: Port split information found in port_config.ini file")
+            print("Success: Port split information found in port_config.ini file")
         else:
             pytest.fail("Failure: Port split information not found in port_config.ini file")
             return
