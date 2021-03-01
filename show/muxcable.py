@@ -452,10 +452,12 @@ def mux_direction(port):
             physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
         if not isinstance(physical_port_list, list):
-            click.echo(("ERR: Unable to get physical port instance on muxcable port {}".format(port)))
+            click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
             sys.exit(EXIT_FAIL)
             if len(physical_port_list) != 1:
-                click.echo(("ERR: Unable to get a single physical port on muxcable port {}".format(port)))
+                click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
+                for lport in physical_port_list:
+                    click.echo(("{}".format(lport)))
                 sys.exit(EXIT_FAIL)
 
         physical_port = physical_port_list[0]
@@ -496,7 +498,6 @@ def mux_direction(port):
         body = []
         for port in logical_port_list:
 
-            """Show muxcable summary information"""
             temp_list = []
             if platform_sfputil is not None:
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
@@ -507,12 +508,12 @@ def mux_direction(port):
                 temp_list.append("unknown")
                 body.append(temp_list)
                 continue
-                if len(physical_port_list) != 1:
-                    rc = False
-                    temp_list.append(port)
-                    temp_list.append("unknown")
-                    body.append(temp_list)
-                    continue
+            if len(physical_port_list) != 1:
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
 
             physical_port = physical_port_list[0]
             import sonic_y_cable.y_cable

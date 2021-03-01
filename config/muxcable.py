@@ -288,10 +288,12 @@ def state(state, port):
             physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
         if not isinstance(physical_port_list, list):
-            click.echo(("ERR: Unable to get physical port list instance on muxcable port {}".format(port)))
+            click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
             sys.exit(CONFIG_FAIL)
             if len(physical_port_list) != 1:
-                click.echo(("ERR: Unable to get a single physical port on muxcable port {}".format(port)))
+                click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
+                for lport in physical_port_list:
+                    click.echo(("{}".format(lport)))
                 sys.exit(CONFIG_FAIL)
 
         physical_port = physical_port_list[0]
@@ -334,10 +336,12 @@ def state(state, port):
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
             if not isinstance(physical_port_list, list):
-                click.echo(("ERR: Unable to get physical port list instance on muxcable port {}".format(port)))
+                click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
                 rc = False
                 if len(physical_port_list) != 1:
-                    click.echo(("ERR: Unable to get a single physical port on muxcable port {}".format(port)))
+                    click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
+                    for lport in physical_port_list:
+                        click.echo(("{}".format(lport)))
                     rc = False
 
             physical_port = physical_port_list[0]
