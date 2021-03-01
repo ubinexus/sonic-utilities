@@ -3369,6 +3369,47 @@ def get_acl_bound_ports():
 
     return list(ports)
 
+
+def expand_vlan_ports(port_name):
+    """
+    Expands a given VLAN interface into its member ports.
+
+    If the provided interface is a VLAN, then this method will return its member ports.
+
+    If the provided interface is not a VLAN, then this method will return a list with only
+    the provided interface in it.
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    vlan_members = config_db.get_keys("VLAN_MEMBER")
+
+    members = [v[1] for v in vlan_members if port_name == v[0]]
+    return members or [port_name]
+
+
+def parse_acl_table_info(table_name, table_type, description, ports, stage, expand_vlans):
+    table_info = {"type": table_type}
+
+    if description:
+        table_info["policy_desc"] = description
+    else:
+        table_info["policy_desc"] = table_name
+
+    if ports and expand_vlans:
+        port_list = list()
+        for port in ports.split(","):
+            port_list += expand_vlan_ports(port)
+        table_info["ports@"] = ",".join(set(port_list))
+    elif ports:
+        table_info["ports@"] = ports
+    else:
+        table_info["ports@"] = ",".join(get_acl_bound_ports())
+
+    table_info["stage"] = stage
+
+    return table_info
+
 #
 # 'table' subcommand ('config acl add table ...')
 #
@@ -3379,26 +3420,15 @@ def get_acl_bound_ports():
 @click.option("-d", "--description")
 @click.option("-p", "--ports")
 @click.option("-s", "--stage", type=click.Choice(["ingress", "egress"]), default="ingress")
-def table(table_name, table_type, description, ports, stage):
+@click.option("-e", "--expand_vlans", is_flag=True)
+def table(table_name, table_type, description, ports, stage, expand_vlans):
     """
     Add ACL table
     """
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    table_info = {"type": table_type}
-
-    if description:
-        table_info["policy_desc"] = description
-    else:
-        table_info["policy_desc"] = table_name
-
-    if ports:
-        table_info["ports@"] = ports
-    else:
-        table_info["ports@"] = ",".join(get_acl_bound_ports())
-
-    table_info["stage"] = stage
+    table_info = parse_table_info(table_name, table_type, description, ports, stage, expand_vlans)
 
     config_db.set_entry("ACL_TABLE", table_name, table_info)
 
