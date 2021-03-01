@@ -6095,7 +6095,7 @@ This command displays the user watermark for the queues (Egress shared pool occu
 **show priority-group**
 
 This command displays:
-1) the user watermark or persistent-watermark for the Ingress "headroom" or "shared pool occupancy" per priority-group for  all ports.
+1) The user watermark or persistent-watermark for the Ingress "headroom" or "shared pool occupancy" per priority-group for all ports.
 2) Dropped packets per priority-group for all ports
 
 - Usage:
