@@ -438,29 +438,36 @@ def hwmode():
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
 def mux_direction(port):
+    """Show muxcable mux_direction information"""
     if port is not None:
 
-        """Show muxcable summary information"""
+        logical_port_list = platform_sfputil.logical
+        if port not in logical_port_list:
+            click.echo("ERR: This is not a valid muxcable port, valid Ports:")
+            for port in logical_port_list:
+                click.echo(("{}".format(port)))
+            sys.exit(EXIT_FAIL)
+
         if platform_sfputil is not None:
             physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
         if not isinstance(physical_port_list, list):
-            click.echo("ERR: Unable to get a port on muxcable port")
+            click.echo(("ERR: Unable to get physical port instance on muxcable port {}".format(port)))
             sys.exit(EXIT_FAIL)
             if len(physical_port_list) != 1:
-                click.echo("ERR: Unable to get a single port on muxcable")
+                click.echo(("ERR: Unable to get a single physical port on muxcable port {}".format(port)))
                 sys.exit(EXIT_FAIL)
 
         physical_port = physical_port_list[0]
         import sonic_y_cable.y_cable
         read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
         if read_side == False or read_side == -1:
-            click.echo("ERR: Unable to get read_side for the cable")
+            click.echo(("ERR: Unable to get read_side for the cable port {}".format(port)))
             sys.exit(EXIT_FAIL)
 
         mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
         if mux_direction == False or mux_direction == -1:
-            click.echo("ERR: Unable to get mux direction for the cable")
+            click.echo(("ERR: Unable to get mux direction for the cable port {}".format(port)))
             sys.exit(EXIT_FAIL)
 
         if int(read_side) == 1:
@@ -468,56 +475,86 @@ def mux_direction(port):
                 state = "active"
             elif mux_direction == 2:
                 state = "standby"
-            click.echo("mux direction for the cable at port {} is {}".format(port, state))
         elif int(read_side) == 2:
             if mux_direction == 1:
                 state = "standby"
             elif mux_direction == 2:
                 state = "active"
-            click.echo("mux direction for the cable at port {} is {}".format(port, state))
         else:
-            click.echo("ERR: Unable to get mux direction, direction in unknown")
+            click.echo(("ERR: Unable to get mux direction, port {}".format(port)))
+            state = "unknown"
+        headers = ['Port', 'Direction']
+
+        body = [[port, state]]
+        click.echo(tabulate(body, headers=headers))
 
     else:
 
         logical_port_list = platform_sfputil.logical
 
+        rc = True
+        body = []
         for port in logical_port_list:
 
             """Show muxcable summary information"""
+            temp_list = []
             if platform_sfputil is not None:
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
             if not isinstance(physical_port_list, list):
-                click.echo("ERR: Unable to get a port on muxcable port")
-                sys.exit(EXIT_FAIL)
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
                 if len(physical_port_list) != 1:
-                    click.echo("ERR: Unable to get a single port on muxcable")
-                    sys.exit(EXIT_FAIL)
+                    rc = False
+                    temp_list.append(port)
+                    temp_list.append("unknown")
+                    body.append(temp_list)
+                    continue
 
             physical_port = physical_port_list[0]
             import sonic_y_cable.y_cable
             read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
             if read_side == False or read_side == -1:
-                click.echo("ERR: Unable to get read_side for the cable")
-                sys.exit(EXIT_FAIL)
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
 
             mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
             if mux_direction == False or mux_direction == -1:
-                click.echo("ERR: Unable to get mux direction for the cable")
-                sys.exit(EXIT_FAIL)
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
 
             if int(read_side) == 1:
                 if mux_direction == 1:
                     state = "active"
                 elif mux_direction == 2:
                     state = "standby"
-                click.echo("mux direction for the cable at port {} is {}".format(port, state))
             elif int(read_side) == 2:
                 if mux_direction == 1:
                     state = "standby"
                 elif mux_direction == 2:
                     state = "active"
-                click.echo("mux direction for the cable at port {} is {}".format(port, state))
             else:
-                click.echo("ERR: Unable to get mux direction, direction in unknown")
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
+            rc = False
+            temp_list.append(port)
+            temp_list.append(state)
+            body.append(temp_list)
+
+        headers = ['Port', 'Direction']
+
+        click.echo(tabulate(body, headers=headers))
+        if rc == False:
+            sys.exit(EXIT_FAIL)

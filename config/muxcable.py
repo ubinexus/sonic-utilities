@@ -276,28 +276,34 @@ def hwmode():
 def state(state, port):
     """Show muxcable summary information"""
     if port is not None and port != "all":
-        click.confirm(('Do you wish to change the port {} to {} state, Continue?'.format(port, state)), abort=True)
+        click.confirm(('Do you wish to change the muxcable port {} to {} state, Continue?'.format(port, state)), abort=True)
+        logical_port_list = platform_sfputil.logical
+        if port not in logical_port_list:
+            click.echo("ERR: This is not a valid muxcable port, valid Ports:")
+            for port in logical_port_list:
+                click.echo(("{}".format(port)))
+            sys.exit(CONFIG_FAIL)
 
         if platform_sfputil is not None:
             physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
         if not isinstance(physical_port_list, list):
-            click.echo("ERR: Unable to get a port on muxcable port")
+            click.echo(("ERR: Unable to get physical port list instance on muxcable port {}".format(port)))
             sys.exit(CONFIG_FAIL)
             if len(physical_port_list) != 1:
-                click.echo("ERR: Unable to get a single port on muxcable")
+                click.echo(("ERR: Unable to get a single physical port on muxcable port {}".format(port)))
                 sys.exit(CONFIG_FAIL)
 
         physical_port = physical_port_list[0]
         import sonic_y_cable.y_cable
         read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
         if read_side == False or read_side == -1:
-            click.echo("ERR: Unable to get read_side for the cable")
+            click.echo(("ERR: Unable to get read_side for the cable port {}".format(port)))
             sys.exit(CONFIG_FAIL)
 
         mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
         if mux_direction == False or mux_direction == -1:
-            click.echo("ERR: Unable to get mux direction for the cable")
+            click.echo(("ERR: Unable to get mux direction for the cable port {}".format(port)))
             sys.exit(CONFIG_FAIL)
 
         if int(read_side) == 1:
@@ -319,7 +325,7 @@ def state(state, port):
 
     elif port == "all" and port is not None:
 
-        click.confirm(('Do you wish to change all the ports to {} state Continue?'.format(state)), abort=True)
+        click.confirm(('Do you wish to change all the muxcable ports to {} state Continue?'.format(state)), abort=True)
         logical_port_list = platform_sfputil.logical
 
         rc = True
@@ -328,22 +334,22 @@ def state(state, port):
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
             if not isinstance(physical_port_list, list):
-                click.echo("ERR: Unable to get a port on muxcable port")
+                click.echo(("ERR: Unable to get physical port list instance on muxcable port {}".format(port)))
                 rc = False
                 if len(physical_port_list) != 1:
-                    click.echo("ERR: Unable to get a single port on muxcable")
+                    click.echo(("ERR: Unable to get a single physical port on muxcable port {}".format(port)))
                     rc = False
 
             physical_port = physical_port_list[0]
             import sonic_y_cable.y_cable
             read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
             if read_side == False or read_side == -1:
-                click.echo("ERR: Unable to get read_side for the cable")
+                click.echo(("ERR: Unable to get read_side for the cable port {}".format(port)))
                 rc = False
 
             mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
             if mux_direction == False or mux_direction == -1:
-                click.echo("ERR: Unable to get mux direction for the cable")
+                click.echo(("ERR: Unable to get mux direction for the cable port {}".format(port)))
                 rc = False
 
             if int(read_side) == 1:
