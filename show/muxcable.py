@@ -162,8 +162,8 @@ def status(port, json_output):
         muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
         if muxcable_info_dict[asic_index] is not None:
-            logical_key = "MUX_CABLE_TABLE"+"|"+port
-            logical_health_key = "MUX_LINKMGR_TABLE"+"|"+port
+            logical_key = "MUX_CABLE_TABLE" + "|" + port
+            logical_health_key = "MUX_LINKMGR_TABLE" + "|" + port
             if logical_key in port_table_keys[asic_index] and logical_health_key in port_health_table_keys[asic_index]:
 
                 if json_output:
