@@ -296,7 +296,7 @@ class AclLoader(object):
         :param tname: ACL table name
         :return: True if table type is IPv6 else False
         """
-        return "V6" in self.tables_db_info[tname]["type"].upper()
+        return self.tables_db_info[tname]["type"].upper() in ("L3V6", "MIRRORV6")
 
     def is_table_control_plane(self, tname):
         """
@@ -417,16 +417,23 @@ class AclLoader(object):
             else:
                 try:
                     rule_props["ETHER_TYPE"] = int(rule.l2.config.ethertype)
-                except Exception:
-                    raise AclLoaderException("Failed to convert ethertype %s; table %s rule %s" % (
-                        rule.l2.config.ethertype, table_name, rule_idx))
+                except Exception as e:
+                    raise AclLoaderException(
+                        "Failed to convert ethertype %s; table %s rule %s; exception=%s" %
+                        (rule.l2.config.ethertype, table_name, rule_idx, str(e)))
 
         if rule.l2.config.vlan_id:
             try:
-                rule_props["VLAN_ID"] = int(rule.l2.config.vlan_id)
-            except Exception:
-                raise AclLoaderException("Failed to convert VLAN ID %s; table %s rule %s" % (
-                    rule.l2.config.vlan_id, table_name, rule_idx))
+                vlan_id = int(rule.l2.config.vlan_id)
+
+                if vlan_id <= 0 or vlan_id >= 4096:
+                    raise AclLoaderException("VLAN ID %d is out of bounds (0, 4096)" % (vlan_id))
+
+                rule_props["VLAN_ID"] = vlan_id
+            except Exception as e:
+                raise AclLoaderException(
+                    "Failed to convert VLAN ID %s; table %s rule %s; exception=%s" %
+                    (rule.l2.config.vlan_id, table_name, rule_idx, str(e)))
 
         return rule_props
 
@@ -477,15 +484,29 @@ class AclLoader(object):
 
         if rule.icmp.config.type:
             try:
-                rule_props[type_key] = int(rule.icmp.config.type)
-            except Exception:
-                raise AclLoaderException("Failed to convert %s; table %s, rule %s" % (type_key, table_name, rule_idx))
+                icmp_type = int(rule.icmp.config.type)
+
+                if icmp_type < 0 or icmp_type > 255:
+                    raise AclLoaderException("ICMP type %d is out of bounds [0, 255]" % (icmp_type))
+
+                rule_props[type_key] = icmp_type
+            except Exception as e:
+                raise AclLoaderException(
+                    "Failed to convert %s; table %s, rule %s; exception=%s" %
+                    (type_key, table_name, rule_idx, str(e)))
 
         if rule.icmp.config.code:
             try:
-                rule_props[code_key] = int(rule.icmp.config.code)
-            except Exception:
-                raise AclLoaderException("Failed to convert %s; table %s, rule %s" % (code_key, table_name, rule_idx))
+                icmp_code = int(rule.icmp.config.code)
+
+                if icmp_code < 0 or icmp_code > 255:
+                    raise AclLoaderException("ICMP code %d is out of bounds [0, 255]" % (icmp_code))
+
+                rule_props[code_key] = icmp_code
+            except Exception as e:
+                raise AclLoaderException(
+                    "Failed to convert %s; table %s, rule %s; exception=%s" %
+                    (type_key, table_name, rule_idx, str(e)))
 
         return rule_props
 
