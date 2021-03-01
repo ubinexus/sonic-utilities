@@ -760,7 +760,7 @@ def main(argv):
         elif args.minigraph_file:
             sku.minigraph_parser(args.minigraph_file)
         elif args.json_file:
-            if sku.platform == None:
+            if sku.platform is None:
                 sku.parse_platform_from_config_db_file(args.json_file[0])
             if sku.platform in platform_4:
                 sku.base_lanes = 4

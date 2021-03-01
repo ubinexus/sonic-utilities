@@ -188,7 +188,7 @@ class TestSkuCreate(object):
      
         eth16_dict = {u'alias': u'etp5a', u'lanes': u'16,17', u'speed': 50000, u'mtu': u'9100'}
         eth16_instance = data['PORT'].get("Ethernet16")
-        if eth16_instance == None:
+        if eth16_instance is None:
             pytest.fail("Failure: Port split information not found in config_db.json file")
             return
         else:
@@ -198,7 +198,7 @@ class TestSkuCreate(object):
 
         eth18_dict = {u'alias': u'etp5b', u'lanes': u'18,19', u'speed': 50000, u'mtu': u'9100'}
         eth18_instance = data['PORT'].get("Ethernet18")
-        if eth18_instance == None:
+        if eth18_instance is None:
             pytest.fail("Failure: Port split information not found in config_db.json file")
             return
         else:
@@ -251,7 +251,7 @@ class TestSkuCreate(object):
      
         eth112_dict = {'alias': 'etp29', 'lanes': '112,113,114,115', 'speed': 100000, 'mtu': u'9100'}
         eth112_instance = data['PORT'].get("Ethernet112")
-        if eth112_instance == None:
+        if eth112_instance is None:
             pytest.fail("Failure: Port split information not found in config_db.json file")
             return
         else:
