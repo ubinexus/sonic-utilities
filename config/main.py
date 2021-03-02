@@ -9,7 +9,6 @@ import os
 import re
 import subprocess
 import sys
-import threading
 import time
 
 from socket import AF_INET, AF_INET6
@@ -17,8 +16,7 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -37,6 +35,21 @@ from . import vlan
 from . import vxlan
 from .config_mgmt import ConfigMgmtDPB
 
+# mock masic APIs for unit test
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+except KeyError:
+    pass
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
@@ -49,14 +62,11 @@ INTF_KEY = "interfaces"
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
+
 SYSTEMCTL_ACTION_STOP="stop"
 SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
-CFG_PORTCHANNEL_PREFIX = "PortChannel"
-CFG_PORTCHANNEL_PREFIX_LEN = 11
-CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
-CFG_PORTCHANNEL_MAX_VAL = 9999
 
 DEFAULT_NAMESPACE = ''
 CFG_LOOPBACK_PREFIX = "Loopback"
@@ -101,12 +111,10 @@ def _get_breakout_options(ctx, args, incomplete):
     else:
         breakout_file_input = readJsonFile(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
-            breakout_mode_list = [v["breakout_modes"] for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
-            breakout_mode_options = []
-            for i in breakout_mode_list.split(','):
-                    breakout_mode_options.append(i)
+            breakout_mode_options = [mode for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name \
+                                          for mode in v["breakout_modes"].keys()]
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
-            return all_mode_options
+        return all_mode_options
 
 def shutdown_interfaces(ctx, del_intf_dict):
     """ shut down all the interfaces before deletion """
@@ -143,7 +151,7 @@ def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brko
         return False
 
     # Check whether target breakout mode is available for the user-selected interface or not
-    if target_brkout_mode not in breakout_file_input[interface_name]["breakout_modes"]:
+    if target_brkout_mode not in breakout_file_input[interface_name]["breakout_modes"].keys():
         click.secho('[ERROR] Target mode {} is not available for the port {}'. format(target_brkout_mode, interface_name), fg='red')
         return False
 
@@ -217,54 +225,6 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
 # Helper functions
 #
 
-# Execute action per NPU instance for multi instance services.
-def execute_systemctl_per_asic_instance(inst, event, service, action):
-    try:
-        click.echo("Executing {} of service {}@{}...".format(action, service, inst))
-        clicommon.run_command("systemctl {} {}@{}.service".format(action, service, inst))
-    except SystemExit as e:
-        log.log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
-        # Set the event object if there is a failure and exception was raised.
-        event.set()
-
-# Execute action on list of systemd services
-def execute_systemctl(list_of_services, action):
-    num_asic = multi_asic.get_num_asics()
-    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
-    if ((generated_services_list == []) and
-        (generated_multi_instance_services == [])):
-        log.log_error("Failed to get generated services")
-        return
-
-    for service in list_of_services:
-        if (service + '.service' in generated_services_list):
-            try:
-                click.echo("Executing {} of service {}...".format(action, service))
-                clicommon.run_command("systemctl {} {}".format(action, service))
-            except SystemExit as e:
-                log.log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
-                raise
-
-        if (service + '.service' in generated_multi_instance_services):
-            # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
-            if multi_asic.is_multi_asic():
-                threads = []
-                # Use this event object to co-ordinate if any threads raised exception
-                e = threading.Event()
-
-                kwargs = {'service': service, 'action': action}
-                for inst in range(num_asic):
-                    t = threading.Thread(target=execute_systemctl_per_asic_instance, args=(inst, e), kwargs=kwargs)
-                    threads.append(t)
-                    t.start()
-
-                # Wait for all the threads to finish.
-                for inst in range(num_asic):
-                    threads[inst].join()
-
-                    # Check if any of the threads have raised exception, if so exit the process.
-                    if e.is_set():
-                        sys.exit(1)
 
 def _get_device_type():
     """
@@ -722,7 +682,7 @@ def _change_hostname(hostname):
     if current_hostname != hostname:
         clicommon.run_command('echo {} > /etc/hostname'.format(hostname), display_cmd=True)
         clicommon.run_command('hostname -F /etc/hostname', display_cmd=True)
-        clicommon.run_command('sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
+        clicommon.run_command(r'sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         clicommon.run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
 
 def _clear_qos():
@@ -740,7 +700,9 @@ def _clear_qos():
             'BUFFER_POOL',
             'BUFFER_PROFILE',
             'BUFFER_PG',
-            'BUFFER_QUEUE']
+            'BUFFER_QUEUE',
+            'DEFAULT_LOSSLESS_BUFFER_PARAMETER',
+            'LOSSLESS_TRAFFIC_PATTERN']
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
@@ -802,93 +764,28 @@ def _get_disabled_services_list(config_db):
 
     return disabled_services_list
 
-def _stop_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be stopped
-    # on Mellanox platform pmon is stopped by syncd
-    services_to_stop = [
-        'telemetry',
-        'restapi',
-        'swss',
-        'lldp',
-        'pmon',
-        'bgp',
-        'hostcfgd',
-        'nat'
-    ]
 
-    if asic_type == 'mellanox' and 'pmon' in services_to_stop:
-        services_to_stop.remove('pmon')
+def _
 
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_stop:
-            services_to_stop.remove(service)
-
-    execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
+_services():
+    click.echo("Stopping SONiC target ...")
+    clicommon.run_command("sudo systemctl stop sonic.target")
 
 
-def _reset_failed_services(config_db):
-    # This list is order-independent. Please keep list in alphabetical order
-    services_to_reset = [
-        'bgp',
-        'dhcp_relay',
-        'hostcfgd',
-        'hostname-config',
-        'interfaces-config',
-        'lldp',
-        'nat',
-        'ntp-config',
-        'pmon',
-        'radv',
-        'restapi',
-        'rsyslog-config',
-        'sflow',
-        'snmp',
-        'swss',
-        'syncd',
-        'teamd',
-        'telemetry'
-    ]
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_reset:
-            services_to_reset.remove(service)
-
-    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
+def _get_sonic_services():
+    out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
+    return [unit.strip() for unit in out.splitlines()]
 
 
-def _restart_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be started
-    # on Mellanox platform pmon is started by syncd
-    services_to_restart = [
-        'hostname-config',
-        'interfaces-config',
-        'ntp-config',
-        'rsyslog-config',
-        'swss',
-        'bgp',
-        'pmon',
-        'lldp',
-        'hostcfgd',
-        'nat',
-        'sflow',
-        'restapi',
-        'telemetry'
-    ]
+def _reset_failed_services():
+    for service in _get_sonic_services():
+        click.echo("Resetting failed status on {}".format(service))
+        clicommon.run_command("systemctl reset-failed {}".format(service))
 
-    disabled_services = _get_disabled_services_list(config_db)
 
-    for service in disabled_services:
-        if service in services_to_restart:
-            services_to_restart.remove(service)
-
-    if asic_type == 'mellanox' and 'pmon' in services_to_restart:
-        services_to_restart.remove('pmon')
-
-    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
+def _restart_services():
+    click.echo("Restarting SONiC target ...")
+    clicommon.run_command("sudo systemctl restart sonic.target")
 
     # Reload Monit configuration to pick up new hostname in case it changed
     click.echo("Reloading Monit configuration ...")
@@ -1009,7 +906,11 @@ def config(ctx):
         platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
-    SonicDBConfig.load_sonic_global_db_config()
+    num_asic = multi_asic.get_num_asics()
+    if num_asic > 1:
+        SonicDBConfig.load_sonic_global_db_config()
+    else:
+        SonicDBConfig.initialize()
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
@@ -1189,7 +1090,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'reload' stopping services...")
-        _stop_services(db.cfgdb)
+        _stop_services()
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1260,9 +1161,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb)
+        _reset_failed_services()
         log.log_info("'reload' restarting services...")
-        _restart_services(db.cfgdb)
+        _restart_services()
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1301,7 +1202,7 @@ def load_minigraph(db, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'load_minigraph' stopping services...")
-        _stop_services(db.cfgdb)
+        _stop_services()
 
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
@@ -1357,10 +1258,10 @@ def load_minigraph(db, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb)
+        _reset_failed_services()
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
         log.log_info("'load_minigraph' restarting services...")
-        _restart_services(db.cfgdb)
+        _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 
@@ -1437,7 +1338,15 @@ def portchannel(ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    if is_portchannel_present_in_db(db, portchannel_name):
+        ctx.fail("{} already exists!".format(portchannel_name))
+
     fvs = {'admin_status': 'up',
            'mtu': '9100'}
     if min_links != 0:
@@ -1451,7 +1360,16 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
+    if is_portchannel_name_valid(portchannel_name) != True:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
     db = ctx.obj['db']
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
@@ -1766,10 +1684,10 @@ def start(action, restoration_time, ports, detection_time, verbose):
 
     if ports:
         ports = set(ports) - set(['ports', 'detection-time'])
-        cmd += " ports {}".format(' '.join(ports))
+        cmd += " {}".format(' '.join(ports))
 
     if detection_time:
-        cmd += " detection-time {}".format(detection_time)
+        cmd += " {}".format(detection_time)
 
     if restoration_time:
         cmd += " --restoration-time {}".format(restoration_time)
@@ -1852,12 +1770,24 @@ def _update_buffer_calculation_model(config_db, model):
 @qos.command('reload')
 @click.pass_context
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
-def reload(ctx, no_dynamic_buffer):
+@click.option(
+    '--json-data', type=click.STRING,
+    help="json string with additional data, valid with --dry-run option"
+)
+@click.option(
+    '--dry_run', type=click.STRING,
+    help="Dry run, writes config to the given file"
+)
+def reload(ctx, no_dynamic_buffer, dry_run, json_data):
     """Reload QoS configuration"""
     log.log_info("'qos reload' executing...")
     _clear_qos()
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+    from_db = "-d --write-to-db"
+    if dry_run:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
@@ -1894,17 +1824,17 @@ def reload(ctx, no_dynamic_buffer):
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
             if asic_type in vendors_supporting_dynamic_buffer:
                 buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
+
         if os.path.isfile(buffer_template_file):
-            qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
+            qos_template_file = os.path.join(
+                hwsku_path, asic_id_suffix, "qos.json.j2"
+            )
             if os.path.isfile(qos_template_file):
                 cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
-                sonic_version_file = os.path.join('/', "etc", "sonic", "sonic_version.yml")
-                command = "{} {} -d -t {},config-db -t {},config-db -y {} --write-to-db".format(
-                    SONIC_CFGGEN_PATH,
-                    cmd_ns,
-                    buffer_template_file,
-                    qos_template_file,
-                    sonic_version_file
+                fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "config-db"
+                command = "{} {} {} -t {},{} -t {},{} -y {}".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
+                    fname, qos_template_file, fname, sonic_version_file
                 )
                 # Apply the configurations only when both buffer and qos
                 # configuration files are present
@@ -1934,14 +1864,14 @@ def is_dynamic_buffer_enabled(config_db):
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
     """warm_restart-related configuration tasks"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
+    # Note: redis_unix_socket_path is a path string, and the ground truth is now from database_config.json.
+    # We only use it as a bool indicator on either unix_socket_path or tcp port
+    use_unix_socket_path = bool(redis_unix_socket_path)
+    config_db = ConfigDBConnector(use_unix_socket_path=use_unix_socket_path)
     config_db.connect(wait_for_init=False)
 
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db = SonicV2Connector(use_unix_socket_path=use_unix_socket_path)
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
@@ -2033,7 +1963,7 @@ def vrf_add_management_vrf(config_db):
         Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
          eth0    00000000        01803B0A        0003    0       0       202     00000000        0       0       0
     """
-    cmd = "cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
+    cmd = r"cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     output = proc.communicate()
     if int(output[0]) >= 1:
@@ -2491,6 +2421,14 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     # Get current breakout mode
     cur_brkout_dict = config_db.get_table('BREAKOUT_CFG')
+    if len(cur_brkout_dict) == 0:
+        click.secho("[ERROR] BREAKOUT_CFG table is NOT present in CONFIG DB", fg='red')
+        raise click.Abort()
+
+    if interface_name not in cur_brkout_dict.keys():
+        click.secho("[ERROR] {} interface is NOT present in BREAKOUT_CFG table of CONFIG DB".format(interface_name), fg='red')
+        raise click.Abort()
+
     cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
 
     # Validate Interface and Breakout mode
@@ -2688,6 +2626,13 @@ def add(ctx, interface_name, ip_addr, gw):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    # Add a validation to check this interface is not a member in vlan before 
+    # changing it to a router port 
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+    if (interface_is_in_vlan(vlan_member_table, interface_name)):
+            click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+            return
 
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
@@ -3117,7 +3062,7 @@ def bind(ctx, interface_name, vrf_name):
         state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
-    while state_db.get_all(state_db.STATE_DB, _hash) != None:
+    while state_db.exists(state_db.STATE_DB, _hash):
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
     config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
@@ -3577,8 +3522,11 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-ymin', metavar='<yellow threshold min>', type=int, help="Set yellow min threshold")
 @click.option('-gmax', metavar='<green threshold max>', type=int, help="Set green max threshold")
 @click.option('-gmin', metavar='<green threshold min>', type=int, help="Set green min threshold")
+@click.option('-rdrop', metavar='<red drop probability>', type=click.IntRange(0, 100), help="Set red drop probability")
+@click.option('-ydrop', metavar='<yellow drop probability>', type=click.IntRange(0, 100), help="Set yellow drop probability")
+@click.option('-gdrop', metavar='<green drop probability>', type=click.IntRange(0, 100), help="Set green drop probability")
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
+def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbose):
     """ECN-related configuration tasks"""
     log.log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
@@ -3588,6 +3536,9 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     if ymin is not None: command += " -ymin %d" % ymin
     if gmax is not None: command += " -gmax %d" % gmax
     if gmin is not None: command += " -gmin %d" % gmin
+    if rdrop is not None: command += " -rdrop %d" % rdrop
+    if ydrop is not None: command += " -ydrop %d" % ydrop
+    if gdrop is not None: command += " -gdrop %d" % gdrop
     if verbose: command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
 
@@ -3709,11 +3660,28 @@ def set_profile(db, profile, xon, xoff, size, dynamic_th, pool):
     update_profile(ctx, config_db, profile, xon, xoff, size, dynamic_th, pool, profile_entry)
 
 
+def _is_shared_headroom_pool_enabled(ctx, config_db):
+    ingress_lossless_pool = config_db.get_entry('BUFFER_POOL', 'ingress_lossless_pool')
+    if 'xoff' in ingress_lossless_pool:
+        return True
+
+    default_lossless_param_table = config_db.get_table('DEFAULT_LOSSLESS_BUFFER_PARAMETER')
+    if not default_lossless_param_table:
+        ctx.fail("Dynamic buffer calculation is enabled while no entry found in DEFAULT_LOSSLESS_BUFFER_PARAMETER table")
+    default_lossless_param = list(default_lossless_param_table.values())[0]
+    over_subscribe_ratio = default_lossless_param.get('over_subscribe_ratio')
+    if over_subscribe_ratio and over_subscribe_ratio != '0':
+        return True
+
+    return False
+
+
 def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, pool, profile_entry = None):
     params = {}
     if profile_entry:
         params = profile_entry
-    dynamic_calculate = True
+
+    shp_enabled = _is_shared_headroom_pool_enabled(ctx, config_db)
 
     if not pool:
         pool = 'ingress_lossless_pool'
@@ -3723,48 +3691,62 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
 
     if xon:
         params['xon'] = xon
-        dynamic_calculate = False
     else:
         xon = params.get('xon')
 
     if xoff:
         params['xoff'] = xoff
-        dynamic_calculate = False
     else:
         xoff = params.get('xoff')
 
     if size:
         params['size'] = size
-        dynamic_calculate = False
-        if xon and not xoff:
-            xoff = int(size) - int (xon)
-            params['xoff'] = xoff
-    elif not dynamic_calculate:
-        if xon and xoff:
-            size = int(xon) + int(xoff)
-            params['size'] = size
-        else:
-            ctx.fail("Either both xon and xoff or size should be provided")
+    else:
+        size = params.get('size')
+
+    dynamic_calculate = False if (xon or xoff or size) else True
 
     if dynamic_calculate:
         params['headroom_type'] = 'dynamic'
         if not dynamic_th:
             ctx.fail("Either size information (xon, xoff, size) or dynamic_th needs to be provided")
-
-    if dynamic_th:
         params['dynamic_th'] = dynamic_th
     else:
-        # Fetch all the keys of default_lossless_buffer_parameter table
-        # and then get the default_dynamic_th from that entry (should be only one)
-        keys = config_db.get_keys('DEFAULT_LOSSLESS_BUFFER_PARAMETER')
-        if len(keys) > 1 or len(keys) == 0:
-            ctx.fail("Multiple or no entry in DEFAULT_LOSSLESS_BUFFER_PARAMETER found while no dynamic_th specified")
+        if not xon:
+            ctx.fail("Xon is mandatory for non-dynamic profile")
 
-        default_lossless_param = config_db.get_entry('DEFAULT_LOSSLESS_BUFFER_PARAMETER', keys[0])
-        if 'default_dynamic_th' in default_lossless_param.keys():
-            params['dynamic_th'] = default_lossless_param['default_dynamic_th']
-        else:
-            ctx.fail("No dynamic_th defined in DEFAULT_LOSSLESS_BUFFER_PARAMETER")
+        if not xoff:
+            if shp_enabled:
+                ctx.fail("Shared headroom pool is enabled, xoff is mandatory for non-dynamic profile")
+            elif not size:
+                ctx.fail("Neither xoff nor size is provided")
+            else:
+                xoff_number = int(size) - int(xon)
+                if xoff_number <= 0:
+                    ctx.fail("The xoff must be greater than 0 while we got {} (calculated by: size {} - xon {})".format(xoff_number, size, xon))
+                params['xoff'] = str(xoff_number)
+
+        if not size:
+            if shp_enabled:
+                size = int(xon)
+            else:
+                size = int(xon) + int(xoff)
+            params['size'] = size
+
+        if dynamic_th:
+            params['dynamic_th'] = dynamic_th
+        elif not params.get('dynamic_th'):
+            # Fetch all the keys of default_lossless_buffer_parameter table
+            # and then get the default_dynamic_th from that entry (should be only one)
+            keys = config_db.get_keys('DEFAULT_LOSSLESS_BUFFER_PARAMETER')
+            if len(keys) != 1:
+                ctx.fail("Multiple entries are found in DEFAULT_LOSSLESS_BUFFER_PARAMETER while no dynamic_th specified")
+
+            default_lossless_param = config_db.get_entry('DEFAULT_LOSSLESS_BUFFER_PARAMETER', keys[0])
+            if 'default_dynamic_th' in default_lossless_param:
+                params['dynamic_th'] = default_lossless_param['default_dynamic_th']
+            else:
+                ctx.fail("No dynamic_th defined in DEFAULT_LOSSLESS_BUFFER_PARAMETER")
 
     config_db.set_entry("BUFFER_PROFILE", (profile_name), params)
 
@@ -3789,6 +3771,68 @@ def remove_profile(db, profile):
         config_db.set_entry("BUFFER_PROFILE", profile, None)
     else:
         ctx.fail("Profile {} doesn't exist".format(profile))
+
+@buffer.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def shared_headroom_pool(ctx):
+    """Configure buffer shared headroom pool"""
+    pass
+
+
+@shared_headroom_pool.command()
+@click.argument('ratio', metavar='<ratio>', type=int, required=True)
+@clicommon.pass_db
+def over_subscribe_ratio(db, ratio):
+    """Configure over subscribe ratio"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    port_number = len(config_db.get_table('PORT'))
+    if ratio < 0 or ratio > port_number:
+        ctx.fail("Invalid over-subscribe-ratio value {}. It should be in range [0, {}]".format(ratio, port_number))
+
+    default_lossless_param = config_db.get_table("DEFAULT_LOSSLESS_BUFFER_PARAMETER")
+    first_item = True
+    for k, v in default_lossless_param.items():
+        if not first_item:
+            ctx.fail("More than one item in DEFAULT_LOSSLESS_BUFFER_PARAMETER table. Only the first one is updated")
+        first_item = False
+
+        if ratio == 0:
+            if "over_subscribe_ratio" in v.keys():
+                v.pop("over_subscribe_ratio")
+        else:
+            v["over_subscribe_ratio"] = ratio
+
+        config_db.set_entry("DEFAULT_LOSSLESS_BUFFER_PARAMETER", k, v)
+
+
+@shared_headroom_pool.command()
+@click.argument('size', metavar='<size>', type=int, required=True)
+@clicommon.pass_db
+def size(db, size):
+    """Configure shared headroom pool size"""
+    config_db = db.cfgdb
+    state_db = db.db
+    ctx = click.get_current_context()
+
+    _hash = 'BUFFER_MAX_PARAM_TABLE|global'
+    buffer_max_params = state_db.get_all(state_db.STATE_DB, _hash)
+    if buffer_max_params:
+        mmu_size = buffer_max_params.get('mmu_size')
+        if mmu_size and int(mmu_size) < size:
+            ctx.fail("Shared headroom pool must be less than mmu size ({})".format(mmu_size))
+
+    ingress_lossless_pool = config_db.get_entry("BUFFER_POOL", "ingress_lossless_pool")
+
+    if size == 0:
+        if "xoff" in ingress_lossless_pool:
+            ingress_lossless_pool.pop("xoff")
+    else:
+        ingress_lossless_pool["xoff"] = size
+
+    config_db.set_entry("BUFFER_POOL", "ingress_lossless_pool", ingress_lossless_pool)
+
 
 #
 # 'platform' group ('config platform ...')

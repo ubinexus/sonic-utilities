@@ -319,6 +319,38 @@ class TestVlan(object):
     def test_config_vlan_del_vlan(self):
         runner = CliRunner()
         db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        # del vlan with IP
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Vlan1000 can not be removed. First remove IP addresses assigned to this VLAN" in result.output
+
+        # remove vlan IP`s
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Vlan1000", "192.168.0.1/21"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Vlan1000", "fc02:1000::1/64"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+
+        # del vlan with IP
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: VLAN ID 1000 can not be removed. First remove all members assigned to this VLAN." in result.output
+
+        vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
+        keys = [ (k, v) for k, v in vlan_member if k == 'Vlan{}'.format(1000) ]
+        for k,v in keys:    
+            result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", v], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
 
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
@@ -597,6 +629,35 @@ class TestVlan(object):
 
         assert result.exit_code == 0
         assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan2000") == {"proxy_arp": "disabled"}
+        
+    def test_config_2_untagged_vlan_on_same_interface(self):
+        runner = CliRunner()
+        db = Db()
+        
+        # add Ethernet4 to vlan 2000 as untagged - should fail as ethrnet4 is already untagged member in 1000
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
+                ["2000", "Ethernet4", "--untagged"], obj=db)
+        print(result.exit_code)
+        assert result.exit_code != 0
+        
+        # add Ethernet4 to vlan 2000 as tagged - should succeed
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"],
+                ["2000", "Ethernet4" ], obj=db)
+        print(result.exit_code)
+        assert result.exit_code == 0
+        
+    def test_config_set_router_port_on_member_interface(self):        
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+        
+        # intf enable
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"],
+                               ["Ethernet4", "10.10.10.1/24"], obj=obj)        
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        assert 'Interface Ethernet4 is a member of vlan' in result.output
+        
 
     @classmethod
     def teardown_class(cls):
