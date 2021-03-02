@@ -1157,14 +1157,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, background):
         if not no_service_restart:
             _reset_failed_services()
             log.log_info("'reload' restarting services...")
-            rc = _restart_services()
-            rv |= rc
-            if rv == 0:
-                log.log_info("'reload' complete!")
-                click.echo('Reload complete!')
-            else:
-                log.log_info("'reload' failed!")
-                click.echo('Reload failed!')
+            _restart_services()
     except Exception as e:
         log.log_error("'reload' failed, error: {}".format(e))
         rv = 1
