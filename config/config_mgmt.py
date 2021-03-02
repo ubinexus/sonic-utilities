@@ -3,7 +3,8 @@ config_mgmt.py provides classes for configuration validation and for Dynamic
 Port Breakout.
 '''
 try:
-    import importlib
+    import importlib.machinery
+    import importlib.util
     import re
     import syslog
 
