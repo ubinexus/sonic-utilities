@@ -690,6 +690,10 @@ def _reset_failed_services():
 def _restart_services():
     click.echo("Restarting SONiC target ...")
     clicommon.run_command("sudo systemctl restart sonic.target")
+    
+    # Reload Monit configuration to pick up new hostname in case it changed	
+    click.echo("Reloading Monit configuration ...")
+    clicommon.run_command("sudo monit reload")
 
 
 def _get_sonic_services():
