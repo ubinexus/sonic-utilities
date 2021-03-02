@@ -1160,9 +1160,12 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, background):
     if os.path.isfile(RELOAD_PIPE_FILE):
         os.remove(RELOAD_PIPE_FILE)
 
+    if background:
+        if os.path.isfile(RELOAD_PIPE_FILE):
+            os.remove(RELOAD_PIPE_FILE)
+
     if rv != 0:
         click.echo('Error encountered while starting one or more services.')
-        click.echo('Please refer to the Command Reference Guide for recovery instructions.')
     sys.exit(rv)
 
 @config.command("load_mgmt_config")
