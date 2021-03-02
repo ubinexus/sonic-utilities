@@ -143,7 +143,6 @@ class TestConfigQosMasic(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         # change back to single asic config
