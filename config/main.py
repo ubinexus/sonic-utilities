@@ -1022,9 +1022,10 @@ def config_reload_log_thread(pid, outfd):
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
+@click.option('-b', '--background', default=False, is_flag=True, help='Run the command in the background')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, background):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -1036,7 +1037,14 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     if not yes:
         click.confirm(message, abort=True)
 
-    global child_pid
+    # Check if any instance of config reload is running in the background
+    if os.path.isfile(RELOAD_PIPE_FILE):
+        click.echo("Another instance of 'config reload' is running in the background, exiting ...")
+        log.log_error("Another instance of 'config reload' is running in the background, exiting ...")
+        sys.exit(1)
+
+    if background:
+        global child_pid
 
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
@@ -1053,52 +1061,51 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    if os.path.isfile(RELOAD_PIPE_FILE):
-        os.remove(RELOAD_PIPE_FILE)
-    outfd = open(RELOAD_PIPE_FILE, 'w+')
-
-    child_pid=os.fork()
-    # Parent: wait for child to exit
-    if child_pid :
-        signal.signal(signal.SIGHUP, signal.SIG_IGN)
-        signal.signal(signal.SIGINT, handle_signal)
-        signal.signal(signal.SIGQUIT, handle_signal)
-
-        thread_service_event = threading.Thread(target=config_reload_log_thread, name='reload', args=(child_pid, outfd,))
-        thread_service_event.start()
-        pid, status = os.waitpid(child_pid, 0)
+    if background:
         if os.path.isfile(RELOAD_PIPE_FILE):
             os.remove(RELOAD_PIPE_FILE)
-        thread_service_event.join()
-        if pid:
-            sys.exit(status >> 8)
-        return
-    else:
-        # Decouple from parent environment
-        os.setsid( )
-        os.umask(0)
-        infd = open(os.devnull, 'r')
-        os.dup2(infd.fileno(), sys.stdin.fileno())
-        os.dup2(outfd.fileno(), sys.stderr.fileno())
-        os.dup2(outfd.fileno(), sys.stdout.fileno())
+        outfd = open(RELOAD_PIPE_FILE, 'w+')
+
+        child_pid=os.fork()
+        # Parent: wait for child to exit
+        if child_pid :
+            signal.signal(signal.SIGHUP, signal.SIG_IGN)
+            signal.signal(signal.SIGINT, handle_signal)
+            signal.signal(signal.SIGQUIT, handle_signal)
+
+            thread_service_event = threading.Thread(target=config_reload_log_thread, name='reload', args=(child_pid, outfd,))
+            thread_service_event.start()
+            pid, status = os.waitpid(child_pid, 0)
+            if os.path.isfile(RELOAD_PIPE_FILE):
+                os.remove(RELOAD_PIPE_FILE)
+            thread_service_event.join()
+            if pid:
+                sys.exit(status >> 8)
+            return
+        else:
+            # Decouple from parent environment
+            os.setsid( )
+            os.umask(0)
+            infd = open(os.devnull, 'r')
+            os.dup2(infd.fileno(), sys.stdin.fileno())
+            os.dup2(outfd.fileno(), sys.stderr.fileno())
+            os.dup2(outfd.fileno(), sys.stdout.fileno())
 
     rv = 0
     log.log_info("'reload' executing...")
     try:
         if load_sysinfo:
             command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
-            proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+            proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
             cfg_hwsku, err = proc.communicate()
             if err:
                 click.echo("Could not get the HWSKU from config file, exiting")
                 log.log_error("Could not get the HWSKU from config file, exiting, err: {}".format(err))
-                os.remove(RELOAD_PIPE_FILE)
+                if background:
+                    os.remove(RELOAD_PIPE_FILE)
                 sys.exit(1)
             else:
                 cfg_hwsku = cfg_hwsku.strip()
-
-        # disable warm-boot configuration
-        _disable_warm_boot_config()
 
         # Stop services before config push
         if not no_service_restart:
@@ -1108,7 +1115,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         log.log_error("'reload' failed at stop services, error: {}".format(e))
 
     try:
-        # In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+        # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
         # service running in the host + DB services running in each ASIC namespace created per ASIC.
         # In the below logic, we get all namespaces in this platform and add an empty namespace ''
         # denoting the current namespace which we are in ( the linux host )
@@ -1192,12 +1199,12 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         log.log_error("'reload' failed, error: {}".format(e))
         rv = 1
 
-    if os.path.isfile(RELOAD_PIPE_FILE):
-        os.remove(RELOAD_PIPE_FILE)
+    if background:
+        if os.path.isfile(RELOAD_PIPE_FILE):
+            os.remove(RELOAD_PIPE_FILE)
 
     if rv != 0:
         click.echo('Error encountered while starting one or more services.')
-        click.echo('Please refer to the Command Reference Guide for recovery instructions.')
     sys.exit(rv)
 
 @config.command("load_mgmt_config")
