@@ -61,19 +61,19 @@ class TestAclLoader(object):
         assert acl_loader.rules_info[("DATAACL", "RULE_2")]["VLAN_ID"] == 369
 
     def test_vlan_id_lower_bound(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_vlan_0.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_vlan_0.json'))
 
     def test_vlan_id_upper_bound(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_vlan_9000.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_vlan_9000.json'))
 
     def test_vlan_id_not_a_number(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_vlan_nan.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_vlan_nan.json'))
 
     def test_icmp_translation(self, acl_loader):
         acl_loader.rules_info = {}
@@ -90,31 +90,31 @@ class TestAclLoader(object):
         assert acl_loader.rules_info[("DATAACLV6", "RULE_1")]["ICMPV6_CODE"] == 0
 
     def test_icmp_type_lower_bound(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_type_neg_1.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_type_neg_1.json'))
 
     def test_icmp_type_upper_bound(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_type_300.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_type_300.json'))
 
     def test_icmp_type_not_a_number(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_type_nan.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_type_nan.json'))
 
     def test_icmp_code_lower_bound(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_code_neg_1.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_code_neg_1.json'))
 
     def test_icmp_code_upper_bound(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_code_300.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_code_300.json'))
 
     def test_icmp_code_not_a_number(self, acl_loader):
-        acl_loader.rules_info = {}
-        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_code_nan.json'))
-        assert not acl_loader.rules_info.get(("DATAACL", "RULE_1"))
+        with pytest.raises(ValueError):
+            acl_loader.rules_info = {}
+            acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_code_nan.json'))

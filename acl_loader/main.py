@@ -482,7 +482,7 @@ class AclLoader(object):
         type_key = "ICMPV6_TYPE" if is_table_v6 else "ICMP_TYPE"
         code_key = "ICMPV6_CODE" if is_table_v6 else "ICMP_CODE"
 
-        if rule.icmp.config.type:
+        if rule.icmp.config.type or rule.icmp.config.type == 0:
             try:
                 icmp_type = int(rule.icmp.config.type)
 
@@ -495,7 +495,7 @@ class AclLoader(object):
                     "Failed to convert %s; table %s, rule %s; exception=%s" %
                     (type_key, table_name, rule_idx, str(e)))
 
-        if rule.icmp.config.code:
+        if rule.icmp.config.code or rule.icmp.config.code == 0:
             try:
                 icmp_code = int(rule.icmp.config.code)
 
