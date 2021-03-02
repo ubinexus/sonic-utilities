@@ -691,6 +691,22 @@ def _restart_services():
     click.echo("Restarting SONiC target ...")
     clicommon.run_command("sudo systemctl restart sonic.target")
 
+
+def _get_sonic_services():
+    out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
+    return [unit.strip() for unit in out.splitlines()]
+
+
+def _reset_failed_services():
+    for service in _get_sonic_services():
+        click.echo("Resetting failed status on {}".format(service))
+        clicommon.run_command("systemctl reset-failed {}".format(service))
+
+
+def _restart_services():
+    click.echo("Restarting SONiC target ...")
+    clicommon.run_command("sudo systemctl restart sonic.target")
+
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface is in a vlan """
     for _, intf in vlan_member_table:
@@ -1148,17 +1164,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, background):
     except Exception as e:
         log.log_error("'reload' failed, error: {}".format(e))
         rv = 1
-
-    if background:
-        if os.path.isfile(RELOAD_PIPE_FILE):
-            os.remove(RELOAD_PIPE_FILE)
-
-    if rv != 0:
-        click.echo('Error encountered while starting one or more services.')
-    sys.exit(rv)
-
-    if os.path.isfile(RELOAD_PIPE_FILE):
-        os.remove(RELOAD_PIPE_FILE)
 
     if background:
         if os.path.isfile(RELOAD_PIPE_FILE):
