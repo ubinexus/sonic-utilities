@@ -25,7 +25,7 @@ import show.main as show
 
 tabular_data_status_output_expected = """\
 PORT        STATUS    HEALTH
-----------  --------  --------
+----------  --------  ---------
 Ethernet0   active    healthy
 Ethernet4   standby   healthy
 Ethernet8   standby   unhealthy

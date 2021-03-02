@@ -16,6 +16,8 @@ REDIS_TIMEOUT_MSECS = 0
 CONFIG_SUCCESSFUL = 100
 CONFIG_FAIL = 1
 
+VENDOR_NAME = "Credo"
+VENDOR_MODEL = "CAC125321P2PA0MS"
 
 # Helper functions
 
@@ -275,6 +277,22 @@ def hwmode():
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 def state(state, port):
     """Show muxcable summary information"""
+
+    per_npu_statedb = {}
+    transeiver_table_keys = {}
+    transceiver_dict = {}
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        transeiver_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'TRANSCEIVER_INFO|*')
+
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} state. Continue?'.format(port, state)), abort=True)
         logical_port_list = platform_sfputil.logical
@@ -283,6 +301,18 @@ def state(state, port):
             for port in logical_port_list:
                 click.echo(("{}".format(port)))
             sys.exit(CONFIG_FAIL)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                # is fully mocked
+                import sonic_platform_base.sonic_sfp.sfputilhelper
+                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+                if asic_index is None:
+                    click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+                    sys.exit(CONFIG_FAIL)
 
         if platform_sfputil is not None:
             physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
@@ -296,7 +326,35 @@ def state(state, port):
                     click.echo(("{}".format(lport)))
                 sys.exit(CONFIG_FAIL)
 
+        transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
+
+        vendor_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "manufacturer", "TRANSCEIVER_INFO")
+        model_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "model", "TRANSCEIVER_INFO")
+
+        """ This check is required for checking whether or not this port is connected to a Y cable
+        or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
+        TODO this should be removed once their is support for multiple vendors on Y cable"""
+
+        if vendor_value != VENDOR_NAME and model_value != VENDOR_MODEL:
+            click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
+            sys.exit(CONFIG_FAIL)
+
         physical_port = physical_port_list[0]
+
+        logical_port_list_for_physical_port = platform_sfputil.physical_to_logical
+
+        logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+        """ This check is required for checking whether or not this logical port is the one which is 
+        actually mapped to physical port and by convention it is always the first port.
+        TODO: this should be removed with more logic to check which logical port maps to actual physical port
+        being used"""
+
+        if port != logical_port_list_per_port[0]:
+            click.echo("ERR: This logical Port {} is not on a muxcable".format(port))
+            sys.exit(CONFIG_FAIL)
+
         import sonic_y_cable.y_cable
         read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
         if read_side == False or read_side == -1:
@@ -335,6 +393,17 @@ def state(state, port):
             if platform_sfputil is not None:
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
+            asic_index = None
+            if platform_sfputil is not None:
+                asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+                if asic_index is None:
+                    # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                    # is fully mocked
+                    import sonic_platform_base.sonic_sfp.sfputilhelper
+                    asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+                    if asic_index is None:
+                        click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+
             if not isinstance(physical_port_list, list):
                 click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
                 rc = False
@@ -344,17 +413,44 @@ def state(state, port):
                         click.echo(("{}".format(lport)))
                     rc = False
 
+            transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+                per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
+            vendor_value = transceiver_dict[asic_index].get("manufacturer", None)
+            model_value = transceiver_dict[asic_index].get("model", None)
+
+            """ This check is required for checking whether or not this port is connected to a Y cable
+            or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
+            TODO this should be removed once their is support for multiple vendors on Y cable"""
+
+            if vendor_value != VENDOR_NAME and model_value != VENDOR_MODEL:
+                rc = False
+                continue
+
             physical_port = physical_port_list[0]
+
+            logical_port_list_for_physical_port = platform_sfputil.physical_to_logical
+
+            logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+            """ This check is required for checking whether or not this logical port is the one which is 
+            actually mapped to physical port and by convention it is always the first port.
+            TODO: this should be removed with more logic to check which logical port maps to actual physical port
+            being used"""
+
+            if port != logical_port_list_per_port[0]:
+                continue
+
             import sonic_y_cable.y_cable
             read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
             if read_side == False or read_side == -1:
-                click.echo(("ERR: Unable to get read_side for the cable port {}".format(port)))
                 rc = False
+                continue
 
             mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
             if mux_direction == False or mux_direction == -1:
                 click.echo(("ERR: Unable to get mux direction for the cable port {}".format(port)))
                 rc = False
+                continue
 
             if int(read_side) == 1:
                 if state == "active":
