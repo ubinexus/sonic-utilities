@@ -251,8 +251,8 @@ class SkuCreate(object):
         header_str = "#name           lanes                alias       index     speed\n"
         f_out.write(header_str)
       
-        #data['PORT'] is already an OrderedDict, we can not sort it, so we create
-        #a pi_list - list of port info items and then sort it 
+        # data['PORT'] is already an OrderedDict, we can not sort it, so we create
+        # pi_list - list of port info items and then sort it 
         for key, value in data['PORT'].iteritems():
             pattern = '^Ethernet([0-9]{1,})'
             m = re.match(pattern,key)
