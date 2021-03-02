@@ -218,6 +218,28 @@
 										"code": "0"
 									}
 								}
+							},
+							"2": {
+								"config": {
+									"sequence-id": 100
+								},
+								"actions": {
+									"config": {
+										"forwarding-action": "ACCEPT"
+									}
+								},
+								"ip": {
+									"config": {
+										"protocol": "IP_ICMP",
+										"source-ip-address": "::1/128",
+										"destination-ip-address": "::1/128"
+									}
+								},
+								"icmp": {
+									"config": {
+										"type": "128"
+									}
+								}
 							}
 						}
 					}

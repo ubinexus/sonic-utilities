@@ -58,7 +58,14 @@ class TestAclLoader(object):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
         assert acl_loader.rules_info[("DATAACL", "RULE_2")]
-        assert acl_loader.rules_info[("DATAACL", "RULE_2")]["VLAN_ID"] == 369
+        assert acl_loader.rules_info[("DATAACL", "RULE_2")] == {
+            "VLAN_ID": 369,
+            "IP_PROTOCOL": 6,
+            "SRC_IP": "20.0.0.2/32",
+            "DST_IP": "30.0.0.3/32",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9998"
+        }
 
     def test_vlan_id_lower_bound(self, acl_loader):
         with pytest.raises(ValueError):
@@ -79,15 +86,37 @@ class TestAclLoader(object):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
         assert acl_loader.rules_info[("DATAACL", "RULE_1")]
-        assert acl_loader.rules_info[("DATAACL", "RULE_1")]["ICMP_TYPE"] == 3
-        assert acl_loader.rules_info[("DATAACL", "RULE_1")]["ICMP_CODE"] == 0
+        assert acl_loader.rules_info[("DATAACL", "RULE_1")] == {
+            "ICMP_TYPE": 3,
+            "ICMP_CODE": 0,
+            "IP_PROTOCOL": 1,
+            "SRC_IP": "20.0.0.2/32",
+            "DST_IP": "30.0.0.3/32",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9999"
+        }
 
     def test_icmpv6_translation(self, acl_loader):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
-        assert acl_loader.rules_info[("DATAACLV6", "RULE_1")]
-        assert acl_loader.rules_info[("DATAACLV6", "RULE_1")]["ICMPV6_TYPE"] == 1
-        assert acl_loader.rules_info[("DATAACLV6", "RULE_1")]["ICMPV6_CODE"] == 0
+        print(acl_loader.rules_info)
+        assert acl_loader.rules_info[("DATAACLV6", "RULE_1")] == {
+            "ICMPV6_TYPE": 1,
+            "ICMPV6_CODE": 0,
+            "IP_PROTOCOL": 1,
+            "SRC_IPV6": "::1/128",
+            "DST_IPV6": "::1/128",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9999"
+        }
+        assert acl_loader.rules_info[("DATAACLV6", "RULE_100")] == {
+            "ICMPV6_TYPE": 128,
+            "IP_PROTOCOL": 1,
+            "SRC_IPV6": "::1/128",
+            "DST_IPV6": "::1/128",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9900"
+        }
 
     def test_icmp_type_lower_bound(self, acl_loader):
         with pytest.raises(ValueError):
