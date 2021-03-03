@@ -53,7 +53,7 @@ STATS_HEADER = ('QUEUE', 'STATUS',) + list(zip(*STATS_DESCRIPTION))[0]
 CONFIG_HEADER = ('PORT',) + list(zip(*CONFIG_DESCRIPTION))[0]
 
 CONFIG_DB_PFC_WD_TABLE_NAME = 'PFC_WD'
-
+PORT_QOS_MAP =  "PORT_QOS_MAP"
 
 # Main entrypoint
 @click.group()
@@ -242,6 +242,10 @@ class PfcwdCli(object):
             exit()
         self.start_cmd(action, restoration_time, ports, detection_time)
 
+    def get_port_pfc_status(self, port):
+        status = self.config_db.get_entry(PORT_QOS_MAP, port).get('pfc_enable')
+        return status
+
     @multi_asic_util.run_on_multi_asic
     def start_cmd(self, action, restoration_time, ports, detection_time):
         if os.geteuid() != 0:
@@ -272,6 +276,11 @@ class PfcwdCli(object):
         for port in ports:
             if port == "all":
                 for p in all_ports:
+                    pfc_status = self.get_port_pfc_status(p)
+                    if pfc_status == None:
+                        print("SKIPPED: PFC is not enabled on port: {}".format(p))
+                        continue
+
                     self.config_db.mod_entry(
                         CONFIG_DB_PFC_WD_TABLE_NAME, p, None
                     )
@@ -279,8 +288,11 @@ class PfcwdCli(object):
                         CONFIG_DB_PFC_WD_TABLE_NAME, p, pfcwd_info
                     )
             else:
-                if port not in all_ports:
+                pfc_status = self.get_port_pfc_status(port)
+                if port not in all_ports or pfc_status == None:
+                    print("SKIPPED: PFC is not enabled on port: {}".format(port))
                     continue
+
                 self.config_db.mod_entry(
                     CONFIG_DB_PFC_WD_TABLE_NAME, port, None
                 )
