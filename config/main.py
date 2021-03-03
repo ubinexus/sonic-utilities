@@ -3382,13 +3382,20 @@ def expand_vlan_ports(port_name):
     config_db = ConfigDBConnector()
     config_db.connect()
 
+    if port_name not in config_db.get_keys("VLAN"):
+        return [port_name]
+
     vlan_members = config_db.get_keys("VLAN_MEMBER")
 
-    members = [v[1] for v in vlan_members if port_name == v[0]]
-    return members or [port_name]
+    members = [member for vlan, member in vlan_members if port_name == vlan]
+
+    if not members:
+        raise ValueError("Cannot bind empty VLAN {}".format(port_name))
+
+    return members
 
 
-def parse_acl_table_info(table_name, table_type, description, ports, stage, expand_vlans):
+def parse_acl_table_info(table_name, table_type, description, ports, stage):
     table_info = {"type": table_type}
 
     if description:
@@ -3396,15 +3403,23 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage, expa
     else:
         table_info["policy_desc"] = table_name
 
-    if ports and expand_vlans:
-        port_list = list()
+    if not ports and ports != None:
+        raise ValueError("Cannot bind empty list of ports")
+
+    port_list = []
+    valid_acl_ports = get_acl_bound_ports()
+    if ports:
         for port in ports.split(","):
             port_list += expand_vlan_ports(port)
-        table_info["ports@"] = ",".join(set(port_list))
-    elif ports:
-        table_info["ports@"] = ports
+        port_list = set(port_list)
     else:
-        table_info["ports@"] = ",".join(get_acl_bound_ports())
+        port_list = valid_acl_ports
+
+    for port in port_list:
+        if port not in valid_acl_ports:
+            raise ValueError("Cannot bind ACL to specified port {}".format(port))
+
+    table_info["ports@"] = ",".join(port_list)
 
     table_info["stage"] = stage
 
@@ -3420,15 +3435,18 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage, expa
 @click.option("-d", "--description")
 @click.option("-p", "--ports")
 @click.option("-s", "--stage", type=click.Choice(["ingress", "egress"]), default="ingress")
-@click.option("-e", "--expand_vlans", is_flag=True)
-def table(table_name, table_type, description, ports, stage, expand_vlans):
+@click.pass_context
+def table(ctx, table_name, table_type, description, ports, stage):
     """
     Add ACL table
     """
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    table_info = parse_table_info(table_name, table_type, description, ports, stage, expand_vlans)
+    try:
+        table_info = parse_acl_table_info(table_name, table_type, description, ports, stage)
+    except ValueError as e:
+        ctx.fail("Failed to parse ACL table config: exception={}".format(e))
 
     config_db.set_entry("ACL_TABLE", table_name, table_info)
 
