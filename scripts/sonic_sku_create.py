@@ -724,7 +724,6 @@ def main(argv):
     parser.add_argument('--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-d', '--default_sku_path', action='store',nargs=1, help='Specify Default SKU path', default=None)
     parser.add_argument('-q', '--port_split_path', action='store',nargs=1, help='Specify Port split path', default=None)
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     args = parser.parse_args()
 
