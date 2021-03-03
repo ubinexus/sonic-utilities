@@ -423,18 +423,13 @@ class AclLoader(object):
                         "Failed to convert ethertype %s; table %s rule %s; exception=%s" %
                         (rule.l2.config.ethertype, table_name, rule_idx, str(e)))
 
-        if rule.l2.config.vlan_id:
-            try:
-                vlan_id = int(rule.l2.config.vlan_id)
+        if rule.l2.config.vlan_id != "" and rule.l2.config.vlan_id != "null":
+            vlan_id = rule.l2.config.vlan_id
 
-                if vlan_id <= 0 or vlan_id >= 4096:
-                    raise AclLoaderException("VLAN ID %d is out of bounds (0, 4096)" % (vlan_id))
+            if vlan_id <= 0 or vlan_id >= 4096:
+                raise AclLoaderException("VLAN ID %d is out of bounds (0, 4096)" % (vlan_id))
 
-                rule_props["VLAN_ID"] = vlan_id
-            except Exception as e:
-                raise AclLoaderException(
-                    "Failed to convert VLAN ID %s; table %s rule %s; exception=%s" %
-                    (rule.l2.config.vlan_id, table_name, rule_idx, str(e)))
+            rule_props["VLAN_ID"] = vlan_id
 
         return rule_props
 
@@ -445,8 +440,8 @@ class AclLoader(object):
         # so there isn't currently a good way to check if the user defined proto=0 or not.
         if rule.ip.config.protocol:
             if rule.ip.config.protocol in self.ip_protocol_map:
-                # Special case: "1" is the wrong protocol number for ICMPV6, we need to use "58" instead if
-                # the target table is an IPV6 table.
+                # Special case: ICMP has different protocol numbers for IPv4 and IPv6, so if we receive
+                # "IP_ICMP" we need to pick the correct protocol number for the IP version
                 if rule.ip.config.protocol == "IP_ICMP" and self.is_table_ipv6(table_name):
                     rule_props["IP_PROTOCOL"] = self.ip_protocol_map["IP_ICMPV6"]
                 else:
@@ -488,31 +483,21 @@ class AclLoader(object):
         type_key = "ICMPV6_TYPE" if is_table_v6 else "ICMP_TYPE"
         code_key = "ICMPV6_CODE" if is_table_v6 else "ICMP_CODE"
 
-        if rule.icmp.config.type or rule.icmp.config.type == 0:
-            try:
-                icmp_type = int(rule.icmp.config.type)
+        if rule.icmp.config.type != "" and rule.icmp.config.type != "null":
+            icmp_type = rule.icmp.config.type
 
-                if icmp_type < 0 or icmp_type > 255:
-                    raise AclLoaderException("ICMP type %d is out of bounds [0, 255]" % (icmp_type))
+            if icmp_type < 0 or icmp_type > 255:
+                raise AclLoaderException("ICMP type %d is out of bounds [0, 255]" % (icmp_type))
 
-                rule_props[type_key] = icmp_type
-            except Exception as e:
-                raise AclLoaderException(
-                    "Failed to convert %s; table %s, rule %s; exception=%s" %
-                    (type_key, table_name, rule_idx, str(e)))
+            rule_props[type_key] = icmp_type
 
-        if rule.icmp.config.code or rule.icmp.config.code == 0:
-            try:
-                icmp_code = int(rule.icmp.config.code)
+        if rule.icmp.config.code != "" and rule.icmp.config.code != "null":
+            icmp_code = rule.icmp.config.code
 
-                if icmp_code < 0 or icmp_code > 255:
-                    raise AclLoaderException("ICMP code %d is out of bounds [0, 255]" % (icmp_code))
+            if icmp_code < 0 or icmp_code > 255:
+                raise AclLoaderException("ICMP code %d is out of bounds [0, 255]" % (icmp_code))
 
-                rule_props[code_key] = icmp_code
-            except Exception as e:
-                raise AclLoaderException(
-                    "Failed to convert %s; table %s, rule %s; exception=%s" %
-                    (type_key, table_name, rule_idx, str(e)))
+            rule_props[code_key] = icmp_code
 
         return rule_props
 
