@@ -181,9 +181,9 @@ function wait_for_pre_shutdown_complete_or_fail()
     done
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
-        debug "Syncd pre-shutdown failed: ${STATE} ..."
+        debug "Syncd pre-shutdown failed, state: ${STATE} ..."
     else
-        debug "Pre-shutdown succeeded ..."
+        debug "Pre-shutdown succeeded, state: ${STATE} ..."
     fi
 }
 
@@ -298,7 +298,7 @@ function unload_kernel()
 
 function check_docker_exec()
 {
-    containers="radv bgp lldp swss teamd syncd"
+    containers="radv bgp lldp swss database teamd syncd"
     for container in $containers; do
         STATE=`timeout 1s docker exec $container echo "test"; if [[ $? == 124 ]]; then echo "timed out"; fi`
         if [[ x"${STATE}" == x"timed out" ]]; then
@@ -437,8 +437,8 @@ fi
 # service will go down and we cannot recover from it.
 set +e
 
-# disable trap handlers which were set before
-trap - EXIT HUP INT QUIT TERM KILL ABRT ALRM
+# disable trap-handlers which were set before
+trap ' ' EXIT HUP INT QUIT TERM KILL ABRT ALRM
 
 # Kill radv before stopping BGP service to prevent annoucing our departure.
 debug "Stopping radv ..."
