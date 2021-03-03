@@ -103,6 +103,7 @@ class AclLoader(object):
         "IP_RSVP": 46,
         "IP_GRE": 47,
         "IP_AUTH": 51,
+        "IP_ICMPV6": 58,
         "IP_L2TP": 115
     }
 
@@ -444,7 +445,12 @@ class AclLoader(object):
         # so there isn't currently a good way to check if the user defined proto=0 or not.
         if rule.ip.config.protocol:
             if rule.ip.config.protocol in self.ip_protocol_map:
-                rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
+                # Special case: "1" is the wrong protocol number for ICMPV6, we need to use "58" instead if
+                # the target table is an IPV6 table.
+                if rule.ip.config.protocol == "IP_ICMP" and self.is_table_ipv6(table_name):
+                    rule_props["IP_PROTOCOL"] = self.ip_protocol_map["IP_ICMPV6"]
+                else:
+                    rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
                 try:
                     int(rule.ip.config.protocol)

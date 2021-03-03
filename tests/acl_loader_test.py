@@ -103,7 +103,7 @@ class TestAclLoader(object):
         assert acl_loader.rules_info[("DATAACLV6", "RULE_1")] == {
             "ICMPV6_TYPE": 1,
             "ICMPV6_CODE": 0,
-            "IP_PROTOCOL": 1,
+            "IP_PROTOCOL": 58,
             "SRC_IPV6": "::1/128",
             "DST_IPV6": "::1/128",
             "PACKET_ACTION": "FORWARD",
@@ -111,7 +111,7 @@ class TestAclLoader(object):
         }
         assert acl_loader.rules_info[("DATAACLV6", "RULE_100")] == {
             "ICMPV6_TYPE": 128,
-            "IP_PROTOCOL": 1,
+            "IP_PROTOCOL": 58,
             "SRC_IPV6": "::1/128",
             "DST_IPV6": "::1/128",
             "PACKET_ACTION": "FORWARD",
