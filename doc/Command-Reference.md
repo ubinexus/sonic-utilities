@@ -1371,6 +1371,33 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
 
+**config acl add table**
+
+This command is used to create new ACL tables.
+
+- Usage:
+  ```
+  config acl add table [OPTIONS] <table_name> <table_type> [-d <description>] [-p <ports>] [-s (ingress | egress)] [--expand_vlans]
+  ```
+
+- Parameters:
+  - table_name: The name of the ACL table to create.
+  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "MIRROR")
+  - description: A description of the table for the user. (default is the table_name)
+  - ports: A comma-separated list of ports to add to the table. (default is all front-panel ports)
+  - stage: The stage this ACL table will be applied to, either ingress or egress. (default is ingress)
+  - expand_vlans: If this option is provided, then VLANs listed in the ports list will be replaced with all of the members of the specified VLAN.
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config acl add table EXAMPLE L3 -p Ethernet0,Ethernet4 -s ingress
+  ```
+  ```
+  admin@sonic:~$ sudo config acl add table EXAMPLE_2 L3V6 -p Vlan1000 -s egress --expand_vlans
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
+
 
 ## ARP & NDP
 
