@@ -492,7 +492,7 @@ def mux_direction(port):
         or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
         TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
-        if vendor_value != VENDOR_NAME and model_value != VENDOR_MODEL:
+        if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
             click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
             sys.exit(EXIT_FAIL)
 
@@ -589,7 +589,7 @@ def mux_direction(port):
             or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
             TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
-            if vendor_value != VENDOR_NAME and model_value != VENDOR_MODEL:
+            if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
                 continue
 
             physical_port = physical_port_list[0]
@@ -617,6 +617,9 @@ def mux_direction(port):
             mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
             if mux_direction == False or mux_direction == -1:
                 rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
                 continue
 
             if int(read_side) == 1:
@@ -631,6 +634,9 @@ def mux_direction(port):
                     state = "active"
             else:
                 rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
                 continue
             temp_list.append(port)
             temp_list.append(state)

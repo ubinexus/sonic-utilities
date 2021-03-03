@@ -336,7 +336,7 @@ def state(state, port):
         or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
         TODO this should be removed once their is support for multiple vendors on Y cable"""
 
-        if vendor_value != VENDOR_NAME and model_value != VENDOR_MODEL:
+        if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
             click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
             sys.exit(CONFIG_FAIL)
 
@@ -385,7 +385,7 @@ def state(state, port):
 
     elif port == "all" and port is not None:
 
-        click.confirm(('Muxcable at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
+        click.confirm(('Muxcables at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
         logical_port_list = platform_sfputil.logical
 
         rc = True
@@ -406,12 +406,13 @@ def state(state, port):
 
             if not isinstance(physical_port_list, list):
                 click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
-                rc = False
-                if len(physical_port_list) != 1:
-                    click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
-                    for lport in physical_port_list:
-                        click.echo(("{}".format(lport)))
-                    rc = False
+                continue
+
+            if len(physical_port_list) != 1:
+                click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
+                for lport in physical_port_list:
+                    click.echo(("{}".format(lport)))
+                continue
 
             transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
                 per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
@@ -422,8 +423,7 @@ def state(state, port):
             or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
             TODO this should be removed once their is support for multiple vendors on Y cable"""
 
-            if vendor_value != VENDOR_NAME and model_value != VENDOR_MODEL:
-                rc = False
+            if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
                 continue
 
             physical_port = physical_port_list[0]
@@ -443,6 +443,7 @@ def state(state, port):
             import sonic_y_cable.y_cable
             read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
             if read_side == False or read_side == -1:
+                click.echo(("ERR: Unable to get read side for the cable port {}".format(port)))
                 rc = False
                 continue
 
