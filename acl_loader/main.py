@@ -560,17 +560,17 @@ class AclLoader(object):
         return rule_props
 
     def validate_rule_fields(self, rule_props):
-        protocol = rule_props.get("IP_PROTOCOL", 6)
-        if "TCP_FLAGS" in rule_props and protocol != 6:
-            raise AclLoaderException("IP_PROTOCOL={} is not TCP, but TCP flags were provided".format(protocol))
+        protocol = rule_props.get("IP_PROTOCOL")
 
-        protocol = rule_props.get("IP_PROTOCOL", 1)
-        if ("ICMP_TYPE" in rule_props or "ICMP_CODE" in rule_props) and protocol != 1:
-            raise AclLoaderException("IP_PROTOCOL={} is not ICMP, but ICMP fields were provided".format(protocol))
+        if protocol:
+            if "TCP_FLAGS" in rule_props and protocol != 6:
+                raise AclLoaderException("IP_PROTOCOL={} is not TCP, but TCP flags were provided".format(protocol))
 
-        protocol = rule_props.get("IP_PROTOCOL", 58)
-        if ("ICMPV6_TYPE" in rule_props or "ICMPV6_CODE" in rule_props) and protocol != 58:
-            raise AclLoaderException("IP_PROTOCOL={} is not ICMPV6, but ICMPV6 fields were provided".format(protocol))
+            if ("ICMP_TYPE" in rule_props or "ICMP_CODE" in rule_props) and protocol != 1:
+                raise AclLoaderException("IP_PROTOCOL={} is not ICMP, but ICMP fields were provided".format(protocol))
+
+            if ("ICMPV6_TYPE" in rule_props or "ICMPV6_CODE" in rule_props) and protocol != 58:
+                raise AclLoaderException("IP_PROTOCOL={} is not ICMPV6, but ICMPV6 fields were provided".format(protocol))
 
     def convert_rule_to_db_schema(self, table_name, rule):
         """
