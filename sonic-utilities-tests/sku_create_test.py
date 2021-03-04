@@ -7,30 +7,30 @@ import sys
 
 import pytest
 
-test_path = os.path.dirname(os.path.abspath(__file__))
+test_path = os.path.dirname(os.path.relpath(__file__))
 modules_path = os.path.dirname(test_path)
-scripts_path = os.path.join(modules_path, "scripts")
-xml_input_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files")
-output_xml_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/")
+scripts_path = os.path.join(modules_path, "../scripts")
+xml_input_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files")
+output_xml_dir_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/")
 sku_def_file = os.path.join(xml_input_path, "Mellanox-SN2700-D48C8.xml")
-output_xml_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/port_config.ini")
-model_xml_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8/port_config.ini")
-minigraph_input_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/3800_files")
-output_minigraph_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50_NEW/")
+output_xml_file_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/port_config.ini")
+model_xml_file_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8/port_config.ini")
+minigraph_input_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/3800_files")
+output_minigraph_dir_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50_NEW/")
 minigraph_file = os.path.join(minigraph_input_path, "t0-1-06-minigraph.xml")
-output_minigraph_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50_NEW/port_config.ini")
-model_minigraph_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50/port_config.ini")
-config_db_input_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files")
-output_config_db_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8/")
+output_minigraph_file_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50_NEW/port_config.ini")
+model_minigraph_file_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50/port_config.ini")
+config_db_input_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files")
+output_config_db_dir_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8/")
 config_db_file = os.path.join(config_db_input_path, "config_db.json")
-output_config_db_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8/port_config.ini")
-model_config_db_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8-ORIG/port_config.ini")
-port_split_input_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files")
-port_split_output_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/port_split_files")
+output_config_db_file_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8/port_config.ini")
+model_config_db_file_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8-ORIG/port_config.ini")
+port_split_input_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files")
+port_split_output_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/port_split_files")
 port_split_config_db_output_file_path = os.path.join(port_split_output_path, "config_db.json")
 port_split_pc_ini_file_output_path = os.path.join(port_split_output_path, "port_config.ini")
-port_unsplit_input_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files")
-port_unsplit_output_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/port_unsplit_files")
+port_unsplit_input_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/2700_files")
+port_unsplit_output_path = os.path.join(modules_path, "../sonic-utilities-tests/sku_create_input/port_unsplit_files")
 port_unsplit_config_db_output_file_path = os.path.join(port_unsplit_output_path, "config_db.json")
 port_unsplit_pc_ini_file_output_path = os.path.join(port_unsplit_output_path, "port_config.ini")
 sku_create_script = "sonic_sku_create.py"
@@ -43,19 +43,19 @@ class TestSkuCreate(object):
     def setup_class(cls):
         os.environ["PATH"] += os.pathsep + scripts_path
 
-    def are_file_contents_same(self,fname1,fname2):
-        #Open the file for reading in text mode (default mode)
+    def are_file_contents_same(self, fname1, fname2):
+        # Open the file for reading in text mode (default mode)
         f1 = open(fname1)
         f2 = open(fname2)
 
-        #Read the first line from the files
+        # Read the first line from the files
         f1_line = f1.readline()
         f2_line = f2.readline()
 
-        #Loop if either fname1 or fname2 has not reached EOF
+        # Loop if either fname1 or fname2 has not reached EOF
         while f1_line!='' or f2_line!='':
-            f1_line = re.sub('[\s+]','',f1_line)
-            f2_line = re.sub('[\s+]','',f2_line)
+            f1_line = re.sub('[\s+]', '', f1_line)
+            f2_line = re.sub('[\s+]', '', f2_line)
 
             if f1_line!=f2_line:
                 f1.close()
@@ -75,19 +75,19 @@ class TestSkuCreate(object):
 
         my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + xml_input_path
 
-        #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        # Test case execution without stdout
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True)
         print result
 
-        #Check if the Output file exists
+        # Check if the Output file exists
         if (os.path.exists(output_xml_file_path)):
-            print("Output file: ",output_xml_file_path, "exists. SUCCESS!")
+            print("Output file: ", output_xml_file_path, "exists. SUCCESS!")
         else:
             pytest.fail("Output file: {} does not exist. FAILURE!".format(output_xml_file_path))
 
-        #Check if the Output file and the model file have same contents
+        # Check if the Output file and the model file have same contents
         if self.are_file_contents_same(output_xml_file_path, model_xml_file_path) == True:
-            print("Output file: ",output_xml_file_path, " and model file: ",model_xml_file_path, "contents are same. SUCCESS!")
+            print("Output file: ", output_xml_file_path, " and model file: ", model_xml_file_path, "contents are same. SUCCESS!")
         else:
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_xml_file_path, model_xml_file_path))
 
@@ -97,19 +97,19 @@ class TestSkuCreate(object):
 
         my_command = sku_create_script + " -m "  + minigraph_file  + " -d " + minigraph_input_path
 
-        #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        # Test case execution without stdout
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True)
         print result
 
-        #Check if the Output file exists
+        # Check if the Output file exists
         if (os.path.exists(output_minigraph_file_path)):
-            print("Output file: ",output_minigraph_file_path, "exists. SUCCESS!")
+            print("Output file: ", output_minigraph_file_path, "exists. SUCCESS!")
         else:
             pytest.fail("Output file: {} does not exist. FAILURE!".format(output_minigraph_file_path))
 
-        #Check if the Output file and the model file have same contents
+        # Check if the Output file and the model file have same contents
         if self.are_file_contents_same(output_minigraph_file_path, model_minigraph_file_path) == True:
-            print("Output file: ",output_minigraph_file_path, " and model file: ",model_minigraph_file_path, "contents are same. SUCCESS!")
+            print("Output file: ", output_minigraph_file_path, " and model file: ", model_minigraph_file_path, "contents are same. SUCCESS!")
         else:
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_minigraph_file_path, model_minigraph_file_path))
 
@@ -119,42 +119,42 @@ class TestSkuCreate(object):
 
         my_command = sku_create_script + " -j "  + config_db_file  + " -d " + config_db_input_path
 
-        #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        # Test case execution without stdout
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True)
         print result
 
-        #Check if the Output file exists
+        # Check if the Output file exists
         if (os.path.exists(output_config_db_file_path)):
-            print("Output file: ",output_config_db_file_path, "exists. SUCCESS!")
+            print("Output file: ", output_config_db_file_path, "exists. SUCCESS!")
         else:
             pytest.fail("Output file: {} does not exist. FAILURE!".format(output_config_db_file_path))
 
-        #Check if the Output file and the model file have same contents
+        # Check if the Output file and the model file have same contents
         if self.are_file_contents_same(output_config_db_file_path, model_config_db_file_path) == True:
-            print("Output file: ",output_config_db_file_path, " and model file: ",model_config_db_file_path, "contents are same. SUCCESS!")
+            print("Output file: ", output_config_db_file_path, " and model file: ", model_config_db_file_path, "contents are same. SUCCESS!")
         else:
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_config_db_file_path, model_config_db_file_path))
 
     def test_sku_port_split(self):
         if (not os.path.exists(config_db_file)):
-            pytest.fail("Input config_db.json file does not exist. Exitting...")
+            pytest.fail("Input config_db.json file does not exist. Exiting...")
             return
         else:
              shutil.copyfile(config_db_file, port_split_config_db_output_file_path)
         
         if (not os.path.exists(model_config_db_file_path)):
-            pytest.fail("Input port_config.ini file does not exist. Exitting...")
+            pytest.fail("Input port_config.ini file does not exist. Exiting...")
             return
         else:
              shutil.copyfile(model_config_db_file_path, port_split_pc_ini_file_output_path)
            
         my_command = sku_create_script + " -s Ethernet16 2x50 -d " + port_split_input_path + " -q " + port_split_output_path
 
-        #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        # Test case execution without stdout
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True)
         print result
 
-        #Verify the output of port_config.ini file
+        # Verify the output of port_config.ini file
         eth16_found = False
         eth18_found = False
 
@@ -180,7 +180,7 @@ class TestSkuCreate(object):
             pytest.fail("Failure: Port split information not found in port_config.ini file")
             return
 
-        #Verify the output of config_db.json
+        # Verify the output of config_db.json
         with open(port_split_config_db_output_file_path) as f:
             data = json.load(f)
      
@@ -208,24 +208,24 @@ class TestSkuCreate(object):
 
     def test_sku_port_unsplit(self):
         if (not os.path.exists(config_db_file)):
-            pytest.fail("Input config_db.json file does not exist. Exitting...")
+            pytest.fail("Input config_db.json file does not exist. Exiting...")
             return
         else:
              shutil.copyfile(config_db_file, port_unsplit_config_db_output_file_path)
         
         if (not os.path.exists(model_config_db_file_path)):
-            pytest.fail("Input port_config.ini file does not exist. Exitting...")
+            pytest.fail("Input port_config.ini file does not exist. Exiting...")
             return
         else:
              shutil.copyfile(model_config_db_file_path, port_unsplit_pc_ini_file_output_path)
            
         my_command = sku_create_script + " -s Ethernet112 1x100 -d " + port_unsplit_input_path + " -q " + port_unsplit_output_path
 
-        #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+        # Test case execution without stdout
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True)
         print result
 
-        #Verify the output of port_config.ini file
+        # Verify the output of port_config.ini file
         eth112_found = False
 
         f_in = open(port_unsplit_pc_ini_file_output_path, 'r')
@@ -243,7 +243,7 @@ class TestSkuCreate(object):
             pytest.fail("Failure: Port split information not found in port_config.ini file")
             return
 
-        #Verify the output of config_db.json
+        # Verify the output of config_db.json
         with open(port_unsplit_config_db_output_file_path) as f:
             data = json.load(f)
      
