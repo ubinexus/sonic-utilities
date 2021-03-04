@@ -441,7 +441,7 @@ def hwmode():
 
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
-def mux_direction(port):
+def muxdirection(port):
     """Show muxcable mux_direction information"""
 
     per_npu_statedb = {}
@@ -461,29 +461,25 @@ def mux_direction(port):
 
     if port is not None:
 
-        logical_port_list = platform_sfputil.logical
+        logical_port_list = platform_sfputil_helper.get_logical_list()
         if port not in logical_port_list:
-            click.echo("ERR: This is not a valid muxcable port, valid Ports:")
-            for port in logical_port_list:
-                click.echo(("{}".format(port)))
+            click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
             sys.exit(EXIT_FAIL)
 
         asic_index = None
         if platform_sfputil is not None:
-            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
             if asic_index is None:
-                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
-                # is fully mocked
-                import sonic_platform_base.sonic_sfp.sfputilhelper
-                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
-                if asic_index is None:
-                    click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-                    sys.exit(CONFIG_FAIL)
+                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+                sys.exit(CONFIG_FAIL)
 
         transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
-
-        click.echo("debug {} {} {}".format(asic_index, port, transceiver_dict[asic_index]))
 
         vendor_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "manufacturer", "TRANSCEIVER_INFO")
         model_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "model", "TRANSCEIVER_INFO")
@@ -502,15 +498,14 @@ def mux_direction(port):
         if not isinstance(physical_port_list, list):
             click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
             sys.exit(EXIT_FAIL)
-            if len(physical_port_list) != 1:
-                click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
-                for lport in physical_port_list:
-                    click.echo(("{}".format(lport)))
-                sys.exit(EXIT_FAIL)
+        if len(physical_port_list) != 1:
+            click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
+                ", ".join(physical_port_list), port))
+            sys.exit(EXIT_FAIL)
 
         physical_port = physical_port_list[0]
 
-        logical_port_list_for_physical_port = platform_sfputil.physical_to_logical
+        logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
 
         logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
 
@@ -554,7 +549,7 @@ def mux_direction(port):
 
     else:
 
-        logical_port_list = platform_sfputil.logical
+        logical_port_list = platform_sfputil_helper.get_logical_list()
 
         rc = True
         body = []
@@ -571,14 +566,14 @@ def mux_direction(port):
 
             asic_index = None
             if platform_sfputil is not None:
-                asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+                asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                # is fully mocked
+                import sonic_platform_base.sonic_sfp.sfputilhelper
+                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
                 if asic_index is None:
-                    # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
-                    # is fully mocked
-                    import sonic_platform_base.sonic_sfp.sfputilhelper
-                    asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
-                    if asic_index is None:
-                        continue
+                    continue
 
             transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
                 per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
@@ -593,7 +588,7 @@ def mux_direction(port):
                 continue
 
             physical_port = physical_port_list[0]
-            logical_port_list_for_physical_port = platform_sfputil.physical_to_logical
+            logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
 
             logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
 

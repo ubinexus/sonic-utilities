@@ -295,16 +295,14 @@ def state(state, port):
 
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} state. Continue?'.format(port, state)), abort=True)
-        logical_port_list = platform_sfputil.logical
+        logical_port_list = platform_sfputil_helper.get_logical_list()
         if port not in logical_port_list:
-            click.echo("ERR: This is not a valid muxcable port, valid Ports:")
-            for port in logical_port_list:
-                click.echo(("{}".format(port)))
+            click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
             sys.exit(CONFIG_FAIL)
 
         asic_index = None
         if platform_sfputil is not None:
-            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
             if asic_index is None:
                 # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
                 # is fully mocked
@@ -320,11 +318,10 @@ def state(state, port):
         if not isinstance(physical_port_list, list):
             click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
             sys.exit(CONFIG_FAIL)
-            if len(physical_port_list) != 1:
-                click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
-                for lport in physical_port_list:
-                    click.echo(("{}".format(lport)))
-                sys.exit(CONFIG_FAIL)
+        if len(physical_port_list) != 1:
+            click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
+                ", ".join(physical_port_list), port))
+            sys.exit(CONFIG_FAIL)
 
         transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
@@ -334,7 +331,7 @@ def state(state, port):
 
         """ This check is required for checking whether or not this port is connected to a Y cable
         or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
-        TODO this should be removed once their is support for multiple vendors on Y cable"""
+        TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
         if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
             click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
@@ -342,7 +339,7 @@ def state(state, port):
 
         physical_port = physical_port_list[0]
 
-        logical_port_list_for_physical_port = platform_sfputil.physical_to_logical
+        logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
 
         logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
 
@@ -386,7 +383,7 @@ def state(state, port):
     elif port == "all" and port is not None:
 
         click.confirm(('Muxcables at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
-        logical_port_list = platform_sfputil.logical
+        logical_port_list = platform_sfputil_helper.get_logical_list()
 
         rc = True
         for port in logical_port_list:
@@ -395,7 +392,7 @@ def state(state, port):
 
             asic_index = None
             if platform_sfputil is not None:
-                asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+                asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
                 if asic_index is None:
                     # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
                     # is fully mocked
@@ -409,9 +406,8 @@ def state(state, port):
                 continue
 
             if len(physical_port_list) != 1:
-                click.echo(("ERR: Found multiple physical ports associated with {}, physical Ports:".format(port)))
-                for lport in physical_port_list:
-                    click.echo(("{}".format(lport)))
+                click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
+                    ", ".join(physical_port_list), port))
                 continue
 
             transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
@@ -421,14 +417,14 @@ def state(state, port):
 
             """ This check is required for checking whether or not this port is connected to a Y cable
             or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
-            TODO this should be removed once their is support for multiple vendors on Y cable"""
+            TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
             if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
                 continue
 
             physical_port = physical_port_list[0]
 
-            logical_port_list_for_physical_port = platform_sfputil.physical_to_logical
+            logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
 
             logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
 
