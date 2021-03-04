@@ -8,13 +8,13 @@ from config.main import expand_vlan_ports, parse_acl_table_info
 
 class TestConfigAcl(object):
     def test_expand_vlan(self):
-        assert set(expand_vlan_ports("Vlan1000")) == {"Ethernet0", "Ethernet20"}
+        assert set(expand_vlan_ports("Vlan1000")) == {"Ethernet20", "Ethernet100"}
 
     def test_expand_lag(self):
         assert set(expand_vlan_ports("PortChannel1001")) == {"PortChannel1001"}
 
     def test_expand_physical_interface(self):
-        assert set(expand_vlan_ports("Ethernet0")) == {"Ethernet0"}
+        assert set(expand_vlan_ports("Ethernet20")) == {"Ethernet20"}
 
     def test_expand_empty_vlan(self):
         with pytest.raises(ValueError):
@@ -30,7 +30,7 @@ class TestConfigAcl(object):
         assert set(port_list) == {"Ethernet0", "Ethernet20"}
 
     def test_parse_table_with_vlan_and_duplicates(self):
-        table_info = parse_acl_table_info("TEST", "L3", None, "Ethernet0,Vlan1000", "egress")
+        table_info = parse_acl_table_info("TEST", "L3", None, "Ethernet20,Vlan1000", "egress")
         assert table_info["type"] == "L3"
         assert table_info["policy_desc"] == "TEST"
         assert table_info["stage"] == "egress"
@@ -38,11 +38,11 @@ class TestConfigAcl(object):
         # Since Ethernet4 is a member of Vlan1000 we should not include it twice in the output
         port_list = table_info["ports@"].split(",")
         assert len(port_list) == 2
-        assert set(port_list) == {"Ethernet0", "Ethernet20"}
+        assert set(port_list) == {"Ethernet20", "Ethernet100"}
 
     def test_parse_table_with_empty_vlan(self):
         with pytest.raises(ValueError):
-            parse_acl_table_info("TEST", "L3", None, "Ethernet0,Vlan3000", "egress")
+            parse_acl_table_info("TEST", "L3", None, "Ethernet20,Vlan3000", "egress")
 
     def test_parse_table_with_invalid_ports(self):
         with pytest.raises(ValueError):
