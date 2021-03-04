@@ -429,7 +429,7 @@ fi
 set +e
 
 # disable trap-handlers which were set before
-trap ' ' EXIT HUP INT QUIT TERM KILL ABRT ALRM
+trap '' EXIT HUP INT QUIT TERM KILL ABRT ALRM
 
 # Kill radv before stopping BGP service to prevent annoucing our departure.
 debug "Stopping radv ..."
