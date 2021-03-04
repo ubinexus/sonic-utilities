@@ -127,16 +127,10 @@
     "VLAN|Vlan3000": {
         "vlanid": "3000"
     },
-    "VLAN_MEMBER|Vlan1000|Ethernet4": {
+    "VLAN_MEMBER|Vlan1000|Ethernet0": {
         "tagging_mode": "untagged"
     },
-    "VLAN_MEMBER|Vlan1000|Ethernet8": {
-        "tagging_mode": "untagged"
-    },
-    "VLAN_MEMBER|Vlan1000|Ethernet12": {
-        "tagging_mode": "untagged"
-    },
-    "VLAN_MEMBER|Vlan1000|Ethernet16": {
+    "VLAN_MEMBER|Vlan1000|Ethernet20": {
         "tagging_mode": "untagged"
     },
     "DEBUG_COUNTER|DEBUG_0": {
