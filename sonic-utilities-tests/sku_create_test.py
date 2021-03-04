@@ -34,6 +34,7 @@ port_unsplit_output_path = os.path.join(modules_path, "sonic-utilities-tests/sku
 port_unsplit_config_db_output_file_path = os.path.join(port_unsplit_output_path, "config_db.json")
 port_unsplit_pc_ini_file_output_path = os.path.join(port_unsplit_output_path, "port_config.ini")
 sku_create_script = "sonic_sku_create.py"
+default_sku_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/default_sku")
 
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
@@ -74,6 +75,9 @@ class TestSkuCreate(object):
             shutil.rmtree(output_xml_dir_path)
 
         my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + xml_input_path
+
+        if (not os.path.exists(default_sku_file_path)):
+            return
 
         # Test case execution without stdout
         result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True)
