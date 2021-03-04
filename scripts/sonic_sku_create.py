@@ -813,7 +813,8 @@ def main(argv):
                 print("Created a new sku (Location: " + sku.new_sku_dir+")")
 
     except Exception :
-        traceback.print_exc(file=sys.stderr)
+        #traceback.print_exc(file=sys.stderr)
+        traceback.print_tb(file=sys.stdout)
         sys.exit(1)
 
 if __name__ == "__main__":
