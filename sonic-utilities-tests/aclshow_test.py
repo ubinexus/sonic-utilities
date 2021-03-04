@@ -68,7 +68,7 @@ rule0_output = '' + \
 rule4_rule6_verbose_output = '' + \
 """Reading ACL info...
 Total number of ACL Tables: 6
-Total number of ACL Rules: 11
+Total number of ACL Rules: 10
 
 RULE NAME    TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
 -----------  ------------  ------  ---------------  -------------
