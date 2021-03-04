@@ -37,7 +37,7 @@ function error()
 function debug()
 {
     if [[ x"${VERBOSE}" == x"yes" ]]; then
-        echo `date` $@
+        echo $(date) $@
     fi
     logger "$@"
 }
@@ -103,17 +103,13 @@ function clear_warm_boot()
 {
     clear_fast_boot
 
-    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
     debug "Cancel warm-reboot: ${result}"
 
-    TIMESTAMP=`date +%Y%m%d-%H%M%S`
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
         mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
     fi
-    # enabling swss auto restart
-    docker exec swss supervisorctl start supervisor-proc-exit-listener || /bin/true
-    sed -i -e "s/\<RestartSec=300\>/RestartSec=30/" /etc/systemd/system/swss.service || /bin/true
-    systemctl daemon-reload
 }
 
 function init_warm_reboot_states()
@@ -134,7 +130,7 @@ function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
-    RESTORE_COUNT=`/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count`
+    RESTORE_COUNT=$(/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count)
     if [[ -z "$RESTORE_COUNT" ]]; then
         /usr/bin/redis-cli -n 6 hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
@@ -144,7 +140,7 @@ function initialize_pre_shutdown()
 function request_pre_shutdown()
 {
     debug "Requesting pre-shutdown ..."
-    STATE=`timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi`
+    STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
     if [[ x"${STATE}" == x"timed out" ]]; then
         error "Failed to request pre-shutdown"
     fi
@@ -164,7 +160,7 @@ function wait_for_pre_shutdown_complete_or_fail()
     while [[ ${elapsed_time} -lt 60 ]]; do
         # timeout doesn't work with -i option of "docker exec". Therefore we have
         # to invoke docker exec directly below.
-        STATE=`timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
+        STATE=$(timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi)
 
         if [[ x"${STATE}" == x"timed out" ]]; then
             retrycount+=1
@@ -204,7 +200,7 @@ function backup_database()
     " 0 > /dev/null
     redis-cli save > /dev/null
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
-    STATE=`timeout 5s docker exec database rm /var/lib/redis/$REDIS_FILE; if [[ $? == 124 ]]; then echo "timed out"; fi`
+    STATE=$(timeout 5s docker exec database rm /var/lib/redis/$REDIS_FILE; if [[ $? == 124 ]]; then echo "timed out"; fi)
     if [[ x"${STATE}" == x"timed out" ]]; then
         error "Timedout during attempting to remove Redis dump file from database container"
     fi
@@ -248,10 +244,23 @@ function setup_reboot_variables()
     INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
+function check_docker_exec()
+{
+    containers="radv bgp lldp swss database teamd syncd"
+    for container in $containers; do
+        STATE=$(timeout 1s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
+        if [[ x"${STATE}" == x"timed out" ]]; then
+            error "Docker exec on $container timedout"
+            exit "${EXIT_FAILURE}"
+        fi
+    done
+}
+
 function reboot_pre_check()
 {
+    check_docker_exec
     # Make sure that the file system is normal: read-write able
-    filename="/host/test-`date +%Y%m%d-%H%M%S`"
+    filename="/host/test-$(date +%Y%m%d-%H%M%S)"
     if [[ ! -f ${filename} ]]; then
         touch ${filename}
     fi
@@ -296,17 +305,6 @@ function unload_kernel()
     fi
 }
 
-function check_docker_exec()
-{
-    containers="radv bgp lldp swss database teamd syncd"
-    for container in $containers; do
-        STATE=`timeout 1s docker exec $container echo "test"; if [[ $? == 124 ]]; then echo "timed out"; fi`
-        if [[ x"${STATE}" == x"timed out" ]]; then
-            error "Docker exec on $container timedout"
-            exit "${EXIT_FAILURE}"
-        fi
-    done
-}
 # main starts here
 parseOptions $@
 
@@ -344,8 +342,6 @@ case "$REBOOT_TYPE" in
         exit "${EXIT_NOT_SUPPORTED}"
         ;;
 esac
-
-check_docker_exec
 
 unload_kernel
 
@@ -412,11 +408,6 @@ init_warm_reboot_states
 setup_control_plane_assistant
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-    debug "Disabling swss auto restart ..."
-    docker exec swss supervisorctl stop supervisor-proc-exit-listener &> /dev/null || /bin/true
-    sed -i -e "s/\<RestartSec=30\>/RestartSec=300/" /etc/systemd/system/swss.service || /bin/true
-    systemctl daemon-reload || /bin/true
-
     # Freeze orchagent for warm restart
     # Ask orchagent_restart_check to try freeze 5 times with interval of 2 seconds,
     # it is possible that the orchagent is in transient state and no opportunity to be freezed
@@ -475,10 +466,14 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     debug "Stopped teamd ..."
 fi
 
-# Kill swss Docker container
+# Disabling swss auto restart and then kill swss Docker container
 # We call `docker kill swss` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop swss` to prevent the service from
 # restarting the container automatically.
+debug "Disabling swss auto restart ..."
+docker exec swss supervisorctl stop supervisor-proc-exit-listener &> /dev/null || /bin/true
+sed -i -e "s/\<RestartSec=30\>/RestartSec=300/" /etc/systemd/system/swss.service || /bin/true
+systemctl daemon-reload || /bin/true
 docker kill swss &> /dev/null || debug "Docker swss is not running ($?) ..."
 systemctl stop swss
 
@@ -508,7 +503,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # Send USR1 signal to all teamd instances to stop them
     # It will prepare teamd for warm-reboot
     # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    STATE=`timeout 5s docker exec teamd pkill -USR1 teamd; if [[ $? == 124 ]]; then echo "timed out"; fi`
+    STATE=$(timeout 5s docker exec teamd pkill -USR1 teamd; if [[ $? == 124 ]]; then echo "timed out"; fi)
     if [[ x"${STATE}" == x"timed out" ]]; then
         error "Timedout while attempting to stop teamd instances"
     else
@@ -541,7 +536,7 @@ systemctl stop docker.service || debug "Ignore stopping docker service error $?"
 # Stop kernel modules for Nephos platform
 if [[ "$sonic_asic_type" = 'nephos' ]];
 then
-  systemctl stop nps-modules-`uname -r`.service || debug "Ignore stopping nps service error $?"
+  systemctl stop nps-modules-$(uname -r).service || debug "Ignore stopping nps service error $?"
 fi
 
 # Update the reboot cause file to reflect that user issued this script
