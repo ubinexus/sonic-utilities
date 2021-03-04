@@ -165,7 +165,6 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
 
 
 def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
-
     device = multi_asic_util.MultiAsic(display, namespace)
     ctx = click.get_current_context()
     if af is constants.IPV4:
@@ -186,7 +185,7 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
             if namespace not in multi_asic.get_namespace_list():
                 raise ValueError(
                         'Unknown Namespace {}'.format(namespace))
-                ns_list = [namespace]
+            ns_list = [namespace]
         else:
             ns_list = multi_asic.get_namespace_list()
 

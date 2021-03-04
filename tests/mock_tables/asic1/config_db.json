@@ -60,7 +60,7 @@
     "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP256": {
         "NULL": "NULL"
     },
-    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP260" : {
+    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP260": {
         "NULL": "NULL"
     },
     "PFC_WD|Ethernet-BP256": {
@@ -130,20 +130,40 @@
     },
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
-	"server_ipv4": "10.1.1.1",
-	"server_ipv6": "fc00::75"
+        "server_ipv4": "10.1.1.1",
+        "server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet0": {
         "state": "auto",
-	"server_ipv4": "10.2.1.1",
-	"server_ipv6": "e800::46"
+        "server_ipv4": "10.2.1.1",
+        "server_ipv6": "e800::46"
     },
-    "PEER_SWITCH|sonic" : {
-      "address_ipv4": "10.2.2.2"
+    "PEER_SWITCH|sonic": {
+        "address_ipv4": "10.2.2.2"
     },
     "FEATURE|bgp": {
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled"
+    },
+    "BGP_INTERNAL_NEIGHBOR|10.1.0.1": {
+        "rrclient": "0",
+        "name": "ASIC0",
+        "local_addr": "10.1.0.0",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
+    },
+    "BGP_INTERNAL_NEIGHBOR|2603:10e2:400:1::2": {
+        "rrclient": "0",
+        "name": "ASIC0",
+        "local_addr": "2603:10e2:400:1::1",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
     }
 }
