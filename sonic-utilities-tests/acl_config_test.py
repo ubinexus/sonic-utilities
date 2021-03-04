@@ -3,25 +3,24 @@ import pytest
 import config.main as config
 
 from click.testing import CliRunner
-from config.main import expand_vlan_ports, parse_acl_table_info
 
 
 class TestConfigAcl(object):
     def test_expand_vlan(self):
-        assert set(expand_vlan_ports("Vlan1000")) == {"Ethernet20", "Ethernet100"}
+        assert set(config.expand_vlan_ports("Vlan1000")) == {"Ethernet20", "Ethernet100"}
 
     def test_expand_lag(self):
-        assert set(expand_vlan_ports("PortChannel1001")) == {"PortChannel1001"}
+        assert set(config.expand_vlan_ports("PortChannel1001")) == {"PortChannel1001"}
 
     def test_expand_physical_interface(self):
-        assert set(expand_vlan_ports("Ethernet20")) == {"Ethernet20"}
+        assert set(config.expand_vlan_ports("Ethernet20")) == {"Ethernet20"}
 
     def test_expand_empty_vlan(self):
         with pytest.raises(ValueError):
-            expand_vlan_ports("Vlan3000")
+            config.expand_vlan_ports("Vlan3000")
 
     def test_parse_table_with_vlan_expansion(self):
-        table_info = parse_acl_table_info("TEST", "L3", None, "Vlan1000", "egress")
+        table_info = config.parse_acl_table_info("TEST", "L3", None, "Vlan1000", "egress")
         assert table_info["type"] == "L3"
         assert table_info["policy_desc"] == "TEST"
         assert table_info["stage"] == "egress"
@@ -30,7 +29,7 @@ class TestConfigAcl(object):
         assert set(port_list) == {"Ethernet20", "Ethernet100"}
 
     def test_parse_table_with_vlan_and_duplicates(self):
-        table_info = parse_acl_table_info("TEST", "L3", None, "Ethernet20,Vlan1000", "egress")
+        table_info = config.parse_acl_table_info("TEST", "L3", None, "Ethernet20,Vlan1000", "egress")
         assert table_info["type"] == "L3"
         assert table_info["policy_desc"] == "TEST"
         assert table_info["stage"] == "egress"
@@ -42,15 +41,15 @@ class TestConfigAcl(object):
 
     def test_parse_table_with_empty_vlan(self):
         with pytest.raises(ValueError):
-            parse_acl_table_info("TEST", "L3", None, "Ethernet20,Vlan3000", "egress")
+            config.parse_acl_table_info("TEST", "L3", None, "Ethernet20,Vlan3000", "egress")
 
     def test_parse_table_with_invalid_ports(self):
         with pytest.raises(ValueError):
-            parse_acl_table_info("TEST", "L3", None, "Ethernet200", "egress")
+            config.parse_acl_table_info("TEST", "L3", None, "Ethernet200", "egress")
 
     def test_parse_table_with_empty_ports(self):
         with pytest.raises(ValueError):
-            parse_acl_table_info("TEST", "L3", None, "", "egress")
+            config.parse_acl_table_info("TEST", "L3", None, "", "egress")
 
     def test_acl_add_table_nonexistent_port(self):
         runner = CliRunner()
