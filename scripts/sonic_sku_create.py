@@ -817,6 +817,7 @@ def main(argv):
         exc_traceback = sys.exc_info()
         #traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
         print(exc_traceback)
+        traceback.print_stack()
         sys.exit(1)
 
 if __name__ == "__main__":
