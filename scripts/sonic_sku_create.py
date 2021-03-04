@@ -815,7 +815,8 @@ def main(argv):
     except Exception :
         #traceback.print_exc(file=sys.stderr)
         exc_traceback = sys.exc_info()
-        traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+        #traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+        print(exc_traceback)
         sys.exit(1)
 
 if __name__ == "__main__":
