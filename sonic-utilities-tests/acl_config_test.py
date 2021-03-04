@@ -3,7 +3,7 @@ import pytest
 import config.main as config
 
 from click.testing import CliRunner
-from config.main import expand_vlan_ports, parse_acl_table_info
+from config import expand_vlan_ports, parse_acl_table_info
 
 
 class TestConfigAcl(object):
