@@ -71,13 +71,13 @@ class TestSkuCreate(object):
         return True
     
     def test_sku_from_xml_file(self):
+        if (not os.path.exists(default_sku_file_path)):
+            return
+
         if (os.path.exists(output_xml_dir_path)):
             shutil.rmtree(output_xml_dir_path)
 
         my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + xml_input_path
-
-        if (not os.path.exists(default_sku_file_path)):
-            return
 
         # Test case execution without stdout
         result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True)
@@ -96,6 +96,9 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_xml_file_path, model_xml_file_path))
 
     def test_sku_from_minigraph_file(self):
+        if (not os.path.exists(default_sku_file_path)):
+            return
+
         if (os.path.exists(output_minigraph_dir_path)):
             shutil.rmtree(output_minigraph_dir_path)
 
@@ -118,6 +121,9 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_minigraph_file_path, model_minigraph_file_path))
 
     def test_sku_from_config_db_file(self):
+        if (not os.path.exists(default_sku_file_path)):
+            return
+
         if (os.path.exists(output_config_db_dir_path)):
             shutil.rmtree(output_config_db_dir_path)
 
@@ -140,6 +146,9 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_config_db_file_path, model_config_db_file_path))
 
     def test_sku_port_split(self):
+        if (not os.path.exists(default_sku_file_path)):
+            return
+
         if (not os.path.exists(config_db_file)):
             pytest.fail("Input config_db.json file does not exist. Exiting...")
             return
@@ -211,6 +220,9 @@ class TestSkuCreate(object):
         print("Success: Port split information found in config_db.json file")
 
     def test_sku_port_unsplit(self):
+        if (not os.path.exists(default_sku_file_path)):
+            return
+
         if (not os.path.exists(config_db_file)):
             pytest.fail("Input config_db.json file does not exist. Exiting...")
             return
