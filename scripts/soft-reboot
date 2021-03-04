@@ -36,7 +36,7 @@ function stop_sonic_services()
     fi
 }
 
-function clear_warm_boot()
+function clear_lingering_reboot_config()
 {
     # Make sure the outstanding warm-boot is cleared
     result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
@@ -144,7 +144,7 @@ reboot_pre_check
 # Stop SONiC services gracefully.
 stop_sonic_services
 
-clear_warm_boot
+clear_lingering_reboot_config
 
 load_kernel
 
