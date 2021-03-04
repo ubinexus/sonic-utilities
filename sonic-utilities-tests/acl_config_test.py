@@ -27,7 +27,7 @@ class TestConfigAcl(object):
         assert table_info["stage"] == "egress"
 
         port_list = table_info["ports@"].split(",")
-        assert set(port_list) == {"Ethernet0", "Ethernet20"}
+        assert set(port_list) == {"Ethernet20", "Ethernet100"}
 
     def test_parse_table_with_vlan_and_duplicates(self):
         table_info = parse_acl_table_info("TEST", "L3", None, "Ethernet20,Vlan1000", "egress")
