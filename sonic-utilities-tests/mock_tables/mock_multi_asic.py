@@ -1,6 +1,5 @@
 # MONKEY PATCH!!!
 import mock
-import click
 from sonic_py_common import multi_asic
 from utilities_common import multi_asic as multi_asic_util
 
