@@ -264,13 +264,8 @@ class TestBgpCommands(object):
         assert result.output == show_error_invalid_json
 
 
-#@pytest.mark.usefixtures('setup_multi_asic_display_options')
+@pytest.mark.usefixtures('setup_multi_asic_display_options')
 class TestBgpCommandsMultiAsic(object):
-    @classmethod
-    def setup_class(cls):
-        print("SETUP")
-        import mock_tables.mock_multi_asic
-        mock_tables.dbconnector.load_namespace_config()
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                                 ['v4'],
@@ -280,6 +275,7 @@ class TestBgpCommandsMultiAsic(object):
             self,
             setup_bgp_commands,
             setup_multi_asic_bgp_instance,
+            setup_multi_asic_display_options
             ):
         show = setup_bgp_commands
         runner = CliRunner()

@@ -156,3 +156,5 @@ class TestMultiAsicPfcwdShow(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         import mock_tables.mock_single_asic
         imp.reload(mock_tables.mock_single_asic)
+        import pfcwd.main
+        imp.reload(pfcwd.main)

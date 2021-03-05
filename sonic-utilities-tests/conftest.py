@@ -127,3 +127,50 @@ def setup_ip_route_commands():
 
     return show
 
+#@pytest.fixture(scope='class')
+@pytest.fixture
+def setup_multi_asic_display_options():
+    from sonic_py_common import multi_asic
+    from utilities_common import multi_asic as multi_asic_util
+    import show.main as show
+    import click
+
+    _multi_asic_click_options = multi_asic_util.multi_asic_click_options
+    _get_num_asics = multi_asic.get_num_asics
+    _is_multi_asic = multi_asic.is_multi_asic
+    _get_namespace_list = multi_asic.get_namespace_list
+    def mock_multi_asic_click_options(func):
+        _mock_multi_asic_click_options = [
+            click.option('--display',
+                         '-d', 'display',
+                         default="frontend",
+                         show_default=True,
+                         type=click.Choice(["all", "frontend"]),
+                         help='Show internal interfaces'),
+            click.option('--namespace',
+                         '-n', 'namespace',
+                         default=None,
+                         type=click.Choice(["asic0", "asic1"]),
+                         show_default=True,
+                         help='Namespace name or all'),
+        ]
+        for option in reversed(_mock_multi_asic_click_options):
+            func = option(func)
+        return func
+
+    multi_asic.get_num_asics = mock.MagicMock(return_value=2)
+    multi_asic.is_multi_asic = mock.MagicMock(return_value=True)
+    multi_asic.get_namespace_list = mock.MagicMock(
+        return_value=["asic0", "asic1"])
+
+    multi_asic_util.multi_asic_click_options = mock_multi_asic_click_options
+    mock_tables.dbconnector.load_namespace_config()
+    yield
+
+    multi_asic.get_num_asics = _get_num_asics
+    multi_asic.is_multi_asic = _is_multi_asic
+    multi_asic.get_namespace_list = _get_namespace_list
+
+    multi_asic_util.multi_asic_click_options = _multi_asic_click_options
+    mock_tables.dbconnector.load_database_config()
+    reload(show)

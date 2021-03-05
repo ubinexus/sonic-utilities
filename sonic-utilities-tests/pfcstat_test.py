@@ -1,3 +1,4 @@
+import imp
 import os
 import shutil
 
@@ -221,3 +222,5 @@ class TestMultiAsicPfcstat(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         del_cached_stats()
+        import pfcwd.main
+        imp.reload(pfcwd.main)
