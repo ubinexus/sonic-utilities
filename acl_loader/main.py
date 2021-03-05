@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import click
-import ipaddr
+import ipaddress
 import json
 import syslog
 import tabulate
@@ -447,14 +447,14 @@ class AclLoader(object):
 
         if rule.ip.config.source_ip_address:
             source_ip_address = rule.ip.config.source_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(source_ip_address).version == 4:
+            if ipaddress.ip_network(source_ip_address).version == 4:
                 rule_props["SRC_IP"] = source_ip_address
             else:
                 rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
             destination_ip_address = rule.ip.config.destination_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(destination_ip_address).version == 4:
+            if ipaddress.ip_network(destination_ip_address).version == 4:
                 rule_props["DST_IP"] = destination_ip_address
             else:
                 rule_props["DST_IPV6"] = destination_ip_address
