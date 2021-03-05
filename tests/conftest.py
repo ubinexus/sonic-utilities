@@ -224,8 +224,13 @@ def setup_multi_asic_display_options():
     from sonic_py_common import multi_asic
     from utilities_common import multi_asic as multi_asic_util
     from .mock_tables import dbconnector
+    import show.main as show
     import click
+
     _multi_asic_click_options = multi_asic_util.multi_asic_click_options
+    _get_num_asics = multi_asic.get_num_asics
+    _is_multi_asic = multi_asic.is_multi_asic
+    _get_namespace_list = multi_asic.get_namespace_list
 
     def mock_multi_asic_click_options(func):
         _mock_multi_asic_click_options = [
@@ -255,5 +260,10 @@ def setup_multi_asic_display_options():
     dbconnector.load_namespace_config()
     yield
 
+    multi_asic.get_num_asics = _get_num_asics
+    multi_asic.is_multi_asic = _is_multi_asic
+    multi_asic.get_namespace_list = _get_namespace_list
+
     multi_asic_util.multi_asic_click_options = _multi_asic_click_options
     dbconnector.load_database_config()
+    reload(show)
