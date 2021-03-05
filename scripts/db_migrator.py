@@ -356,8 +356,14 @@ class DBMigrator():
     def migrate_config_db_port_table_for_auto_neg(self):
         port_table = self.configDB.get_table('PORT')
         for key, value in port_table.items():
-            if 'autoneg' in value and value['autoneg'] == 1 and 'speed' in value and 'adv_speeds' not in value:
-                self.configDB.set_entry('PORT', 'adv_speeds', value['speed'])
+            if 'autoneg' in value:
+                if value['autoneg'] == '1':
+                    self.configDB.set_entry('PORT', key, {'autoneg': 'on'})
+                    if 'speed' in value and 'adv_speeds' not in value:
+                        self.configDB.set_entry('PORT', key, {'adv_speeds': value['speed']})
+                elif value['autoneg'] == '0':
+                    self.configDB.set_entry('PORT', key, {'autoneg': 'off'})
+
 
     def version_unknown(self):
         """
