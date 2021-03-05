@@ -63,7 +63,11 @@ def setup_single_bgp_instance(request):
 def setup_multi_asic_bgp_instance(request):
     import utilities_common.bgp_util as bgp_util
 
-    if request.param == 'ip_route':
+    if request.param == 'v4':
+        m_asic_json_file = 'ipv4_bgp_summary.json'
+    elif request.param == 'v6':
+        m_asic_json_file = 'ipv6_bgp_summary.json'
+    elif request.param == 'ip_route':
         m_asic_json_file = 'ip_route.json'
     elif request.param == 'ip_specific_route':
         m_asic_json_file = 'ip_specific_route.json'
@@ -104,11 +108,15 @@ def setup_multi_asic_bgp_instance(request):
 @pytest.fixture
 def setup_bgp_commands():
     import show.main as show
-    from show.bgp_frr_v4 import bgp as bgpv4
-    from show.bgp_frr_v6 import bgp as bgpv6
+    reload(show)
+    import show.bgp_frr_v4 as bgpv4
+    import show.bgp_frr_v6 as bgpv6
+    reload(bgpv4)
+    reload(bgpv6)
 
-    show.ip.add_command(bgpv4)
-    show.ipv6.add_command(bgpv6)
+    show.ip.add_command(bgpv4.bgp)
+    show.ipv6.add_command(bgpv6.bgp)
+
     return show
 
 
@@ -117,3 +125,44 @@ def setup_ip_route_commands():
     import show.main as show
 
     return show
+
+@pytest.fixture(scope='class')
+def setup_multi_asic_display_options():
+    from sonic_py_common import multi_asic
+    from utilities_common import multi_asic as multi_asic_util
+    import mock_tables.dbconnector
+    import click
+    import show.main as show
+    _multi_asic_click_options = multi_asic_util.multi_asic_click_options
+
+    def mock_multi_asic_click_options(func):
+        _mock_multi_asic_click_options = [
+            click.option('--display',
+                         '-d', 'display',
+                         default="frontend",
+                         show_default=True,
+                         type=click.Choice(["all", "frontend"]),
+                         help='Show internal interfaces'),
+            click.option('--namespace',
+                         '-n', 'namespace',
+                         default=None,
+                         type=click.Choice(["asic0", "asic1"]),
+                         show_default=True,
+                         help='Namespace name or all'),
+        ]
+        for option in reversed(_mock_multi_asic_click_options):
+            func = option(func)
+        return func
+
+    multi_asic.get_num_asics = mock.MagicMock(return_value=2)
+    multi_asic.is_multi_asic = mock.MagicMock(return_value=True)
+    multi_asic.get_namespace_list = mock.MagicMock(
+        return_value=["asic0", "asic1"])
+
+    multi_asic_util.multi_asic_click_options = mock_multi_asic_click_options
+    mock_tables.dbconnector.load_namespace_config()
+    yield
+
+    multi_asic_util.multi_asic_click_options = _multi_asic_click_options
+    mock_tables.dbconnector.load_database_config()
+

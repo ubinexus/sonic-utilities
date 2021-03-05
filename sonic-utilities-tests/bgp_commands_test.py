@@ -1,4 +1,5 @@
 import pytest
+
 from click.testing import CliRunner
 
 show_bgp_summary_v4 = """\
@@ -88,12 +89,136 @@ Try 'summary --help' for help.
 Error: bgp summary from bgp container not in json format
 """
 
+show_ipv4_bgp_summary_frontend = """\
+
+IPv4 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 12172
+asic1: BGP router identifier 8.0.0.4, local AS number 65100 vrf-id 0
+BGP table version 54717
+RIB entries 25676, using 4724384 bytes of memory
+Peers 8, using 167360 KiB of memory
+Peer groups 6, using 384 bytes of memory
+
+
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+1.1.1.1        4  65100          0          0         0      0       0  never      Connect         bgp_monitor
+10.0.0.1       4  65200       3191          5         0      0       0  00:01:29   6370            ARISTA01T2
+10.0.0.5       4  65200       3191          5         0      0       0  00:01:29   6370            ARISTA03T2
+
+Total number of neighbors 3
+"""
+
+show_ipv4_bgp_summary_all = """\
+
+IPv4 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 12172
+asic1: BGP router identifier 8.0.0.4, local AS number 65100 vrf-id 0
+BGP table version 54717
+RIB entries 25676, using 4724384 bytes of memory
+Peers 8, using 167360 KiB of memory
+Peer groups 6, using 384 bytes of memory
+
+
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+1.1.1.1        4  65100          0          0         0      0       0  never      Connect         bgp_monitor
+10.0.0.1       4  65200       3191          5         0      0       0  00:01:29   6370            ARISTA01T2
+10.0.0.5       4  65200       3191          5         0      0       0  00:01:29   6370            ARISTA03T2
+10.1.0.1       4  65100       3344      24107         0      0       0  00:07:26   6377            ASIC0
+10.1.0.2       4  65100          0          0         0      0       0  never      Active          ASIC1
+
+Total number of neighbors 5
+"""
+
+show_ipv4_bgp_summary_asic_all = """\
+
+IPv4 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 12172
+RIB entries 12751, using 2346184 bytes of memory
+Peers 4, using 83680 KiB of memory
+Peer groups 4, using 256 bytes of memory
+
+
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+10.0.0.1       4  65200       3191          5         0      0       0  00:01:29   6370            ARISTA01T2
+10.0.0.5       4  65200       3191          5         0      0       0  00:01:29   6370            ARISTA03T2
+10.1.0.2       4  65100          0          0         0      0       0  never      Active          ASIC1
+
+Total number of neighbors 3
+"""
+
+show_ipv6_bgp_summary_frontend = """\
+
+IPv6 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8185
+asic1: BGP router identifier 8.0.0.4, local AS number 65100 vrf-id 0
+BGP table version 12148
+RIB entries 25770, using 4741680 bytes of memory
+Peers 8, using 167360 KiB of memory
+Peer groups 6, using 384 bytes of memory
+
+
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+fc00::2        4  65200       3192         12         0      0       0  00:02:13             6370  ARISTA01T2
+fc00::6        4  65200       3192         12         0      0       0  00:02:13             6370  ARISTA03T2
+
+Total number of neighbors 2
+"""
+
+show_ipv6_bgp_summary_all = """\
+
+IPv6 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8185
+asic1: BGP router identifier 8.0.0.4, local AS number 65100 vrf-id 0
+BGP table version 12148
+RIB entries 25770, using 4741680 bytes of memory
+Peers 8, using 167360 KiB of memory
+Peer groups 6, using 384 bytes of memory
+
+
+Neighbhor             V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
+------------------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+2603:10e2:400:1::1    4  65100       6265       3591         0      0       0  00:02:14             6445  ASIC1
+2603:10e2:400:1::2    4  65100       4887       6052         0      0       0  00:09:37             6380  ASIC0
+fc00::2               4  65200       3192         12         0      0       0  00:02:13             6370  ARISTA01T2
+fc00::6               4  65200       3192         12         0      0       0  00:02:13             6370  ARISTA03T2
+
+Total number of neighbors 4
+"""
+
+show_ipv6_bgp_summary_asic_all = """\
+
+IPv6 Unicast Summary:
+asic0: BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+BGP table version 8185
+RIB entries 12885, using 2370840 bytes of memory
+Peers 4, using 83680 KiB of memory
+Peer groups 4, using 256 bytes of memory
+
+
+Neighbhor             V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
+------------------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+2603:10e2:400:1::1    4  65100       6265       3591         0      0       0  00:02:14             6445  ASIC1
+fc00::2               4  65200       3192         12         0      0       0  00:02:13             6370  ARISTA01T2
+fc00::6               4  65200       3192         12         0      0       0  00:02:13             6370  ARISTA03T2
+
+Total number of neighbors 3
+"""
 
 class TestBgpCommands(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
         import mock_tables.dbconnector
+
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['v4'], indirect=['setup_single_bgp_instance'])
@@ -136,3 +261,136 @@ class TestBgpCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 2
         assert result.output == show_error_invalid_json
+
+
+@pytest.mark.usefixtures('setup_multi_asic_display_options')
+class TestBgpCommandsMultiAsic(object):
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                                ['v4'],
+                                indirect=['setup_multi_asic_bgp_instance']
+                            )
+    def test_bgp_summary_v4(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv4_bgp_summary_frontend
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['v4'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_v4_frontend(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], ["-dfrontend"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv4_bgp_summary_frontend
+
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['v4'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_v4_all(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], ["-dall"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv4_bgp_summary_all
+
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['v4'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_v4_all_asic(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], ["-nasic0", "-dall"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv4_bgp_summary_asic_all
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['v6'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_v6(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv6_bgp_summary_frontend
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['v6'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_v6_frontend(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], ["-dfrontend"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv6_bgp_summary_frontend
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['v6'],
+                             indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_v6_all(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], ["-dall"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv6_bgp_summary_all
+
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['v6'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_summary_v6_all_asic(
+            self,
+            setup_bgp_commands,
+            setup_multi_asic_bgp_instance,
+            ):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], ["-nasic0", "-dall"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ipv6_bgp_summary_asic_all
+
+
+

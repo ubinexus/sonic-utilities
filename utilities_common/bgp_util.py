@@ -181,7 +181,20 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
     bgp_summary = {}
     cmd_output_json = {}
-    for ns in device.get_ns_list_based_on_options():
+    ns_list = []
+
+    if not device.is_multi_asic:
+        ns_list = [multi_asic.DEFAULT_NAMESPACE]
+    else:
+        if namespace is not None:
+            if namespace not in multi_asic.get_namespace_list():
+                raise ValueError(
+                        'Unknown Namespace {}'.format(namespace))
+            ns_list = [namespace]
+        else:
+            ns_list = multi_asic.get_namespace_list()
+
+    for ns in ns_list:
         cmd_output = run_bgp_command(vtysh_cmd, ns)
         try:
             cmd_output_json = json.loads(cmd_output)
