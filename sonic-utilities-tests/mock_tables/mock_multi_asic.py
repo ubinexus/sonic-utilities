@@ -1,5 +1,6 @@
 # MONKEY PATCH!!!
 import mock
+import click
 from sonic_py_common import multi_asic
 from utilities_common import multi_asic as multi_asic_util
 
@@ -81,10 +82,28 @@ def mock_multi_asic_get_ip_intf_addr_from_ns(namespace, iface):
         pass
     return ipaddresses
 
+def mock_multi_asic_click_options(func):
+    _mock_multi_asic_click_options = [
+        click.option('--display',
+                        '-d', 'display',
+                        default="frontend",
+                        show_default=True,
+                        type=click.Choice(["all", "frontend"]),
+                        help='Show internal interfaces'),
+        click.option('--namespace',
+                        '-n', 'namespace',
+                        default=None,
+                        type=click.Choice(["asic0", "asic1"]),
+                        show_default=True,
+                        help='Namespace name or all'),
+    ]
+    for option in reversed(_mock_multi_asic_click_options):
+        func = option(func)
+    return func
 
 multi_asic.get_num_asics = mock_get_num_asics
 multi_asic.is_multi_asic = mock_is_multi_asic
 multi_asic.get_namespace_list = mock_get_namespace_list
 multi_asic_util.multi_asic_get_ip_intf_from_ns = mock_multi_asic_get_ip_intf_from_ns
 multi_asic_util.multi_asic_get_ip_intf_addr_from_ns = mock_multi_asic_get_ip_intf_addr_from_ns
-
+multi_asic_util.multi_asic_click_options = mock_multi_asic_click_options
