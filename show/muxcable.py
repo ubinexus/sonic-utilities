@@ -442,7 +442,7 @@ def hwmode():
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
 def muxdirection(port):
-    """Shows the current direction of the cable muxcable {active/standy}"""
+    """Shows the current direction of the muxcable {active/standy}"""
 
     per_npu_statedb = {}
     transeiver_table_keys = {}
