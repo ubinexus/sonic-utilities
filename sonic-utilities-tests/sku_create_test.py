@@ -74,8 +74,9 @@ class TestSkuCreate(object):
     def test_sku_from_xml_file(self):
         files = os.listdir(default_sku_dir_path)
 
-        for f in files:
-            print(f)
+        pytest.fail(files)
+        #for f in files:
+            #print(f)
 
         #if (not os.path.exists(default_sku_file_path)):
             #return
