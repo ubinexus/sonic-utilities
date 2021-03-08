@@ -148,7 +148,7 @@ def mode(state, port, json_output):
 
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
-            logical_key = "MUX_CABLE_TABLE" + "|" + port
+            logical_key = "MUX_CABLE_TABLE|{}".format(port)
             if logical_key in y_cable_asic_table_keys:
                 port_status_dict = {}
                 lookup_statedb_and_update_configdb(
