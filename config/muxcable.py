@@ -268,7 +268,7 @@ def disable(port, target):
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def hwmode():
-    """start configuring cable in hw mode on a port"""
+    """Configure muxcable hardware directly"""
     pass
 
 
@@ -276,7 +276,7 @@ def hwmode():
 @click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "standby"]))
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 def state(state, port):
-    """Configure the muxcable to {active/standby} hwmode mode"""
+    """Configure the muxcable mux state {active/standby}"""
 
     per_npu_statedb = {}
     transeiver_table_keys = {}

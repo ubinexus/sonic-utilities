@@ -436,7 +436,7 @@ def cableinfo(port):
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def hwmode():
-    """start configuring cable in hardware mode on a port"""
+    """Shows the muxcable hardware information directly"""
     pass
 
 
