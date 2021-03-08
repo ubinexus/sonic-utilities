@@ -446,7 +446,7 @@ def muxdirection(port):
     """Shows the current direction of the muxcable {active/standy}"""
 
     per_npu_statedb = {}
-    transeiver_table_keys = {}
+    transceiver_table_keys = {}
     transceiver_dict = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
@@ -457,7 +457,7 @@ def muxdirection(port):
         per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
-        transeiver_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+        transceiver_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'TRANSCEIVER_INFO|*')
 
     if port is not None:
