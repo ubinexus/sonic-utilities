@@ -35,7 +35,9 @@ port_unsplit_config_db_output_file_path = os.path.join(port_unsplit_output_path,
 port_unsplit_pc_ini_file_output_path = os.path.join(port_unsplit_output_path, "port_config.ini")
 sku_create_script = "sonic_sku_create.py"
 default_sku_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/default_sku")
-default_sku_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/")
+#default_sku_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/")
+#default_sku_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/")
+default_sku_dir_path = os.path.join(modules_path, "sonic-utilities-tests/")
 
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
