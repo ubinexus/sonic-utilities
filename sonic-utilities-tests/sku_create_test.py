@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-test_path = os.path.dirname(os.path.abspath(__file__))
+test_path = os.path.dirname(os.path.relpath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 xml_input_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files")
