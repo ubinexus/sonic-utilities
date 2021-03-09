@@ -136,6 +136,9 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_config_db_file_path, model_config_db_file_path))
 
     def test_sku_port_split(self):
+        if (not os.path.exists(port_split_output_path):
+            os.mkdir(port_split_output_path)
+
         if (not os.path.exists(config_db_file)):
             pytest.fail("Input config_db.json file does not exist. Exiting...")
             return
@@ -207,6 +210,9 @@ class TestSkuCreate(object):
         print("Success: Port split information found in config_db.json file")
 
     def test_sku_port_unsplit(self):
+        if (not os.path.exists(port_unsplit_output_path):
+            os.mkdir(port_unsplit_output_path)
+
         if (not os.path.exists(config_db_file)):
             pytest.fail("Input config_db.json file does not exist. Exiting...")
             return
