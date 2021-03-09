@@ -11,6 +11,11 @@ from sonic_py_common.multi_asic import get_external_ports
 from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
+from sonic_py_common import logger
+
+SYSLOG_IDENTIFIER = "config"
+
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 # mock the redis for unit test purposes #
 try:
@@ -242,9 +247,20 @@ class PfcwdCli(object):
             exit()
         self.start_cmd(action, restoration_time, ports, detection_time)
 
-    def get_port_pfc_status(self, port):
-        status = self.config_db.get_entry(PORT_QOS_MAP, port).get('pfc_enable')
-        return status
+
+    def verify_pfc_enable_status_per_port(self, port, pfcwd_info):
+        pfc_status = self.config_db.get_entry(PORT_QOS_MAP, port).get('pfc_enable')
+
+        if pfc_status == None:
+            log.log_warning("SKIPPED: PFC is not enabled on port: {}".format(port), also_print_to_console=True)
+            return
+
+        self.config_db.mod_entry(
+            CONFIG_DB_PFC_WD_TABLE_NAME, port, None
+        )
+        self.config_db.mod_entry(
+            CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info
+        )
 
     @multi_asic_util.run_on_multi_asic
     def start_cmd(self, action, restoration_time, ports, detection_time):
@@ -276,29 +292,11 @@ class PfcwdCli(object):
         for port in ports:
             if port == "all":
                 for p in all_ports:
-                    pfc_status = self.get_port_pfc_status(p)
-                    if pfc_status == None:
-                        print("SKIPPED: PFC is not enabled on port: {}".format(p))
-                        continue
-
-                    self.config_db.mod_entry(
-                        CONFIG_DB_PFC_WD_TABLE_NAME, p, None
-                    )
-                    self.config_db.mod_entry(
-                        CONFIG_DB_PFC_WD_TABLE_NAME, p, pfcwd_info
-                    )
+                    self.verify_pfc_enable_status_per_port(p, pfcwd_info)
             else:
-                pfc_status = self.get_port_pfc_status(port)
-                if port not in all_ports or pfc_status == None:
-                    print("SKIPPED: PFC is not enabled on port: {}".format(port))
+                if port not in all_ports:
                     continue
-
-                self.config_db.mod_entry(
-                    CONFIG_DB_PFC_WD_TABLE_NAME, port, None
-                )
-                self.config_db.mod_entry(
-                    CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info
-                )
+                self.verify_pfc_enable_status_per_port(port, pfcwd_info)
 
     @multi_asic_util.run_on_multi_asic
     def interval(self, poll_interval):

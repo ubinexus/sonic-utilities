@@ -94,6 +94,8 @@ pfcwd_show_stats_invalid_queue_output="""\
 -------  --------  -------------------------  ------------  ------------  -----------------  -----------------
 """
 
+pfc_is_not_enabled = "SKIPPED: PFC is not enabled on port: Ethernet0\n"
+
 testData = {
              'pfcwd_show_config' :  [ {'cmd' : ['show', 'config'],
                                        'args': [],

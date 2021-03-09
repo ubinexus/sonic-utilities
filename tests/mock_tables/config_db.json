@@ -1432,6 +1432,12 @@
     "PORT_QOS_MAP|Ethernet0": {
         "pfc_enable": "3,4"
     },
+    "PORT_QOS_MAP|Ethernet4": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet8": {
+        "pfc_enable": "3,4"
+    },
     "DEFAULT_LOSSLESS_BUFFER_PARAMETER|AZURE": {
         "default_dynamic_th": "0",
         "over_subscribe_ratio": "2"

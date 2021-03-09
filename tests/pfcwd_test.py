@@ -192,6 +192,37 @@ class TestPfcwd(object):
         assert result.exit_code == 0
         assert result.output == pfcwd_show_start_action_drop_output
 
+    @patch('pfcwd.main.os')
+    def test_pfcwd_pfc_not_enabled(self, mock_os):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == pfcwd_show_config_output
+
+        mock_os.geteuid.return_value = 0
+        # remove 'pfc_enabled' entry from Ethernet0 node
+        db.cfgdb.mod_entry("PORT_QOS_MAP", "Ethernet0", None)
+
+        result = runner.invoke(
+        pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "Ethernet0", "602"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert pfc_is_not_enabled == result.output
+
+
     def test_pfcwd_start_ports_invalid(self):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
