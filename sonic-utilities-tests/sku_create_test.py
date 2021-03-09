@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-test_path = os.path.dirname(os.path.relpath(__file__))
+test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 xml_input_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files")
@@ -34,10 +34,6 @@ port_unsplit_output_path = os.path.join(modules_path, "sonic-utilities-tests/sku
 port_unsplit_config_db_output_file_path = os.path.join(port_unsplit_output_path, "config_db.json")
 port_unsplit_pc_ini_file_output_path = os.path.join(port_unsplit_output_path, "port_config.ini")
 sku_create_script = "sonic_sku_create.py"
-default_sku_file_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/default_sku")
-#default_sku_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/2700_files/")
-#default_sku_dir_path = os.path.join(modules_path, "sonic-utilities-tests/sku_create_input/")
-default_sku_dir_path = os.path.join(modules_path, "sonic-utilities-tests/")
 
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
@@ -74,16 +70,6 @@ class TestSkuCreate(object):
         return True
     
     def test_sku_from_xml_file(self):
-        files = os.listdir(default_sku_dir_path)
-
-        filesstr = ''.join(files)
-        pytest.fail(filesstr)
-        #for f in files:
-            #print(f)
-
-        #if (not os.path.exists(default_sku_file_path)):
-            #return
-
         if (os.path.exists(output_xml_dir_path)):
             shutil.rmtree(output_xml_dir_path)
 
@@ -106,9 +92,6 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_xml_file_path, model_xml_file_path))
 
     def test_sku_from_minigraph_file(self):
-        if (not os.path.exists(default_sku_file_path)):
-            return
-
         if (os.path.exists(output_minigraph_dir_path)):
             shutil.rmtree(output_minigraph_dir_path)
 
@@ -131,9 +114,6 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_minigraph_file_path, model_minigraph_file_path))
 
     def test_sku_from_config_db_file(self):
-        if (not os.path.exists(default_sku_file_path)):
-            return
-
         if (os.path.exists(output_config_db_dir_path)):
             shutil.rmtree(output_config_db_dir_path)
 
@@ -156,9 +136,6 @@ class TestSkuCreate(object):
             pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_config_db_file_path, model_config_db_file_path))
 
     def test_sku_port_split(self):
-        if (not os.path.exists(default_sku_file_path)):
-            return
-
         if (not os.path.exists(config_db_file)):
             pytest.fail("Input config_db.json file does not exist. Exiting...")
             return
@@ -230,9 +207,6 @@ class TestSkuCreate(object):
         print("Success: Port split information found in config_db.json file")
 
     def test_sku_port_unsplit(self):
-        if (not os.path.exists(default_sku_file_path)):
-            return
-
         if (not os.path.exists(config_db_file)):
             pytest.fail("Input config_db.json file does not exist. Exiting...")
             return

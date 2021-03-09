@@ -66,8 +66,15 @@ setup(
                                   'filter_fdb_input/*',
                                   'pfcwd_input/*',
                                   'sku_create_input/*',
-                                  'sku_create_input/ACS-MSN2700/*',
-                                  'sku_create_input/Mellanox-SN2700-D48C8/*']
+                                  'sku_create_input/2700_files/*',
+                                  'sku_create_input/3800_files/*',
+                                  'sku_create_input/port_split_files/*',
+                                  'sku_create_input/port_unsplit_files/*',
+                                  'sku_create_input/2700_files/ACS-MSN2700/*'],
+                                  'sku_create_input/2700_files/Mellanox-SN2700-D48C8/*'],
+                                  'sku_create_input/2700_files/Mellanox-SN2700-C28D8-ORIG/*'],
+                                  'sku_create_input/2700_files/ACS-MSN3800/*'],
+                                  'sku_create_input/2700_files/Mellanox-SN2700-D28C50/*']
     },
     scripts=[
         'scripts/aclshow',
