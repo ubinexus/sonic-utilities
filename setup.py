@@ -74,7 +74,7 @@ setup(
                                   'sku_create_input/2700_files/Mellanox-SN2700-D48C8/*',
                                   'sku_create_input/2700_files/Mellanox-SN2700-C28D8-ORIG/*',
                                   'sku_create_input/3800_files/ACS-MSN3800/*',
-                                  'sku_create_input/3800_files/Mellanox-SN2700-D28C50/*']
+                                  'sku_create_input/3800_files/Mellanox-SN3800-D28C50/*']
     },
     scripts=[
         'scripts/aclshow',
