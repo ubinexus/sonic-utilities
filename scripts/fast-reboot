@@ -13,6 +13,7 @@ STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
+SSD_FW_UPDATE="ssd-fw-upgrade"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -511,6 +512,11 @@ sync
 # sync the current system time to CMOS
 if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
+fi
+
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
+    debug "updating ssd fw for ${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
 
 # Enable Watchdog Timer

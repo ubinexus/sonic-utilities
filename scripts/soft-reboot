@@ -5,9 +5,13 @@ REBOOT_TIME=$(date)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 DEVPATH="/usr/share/sonic/device"
-PLAT_REBOOT="platform_reboot"
-SSD_FW_UPDATE="ssd-fw-upgrade"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
+WARM_DIR=/host/warmboot
+REDIS_FILE=dump.rdb
+REBOOT_SCRIPT_NAME=$(basename $0)
+REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
+REBOOT_METHOD="/sbin/kexec -e"
+SSD_FW_UPDATE="ssd-fw-upgrade"
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 
@@ -28,10 +32,12 @@ function stop_sonic_services()
     fi
 }
 
-function clear_warm_boot()
+function clear_lingering_reboot_config()
 {
-    # If reboot is requested, make sure the outstanding warm-boot is cleared
-    # So the system will come up from a cold boot.
+    # Make sure the outstanding warm-boot is cleared
+    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    debug "Cancel warm-reboot: ${result}"
+
     WARM_DIR="/host/warmboot"
     REDIS_FILE=dump.rdb
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
@@ -46,7 +52,7 @@ SCRIPT=$0
 function show_help_and_exit()
 {
     echo "Usage ${SCRIPT} [options]"
-    echo "    Request rebooting the device. Invoke platform-specific tool when available."
+    echo "    Request rebooting the device using 'kexec -e'.
     echo "    This script will shutdown syncd before rebooting."
     echo " "
     echo "    Available options:"
@@ -59,6 +65,19 @@ function setup_reboot_variables()
 {
     NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
+    if grep -q aboot_platform= /host/machine.conf; then
+        KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
+        BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+    elif grep -q onie_platform= /host/machine.conf; then
+        KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
+        KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
+        BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+    else
+        error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
+        exit "${EXIT_NOT_SUPPORTED}"
+    fi
+    INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
+
 }
 
 function reboot_pre_check()
@@ -110,12 +129,15 @@ reboot_pre_check
 # Stop SONiC services gracefully.
 stop_sonic_services
 
-clear_warm_boot
+clear_lingering_reboot_config
 
-# Update the reboot cause file to reflect that user issued 'reboot' command
+# Load kernel into the memory
+/sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
+
+# Update the reboot cause file to reflect that user issued 'soft-reboot' command
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
-echo "User issued 'reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+echo "User issued 'soft-reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
 sync
 sleep 3
 
@@ -129,22 +151,16 @@ if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
     ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
 
-if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
-    VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
-    exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} $@
-
-    # There are a couple reasons execution reaches here:
-    #
-    # 1. The vendor platform reboot returned after scheduled the platform specific reboot.
-    #    This is a vendor platform reboot code bug but it happens.
-    # 2. The vendor platform reboot failed. e.g. due to platform driver didn't load properly.
-    #
-    # As result if the reboot script reaches here. We should make the reboot happen.
-    # Sleep 1 second before calling /sbin/reboot to accommodate situation #1 above.
-    sleep 1
-
-    VERBOSE=yes debug "Platform specific reboot failed!" >&2
+# Enable Watchdog Timer
+if [[ -x /usr/bin/watchdog ]]; then
+    debug "Enabling Watchdog before ${REBOOT_TYPE}"
+    /usr/bin/watchdog -e
 fi
+
+# Reboot: explicity call Linux native reboot under sbin
+debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
+exec ${REBOOT_METHOD}
+
 
 VERBOSE=yes debug "Issuing OS-level reboot ..." >&2
 exec /sbin/reboot $@
