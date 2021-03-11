@@ -567,6 +567,7 @@ class TestMuxcable(object):
     @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
     @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
     @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(1)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
     def test_show_muxcable_hwmode_muxdirection_port_active(self):
         runner = CliRunner()
         db = Db()
@@ -583,6 +584,7 @@ class TestMuxcable(object):
     @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
     @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
     @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(1)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
     def test_show_muxcable_hwmode_muxdirection_active(self):
         runner = CliRunner()
         db = Db()
@@ -597,6 +599,7 @@ class TestMuxcable(object):
     @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
     @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
     @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(2)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
     def test_show_muxcable_hwmode_muxdirection_port_standby(self):
         runner = CliRunner()
         db = Db()
@@ -613,6 +616,7 @@ class TestMuxcable(object):
     @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
     @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
     @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(2)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
     def test_show_muxcable_hwmode_muxdirection_standby(self):
         runner = CliRunner()
         db = Db()
