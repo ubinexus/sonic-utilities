@@ -155,7 +155,7 @@ function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
-    RESTORE_COUNT=`sonic-db-cli STATE_DB hget "${TABLE}" restore_count`
+    RESTORE_COUNT=$(/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count)
     if [[ -z "$RESTORE_COUNT" ]]; then
         sonic-db-cli STATE_DB hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
@@ -168,7 +168,7 @@ function request_pre_shutdown()
     STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
     if [[ x"${STATE}" == x"timed out" ]]; then
         error "Failed to request pre-shutdown"
-    }
+    fi
 }
 
 function recover_issu_bank_file_instruction()
@@ -221,7 +221,7 @@ function wait_for_pre_shutdown_complete_or_fail()
     while [[ ${elapsed_time} -lt 60 ]]; do
         # timeout doesn't work with -i option of "docker exec". Therefore we have
         # to invoke docker exec directly below.
-        STATE=$(timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi)
+        STATE=$(timeout 5s sonic-db-cli STATE_DB hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi)
 
         if [[ x"${STATE}" == x"timed out" ]]; then
             retrycount+=1
@@ -268,7 +268,10 @@ function backup_database()
 
     # Dump redis content to a file 'dump.rdb' in warmboot directory
     docker cp database:/var/lib/$target_db_inst/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/$target_db_inst/$REDIS_FILE
+    STATE=$(timeout 5s docker exec database rm /var/lib/$target_db_inst/$REDIS_FILE; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
+        error "Timed out during attempting to remove Redis dump file from database container"
+    fi
 }
 
 function setup_control_plane_assistant()
@@ -611,7 +614,7 @@ fi
 # Disabling swss auto restart and then kill stop swss service
 debug "Disabling swss auto restart ..."
 docker exec swss supervisorctl stop supervisor-proc-exit-listener &> /dev/null || /bin/true
-sed -i -e "s/\<RestartSec=30\>/RestartSec=300/" /etc/systemd/system/swss.service || /bin/true
+sed -i -e "s/\<RestartSec=30\>/RestartSec=300/" /etc/systemd/system/sonic.target.wants/swss.service || /bin/true
 systemctl daemon-reload || /bin/true
 
 debug "Stopping swss service ..."
@@ -737,6 +740,9 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     debug "Running ${PLATFORM} specific plugin..."
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
+
+# Reset swss restart time
+sed -i -e "s/\<RestartSec=300\>/RestartSec=30/" /etc/systemd/system/sonic.target.wants/swss.service || /bin/true
 
 # Reboot: explicitly call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
