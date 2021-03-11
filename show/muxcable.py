@@ -23,7 +23,7 @@ STATUS_FAIL = 1
 STATUS_SUCCESSFUL = 0
 
 VENDOR_NAME = "Credo"
-REG_EXP = re.compile("CACL.+321P2P.+MS")
+VENDOR_MODEL_REGEX = re.compile("CAC.+321P2P.+MS")
 
 
 #
@@ -490,7 +490,7 @@ def muxdirection(port):
         or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
         TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
-        if vendor_value != VENDOR_NAME or bool(re.match(REG_EXP, model_value)) is False:
+        if vendor_value != VENDOR_NAME or bool(re.match(VENDOR_MODEL_REGEX, model_value)) is False:
             click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
             sys.exit(EXIT_FAIL)
 
@@ -586,7 +586,7 @@ def muxdirection(port):
             or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
             TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
-            if vendor_value != VENDOR_NAME or bool(re.match(REG_EXP, model_value)) is False:
+            if vendor_value != VENDOR_NAME or bool(re.match(VENDOR_MODEL_REGEX, model_value)) is False:
                 continue
 
             physical_port = physical_port_list[0]
