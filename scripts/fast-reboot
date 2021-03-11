@@ -155,7 +155,7 @@ function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
-    RESTORE_COUNT=$(/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count)
+    RESTORE_COUNT=$(sonic-db-cli STATE_DB hget "${TABLE}" restore_count)
     if [[ -z "$RESTORE_COUNT" ]]; then
         sonic-db-cli STATE_DB hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
@@ -611,11 +611,9 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     debug "Stopped teamd ..."
 fi
 
-# Disabling swss auto restart and then kill stop swss service
+# Disabling swss auto restart and then stop swss service
 debug "Disabling swss auto restart ..."
-docker exec swss supervisorctl stop supervisor-proc-exit-listener &> /dev/null || /bin/true
-sed -i -e "s/\<RestartSec=30\>/RestartSec=300/" /etc/systemd/system/sonic.target.wants/swss.service || /bin/true
-systemctl daemon-reload || /bin/true
+config feature autorestart swss disabled
 
 debug "Stopping swss service ..."
 systemctl stop swss
@@ -741,8 +739,8 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
-# Reset swss restart time
-sed -i -e "s/\<RestartSec=300\>/RestartSec=30/" /etc/systemd/system/sonic.target.wants/swss.service || /bin/true
+# Re-enable swss autorestart for the next boot
+config feature autorestart swss enabled
 
 # Reboot: explicitly call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
