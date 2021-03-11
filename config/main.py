@@ -238,6 +238,15 @@ def _get_device_type():
 
     return device_type
 
+def _get_switch_type(config_db):
+    """Get switch_type from CONFIG_DB
+    """
+    metadata = config_db.get_table('DEVICE_METADATA')
+    if metadata and 'localhost' in metadata and 'switch_type' in metadata['localhost']:
+       return metadata['localhost']['switch_type']
+    switch_type = 'Unknown'
+    return switch_type
+
 def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
     """
@@ -1159,6 +1168,8 @@ def load_minigraph(db, no_service_restart):
     if num_npus > 1:
         namespace_list += multi_asic.get_namespaces_from_linux()
 
+    fabric_switches = []
+
     for namespace in namespace_list:
         if namespace is DEFAULT_NAMESPACE:
             config_db = ConfigDBConnector()
@@ -1176,7 +1187,20 @@ def load_minigraph(db, no_service_restart):
         else:
             command = "{} -H -m --write-to-db {}".format(SONIC_CFGGEN_PATH, cfggen_namespace_option)
         clicommon.run_command(command, display_cmd=True)
+        switch_type = _get_switch_type(config_db)
+        if switch_type == 'fabric':
+            fabric_switches.append(npu_id)
         client.set(config_db.INIT_INDICATOR, 1)
+
+    # fabric switches require only a few services running
+    if len(fabric_switches) > 0:
+        fabric_switches_str = ','.join(fabric_switches)
+        running_services = ['database', 'swss', 'syncd']
+        feature_services = db.cfgdb.get_table('FEATURE')
+        for service in feature_services:
+            if service not in running_services and feature_services[service].get('has_per_asic_scope', False):
+                feature_services[service]['always_disabled_on_asics'] = fabric_switches_str
+                db.cfgdb.set_entry("FEATURE", service, feature_services[service])
 
     # get the device type
     device_type = _get_device_type()
