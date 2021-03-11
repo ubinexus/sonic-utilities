@@ -23,7 +23,7 @@ STATUS_FAIL = 1
 STATUS_SUCCESSFUL = 0
 
 VENDOR_NAME = "Credo"
-VENDOR_MODEL_REGEX = re.compile("CAC\w{3}321P2P\w{2}MS")
+VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
 
 #
