@@ -351,6 +351,8 @@ def print_output_in_alias_mode(output, index):
     if output.startswith("---"):
         word = output.split()
         dword = word[index]
+        if(len(dword) > iface_alias_converter.alias_max_length):
+            dword = dword[:len(dword) - iface_alias_converter.alias_max_length]
         underline = dword.rjust(iface_alias_converter.alias_max_length,
                                 '-')
         word[index] = underline
@@ -464,6 +466,13 @@ def run_command_in_alias_mode(command):
                 index = 2
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
+                print_output_in_alias_mode(output, index)
+            elif command.startswith("sudo ipintutil"):
+                """show ip(v6) int"""
+                index = 0
+                if output.startswith("Interface"):
+                   output = output.replace("Interface", "Interface".rjust(
+                               iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
             else:

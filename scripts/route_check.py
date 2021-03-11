@@ -320,16 +320,13 @@ def filter_out_local_interfaces(keys):
     :return keys filtered out of local
     """
     rt = []
-    local_if_re = ['eth0', 'lo', 'docker0', 'tun0', 'Loopback\d+']
+    local_if_re = [r'eth0', r'lo', r'docker0', r'tun0', r'Loopback\d+']
 
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     tbl = swsscommon.Table(db, 'ROUTE_TABLE')
 
     for k in keys:
         e = dict(tbl.get(k)[1])
-        if not e:
-            # Prefix might have been added. So try w/o it.
-            e = dict(tbl.get(k.split("/"))[1])
         if not e or all([not re.match(x, e['ifname']) for x in local_if_re]):
             rt.append(k)
 
