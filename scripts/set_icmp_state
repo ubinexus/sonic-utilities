@@ -87,7 +87,7 @@ def verify_valid_ip_address(ip_address, table_ip_version):
         table_ip_version = 6 if table_ip_version == IP_VERSION_V6 else 4
         if destination_ip_version != table_ip_version:
             error("Cannot use an IPv{} rule with an IPv{} table, exiting...".format(destination_ip_version, table_ip_version))
-    except Exception as e:
+    except ValueError as e:
         error("Could not parse {} as a valid IP address; exception={}".format(ip_address, e))
 
 
