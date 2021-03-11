@@ -18,7 +18,7 @@ CONFIG_SUCCESSFUL = 0
 CONFIG_FAIL = 1
 
 VENDOR_NAME = "Credo"
-VENDOR_MODEL_REGEX = re.compile("CAC.+321P2P.+MS")
+VENDOR_MODEL_REGEX = re.compile("CAC\w{3}321P2P\w{2}MS")
 
 # Helper functions
 
