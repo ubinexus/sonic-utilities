@@ -9,7 +9,6 @@ import os
 import re
 import subprocess
 import sys
-import threading
 import time
 
 from socket import AF_INET, AF_INET6
@@ -63,10 +62,6 @@ INTF_KEY = "interfaces"
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
-SYSTEMCTL_ACTION_STOP="stop"
-SYSTEMCTL_ACTION_RESTART="restart"
-SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
-
 DEFAULT_NAMESPACE = ''
 CFG_LOOPBACK_PREFIX = "Loopback"
 CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
@@ -110,10 +105,8 @@ def _get_breakout_options(ctx, args, incomplete):
     else:
         breakout_file_input = readJsonFile(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
-            breakout_mode_list = [v["breakout_modes"] for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
-            breakout_mode_options = []
-            for i in breakout_mode_list.split(','):
-                    breakout_mode_options.append(i)
+            breakout_mode_options = [mode for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name \
+                                          for mode in v["breakout_modes"].keys()]
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
         return all_mode_options
 
@@ -152,7 +145,7 @@ def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brko
         return False
 
     # Check whether target breakout mode is available for the user-selected interface or not
-    if target_brkout_mode not in breakout_file_input[interface_name]["breakout_modes"]:
+    if target_brkout_mode not in breakout_file_input[interface_name]["breakout_modes"].keys():
         click.secho('[ERROR] Target mode {} is not available for the port {}'. format(target_brkout_mode, interface_name), fg='red')
         return False
 
@@ -226,54 +219,6 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
 # Helper functions
 #
 
-# Execute action per NPU instance for multi instance services.
-def execute_systemctl_per_asic_instance(inst, event, service, action):
-    try:
-        click.echo("Executing {} of service {}@{}...".format(action, service, inst))
-        clicommon.run_command("systemctl {} {}@{}.service".format(action, service, inst))
-    except SystemExit as e:
-        log.log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
-        # Set the event object if there is a failure and exception was raised.
-        event.set()
-
-# Execute action on list of systemd services
-def execute_systemctl(list_of_services, action):
-    num_asic = multi_asic.get_num_asics()
-    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
-    if ((generated_services_list == []) and
-        (generated_multi_instance_services == [])):
-        log.log_error("Failed to get generated services")
-        return
-
-    for service in list_of_services:
-        if (service + '.service' in generated_services_list):
-            try:
-                click.echo("Executing {} of service {}...".format(action, service))
-                clicommon.run_command("systemctl {} {}".format(action, service))
-            except SystemExit as e:
-                log.log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
-                raise
-
-        if (service + '.service' in generated_multi_instance_services):
-            # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
-            if multi_asic.is_multi_asic():
-                threads = []
-                # Use this event object to co-ordinate if any threads raised exception
-                e = threading.Event()
-
-                kwargs = {'service': service, 'action': action}
-                for inst in range(num_asic):
-                    t = threading.Thread(target=execute_systemctl_per_asic_instance, args=(inst, e), kwargs=kwargs)
-                    threads.append(t)
-                    t.start()
-
-                # Wait for all the threads to finish.
-                for inst in range(num_asic):
-                    threads[inst].join()
-
-                    # Check if any of the threads have raised exception, if so exit the process.
-                    if e.is_set():
-                        sys.exit(1)
 
 def _get_device_type():
     """
@@ -722,97 +667,26 @@ def _get_disabled_services_list(config_db):
 
     return disabled_services_list
 
-def _stop_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be stopped
-    # on Mellanox platform pmon is stopped by syncd
-    services_to_stop = [
-        'telemetry',
-        'restapi',
-        'swss',
-        'lldp',
-        'pmon',
-        'bgp',
-        'hostcfgd',
-        'nat'
-    ]
 
-    if asic_type == 'mellanox' and 'pmon' in services_to_stop:
-        services_to_stop.remove('pmon')
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_stop:
-            services_to_stop.remove(service)
-
-    execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
+def _stop_services():
+    click.echo("Stopping SONiC target ...")
+    clicommon.run_command("sudo systemctl stop sonic.target")
 
 
-def _reset_failed_services(config_db):
-    # This list is order-independent. Please keep list in alphabetical order
-    services_to_reset = [
-        'bgp',
-        'dhcp_relay',
-        'hostcfgd',
-        'hostname-config',
-        'interfaces-config',
-        'lldp',
-        'mux',
-        'nat',
-        'ntp-config',
-        'pmon',
-        'radv',
-        'restapi',
-        'rsyslog-config',
-        'sflow',
-        'snmp',
-        'swss',
-        'syncd',
-        'teamd',
-        'telemetry',
-        'macsec',
-    ]
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_reset:
-            services_to_reset.remove(service)
-
-    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
+def _get_sonic_services():
+    out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
+    return [unit.strip() for unit in out.splitlines()]
 
 
-def _restart_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be started
-    # on Mellanox platform pmon is started by syncd
-    services_to_restart = [
-        'hostname-config',
-        'interfaces-config',
-        'ntp-config',
-        'rsyslog-config',
-        'swss',
-        'mux',
-        'bgp',
-        'pmon',
-        'lldp',
-        'hostcfgd',
-        'nat',
-        'sflow',
-        'restapi',
-        'telemetry',
-        'macsec',
-    ]
+def _reset_failed_services():
+    for service in _get_sonic_services():
+        click.echo("Resetting failed status on {}".format(service))
+        clicommon.run_command("systemctl reset-failed {}".format(service))
 
-    disabled_services = _get_disabled_services_list(config_db)
 
-    for service in disabled_services:
-        if service in services_to_restart:
-            services_to_restart.remove(service)
-
-    if asic_type == 'mellanox' and 'pmon' in services_to_restart:
-        services_to_restart.remove('pmon')
-
-    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
+def _restart_services():
+    click.echo("Restarting SONiC target ...")
+    clicommon.run_command("sudo systemctl restart sonic.target")
 
     # Reload Monit configuration to pick up new hostname in case it changed
     click.echo("Reloading Monit configuration ...")
@@ -912,6 +786,38 @@ def update_sonic_environment():
             ),
             display_cmd=True
         )
+
+def cache_arp_entries():
+    success = True
+    cache_dir = '/host/config-reload'
+    click.echo('Caching ARP table to {}'.format(cache_dir))
+
+    if not os.path.exists(cache_dir):
+        os.mkdir(cache_dir)
+
+    arp_cache_cmd = '/usr/local/bin/fast-reboot-dump.py -t {}'.format(cache_dir)
+    cache_proc = subprocess.Popen(arp_cache_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    _, cache_err = cache_proc.communicate()
+    if cache_err:
+        click.echo("Could not cache ARP and FDB info prior to reloading")
+        success = False
+
+    if not cache_err:
+        fdb_cache_file = os.path.join(cache_dir, 'fdb.json')
+        arp_cache_file = os.path.join(cache_dir, 'arp.json')
+        fdb_filter_cmd = '/usr/local/bin/filter_fdb_entries -f {} -a {} -c /etc/sonic/configdb.json'.format(fdb_cache_file, arp_cache_file)
+        filter_proc = subprocess.Popen(fdb_filter_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+        _, filter_err = filter_proc.communicate()
+        if filter_err:
+            click.echo("Could not filter FDB entries prior to reloading")
+            success = False
+    
+    # If we are able to successfully cache ARP table info, signal SWSS to restore from our cache
+    # by creating /host/config-reload/needs-restore
+    if success:
+        restore_flag_file = os.path.join(cache_dir, 'needs-restore')
+        open(restore_flag_file, 'w').close()
+    return success
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1073,9 +979,10 @@ def load(filename, yes):
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
+@click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -1114,10 +1021,17 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         else:
             cfg_hwsku = cfg_hwsku.strip()
 
+    # For dual ToR devices, cache ARP and FDB info
+    localhost_metadata = db.cfgdb.get_table('DEVICE_METADATA')['localhost']
+    cache_arp_table = not disable_arp_cache and 'subtype' in localhost_metadata and localhost_metadata['subtype'].lower() == 'dualtor'
+
+    if cache_arp_table:
+        cache_arp_entries()
+
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'reload' stopping services...")
-        _stop_services(db.cfgdb)
+        _stop_services()
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1188,9 +1102,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb)
+        _reset_failed_services()
         log.log_info("'reload' restarting services...")
-        _restart_services(db.cfgdb)
+        _restart_services()
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1229,7 +1143,7 @@ def load_minigraph(db, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log.log_info("'load_minigraph' stopping services...")
-        _stop_services(db.cfgdb)
+        _stop_services()
 
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
@@ -1285,10 +1199,10 @@ def load_minigraph(db, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services(db.cfgdb)
+        _reset_failed_services()
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
         log.log_info("'load_minigraph' restarting services...")
-        _restart_services(db.cfgdb)
+        _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 
@@ -3491,6 +3405,62 @@ def get_acl_bound_ports():
 
     return list(ports)
 
+
+def expand_vlan_ports(port_name):
+    """
+    Expands a given VLAN interface into its member ports.
+
+    If the provided interface is a VLAN, then this method will return its member ports.
+
+    If the provided interface is not a VLAN, then this method will return a list with only
+    the provided interface in it.
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    if port_name not in config_db.get_keys("VLAN"):
+        return [port_name]
+
+    vlan_members = config_db.get_keys("VLAN_MEMBER")
+
+    members = [member for vlan, member in vlan_members if port_name == vlan]
+
+    if not members:
+        raise ValueError("Cannot bind empty VLAN {}".format(port_name))
+
+    return members
+
+
+def parse_acl_table_info(table_name, table_type, description, ports, stage):
+    table_info = {"type": table_type}
+
+    if description:
+        table_info["policy_desc"] = description
+    else:
+        table_info["policy_desc"] = table_name
+
+    if not ports and ports != None:
+        raise ValueError("Cannot bind empty list of ports")
+
+    port_list = []
+    valid_acl_ports = get_acl_bound_ports()
+    if ports:
+        for port in ports.split(","):
+            port_list += expand_vlan_ports(port)
+        port_list = set(port_list)
+    else:
+        port_list = valid_acl_ports
+
+    for port in port_list:
+        if port not in valid_acl_ports:
+            raise ValueError("Cannot bind ACL to specified port {}".format(port))
+
+    table_info["ports@"] = ",".join(port_list)
+
+    table_info["stage"] = stage
+
+    return table_info
+
 #
 # 'table' subcommand ('config acl add table ...')
 #
@@ -3501,26 +3471,18 @@ def get_acl_bound_ports():
 @click.option("-d", "--description")
 @click.option("-p", "--ports")
 @click.option("-s", "--stage", type=click.Choice(["ingress", "egress"]), default="ingress")
-def table(table_name, table_type, description, ports, stage):
+@click.pass_context
+def table(ctx, table_name, table_type, description, ports, stage):
     """
     Add ACL table
     """
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    table_info = {"type": table_type}
-
-    if description:
-        table_info["policy_desc"] = description
-    else:
-        table_info["policy_desc"] = table_name
-
-    if ports:
-        table_info["ports@"] = ports
-    else:
-        table_info["ports@"] = ",".join(get_acl_bound_ports())
-
-    table_info["stage"] = stage
+    try:
+        table_info = parse_acl_table_info(table_name, table_type, description, ports, stage)
+    except ValueError as e:
+        ctx.fail("Failed to parse ACL table config: exception={}".format(e))
 
     config_db.set_entry("ACL_TABLE", table_name, table_info)
 
