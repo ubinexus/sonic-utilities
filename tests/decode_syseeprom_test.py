@@ -87,49 +87,49 @@ SAMPLE_TLV_DICT = {
             'value': '3.15.1.0'
         },
         {
-            'code': '0x2a',
+            'code': '0x2A',
             'name': 'MAC Addresses',
             'length': '2',
             'value': '384'
         },
         {
-            'code': '0x2b',
+            'code': '0x2B',
             'name': 'Manufacturer',
             'length': '5',
             'value': 'CET00'
         },
         {
-            'code': '0x2c',
+            'code': '0x2C',
             'name': 'Manufacture Country',
             'length': '2',
             'value': 'TH'
         },
         {
-            'code': '0x2d',
+            'code': '0x2D',
             'name': 'Vendor Name',
             'length': '4',
             'value': 'DELL'
         },
         {
-            'code': '0x2e',
+            'code': '0x2E',
             'name': 'Diag Version',
             'length': '8',
             'value': '3.25.4.1'
         },
         {
-            'code': '0x2f',
+            'code': '0x2F',
             'name': 'Service Tag',
             'length': '7',
             'value': 'F3CD9Z2'
         },
         {
-            'code': '0xfd',
+            'code': '0xFD',
             'name': 'Vendor Extension',
             'length': '7',
             'value': ''
         },
         {
-            'code': '0xfe',
+            'code': '0xFE',
             'name': 'CRC-32',
             'length': '4',
             'value': '0xAC518FB3'
