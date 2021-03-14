@@ -648,7 +648,7 @@ def muxdirection(port):
 
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
-def switch(port):
+def switchmode(port):
     """Shows the current switching mode of the muxcable {auto/manual}"""
 
     per_npu_statedb = {}

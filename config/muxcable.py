@@ -475,7 +475,7 @@ def state(state, port):
 @hwmode.command()
 @click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["auto", "manual"]))
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-def setmode(state, port):
+def setswitchmode(state, port):
     """Configure the muxcable mux switching mode {auto/manual}"""
 
     per_npu_statedb = {}
