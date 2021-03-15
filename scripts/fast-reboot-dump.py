@@ -86,8 +86,8 @@ def get_lag_by_member(member_name, app_db):
             return lag_name
     return None
 
-def get_map_port_id_2_iface_name(asic_db, app_db):
-    port_id_2_iface = {}
+def get_map_host_port_id_2_iface_name(asic_db):
+    host_port_id_2_iface = {}
     keys = asic_db.keys(asic_db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:*')
     keys = [] if keys is None else keys
     for key in keys:
@@ -96,20 +96,33 @@ def get_map_port_id_2_iface_name(asic_db, app_db):
             continue
         port_id = value['SAI_HOSTIF_ATTR_OBJ_ID']
         iface_name = value['SAI_HOSTIF_ATTR_NAME']
-        port_id_2_iface[port_id] = iface_name
+        host_port_id_2_iface[port_id] = iface_name
+    
+    return host_port_id_2_iface
 
+def get_map_lag_port_id_2_portchannel_name(asic_db, app_db, host_port_id_2_iface):
+    lag_port_id_2_iface = {}
     keys = asic_db.keys(asic_db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_LAG_MEMBER:oid:*')
     keys = [] if keys is None else keys
     for key in keys:
         value = asic_db.get_all(asic_db.ASIC_DB, key)
         lag_id = value['SAI_LAG_MEMBER_ATTR_LAG_ID']
-        if lag_id in port_id_2_iface:
+        if lag_id in lag_port_id_2_iface:
             continue
         member_id = value['SAI_LAG_MEMBER_ATTR_PORT_ID']
-        member_name = port_id_2_iface[member_id]
+        member_name = host_port_id_2_iface[member_id]
         lag_name = get_lag_by_member(member_name, app_db)
         if lag_name is not None:
-            port_id_2_iface[lag_id] = lag_name
+            lag_port_id_2_iface[lag_id] = lag_name
+
+    return lag_port_id_2_iface
+
+def get_map_port_id_2_iface_name(asic_db, app_db):
+    port_id_2_iface = {}
+    host_port_id_2_iface = get_map_host_port_id_2_iface_name(asic_db)
+    port_id_2_iface.update(host_port_id_2_iface)
+    lag_port_id_2_iface = get_map_lag_port_id_2_portchannel_name(asic_db, app_db, host_port_id_2_iface)
+    port_id_2_iface.update(lag_port_id_2_iface)
 
     return port_id_2_iface
 
