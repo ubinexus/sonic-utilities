@@ -20,8 +20,6 @@ optional arguments:
 import os
 import sys
 import argparse
-# APPL_DB constants
-from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 
 # mock the redis for unit test purposes #
 try:
@@ -34,8 +32,9 @@ try:
 except KeyError:
     pass
 
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig, SonicV2Connector
 
-
+# APPL_DB constants
 PORT_TABLE_NAME = "PORT"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
 PORT_FEC_CONFIG_FIELD_NAME = "fec"
