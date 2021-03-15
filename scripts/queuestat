@@ -11,8 +11,6 @@ import argparse
 import datetime
 import os.path
 import sys
-import pprint
-import json
 
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
