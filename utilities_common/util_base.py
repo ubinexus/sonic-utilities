@@ -2,8 +2,6 @@ import os
 import pkgutil
 import importlib
 
-import sonic_platform
-
 from sonic_py_common import logger
 
 # Constants ====================================================================
@@ -71,6 +69,7 @@ class UtilHelper(object):
 
         # Load 2.0 platform API chassis class
         try:
+            import sonic_platform
             chassis = sonic_platform.platform.Platform().get_chassis()
         except Exception as e:
             raise Exception("Failed to load chassis due to {}".format(repr(e)))
