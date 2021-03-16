@@ -670,97 +670,6 @@ def _get_disabled_services_list(config_db):
 
     return disabled_services_list
 
-<<<<<<< ours
-def _stop_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be stopped
-    # on Mellanox platform pmon is stopped by syncd
-    services_to_stop = [
-        'telemetry',
-        'restapi',
-        'swss',
-        'lldp',
-        'pmon',
-        'bgp',
-        'hostcfgd',
-        'nat'
-    ]
-
-    if asic_type == 'mellanox' and 'pmon' in services_to_stop:
-        services_to_stop.remove('pmon')
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_stop:
-            services_to_stop.remove(service)
-
-    execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
-
-
-def _reset_failed_services(config_db):
-    # This list is order-independent. Please keep list in alphabetical order
-    services_to_reset = [
-        'bgp',
-        'dhcp_relay',
-        'hostcfgd',
-        'hostname-config',
-        'interfaces-config',
-        'lldp',
-        'mux',
-        'nat',
-        'ntp-config',
-        'pmon',
-        'radv',
-        'restapi',
-        'rsyslog-config',
-        'sflow',
-        'snmp',
-        'swss',
-        'syncd',
-        'teamd',
-        'telemetry'
-    ]
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_reset:
-            services_to_reset.remove(service)
-
-    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
-
-
-def _restart_services(config_db):
-    # This list is order-dependent. Please add services in the order they should be started
-    # on Mellanox platform pmon is started by syncd
-    services_to_restart = [
-        'hostname-config',
-        'interfaces-config',
-        'ntp-config',
-        'rsyslog-config',
-        'swss',
-        'mux',
-        'bgp',
-        'pmon',
-        'lldp',
-        'hostcfgd',
-        'nat',
-        'sflow',
-        'restapi',
-        'telemetry'
-    ]
-
-    disabled_services = _get_disabled_services_list(config_db)
-
-    for service in disabled_services:
-        if service in services_to_restart:
-            services_to_restart.remove(service)
-
-    if asic_type == 'mellanox' and 'pmon' in services_to_restart:
-        services_to_restart.remove('pmon')
-
-    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
-=======
 
 def _stop_services():
     click.echo("Stopping SONiC target ...")
@@ -781,7 +690,6 @@ def _reset_failed_services():
 def _restart_services():
     click.echo("Restarting SONiC target ...")
     clicommon.run_command("sudo systemctl restart sonic.target")
->>>>>>> theirs
 
     # Reload Monit configuration to pick up new hostname in case it changed
     click.echo("Reloading Monit configuration ...")
