@@ -298,7 +298,7 @@ def install(url, force, skip_migration=False):
             urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
             click.echo('')
         except Exception as e:
-            echo_and_log("Download error", e)
+            echo_and_log("Download error: {}".format(e), LOG_ERR)
             raise click.Abort()
         image_path = bootloader.DEFAULT_IMAGE_PATH
     else:
