@@ -669,11 +669,12 @@ def _get_disabled_services_list(config_db):
 
 
 def _stop_services():
-    proc_instance = subprocess.Popen("sudo monit status", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    cmd_stdout, cmd_stderr = proc_instance.communicate()
-    if proc_instance.returncode == 0:
+    try:
+        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Disabling container monitoring ...")
         clicommon.run_command("sudo monit unmonitor container_checker")
+    except subprocess.CalledProcessError as err:
+        pass
 
     click.echo("Stopping SONiC target ...")
     clicommon.run_command("sudo systemctl stop sonic.target")
