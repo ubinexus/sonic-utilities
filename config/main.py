@@ -698,11 +698,12 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
-    proc_instance = subprocess.Popen("sudo monit status", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    cmd_stdout, cmd_stderr = proc_instance.communicate()
-    if proc_instance.returncode == 0:
+    try:
+        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Enabling container monitoring ...")
         clicommon.run_command("sudo monit monitor container_checker")
+    except subprocess.CalledProcessError as err:
+        pass
 
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
