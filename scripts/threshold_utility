@@ -102,10 +102,11 @@ def main():
         temperTresh.show()
     elif args.command == "config":
         temperTresh.config(args.name, args.type, args.value)
-        
+
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
-    
-    
+
+
