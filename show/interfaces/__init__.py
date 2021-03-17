@@ -468,15 +468,15 @@ def detailed(interface, period, verbose):
 
 
 #
-# auto-neg group (show interfaces auto-neg ...)
+# autoneg group (show interfaces autoneg ...)
 #
-@interfaces.group(name='auto-neg', cls=clicommon.AliasedGroup)
+@interfaces.group(name='autoneg', cls=clicommon.AliasedGroup)
 def autoneg():
     """Show interface autoneg information"""
     pass
 
 
-# 'auto-neg status' subcommand ("show interfaces auto-neg status")
+# 'autoneg status' subcommand ("show interfaces autoneg status")
 @autoneg.command(name='status')
 @click.argument('interfacename', required=False)
 @multi_asic_util.multi_asic_click_options

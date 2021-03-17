@@ -85,7 +85,7 @@ class portconfig(object):
         supported_speeds_str = self.get_supported_speeds(port)
         if supported_speeds_str:
             if supported_speeds_str.find(str(speed)) == -1:
-                print('Invalid speed value {}'.format(speed))
+                print('Invalid speed value specified: {}'.format(speed))
                 print('Valid speed value:{}'.format(supported_speeds_str))
                 exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
@@ -116,7 +116,7 @@ class portconfig(object):
                 supported_speeds = set([x for x in supported_speeds_str.split(',')])
                 for speed in adv_speeds.split(','):
                     if speed not in supported_speeds:
-                        print('Invalid speed value {}'.format(speed))
+                        print('Invalid speed value specified: {}'.format(speed))
                         print('Valid speed value:{}'.format(supported_speeds_str))
                         exit(1)
 
@@ -126,7 +126,7 @@ class portconfig(object):
         if self.verbose:
             print("Setting interface_type %s on port %s" % (interface_type, port))
         if interface_type not in VALID_INTERFACE_TYPE_SET:
-            print("Invalid interface type value {}".format(interface_type))
+            print("Invalid interface type value specified: {}".format(interface_type))
             print("Valid interface type:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
             exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
@@ -139,7 +139,7 @@ class portconfig(object):
             interface_type_list = adv_interface_types.split(',')
             for interface_type in interface_type_list:
                 if interface_type not in VALID_INTERFACE_TYPE_SET:
-                    print("Invalid interface type value {}".format(interface_type))
+                    print("Invalid interface type value specified: {}".format(interface_type))
                     print("Valid interface type:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
                     exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME: adv_interface_types})

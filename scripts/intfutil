@@ -138,7 +138,7 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         return "N/A"
     if status_type == PORT_SPEED and status != "N/A":
         status = '{}G'.format(status[:-3])
-    elif status_type == PORT_ADV_SPEEDS and status != "N/A":
+    elif status_type == PORT_ADV_SPEEDS and status != "N/A" and status != "all":
         speed_list = status.split(',')
         new_speed_list = []
         for s in speed_list:
