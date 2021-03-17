@@ -3,6 +3,7 @@ import utilities_common.cli as clicommon
 
 from time import sleep
 from .utils import log
+from swsssdk import port_util
 
 #
 # 'vlan' group ('config vlan ...')
@@ -134,16 +135,21 @@ def add_vlan_member(db, vid, port, untagged):
     if clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
         ctx.fail("{} is already a member of {}".format(port, vlan))
 
-    if clicommon.is_valid_port(db.cfgdb, port):
-        is_port = True
-    elif clicommon.is_valid_portchannel(db.cfgdb, port):
-        is_port = False
-    else:
+    if not clicommon.is_valid_port(db.cfgdb, port) and \
+       not clicommon.is_valid_portchannel(db.cfgdb, port):
         ctx.fail("{} does not exist".format(port))
 
-    if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
-       (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
-        ctx.fail("{} is a router interface!".format(port))
+    if_name_map, \
+    if_oid_map = port_util.get_interface_oid_map(db.db)
+    rif_port_oid_map = port_util.get_rif_port_map(db.db)
+
+    if port not in if_name_map:
+        ctx.fail("Can not find {} in OID map".format(port))
+
+    port_oid = if_name_map[port]
+    for rif in rif_port_oid_map.keys():
+        if rif_port_oid_map[rif] == port_oid:
+            ctx.fail("{} is a router interface! Check assigned L3 addresses, a related static routes etc.".format(port))
         
     if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged):
         ctx.fail("{} is already untagged member!".format(port))
