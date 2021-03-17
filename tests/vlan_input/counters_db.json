@@ -1,0 +1,16 @@
+{
+    "COUNTERS_PORT_NAME_MAP": {
+        "Ethernet4": "oid:0x1000000000012",
+        "Ethernet8": "oid:0x1000000000013",
+        "Ethernet12": "oid:0x1000000000014",
+        "Ethernet16": "oid:0x1000000000015",
+        "Ethernet20": "oid:0x1000000000016",
+        "Ethernet24": "oid:0x1000000000017",
+        "Ethernet28": "oid:0x1000000000018",
+        "Ethernet32": "oid:0x1000000000019"
+    },
+    "COUNTERS_LAG_NAME_MAP": {
+        "PortChannel0001": "oid:0x60000000005a1",
+        "PortChannel1001": "oid:0x60000000007c9"
+    }
+}

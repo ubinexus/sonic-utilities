@@ -7,6 +7,10 @@ from click.testing import CliRunner
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
+from .mock_tables import dbconnector
+
+test_path = os.path.dirname(os.path.abspath(__file__))
+mock_db_path = os.path.join(test_path, "vlan_input")
 
 show_vlan_brief_output="""\
 +-----------+-----------------+------------+----------------+-----------------------+-------------+
@@ -170,6 +174,10 @@ class TestVlan(object):
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        jsonfile = os.path.join(mock_db_path, 'counters_db')
+        dbconnector.dedicated_dbs['COUNTERS_DB'] = jsonfile
+        jsonfile = os.path.join(mock_db_path, 'asic_db')
+        dbconnector.dedicated_dbs['ASIC_DB'] = jsonfile
         print("SETUP")
 
     def test_show_vlan(self):
@@ -319,6 +327,28 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_with_portchannel_output
 
+    def test_config_vlan_add_port_member_not_in_cntr_map(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
+				["1000", "Ethernet36", "--untagged"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Can not find Ethernet36 in OID map" in result.output
+
+    def test_config_vlan_add_rif_port_member(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
+				["1000", "Ethernet32", "--untagged"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Ethernet32 is a router interface! Check assigned L3 addresses, a related static routes etc." in result.output
+
     def test_config_vlan_add_rif_portchannel_member(self):
         runner = CliRunner()
         db = Db()
@@ -328,7 +358,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: PortChannel0001 is a router interface!" in result.output
+        assert "Error: PortChannel0001 is a router interface! Check assigned L3 addresses, a related static routes etc." in result.output
 
     def test_config_vlan_del_vlan(self):
         runner = CliRunner()
@@ -676,4 +706,6 @@ class TestVlan(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['COUNTERS_DB'] = None
+        dbconnector.dedicated_dbs['ASIC_DB'] = None
         print("TEARDOWN")
