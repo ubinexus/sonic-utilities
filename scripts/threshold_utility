@@ -76,12 +76,15 @@ class TemperThresholds(object):
             if ( (threshold == HIGH_THRESH_FIELD_NAME or threshold == CRIT_HIGH_THRESH_FIELD_NAME) 
                 and float(data_dict[TEMPER_FIELD_NAME]) >= value ):
                 print('Error: Value below temperature')
+                return
                 
             if ( threshold == HIGH_THRESH_FIELD_NAME and float(data_dict[CRIT_HIGH_THRESH_FIELD_NAME]) <= value ):
                 print('Error: High threshold can not be bigger than critical high')
+                return
                 
             if ( threshold == CRIT_HIGH_THRESH_FIELD_NAME and float(data_dict[HIGH_THRESH_FIELD_NAME]) >= value ):
                 print('Error: Critical high threshold can not be lowwer than high')
+                return
 
             self.db.set(self.db.STATE_DB, key, threshold, str(value))
             return
