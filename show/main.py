@@ -2459,5 +2459,6 @@ def temperature_thresholds(verbose):
     cmd = "threshold_utility -c show"
     run_command(cmd, display_cmd=verbose)
 
+
 if __name__ == '__main__':
     cli()
