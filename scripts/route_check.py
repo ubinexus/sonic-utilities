@@ -462,9 +462,9 @@ def main():
     while True:
         signal.alarm(TIMEOUT_SECONDS)
         ret, res= check_routes()
+        signal.alarm(0)
 
         if interval:
-            signal.alarm(0)
             time.sleep(interval)
             if UNIT_TESTING:
                 return ret, res

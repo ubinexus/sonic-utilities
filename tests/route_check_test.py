@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import sys
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -436,7 +437,9 @@ class TestRouteCheck(object):
             ret, res = route_check.main()
         except Exception as err:
             ex_raised = True
-            print("raised = {}".format(str(err)))
+            expect = "timeout occurred"
+            ex_str = str(err)
+            assert ex_str == expect, "{} != {}".format(ex_str, expect)
         assert ex_raised, "Exception expected"
 
 
