@@ -204,6 +204,16 @@ def arp(ipaddress, iface, verbose):
     run_command(cmd, display_cmd=verbose)
 
 #
+# 'temperature_thresholds' command ("show temperature_thresholds")
+#
+
+@cli.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def temperature_thresholds(verbose):
+    cmd = "threshold_utility -c show"
+    run_command(cmd, display_cmd=verbose)
+
+#
 # 'ndp' command ("show ndp")
 #
 
@@ -2449,16 +2459,6 @@ def tunnel():
         table.append(r)
 
     click.echo(tabulate(table, header))
-
-#
-# 'temperature_thresholds' command ("show temperature_thresholds")
-#
-@cli.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def temperature_thresholds(verbose):
-    cmd = "threshold_utility -c show"
-    run_command(cmd, display_cmd=verbose)
-
 
 if __name__ == '__main__':
     cli()
