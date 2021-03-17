@@ -3689,5 +3689,21 @@ def delete(ctx):
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
+#
+# 'temperature threshold' group ('config temperature threshold ...')
+#
+@config.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def temperature_thresholds(ctx):
+    pass
+
+@temperature_thresholds.command('update')
+@click.argument('name', metavar='<threshold name>', required=True)
+@click.argument('th_type', metavar='<threshold type>', type=click.Choice(['high', 'low', 'cr_high', 'cr_low'], case_sensitive=False), required=True)
+@click.argument('th_value', metavar='<threshold value>', required=True)
+@click.pass_context
+def update(ctx, name, th_type, th_value):
+    clicommon.run_command(f'threshold_utility -c config -n "{name}" -t {th_type} -v {th_value}')
+
 if __name__ == '__main__':
     config()

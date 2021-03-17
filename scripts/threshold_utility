@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+
+from tabulate import tabulate
+from swsscommon.swsscommon import SonicV2Connector
+from natsort import natsorted
+
+
+header = ['Sensor', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH']
+types = ['high', 'low', 'cr_high', 'cr_low']
+
+TEMPER_TABLE_NAME = 'TEMPERATURE_INFO'
+TEMPER_FIELD_NAME = 'temperature'
+HIGH_THRESH_FIELD_NAME = 'high_threshold'
+LOW_THRESH_FIELD_NAME = 'low_threshold'
+CRIT_HIGH_THRESH_FIELD_NAME = 'critical_high_threshold'
+CRIT_LOW_THRESH_FIELD_NAME = 'critical_low_threshold'
+
+
+class TemperThresholds(object):
+    def __init__(self):
+        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db.connect(self.db.STATE_DB)
+
+    def show(self):
+        keys = self.db.keys(self.db.STATE_DB, TEMPER_TABLE_NAME + '*')
+        if not keys:
+            print('Thermal Not detected\n')
+            return
+
+        table = []
+        for key in natsorted(keys):
+            key_list = key.split('|')
+            if len(key_list) != 2:
+                print(f'Warn: Invalid key in table {TEMPER_TABLE_NAME}: {key}')
+                continue
+
+            name = key_list[1]
+            data_dict = self.db.get_all(self.db.STATE_DB, key)
+            table.append((name, 
+                          data_dict[HIGH_THRESH_FIELD_NAME],
+                          data_dict[LOW_THRESH_FIELD_NAME],
+                          data_dict[CRIT_HIGH_THRESH_FIELD_NAME],
+                          data_dict[CRIT_LOW_THRESH_FIELD_NAME],
+                          ))
+
+        if table:
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
+        else:
+            print('Error: No temperature thresholds data available')
+            
+    def config(self, name, thresh_type, value):
+        keys = self.db.keys(self.db.STATE_DB, f'{TEMPER_TABLE_NAME}|{name}')
+
+        threshold = None
+        if thresh_type == 'high':
+            threshold = HIGH_THRESH_FIELD_NAME
+        elif thresh_type == 'low': 
+            threshold = LOW_THRESH_FIELD_NAME
+        elif thresh_type == 'cr_high': 
+            threshold = CRIT_HIGH_THRESH_FIELD_NAME
+        elif thresh_type == 'cr_low': 
+            threshold = CRIT_LOW_THRESH_FIELD_NAME
+        else:
+            print("Error: Not correct type")
+            return
+
+        for key in natsorted(keys):
+            key_list = key.split('|')
+            if name != key_list[1]:
+                continue
+
+            data_dict = self.db.get_all(self.db.STATE_DB, key)
+            if ( (threshold == HIGH_THRESH_FIELD_NAME or threshold == CRIT_HIGH_THRESH_FIELD_NAME) 
+                and float(data_dict[TEMPER_FIELD_NAME]) >= value ):
+                print('Error: Value below temperature')
+                
+            if ( threshold == HIGH_THRESH_FIELD_NAME and float(data_dict[CRIT_HIGH_THRESH_FIELD_NAME]) <= value ):
+                print('Error: High threshold can not be bigger than critical high')
+                
+            if ( threshold == CRIT_HIGH_THRESH_FIELD_NAME and float(data_dict[HIGH_THRESH_FIELD_NAME]) >= value ):
+                print('Error: Critical high threshold can not be lowwer than high')
+
+            self.db.set(self.db.STATE_DB, key, threshold, str(value))
+            return
+
+        print('Error: Name not found')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Show/config thresholds values', formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-c', '--command', type=str, help='Show/config command', default=None)
+    parser.add_argument('-n', '--name', type=str, help='Name of threshold parent. Can get from show command', default=None)
+    parser.add_argument('-t', '--type', type=str, help=f'Threshold type: {types}', choices=types, default=None)
+    parser.add_argument('-v', '--value', type=float, help='Threshold value', default=None)
+    args = parser.parse_args()
+
+    temperTresh = TemperThresholds()
+    if args.command == "show":
+        temperTresh.show()
+    elif args.command == "config":
+        temperTresh.config(args.name, args.type, args.value)
+        
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
+    
+    
