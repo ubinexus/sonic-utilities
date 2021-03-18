@@ -19,7 +19,6 @@ from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
-   ROOTFS_NAME,
    run_command,
    run_command_or_raise,
 )
