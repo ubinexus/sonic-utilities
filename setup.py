@@ -46,6 +46,7 @@ setup(
         'sfputil',
         'pfc',
         'psuutil',
+        'fdbutil',
         'show',
         'sonic_installer',
         'sonic-utilities-tests',
@@ -53,7 +54,7 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
-        'sonic-utilities-tests': ['acl_input/*'],
+        'sonic-utilities-tests': ['acl_input/*', 'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -101,6 +102,7 @@ setup(
             'counterpoll = counterpoll.main:cli',
             'crm = crm.main:cli',
             'debug = debug.main:cli',
+            'filter_fdb_entries = fdbutil.filter_fdb_entries:main',
             'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
             'pfc = pfc.main:cli',
@@ -123,6 +125,7 @@ setup(
     install_requires=[
         'click-default-group',
         'click',
+        'ipaddress',
         'natsort'
     ],
     classifiers=[
