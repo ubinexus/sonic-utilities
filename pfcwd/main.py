@@ -250,8 +250,7 @@ class PfcwdCli(object):
 
     def verify_pfc_enable_status_per_port(self, port, pfcwd_info):
         pfc_status = self.config_db.get_entry(PORT_QOS_MAP, port).get('pfc_enable')
-
-        if pfc_status == None:
+        if pfc_status is None:
             log.log_warning("SKIPPED: PFC is not enabled on port: {}".format(port), also_print_to_console=True)
             return
 
@@ -385,9 +384,7 @@ class PfcwdCli(object):
         }
 
         for port in active_ports:
-            self.config_db.set_entry(
-                CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info
-            )
+            self.verify_pfc_enable_status_per_port(port, pfcwd_info)
 
         pfcwd_info = {}
         pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * multiply

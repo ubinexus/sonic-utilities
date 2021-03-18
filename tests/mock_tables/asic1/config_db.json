@@ -96,7 +96,6 @@
         "pfc_enable": "3,4"
     },
     "PORT_QOS_MAP|Ethernet-BP260": {
-        "pfc_enable": "3,4"
     },
     "CRM|Config": {
         "acl_table_threshold_type": "percentage",
