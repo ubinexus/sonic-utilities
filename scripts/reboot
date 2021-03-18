@@ -57,11 +57,23 @@ function stop_sonic_services()
         debug "DualToR detected, stopping mux container before reboot..."
         systemctl stop mux
     fi
+
     if [[ x"$ASIC_TYPE" != x"mellanox" ]]; then
         debug "Stopping syncd process..."
         docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
         sleep 3
     fi
+}
+
+function stop_pmon_service()
+{
+     CONTAINER_STOP_RC=0
+     debug "Stopping pmon docker"
+     docker kill pmon &> /dev/null || CONTAINER_STOP_RC=$?
+     systemctl stop pmon || debug "Ignore stopping pmon error $?"
+     if [[ CONTAINER_STOP_RC -ne 0 ]]; then
+        debug "Failed killing container pmon RC $CONTAINER_STOP_RC ."
+     fi
 }
 
 function clear_warm_boot()
@@ -177,6 +189,8 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE} ]; then
     debug "updating reboot cause for ${PLATFORM}"
     ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE}
 fi
+
+stop_pmon_service
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
