@@ -27,6 +27,17 @@ function stop_sonic_services()
     fi
 }
 
+function stop_pmon_service()
+{
+     CONTAINER_STOP_RC=0
+     debug "Stopping pmon docker"
+     docker kill pmon &> /dev/null || CONTAINER_STOP_RC=$?
+     systemctl stop pmon || debug "Ignore stopping pmon error $?"
+     if [[ CONTAINER_STOP_RC -ne 0 ]]; then
+        debug "Failed killing container pmon RC $CONTAINER_STOP_RC ."
+     fi
+}
+
 function clear_warm_boot()
 {
     # If reboot is requested, make sure the outstanding warm-boot is cleared
@@ -122,6 +133,8 @@ sleep 3
 if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
 fi
+
+stop_pmon_service
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
