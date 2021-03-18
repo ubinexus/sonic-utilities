@@ -14,7 +14,7 @@ try:
 
     # SONiC specific imports
     import sonic_yang
-    from swsssdk import port_util
+    from utilities_common import port_util
     from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'

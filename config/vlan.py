@@ -3,7 +3,7 @@ import utilities_common.cli as clicommon
 
 from time import sleep
 from .utils import log
-from swsssdk import port_util
+from utilities_common import port_util
 
 #
 # 'vlan' group ('config vlan ...')
