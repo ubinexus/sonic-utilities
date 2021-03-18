@@ -78,8 +78,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                text=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
@@ -215,6 +214,20 @@ def clear_wm_pg_headroom():
 def clear_wm_pg_shared():
     """Clear user shared WM for pg"""
     command = 'watermarkstat -c -t pg_shared'
+    run_command(command)
+
+@priority_group.group()
+def drop():
+    """Clear priority-group dropped packets stats"""
+    pass
+
+@drop.command('counters')
+def clear_pg_counters():
+    """Clear priority-group dropped packets counter """
+
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        exit("Root privileges are required for this operation")
+    command = 'pg-drop -c clear'
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')

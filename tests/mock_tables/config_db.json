@@ -400,6 +400,11 @@
         "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet64,Ethernet68,Ethernet72,Ethernet76,Ethernet80,Ethernet84,Ethernet88,Ethernet92,Ethernet96,Ethernet100,Ethernet104,Ethernet108,Ethernet112,Ethernet116,Ethernet120,Ethernet124",
         "type": "L3"
     },
+    "ACL_TABLE|DATAACL_2": {
+        "policy_desc": "DATAACL_2",
+        "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet64,Ethernet68,Ethernet72,Ethernet76,Ethernet80,Ethernet84,Ethernet88,Ethernet92,Ethernet96,Ethernet100,Ethernet104,Ethernet108,Ethernet112,Ethernet116,Ethernet120,Ethernet124",
+        "type": "L3V6"
+    },
     "ACL_TABLE|EVERFLOW": {
         "policy_desc": "EVERFLOW",
         "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet100,Ethernet104,Ethernet92,Ethernet96,Ethernet84,Ethernet88,Ethernet76,Ethernet80,Ethernet108,Ethernet112,Ethernet64,Ethernet120,Ethernet116,Ethernet124,Ethernet72,Ethernet68",
@@ -428,6 +433,9 @@
     "VLAN|Vlan2000": {
         "dhcp_servers@": "192.0.0.1,192.0.0.2,192.0.0.3,192.0.0.4",
         "vlanid": "2000"
+    },
+    "VLAN|Vlan3000": {
+        "vlanid": "3000"
     },
     "VLAN_INTERFACE|Vlan1000": {
         "NULL": "NULL"
@@ -546,6 +554,12 @@
     "PORTCHANNEL_INTERFACE|PortChannel0004|FC00::7D/126": {
         "NULL": "NULL"
     },
+    "INTERFACE|Ethernet0": {
+        "NULL": "NULL"
+    },
+    "INTERFACE|Ethernet0|14.14.0.1/24": {
+        "NULL": "NULL"
+    },
     "DEBUG_COUNTER|DEBUG_0": {
         "type": "PORT_INGRESS_DROPS"
     },
@@ -660,6 +674,7 @@
         "hwsku": "Mellanox-SN3800-D112C8",
         "mac": "1d:34:db:16:a6:00",
         "platform": "x86_64-mlnx_msn3800-r0",
+        "peer_switch": "sonic-switch",
         "type": "ToRRouter"
     },
     "DEVICE_NEIGHBOR|Ethernet4": {
@@ -1256,6 +1271,10 @@
         "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
+    "FLEX_COUNTER_TABLE|PG_DROP": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
     "PFC_WD|Ethernet0": {
         "action": "drop",
         "detection_time": "600",
@@ -1426,12 +1445,50 @@
         "pfc_enable": "3,4"
     },
     "DEFAULT_LOSSLESS_BUFFER_PARAMETER|AZURE": {
-        "default_dynamic_th": "0"
+        "default_dynamic_th": "0",
+        "over_subscribe_ratio": "2"
     },
     "KUBERNETES_MASTER|SERVER": {
         "ip": "10.3.157.24",
         "insecure": "True",
         "disable": "False",
         "port": "6443"
+    },
+    "WRED_PROFILE|AZURE_LOSSLESS": {
+        "red_max_threshold": "2097152",
+        "wred_green_enable": "true",
+        "ecn": "ecn_all",
+        "green_min_threshold": "1048576",
+        "red_min_threshold": "1048576",
+        "wred_yellow_enable": "true",
+        "yellow_min_threshold": "1048576",
+        "green_max_threshold": "2097152",
+        "green_drop_probability": "5",
+        "yellow_max_threshold": "2097152",
+        "wred_red_enable": "true",
+        "yellow_drop_probability": "5",
+        "red_drop_probability": "5"
+    },
+    "BGP_NEIGHBOR|20.1.1.5": {
+        "rrclient": "0",
+        "name": "T2-Peer",
+        "local_addr": "20.1.1.1",
+        "nhopself": "0",
+        "admin_status": "up", 
+        "holdtime": "10", 
+        "asn": "65200", 
+        "keepalive": "3"
+    },
+    "BGP_NEIGHBOR|30.1.1.5": {
+        "rrclient": "0",
+        "name": "T0-Peer",
+        "local_addr": "30.1.1.1",
+        "nhopself": "0",
+        "admin_status": "up", 
+        "holdtime": "10", 
+        "asn": "65200", 
+        "keepalive": "3"
     }
+
+ 
 }
