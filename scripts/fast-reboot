@@ -17,6 +17,7 @@ WATCHDOG_UTIL="/usr/bin/watchdogutil"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
+SSD_FW_UPDATE="ssd_fw_upgrade"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -600,6 +601,12 @@ fi
 if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     debug "Running ${PLATFORM} specific plugin..."
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
+fi
+
+# Run platform specific ssd firmware update plugin
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
+    debug "Updating ssd fw for ${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
 
 # Reboot: explicity call Linux native reboot under sbin

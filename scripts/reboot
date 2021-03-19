@@ -5,11 +5,14 @@ REBOOT_TIME=$(date)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 DEVPATH="/usr/share/sonic/device"
+REBOOT_SCRIPT_NAME=$(basename $0)
+REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 PLAT_REBOOT="platform_reboot"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 PLATFORM_REBOOT_PRE_CHECK="platform_reboot_pre_check"
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
+SSD_FW_UPDATE="ssd_fw_upgrade"
 
 function debug()
 {
@@ -128,6 +131,12 @@ sleep 3
 # sync the current system time to CMOS
 if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
+fi
+
+# Run platform specific ssd firmware update plugin
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
+    debug "Updating ssd fw for ${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then

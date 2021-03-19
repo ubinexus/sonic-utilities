@@ -7,6 +7,7 @@ ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 DEVPATH="/usr/share/sonic/device"
 REBOOT_TYPE="soft-reboot"
 REBOOT_METHOD="/sbin/kexec -e"
+PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 SSD_FW_UPDATE="ssd_fw_upgrade"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 WATCHDOG_UTIL="/usr/bin/watchdogutil"
@@ -165,6 +166,12 @@ fi
 if [ -x ${WATCHDOG_UTIL} ]; then
     debug "Enabling Watchdog before ${REBOOT_TYPE}"
     ${WATCHDOG_UTIL} arm
+fi
+
+# Run platform specific reboot plugin
+if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
+    debug "Running ${PLATFORM} specific plugin..."
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
 # Run platform specific ssd firmware update plugin
