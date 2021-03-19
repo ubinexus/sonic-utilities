@@ -70,6 +70,6 @@ class Bootloader(object):
         return image.replace(IMAGE_PREFIX, prefix)
 
     @contextmanager
-    def get_path_in_image(self, image_path, path):
+    def get_path_in_image(self, image_path, path_in_image):
         """returns the path to the squashfs"""
-        yield path.join(image_path, path)
+        yield path.join(image_path, path_in_image)
