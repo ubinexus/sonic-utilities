@@ -5,10 +5,9 @@ REBOOT_TIME=$(date)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 DEVPATH="/usr/share/sonic/device"
-REBOOT_SCRIPT_NAME=$(basename $0)
-REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
+REBOOT_TYPE="soft-reboot"
 REBOOT_METHOD="/sbin/kexec -e"
-PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
+SSD_FW_UPDATE="ssd_fw_update"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 WATCHDOG_UTIL="/usr/bin/watchdogutil"
 VERBOSE=no
@@ -168,10 +167,10 @@ if [ -x ${WATCHDOG_UTIL} ]; then
     ${WATCHDOG_UTIL} arm
 fi
 
-# Run platform specific reboot plugin
-if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
-    debug "Running ${PLATFORM} specific plugin..."
-    ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
+# Run platform specific ssd firmware update plugin
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
+    debug "Updating ssd fw for ${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
 
 # Reboot: explicitly call Linux native reboot under sbin
