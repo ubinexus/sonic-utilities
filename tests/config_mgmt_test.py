@@ -1,18 +1,14 @@
-import importlib.machinery
-import importlib.util
 import os
 import sys
-from unittest import mock, TestCase
-
 from json import dump
 from copy import deepcopy
+from unittest import mock, TestCase
+
+from utilities_common.general import load_module_from_source
 
 # Import file under test i.e., config_mgmt.py
 config_mgmt_py_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py')
-loader = importlib.machinery.SourceFileLoader('config_mgmt', config_mgmt_py_path)
-spec = importlib.util.spec_from_loader(loader.name, loader)
-config_mgmt = importlib.util.module_from_spec(spec)
-loader.exec_module(config_mgmt)
+config_mgmt = load_module_from_source('config_mgmt', config_mgmt_py_path)
 
 
 class TestConfigMgmt(TestCase):

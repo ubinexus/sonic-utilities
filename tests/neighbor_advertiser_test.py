@@ -1,5 +1,3 @@
-import importlib.machinery
-import importlib.util
 import os
 import subprocess
 import sys
@@ -7,6 +5,7 @@ from unittest import mock
 
 import pytest
 from swsscommon.swsscommon import ConfigDBConnector
+from utilities_common.general import load_module_from_source
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -15,10 +14,7 @@ sys.path.insert(0, modules_path)
 
 # Load the file under test
 neighbor_advertiser_path = os.path.join(scripts_path, 'neighbor_advertiser')
-loader = importlib.machinery.SourceFileLoader('neighbor_advertiser', neighbor_advertiser_path)
-spec = importlib.util.spec_from_loader(loader.name, loader)
-neighbor_advertiser = importlib.util.module_from_spec(spec)
-loader.exec_module(neighbor_advertiser)
+neighbor_advertiser = load_module_from_source('neighbor_advertiser', neighbor_advertiser_path)
 
 
 class TestNeighborAdvertiser(object):

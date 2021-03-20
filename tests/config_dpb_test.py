@@ -1,5 +1,3 @@
-import importlib.machinery
-import importlib.util
 import json
 import os
 import re
@@ -8,22 +6,16 @@ from unittest import mock
 import pytest
 from click.testing import CliRunner
 from utilities_common.db import Db
+from utilities_common.general import load_module_from_source
 
 import config.main as config
 
-# Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
-# since /usr/local/bin/sonic-cfggen does not have .py extension.
-loader = importlib.machinery.SourceFileLoader('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-spec = importlib.util.spec_from_loader(loader.name, loader)
-sonic_cfggen = importlib.util.module_from_spec(spec)
-loader.exec_module(sonic_cfggen)
+# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
+sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 # Import config_mgmt.py
 config_mgmt_py_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py')
-loader = importlib.machinery.SourceFileLoader('config_mgmt', config_mgmt_py_path)
-spec = importlib.util.spec_from_loader(loader.name, loader)
-config_mgmt = importlib.util.module_from_spec(spec)
-loader.exec_module(config_mgmt)
+config_mgmt = load_module_from_source('config_mgmt', config_mgmt_py_path)
 
 
 # Sample platform.json for Test

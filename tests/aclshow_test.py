@@ -1,11 +1,10 @@
-import importlib.machinery
-import importlib.util
 import json
 import os
 import sys
 from io import StringIO
 from unittest import mock
 
+from utilities_common.general import load_module_from_source
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -14,10 +13,7 @@ sys.path.insert(0, modules_path)
 
 # Load the file under test
 aclshow_path = os.path.join(scripts_path, 'aclshow')
-loader = importlib.machinery.SourceFileLoader('aclshow', aclshow_path)
-spec = importlib.util.spec_from_loader(loader.name, loader)
-aclshow = importlib.util.module_from_spec(spec)
-loader.exec_module(aclshow)
+aclshow = load_module_from_source('aclshow', aclshow_path)
 
 from .mock_tables import dbconnector
 

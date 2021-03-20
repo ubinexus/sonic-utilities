@@ -2,31 +2,21 @@
 config_mgmt.py provides classes for configuration validation and for Dynamic
 Port Breakout.
 '''
-try:
-    import importlib.machinery
-    import importlib.util
-    import re
-    import syslog
+import re
+import syslog
+from json import load
+from sys import flags
+from time import sleep as tsleep
 
-    from json import load
-    from time import sleep as tsleep
-    from jsondiff import diff
-    from sys import flags
+import sonic_yang
+from jsondiff import diff
+from swsssdk import port_util
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from utilities_common.general import load_module_from_source
 
-    # SONiC specific imports
-    import sonic_yang
-    from swsssdk import port_util
-    from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
-    # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
-    # since /usr/local/bin/sonic-cfggen does not have .py extension.
-    loader = importlib.machinery.SourceFileLoader('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    spec = importlib.util.spec_from_loader(loader.name, loader)
-    sonic_cfggen = importlib.util.module_from_spec(spec)
-    loader.exec_module(sonic_cfggen)
-
-except ImportError as e:
-    raise ImportError("%s - required module not found" % str(e))
+# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
+sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 # Globals
 YANG_DIR = "/usr/local/yang-models"
