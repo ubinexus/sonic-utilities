@@ -611,10 +611,6 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     debug "Stopped teamd ..."
 fi
 
-# Disabling swss auto restart and then stop swss service
-debug "Disabling swss auto restart ..."
-config feature autorestart swss disabled
-
 debug "Stopping swss service ..."
 systemctl stop swss
 debug "Stopped swss service ..."
@@ -738,9 +734,6 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     debug "Running ${PLATFORM} specific plugin..."
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
-
-# Re-enable swss autorestart for the next boot
-config feature autorestart swss enabled
 
 # Reboot: explicitly call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
