@@ -40,18 +40,18 @@ class TestConfigIP(object):
         obj = {'config_db':db.cfgdb}
         
         # config int ip add Ethernet64 10000.10.10.1/24
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10000.10.10.1/24"], obj=obj)        
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10000.10.10.1/24"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert "Error: 'ip_addr' is not valid." in result.output
+        assert "Error: ip address is not valid." in result.output
         
     def test_add_interface_ipv4_invalid_mask(self):
         db = Db()
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
         
-        # config int ip add Ethernet64 10.10.10.1
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10.10.10.1"], obj=obj)        
+        # config int ip add Ethernet64 10.10.10.1/37
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10.10.10.1/37"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert "Error: ip mask is not valid." in result.output
@@ -101,15 +101,15 @@ class TestConfigIP(object):
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "20001:0db8:11a3:19d7:1f34:8a2e:17a0:765d/34"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert "Error: 'ip_addr' is not valid." in result.output
+        assert "Error: ip address is not valid." in result.output
         
     def test_add_interface_ipv6_invalid_mask(self):
         db = Db()
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
         
-        # config int ip add Ethernet72 2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d"], obj=obj)        
+        # config int ip add Ethernet72 2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/67
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/67"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert "Error: ip mask is not valid." in result.output
