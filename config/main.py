@@ -3349,7 +3349,7 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage):
         if port not in valid_acl_ports:
             raise ValueError("Cannot bind ACL to specified port {}".format(port))
 
-    table_info["ports@"] = ",".join(port_list)
+    table_info["ports"] = list(port_list)
 
     table_info["stage"] = stage
 
