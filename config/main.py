@@ -890,22 +890,21 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     return True
 
 def validate_ip_address(ctx, ip_addr):
-    mask_range = 32
-    split_ip_mask = ip_addr.split("/")
+    try:
+        split_ip_mask = ip_addr.split("/")
 
-    ip_obj = ipaddress.ip_address(split_ip_mask[0])
-    if type(ip_obj) is ipaddress.IPv6Address:
-        mask_range = 65
-    ip_addr = str(ip_obj)
+        # Checking if the IP address is correct.
+        ip_obj = ipaddress.ip_address(split_ip_mask[0])
 
-    # Check the correctness of the mask and add it to IP.
-    split_ip_mask[1] = int(split_ip_mask[1])
-    if not split_ip_mask[1] in range(mask_range):
-        ctx.fail("ip mask is not valid.")
-    else:
-        ip_addr += '/' + str(split_ip_mask[1])
+        # Checking if the mask is correct
+        split_ip_mask[1] = int(split_ip_mask[1])
+        if not split_ip_mask[1] in range(33 if isinstance(ip_obj, ipaddress.IPv4Address) else 65):
+            ctx.fail("ip mask is not valid.")
 
-    return ip_addr
+        return str(ip_obj) + '/' + str(split_ip_mask[1])
+
+    except ValueError:
+        ctx.fail("ip address is not valid.")
 
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
@@ -2669,50 +2668,43 @@ def add(ctx, interface_name, ip_addr, gw):
             click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
             return
 
-    try:
-        net = ipaddress.ip_network(ip_addr, strict=False)
-        if '/' not in ip_addr:
-            ip_addr = str(net)
+    ip_addr = validate_ip_address(ctx, ip_addr)
 
-        ip_addr = validate_ip_address(ctx, ip_addr)
+    if interface_name == 'eth0':
 
-        if interface_name == 'eth0':
+        # Configuring more than 1 IPv4 or more than 1 IPv6 address fails.
+        # Allow only one IPv4 and only one IPv6 address to be configured for IPv6.
+        # If a row already exist, overwrite it (by doing delete and add).
+        mgmtintf_key_list = _get_all_mgmtinterface_keys()
 
-            # Configuring more than 1 IPv4 or more than 1 IPv6 address fails.
-            # Allow only one IPv4 and only one IPv6 address to be configured for IPv6.
-            # If a row already exist, overwrite it (by doing delete and add).
-            mgmtintf_key_list = _get_all_mgmtinterface_keys()
+        for key in mgmtintf_key_list:
+            # For loop runs for max 2 rows, once for IPv4 and once for IPv6.
+            # No need to capture the exception since the ip_addr is already validated earlier
+            ip_input = ipaddress.ip_interface(ip_addr)
+            current_ip = ipaddress.ip_interface(key[1])
+            if (ip_input.version == current_ip.version):
+                # If user has configured IPv4/v6 address and the already available row is also IPv4/v6, delete it here.
+                config_db.set_entry("MGMT_INTERFACE", ("eth0", key[1]), None)
 
-            for key in mgmtintf_key_list:
-                # For loop runs for max 2 rows, once for IPv4 and once for IPv6.
-                # No need to capture the exception since the ip_addr is already validated earlier
-                ip_input = ipaddress.ip_interface(ip_addr)
-                current_ip = ipaddress.ip_interface(key[1])
-                if (ip_input.version == current_ip.version):
-                    # If user has configured IPv4/v6 address and the already available row is also IPv4/v6, delete it here.
-                    config_db.set_entry("MGMT_INTERFACE", ("eth0", key[1]), None)
+        # Set the new row with new value
+        if not gw:
+            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        else:
+            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw})
+        mgmt_ip_restart_services()
 
-            # Set the new row with new value
-            if not gw:
-                config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-            else:
-                config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw})
-            mgmt_ip_restart_services()
+        return
 
-            return
-
-        table_name = get_interface_table_name(interface_name)
-        if table_name == "":
-            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
-        interface_entry = config_db.get_entry(table_name, interface_name)
-        if len(interface_entry) == 0:
-            if table_name == "VLAN_SUB_INTERFACE":
-                config_db.set_entry(table_name, interface_name, {"admin_status": "up"})
-            else:
-                config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
-        config_db.set_entry(table_name, (interface_name, ip_addr), {"NULL": "NULL"})
-    except ValueError:
-        ctx.fail("'ip_addr' is not valid.")
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    interface_entry = config_db.get_entry(table_name, interface_name)
+    if len(interface_entry) == 0:
+        if table_name == "VLAN_SUB_INTERFACE":
+            config_db.set_entry(table_name, interface_name, {"admin_status": "up"})
+        else:
+            config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
+    config_db.set_entry(table_name, (interface_name, ip_addr), {"NULL": "NULL"})
 
 #
 # 'del' subcommand
@@ -2732,33 +2724,26 @@ def remove(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    try:
-        net = ipaddress.ip_network(ip_addr, strict=False)
-        if '/' not in ip_addr:
-            ip_addr = str(net)
+    ip_addr = validate_ip_address(ctx, ip_addr)
 
-        ip_addr = validate_ip_address(ctx, ip_addr)
+    if interface_name == 'eth0':
+        config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
+        mgmt_ip_restart_services()
+        return
 
-        if interface_name == 'eth0':
-            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
-            mgmt_ip_restart_services()
-            return
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    config_db.set_entry(table_name, (interface_name, ip_addr), None)
+    interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+    if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
+        config_db.set_entry(table_name, interface_name, None)
 
-        table_name = get_interface_table_name(interface_name)
-        if table_name == "":
-            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
-        config_db.set_entry(table_name, (interface_name, ip_addr), None)
-        interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
-        if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
-            config_db.set_entry(table_name, interface_name, None)
-
-        if multi_asic.is_multi_asic():
-            command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, ip_addr)
-        else:
-            command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
-        clicommon.run_command(command)
-    except ValueError:
-        ctx.fail("'ip_addr' is not valid.")
+    if multi_asic.is_multi_asic():
+        command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, ip_addr)
+    else:
+        command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
+    clicommon.run_command(command)
 
 
 #
