@@ -554,7 +554,7 @@ def setswitchmode(state, port):
             mode = sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL
         import sonic_y_cable.y_cable
         result = sonic_y_cable.y_cable.set_switching_mode(physical_port, mode)
-        if result == False or result == -1:
+        if result == False:
             click.echo(("ERR: Unable to set switching mode for the cable port {}".format(port)))
             sys.exit(CONFIG_FAIL)
 
@@ -622,7 +622,7 @@ def setswitchmode(state, port):
                 mode = sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL
             import sonic_y_cable.y_cable
             result = sonic_y_cable.y_cable.set_switching_mode(physical_port, mode)
-            if result == False or result == -1:
+            if result == False:
                 rc = False
                 click.echo("ERR: Unable to set switching mode on port {} to {}".format(port, state))
 
