@@ -895,12 +895,14 @@ def validate_ip_address(ctx, ip_addr):
     try:
         ip_obj = ipaddress.ip_address(split_ip_mask[0])
     except ValueError:
-        ctx.fail("ip address is not valid.")
+        click.echo("Error: ip address is not valid.")
+        return False
 
     # Checking if the mask is correct
     mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 65
     if len(split_ip_mask) != 2 or not int(split_ip_mask[1]) in range(1, mask_range):
-        ctx.fail("ip mask is not valid.")
+        click.echo("Error: ip mask is not valid.")
+        return False
 
     return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
 
@@ -2667,6 +2669,8 @@ def add(ctx, interface_name, ip_addr, gw):
             return
 
     ip_addr = validate_ip_address(ctx, ip_addr)
+    if ip_addr is False:
+        return
 
     if interface_name == 'eth0':
 
@@ -2723,6 +2727,8 @@ def remove(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is None!")
 
     ip_addr = validate_ip_address(ctx, ip_addr)
+    if ip_addr is False:
+        return
 
     if interface_name == 'eth0':
         config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
