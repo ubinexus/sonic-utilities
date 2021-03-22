@@ -549,9 +549,9 @@ def setswitchmode(state, port):
             sys.exit(CONFIG_FAIL)
 
         if state == "auto":
-            mode = 1
+            mode = sonic_y_cable.y_cable.SWITCHING_MODE_AUTO
         elif state == "manual":
-            mode = 0
+            mode = sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL
         import sonic_y_cable.y_cable
         result = sonic_y_cable.y_cable.set_switching_mode(physical_port, mode)
         if result == False or result == -1:
@@ -617,9 +617,9 @@ def setswitchmode(state, port):
                 continue
 
             if state == "auto":
-                mode = 1
+                mode = sonic_y_cable.y_cable.SWITCHING_MODE_AUTO
             elif state == "manual":
-                mode = 0
+                mode = sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL
             import sonic_y_cable.y_cable
             result = sonic_y_cable.y_cable.set_switching_mode(physical_port, mode)
             if result == False or result == -1:

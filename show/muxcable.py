@@ -727,9 +727,9 @@ def switchmode(port):
             click.echo(("ERR: Unable to get switching mode for the cable port {}".format(port)))
             sys.exit(EXIT_FAIL)
 
-        if switching_mode == 1:
+        if switching_mode == sonic_y_cable.y_cable.SWITCHING_MODE_AUTO:
             state = "auto"
-        elif switching_mode == 0:
+        elif switching_mode == sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL:
             state = "manual"
         else:
             click.echo(("ERR: Unable to get switching state mode, port {}".format(port)))
@@ -801,9 +801,9 @@ def switchmode(port):
                 body.append(temp_list)
                 continue
 
-            if switching_mode == 1:
+            if switching_mode == sonic_y_cable.y_cable.SWITCHING_MODE_AUTO:
                 state = "auto"
-            elif switching_mode == 0:
+            elif switching_mode == sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL:
                 state = "manual"
             else:
                 rc = False
