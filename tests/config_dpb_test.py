@@ -23,7 +23,6 @@ BRKOUT_CFG_FILE_JSON = {
         "Ethernet0": {
             "index": "1,1,1,1",
             "lanes": "65,66,67,68",
-            "alias_at_lanes": "Eth1/1, Eth1/2, Eth1/3, Eth1/4",
             "breakout_modes": {
                 "1x100G[40G]": ["Eth1"],
                 "2x50G": ["Eth1/1", "Eth1/3"],
@@ -33,7 +32,6 @@ BRKOUT_CFG_FILE_JSON = {
         "Ethernet4": {
             "index": "2,2,2,2",
             "lanes": "69,70,71,72",
-            "alias_at_lanes": "Eth2/1, Eth2/2, Eth2/3, Eth2/4",
             "breakout_modes": {
                 "1x100G[40G]": ["Eth2"],
                 "2x50G": ["Eth2/1", "Eth2/3"],
@@ -44,7 +42,6 @@ BRKOUT_CFG_FILE_JSON = {
         "Ethernet8": {
             "index": "3,3,3,3",
             "lanes": "73,74,75,76",
-            "alias_at_lanes": "Eth3/1, Eth3/2, Eth3/3, Eth3/4",
             "breakout_modes": {
                 "1x100G[40G]": ["Eth3"],
                 "2x50G": ["Eth3/1", "Eth3/3"],
@@ -55,7 +52,6 @@ BRKOUT_CFG_FILE_JSON = {
         "Ethernet12": {
             "index": "4,4,4,4",
             "lanes": "77,78,79,80",
-            "alias_at_lanes": "Eth4/1, Eth4/2, Eth4/3, Eth4/4",
             "breakout_modes": {
                 "1x100G[40G]": ["Eth4"],
                 "2x50G": ["Eth4/1", "Eth4/3"],
