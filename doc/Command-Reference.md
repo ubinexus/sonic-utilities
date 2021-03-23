@@ -143,6 +143,7 @@
   * [Watermark Show commands](#watermark-show-commands)
   * [Watermark Config commands](#watermark-config-commands)
 * [Software Installation and Management](#software-installation-and-management)
+  * [SONiC Package Manager](#sonic-package-manager)
   * [SONiC Installer](#sonic-installer)
 * [Troubleshooting Commands](#troubleshooting-commands)
 * [Routing Stack](#routing-stack)
@@ -7961,8 +7962,292 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#waterm
 
 ## Software Installation and Management
 
-SONiC software can be installed in two methods, viz, "using sonic-installer tool", "ONIE Installer".
+SONiC software image can be installed in two methods, viz, "using sonic-installer tool", "ONIE Installer".
 
+SONiC feature Docker images (aka "SONiC packages") available to be installed with *sonic-package-manager* utility.
+
+### SONiC Package Manager
+
+This is a command line tool that provides functionality to manage SONiC Packages on SONiC device.
+
+**sonic-package-manager list**
+
+This command lists all available SONiC packages, their desription, installed version and installation status.
+SONiC package status can be *Installed*, *Not installed* or *Built-In*. "Built-In" status means that a feature is built-in to SONiC image and can't be upgraded or uninstalled.
+
+- Usage:
+  ```
+  sonic-package-manager list
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager list
+  Name            Repository                   Description                   Version    Status
+  --------------  ---------------------------  ----------------------------  ---------  ---------
+  database        docker-database              SONiC database package        1.0.0      Built-In
+  dhcp-relay      docker-dhcp-relay            SONiC dhcp-relay package      1.0.0      Installed
+  fpm-frr         docker-fpm-frr               SONiC fpm-frr package         1.0.0      Built-In
+  lldp            docker-lldp                  SONiC lldp package            1.0.0      Built-In
+  macsec          docker-macsec                SONiC macsec package          1.0.0      Built-In
+  mgmt-framework  docker-sonic-mgmt-framework  SONiC mgmt-framework package  1.0.0      Built-In
+  nat             docker-nat                   SONiC nat package             1.0.0      Built-In
+  pmon            docker-platform-monitor      SONiC pmon package            1.0.0      Built-In
+  radv            docker-router-advertiser     SONiC radv package            1.0.0      Built-In
+  sflow           docker-sflow                 SONiC sflow package           1.0.0      Built-In
+  snmp            docker-snmp                  SONiC snmp package            1.0.0      Built-In
+  swss            docker-orchagent             SONiC swss package            1.0.0      Built-In
+  syncd           docker-syncd-mlnx            SONiC syncd package           1.0.0      Built-In
+  teamd           docker-teamd                 SONiC teamd package           1.0.0      Built-In
+  telemetry       docker-sonic-telemetry       SONiC telemetry package       1.0.0      Built-In
+  ```
+
+**sonic-package-manager repository add**
+
+This command will add a new entry in the package database. The package has to be *Not Installed* in order to be removed from package database. *NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
+
+    Add a new repository to database.
+
+  Options:
+    --default-reference TEXT  Default installation reference.
+    --description TEXT        Optional package entry description.
+    --help                    Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager repository add \
+    cpu-report azure/sonic-cpu-report --default-reference 1.0.0
+  ```
+
+**sonic-package-manager repository remove**
+
+This command will remove an entry from the package database. *NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager repository remove [OPTIONS] NAME
+
+    Remove package from database.
+
+  Options:
+    --help  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager repository remove cpu-report
+  ```
+
+**sonic-package-manager install**
+
+This command pulls and installs package on SONiC host. *NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
+
+    Install package
+
+  Options:
+    --enable                        Set the default state of the feature to
+                                    enabled and enable feature right after
+                                    installation. NOTE: user needs to execute
+                                    "config save -y" to make this setting
+                                    persistent
+
+    --default-owner [local|kube]    Default owner configuration setting for a
+                                    feature
+
+    --from-repository TEXT          Fetch package directly from image registry
+                                    repository NOTE: This argument is mutually
+                                    exclusive with arguments: [from_tarball,
+                                    package_expr].
+
+    --from-tarball FILE             Fetch package from saved image tarball
+                                    NOTE: This argument is mutually exclusive
+                                    with arguments: [from_repository,
+                                    package_expr].
+
+    -f, --force                     Force operation by ignoring failures
+    -y, --yes                       Automatically answer yes on prompts
+    -v, --verbosity LVL             Either CRITICAL, ERROR, WARNING, INFO or
+                                    DEBUG
+
+    --skip-cli-plugin-installation  Do not install CLI plugins provided by the
+                                    package on the host OS. NOTE: In case when
+                                    package /cli/mandatory field is set to True
+                                    this option will fail the installation.
+
+    --help                          Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay==1.0.2
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install --from-repository azure/sonic-cpu-report:latest
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install --from-tarball sonic-docker-image.gz
+  ```
+
+**sonic-package-manager uninstall**
+
+This command uninstalls package from SONiC host. *NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager uninstall [OPTIONS] NAME
+
+    Uninstall package
+
+  Options:
+    -f, --force          Force operation by ignoring failures
+    -y, --yes            Automatically answer yes on prompts
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    --help               Show this message and exit.
+
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager uninstall dhcp-relay
+  ```
+
+**sonic-package-manager upgrade**
+
+This command upgrades package on SONiC host to a newer version. The procedure of upgrading a package will restart the corresponding service. *NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager upgrade [OPTIONS] [PACKAGE_EXPR]
+
+    Upgrade package
+
+  Options:
+    --from-repository TEXT          Fetch package directly from image registry
+                                    repository NOTE: This argument is mutually
+                                    exclusive with arguments: [package_expr,
+                                    from_tarball].
+
+    --from-tarball FILE             Fetch package from saved image tarball
+                                    NOTE: This argument is mutually exclusive
+                                    with arguments: [package_expr,
+                                    from_repository].
+
+    -f, --force                     Force operation by ignoring failures
+    -y, --yes                       Automatically answer yes on prompts
+    -v, --verbosity LVL             Either CRITICAL, ERROR, WARNING, INFO or
+                                    DEBUG
+
+    --skip-cli-plugin-installation  Do not install CLI plugins provided by the
+                                    package on the host OS. NOTE: In case when
+                                    package /cli/mandatory field is set to True
+                                    this option will fail the installation.
+
+    --help                          Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager upgrade dhcp-relay==2.0.0
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager upgrade --from-repository azure/sonic-cpu-report:latest
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager upgrade --from-tarball sonic-docker-image.gz
+  ```
+
+**sonic-package-manager show package versions**
+
+This command will access repository for corresponding package and retrieve a list of available versions.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package versions [OPTIONS] NAME
+
+    Print available versions
+
+  Options:
+    --all    Show all available tags in repository
+    --plain  Plain output
+    --help   Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay
+  • 1.0.0
+  • 1.0.2
+  • 2.0.0
+  ```
+
+**sonic-package-manager show package changelog**
+
+This command fetches the changelog from package manifest and displays it. *NOTE*: package changelog can be retrieved from registry or read from image tarball without installing it.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package changelog [OPTIONS] [PACKAGE_EXPR]
+
+    Print package changelog
+
+  Options:
+    --from-repository TEXT  Fetch package directly from image registry
+                            repository NOTE: This argument is mutually exclusive
+                            with arguments: [from_tarball, package_expr].
+    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                            argument is mutually exclusive with arguments:
+                            [package_expr, from_repository].
+    --help                  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package changelog dhcp-relay
+  1.0.0:
+
+    • Initial release
+
+        Author (author@email.com) Mon, 25 May 2020 12:25:00 +0300
+  ```
+
+**sonic-package-manager show package manifest**
+
+This command fetches the package manifest and displays it. *NOTE*: package manifest can be retrieved from registry or read from image tarball without installing it.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package manifest [OPTIONS] [PACKAGE_EXPR]
+
+    Print package manifest content
+
+  Options:
+    --from-repository TEXT  Fetch package directly from image registry
+                            repository NOTE: This argument is mutually exclusive
+                            with arguments: [package_expr, from_tarball].
+    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                            argument is mutually exclusive with arguments:
+                            [from_repository, package_expr].
+    -v, --verbosity LVL     Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    --help                  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package manifest dhcp-relay==2.0.0
+  {
+    "version": "1.0.0",
+    "package": {
+      "version": "2.0.0",
+      "depends": [
+        "database>=1.0.0,<2.0.0"
+      ]
+    },
+    "service": {
+      "name": "dhcp_relay"
+    }
+  }
+  ```
 
 ### SONiC Installer
 This is a command line tool available as part of the SONiC software; If the device is already running the SONiC software, this tool can be used to install an alternate image in the partition.
@@ -8031,6 +8316,13 @@ This command is used to install a new image on the alternate image partition.  T
   Command: grub-set-default --boot-directory=/host 0
 
   Done
+  ```
+
+SONiC image installation will install SONiC packages that are installed in currently running SONiC image. In order to perform clean SONiC installation use *--skip-package-migration* option when installing SONiC image:
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin --skip-package-migration
   ```
 
 **sonic-installer set_default**
