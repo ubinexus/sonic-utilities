@@ -12,7 +12,7 @@ REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 PLATFORM_REBOOT_PRE_CHECK="platform_reboot_pre_check"
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
-SSD_FW_UPDATE="ssd_fw_upgrade"
+SSD_FW_UPDATE="ssd-fw-upgrade"
 
 function debug()
 {

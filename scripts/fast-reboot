@@ -17,7 +17,7 @@ WATCHDOG_UTIL="/usr/bin/watchdogutil"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
-SSD_FW_UPDATE="ssd_fw_upgrade"
+SSD_FW_UPDATE="ssd-fw-upgrade"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
