@@ -451,7 +451,7 @@ class TestRouteCheck(object):
         assert len(msg) == 2
         msg = route_check.print_message(syslog.LOG_ERR, "abcde")
         assert len(msg) == 5
-        msg = route_check.print_message(syslog.LOG_ERR, "ab", "cde")
+        msg = route_check.print_message(syslog.LOG_ERR, "a", "b", "c", "d", "e", "f")
         assert len(msg) == 5
                
         

@@ -115,14 +115,13 @@ def print_message(lvl, *args):
     :param args: message as list of strings or convertible to string
     :return None
     """
-    rem_len = PRINT_MSG_LEN_MAX
     msg = ""
     if (lvl <= report_level):
         for arg in args:
-            msg += str(arg)[0:rem_len]
-            rem_len -= len(msg)
+            rem_len = PRINT_MSG_LEN_MAX - len(msg)
             if rem_len <= 0:
                 break
+            msg += str(arg)[0:rem_len]
 
         print(msg)
         if write_to_syslog:
