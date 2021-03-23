@@ -378,7 +378,8 @@ def upgrade(ctx,
             from_repository,
             from_tarball,
             force,
-            yes):
+            yes,
+            skip_cli_plugin_installation):
     """ Upgrade package """
 
     manager: PackageManager = ctx.obj
