@@ -91,7 +91,7 @@ class MutuallyExclusiveOption(click.Option):
 
 PACKAGE_SOURCE_OPTIONS = [
     click.option('--from-repository',
-                 help='Install package directly from image registry repository',
+                 help='Fetch package directly from image registry repository',
                  cls=MutuallyExclusiveOption,
                  mutually_exclusive=['from_tarball', 'package_expr']),
     click.option('--from-tarball',
@@ -99,7 +99,7 @@ PACKAGE_SOURCE_OPTIONS = [
                                  readable=True,
                                  file_okay=True,
                                  dir_okay=False),
-                 help='Install package from saved image tarball',
+                 help='Fetch package from saved image tarball',
                  cls=MutuallyExclusiveOption,
                  mutually_exclusive=['from_repository', 'package_expr']),
     click.argument('package-expr',
@@ -281,8 +281,8 @@ def changelog(ctx,
 @repository.command()
 @click.argument('name', type=str)
 @click.argument('repository', type=str)
-@click.option('--default-reference', type=str)
-@click.option('--description', type=str)
+@click.option('--default-reference', type=str, help='Default installation reference.')
+@click.option('--description', type=str, help='Default installation reference.')
 @click.pass_context
 @root_privileges_required
 def add(ctx, name, repository, default_reference, description):
