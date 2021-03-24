@@ -838,7 +838,7 @@ def reload(filename, yes, load_sysinfo, no_service_restart):
         log.log_info("'reload' stopping services...")
         _stop_services()
 
-    # In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+    # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
     # In the below logic, we get all namespaces in this platform and add an empty namespace ''
     # denoting the current namespace which we are in ( the linux host )
