@@ -13,6 +13,7 @@ STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
+DEVPATH="/usr/share/sonic/device"
 SSD_FW_UPDATE="ssd-fw-upgrade"
 
 # Require 100M available on the hard drive for warm reboot temp files,
