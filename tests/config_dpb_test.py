@@ -339,7 +339,7 @@ class TestConfigDPB(object):
             mock.MagicMock(return_value = breakout_cfg_file)
         config.load_ConfigMgmt = \
             mock.MagicMock(return_value = config_mgmt_dpb(db.cfgdb))
-        config.get_child_ports = mock.MagicMock( \
+        config.get_child_ports = mock.MagicMock(
             side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
         runner = CliRunner()
@@ -388,7 +388,7 @@ class TestConfigDPB(object):
 
         print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-        config.get_child_ports = mock.MagicMock( \
+        config.get_child_ports = mock.MagicMock(
             side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
         result = runner.invoke(config.config.commands["interface"].\
@@ -429,7 +429,6 @@ class TestConfigDPB(object):
 
         print(result.exit_code, result.output)
         assert result.exit_code == 1
-        #TODO: Uncomment it after Dev Fix, right now it is python bt
         assert "Ethern interface is NOT present" in result.output
 
         # Input Data
@@ -505,7 +504,7 @@ class TestConfigDPB(object):
 
             print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-            config.get_child_ports = mock.MagicMock( \
+            config.get_child_ports = mock.MagicMock(
                 side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
             result = runner.invoke(config.config.commands["interface"].\
@@ -530,7 +529,7 @@ class TestConfigDPB(object):
 
             print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-            config.get_child_ports = mock.MagicMock( \
+            config.get_child_ports = mock.MagicMock(
                 side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
             result = runner.invoke(config.config.commands["interface"].\
@@ -556,7 +555,7 @@ class TestConfigDPB(object):
 
             print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-            config.get_child_ports = mock.MagicMock( \
+            config.get_child_ports = mock.MagicMock(
                 side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
             result = runner.invoke(config.config.commands["interface"].\
@@ -581,7 +580,7 @@ class TestConfigDPB(object):
 
             print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-            config.get_child_ports = mock.MagicMock( \
+            config.get_child_ports = mock.MagicMock(
                 side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
 
@@ -607,7 +606,7 @@ class TestConfigDPB(object):
 
             print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-            config.get_child_ports = mock.MagicMock( \
+            config.get_child_ports = mock.MagicMock(
                 side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
             result = runner.invoke(config.config.commands["interface"].\
@@ -632,7 +631,7 @@ class TestConfigDPB(object):
 
             print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-            config.get_child_ports = mock.MagicMock( \
+            config.get_child_ports = mock.MagicMock(
                 side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
             result = runner.invoke(config.config.commands["interface"].\
@@ -657,7 +656,7 @@ class TestConfigDPB(object):
 
             print("Mocked Child ports data-> {}".format([get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)]))
 
-            config.get_child_ports = mock.MagicMock( \
+            config.get_child_ports = mock.MagicMock(
                 side_effect = [get_child_ports_mock(interface, curMode), get_child_ports_mock(interface, newMode)])
 
             result = runner.invoke(config.config.commands["interface"].\
