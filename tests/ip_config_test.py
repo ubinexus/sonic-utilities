@@ -108,8 +108,8 @@ class TestConfigIP(object):
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
         
-        # config int ip add Ethernet72 2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/67
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/67"], obj=obj)
+        # config int ip add Ethernet72 2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/200
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/200"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert "Error: ip mask is not valid." in result.output

@@ -890,21 +890,26 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     return True
 
 def validate_ip_address(ctx, ip_addr):
-    split_ip_mask = ip_addr.split("/")
-    # Checking if the IP address is correct.
     try:
+        split_ip_mask = ip_addr.split("/")
+        # Checking if the IP address is correct.
         ip_obj = ipaddress.ip_address(split_ip_mask[0])
+
+        # Checking if the mask is correct
+        mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 129
+        # If mask is not specified, set to default value
+        if len(split_ip_mask) < 2:
+            split_ip_mask.append(32 if isinstance(ip_obj, ipaddress.IPv4Address) else 128)
+
+        if not int(split_ip_mask[1]) in range(1, mask_range):
+            click.echo("Error: ip mask is not valid.")
+            return False
+
+        return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
+
     except ValueError:
         click.echo("Error: ip address is not valid.")
         return False
-
-    # Checking if the mask is correct
-    mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 65
-    if len(split_ip_mask) != 2 or not int(split_ip_mask[1]) in range(1, mask_range):
-        click.echo("Error: ip mask is not valid.")
-        return False
-
-    return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
 
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
