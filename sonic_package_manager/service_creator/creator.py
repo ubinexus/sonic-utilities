@@ -321,12 +321,13 @@ class ServiceCreator:
             before = set(package.manifest['service'][f'{reboot_type}-shutdown']['before'])
             if not after and not before:
                 continue
+            name = package.manifest['service']['name']
             shutdown_graph.setdefault(package.name, set())
-            shutdown_graph[package.name].update(after)
+            shutdown_graph[name].update(after)
 
             for service in before:
                 shutdown_graph.setdefault(service, set())
-                shutdown_graph[service].update({package.name})
+                shutdown_graph[service].update({name})
 
         log.debug(f'shutdown graph {pformat(shutdown_graph)}')
 
