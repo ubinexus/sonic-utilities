@@ -1326,7 +1326,10 @@ def radius():
             for key in counter_entry:
                 if counter_entry[key] != "0":
                     output += ('               %s %s\n' % (key, str(counter_entry[key])))
-    counters_db.close(counters_db.COUNTERS_DB)
+    try:
+        counters_db.close(counters_db.COUNTERS_DB)
+    except Exception as e:
+        pass
 
     click.echo(output)
 
