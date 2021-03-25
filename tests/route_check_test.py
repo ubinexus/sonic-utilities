@@ -2,6 +2,8 @@ import copy
 import json
 import os
 import sys
+import syslog
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -276,6 +278,7 @@ def table_side_effect(db, tbl):
 
 class mock_selector:
     TIMEOUT = 1
+    EMULATE_HANG = False
 
     def __init__(self):
         self.select_state = 0
@@ -294,6 +297,9 @@ class mock_selector:
         #
         state = self.select_state
         self.subs.update()
+
+        if mock_selector.EMULATE_HANG:
+            time.sleep(60)
 
         if self.select_state == 0:
             self.select_state = self.TIMEOUT
@@ -423,7 +429,32 @@ class TestRouteCheck(object):
                 assert res == expect_res
 
 
+        # Test timeout
+        route_check.TIMEOUT_SECONDS = 5
+        mock_selector.EMULATE_HANG = True
+        ex_raised = False
 
+        try:
+            ret, res = route_check.main()
+        except Exception as err:
+            ex_raised = True
+            expect = "timeout occurred"
+            ex_str = str(err)
+            assert ex_str == expect, "{} != {}".format(ex_str, expect)
+        assert ex_raised, "Exception expected"
+
+        # Test print_msg
+        route_check.PRINT_MSG_LEN_MAX = 5
+        msg = route_check.print_message(syslog.LOG_ERR, "abcdefghi")
+        assert len(msg) == 5
+        msg = route_check.print_message(syslog.LOG_ERR, "ab")
+        assert len(msg) == 2
+        msg = route_check.print_message(syslog.LOG_ERR, "abcde")
+        assert len(msg) == 5
+        msg = route_check.print_message(syslog.LOG_ERR, "a", "b", "c", "d", "e", "f")
+        assert len(msg) == 5
+               
+        
 
 
 
