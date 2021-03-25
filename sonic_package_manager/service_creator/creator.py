@@ -3,16 +3,17 @@ import contextlib
 import os
 import stat
 import subprocess
-from typing import Dict
+from collections import defaultdict
+from typing import Dict, List
 
 import jinja2 as jinja2
 from prettyprinter import pformat
-
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator import ETC_SONIC_PATH
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 from sonic_package_manager.service_creator.utils import in_chroot
+from toposort import toposort_flatten, CircularDependencyError
 
 SERVICE_FILE_TEMPLATE = 'sonic.service.j2'
 TIMER_UNIT_TEMPLATE = 'timer.unit.j2'
@@ -108,9 +109,11 @@ class ServiceCreator:
 
     def create(self,
                package: Package,
+               all_packages: List[Package] = None,
                register_feature=True,
                state='enabled',
                owner='local'):
+        all_packages = all_packages or []
         try:
             self.generate_container_mgmt(package)
             self.generate_service_mgmt(package)
@@ -118,10 +121,11 @@ class ServiceCreator:
             self.generate_systemd_service(package)
             self.generate_monit_conf(package)
             self.generate_dump_script(package)
+            self.generate_service_reconciliation_file(package)
 
             self.set_initial_config(package)
 
-            self.post_operation_hook()
+            self.post_operation_hook(all_packages)
 
             if register_feature:
                 self.feature_registry.register(package.manifest,
@@ -130,7 +134,11 @@ class ServiceCreator:
             self.remove(package, not register_feature)
             raise
 
-    def remove(self, package: Package, deregister_feature=True):
+    def remove(self,
+               package: Package,
+               all_packages: List[Package] = None,
+               deregister_feature=True):
+        all_packages = all_packages or []
         name = package.manifest['service']['name']
 
         def remove_file(path):
@@ -144,18 +152,21 @@ class ServiceCreator:
         remove_file(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, f'{name}'))
+        remove_file(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'))
 
         self.update_dependent_list_file(package, remove=True)
 
-        self.post_operation_hook()
+        self.post_operation_hook(all_packages)
 
         if deregister_feature:
             self.feature_registry.deregister(package.manifest['service']['name'])
 
-    def post_operation_hook(self):
+    def post_operation_hook(self, all_packages: List[Package]):
         if not in_chroot():
             run_command('systemctl daemon-reload')
             run_command('systemctl reload monit')
+        
+        self.generate_shutdown_sequence_files(all_packages)
 
     def generate_container_mgmt(self, package: Package):
         image_id = package.image_id
@@ -302,6 +313,46 @@ class ServiceCreator:
         }
         render_template(scrip_template, script_path, render_ctx, executable=True)
         log.info(f'generated {script_path}')
+
+    def generate_shutdown_sequence(self, installed_packages, reboot_type):
+        shutdown_graph = dict()
+        for package in installed_packages:
+            after = set(package.manifest['service'][f'{reboot_type}-shutdown']['after'])
+            before = set(package.manifest['service'][f'{reboot_type}-shutdown']['before'])
+            if not after and not before:
+                continue
+            shutdown_graph.setdefault(package.name, set())
+            shutdown_graph[package.name].update(after)
+
+            for service in before:
+                shutdown_graph.setdefault(service, set())
+                shutdown_graph[service].update({package.name})
+
+        log.debug(f'shutdown graph {pformat(shutdown_graph)}')
+
+        try:
+            order = toposort_flatten(shutdown_graph)
+        except CircularDependencyError as err:
+            raise ServiceCreatorError(f'Circular dependency found in {reboot_type} shutdown graph: {err}')
+
+        log.debug(f'shutdown order {pformat(order)}')
+        return order
+
+    def generate_shutdown_sequence_file(self, installed_packages, reboot_type):
+        order = self.generate_shutdown_sequence(installed_packages, reboot_type)
+        with open(os.path.join(ETC_SONIC_PATH, f'{reboot_type}-reboot_order'), 'w') as file:
+            file.write(' '.join(order))
+    
+    def generate_shutdown_sequence_files(self, installed_packages):
+        for reboot_type in ('fast', 'warm'):
+            self.generate_shutdown_sequence_file(installed_packages, reboot_type)
+
+    def generate_service_reconciliation_file(self, package):
+        name = package.manifest['service']['name']
+        processes = [process['name'] for process in package.manifest['processes']
+                     if process['reconciles']]
+        with open(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'), 'w') as file:
+            file.write(' '.join(processes))
 
     def set_initial_config(self, package):
         init_cfg = package.manifest['package']['init-cfg']

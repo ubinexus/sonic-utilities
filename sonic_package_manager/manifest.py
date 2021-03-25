@@ -171,6 +171,14 @@ class ManifestSchema:
             ManifestField('asic-service', DefaultMarshaller(bool), False),
             ManifestField('host-service', DefaultMarshaller(bool), True),
             ManifestField('delayed', DefaultMarshaller(bool), False),
+            ManifestRoot('warm-shutdown', [
+                ManifestArray('after', DefaultMarshaller(str)),
+                ManifestArray('before', DefaultMarshaller(str)),
+            ]),
+            ManifestRoot('fast-shutdown', [
+                ManifestArray('after', DefaultMarshaller(str)),
+                ManifestArray('before', DefaultMarshaller(str)),
+            ]),
         ]),
         ManifestRoot('container', [
             ManifestField('privileged', DefaultMarshaller(bool), False),
@@ -184,9 +192,10 @@ class ManifestSchema:
             ManifestArray('tmpfs', DefaultMarshaller(str)),
         ]),
         ManifestArray('processes', ManifestRoot('processes', [
-            ManifestField('critical', DefaultMarshaller(bool)),
+            ManifestField('critical', DefaultMarshaller(bool), False),
             ManifestField('name', DefaultMarshaller(str)),
-            ManifestField('command', DefaultMarshaller(str)),
+            ManifestField('command', DefaultMarshaller(str), ''),
+            ManifestField('reconciles', DefaultMarshaller(bool), False),
         ])),
         ManifestRoot('cli', [
             ManifestField('mandatory', DefaultMarshaller(bool), False),

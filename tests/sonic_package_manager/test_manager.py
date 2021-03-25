@@ -250,12 +250,12 @@ def test_upgrade_from_file_known_package(package_manager, fake_db, sonic_fs):
 
 def test_installation_non_default_owner(package_manager, anything, mock_service_creator):
     package_manager.install('test-package', default_owner='kube')
-    mock_service_creator.create.assert_called_once_with(anything, state='disabled', owner='kube')
+    mock_service_creator.create.assert_called_once_with(anything, anything, state='disabled', owner='kube')
 
 
 def test_installation_enabled(package_manager, anything, mock_service_creator):
     package_manager.install('test-package', enable=True)
-    mock_service_creator.create.assert_called_once_with(anything, state='enabled', owner='local')
+    mock_service_creator.create.assert_called_once_with(anything, anything, state='enabled', owner='local')
 
 
 def test_installation_fault(package_manager, mock_docker_api, mock_service_creator):

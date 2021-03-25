@@ -37,21 +37,44 @@ def manifest():
             'volumes': [
                 '/etc/sonic:/etc/sonic:ro'
             ]
-        }
+        },
+        'processes': [
+            {
+                'name': 'test-process',
+                'reconciles': True,
+            },
+            {
+                'name': 'test-process-2',
+                'reconciles': False,
+            },
+            {
+                'name': 'test-process-3',
+                'reconciles': True,
+            },
+        ]
     })
 
 
-def test_service_creator(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
+def test_service_creator(sonic_fs, manifest, package_manager, mock_feature_registry, mock_sonic_db):
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
-    creator.create(package)
+    installed_packages = package_manager.get_installed_packages().values()
+    creator.create(package, all_packages=installed_packages)
 
     assert sonic_fs.exists(os.path.join(ETC_SONIC_PATH, 'swss_dependent'))
     assert sonic_fs.exists(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.service'))
     assert sonic_fs.exists(os.path.join(MONIT_CONF_LOCATION, 'monit_test'))
+
+    def read_file(name):
+        with open(os.path.join(ETC_SONIC_PATH, name)) as file:
+            return file.read()
+
+    assert read_file('warm-reboot_order') == 'swss teamd syncd'
+    assert read_file('fast-reboot_order') == 'teamd swss syncd'
+    assert read_file('test_reconcile') == 'test-process test-process-3'
 
 
 def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
