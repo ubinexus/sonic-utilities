@@ -61,8 +61,8 @@ def translate_plain_to_tree(plain: Dict[str, str], sep='.') -> Dict:
             res[key] = value
             continue
         namespace, key = key.split(sep, 1)
-        res.setdefault(key, {})
-        deep_update(res[key], translate_plain_to_tree({key: value}))
+        res.setdefault(namespace, {})
+        deep_update(res[namespace], translate_plain_to_tree({key: value}))
     return res
 
 
