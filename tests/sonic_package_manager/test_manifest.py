@@ -2,6 +2,7 @@
 
 import pytest
 
+from sonic_package_manager.constraint import ComponentConstraints
 from sonic_package_manager.manifest import Manifest, ManifestError
 from sonic_package_manager.version import VersionRange
 
@@ -12,7 +13,7 @@ def test_manifest_v1_defaults():
                                  'service': {'name': 'test'}})
     assert manifest['package']['depends'] == []
     assert manifest['package']['breaks'] == []
-    assert manifest['package']['base-os'] == dict()
+    assert manifest['package']['base-os'] == ComponentConstraints()
     assert not manifest['service']['asic-service']
     assert manifest['service']['host-service']
 

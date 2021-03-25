@@ -150,7 +150,7 @@ class ManifestSchema:
             ManifestField('version', ParsedMarshaller(Version)),
             ManifestField('name', DefaultMarshaller(str)),
             ManifestField('description', DefaultMarshaller(str), ''),
-            ManifestField('base-os', ParsedMarshaller(ComponentConstraints), dict()),
+            ManifestField('base-os', ParsedMarshaller(ComponentConstraints), ComponentConstraints()),
             ManifestArray('depends', ParsedMarshaller(PackageConstraint)),
             ManifestArray('breaks', ParsedMarshaller(PackageConstraint)),
             ManifestField('init-cfg', DefaultMarshaller(dict), dict()),
