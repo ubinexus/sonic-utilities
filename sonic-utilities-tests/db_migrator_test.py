@@ -1,3 +1,4 @@
+import mock
 import os
 import pytest
 import sys
@@ -61,12 +62,13 @@ class TestMellanoxBufferMigrator(object):
         db_after_migrate = scenario + '-expected'
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
         _ = self.mock_dedicated_config_db(db_before_migrate)
-        import db_migrator
-        dbmgtr = db_migrator.DBMigrator(None)
-        dbmgtr.migrate()
-        expected_db = self.mock_dedicated_config_db(db_after_migrate)
-        self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
-        assert not dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
+        with mock.patch("db_migrator.DBMigrator.common_migration_ops"):
+            import db_migrator
+            dbmgtr = db_migrator.DBMigrator(None)
+            dbmgtr.migrate()
+            expected_db = self.mock_dedicated_config_db(db_after_migrate)
+            self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
+            assert not dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
 
     @pytest.mark.parametrize('sku_version',
                              [('ACS-MSN2700', 'version_1_0_1'),
@@ -97,10 +99,11 @@ class TestMellanoxBufferMigrator(object):
         # migration from any version between start_version and the current version (inclusive) to the current version will be verified
         for version in self.version_list[start_index:]:
             _ = self.mock_dedicated_config_db(self.make_db_name_by_sku_topo_version(sku, topo, version))
-            import db_migrator
-            dbmgtr = db_migrator.DBMigrator(None)
-            dbmgtr.migrate()
-            self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
-            assert dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
+            with mock.patch("db_migrator.DBMigrator.common_migration_ops"):
+                import db_migrator
+                dbmgtr = db_migrator.DBMigrator(None)
+                dbmgtr.migrate()
+                self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
+                assert dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
 
         self.clear_dedicated_mock_dbs()
