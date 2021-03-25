@@ -22,7 +22,7 @@ def deep_update(dst: Dict, src: Dict) -> Dict:
         New merged dictionary.
     """
 
-    for key, value in src.iteritems():
+    for key, value in src.items():
         if isinstance(value, dict):
              node = dst.setdefault(key, {})
              deep_update(node, value)
