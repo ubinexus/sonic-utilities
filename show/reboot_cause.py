@@ -30,7 +30,10 @@ def reboot_cause(ctx):
         # Read the previous reboot cause
         data = read_reboot_cause_file()
         if data['user'] == "N/A":
-            reboot_cause = "{}".format(data['cause'])
+            if data['cause'] == "kernel Panic":
+                reboot_cause = "{} (Time: {})".format(data['cause'], data['time'])
+            else: 
+                reboot_cause = "{}".format(data['cause'])
         else:
             reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
 
