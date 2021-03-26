@@ -637,9 +637,8 @@ def firmware():
     """Configure muxcable firmware command"""
     pass
 
-# 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @firmware.command()
-@click.argument('fwfile', metavar='<operation_status>', required=True))
+@click.argument('fwfile', metavar='<operation_status>', required=True)
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 def download(fwfile, port):
     """Config muxcable firmware download"""
