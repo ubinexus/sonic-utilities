@@ -345,12 +345,12 @@ class PackageManager:
                 exit_stack.callback(rollback_wrapper(source.uninstall, package))
 
                 self.service_creator.create(package,
-                                            installed_packages,
+                                            installed_packages.values(),
                                             state=feature_state,
                                             owner=default_owner)
                 exit_stack.callback(rollback_wrapper(self.service_creator.remove,
                                                      package,
-                                                     installed_packages))
+                                                     installed_packages.values()))
 
                 if not skip_cli_plugin_installation:
                     self._install_cli_plugins(package)
@@ -404,7 +404,7 @@ class PackageManager:
 
         try:
             self._uninstall_cli_plugins(package)
-            self.service_creator.remove(package, installed_packages)
+            self.service_creator.remove(package, installed_packages.values())
 
             # Clean containers based on this image
             containers = self.docker.ps(filters={'ancestor': package.image_id}, all=True)
@@ -515,11 +515,11 @@ class PackageManager:
                                                          old_package, 'start'))
 
                 self.service_creator.remove(old_package,
-                                            installed_packages,
+                                            installed_packages.values(),
                                             deregister_feature=False)
                 exit_stack.callback(rollback_wrapper(self.service_creator.create,
                                                      old_package,
-                                                     installed_packages,
+                                                     installed_packages.values(),
                                                      register_feature=False))
 
                 # This is no return point, after we start removing old Docker images
@@ -533,7 +533,7 @@ class PackageManager:
                 self.docker.rmi(old_package.image_id, force=True)
 
                 self.service_creator.create(new_package,
-                                            installed_packages,
+                                            installed_packages.values(),
                                             register_feature=False)
 
                 if self.feature_registry.is_feature_enabled(new_feature):

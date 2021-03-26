@@ -322,7 +322,7 @@ class ServiceCreator:
             if not after and not before:
                 continue
             name = package.manifest['service']['name']
-            shutdown_graph.setdefault(package.name, set())
+            shutdown_graph.setdefault(name, set())
             shutdown_graph[name].update(after)
 
             for service in before:
