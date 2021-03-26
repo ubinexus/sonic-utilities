@@ -45,7 +45,7 @@ def reboot_cause(ctx):
             reboot_cause_str = reboot_cause
 
         if reboot_user != "N/A" or reboot_time != "N/A":
-            reboot_cause_str += "["
+            reboot_cause_str += " ["
 
             if reboot_user != "N/A":
                 reboot_cause_str += "User: {}".format(reboot_user)
