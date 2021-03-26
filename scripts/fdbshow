@@ -118,11 +118,11 @@ class FdbShow(object):
                 else:
                     try:
                         vlan_id = port_util.get_vlan_id_from_bvid(self.db, bvid)
+                        bvid_tlb[bvid] = vlan_id
                         if vlan_id is None:
                             # the situation could be faced if the system has an FDB entries,
                             # which are linked to default Vlan(caused by untagged trafic)
                             continue
-                        bvid_tlb[bvid] = vlan_id
                     except Exception:
                         vlan_id = bvid
                         print("Failed to get Vlan id for bvid {}\n".format(bvid))
