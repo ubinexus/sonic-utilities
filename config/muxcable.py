@@ -706,7 +706,6 @@ def download(fwfile, port):
 
     elif port == "all" and port is not None:
 
-        port_status_dict = {}
         rc = True
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
@@ -807,7 +806,6 @@ def activate(port):
 
     elif port == "all" and port is not None:
 
-        port_status_dict = {}
         rc = True
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
@@ -909,7 +907,6 @@ def rollback(port):
 
     elif port == "all" and port is not None:
 
-        port_status_dict = {}
         rc = True
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
