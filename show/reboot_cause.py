@@ -9,14 +9,18 @@ import utilities_common.cli as clicommon
 
 
 PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.json"
-USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
 
 def read_reboot_cause_file():
-    result = ""
+    reboot_cause = None
+
     if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
-        with open(PREVIOUS_REBOOT_CAUSE_FILE) as f:
-            result = json.load(f)
-    return result
+        with open(PREVIOUS_REBOOT_CAUSE_FILE) as file_handler:
+            try:
+                reboot_cause = json.load(file_handler)
+            except json.JSONDecodeError as err:
+                click.echo("Failed to load JSON file '{}'!".format(PREVIOUS_REBOOT_CAUSE_FILE))
+
+    return reboot_cause
 
 #
 # 'reboot-cause' group ("show reboot-cause")
@@ -26,18 +30,21 @@ def read_reboot_cause_file():
 def reboot_cause(ctx):
     """Show cause of most recent reboot"""
     if ctx.invoked_subcommand is None:
-        reboot_cause = ""
-        # Read the previous reboot cause
-        data = read_reboot_cause_file()
-        if data['user'] == "N/A":
-            if data['cause'] == "Kernel Panic":
-                reboot_cause = "{} (Time: {})".format(data['cause'], data['time'])
-            else: 
-                reboot_cause = "{}".format(data['cause'])
-        else:
-            reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
+        reboot_cause_str = ""
 
-        click.echo(reboot_cause)
+        # Read the previous reboot reason
+        reboot_cause = read_reboot_cause_file()
+
+        if reboot_cause and "cause" in reboot_cause.keys():
+            reboot_cause_str = "Cause: {}".format(reboot_cause["cause"])
+
+            if "user" in reboot_cause.keys() and reboot_cause["user"] != "N/A":
+                reboot_cause_str += ", User: {}".format(reboot_cause["user"])
+
+            if "time" in reboot_cause.keys() and reboot_cause["time"] != "N/A":
+                reboot_cause_str += ", Time: {}".format(reboot_cause["time"])
+
+            click.echo(reboot_cause_str)
 
 # 'history' subcommand ("show reboot-cause history")
 @reboot_cause.command()
