@@ -34,7 +34,7 @@ def reboot_cause(ctx):
 
         # Read the previous reboot cause
         reboot_cause_dict = read_reboot_cause_file()
-        
+
         reboot_cause = reboot_cause_dict.get("cause", "Unknown")
         reboot_user = reboot_cause_dict.get("user", "N/A")
         reboot_time = reboot_cause_dict.get("time", "N/A")
@@ -42,7 +42,7 @@ def reboot_cause(ctx):
         if reboot_user != "N/A":
             reboot_cause_str = "User issued '{}' command".format(reboot_cause)
         else:
-            reboot_cuase_str = reboot_cause
+            reboot_cause_str = reboot_cause
 
         if reboot_user != "N/A" or reboot_time != "N/A":
             reboot_cause_str += "["
@@ -56,7 +56,7 @@ def reboot_cause(ctx):
                 reboot_cause_str += "Time: {}".format(reboot_time)
 
             reboot_cause_str += "]"
-        
+
         click.echo(reboot_cause_str)
 
 # 'history' subcommand ("show reboot-cause history")
@@ -77,7 +77,7 @@ def history():
         for tk in table_keys:
             entry = db.get_all(db.STATE_DB, tk)
             r = []
-            r.append(tk.replace(prefix,""))
+            r.append(tk.replace(prefix, ""))
             r.append(entry['cause'] if 'cause' in entry else "")
             r.append(entry['time'] if 'time' in entry else "")
             r.append(entry['user'] if 'user' in entry else "")
