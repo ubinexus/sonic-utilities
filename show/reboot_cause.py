@@ -10,6 +10,7 @@ import utilities_common.cli as clicommon
 
 PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
 
+
 def read_reboot_cause_file():
     reboot_cause_dict = {}
 
@@ -18,9 +19,10 @@ def read_reboot_cause_file():
             try:
                 reboot_cause_dict = json.load(prev_reboot_cause_file)
             except json.JSONDecodeError as err:
-                click.echo("Failed to load JSON file '{}'!".format(PREVIOUS_REBOOT_CAUSE_FILE_PATH))
+                click.echo("Failed to load JSON file '{}'!".format(PREVIOUS_REBOOT_CAUSE_FILE_PATH), err=True)
 
     return reboot_cause_dict
+
 
 #
 # 'reboot-cause' group ("show reboot-cause")
@@ -58,6 +60,7 @@ def reboot_cause(ctx):
             reboot_cause_str += "]"
 
         click.echo(reboot_cause_str)
+
 
 # 'history' subcommand ("show reboot-cause history")
 @reboot_cause.command()
