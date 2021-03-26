@@ -32,15 +32,13 @@ def reboot_cause(ctx):
     if ctx.invoked_subcommand is None:
         reboot_cause_str = ""
 
-        # Read the previous reboot reason
+        # Read the previous reboot cause
         reboot_cause = read_reboot_cause_file()
 
         if reboot_cause and "cause" in reboot_cause.keys():
             reboot_cause_str = "Cause: {}".format(reboot_cause["cause"])
-
             if "user" in reboot_cause.keys() and reboot_cause["user"] != "N/A":
                 reboot_cause_str += ", User: {}".format(reboot_cause["user"])
-
             if "time" in reboot_cause.keys() and reboot_cause["time"] != "N/A":
                 reboot_cause_str += ", Time: {}".format(reboot_cause["time"])
 
