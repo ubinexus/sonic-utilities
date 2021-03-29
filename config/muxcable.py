@@ -761,7 +761,7 @@ def download(fwfile, port):
 
                 status = perform_download_firmware(physical_port, fwfile)
 
-                if !status:
+                if status is not True:
                     rc = False
 
         if rc:
@@ -810,7 +810,7 @@ def activate(port):
                 physical_port = physical_port_list[0]
                 status = perform_activate_firmware(physical_port, fwfile)
 
-                if !status:
+                if status is not True:
                     rc = False
 
         if rc:
@@ -859,7 +859,7 @@ def rollback(port):
                 physical_port = physical_port_list[0]
                 status = perform_rollback_firmware(physical_port, fwfile)
 
-                if !status:
+                if status is not True:
                     rc = False
 
         if rc:
