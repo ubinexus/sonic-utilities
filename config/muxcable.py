@@ -650,7 +650,7 @@ def get_per_npu_statedb(per_npu_statedb, port_table_keys):
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
 
 
-def get_physical_port_list(port, physical_port_list)
+def get_physical_port_list(port, physical_port_list):
 
     if platform_sfputil is not None:
         physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
