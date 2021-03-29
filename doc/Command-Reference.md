@@ -7962,7 +7962,9 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#waterm
 
 ## Software Installation and Management
 
-SONiC software image can be installed in two methods, viz, "using sonic-installer tool", "ONIE Installer".
+SONiC image can be installed in one of two methods:
+1. From within a running SONiC iamge using the `sonic-installer` utility
+2. From the vendor's bootloader (E.g., ONIE,  Aboot, etc.)
 
 SONiC feature Docker images (aka "SONiC packages") available to be installed with *sonic-package-manager* utility.
 
