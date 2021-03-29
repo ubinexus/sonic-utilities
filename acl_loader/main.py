@@ -289,7 +289,7 @@ class AclLoader(object):
         :param tname: ACL table name
         :return: True if table type is Egress
         """
-        return self.tables_db_info[tname].get("stage", Stage.INGRESS) == Stage.EGRESS
+        return self.tables_db_info[tname].get("stage", Stage.INGRESS).upper() == Stage.EGRESS
 
     def is_table_mirror(self, tname):
         """
@@ -644,7 +644,7 @@ class AclLoader(object):
                 except AclLoaderException as ex:
                     error("Error processing rule %s: %s. Skipped." % (acl_entry_name, ex))
 
-            if not self.is_table_mirror(table_name) and not self.is_table_egress(table):
+            if not self.is_table_mirror(table_name) and not self.is_table_egress(table_name):
                 deep_update(self.rules_info, self.deny_rule(table_name))
 
     def full_update(self):
