@@ -673,7 +673,7 @@ def get_physical_port_list(port, physical_port_list):
     if len(physical_port_list) != 1:
         click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
             ", ".join(physical_port_list), port))
-            sys.exit(CONFIG_FAIL)
+        sys.exit(CONFIG_FAIL)
 
     return asic_index
 
