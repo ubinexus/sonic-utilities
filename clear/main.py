@@ -78,8 +78,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                text=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
@@ -217,6 +216,20 @@ def clear_wm_pg_shared():
     command = 'watermarkstat -c -t pg_shared'
     run_command(command)
 
+@priority_group.group()
+def drop():
+    """Clear priority-group dropped packets stats"""
+    pass
+
+@drop.command('counters')
+def clear_pg_counters():
+    """Clear priority-group dropped packets counter """
+
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        exit("Root privileges are required for this operation")
+    command = 'pg-drop -c clear'
+    run_command(command)
+
 @priority_group.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
@@ -259,6 +272,12 @@ def clear_wm_q_multi():
     command = 'watermarkstat -c -t q_shared_multi'
     run_command(command)
 
+@watermark.command('all')
+def clear_wm_q_all():
+    """Clear user WM for all queues"""
+    command = 'watermarkstat -c -t q_shared_all'
+    run_command(command)
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
@@ -277,6 +296,11 @@ def clear_pwm_q_multi():
     command = 'watermarkstat -c -p -t q_shared_multi'
     run_command(command)
 
+@persistent_watermark.command('all')
+def clear_pwm_q_all():
+    """Clear persistent WM for all queues"""
+    command = 'watermarkstat -c -p -t q_shared_all'
+    run_command(command)
 
 @cli.group(name='headroom-pool')
 def headroom_pool():
