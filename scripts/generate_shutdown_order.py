@@ -6,7 +6,7 @@ from sonic_package_manager import PackageManager
 
 def main():
     manager = PackageManager.get_manager()
-    installed_packages = manager.get_installed_packages().values()
+    installed_packages = manager.get_installed_packages_list()
     print('installed packages {}'.format(installed_packages))
     manager.service_creator.generate_shutdown_sequence_files(installed_packages)
     print('Done.')
