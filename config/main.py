@@ -834,6 +834,74 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
+def add_del_route(ctx, command_str, command):
+	if len(command_str) < 4 or len(command_str) > 9:
+        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
+    if "prefix" not in command_str:
+        ctx.fail("argument is incomplete, prefix not found!")
+    if "nexthop" not in command_str:
+        ctx.fail("argument is incomplete, nexthop not found!")
+    for i in range(0,len(command_str)):
+        if "nexthop" == command_str[i]:
+            prefix_str = command_str[:i]
+            nexthop_str = command_str[i:]
+    vrf_name = ""
+    config_entry = {}
+
+    if command == 'add':
+        cmd = 'sudo vtysh -c "configure terminal" -c "ip route'
+    else:
+        cmd = 'sudo vtysh -c "configure terminal" -c "no ip route'
+
+    if prefix_str:
+        if len(prefix_str) == 2:
+            prefix_mask = prefix_str[1]
+            cmd += ' {}'.format(prefix_mask)
+            config_entry["prefix"] = prefix_mask
+        elif len(prefix_str) == 4:
+            vrf_name = prefix_str[2]
+            prefix_mask = prefix_str[3]
+            cmd += ' {}'.format(prefix_mask)
+            config_entry["prefix"] = prefix_mask
+        else:
+            ctx.fail("prefix is not in pattern!")
+    if nexthop_str:
+        if len(nexthop_str) == 2:
+            ip = nexthop_str[1]
+            if vrf_name == "":
+                cmd += ' {}'.format(ip)
+                config_entry["nexthop"] = ip
+            else:
+                cmd += ' {} vrf {}'.format(ip, vrf_name)
+                config_entry["nexthop"] = ip
+                config_entry["vrf"] = vrf_name
+        elif len(nexthop_str) == 3:
+            dev_name = nexthop_str[2]
+            if vrf_name == "":
+                cmd += ' {}'.format(dev_name)
+                config_entry["dev_name"] = dev_name
+            else:
+                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
+                config_entry["dev_name"] = dev_name
+                config_entry["vrf"] = vrf_name
+        elif len(nexthop_str) == 4:
+            vrf_name_dst = nexthop_str[2]
+            ip = nexthop_str[3]
+            if vrf_name == "":
+                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
+                config_entry["nexthop"] = ip
+                config_entry["nexthop_vrf"] = vrf_name_dst
+            else:
+                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
+                config_entry["nexthop"] = ip
+                config_entry["vrf"] = vrf_name
+                config_entry["nexthop_vrf"] = vrf_name_dst
+        else:
+            ctx.fail("nexthop is not in pattern!")
+    cmd += '"'
+    # Return cmd to vtysh, dictionary to CONFIG_DB and nexthop name
+    return {'cmd':cmd, 'config_dict':config_entry, 'name':nexthop_str[1]}
+
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
     """
@@ -2710,7 +2778,6 @@ def del_vrf(ctx, vrf_name):
         del_interface_bind_to_vrf(config_db, vrf_name)
         config_db.set_entry('VRF', vrf_name, None)
 
-
 #
 # 'route' group ('config route ...')
 #
@@ -2719,111 +2786,59 @@ def del_vrf(ctx, vrf_name):
 @click.pass_context
 def route(ctx):
     """route-related configuration tasks"""
-    pass
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
+
+@route.command('update',context_settings={"ignore_unknown_options":True})
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+@click.pass_context
+def update_route(ctx, verbose):
+    config_db = ctx.obj['config_db']
+    route_keys = config_db.get_keys("STATIC_ROUTE")
+    for key in route_keys:
+        route = config_db.get_entry("STATIC_ROUTE", key)
+
+        argument = ['prefix']
+        if 'vrf' in route:
+            argument.append('vrf')
+            argument.append(route['vrf'])
+        if 'prefix' in route:
+            argument.append(route['prefix'])
+        argument.append('nexthop')
+        if 'nexthop_vrf' in route:
+            argument.append('vrf')
+            argument.append(route['nexthop_vrf'])
+        if 'nexthop' in route:
+            argument.append(route['nexthop'])
+        if 'dev_name' in route:
+            argument.append('dev')
+            argument.append(route['dev_name'])
+
+        route = add_del_route(ctx, argument, 'add')
+        if verbose:
+            click.echo('Added {} route'.format(route['name']))
 
 @route.command('add',context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
-    """Add route command"""
-    if len(command_str) < 4 or len(command_str) > 9:
-        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
-    if "prefix" not in command_str:
-        ctx.fail("argument is incomplete, prefix not found!")
-    if "nexthop" not in command_str:
-        ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0,len(command_str)):
-        if "nexthop" == command_str[i]:
-            prefix_str = command_str[:i]
-            nexthop_str = command_str[i:]
-    vrf_name = ""
-    cmd = 'sudo vtysh -c "configure terminal" -c "ip route'
-    if prefix_str:
-        if len(prefix_str) == 2:
-            prefix_mask = prefix_str[1]
-            cmd += ' {}'.format(prefix_mask)
-        elif len(prefix_str) == 4:
-            vrf_name = prefix_str[2]
-            prefix_mask = prefix_str[3]
-            cmd += ' {}'.format(prefix_mask)
-        else:
-            ctx.fail("prefix is not in pattern!")
-    if nexthop_str:
-        if len(nexthop_str) == 2:
-            ip = nexthop_str[1]
-            if vrf_name == "":
-                cmd += ' {}'.format(ip)
-            else:
-                cmd += ' {} vrf {}'.format(ip, vrf_name)
-        elif len(nexthop_str) == 3:
-            dev_name = nexthop_str[2]
-            if vrf_name == "":
-                cmd += ' {}'.format(dev_name)
-            else:
-                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
-        elif len(nexthop_str) == 4:
-            vrf_name_dst = nexthop_str[2]
-            ip = nexthop_str[3]
-            if vrf_name == "":
-                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
-            else:
-                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
-        else:
-            ctx.fail("nexthop is not in pattern!")
-    cmd += '"'
-    clicommon.run_command(cmd)
+    route = add_del_route(ctx, command_str, 'add')
+
+    config_db = ctx.obj['config_db']
+    config_db.set_entry("STATIC_ROUTE", route['name'], route['config_dict'])
+    clicommon.run_command(route['cmd'])
 
 @route.command('del',context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
-    """Del route command"""
-    if len(command_str) < 4 or len(command_str) > 9:
-        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
-    if "prefix" not in command_str:
-        ctx.fail("argument is incomplete, prefix not found!")
-    if "nexthop" not in command_str:
-        ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0,len(command_str)):
-        if "nexthop" == command_str[i]:
-            prefix_str = command_str[:i]
-            nexthop_str = command_str[i:]
-    vrf_name = ""
-    cmd = 'sudo vtysh -c "configure terminal" -c "no ip route'
-    if prefix_str:
-        if len(prefix_str) == 2:
-            prefix_mask = prefix_str[1]
-            cmd += ' {}'.format(prefix_mask)
-        elif len(prefix_str) == 4:
-            vrf_name = prefix_str[2]
-            prefix_mask = prefix_str[3]
-            cmd += ' {}'.format(prefix_mask)
-        else:
-            ctx.fail("prefix is not in pattern!")
-    if nexthop_str:
-        if len(nexthop_str) == 2:
-            ip = nexthop_str[1]
-            if vrf_name == "":
-                cmd += ' {}'.format(ip)
-            else:
-                cmd += ' {} vrf {}'.format(ip, vrf_name)
-        elif len(nexthop_str) == 3:
-            dev_name = nexthop_str[2]
-            if vrf_name == "":
-                cmd += ' {}'.format(dev_name)
-            else:
-                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
-        elif len(nexthop_str) == 4:
-            vrf_name_dst = nexthop_str[2]
-            ip = nexthop_str[3]
-            if vrf_name == "":
-                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
-            else:
-                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
-        else:
-            ctx.fail("nexthop is not in pattern!")
-    cmd += '"'
-    clicommon.run_command(cmd)
+    route = add_del_route(ctx, command_str, 'del')
+
+    config_db = ctx.obj['config_db']
+    config_db.set_entry("STATIC_ROUTE", route['name'], None)
+    clicommon.run_command(route['cmd'])
 
 #
 # 'acl' group ('config acl ...')
