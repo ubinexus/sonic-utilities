@@ -1005,7 +1005,7 @@ def version(port):
                 get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
                 get_firmware_dict(physical_port, 1, "tor1", mux_info_dict)
                 get_firmware_dict(physical_port, 2, "tor2", mux_info_dict)
-                create_result_dict(physical_port, mux_info_dict, result_dict):
+                create_result_dict(physical_port, mux_info_dict, result_dict)
                 click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
 
             else:
