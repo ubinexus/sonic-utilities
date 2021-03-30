@@ -210,7 +210,7 @@ class SquashFs(object):
     OVERLAY_MOUNTPOINT_TEMPLATE = "/tmp/image-{}-overlay"
 
     def __init__(self):
-        image_stem = self.next_image.lstrip(self.OS_PREFIX)
+        image_stem = self.next_image.replace(self.OS_PREFIX, EMPTY, 1)
 
         self.fs_path = self.FS_PATH_TEMPLATE.format(image_stem)
         self.fs_rw = self.FS_RW_TEMPLATE.format(image_stem)
