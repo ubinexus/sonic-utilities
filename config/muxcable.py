@@ -635,8 +635,6 @@ def setswitchmode(state, port):
 
 def get_per_npu_statedb(per_npu_statedb, port_table_keys):
 
-    y_cable_asic_table_keys = {}
-
     # Getting all front asic namespace and correspding config and state DB connector
 
     namespaces = multi_asic.get_front_end_namespaces()
@@ -689,18 +687,18 @@ def perform_download_firmware(physical_port, fwfile):
         return False
 
 
-def perform_activate_firmware(physical_port, fwfile):
+def perform_activate_firmware(physical_port):
     import sonic_y_cable.y_cable
     result = sonic_y_cable.y_cable.activate_firmware(physical_port)
     if result == sonic_y_cable.y_cable.FIRMWARE_ACTIVATE_SUCCESS:
-        click.echo("firmware ACTIVATE successful for {}".format(port))
+        click.echo("firmware activate successful for {}".format(port))
         return True
     else:
-        click.echo("firmware ACTIVATE failure for {}".format(port))
+        click.echo("firmware activate failure for {}".format(port))
         return False
 
 
-def perform_rollback_firmware(physical_port, fwfile):
+def perform_rollback_firmware(physical_port):
     import sonic_y_cable.y_cable
     result = sonic_y_cable.y_cable.rollback_firmware(physical_port)
     if result == sonic_y_cable.y_cable.FIRMWARE_ROLLBACK_SUCCESS:
@@ -718,19 +716,20 @@ def firmware():
 
 
 @firmware.command()
-@click.argument('fwfile', metavar='<operation_status>', required=True)
+@click.argument('fwfile', metavar='<firmware_file>', required=True)
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 def download(fwfile, port):
     """Config muxcable firmware download"""
 
     per_npu_statedb = {}
-    physical_port_list = []
+    y_cable_asic_table_keys = {}
     port_table_keys = {}
 
     get_per_npu_statedb(per_npu_statedb, port_table_keys)
 
     if port is not None and port != "all":
 
+        physical_port_list = []
         get_physical_port_list(port, physical_port_list)
         physical_port = physical_port_list[0]
         if per_npu_statedb[asic_index] is not None:
@@ -775,21 +774,22 @@ def download(fwfile, port):
 def activate(port):
     """Config muxcable firmware activate"""
 
-    port_table_keys = {}
-    y_cable_asic_table_keys = {}
     per_npu_statedb = {}
+    y_cable_asic_table_keys = {}
+    port_table_keys = {}
 
     get_per_npu_statedb(per_npu_statedb, port_table_keys)
 
     if port is not None and port != "all":
 
+        physical_port_list = []
         get_physical_port_list(port, physical_port_list)
         physical_port = physical_port_list[0]
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
             logical_key = "MUX_CABLE_TABLE|{}".format(port)
             if logical_key in y_cable_asic_table_keys:
-                perform_activate_firmware(physical_port, fwfile)
+                perform_activate_firmware(physical_port)
 
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
@@ -806,9 +806,11 @@ def activate(port):
             for key in port_table_keys[asic_id]:
                 port = key.split("|")[1]
 
+                physical_port_list = []
+
                 get_physical_port_list(port, physical_port_list)
                 physical_port = physical_port_list[0]
-                status = perform_activate_firmware(physical_port, fwfile)
+                status = perform_activate_firmware(physical_port)
 
                 if status is not True:
                     rc = False
@@ -832,13 +834,14 @@ def rollback(port):
 
     if port is not None and port != "all":
 
+        physical_port_list = []
         get_physical_port_list(port, physical_port_list)
         physical_port = physical_port_list[0]
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
             logical_key = "MUX_CABLE_TABLE|{}".format(port)
             if logical_key in y_cable_asic_table_keys:
-                perform_rollback_firmware(physical_port, fwfile)
+                perform_rollback_firmware(physical_port)
 
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
@@ -855,9 +858,10 @@ def rollback(port):
             for key in port_table_keys[asic_id]:
                 port = key.split("|")[1]
 
+                physical_port_list = []
                 get_physical_port_list(port, physical_port_list)
                 physical_port = physical_port_list[0]
-                status = perform_rollback_firmware(physical_port, fwfile)
+                status = perform_rollback_firmware(physical_port)
 
                 if status is not True:
                     rc = False

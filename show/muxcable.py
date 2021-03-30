@@ -820,3 +820,102 @@ def switchmode(port):
         click.echo(tabulate(body, headers=headers))
         if rc == False:
             sys.exit(EXIT_FAIL)
+
+
+def get_firmware_dict(physical_port, target, side, mux_info_dict):
+
+    import sonic_y_cable.y_cable
+    result = sonic_y_cable.y_cable.get_firmware_version(physical_port, target)
+
+    if result is not None and isinstance(result, dict):
+        mux_info_dict[("build_slot1_{}".format(side))] = result.get("build_slot1", None)
+        mux_info_dict[("version_slot1_{}".format(side))] = result.get("version_slot1", None)
+        mux_info_dict[("build_slot2_{}".format(side))] = result.get("build_slot2", None)
+        mux_info_dict[("version_slot2_{}".format(side))] = result.get("version_slot2", None)
+        mux_info_dict[("run_slot1_{}".format(side))] = result.get("run_slot1", None)
+        mux_info_dict[("run_slot2_{}".format(side))] = result.get("run_slot2", None)
+        mux_info_dict[("commit_slot1_{}".format(side))] = result.get("commit_slot1", None)
+        mux_info_dict[("commit_slot2_{}".format(side))] = result.get("commit_slot2", None)
+        mux_info_dict[("empty_slot1_{}".format(side))] = result.get("empty_slot1", None)
+        mux_info_dict[("empty_slot2_{}".format(side))] = result.get("empty_slot2", None)
+    else:
+        mux_info_dict[("build_slot1_{}".format(side))] = "N/A"
+        mux_info_dict[("version_slot1_{}".format(side))] = "N/A"
+        mux_info_dict[("build_slot2_{}".format(side))] = "N/A"
+        mux_info_dict[("version_slot2_{}".format(side))] = "N/A"
+        mux_info_dict[("run_slot1_{}".format(side))] = "N/A"
+        mux_info_dict[("run_slot2_{}".format(side))] = "N/A"
+        mux_info_dict[("commit_slot1_{}".format(side))] = "N/A"
+        mux_info_dict[("commit_slot2_{}".format(side))] = "N/A"
+        mux_info_dict[("empty_slot1_{}".format(side))] = "N/A"
+        mux_info_dict[("empty_slot2_{}".format(side))] = "N/A"
+
+
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def firmware():
+    """Show muxcable firmware command"""
+    pass
+
+
+@firmware.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+def version(port):
+    """Show muxcable firmware version"""
+
+    port_table_keys = {}
+    y_cable_asic_table_keys = {}
+    per_npu_statedb = {}
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        # replace these with correct macros
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
+
+    if port is not None and port != "all":
+
+        if platform_sfputil is not None:
+            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                # is fully mocked
+                import sonic_platform_base.sonic_sfp.sfputilhelper
+                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+                if asic_index is None:
+                    click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+
+        if not isinstance(physical_port_list, list):
+            click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
+            sys.exit(CONFIG_FAIL)
+
+        if len(physical_port_list) != 1:
+            click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
+                ", ".join(physical_port_list), port))
+            sys.exit(CONFIG_FAIL)
+
+        mux_info_dict = {}
+        physical_port = physical_port_list[0]
+        if per_npu_statedb[asic_index] is not None:
+            y_cable_asic_table_keys = port_table_keys[asic_index]
+            logical_key = "MUX_CABLE_TABLE|{}".format(port)
+            if logical_key in y_cable_asic_table_keys:
+                get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
+                get_firmware_dict(physical_port, 1, "tor1", mux_info_dict)
+                get_firmware_dict(physical_port, 2, "tor2", mux_info_dict)
+                click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
+
+            else:
+                click.echo("this is not a valid port present on mux_cable".format(port))
+                sys.exit(CONFIG_FAIL)
+        else:
+            click.echo("there is not a valid asic table for this asic_index".format(asic_index))
