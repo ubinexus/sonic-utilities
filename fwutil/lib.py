@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # lib.py
 #
@@ -11,16 +10,16 @@ try:
     import socket
     import subprocess
     import time
-    import urllib
     from collections import OrderedDict
+    from urllib.parse import urlparse
+    from urllib.request import urlopen, urlretrieve
 
     import click
-    from log import LogHelper
     from sonic_py_common import device_info
     from tabulate import tabulate
-    from urlparse import urlparse
 
     from . import Platform
+    from .log import LogHelper
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
 
@@ -96,7 +95,7 @@ class URL(object):
 
         # Check URL existence
         try:
-            urlfile = urllib.urlopen(self.__url)
+            urlfile = urlopen(self.__url)
             response_code = urlfile.getcode()
         except IOError:
             raise RuntimeError("Did not receive a response from remote machine")
@@ -124,7 +123,7 @@ class URL(object):
         socket.setdefaulttimeout(self.DOWNLOAD_TIMEOUT)
 
         try:
-            filename, headers = urllib.urlretrieve(
+            filename, headers = urlretrieve(
                 self.__url,
                 self.DOWNLOAD_PATH_TEMPLATE.format(basename),
                 self.__reporthook
@@ -222,13 +221,13 @@ class SquashFs(object):
 
     def get_current_image(self):
         cmd = "sonic-installer list | grep 'Current: ' | cut -f2 -d' '"
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, text=True)
 
         return output.rstrip(NEWLINE)
 
     def get_next_image(self):
         cmd = "sonic-installer list | grep 'Next: ' | cut -f2 -d' '"
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, text=True)
 
         return output.rstrip(NEWLINE)
 
@@ -304,7 +303,7 @@ class PlatformComponentsParser(object):
         )
 
     def __is_str(self, obj):
-        return isinstance(obj, unicode) or isinstance(obj, str)
+        return isinstance(obj, str)
 
     def __is_dict(self, obj):
         return isinstance(obj, dict)
@@ -418,19 +417,6 @@ class PlatformComponentsParser(object):
             self.__module_component_map[key] = OrderedDict()
             self.__parse_component_section(key, value[self.COMPONENT_KEY], True)
 
-    def __deunicodify_hook(self, pairs):
-        new_pairs = [ ]
-
-        for key, value in pairs:
-            if isinstance(key, unicode):
-                key = key.encode(self.UTF8_ENCODING)
-
-            if isinstance(value, unicode):
-                value = value.encode(self.UTF8_ENCODING)
-
-            new_pairs.append((key, value))
-
-        return OrderedDict(new_pairs)
 
     def get_chassis_component_map(self):
         return self.__chassis_component_map
@@ -447,7 +433,7 @@ class PlatformComponentsParser(object):
             platform_components_path = self.__get_platform_components_path(root_path)
 
         with open(platform_components_path) as platform_components:
-            data = json.load(platform_components, object_pairs_hook=self.__deunicodify_hook)
+            data = json.load(platform_components)
 
             if not self.__is_dict(data):
                 self.__parser_platform_fail("dictionary is expected: key=root")
@@ -504,7 +490,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         return set(keys1) ^ set(keys2)
 
     def __validate_component_map(self, section, pdp_map, pcp_map):
-        diff_keys = self.__diff_keys(pdp_map.keys(), pcp_map.keys())
+        diff_keys = self.__diff_keys(list(pdp_map.keys()), list(pcp_map.keys()))
 
         if diff_keys:
             raise RuntimeError(
@@ -514,8 +500,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 )
             )
 
-        for key in pdp_map.keys():
-            diff_keys = self.__diff_keys(pdp_map[key].keys(), pcp_map[key].keys())
+        for key in pdp_map:
+            diff_keys = self.__diff_keys(list(pdp_map[key].keys()), list(pcp_map[key].keys()))
 
             if diff_keys:
                 raise RuntimeError(

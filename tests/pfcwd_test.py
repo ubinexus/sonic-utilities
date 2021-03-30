@@ -1,14 +1,13 @@
 import imp
 import os
 import sys
+from unittest.mock import patch
 
 from click.testing import CliRunner
+
 from utilities_common.db import Db
 
-from pfcwd_input.pfcwd_test_vectors import (
-    testData, show_pfcwd_stats_all, show_pfc_config_all,
-    show_pfcwd_stats_with_queues, show_pfcwd_config_with_ports
-)
+from .pfcwd_input.pfcwd_test_vectors import *
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -61,7 +60,9 @@ class TestPfcwd(object):
                 exec_cmd = pfcwd.cli.commands[input['cmd'][0]].commands[input['cmd'][1]]
 
             if 'db' in input and input['db']:
-                result = runner.invoke(exec_cmd, input['args'], obj=db)
+                result = runner.invoke(
+                    exec_cmd, input['args'], obj=db
+                )
             else:
                 result = runner.invoke(exec_cmd, input['args'])
 
@@ -78,6 +79,184 @@ class TestPfcwd(object):
 
             if 'rc_output' in input:
                 assert result.output == input['rc_output']
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_ports_valid(self, mock_os):
+        # pfcwd start --action drop --restoration-time 200 Ethernet0 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == pfcwd_show_config_output
+
+        mock_os.geteuid.return_value = 0
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "101",
+                "Ethernet0", "102"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_config_output_pass
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_actions(self, mock_os):
+        # pfcwd start --action fwd --restoration-time 200 Ethernet0 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == pfcwd_show_config_output
+
+        # always skip Ethernet8 because 'pfc_enable' not configured for this port
+        mock_os.geteuid.return_value = 0
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "301",
+                "all", "302"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_action_forward_output
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "alert", "--restoration-time", "501",
+                "all", "502"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_action_alert_output
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "all", "602"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_action_drop_output
+
+        result = runner.invoke(
+        pfcwd.cli.commands["start_default"],
+            [],
+            obj=db
+        )
+
+        assert result.exit_code == 0
+
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_default
+
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_pfc_not_enabled(self, mock_os):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == pfcwd_show_config_output
+
+        mock_os.geteuid.return_value = 0
+
+        result = runner.invoke(
+        pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "Ethernet8", "602"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert pfc_is_not_enabled == result.output
+
+
+    def test_pfcwd_start_ports_invalid(self):
+        # pfcwd start --action drop --restoration-time 200 Ethernet0 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "101",
+                "Ethernet1000", "102"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_config_output_fail
 
     @classmethod
     def teardown_class(cls):
@@ -141,6 +320,174 @@ class TestMultiAsicPfcwdShow(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfcwd_config_with_ports
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_ports_masic_valid(self, mock_os):
+        # pfcwd start --action forward --restoration-time 200 Ethernet0 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == show_pfc_config_all
+
+        mock_os.geteuid.return_value = 0
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "101",
+                "Ethernet0", "Ethernet-BP4", "102"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_pass
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_actions_masic(self, mock_os):
+        # pfcwd start --action drop --restoration-time 200 Ethernet0 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == show_pfc_config_all
+
+        # always skip Ethernet-BP260 because 'pfc_enable' not configured for this port
+        mock_os.geteuid.return_value = 0
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "301",
+                "all", "302"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_action_drop_masic
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "alert", "--restoration-time", "401",
+                "all", "402"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_action_alert_masic
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "701",
+                "all", "702"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+
+        # get config after the change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_action_forward_masic
+
+    def test_pfcwd_start_ports_masic_invalid(self):
+        # --action drop --restoration-time 200 Ethernet0 Ethernet500 200
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "forward", "--restoration-time", "101",
+                "Ethernet0", "Ethernet-500", "102"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_pfc_config_start_fail
+
+        # get config after the command, config shouldn't change
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        # same as original config
+        assert result.output == show_pfc_config_all
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_pfc_not_enabled_masic(self, mock_os):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        mock_os.geteuid.return_value = 0
+        result = runner.invoke(
+        pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "Ethernet-BP260", "602"
+            ],
+            obj=db
+        )
+
+        assert result.exit_code == 0
+        assert pfc_is_not_enabled_masic == result.output
+
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+
+        print(result.output)
+        assert result.exit_code == 0
+        # same as original config
+        assert result.output == show_pfc_config_all
 
     @classmethod
     def teardown_class(cls):

@@ -1,13 +1,36 @@
 import json
+import os
 
 import click
-from natsort import natsorted
-from tabulate import tabulate
-
-from sonic_py_common import multi_asic
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
-import portchannel
+from natsort import natsorted
+from tabulate import tabulate
+from sonic_py_common import multi_asic
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector
+from portconfig import get_child_ports
+
+from . import portchannel
+from collections import OrderedDict
+
+HWSKU_JSON = 'hwsku.json'
+
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except FileNotFoundError as e:
+        click.echo("{}".format(str(e)), err=True)
+        raise click.Abort()
+    except json.decoder.JSONDecodeError as e:
+        click.echo("Invalid JSON file format('{}')\n{}".format(fileName, str(e)), err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo("{}\n{}".format(type(e), str(e)), err=True)
+        raise click.Abort()
+    return result
 
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
@@ -48,8 +71,8 @@ def alias(interfacename, namespace, display):
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         # If we're given an interface name, output name and alias for that interface only
-        if interfacename in port_dict.keys():
-            if port_dict[interfacename].has_key('alias'):
+        if interfacename in port_dict:
+            if 'alias' in port_dict[interfacename]:
                 body.append([interfacename, port_dict[interfacename]['alias']])
             else:
                 body.append([interfacename, interfacename])
@@ -57,7 +80,7 @@ def alias(interfacename, namespace, display):
             ctx.fail("Invalid interface name {}".format(interfacename))
     else:
         # Output name and alias for all interfaces
-        for port_name in natsorted(port_dict.keys()):
+        for port_name in natsorted(list(port_dict.keys())):
             if ((display == multi_asic_util.constants.DISPLAY_EXTERNAL) and
                 ('role' in port_dict[port_name]) and
                     (port_dict[port_name]['role'] is multi_asic.INTERNAL_PORT)):
@@ -144,16 +167,17 @@ def breakout(ctx):
 
     if ctx.invoked_subcommand is None:
         # Get port capability from platform and hwsku related files
-        platform_path, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
-        platform_file = os.path.join(platform_path, PLATFORM_JSON)
+        hwsku_path = device_info.get_path_to_hwsku_dir()
+        platform_file = device_info.get_path_to_port_config_file()
         platform_dict = readJsonFile(platform_file)['interfaces']
-        hwsku_dict = readJsonFile(os.path.join(hwsku_path, HWSKU_JSON))['interfaces']
+        hwsku_file = os.path.join(hwsku_path, HWSKU_JSON)
+        hwsku_dict = readJsonFile(hwsku_file)['interfaces']
 
         if not platform_dict or not hwsku_dict:
-            click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
+            click.echo("Can not load port config from {} or {} file".format(platform_file, hwsku_file))
             raise click.Abort()
 
-        for port_name in platform_dict.keys():
+        for port_name in platform_dict:
             cur_brkout_mode = cur_brkout_tbl[port_name]["brkout_mode"]
 
             # Update deafult breakout mode and current breakout mode to platform_dict
@@ -161,12 +185,12 @@ def breakout(ctx):
             platform_dict[port_name]["Current Breakout Mode"] = cur_brkout_mode
 
             # List all the child ports if present
-            child_port_dict = get_child_ports(port_name, cur_brkout_mode, platformFile)
+            child_port_dict = get_child_ports(port_name, cur_brkout_mode, platform_file)
             if not child_port_dict:
-                click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
+                click.echo("Cannot find ports from {} file ".format(platform_file))
                 raise click.Abort()
 
-            child_ports = natsorted(child_port_dict.keys())
+            child_ports = natsorted(list(child_port_dict.keys()))
 
             children, speeds = [], []
             # Update portname and speed of child ports if present
@@ -180,7 +204,7 @@ def breakout(ctx):
             platform_dict[port_name]["child port speeds"] = ",".join(speeds)
 
         # Sorted keys by name in natural sort Order for human readability
-        parsed = OrderedDict((k, platform_dict[k]) for k in natsorted(platform_dict.keys()))
+        parsed = OrderedDict((k, platform_dict[k]) for k in natsorted(list(platform_dict.keys())))
         click.echo(json.dumps(parsed, indent=4))
 
 # 'breakout current-mode' subcommand ("show interfaces breakout current-mode")
@@ -208,7 +232,7 @@ def currrent_mode(ctx, interface):
         return
 
     # Show current Breakout Mode for all interfaces
-    for name in natsorted(cur_brkout_tbl.keys()):
+    for name in natsorted(list(cur_brkout_tbl.keys())):
         body.append([name, str(cur_brkout_tbl[name]['brkout_mode'])])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
@@ -237,7 +261,7 @@ def expected(db, interfacename):
         click.echo("DEVICE_NEIGHBOR_METADATA information is not present.")
         return
 
-    for port in natsorted(neighbor_dict.keys()):
+    for port in natsorted(list(neighbor_dict.keys())):
         temp_port = port
         if clicommon.get_interface_naming_mode() == "alias":
             port = clicommon.InterfaceAliasConverter().name_to_alias(port)
@@ -258,7 +282,7 @@ def expected(db, interfacename):
             click.echo("No neighbor information available for interface {}".format(interfacename))
             return
     else:
-        for port in natsorted(neighbor_dict.keys()):
+        for port in natsorted(list(neighbor_dict.keys())):
             try:
                 device = neighbor_dict[port]['name']
                 body.append([port,
@@ -426,3 +450,18 @@ def rif(interface, period, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+# 'counters' subcommand ("show interfaces counters detailed")
+@counters.command()
+@click.argument('interface', metavar='<interface_name>', required=True, type=str)
+@click.option('-p', '--period', help="Display statistics over a specified period (in seconds)")
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def detailed(interface, period, verbose):
+    """Show interface counters detailed"""
+
+    cmd = "portstat -l"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    if interface is not None:
+        cmd += " -i {}".format(interface)
+
+    clicommon.run_command(cmd, display_cmd=verbose)

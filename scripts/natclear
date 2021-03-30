@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 """
     Script to clear nat dynamic entries from Hardware and also to clear the nat statistics
 
@@ -62,7 +63,7 @@ def main():
             nat.send_statistics_notification("STATISTICS", "ALL")
             print("\nNAT statistics are cleared.")
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 if __name__ == "__main__":

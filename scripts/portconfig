@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 """
 portconfig is the utility to show and change ECN configuration
 
@@ -16,11 +17,9 @@ optional arguments:
   -m     --mtu                 port mtu in bytes
   -n     --namesapce           Namespace name
 """
-from __future__ import print_function
-
 import sys
 import argparse
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 
 PORT_TABLE_NAME = "PORT"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
@@ -36,20 +35,20 @@ class portconfig(object):
 
         # Set up db connections
         if namespace is None:
-            self.db = swsssdk.ConfigDBConnector()
+            self.db = ConfigDBConnector()
         else:
-            self.db = swsssdk.ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            self.db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         self.db.connect()
 
         # check whether table for this port exists
         port_tables = self.db.get_table(PORT_TABLE_NAME)
-        if not port_tables.has_key(port):
+        if port not in port_tables:
             raise Exception("Invalid port specified")
 
     def list_params(self, port):
         # chack whether table for this port exists
         port_tables = self.db.get_table(PORT_TABLE_NAME)
-        if port_tables.has_key(port):
+        if port in port_tables:
             print(port_tables[port])
 
     def set_speed(self, port, speed):
@@ -69,20 +68,22 @@ class portconfig(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',
-                         version='1.0.0',
                          formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--port', type=str, help='port name (e.g. Ethernet0)', required=True, default=None)
     parser.add_argument('-l', '--list', action='store_true', help='list port parametars', default=False)
     parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
     parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
     parser.add_argument('-m', '--mtu', type=int, help='port mtu value in bytes', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
                         help = 'The asic namespace whose DB instance we need to connect', default=None)
     args = parser.parse_args()
 
     if args.namespace is not None:
-        swsssdk.SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+        SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+    else:
+        SonicDBConfig.initialize()
 
     try:
         port = portconfig(args.verbose, args.port, args.namespace)
@@ -100,7 +101,7 @@ def main():
             sys.exit(1)
 
     except Exception as e:
-        print(e.message, file=sys.stderr)
+        print(str(e), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 """
     Script to show nat entries and nat statistics in a summary view
@@ -125,47 +125,44 @@ class NatShow(object):
         if not nat_str:
             return
 
-        for s in nat_str:
-            nat_entry = s.decode()
+        for nat_entry in nat_str:
             nat = json.loads(nat_entry .split(":", 2)[-1])
             if not nat:
                 continue
 
             ip_protocol = "all"
-            source = "---"
-            destination = "---"
             translated_dst = "---"
             translated_src = "---"
 
-            ent = self.asic_db.get_all('ASIC_DB', s, blocking=True)
+            ent = self.asic_db.get_all('ASIC_DB', nat_entry, blocking=True)
 
             nat_type = nat['nat_type']
 
             if nat_type == "SAI_NAT_TYPE_DESTINATION_NAT":
-                translated_dst_ip = ent[b"SAI_NAT_ENTRY_ATTR_DST_IP"]
+                translated_dst_ip = ent["SAI_NAT_ENTRY_ATTR_DST_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_DST_PORT" in ent:
-                    translated_dst_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
+                    translated_dst_port = ent["SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
                     translated_dst = translated_dst_ip + ":" + translated_dst_port
                 else:
                     translated_dst = translated_dst_ip
             elif nat_type == "SAI_NAT_TYPE_SOURCE_NAT":
-                translated_src_ip = ent[b"SAI_NAT_ENTRY_ATTR_SRC_IP"]
+                translated_src_ip = ent["SAI_NAT_ENTRY_ATTR_SRC_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_SRC_PORT" in ent:
-                    translated_src_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
+                    translated_src_port = ent["SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
                     translated_src = translated_src_ip + ":" + translated_src_port
                 else:
                     translated_src = translated_src_ip
             elif nat_type == "SAI_NAT_TYPE_DOUBLE_NAT":
-                translated_dst_ip = ent[b"SAI_NAT_ENTRY_ATTR_DST_IP"]
+                translated_dst_ip = ent["SAI_NAT_ENTRY_ATTR_DST_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_DST_PORT" in ent:
-                    translated_dst_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
+                    translated_dst_port = ent["SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
                     translated_dst = translated_dst_ip + ":" + translated_dst_port
                 else:
                     translated_dst = translated_dst_ip
 
-                translated_src_ip = ent[b"SAI_NAT_ENTRY_ATTR_SRC_IP"]
+                translated_src_ip = ent["SAI_NAT_ENTRY_ATTR_SRC_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_SRC_PORT" in ent:
-                    translated_src_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
+                    translated_src_port = ent["SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
                     translated_src = translated_src_ip + ":" + translated_src_port
                 else:
                     translated_src = translated_src_ip
@@ -282,8 +279,6 @@ class NatShow(object):
                     nat_twice_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAT_TWICE_TABLE:{}'.format(nat_twice_entry))
 
                     ip_protocol = "all"
-                    source = "---"
-                    destination = "---"
 
                     source = nat_twice_keys[0]
                     destination = nat_twice_keys[1]
@@ -308,8 +303,6 @@ class NatShow(object):
                     napt_twice_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAPT_TWICE_TABLE:{}'.format(napt_twice_entry))
 
                     ip_protocol = napt_twice_keys[0].lower()
-                    source = "---"
-                    destination = "---"
 
                     source = napt_twice_keys[1] + ':' + napt_twice_keys[2]
                     destination = napt_twice_keys[3] + ':' + napt_twice_keys[4]
@@ -331,7 +324,7 @@ class NatShow(object):
         totalEntries = int(self.static_nat_entries) + int(self.dynamic_nat_entries) + int(self.static_napt_entries) + int(self.dynamic_napt_entries)
         totalEntries += (int(self.static_twice_nat_entries) + int(self.dynamic_twice_nat_entries) + int(self.static_twice_napt_entries) + int(self.dynamic_twice_napt_entries))
 
-        print()
+        print("")
         print("Static NAT Entries         ..................... {}".format(self.static_nat_entries))
         print("Static NAPT Entries        ..................... {}".format(self.static_napt_entries))
         print("Dynamic NAT Entries        ..................... {}".format(self.dynamic_nat_entries))
@@ -343,7 +336,7 @@ class NatShow(object):
         print("Total SNAT/SNAPT Entries   ..................... {}".format(self.snat_entries))
         print("Total DNAT/DNAPT Entries   ..................... {}".format(self.dnat_entries))
         print("Total Entries              ..................... {}".format(totalEntries))
-        print()
+        print("")
 
     def display_translations(self):
         """
@@ -357,7 +350,7 @@ class NatShow(object):
             output.append([nat[0], nat[1], nat[2], nat[3], nat[4]])
 
         print(tabulate(output, HEADER))
-        print()
+        print("")
 
     def display_statistics(self):
         """
@@ -370,9 +363,9 @@ class NatShow(object):
         for nat in self.nat_statistics_list:
             output.append([nat[0], nat[1], nat[2], nat[3], nat[4]])
 
-        print()
+        print("")
         print(tabulate(output, HEADER))
-        print()
+        print("")
 
 def main():
     parser = argparse.ArgumentParser(description='Display the nat information',
@@ -411,7 +404,7 @@ def main():
             nat.display_count()
 
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 if __name__ == "__main__":

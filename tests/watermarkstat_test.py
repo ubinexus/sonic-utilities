@@ -3,9 +3,9 @@ import os
 import sys
 
 import show.main as show
-
 from click.testing import CliRunner
-from wm_input.wm_test_vectors import *
+
+from .wm_input.wm_test_vectors import *
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -33,8 +33,14 @@ class TestWatermarkstat(object):
     def test_show_queue_multicast_wm(self):
         self.executor(testData['show_q_wm_multicast'])
 
+    def test_show_queue_all_wm(self):
+        self.executor(testData['show_q_wm_all'])
+
     def test_show_buffer_pool_wm(self):
         self.executor(testData['show_buffer_pool_wm'])
+
+    def test_show_headroom_pool_wm(self):
+        self.executor(testData['show_hdrm_pool_wm'])
 
     def test_show_pg_shared_peristent_wm(self):
         self.executor(testData['show_pg_pwm_shared'])
@@ -48,8 +54,14 @@ class TestWatermarkstat(object):
     def test_show_queue_multicast_persistent_wm(self):
         self.executor(testData['show_q_pwm_multicast'])
 
+    def test_show_queue_all_persistent_wm(self):
+        self.executor(testData['show_q_pwm_all'])
+
     def test_show_buffer_pool_persistent_wm(self):
         self.executor(testData['show_buffer_pool_pwm'])
+
+    def test_show_headroom_pool_persistent_wm(self):
+        self.executor(testData['show_hdrm_pool_pwm'])
 
     def executor(self, testcase):
         runner = CliRunner()

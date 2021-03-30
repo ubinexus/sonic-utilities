@@ -1,25 +1,37 @@
 #!/bin/bash
+DEVPATH="/usr/share/sonic/device"
+PLAT_REBOOT="platform_reboot"
+PLATFORM_UPDATE_REBOOT_CAUSE="platform_update_reboot_cause"
+REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
+REBOOT_TIME=$(date)
 
 # Reboot immediately if we run the kdump capture kernel
 VMCORE_FILE=/proc/vmcore
 if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
-   echo "We have a /proc/vmcore, then we just kdump'ed"
-   /sbin/reboot
+        echo "We have a /proc/vmcore, then we just kdump'ed"
+        echo "Kernel Panic [Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+        sync
+        PLATFORM=$(grep -oP 'sonic_platform=\K\S+' /proc/cmdline)
+        if [ ! -z "${PLATFORM}" -a -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
+            exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
+        fi
+        # If no platform-specific reboot tool, just run /sbin/reboot
+        /sbin/reboot
+        echo 1 > /proc/sys/kernel/sysrq
+        echo b > /proc/sysrq-trigger
 fi
 
 REBOOT_USER=$(logname)
-REBOOT_TIME=$(date)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
-DEVPATH="/usr/share/sonic/device"
-PLAT_REBOOT="platform_reboot"
-REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
+SUBTYPE=$(sonic-cfggen -d -v DEVICE_METADATA.localhost.subtype)
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 SSD_FW_UPDATE="ssd-fw-upgrade"
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
+TAG_LATEST=yes
 
 function debug()
 {
@@ -29,8 +41,22 @@ function debug()
     logger "$@"
 }
 
+function tag_images()
+{
+    if test -f /usr/local/bin/ctrmgr_tools.py
+    then
+        if [[ x"${TAG_LATEST}" == x"yes" ]]; then
+            /usr/local/bin/ctrmgr_tools.py tag-all
+        fi
+    fi
+}
+
 function stop_sonic_services()
 {
+    if [[ x"$SUBTYPE" == x"DualToR" ]]; then
+        debug "DualToR detected, stopping mux container before reboot..."
+        systemctl stop mux
+    fi
     if [[ x"$ASIC_TYPE" != x"mellanox" ]]; then
         debug "Stopping syncd process..."
         docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
@@ -101,6 +127,9 @@ function parse_options()
             v )
                 VERBOSE=yes
                 ;;
+            t )
+                TAG_LATEST=no
+                ;;
         esac
     done
 }
@@ -117,6 +146,9 @@ debug "User requested rebooting device ..."
 
 setup_reboot_variables
 reboot_pre_check
+
+# Tag remotely deployed images as local
+tag_images
 
 # Stop SONiC services gracefully.
 stop_sonic_services
@@ -139,6 +171,11 @@ fi
 if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
     debug "updating ssd fw for${REBOOT_TYPE}"
     ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
+fi
+
+if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE} ]; then
+    debug "updating reboot cause for ${PLATFORM}"
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE}
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then

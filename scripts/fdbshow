@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 """
     Script to show MAC/FDB entries learnt in Hardware
     
@@ -28,6 +29,29 @@
 import argparse
 import json
 import sys
+import os
+
+# mock the redis for unit test purposes #
+try: # pragma: no cover
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1": 
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+        mock_variants = { "1": 'asic_db',
+                          "2": 'asic_db_def_vlan',
+                          "3": 'asic_db_no_fdb',
+                          "4": 'asic_db_no_bridge',
+                          "5": 'asic_db_fetch_except'}
+        mock_db_path = os.path.join(test_path, "fdbshow_input")
+        file_name = mock_variants[os.environ["FDBSHOW_MOCK"]]
+        jsonfile_asic = os.path.join(mock_db_path, file_name)
+        mock_tables.dbconnector.dedicated_dbs['ASIC_DB'] = jsonfile_asic
+        jsonfile_counters = os.path.join(mock_db_path, 'counters_db')
+        mock_tables.dbconnector.dedicated_dbs['COUNTERS_DB'] = jsonfile_counters
+except KeyError: # pragma: no cover
+    pass
 
 from natsort import natsorted
 from swsssdk import port_util
@@ -41,7 +65,7 @@ class FdbShow(object):
 
     def __init__(self):
         super(FdbShow,self).__init__()
-        self.db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+        self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, \
         self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
@@ -55,12 +79,12 @@ class FdbShow(object):
         """
         self.db.connect(self.db.ASIC_DB)
         self.bridge_mac_list = []
+
+        if not self.if_br_oid_map:
+            return
         
         fdb_str = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
         if not fdb_str:
-            return
-
-        if self.if_br_oid_map is None:
             return
 
         oid_pfx = len("oid:0x")
@@ -71,8 +95,8 @@ class FdbShow(object):
                 continue
 
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
-            br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
-            ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
+            br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            ent_type = ent["SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
             if br_port_id not in self.if_br_oid_map:
                 continue
@@ -83,9 +107,16 @@ class FdbShow(object):
                 if_name = port_id
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
-            elif 'bvid' in fdb:
+            else:
+                if 'bvid' not in fdb:
+                    # no possibility to find the Vlan id. skip the FDB entry
+                    continue
                 try:
                     vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                    if vlan_id is None:
+                        # the situation could be faced if the system has an FDB entries,
+                        # which are linked to default Vlan(caused by untagged trafic)
+                        continue
                 except Exception:
                     vlan_id = fdb["bvid"]
                     print("Failed to get Vlan id for bvid {}\n".format(fdb["bvid"]))
@@ -95,15 +126,12 @@ class FdbShow(object):
         return
     
     
-    def get_iter_index(self, key_value=0, pos=0):
+    def get_iter_index(self, key_value, pos=0):
         """
             Get the starting index of matched entry
         """
         if pos != 0:
             self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[pos])
-
-        if key_value == 0:
-            return 0
 
         keys = [r[pos] for r in self.bridge_mac_list]
         return keys.index(key_value)
@@ -146,8 +174,8 @@ def main():
         fdb = FdbShow()
         fdb.display(args.vlan, args.port)
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     main()

@@ -14,13 +14,13 @@ try:
 
     # SONiC specific imports
     import sonic_yang
-    from swsssdk import ConfigDBConnector, port_util
-    from swsscommon.swsscommon import SonicV2Connector
+    from swsssdk import port_util
+    from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
     # since /usr/local/bin/sonic-cfggen does not have .py extension.
     load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    from sonic_cfggen import deep_update, FormatConverter, sort_data
+    from sonic_cfggen import deep_update, FormatConverter
 
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -77,7 +77,7 @@ class ConfigMgmt():
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
-            raise(Exception('ConfigMgmt Class creation failed'))
+            raise Exception('ConfigMgmt Class creation failed')
 
         return
 
@@ -126,7 +126,8 @@ class ConfigMgmt():
         try:
             self.sy.validate_data_tree()
         except Exception as e:
-            self.sysLog(msg='Data Validation Failed')
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR,
+                msg='Data Validation Failed')
             return False
 
         self.sysLog(msg='Data Validation successful', doPrint=True)
@@ -146,7 +147,8 @@ class ConfigMgmt():
         # log debug only if enabled
         if self.DEBUG == False and logLevel == syslog.LOG_DEBUG:
             return
-        if flags.interactive !=0 and doPrint == True:
+        # always print < Info level msg with doPrint flag
+        if doPrint == True and (logLevel < syslog.LOG_INFO or flags.interactive != 0):
             print("{}".format(msg))
         syslog.openlog(self.SYSLOG_IDENTIFIER)
         syslog.syslog(logLevel, msg)
@@ -168,7 +170,7 @@ class ConfigMgmt():
         self.configdbJsonIn = readJsonFile(source)
         #self.sysLog(msg=type(self.configdbJsonIn))
         if not self.configdbJsonIn:
-            raise(Exception("Can not load config from config DB json file"))
+            raise Exception("Can not load config from config DB json file")
         self.sysLog(msg='Reading Input {}'.format(self.configdbJsonIn))
 
         return
@@ -188,8 +190,8 @@ class ConfigMgmt():
         '''
         self.sysLog(doPrint=True, msg='Reading data from Redis configDb')
         # Read from config DB on sonic switch
-        db_kwargs = dict(); data = dict()
-        configdb = ConfigDBConnector(**db_kwargs)
+        data = dict()
+        configdb = ConfigDBConnector()
         configdb.connect()
         deep_update(data, FormatConverter.db_to_output(configdb.get_config()))
         self.configdbJsonIn =  FormatConverter.to_serialized(data)
@@ -209,11 +211,10 @@ class ConfigMgmt():
             void
         '''
         self.sysLog(doPrint=True, msg='Writing in Config DB')
-        db_kwargs = dict(); data = dict()
-        configdb = ConfigDBConnector(**db_kwargs)
+        data = dict()
+        configdb = ConfigDBConnector()
         configdb.connect(False)
         deep_update(data, FormatConverter.to_deserialized(jDiff))
-        data = sort_data(data)
         self.sysLog(msg="Write in DB: {}".format(data))
         configdb.mod_config(FormatConverter.output_to_db(data))
 
@@ -247,7 +248,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
-            raise(Exception('ConfigMgmtDPB Class creation failed'))
+            raise Exception('ConfigMgmtDPB Class creation failed')
 
         return
 
@@ -331,8 +332,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             if waitTime + 1 == timeout:
                 self.sysLog(syslog.LOG_CRIT, "!!!  Critical Failure, Ports \
                     are not Deleted from ASIC DB, Bail Out  !!!", doPrint=True)
-                raise(Exception("Ports are present in ASIC DB after {} secs".\
-                    format(timeout)))
+                raise Exception("Ports are present in ASIC DB after {} secs".format(timeout))
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
@@ -470,7 +470,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             (configToLoad, ret) (tuple)[dict, bool]
         '''
         configToLoad = None
-        ports = portJson['PORT'].keys()
+        ports = list(portJson['PORT'].keys())
         try:
             self.sysLog(doPrint=True, msg='Start Port Addition')
             self.sysLog(msg="addPorts Args portjson: {} loadDefConfig: {}".\
@@ -546,7 +546,7 @@ class ConfigMgmtDPB(ConfigMgmt):
                     pass
                 return
 
-            for it in D1.keys():
+            for it in D1:
                 # D2 has the key
                 if D2.get(it):
                     _mergeItems(D1[it], D2[it])
@@ -578,12 +578,11 @@ class ConfigMgmtDPB(ConfigMgmt):
         '''
         found = False
         if isinstance(In, dict):
-            for key in In.keys():
+            for key in In:
                 for skey in skeys:
                     # pattern is very specific to current primary keys in
                     # config DB, may need to be updated later.
-                    pattern = '^' + skey + '\|' + '|' + skey + '$' + \
-                        '|' + '^' + skey + '$'
+                    pattern = r'^{0}\||{0}$|^{0}$'.format(skey)
                     reg = re.compile(pattern)
                     if reg.search(key):
                         # In primary key, only 1 match can be found, so return
@@ -714,18 +713,31 @@ class ConfigMgmtDPB(ConfigMgmt):
             '''
             if isinstance(inp, dict):
                 # Example Case: diff = PORT': {delete: {u'Ethernet1': {...}}}}
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Delete Dict diff:{}".format(diff))
                 for key in diff:
                     # make sure keys from diff are present in inp but not in outp
                     if key in inp and key not in outp:
-                        # assign key to None(null), redis will delete entire key
-                        config[key] = None
+                        if type(inp[key]) == list:
+                            self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                                msg="Delete List key:{}".format(key))
+                            # assign current lists as empty.
+                            config[key] = []
+                        else:
+                            self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                                msg="Delete Dict key:{}".format(key))
+                            # assign key to None(null), redis will delete entire key
+                            config[key] = None
                     else:
                         # should not happen
                         raise Exception('Invalid deletion of {} in diff'.format(key))
 
             elif isinstance(inp, list):
-                # Example case: {u'VLAN': {u'Vlan100': {'members': {delete: [(95, 'Ethernet1')]}}
-                # just take list from outputs
+                # Example case: diff: [(3, 'Ethernet10'), (2, 'Ethernet8')]
+                # inp:['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
+                # outp:['Ethernet0', 'Ethernet4']
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Delete List diff: {} inp:{} outp:{}".format(diff, inp, outp))
                 config.extend(outp)
             return
 
@@ -735,9 +747,13 @@ class ConfigMgmtDPB(ConfigMgmt):
             '''
             if isinstance(outp, dict):
                 # Example Case: diff = PORT': {insert: {u'Ethernet1': {...}}}}
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Insert Dict diff:{}".format(diff))
                 for key in diff:
                     # make sure keys are only in outp
                     if key not in inp and key in outp:
+                        self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                            msg="Insert Dict key:{}".format(key))
                         # assign key in config same as outp
                         config[key] = outp[key]
                     else:
@@ -745,9 +761,17 @@ class ConfigMgmtDPB(ConfigMgmt):
                         raise Exception('Invalid insertion of {} in diff'.format(key))
 
             elif isinstance(outp, list):
-                # just take list from output
-                # Example case: {u'VLAN': {u'Vlan100': {'members': {insert: [(95, 'Ethernet1')]}}
+                # Example diff:[(2, 'Ethernet8'), (3, 'Ethernet10')]
+                # in:['Ethernet0', 'Ethernet4']
+                # out:['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Insert list diff:{} inp:{} outp:{}".format(diff, inp, outp))
                 config.extend(outp)
+                # configDb stores []->[""], i.e. empty list as list of empty
+                # string. While adding default config for newly created ports,
+                # inp can be [""], in that case remove it from delta config.
+                if inp == ['']:
+                    config.remove('');
             return
 
         def _recurCreateConfig(diff, inp, outp, config):

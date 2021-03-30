@@ -9,6 +9,7 @@ REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
+IGNORE_ASIC=no
 STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
@@ -19,6 +20,8 @@ PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 SSD_FW_UPDATE="ssd-fw-upgrade"
+TAG_LATEST=yes
+
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
 MIN_HD_SPACE_NEEDED=100000
@@ -44,7 +47,7 @@ function error()
 function debug()
 {
     if [[ x"${VERBOSE}" == x"yes" ]]; then
-        echo `date` $@
+        echo $(date) $@
     fi
     logger "$@"
 }
@@ -55,19 +58,21 @@ function showHelpAndExit()
     echo "    -h,-? : get this help"
     echo "    -v    : turn on verbose"
     echo "    -f    : force execution"
+    echo "    -i    : ignore MD5-checksum-verification of ASIC configuration files"
     echo "    -r    : reboot with /sbin/reboot"
     echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
     echo "    -c    : specify control plane assistant IP list"
     echo "    -s    : strict mode: do not proceed without:"
     echo "            - control plane assistant IP list."
+    echo "    -t    : Don't tag the current kube images as latest"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfh?rkxc:s" opt; do
+    while getopts "vfih?rkxc:s" opt; do
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -77,6 +82,9 @@ function parseOptions()
                 ;;
             f )
                 FORCE=yes
+                ;;
+            i )
+                IGNORE_ASIC=yes
                 ;;
             r )
                 REBOOT_METHOD="/sbin/reboot"
@@ -92,6 +100,9 @@ function parseOptions()
                 ;;
             s )
                 STRICT=yes
+                ;;
+            t )
+                TAG_LATEST=no
                 ;;
         esac
     done
@@ -117,10 +128,10 @@ function clear_warm_boot()
 {
     common_clear
 
-    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
     debug "Cancel warm-reboot: ${result}"
 
-    TIMESTAMP=`date +%Y%m%d-%H%M%S`
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
         mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
     fi
@@ -128,7 +139,7 @@ function clear_warm_boot()
 
 function init_warm_reboot_states()
 {
-    # If the current running instanace was booted up with warm reboot. Then
+    # If the current running instance was booted up with warm reboot. Then
     # the current DB contents will likely mark warm reboot is done.
     # Clear these states so that the next boot up image won't get confused.
     if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
@@ -144,7 +155,7 @@ function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
-    RESTORE_COUNT=`sonic-db-cli STATE_DB hget "${TABLE}" restore_count`
+    RESTORE_COUNT=$(sonic-db-cli STATE_DB hget "${TABLE}" restore_count)
     if [[ -z "$RESTORE_COUNT" ]]; then
         sonic-db-cli STATE_DB hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
@@ -154,31 +165,27 @@ function initialize_pre_shutdown()
 function request_pre_shutdown()
 {
     debug "Requesting pre-shutdown ..."
-    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null || {
+    STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
         error "Failed to request pre-shutdown"
-    }
+    fi
 }
 
-function recover_issu_bank_file_instruction()
+function recover_issu_bank_file()
 {
-    debug "To recover (${ISSU_BANK_FILE}) file, do the following:"
-    debug "$ docker exec -it syncd sx_api_dbg_generate_dump.py"
-    debug "$ docker exec -it syncd cat /tmp/sdkdump | grep 'ISSU Bank'"
-    debug "Command above will print the VALUE of ISSU BANK - 0 or 1, use this VALUE in the next command"
-    debug "$ printf VALUE > /host/warmboot/issu_bank.txt"
+    debug "Recovering the (${ISSU_BANK_FILE}) file"
+    docker exec -i syncd sx_api_dbg_generate_dump.py
+    issu_bank_value=`docker exec -i syncd cat /tmp/sdkdump | grep 'ISSU Bank' | grep -o -E '[0-9]+'`
+    printf $issu_bank_value > /host/warmboot/issu_bank.txt
 }
 
 function check_issu_bank_file()
 {
     ISSU_BANK_FILE=/host/warmboot/issu_bank.txt
-    MLNX_ISSU_BANK_BROKEN=102
 
     if [[ ! -s "$ISSU_BANK_FILE" ]]; then
         error "(${ISSU_BANK_FILE}) does NOT exist or empty ..."
-        recover_issu_bank_file_instruction
-        if [[ "$1" = true ]]; then
-            exit "${MLNX_ISSU_BANK_BROKEN}"
-        fi
+        recover_issu_bank_file
         return
     fi
 
@@ -188,10 +195,7 @@ function check_issu_bank_file()
     if [[ $issu_file_chars_count != 1 ]] ||
         [[ "$issu_file_content" != "0" && "$issu_file_content" != "1" ]]; then
         error "(${ISSU_BANK_FILE}) is broken ..."
-        recover_issu_bank_file_instruction
-        if [[ "$1" = true ]]; then
-            exit "${MLNX_ISSU_BANK_BROKEN}"
-        fi
+        recover_issu_bank_file
     fi
 }
 
@@ -202,18 +206,18 @@ function wait_for_pre_shutdown_complete_or_fail()
     STATE="requesting"
     declare -i waitcount
     declare -i retrycount
-    waitcount=0
     retrycount=0
+    start_time=$SECONDS
+    elapsed_time=$(($SECONDS - $start_time))
     # Wait up to 60 seconds for pre-shutdown to complete
-    while [[ ${waitcount} -lt 600 ]]; do
+    while [[ ${elapsed_time} -lt 60 ]]; do
         # timeout doesn't work with -i option of "docker exec". Therefore we have
         # to invoke docker exec directly below.
-        STATE=`timeout 5s sonic-db-cli STATE_DB hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
+        STATE=$(timeout 5s sonic-db-cli STATE_DB hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi)
 
         if [[ x"${STATE}" == x"timed out" ]]; then
-            waitcount+=50
             retrycount+=1
-            debug "Timed out getting pre-shutdown state (${waitcount}) retry count ${retrycount} ..."
+            debug "Timed out getting pre-shutdown state, retry count ${retrycount} ..."
             if [[ retrycount -gt 2 ]]; then
                 break
             fi
@@ -221,14 +225,14 @@ function wait_for_pre_shutdown_complete_or_fail()
             break
         else
             sleep 0.1
-            waitcount+=1
         fi
+        elapsed_time=$(($SECONDS - $start_time))
     done
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
-        debug "Syncd pre-shutdown failed: ${STATE} ..."
+        debug "Syncd pre-shutdown failed, state: ${STATE} ..."
     else
-        debug "Pre-shutdown succeeded ..."
+        debug "Pre-shutdown succeeded, state: ${STATE} ..."
     fi
 }
 
@@ -237,20 +241,29 @@ function backup_database()
     debug "Backing up database ..."
     # Dump redis content to a file 'dump.rdb' in warmboot directory
     mkdir -p $WARM_DIR
-    # Delete keys in stateDB except FDB_TABLE|*, MIRROR_SESSION_TABLE|*, WARM_RESTART_ENABLE_TABLE|*
+    # Delete keys in stateDB except FDB_TABLE|*, MIRROR_SESSION_TABLE|*, WARM_RESTART_ENABLE_TABLE|*, FG_ROUTE_TABLE|*
     sonic-db-cli STATE_DB eval "
         for _, k in ipairs(redis.call('keys', '*')) do
             if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
                                           and not string.match(k, 'MIRROR_SESSION_TABLE|') \
-                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') then
+                                          and not string.match(k, 'FG_ROUTE_TABLE|') \
+                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
+                                          and not string.match(k, 'VXLAN_TUNNEL_TABLE|') \
+                                          and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') then
                 redis.call('del', k)
             end
         end
     " 0 > /dev/null
-    sonic-db-cli SAVE > /dev/null
-    #TODO : need a script to copy all rdb files if there is multiple db instances config
-    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/redis/$REDIS_FILE
+
+    # move all db data into the instance where APPL_DB locates
+    target_db_inst=`centralize_database APPL_DB`
+
+    # Dump redis content to a file 'dump.rdb' in warmboot directory
+    docker cp database:/var/lib/$target_db_inst/$REDIS_FILE $WARM_DIR
+    STATE=$(timeout 5s docker exec database rm /var/lib/$target_db_inst/$REDIS_FILE; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
+        error "Timed out during attempting to remove Redis dump file from database container"
+    fi
 }
 
 function setup_control_plane_assistant()
@@ -300,10 +313,23 @@ function setup_reboot_variables()
     INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
+function check_docker_exec()
+{
+    containers="radv bgp lldp swss database teamd syncd"
+    for container in $containers; do
+        STATE=$(timeout 1s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
+        if [[ x"${STATE}" == x"timed out" ]]; then
+            error "Docker exec on $container timedout"
+            exit "${EXIT_FAILURE}"
+        fi
+    done
+}
+
 function reboot_pre_check()
 {
+    check_docker_exec
     # Make sure that the file system is normal: read-write able
-    filename="/host/test-`date +%Y%m%d-%H%M%S`"
+    filename="/host/test-$(date +%Y%m%d-%H%M%S)"
     if [[ ! -f ${filename} ]]; then
         touch ${filename}
     fi
@@ -332,7 +358,7 @@ function reboot_pre_check()
         ${ASIC_CONFIG_CHECK_SCRIPT} || ASIC_CONFIG_CHECK_EXIT_CODE=$?
 
         if [[ "${ASIC_CONFIG_CHECK_EXIT_CODE}" != "${ASIC_CONFIG_CHECK_SUCCESS}" ]]; then
-            if [[ x"${FORCE}" == x"yes" ]]; then
+            if [[ x"${IGNORE_ASIC}" == x"yes" ]]; then
                 debug "Ignoring ASIC config checksum failure..."
             else
                 error "ASIC config may have changed: errno=${ASIC_CONFIG_CHECK_EXIT_CODE}"
@@ -362,6 +388,38 @@ function unload_kernel()
     fi
 }
 
+function save_counters_folder() {
+    debug "Saving counters folder before warmboot..."
+
+    counters_folder="/host/counters"
+    if [[ ! -d $counters_folder ]]; then
+        mkdir $counters_folder
+    fi
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        modules=("portstat-0" "dropstat" "pfcstat-0" "queuestat-0" "intfstat-0")
+        for module in ${modules[@]}
+        do
+            statfile="/tmp/$module"
+            if [[ -d $statfile ]]; then
+                cp -rf $statfile $counters_folder
+            fi
+        done
+    fi
+}
+
+function check_warm_restart_in_progress() {
+    sonic-db-cli STATE_DB keys "WARM_RESTART_ENABLE_TABLE|*" | while read key ; do
+        if [ -n "$key" ] && [[ x"$(sonic-db-cli STATE_DB hget $key enable)" == x"true" ]]; then
+            if [[ x"${FORCE}" == x"yes" ]]; then
+                debug "Ignoring warm restart flag for ${key#*|}"
+            else
+                echo "Warm restart flag for ${key#*|} is set. Please check if a warm restart for ${key#*|} is in progress."
+                exit "${EXIT_FAILURE}"
+            fi
+        fi
+    done
+}
+
 # main starts here
 parseOptions $@
 
@@ -383,6 +441,7 @@ case "$REBOOT_TYPE" in
         sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
     "warm-reboot")
+        check_warm_restart_in_progress
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
             REBOOT_TYPE="fastfast-reboot"
             BOOT_TYPE_ARG="fastfast"
@@ -401,11 +460,20 @@ case "$REBOOT_TYPE" in
         ;;
 esac
 
+save_counters_folder
+
 unload_kernel
 
 setup_reboot_variables
 
 reboot_pre_check
+
+if test -f /usr/local/bin/ctrmgr_tools.py
+then
+    if [[ x"${TAG_LATEST}" == x"yes" ]]; then
+        /usr/local/bin/ctrmgr_tools.py tag-all
+    fi
+fi
 
 # Install new FW for mellanox platforms before control plane goes down
 # So on boot switch will not spend time to upgrade FW increasing the CP downtime
@@ -472,8 +540,8 @@ setup_control_plane_assistant
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     # Freeze orchagent for warm restart
     # Ask orchagent_restart_check to try freeze 5 times with interval of 2 seconds,
-    # it is possible that the orchagent is in transient state and no opportunity to be freezed
-    # Note: assume that 2*5 seconds is enough for orchagent to process the request and respone freeze or not
+    # it is possible that the orchagent is in transient state and no opportunity to freeze
+    # Note: assume that 2*5 seconds is enough for orchagent to process the request and response to freeze or not
     debug "Pausing orchagent ..."
     docker exec -i swss /usr/bin/orchagent_restart_check -w 2000 -r 5 > /dev/null || RESTARTCHECK_RC=$?
     if [[ RESTARTCHECK_RC -ne 0 ]]; then
@@ -486,12 +554,15 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     fi
 fi
 
-# We are fully committed to reboot from this point on becasue critical
+# We are fully committed to reboot from this point on because critical
 # service will go down and we cannot recover from it.
 set +e
 
+# disable trap-handlers which were set before
+trap '' EXIT HUP INT QUIT TERM KILL ABRT ALRM
+
 if [ -x ${LOG_SSD_HEALTH} ]; then
-    debug "Collecting logs to check ssd health before fast-reboot..."
+    debug "Collecting logs to check ssd health before ${REBOOT_TYPE}..."
     ${LOG_SSD_HEALTH}
 fi
 
@@ -503,7 +574,7 @@ docker kill nat > /dev/null || true
 systemctl stop nat
 debug "Stopped nat ..."
 
-# Kill radv before stopping BGP service to prevent annoucing our departure.
+# Kill radv before stopping BGP service to prevent announcing our departure.
 debug "Stopping radv service..."
 systemctl stop radv
 debug "Stopped radv service..."
@@ -513,25 +584,21 @@ debug "Stopping bgp ..."
 systemctl stop bgp
 debug "Stopped  bgp ..."
 
+# Kill sflow docker	
+debug "Stopping sflow ..."	
+container kill sflow &> /dev/null || debug "Docker sflow is not running ($?) ..."
+systemctl stop sflow
+debug "Stopped sflow ..."
+
 # Kill lldp, otherwise it sends informotion about reboot.
 # We call `docker kill lldp` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop lldp` to prevent the service from
 # restarting the container automatically.
-docker kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
+container kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
 systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # Kill teamd processes inside of teamd container with SIGUSR2 to allow them to send last LACP frames
-    # We call `docker kill teamd` to ensure the container stops as quickly as possible,
-    # then immediately call `systemctl stop teamd` to prevent the service from
-    # restarting the container automatically.
-    # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
     debug "Stopping teamd ..."
-    docker exec -i teamd pkill -USR2 teamd || [ $? == 1 ]
-    while docker exec -i teamd pgrep teamd > /dev/null; do
-      sleep 0.05
-    done
-    docker kill teamd &> /dev/null || debug "Docker teamd is not running ($?) ..."
     systemctl stop teamd
     debug "Stopped teamd ..."
 fi
@@ -540,14 +607,12 @@ debug "Stopping swss service ..."
 systemctl stop swss
 debug "Stopped swss service ..."
 
-# Pre-shutdown syncd
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    # Pre-shutdown syncd
     initialize_pre_shutdown
 
-    BEFORE_PRE_SHUTDOWN=true
-
     if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-        check_issu_bank_file "$BEFORE_PRE_SHUTDOWN"
+        check_issu_bank_file
     fi
 
     request_pre_shutdown
@@ -568,15 +633,10 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # TODO: backup_database preserves FDB_TABLE
     # need to cleanup as well for fastfast boot case
     backup_database
-fi
 
-# Stop teamd gracefully
-if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    # Stop teamd gracefully
     debug "Stopping teamd ..."
-    # Send USR1 signal to all teamd instances to stop them
-    # It will prepare teamd for warm-reboot
-    # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -USR1 teamd > /dev/null || [ $? == 1 ]
+    systemctl stop teamd
     debug "Stopped  teamd ..."
 fi
 
@@ -589,14 +649,19 @@ debug "Stopped  syncd ..."
 # then immediately call `systemctl stop ...` to prevent the service from
 # restarting the container automatically.
 debug "Stopping all remaining containers ..."
-for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
-    CONTAINER_STOP_RC=0
-    docker kill $CONTAINER_NAME &> /dev/null || CONTAINER_STOP_RC=$?
-    systemctl stop $CONTAINER_NAME || debug "Ignore stopping $CONTAINER_NAME error $?"
-    if [[ CONTAINER_STOP_RC -ne 0 ]]; then
-        debug "Failed killing container $CONTAINER_NAME RC $CONTAINER_STOP_RC ."
-    fi
-done
+if test -f /usr/local/bin/ctrmgr_tools.py
+then
+    /usr/local/bin/ctrmgr_tools.py kill-all
+else
+    for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
+        CONTAINER_STOP_RC=0
+        docker kill $CONTAINER_NAME &> /dev/null || CONTAINER_STOP_RC=$?
+        systemctl stop $CONTAINER_NAME || debug "Ignore stopping $CONTAINER_NAME error $?"
+        if [[ CONTAINER_STOP_RC -ne 0 ]]; then
+            debug "Failed killing container $CONTAINER_NAME RC $CONTAINER_STOP_RC ."
+        fi
+    done
+fi
 debug "Stopped all remaining containers ..."
 
 # Stop the docker container engine. Otherwise we will have a broken docker storage
@@ -660,7 +725,7 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
-# Reboot: explicity call Linux native reboot under sbin
+# Reboot: explicitly call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
 exec ${REBOOT_METHOD}
 

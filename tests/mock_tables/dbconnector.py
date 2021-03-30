@@ -1,16 +1,19 @@
 # MONKEY PATCH!!!
 import json
 import os
+import sys
+from unittest import mock
 
-import mock
 import mockredis
 import redis
 import swsssdk
 from sonic_py_common import multi_asic
-from swsssdk import SonicDBConfig, SonicV2Connector
+from swsssdk import SonicDBConfig, SonicV2Connector, ConfigDBConnector, ConfigDBPipeConnector
 from swsscommon import swsscommon
 
+
 topo = None
+dedicated_dbs = {}
 
 def clean_up_config():
     # Set SonicDBConfig variables to initial state
@@ -45,7 +48,12 @@ def connect_SonicV2Connector(self, db_name, retry_on=True):
     # add the namespace to kwargs for testing multi asic
     self.dbintf.redis_kwargs['namespace'] = self.namespace
     # Mock DB filename for unit-test
-    self.dbintf.redis_kwargs['db_name'] = db_name
+    global dedicated_dbs
+    if dedicated_dbs and dedicated_dbs.get(db_name):
+        self.dbintf.redis_kwargs['db_name'] = dedicated_dbs[db_name]
+    else:
+        self.dbintf.redis_kwargs['db_name'] = db_name
+    self.dbintf.redis_kwargs['decode_responses'] = True
     _old_connect_SonicV2Connector(self, db_name, retry_on)
 
 def _subscribe_keyspace_notification(self, db_name, client):
@@ -86,6 +94,7 @@ class SwssSyncClient(mockredis.MockRedis):
         topo = kwargs.pop('topo')
         namespace = kwargs.pop('namespace')
         db_name = kwargs.pop('db_name')
+        self.decode_responses = kwargs.pop('decode_responses', False) == True
         fname = db_name.lower() + ".json"
         self.pubsub = MockPubSub()
 
@@ -100,7 +109,7 @@ class SwssSyncClient(mockredis.MockRedis):
             with open(fname) as f:
                 js = json.load(f)
                 for k, v in js.items():
-                    if v.has_key('expireat') and v.has_key('ttl') and v.has_key('type') and v.has_key('value'):
+                    if 'expireat' in v and 'ttl' in v and 'type' in v and 'value' in v:
                         # database is in redis-dump format
                         if v['type'] == 'hash':
                             # ignore other types for now since sonic has hset keys only in the db
@@ -111,6 +120,17 @@ class SwssSyncClient(mockredis.MockRedis):
                             self.hset(k, attr, value)
 
     # Patch mockredis/mockredis/client.py
+    # The offical implementation assume decode_responses=False
+    # Here we detect the option and decode after doing encode
+    def _encode(self, value):
+        "Return a bytestring representation of the value. Taken from redis-py connection.py"
+
+        value = super(SwssSyncClient, self)._encode(value)
+
+        if self.decode_responses:
+           return value.decode('utf-8')
+
+    # Patch mockredis/mockredis/client.py
     # The official implementation will filter out keys with a slash '/'
     # ref: https://github.com/locationlabs/mockredis/blob/master/mockredis/client.py
     def keys(self, pattern='*'):
@@ -118,20 +138,12 @@ class SwssSyncClient(mockredis.MockRedis):
         import fnmatch
         import re
 
-        # making sure the pattern is unicode/str.
-        try:
-            pattern = pattern.decode('utf-8')
-            # This throws an AttributeError in python 3, or an
-            # UnicodeEncodeError in python 2
-        except (AttributeError, UnicodeEncodeError):
-            pass
-
         # Make regex out of glob styled pattern.
         regex = fnmatch.translate(pattern)
         regex = re.compile(regex)
 
         # Find every key that matches the pattern
-        return [key for key in self.redis.keys() if regex.match(key.decode('utf-8'))]
+        return [key for key in self.redis if regex.match(key)]
 
 
 swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification
@@ -139,3 +151,5 @@ mockredis.MockRedis.config_set = config_set
 redis.StrictRedis = SwssSyncClient
 SonicV2Connector.connect = connect_SonicV2Connector
 swsscommon.SonicV2Connector = SonicV2Connector
+swsscommon.ConfigDBConnector = ConfigDBConnector
+swsscommon.ConfigDBPipeConnector = ConfigDBPipeConnector

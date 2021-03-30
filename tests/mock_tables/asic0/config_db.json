@@ -108,6 +108,27 @@
         "BIG_RED_SWITCH": "enable",
         "POLL_INTERVAL": "199"
     },
+    "PORT_QOS_MAP|Ethernet0": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet4": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet8": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP0": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP4": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP256": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP260": {
+        "pfc_enable": "3,4"
+    },
     "CRM|Config": {
         "acl_table_threshold_type": "percentage",
         "nexthop_group_threshold_type": "percentage",
@@ -148,6 +169,39 @@
         "ipv6_route_low_threshold": "70",
         "acl_entry_high_threshold": "85",
         "fdb_entry_low_threshold": "70",
-        "ipv6_nexthop_high_threshold": "85"
+        "ipv6_nexthop_high_threshold": "85",
+        "snat_entry_threshold_type": "percentage",
+        "snat_entry_high_threshold": "85",
+        "snat_entry_low_threshold": "70",
+        "dnat_entry_threshold_type": "percentage",
+        "dnat_entry_high_threshold": "85",
+        "dnat_entry_low_threshold": "70",
+        "ipmc_entry_threshold_type": "percentage",
+        "ipmc_entry_high_threshold": "85",
+        "ipmc_entry_low_threshold": "70"
+    },
+    "MUX_CABLE|Ethernet32": {
+        "state": "auto",
+	"server_ipv4": "10.1.1.1",
+	"server_ipv6": "fc00::75"
+    },
+    "MUX_CABLE|Ethernet0": {
+        "state": "auto",
+	"server_ipv4": "10.2.1.1",
+	"server_ipv6": "e800::46"
+    },
+    "PEER_SWITCH|sonic" : {
+      "address_ipv4": "10.2.2.2"
+    },
+    "FEATURE|bgp": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "VLAN|Vlan1000": {
+        "vlanid": "1000"
+    },
+    "VLAN_MEMBER|Vlan1000|PortChannel1002": {
+        "tagging_mode": "tagged"
     }
 }
