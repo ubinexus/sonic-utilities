@@ -784,7 +784,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     return True
 
 def add_del_route(ctx, command_str, command):
-	if len(command_str) < 4 or len(command_str) > 9:
+    if len(command_str) < 4 or len(command_str) > 9:
         ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
     if "prefix" not in command_str:
         ctx.fail("argument is incomplete, prefix not found!")
