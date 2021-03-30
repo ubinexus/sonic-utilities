@@ -899,8 +899,9 @@ def add_del_route(ctx, command_str, command):
         else:
             ctx.fail("nexthop is not in pattern!")
     cmd += '"'
+    name = config_entry["prefix"] + '|' + config_entry["nexthop"]
     # Return cmd to vtysh, dictionary to CONFIG_DB and nexthop name
-    return {'cmd':cmd, 'config_dict':config_entry, 'name':nexthop_str[1]}
+    return {'cmd':cmd, 'config_dict':config_entry, 'name':name}
 
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
@@ -2778,6 +2779,7 @@ def del_vrf(ctx, vrf_name):
         del_interface_bind_to_vrf(config_db, vrf_name)
         config_db.set_entry('VRF', vrf_name, None)
 
+
 #
 # 'route' group ('config route ...')
 #
@@ -2795,6 +2797,7 @@ def route(ctx):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
 def update_route(ctx, verbose):
+    # Transfer static routes from CONFIG_DB to FRR
     config_db = ctx.obj['config_db']
     route_keys = config_db.get_keys("STATIC_ROUTE")
     for key in route_keys:
@@ -2817,6 +2820,7 @@ def update_route(ctx, verbose):
             argument.append(route['dev_name'])
 
         route = add_del_route(ctx, argument, 'add')
+        clicommon.run_command(route['cmd'])
         if verbose:
             click.echo('Added {} route'.format(route['name']))
 
@@ -2825,7 +2829,6 @@ def update_route(ctx, verbose):
 @click.pass_context
 def add_route(ctx, command_str):
     route = add_del_route(ctx, command_str, 'add')
-
     config_db = ctx.obj['config_db']
     config_db.set_entry("STATIC_ROUTE", route['name'], route['config_dict'])
     clicommon.run_command(route['cmd'])
@@ -2835,7 +2838,6 @@ def add_route(ctx, command_str):
 @click.pass_context
 def del_route(ctx, command_str):
     route = add_del_route(ctx, command_str, 'del')
-
     config_db = ctx.obj['config_db']
     config_db.set_entry("STATIC_ROUTE", route['name'], None)
     clicommon.run_command(route['cmd'])
