@@ -549,20 +549,20 @@ fi
 
 
 if [[ -f ${SHUTDOWN_ORDER_FILE} ]]; then
-    SERVICE_TO_STOP="$(cat ${SHUTDOWN_ORDER_FILE})"
+    SERVICES_TO_STOP="$(cat ${SHUTDOWN_ORDER_FILE})"
 else
     # TODO: to be removed once sonic-buildimage change is in
     if [[ "${REBOOT_TYPE}" == "fast-reboot" ]]; then
-        SERVICE_TO_STOP="nat radv bgp sflow lldp swss teamd syncd"
+        SERVICES_TO_STOP="nat radv bgp sflow lldp swss teamd syncd"
     elif [[ "${REBOOT_TYPE}" == "fastfast-reboot" || "${REBOOT_TYPE}" == "warm-reboot" ]]; then
-        SERVICE_TO_STOP="nat radv bgp sflow lldp teamd swss syncd"
+        SERVICES_TO_STOP="nat radv bgp sflow lldp teamd swss syncd"
     else
         error "Unexpected reboot type ${REBOOT_TYPE}"
         exit $EXIT_FAILURE
     fi
 fi
 
-for service in ${SERVICE_TO_STOP}; do
+for service in ${SERVICES_TO_STOP}; do
     debug "Stopping ${service} ..."
 
     # TODO: These exceptions for nat, sflow, lldp

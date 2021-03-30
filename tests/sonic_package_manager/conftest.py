@@ -93,6 +93,7 @@ def fake_metadata_resolver():
                         }
                      ],
             )
+            self.add('docker-syncd', 'latest', 'syncd', '1.0.0')
             self.add('docker-teamd', 'latest', 'teamd', '1.0.0',
                      components={
                          'libswsscommon': Version.parse('1.0.0'),
@@ -219,6 +220,16 @@ def fake_db(fake_metadata_resolver):
         'docker-orchagent',
         'latest',
         description='SONiC switch state service',
+        default_reference='1.0.0',
+        installed=True,
+        built_in=True
+    )
+    add_package(
+        content,
+        fake_metadata_resolver,
+        'docker-syncd',
+        'latest',
+        description='SONiC syncd service',
         default_reference='1.0.0',
         installed=True,
         built_in=True

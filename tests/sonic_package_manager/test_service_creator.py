@@ -31,6 +31,13 @@ def manifest():
             'dependent-of': ['swss'],
             'asic-service': False,
             'host-service': True,
+            'warm-shutdown': {
+                'before': ['syncd'],
+                'after': ['swss'],
+            },
+            'fast-shutdown': {
+                'before': ['swss'],
+            },
         },
         'container': {
             'privileged': True,
@@ -59,8 +66,8 @@ def test_service_creator(sonic_fs, manifest, package_manager, mock_feature_regis
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
-    installed_packages = package_manager.get_installed_packages().values()
-    creator.create(package, all_packages=installed_packages)
+    installed_packages = list(package_manager.get_installed_packages().values()) + [package]
+    creator.create(package, installed_packages)
 
     assert sonic_fs.exists(os.path.join(ETC_SONIC_PATH, 'swss_dependent'))
     assert sonic_fs.exists(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, 'test.sh'))
@@ -72,8 +79,8 @@ def test_service_creator(sonic_fs, manifest, package_manager, mock_feature_regis
         with open(os.path.join(ETC_SONIC_PATH, name)) as file:
             return file.read()
 
-    assert read_file('warm-reboot_order') == 'swss teamd syncd'
-    assert read_file('fast-reboot_order') == 'teamd swss syncd'
+    assert read_file('warm-reboot_order') == 'swss teamd test syncd'
+    assert read_file('fast-reboot_order') == 'teamd test swss syncd'
     assert read_file('test_reconcile') == 'test-process test-process-3'
 
 
@@ -81,13 +88,13 @@ def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_regist
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
-    creator.create(package)
+    creator.create(package, [])
 
     assert not sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.timer'))
 
     manifest['service']['delayed'] = True
     package = Package(entry, Metadata(manifest))
-    creator.create(package)
+    creator.create(package, [])
 
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.timer'))
 
@@ -96,13 +103,13 @@ def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_regist
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
-    creator.create(package)
+    creator.create(package, [])
 
     assert not sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
     manifest['package']['debug-dump'] = '/some/command'
     package = Package(entry, Metadata(manifest))
-    creator.create(package)
+    creator.create(package, [])
 
     assert sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
@@ -118,7 +125,7 @@ def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registr
 
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
-    creator.create(package)
+    creator.create(package, [])
 
     assert not sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
@@ -132,7 +139,7 @@ def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registr
     }
     package = Package(entry, Metadata(manifest))
 
-    creator.create(package)
+    creator.create(package, [])
 
     mock_table.set.assert_called_with('key_a', [('field_1', 'value_1'),
                                                 ('field_2', 'original_value_2')])

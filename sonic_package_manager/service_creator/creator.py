@@ -94,7 +94,7 @@ def run_command(command: str):
                             shell=True,
                             executable='/bin/bash',
                             stdout=subprocess.PIPE)
-    (out, _) = proc.communicate()
+    (_, _) = proc.communicate()
     if proc.returncode != 0:
         raise ServiceCreatorError(f'Failed to execute "{command}"')
 
@@ -109,11 +109,23 @@ class ServiceCreator:
 
     def create(self,
                package: Package,
-               all_packages: List[Package] = None,
-               register_feature=True,
-               state='enabled',
-               owner='local'):
-        all_packages = all_packages or []
+               all_packages: List[Package],
+               register_feature: bool = True,
+               state: str = 'enabled',
+               owner: str = 'local'):
+        """ Register package as SONiC service. 
+        
+        Args:
+            package: Package object to install.
+            all_packages: List of installed packages.
+            register_feature: Wether to register this package in FEATURE table.
+            state: Default feature state.
+            owner: Default feature owner.
+
+        Returns:
+            None
+        """
+
         try:
             self.generate_container_mgmt(package)
             self.generate_service_mgmt(package)
@@ -125,20 +137,31 @@ class ServiceCreator:
 
             self.set_initial_config(package)
 
-            self.post_operation_hook(all_packages)
+            self.post_operation_hook(all_packages + [package])
 
             if register_feature:
                 self.feature_registry.register(package.manifest,
                                                state, owner)
         except (Exception, KeyboardInterrupt):
-            self.remove(package, not register_feature)
+            self.remove(package, all_packages + [package],
+                        deregister_feature=not register_feature)
             raise
 
     def remove(self,
                package: Package,
-               all_packages: List[Package] = None,
-               deregister_feature=True):
-        all_packages = all_packages or []
+               all_packages: List[Package],
+               deregister_feature: bool = True):
+        """ Uninstall SONiC service provided by the package.
+        
+        Args:
+            package: Package object to uninstall.
+            all_packages: List of installed packages.
+            deregister_feature: Wether to deregister this package from FEATURE table.
+
+        Returns:
+            None
+        """
+
         name = package.manifest['service']['name']
 
         def remove_file(path):
@@ -156,6 +179,8 @@ class ServiceCreator:
 
         self.update_dependent_list_file(package, remove=True)
 
+        # remove package that is going to be uninstalled from installed list
+        all_packages.remove(package)
         self.post_operation_hook(all_packages)
 
         if deregister_feature:
@@ -314,13 +339,27 @@ class ServiceCreator:
         render_template(scrip_template, script_path, render_ctx, executable=True)
         log.info(f'generated {script_path}')
 
-    def generate_shutdown_sequence(self, installed_packages, reboot_type):
+    def generate_shutdown_sequence(self, all_packages, reboot_type):
         shutdown_graph = defaultdict(set)
-        for package in installed_packages:
-            after = set(package.manifest['service'][f'{reboot_type}-shutdown']['after'])
-            before = set(package.manifest['service'][f'{reboot_type}-shutdown']['before'])
+
+        def service_exists(service):
+            for package in all_packages:
+                if package.manifest['service']['name'] == service:
+                    return True
+            log.info(f'Service {service} is not installed, it is skipped...')
+            return False
+
+        def filter_not_available(services):
+            return set(filter(service_exists, services))
+
+        for package in all_packages:
+            service_props = package.manifest['service']
+            after = filter_not_available(service_props[f'{reboot_type}-shutdown']['after'])
+            before = filter_not_available(service_props[f'{reboot_type}-shutdown']['before'])
+
             if not after and not before:
                 continue
+
             name = package.manifest['service']['name']
             shutdown_graph[name].update(after)
 
@@ -332,7 +371,7 @@ class ServiceCreator:
         try:
             order = toposort_flatten(shutdown_graph)
         except CircularDependencyError as err:
-            raise ServiceCreatorError(f'Circular dependency found in {reboot_type} shutdown graph: {err}')
+            raise ServiceCreatorError(f'Circular dependency found in {reboot_type} error: {err}')
 
         log.debug(f'shutdown order {pformat(order)}')
         return order
@@ -348,8 +387,8 @@ class ServiceCreator:
 
     def generate_service_reconciliation_file(self, package):
         name = package.manifest['service']['name']
-        processes = [process['name'] for process in package.manifest['processes']
-                     if process['reconciles']]
+        all_processes = package.manifest['processes']
+        processes = [process['name'] for process in all_processes if process['reconciles']]
         with open(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'), 'w') as file:
             file.write(' '.join(processes))
 

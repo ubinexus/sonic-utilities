@@ -4,7 +4,14 @@ import functools
 import os
 import pkgutil
 import tempfile
-from typing import Any, Iterable, Callable, Dict, Optional
+from typing import (
+    Any,
+    Iterable,
+    List,
+    Callable,
+    Dict,
+    Optional,
+)
 
 import docker
 import filelock
@@ -345,12 +352,12 @@ class PackageManager:
                 exit_stack.callback(rollback_wrapper(source.uninstall, package))
 
                 self.service_creator.create(package,
-                                            installed_packages.values(),
+                                            self.get_installed_packages().values(),
                                             state=feature_state,
                                             owner=default_owner)
                 exit_stack.callback(rollback_wrapper(self.service_creator.remove,
                                                      package,
-                                                     installed_packages.values()))
+                                                     self.get_installed_packages().values()))
 
                 if not skip_cli_plugin_installation:
                     self._install_cli_plugins(package)
@@ -404,7 +411,7 @@ class PackageManager:
 
         try:
             self._uninstall_cli_plugins(package)
-            self.service_creator.remove(package, installed_packages.values())
+            self.service_creator.remove(package, self.get_installed_packages().values())
 
             # Clean containers based on this image
             containers = self.docker.ps(filters={'ancestor': package.image_id}, all=True)
@@ -515,11 +522,11 @@ class PackageManager:
                                                          old_package, 'start'))
 
                 self.service_creator.remove(old_package,
-                                            installed_packages.values(),
+                                            self.get_installed_packages().values(),
                                             deregister_feature=False)
                 exit_stack.callback(rollback_wrapper(self.service_creator.create,
                                                      old_package,
-                                                     installed_packages.values(),
+                                                     self.get_installed_packages().values(),
                                                      register_feature=False))
 
                 # This is no return point, after we start removing old Docker images
@@ -533,7 +540,7 @@ class PackageManager:
                 self.docker.rmi(old_package.image_id, force=True)
 
                 self.service_creator.create(new_package,
-                                            installed_packages.values(),
+                                            self.get_installed_packages().values(),
                                             register_feature=False)
 
                 if self.feature_registry.is_feature_enabled(new_feature):
@@ -793,9 +800,18 @@ class PackageManager:
         """
 
         return {
-            entry.name: self.get_installed_package(entry.name)
-            for entry in self.database if entry.installed
+            entry.name: entry for entry in self.get_installed_packages_list()
         }
+
+    def get_installed_packages_list(self) -> List[Package]:
+        """ Returns a list of installed packages.
+
+        Returns:
+            Installed packages dictionary.
+        """
+
+        return [self.get_installed_package(entry.name) 
+                for entry in self.database if entry.installed]
 
     def _migrate_package_database(self, old_package_database: PackageDatabase):
         """ Performs part of package migration process.
