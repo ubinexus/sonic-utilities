@@ -315,18 +315,16 @@ class ServiceCreator:
         log.info(f'generated {script_path}')
 
     def generate_shutdown_sequence(self, installed_packages, reboot_type):
-        shutdown_graph = dict()
+        shutdown_graph = defaultdict(set)
         for package in installed_packages:
             after = set(package.manifest['service'][f'{reboot_type}-shutdown']['after'])
             before = set(package.manifest['service'][f'{reboot_type}-shutdown']['before'])
             if not after and not before:
                 continue
             name = package.manifest['service']['name']
-            shutdown_graph.setdefault(name, set())
             shutdown_graph[name].update(after)
 
             for service in before:
-                shutdown_graph.setdefault(service, set())
                 shutdown_graph[service].update({name})
 
         log.debug(f'shutdown graph {pformat(shutdown_graph)}')
