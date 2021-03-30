@@ -747,7 +747,7 @@ def download(fwfile, port):
 
     elif port == "all" and port is not None:
 
-        rc = True
+        rc = CONFIG_SUCCESSFUL
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for key in port_table_keys[asic_id]:
@@ -761,12 +761,9 @@ def download(fwfile, port):
                 status = perform_download_firmware(physical_port, fwfile)
 
                 if status is not True:
-                    rc = False
+                    rc = CONFIG_FAIL
 
-        if rc:
-            sys.exit(CONFIG_SUCCESSFUL)
-        else:
-            sys.exit(CONFIG_FAIL)
+        sys.exit(rc)
 
 
 @firmware.command()
@@ -800,7 +797,7 @@ def activate(port):
 
     elif port == "all" and port is not None:
 
-        rc = True
+        rc = CONFIG_SUCCESSFUL
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for key in port_table_keys[asic_id]:
@@ -813,13 +810,9 @@ def activate(port):
                 status = perform_activate_firmware(physical_port)
 
                 if status is not True:
-                    rc = False
+                    rc = CONFIG_FAIL
 
-        if rc:
-            sys.exit(CONFIG_SUCCESSFUL)
-        else:
-            sys.exit(CONFIG_FAIL)
-
+        sys.exit(rc)
 
 @firmware.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
@@ -852,7 +845,7 @@ def rollback(port):
 
     elif port == "all" and port is not None:
 
-        rc = True
+        rc = CONFIG_SUCCESSFUL
         for namespace in namespaces:
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for key in port_table_keys[asic_id]:
@@ -864,9 +857,6 @@ def rollback(port):
                 status = perform_rollback_firmware(physical_port)
 
                 if status is not True:
-                    rc = False
+                    rc = CONFIG_FAIL
 
-        if rc:
-            sys.exit(CONFIG_SUCCESSFUL)
-        else:
-            sys.exit(CONFIG_FAIL)
+        sys.exit(rc)
