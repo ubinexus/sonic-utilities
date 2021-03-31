@@ -795,6 +795,7 @@ def add_del_route(ctx, command_str, command):
             prefix_str = command_str[:i]
             nexthop_str = command_str[i:]
     vrf_name = ""
+    prefix_mask = ""
     config_entry = {}
 
     if command == 'add':
@@ -806,12 +807,10 @@ def add_del_route(ctx, command_str, command):
         if len(prefix_str) == 2:
             prefix_mask = prefix_str[1]
             cmd += ' {}'.format(prefix_mask)
-            config_entry["prefix"] = prefix_mask
         elif len(prefix_str) == 4:
             vrf_name = prefix_str[2]
             prefix_mask = prefix_str[3]
             cmd += ' {}'.format(prefix_mask)
-            config_entry["prefix"] = prefix_mask
         else:
             ctx.fail("prefix is not in pattern!")
     if nexthop_str:
@@ -848,9 +847,8 @@ def add_del_route(ctx, command_str, command):
         else:
             ctx.fail("nexthop is not in pattern!")
     cmd += '"'
-    name = config_entry["prefix"] + '|' + config_entry["nexthop"]
     # Return cmd to vtysh, dictionary to CONFIG_DB and nexthop name
-    return {'cmd':cmd, 'config_dict':config_entry, 'name':name}
+    return {'cmd':cmd, 'config_dict':config_entry, 'name':prefix_mask}
 
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
@@ -3235,28 +3233,27 @@ def update_route(ctx, verbose):
     config_db = ctx.obj['config_db']
     route_keys = config_db.get_keys("STATIC_ROUTE")
     for key in route_keys:
-        route = config_db.get_entry("STATIC_ROUTE", key)
+        entry = config_db.get_entry("STATIC_ROUTE", key)
 
         argument = ['prefix']
-        if 'vrf' in route:
+        if 'vrf' in entry:
             argument.append('vrf')
-            argument.append(route['vrf'])
-        if 'prefix' in route:
-            argument.append(route['prefix'])
+            argument.append(entry['vrf'])
+        argument.append(key)
         argument.append('nexthop')
-        if 'nexthop_vrf' in route:
+        if 'nexthop_vrf' in entry:
             argument.append('vrf')
-            argument.append(route['nexthop_vrf'])
-        if 'nexthop' in route:
-            argument.append(route['nexthop'])
-        if 'dev_name' in route:
+            argument.append(entry['nexthop_vrf'])
+        if 'nexthop' in entry:
+            argument.append(entry['nexthop'])
+        if 'dev_name' in entry:
             argument.append('dev')
-            argument.append(route['dev_name'])
+            argument.append(entry['dev_name'])
 
         route = add_del_route(ctx, argument, 'add')
         clicommon.run_command(route['cmd'])
         if verbose:
-            click.echo('Added {} route'.format(route['name']))
+            click.echo('Added static route {}'.format(route['name']))
 
 @route.command('add', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
