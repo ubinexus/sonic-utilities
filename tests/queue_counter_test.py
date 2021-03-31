@@ -43,6 +43,16 @@ Ethernet0   MC16              63                4           48            76
 Ethernet0   MC17              41               73           77            74
 Ethernet0   MC18              60               21           56            54
 Ethernet0   MC19              57               31           12            39
+Ethernet0  ALL20             N/A              N/A          N/A           N/A
+Ethernet0  ALL21             N/A              N/A          N/A           N/A
+Ethernet0  ALL22             N/A              N/A          N/A           N/A
+Ethernet0  ALL23             N/A              N/A          N/A           N/A
+Ethernet0  ALL24             N/A              N/A          N/A           N/A
+Ethernet0  ALL25             N/A              N/A          N/A           N/A
+Ethernet0  ALL26             N/A              N/A          N/A           N/A
+Ethernet0  ALL27             N/A              N/A          N/A           N/A
+Ethernet0  ALL28             N/A              N/A          N/A           N/A
+Ethernet0  ALL29             N/A              N/A          N/A           N/A
 
      Port    TxQ    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
 ---------  -----  --------------  ---------------  -----------  ------------
@@ -66,6 +76,16 @@ Ethernet4   MC16              51               15           15            32
 Ethernet4   MC17              98               18           23            15
 Ethernet4   MC18              41               34            9            57
 Ethernet4   MC19              57                7           18            99
+Ethernet4  ALL20             N/A              N/A          N/A           N/A
+Ethernet4  ALL21             N/A              N/A          N/A           N/A
+Ethernet4  ALL22             N/A              N/A          N/A           N/A
+Ethernet4  ALL23             N/A              N/A          N/A           N/A
+Ethernet4  ALL24             N/A              N/A          N/A           N/A
+Ethernet4  ALL25             N/A              N/A          N/A           N/A
+Ethernet4  ALL26             N/A              N/A          N/A           N/A
+Ethernet4  ALL27             N/A              N/A          N/A           N/A
+Ethernet4  ALL28             N/A              N/A          N/A           N/A
+Ethernet4  ALL29             N/A              N/A          N/A           N/A
 
      Port    TxQ    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
 ---------  -----  --------------  ---------------  -----------  ------------
@@ -89,6 +109,16 @@ Ethernet8   MC16              30               17           74            43
 Ethernet8   MC17               0               63           54            84
 Ethernet8   MC18              69               88           24            79
 Ethernet8   MC19              20               12           84             3
+Ethernet8  ALL20             N/A              N/A          N/A           N/A
+Ethernet8  ALL21             N/A              N/A          N/A           N/A
+Ethernet8  ALL22             N/A              N/A          N/A           N/A
+Ethernet8  ALL23             N/A              N/A          N/A           N/A
+Ethernet8  ALL24             N/A              N/A          N/A           N/A
+Ethernet8  ALL25             N/A              N/A          N/A           N/A
+Ethernet8  ALL26             N/A              N/A          N/A           N/A
+Ethernet8  ALL27             N/A              N/A          N/A           N/A
+Ethernet8  ALL28             N/A              N/A          N/A           N/A
+Ethernet8  ALL29             N/A              N/A          N/A           N/A
 
 """
 
@@ -116,12 +146,82 @@ Ethernet8   MC16              30               17           74            43
 Ethernet8   MC17               0               63           54            84
 Ethernet8   MC18              69               88           24            79
 Ethernet8   MC19              20               12           84             3
+Ethernet8  ALL20             N/A              N/A          N/A           N/A
+Ethernet8  ALL21             N/A              N/A          N/A           N/A
+Ethernet8  ALL22             N/A              N/A          N/A           N/A
+Ethernet8  ALL23             N/A              N/A          N/A           N/A
+Ethernet8  ALL24             N/A              N/A          N/A           N/A
+Ethernet8  ALL25             N/A              N/A          N/A           N/A
+Ethernet8  ALL26             N/A              N/A          N/A           N/A
+Ethernet8  ALL27             N/A              N/A          N/A           N/A
+Ethernet8  ALL28             N/A              N/A          N/A           N/A
+Ethernet8  ALL29             N/A              N/A          N/A           N/A
 
 """
 
 show_queue_counters_json = """\
 {
   "Ethernet0": {
+    "ALL20": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL21": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL22": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL23": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL24": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL25": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL26": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL27": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL28": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL29": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
     "MC10": {
       "dropbytes": "9",
       "droppacket": "74",
@@ -244,6 +344,66 @@ show_queue_counters_json = """\
     }
   },
   "Ethernet4": {
+    "ALL20": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL21": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL22": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL23": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL24": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL25": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL26": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL27": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL28": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL29": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
     "MC10": {
       "dropbytes": "82",
       "droppacket": "57",
@@ -366,6 +526,66 @@ show_queue_counters_json = """\
     }
   },
   "Ethernet8": {
+    "ALL20": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL21": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL22": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL23": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL24": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL25": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL26": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL27": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL28": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL29": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
     "MC10": {
       "dropbytes": "73",
       "droppacket": "76",
@@ -492,6 +712,66 @@ show_queue_counters_json = """\
 show_queue_counters_port_json = """\
 {
   "Ethernet8": {
+    "ALL20": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL21": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL22": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL23": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL24": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL25": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL26": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL27": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL28": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
+    "ALL29": {
+      "dropbytes": "N/A",
+      "droppacket": "N/A",
+      "totalbytes": "N/A",
+      "totalpacket": "N/A"
+    },
     "MC10": {
       "dropbytes": "73",
       "droppacket": "76",
