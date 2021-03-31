@@ -143,7 +143,7 @@ class ServiceCreator:
                 self.feature_registry.register(package.manifest,
                                                state, owner)
         except (Exception, KeyboardInterrupt):
-            self.remove(package, all_packages + [package],
+            self.remove(package, all_packages,
                         deregister_feature=not register_feature)
             raise
 
@@ -179,8 +179,8 @@ class ServiceCreator:
 
         self.update_dependent_list_file(package, remove=True)
 
-        # remove package that is going to be uninstalled from installed list
-        all_packages.remove(package)
+        # make sure package that is going to be uninstalled is not in installed list.
+        with contextlib.suppress(ValueError): all_packages.remove(package)
         self.post_operation_hook(all_packages)
 
         if deregister_feature:
