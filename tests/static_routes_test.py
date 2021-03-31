@@ -42,10 +42,10 @@ class TestStaticRoutes(object):
 
         # config route add prefix 2.2.3.4/32 nexthop 30.0.0.6
         result = runner.invoke(config.config.commands["route"].commands["add"], \
-        ["prefix", "vrf", "VRFblue", "2.2.3.4/32", "nexthop", "30.0.0.6"], obj=obj)
+        ["prefix", "vrf", "Vrfblue", "2.2.3.4/32", "nexthop", "30.0.0.6"], obj=obj)
         print(result.exit_code, result.output)
         assert ('2.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
-        assert db.cfgdb.get_entry('STATIC_ROUTE', '2.2.3.4/32') == {"nexthop": "30.0.0.6", "vrf": "VRFblue"}
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '2.2.3.4/32') == {"nexthop": "30.0.0.6", "vrf_name": "Vrfblue"}
 
     def test_add_dest_vrf_static_route(self):
         db = Db()
@@ -54,10 +54,10 @@ class TestStaticRoutes(object):
 
         # config route add prefix 3.2.3.4/32 nexthop 30.0.0.6
         result = runner.invoke(config.config.commands["route"].commands["add"], \
-        ["prefix", "3.2.3.4/32", "nexthop", "vrf", "VRFred", "30.0.0.6"], obj=obj)
+        ["prefix", "3.2.3.4/32", "nexthop", "vrf", "Vrfred", "30.0.0.6"], obj=obj)
         print(result.exit_code, result.output)
         assert ('3.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
-        assert db.cfgdb.get_entry('STATIC_ROUTE', '3.2.3.4/32') == {"nexthop": "30.0.0.6", "nexthop_vrf": "VRFred"}
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '3.2.3.4/32') == {"nexthop": "30.0.0.6", "nexthop_vrf": "Vrfred"}
 
     '''Del'''
     def test_del_simple_static_route(self):
@@ -78,7 +78,7 @@ class TestStaticRoutes(object):
 
         # config route del prefix 2.2.3.4/32 nexthop 30.0.0.6
         result = runner.invoke(config.config.commands["route"].commands["del"], \
-        ["prefix", "vrf", "VRFblue", "2.2.3.4/32", "nexthop", "30.0.0.6"], obj=obj)
+        ["prefix", "vrf", "Vrfblue", "2.2.3.4/32", "nexthop", "30.0.0.6"], obj=obj)
         print(result.exit_code, result.output)
         assert not ('2.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
 
@@ -89,7 +89,7 @@ class TestStaticRoutes(object):
 
         # config route del prefix 3.2.3.4/32 nexthop 30.0.0.6
         result = runner.invoke(config.config.commands["route"].commands["del"], \
-        ["prefix", "3.2.3.4/32", "nexthop", "vrf", "VRFred", "30.0.0.6"], obj=obj)
+        ["prefix", "3.2.3.4/32", "nexthop", "vrf", "Vrfred", "30.0.0.6"], obj=obj)
         print(result.exit_code, result.output)
         assert not ('3.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
 

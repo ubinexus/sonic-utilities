@@ -809,6 +809,8 @@ def add_del_route(ctx, command_str, command):
             cmd += ' {}'.format(prefix_mask)
         elif len(prefix_str) == 4:
             vrf_name = prefix_str[2]
+            if not vrf_name.startswith("Vrf"):
+                ctx.fail("vrf is not start with Vrf")
             prefix_mask = prefix_str[3]
             cmd += ' {}'.format(prefix_mask)
         else:
@@ -822,7 +824,7 @@ def add_del_route(ctx, command_str, command):
             else:
                 cmd += ' {} vrf {}'.format(ip, vrf_name)
                 config_entry["nexthop"] = ip
-                config_entry["vrf"] = vrf_name
+                config_entry["vrf_name"] = vrf_name
         elif len(nexthop_str) == 3:
             dev_name = nexthop_str[2]
             if vrf_name == "":
@@ -831,9 +833,11 @@ def add_del_route(ctx, command_str, command):
             else:
                 cmd += ' {} vrf {}'.format(dev_name, vrf_name)
                 config_entry["dev_name"] = dev_name
-                config_entry["vrf"] = vrf_name
+                config_entry["vrf_name"] = vrf_name
         elif len(nexthop_str) == 4:
             vrf_name_dst = nexthop_str[2]
+            if not vrf_name_dst.startswith("Vrf"):
+                ctx.fail("vrf is not start with Vrf")
             ip = nexthop_str[3]
             if vrf_name == "":
                 cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
@@ -842,7 +846,7 @@ def add_del_route(ctx, command_str, command):
             else:
                 cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
                 config_entry["nexthop"] = ip
-                config_entry["vrf"] = vrf_name
+                config_entry["vrf_name"] = vrf_name
                 config_entry["nexthop_vrf"] = vrf_name_dst
         else:
             ctx.fail("nexthop is not in pattern!")
@@ -3236,9 +3240,9 @@ def update_route(ctx, verbose):
         entry = config_db.get_entry("STATIC_ROUTE", key)
 
         argument = ['prefix']
-        if 'vrf' in entry:
+        if 'vrf_name' in entry:
             argument.append('vrf')
-            argument.append(entry['vrf'])
+            argument.append(entry['vrf_name'])
         argument.append(key)
         argument.append('nexthop')
         if 'nexthop_vrf' in entry:
