@@ -5,11 +5,10 @@ from typing import Optional, List, Dict, Any
 
 from sonic_package_manager.constraint import (
     ComponentConstraints,
-    PackageConstraint,
-    VersionConstraint
+    PackageConstraint
 )
 from sonic_package_manager.errors import ManifestError
-from sonic_package_manager.version import Version, VersionRange
+from sonic_package_manager.version import Version
 
 
 class ManifestSchema:
