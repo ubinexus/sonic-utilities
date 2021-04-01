@@ -59,7 +59,13 @@ def test_manifest_v1_mounts_invalid():
 
 def test_manifest_v1_unmarshal():
     manifest_json_input = {'package': {'name': 'test', 'version': '1.0.0',
-                                       'depends': ['swss>1.0.0']},
+                                       'depends': [
+                                           {
+                                               'name': 'swss',
+                                               'version': '>1.0.0',
+                                               'components': {},
+                                           }
+                                        ]},
                            'service': {'name': 'test'}}
     manifest = Manifest.marshal(manifest_json_input)
     manifest_json = manifest.unmarshal()

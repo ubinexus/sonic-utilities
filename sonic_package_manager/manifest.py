@@ -54,6 +54,8 @@ class ManifestSchema:
 
         def unmarshal(self, value):
             try:
+                if hasattr(value, 'deparse'):
+                    return value.deparse()
                 return str(value)
             except Exception as err:
                 raise ManifestError(f'Failed to unmarshal {value}: {err}')
