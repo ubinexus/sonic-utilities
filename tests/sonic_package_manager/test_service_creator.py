@@ -8,11 +8,7 @@ from sonic_package_manager.database import PackageEntry
 from sonic_package_manager.manifest import Manifest
 from sonic_package_manager.metadata import Metadata
 from sonic_package_manager.package import Package
-from sonic_package_manager.service_creator.creator import (
-    ServiceCreator,
-    ETC_SONIC_PATH, DOCKER_CTL_SCRIPT_LOCATION,
-    SERVICE_MGMT_SCRIPT_LOCATION, SYSTEMD_LOCATION, MONIT_CONF_LOCATION, DEBUG_DUMP_SCRIPT_LOCATION
-)
+from sonic_package_manager.service_creator.creator import *
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 
 
@@ -51,7 +47,6 @@ def test_service_creator(sonic_fs, manifest, mock_feature_registry, mock_sonic_d
     assert sonic_fs.exists(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.service'))
-    assert sonic_fs.exists(os.path.join(MONIT_CONF_LOCATION, 'monit_test'))
 
 
 def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):

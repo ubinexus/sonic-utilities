@@ -184,9 +184,7 @@ class ManifestSchema:
             ManifestArray('tmpfs', DefaultMarshaller(str)),
         ]),
         ManifestArray('processes', ManifestRoot('processes', [
-            ManifestField('critical', DefaultMarshaller(bool)),
             ManifestField('name', DefaultMarshaller(str)),
-            ManifestField('command', DefaultMarshaller(str)),
         ])),
         ManifestRoot('cli', [
             ManifestField('mandatory', DefaultMarshaller(bool), False),

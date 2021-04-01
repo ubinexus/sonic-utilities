@@ -337,12 +337,10 @@ def sonic_fs(fs):
     fs.create_dir(SYSTEMD_LOCATION)
     fs.create_dir(DOCKER_CTL_SCRIPT_LOCATION)
     fs.create_dir(SERVICE_MGMT_SCRIPT_LOCATION)
-    fs.create_dir(MONIT_CONF_LOCATION)
     fs.create_file(os.path.join(TEMPLATES_PATH, SERVICE_FILE_TEMPLATE))
     fs.create_file(os.path.join(TEMPLATES_PATH, TIMER_UNIT_TEMPLATE))
     fs.create_file(os.path.join(TEMPLATES_PATH, SERVICE_MGMT_SCRIPT_TEMPLATE))
     fs.create_file(os.path.join(TEMPLATES_PATH, DOCKER_CTL_SCRIPT_TEMPLATE))
-    fs.create_file(os.path.join(TEMPLATES_PATH, MONIT_CONF_TEMPLATE))
     fs.create_file(os.path.join(TEMPLATES_PATH, DEBUG_DUMP_SCRIPT_TEMPLATE))
     yield fs
 

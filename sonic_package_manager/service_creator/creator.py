@@ -25,9 +25,6 @@ SERVICE_MGMT_SCRIPT_LOCATION = '/usr/local/bin'
 DOCKER_CTL_SCRIPT_TEMPLATE = 'docker_image_ctl.j2'
 DOCKER_CTL_SCRIPT_LOCATION = '/usr/bin'
 
-MONIT_CONF_TEMPLATE = 'monit.conf.j2'
-MONIT_CONF_LOCATION = '/etc/monit/conf.d/'
-
 DEBUG_DUMP_SCRIPT_TEMPLATE = 'dump.sh.j2'
 DEBUG_DUMP_SCRIPT_LOCATION = '/usr/local/bin/debug-dump/'
 
@@ -116,7 +113,6 @@ class ServiceCreator:
             self.generate_service_mgmt(package)
             self.update_dependent_list_file(package)
             self.generate_systemd_service(package)
-            self.generate_monit_conf(package)
             self.generate_dump_script(package)
 
             self.set_initial_config(package)
@@ -138,7 +134,6 @@ class ServiceCreator:
                 os.remove(path)
                 log.info(f'removed {path}')
 
-        remove_file(os.path.join(MONIT_CONF_LOCATION, f'monit_{name}'))
         remove_file(os.path.join(SYSTEMD_LOCATION, f'{name}.service'))
         remove_file(os.path.join(SYSTEMD_LOCATION, f'{name}@.service'))
         remove_file(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh'))
@@ -155,7 +150,6 @@ class ServiceCreator:
     def post_operation_hook(self):
         if not in_chroot():
             run_command('systemctl daemon-reload')
-            run_command('systemctl reload monit')
 
     def generate_container_mgmt(self, package: Package):
         image_id = package.image_id
@@ -242,16 +236,6 @@ class ServiceCreator:
                 template_vars['multi_instance'] = True
                 render_template(template, output_file, template_vars)
                 log.info(f'generated {output_file}')
-
-    def generate_monit_conf(self, package: Package):
-        name = package.manifest['service']['name']
-        processes = package.manifest['processes']
-        output_filename = os.path.join(MONIT_CONF_LOCATION, f'monit_{name}')
-        render_template(get_tmpl_path(MONIT_CONF_TEMPLATE), output_filename,
-                        {'source': get_tmpl_path(MONIT_CONF_TEMPLATE),
-                         'feature': name,
-                         'processes': processes})
-        log.info(f'generated {output_filename}')
 
     def update_dependent_list_file(self, package: Package, remove=False):
         name = package.manifest['service']['name']

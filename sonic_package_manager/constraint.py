@@ -137,4 +137,3 @@ class PackageConstraint:
             return PackageConstraint.from_dict(constraint)
         else:
             raise ValueError('Input argument should be either str or dict')
-
