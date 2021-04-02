@@ -117,7 +117,7 @@ class portconfig(object):
         if adv_speeds != 'all':
             supported_speeds_str = self.get_supported_speeds(port)
             if supported_speeds_str:
-                supported_speeds = set([x for x in supported_speeds_str.split(',')])
+                supported_speeds = set(supported_speeds_str.split(','))
                 config_speeds = set(adv_speeds.split(','))
                 invalid_speeds = config_speeds - supported_speeds
                 if invalid_speeds:
