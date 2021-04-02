@@ -2369,9 +2369,9 @@ def autoneg(ctx, interface_name, mode, verbose):
     log.log_info("'interface autoneg {} {}' executing...".format(interface_name, mode))
 
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
-        command = "portconfig -p {} -a {}".format(interface_name, mode)
+        command = "portconfig -p {} -an {}".format(interface_name, mode)
     else:
-        command = "portconfig -p {} -a {} -n {}".format(interface_name, mode, ctx.obj['namespace'])
+        command = "portconfig -p {} -an {} -n {}".format(interface_name, mode, ctx.obj['namespace'])
 
     if verbose:
         command += " -vv"

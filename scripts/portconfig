@@ -16,6 +16,10 @@ optional arguments:
   -f     --fec                 port fec mode
   -m     --mtu                 port mtu in bytes
   -n     --namesapce           Namespace name
+  -an    --autoneg             port auto negotiation mode
+  -S     --adv-speeds          port advertised speeds
+  -t     --interface-type      port interface type
+  -T     --adv-interface-types port advertised interface types
 """
 import os
 import sys
@@ -166,14 +170,14 @@ def main():
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
                         help = 'The asic namespace whose DB instance we need to connect', default=None)
-    parser.add_argument('-a', '--autoneg', type = str, required = False,
-                        help = 'port auto negotiation value', default=None)
+    parser.add_argument('-an', '--autoneg', type = str, required = False,
+                        help = 'port auto negotiation mode', default=None)
     parser.add_argument('-S', '--adv-speeds', type = str, required = False,
-                        help = 'port advertised speeds value', default=None)
+                        help = 'port advertised speeds', default=None)
     parser.add_argument('-t', '--interface-type', type = str, required = False,
-                        help = 'port interface type value', default=None)
+                        help = 'port interface type', default=None)
     parser.add_argument('-T', '--adv-interface-types', type = str, required = False,
-                        help = 'port advertised interface types value', default=None)
+                        help = 'port advertised interface types', default=None)
     args = parser.parse_args()
 
     if args.namespace is not None:
