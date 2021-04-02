@@ -85,8 +85,8 @@ class portconfig(object):
         supported_speeds_str = self.get_supported_speeds(port)
         if supported_speeds_str:
             if supported_speeds_str.find(str(speed)) == -1:
-                print('Invalid speed value specified: {}'.format(speed))
-                print('Valid speed value:{}'.format(supported_speeds_str))
+                print('Invalid speed specified: {}'.format(speed))
+                print('Valid speeds:{}'.format(supported_speeds_str))
                 exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
@@ -114,11 +114,12 @@ class portconfig(object):
             supported_speeds_str = self.get_supported_speeds(port)
             if supported_speeds_str:
                 supported_speeds = set([x for x in supported_speeds_str.split(',')])
-                for speed in adv_speeds.split(','):
-                    if speed not in supported_speeds:
-                        print('Invalid speed value specified: {}'.format(speed))
-                        print('Valid speed value:{}'.format(supported_speeds_str))
-                        exit(1)
+                config_speeds = set(adv_speeds.split(','))
+                invalid_speeds = config_speeds - supported_speeds
+                if invalid_speeds:
+                    print('Invalid speed specified: {}'.format(','.join(invalid_speeds)))
+                    print('Valid speeds:{}'.format(supported_speeds_str))
+                    exit(1)
 
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
 
@@ -126,8 +127,8 @@ class portconfig(object):
         if self.verbose:
             print("Setting interface_type %s on port %s" % (interface_type, port))
         if interface_type not in VALID_INTERFACE_TYPE_SET:
-            print("Invalid interface type value specified: {}".format(interface_type))
-            print("Valid interface type:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
+            print("Invalid interface type specified: {}".format(interface_type))
+            print("Valid interface types:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
             exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
 
@@ -136,19 +137,19 @@ class portconfig(object):
             print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
         
         if adv_interface_types != 'all':
-            interface_type_list = adv_interface_types.split(',')
-            for interface_type in interface_type_list:
-                if interface_type not in VALID_INTERFACE_TYPE_SET:
-                    print("Invalid interface type value specified: {}".format(interface_type))
-                    print("Valid interface type:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
-                    exit(1)
+            config_interface_types = set(adv_interface_types.split(','))
+            invalid_interface_types = config_interface_types - VALID_INTERFACE_TYPE_SET
+            if invalid_interface_types:
+                print("Invalid interface type specified: {}".format(','.join(invalid_interface_types)))
+                print("Valid interface types:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
+                exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME: adv_interface_types})
     
     def get_supported_speeds(self, port):
         if not self.namespace:
             state_db = SonicV2Connector(host="127.0.0.1")
         else:
-            state_db = SonicV2Connector(host="127.0.0.1", namesapce=namesapce, use_unix_socket_path=True)
+            state_db = SonicV2Connector(host="127.0.0.1", namesapce=self.namespace, use_unix_socket_path=True)
         state_db.connect(state_db.STATE_DB)
         return state_db.get(state_db.STATE_DB, '{}|{}'.format(PORT_STATE_TABLE_NAME, port), PORT_STATE_SUPPORTED_SPEEDS)
 
@@ -165,14 +166,14 @@ def main():
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
                         help = 'The asic namespace whose DB instance we need to connect', default=None)
-    parser.add_argument('-an', '--autoneg', type = str, required = False,
-                        help = 'port auto negotiation value in str', default=None)
+    parser.add_argument('-a', '--autoneg', type = str, required = False,
+                        help = 'port auto negotiation value', default=None)
     parser.add_argument('-S', '--adv-speeds', type = str, required = False,
-                        help = 'port advertised speeds value in str', default=None)
+                        help = 'port advertised speeds value', default=None)
     parser.add_argument('-t', '--interface-type', type = str, required = False,
-                        help = 'port interface type value in str', default=None)
+                        help = 'port interface type value', default=None)
     parser.add_argument('-T', '--adv-interface-types', type = str, required = False,
-                        help = 'port advertised interface types value in str', default=None)
+                        help = 'port advertised interface types value', default=None)
     args = parser.parse_args()
 
     if args.namespace is not None:

@@ -39,8 +39,8 @@ class TestConfigInterface(object):
         self.basic_check("speed", ["Invalid", "40000"], ctx, operator.ne)
         # 50000 is not a supported speed
         result = self.basic_check("speed", ["Ethernet0", "50000"], ctx, operator.ne)
-        assert 'Invalid speed value' in result.output
-        assert 'Valid speed value:' in result.output
+        assert 'Invalid speed' in result.output
+        assert 'Valid speeds:' in result.output
         self.basic_check("speed", ["Ethernet0", "invalid"], ctx, operator.ne)
 
     def test_config_adv_speeds(self, ctx):
@@ -48,20 +48,24 @@ class TestConfigInterface(object):
         self.basic_check("advertised-speeds", ["Ethernet0", "all"], ctx)
         self.basic_check("advertised-speeds", ["Invalid", "40000,100000"], ctx, operator.ne)
         result = self.basic_check("advertised-speeds", ["Ethernet0", "50000,100000"], ctx, operator.ne)
-        assert 'Invalid speed value' in result.output
-        assert 'Valid speed value:' in result.output
+        assert 'Invalid speed' in result.output
+        assert 'Valid speeds:' in result.output
 
     def test_config_type(self, ctx):
         self.basic_check("type", ["Ethernet0", "CR4"], ctx)
         self.basic_check("type", ["Invalid", "CR4"], ctx, operator.ne)
-        self.basic_check("type", ["Ethernet0", "Invalid"], ctx, operator.ne)
         self.basic_check("type", ["Ethernet0", ""], ctx, operator.ne)
+        result = self.basic_check("type", ["Ethernet0", "Invalid"], ctx, operator.ne)
+        assert 'Invalid interface type specified' in result.output
+        assert 'Valid interface types:' in result.output
 
     def test_config_adv_types(self, ctx):
         self.basic_check("advertised-types", ["Ethernet0", "CR4,KR4"], ctx)
         self.basic_check("advertised-types", ["Ethernet0", "all"], ctx)
         self.basic_check("advertised-types", ["Invalid", "CR4,KR4"], ctx, operator.ne)
-        self.basic_check("advertised-types", ["Ethernet0", "CR4,Invalid"], ctx, operator.ne)
+        result = self.basic_check("advertised-types", ["Ethernet0", "CR4,Invalid"], ctx, operator.ne)
+        assert 'Invalid interface type specified' in result.output
+        assert 'Valid interface types:' in result.output
         self.basic_check("advertised-types", ["Ethernet0", ""], ctx, operator.ne)
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):

@@ -560,7 +560,7 @@ class IntfAutoNegStatus(object):
             key = re.split(':', i, maxsplit=1)[-1].strip()
             if key in self.front_panel_ports_list:
                 if self.multi_asic.skip_display(constants.PORT_OBJ, key):
-                        continue
+                    continue
                 autoneg_mode = appl_db_port_status_get(self.db, key, PORT_AUTONEG)
                 if autoneg_mode != 'N/A':
                     autoneg_mode = 'enabled' if autoneg_mode == 'on' else 'disabled'
@@ -586,7 +586,7 @@ class IntfAutoNegStatus(object):
 def main():
     parser = argparse.ArgumentParser(description='Display Interface information',
                                      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-c', '--command', type=str, help='get interface status or description or autoneg status', default=None)
+    parser.add_argument('-c', '--command', type=str, help='get interface status or description or auto negotiation status', default=None)
     parser.add_argument('-i', '--interface', type=str, help='interface information for specific port: Ethernet0', default=None)
     parser = multi_asic_util.multi_asic_args(parser)
     args = parser.parse_args()

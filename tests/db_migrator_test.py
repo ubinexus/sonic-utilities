@@ -204,7 +204,7 @@ class TestAutoNegMigrator(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
 
-    def test_mellanox_buffer_migrator_negative_cold_reboot(self):
+    def test_port_autoneg_migrator(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'port-an-input')
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)

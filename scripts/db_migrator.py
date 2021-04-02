@@ -482,7 +482,7 @@ class DBMigrator():
 
     def version_2_0_0(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_0.
         """
         log.log_info('Handling version_2_0_0')
         self.migrate_config_db_port_table_for_auto_neg()
@@ -490,6 +490,9 @@ class DBMigrator():
         return 'version_2_0_1'
 
     def version_2_0_1(self):
+        """
+        Current latest version. Nothing to do here.
+        """
         log.log_info('Handling version_2_0_1')
         return None
 
