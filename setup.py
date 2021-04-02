@@ -167,7 +167,8 @@ setup(
     install_requires=[
         'click-default-group',
         'click',
-        'natsort'
+        'natsort',
+        'deepdiff==5.2.3'
     ],
     setup_requires= [
         'pytest-runner'
