@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 from .mock_tables import dbconnector
 from . import show_ip_route_common
@@ -56,18 +56,47 @@ def get_cmd_module():
 
     return (config, show)
 
+def set_mock_apis():
+    import config.main as config
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    config.asic_type = mock.MagicMock(return_value="broadcom")
+    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
 
 @pytest.fixture
-def setup_single_broacom_asic():
+def setup_qos_mock_apis():
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    device_info.get_paths_to_platform_and_hwsku_dirs = mock.MagicMock(
+        return_value=(
+            os.path.join(cwd, "."), os.path.join(cwd, "qos_config_input")
+        )
+    )
+    device_info.get_sonic_version_file = mock.MagicMock(
+        return_value=os.path.join(cwd, "qos_config_input/sonic_version.yml")
+    )
+
+@pytest.fixture
+def setup_single_broadcom_asic():
     import config.main as config
     import show.main as show
 
+    set_mock_apis()
     device_info.get_num_npus = mock.MagicMock(return_value=1)
     config._get_sonic_generated_services = \
         mock.MagicMock(return_value=(generated_services_list, []))
 
-    config.asic_type = mock.MagicMock(return_value="broadcom")
-    config._get_device_type = mock.MagicMock(return_value="ToRRouter")
+
+@pytest.fixture
+def setup_multi_broadcom_masic():
+    import config.main as config
+    import show.main as show
+
+    set_mock_apis()
+    device_info.get_num_npus = mock.MagicMock(return_value=2)
+
+    yield
+
+    device_info.get_num_npus = mock.MagicMock(return_value=1)
+
 
 @pytest.fixture
 def setup_t1_topo():
@@ -141,8 +170,10 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = 'ip_empty_route.json'
     elif request.param == 'ip_specific_route_on_1_asic':
         m_asic_json_file = 'ip_special_route_asic0_only.json'
+    elif request.param == 'ip_route_summary':
+        m_asic_json_file = 'ip_route_summary.txt'
     else:
-        bgp_mocked_json = os.path.join(
+        m_asic_json_file = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
 
     def mock_run_bgp_command(vtysh_cmd, bgp_namespace):

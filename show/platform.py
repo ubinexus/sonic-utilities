@@ -33,15 +33,9 @@ def platform():
     pass
 
 
-version_info = device_info.get_sonic_version_info()
-if (version_info and version_info.get('asic_type') == 'mellanox'):
-    from . import mlnx
-    platform.add_command(mlnx.mlnx)
-
-
 # 'summary' subcommand ("show platform summary")
 @platform.command()
-@click.option('--json', is_flag=True, help="JSON output")
+@click.option('--json', is_flag=True, help="Output in JSON format")
 def summary(json):
     """Show hardware platform information"""
 
@@ -69,13 +63,17 @@ def syseeprom(verbose):
 # 'psustatus' subcommand ("show platform psustatus")
 @platform.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
+@click.option('--json', is_flag=True, help="Output in JSON format")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def psustatus(index, verbose):
+def psustatus(index, json, verbose):
     """Show PSU status information"""
     cmd = "psushow -s"
 
     if index >= 0:
         cmd += " -i {}".format(index)
+
+    if json:
+        cmd += " -j"
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -133,7 +131,7 @@ def temperature():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def firmware(args):
     """Show firmware information"""
-    cmd = "fwutil show {}".format(" ".join(args))
+    cmd = "sudo fwutil show {}".format(" ".join(args))
 
     try:
         subprocess.check_call(cmd, shell=True)

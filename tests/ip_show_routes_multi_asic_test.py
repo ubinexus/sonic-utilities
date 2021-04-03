@@ -1,4 +1,5 @@
 import os
+from importlib import reload
 
 import pytest
 
@@ -16,6 +17,7 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         from .mock_tables import mock_multi_asic_3_asics
+        reload(mock_multi_asic_3_asics)
         from .mock_tables import dbconnector
         dbconnector.load_namespace_config()
 
@@ -88,20 +90,6 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_ip_route_common.show_ipv6_route_multi_asic_specific_route_output
-
-    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
-                             ['ip_route'], indirect=['setup_multi_asic_bgp_instance'])
-    def test_show_multi_asic_ip_route_tables_option_err(
-            self,
-            setup_ip_route_commands,
-            setup_multi_asic_bgp_instance):
-        show = setup_ip_route_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["route"], ["tables"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_multi_asic_invalid_tables_cmd_err_output
 
     # note that we purposely use the single bgp instance setup to cause trigger a param error bad 
     # just bail out while executing in multi-asic show ipv6 route handling.
@@ -218,13 +206,25 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         assert result.exit_code == 0
         assert result.output == "" 
 
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['ip_route_summary'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_show_multi_asic_ip_route_summay(
+            self,
+            setup_ip_route_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["route"], ["summary"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ip_route_common.show_ip_route_summary_expected_output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
-        import imp
-        from sonic_py_common import multi_asic
-        imp.reload(multi_asic)
-        import mock_tables.dbconnector
+        from .mock_tables import mock_single_asic
+        reload(mock_single_asic)
