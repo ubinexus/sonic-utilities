@@ -156,6 +156,24 @@ class ConfigMgmt():
 
         return
 
+    def _filterTablesInConfig(self, config):
+        """
+            Check if any table should not be considered in Input Config, remove
+            such table from Input Config.
+            Parameters:
+                config(dict): Input Config
+            Returns:
+                void
+        """
+        # nonConfigTables should not be considered in Input Config.
+        nonConfigTables = ['BREAKOUT_CFG']
+        for t in nonConfigTables:
+            if t in config.keys():
+                self.sysLog(msg='Filtering {}'.format(t))
+                del config[t]
+
+        return
+
     def readConfigDBJson(self, source=CONFIG_DB_JSON_FILE):
         '''
         Read the config from a Config File.
@@ -172,7 +190,7 @@ class ConfigMgmt():
         if not self.configdbJsonIn:
             raise Exception("Can not load config from config DB json file")
         self.sysLog(msg='Reading Input {}'.format(self.configdbJsonIn))
-
+        self._filterTablesInConfig(self.configdbJsonIn)
         return
 
     """
@@ -197,7 +215,7 @@ class ConfigMgmt():
         self.configdbJsonIn =  FormatConverter.to_serialized(data)
         self.sysLog(syslog.LOG_DEBUG, 'Reading Input from ConfigDB {}'.\
             format(self.configdbJsonIn))
-
+        self._filterTablesInConfig(self.configdbJsonIn)
         return
 
     def writeConfigDB(self, jDiff):
