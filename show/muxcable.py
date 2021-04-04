@@ -8,6 +8,7 @@ import utilities_common.cli as clicommon
 from natsort import natsorted
 from sonic_py_common import multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from swsscommon import swsscommon
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
 
@@ -822,125 +823,20 @@ def switchmode(port):
             sys.exit(EXIT_FAIL)
 
 
-def create_result_dict(physical_port, mux_info_dict, result_dict):
-
-    import sonic_y_cable.y_cable
-    read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
-
-    version_build_slot1_nic = mux_info_dict[("version_slot1_nic".format(side))] + \
-        mux_info_dict[("build_slot1_nic".format(side))]
-    version_build_slot2_nic = mux_info_dict[("version_slot2_nic".format(side))] + \
-        mux_info_dict[("build_slot2_nic".format(side))]
-    version_build_slot1_tor1 = mux_info_dict[("version_slot1_tor1".format(side))] + \
-        mux_info_dict[("build_slot1_tor1".format(side))]
-    version_build_slot2_tor1 = mux_info_dict[("version_slot2_tor1".format(side))] + \
-        mux_info_dict[("build_slot2_tor1".format(side))]
-    version_build_slot1_tor2 = mux_info_dict[("version_slot1_tor2".format(side))] + \
-        mux_info_dict[("build_slot1_tor2".format(side))]
-    version_build_slot2_tor2 = mux_info_dict[("version_slot2_tor2".format(side))] + \
-        mux_info_dict[("build_slot2_tor2".format(side))]
-
-    if read_side == 1:
-        if mux_info_dict[("run_slot1_tor1".format(side))] == "True":
-            # slot 1 is active for self
-            result_dict["version_self_active"] = version_build_slot1_tor1
-            result_dict["version_self_inactive"] = version_build_slot2_tor1
-        elif mux_info_dict[("run_slot2_tor1".format(side))] == "True":
-            # slot 2 is active for self
-            result_dict["version_self_active"] = version_build_slot2_tor1
-            result_dict["version_self_inactive"] = version_build_slot1_tor1
-
-        if mux_info_dict[("run_slot1_tor2".format(side))] == "True":
-            # slot 1 is active for peer
-            result_dict["version_peer_active"] = version_build_slot1_tor2
-            result_dict["version_peer_inactive"] = version_build_slot2_tor2
-        elif mux_info_dict[("run_slot2_tor2".format(side))] == "True":
-            # slot 2 is active for peer
-            result_dict["version_peer_active"] = version_build_slot2_tor2
-            result_dict["version_peer_inactive"] = version_build_slot1_tor2
-
-        if mux_info_dict[("commit_slot1_tor1".format(side))] == "True":
-            result_dict["version_self_next"] = version_build_slot1_tor1
-        elif mux_info_dict[("commit_slot2_tor1".format(side))] == "True":
-            result_dict["version_self_next"] = version_build_slot2_tor1
-
-        if mux_info_dict[("commit_slot1_tor2".format(side))] == "True":
-            result_dict["version_peer_next"] = version_build_slot1_tor2
-        elif mux_info_dict[("commit_slot2_tor2".format(side))] == "True":
-            result_dict["version_peer_next"] = version_build_slot2_tor2
-
-    elif read_side == 2:
-        if mux_info_dict[("run_slot1_tor2".format(side))] == "True":
-            # slot 1 is active for self
-            result_dict["version_self_active"] = version_build_slot1_tor2
-            result_dict["version_self_inactive"] = version_build_slot2_tor2
-        elif mux_info_dict[("run_slot2_tor2".format(side))] == "True":
-            # slot 2 is active for self
-            result_dict["version_self_active"] = version_build_slot2_tor2
-            result_dict["version_self_inactive"] = version_build_slot1_tor2
-
-        if mux_info_dict[("run_slot1_tor1".format(side))] == "True":
-            # slot 1 is active for peer
-            result_dict["version_peer_active"] = version_build_slot1_tor1
-            result_dict["version_peer_inactive"] = version_build_slot2_tor1
-        elif mux_info_dict[("run_slot2_tor1".format(side))] == "True":
-            # slot 2 is active for peer
-            result_dict["version_peer_active"] = version_build_slot2_tor1
-            result_dict["version_peer_inactive"] = version_build_slot1_tor1
-
-        if mux_info_dict[("commit_slot1_tor2".format(side))] == "True":
-            result_dict["version_self_next"] = version_build_slot1_tor2
-        elif mux_info_dict[("commit_slot2_tor2".format(side))] == "True":
-            result_dict["version_self_next"] = version_build_slot2_tor2
-
-        if mux_info_dict[("commit_slot1_tor1".format(side))] == "True":
-            result_dict["version_peer_next"] = version_build_slot1_tor1
-        elif mux_info_dict[("commit_slot2_tor1".format(side))] == "True":
-            result_dict["version_peer_next"] = version_build_slot2_tor1
-
-    if mux_info_dict[("run_slot1_nic".format(side))] == "True":
-        # slot 1 is active for self
-        result_dict["version_nic_active"] = version_build_slot1_nic
-        result_dict["version_nic_inactive"] = version_build_slot2_nic
-    elif mux_info_dict[("run_slot2_nic".format(side))] == "True":
-        # slot 2 is active for self
-        result_dict["version_nic_active"] = version_build_slot2_nic
-        result_dict["version_nic_inactive"] = version_build_slot1_nic
-
-    if mux_info_dict[("commit_slot1_nic".format(side))] == "True":
-        result_dict["version_nic_next"] = version_build_slot1_nic
-    elif mux_info_dict[("commit_slot2_nic".format(side))] == "True":
-        result_dict["version_nic_next"] = version_build_slot2_nic
-
-
 def get_firmware_dict(physical_port, target, side, mux_info_dict):
 
     import sonic_y_cable.y_cable
     result = sonic_y_cable.y_cable.get_firmware_version(physical_port, target)
 
     if result is not None and isinstance(result, dict):
-        mux_info_dict[("build_slot1_{}".format(side))] = result.get("build_slot1", None)
-        mux_info_dict[("version_slot1_{}".format(side))] = result.get("version_slot1", None)
-        mux_info_dict[("build_slot2_{}".format(side))] = result.get("build_slot2", None)
-        mux_info_dict[("version_slot2_{}".format(side))] = result.get("version_slot2", None)
-        mux_info_dict[("run_slot1_{}".format(side))] = result.get("run_slot1", None)
-        mux_info_dict[("run_slot2_{}".format(side))] = result.get("run_slot2", None)
-        mux_info_dict[("commit_slot1_{}".format(side))] = result.get("commit_slot1", None)
-        mux_info_dict[("commit_slot2_{}".format(side))] = result.get("commit_slot2", None)
-        mux_info_dict[("empty_slot1_{}".format(side))] = result.get("empty_slot1", None)
-        mux_info_dict[("empty_slot2_{}".format(side))] = result.get("empty_slot2", None)
+        mux_info_dict[("version_{}_active".format(side))] = result.get("version_active", None)
+        mux_info_dict[("version_{}_inactive".format(side))] = result.get("version_inactive", None)
+        mux_info_dict[("version_{}_next".format(side))] = result.get("version_next", None)
 
     else:
-        mux_info_dict[("build_slot1_{}".format(side))] = "N/A"
-        mux_info_dict[("version_slot1_{}".format(side))] = "N/A"
-        mux_info_dict[("build_slot2_{}".format(side))] = "N/A"
-        mux_info_dict[("version_slot2_{}".format(side))] = "N/A"
-        mux_info_dict[("run_slot1_{}".format(side))] = "N/A"
-        mux_info_dict[("run_slot2_{}".format(side))] = "N/A"
-        mux_info_dict[("commit_slot1_{}".format(side))] = "N/A"
-        mux_info_dict[("commit_slot2_{}".format(side))] = "N/A"
-        mux_info_dict[("empty_slot1_{}".format(side))] = "N/A"
-        mux_info_dict[("empty_slot2_{}".format(side))] = "N/A"
+        mux_info_dict[("version_{}_active".format(side))] = "N/A"
+        mux_info_dict[("version_{}_inactive".format(side))] = "N/A"
+        mux_info_dict[("version_{}_next".format(side))] = "N/A"
 
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
@@ -957,6 +853,7 @@ def version(port):
     port_table_keys = {}
     y_cable_asic_table_keys = {}
     per_npu_statedb = {}
+    physical_port_list = []
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -970,10 +867,13 @@ def version(port):
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
 
-    if port is not None and port != "all":
+    if port is not None:
 
-        if platform_sfputil is not None:
-            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        if port not in logical_port_list:
+            click.echo(("ERR: Not a valid logical port for muxcable firmware {}".format(port)))
+            sys.exit(CONFIG_FAIL)
 
         asic_index = None
         if platform_sfputil is not None:
@@ -985,6 +885,9 @@ def version(port):
                 asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
                 if asic_index is None:
                     click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+
+        if platform_sfputil is not None:
+            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
         if not isinstance(physical_port_list, list):
             click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
@@ -1001,12 +904,22 @@ def version(port):
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
             logical_key = "MUX_CABLE_TABLE|{}".format(port)
+            import sonic_y_cable.y_cable
+            read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
             if logical_key in y_cable_asic_table_keys:
-                get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
-                get_firmware_dict(physical_port, 1, "tor1", mux_info_dict)
-                get_firmware_dict(physical_port, 2, "tor2", mux_info_dict)
-                create_result_dict(physical_port, mux_info_dict, result_dict)
-                click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
+                if read_side == 1:
+                    get_firmware_dict(physical_port, 1, "self", mux_info_dict)
+                    get_firmware_dict(physical_port, 2, "peer", mux_info_dict)
+                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
+                    click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
+                elif read_side == 2:
+                    get_firmware_dict(physical_port, 2, "self", mux_info_dict)
+                    get_firmware_dict(physical_port, 1, "peer", mux_info_dict)
+                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
+                    click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
+                else:
+                    click.echo("Did not get a valid read_side for muxcable".format(port))
+                    sys.exit(CONFIG_FAIL)
 
             else:
                 click.echo("this is not a valid port present on mux_cable".format(port))
