@@ -34,9 +34,9 @@ class TestConfigAcl(object):
         assert table_info["stage"] == "egress"
 
         # Since Ethernet4 is a member of Vlan1000 we should not include it twice in the output
-        port_list = set(table_info["ports"])
-        assert len(port_list) == 4
-        assert set(port_list) == {"Ethernet4", "Ethernet8", "Ethernet12", "Ethernet16"}
+        port_set = set(table_info["ports"])
+        assert len(port_set) == 4
+        assert set(port_set) == {"Ethernet4", "Ethernet8", "Ethernet12", "Ethernet16"}
 
     def test_parse_table_with_empty_vlan(self):
         with pytest.raises(ValueError):
