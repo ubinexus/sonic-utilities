@@ -511,11 +511,6 @@ def get_intf_ipv6_link_local_mode(ctx, interface_name, table_name):
     else:
         return ""
 
-def disable_intf_ipv6_mode(interface_name):
-    cmd = "sysctl -w net.ipv6.conf.{}.disable_ipv6=1".format(interface_name)
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    proc.communicate()
-
 def _is_neighbor_ipaddress(config_db, ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
     """
@@ -3024,10 +3019,6 @@ def bind(ctx, interface_name, vrf_name):
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
 
-    ipv6LinkLocalMode = get_intf_ipv6_link_local_mode(ctx, interface_name, table_name)
-    if ipv6LinkLocalMode is not None and ipv6LinkLocalMode == "enable":
-        disable_intf_ipv6_mode(interface_name)
-
     # When config_db del entry and then add entry with same key, the DEL will lost.
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
         state_db = SonicV2Connector(use_unix_socket_path=True)
@@ -3066,10 +3057,6 @@ def unbind(ctx, interface_name):
     for interface_del in interface_dependent:
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
-
-    ipv6LinkLocalMode = get_intf_ipv6_link_local_mode(ctx, interface_name, table_name)
-    if ipv6LinkLocalMode is not None and ipv6LinkLocalMode == "enable":
-        disable_intf_ipv6_mode(interface_name)
 
 
 #
@@ -4654,7 +4641,7 @@ def disable(ctx):
         table_dict = config_db.get_table(table_type)
         if table_dict:
             for key in table_dict.keys():
-                if isinstance(key, unicode) is False:
+                if isinstance(key, str) is False:
                     continue
                 set_ipv6_link_local_only_on_interface(config_db, table_dict, table_type, key, mode)
 
