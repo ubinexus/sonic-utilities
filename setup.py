@@ -169,7 +169,8 @@ setup(
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
-        'xmltodict==0.12.0'
+        'xmltodict==0.12.0',
+        'jsonpatch==1.32.0',
     ],
     setup_requires= [
         'pytest-runner',
