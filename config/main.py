@@ -35,6 +35,7 @@ from . import vlan
 from . import vxlan
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB
+import mclag as mclag_cli
 
 # mock masic APIs for unit test
 try:
@@ -875,6 +876,11 @@ config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
+
+#add mclag commands
+config.add_command(mclag_cli.mclag)
+config.add_command(mclag_cli.mclag_member)
+config.add_command(mclag_cli.mclag_unique_ip)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
