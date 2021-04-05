@@ -3177,7 +3177,6 @@ def disable_use_link_local_only(ctx, interface_name):
     interface_dict = config_db.get_table(interface_type)
     set_ipv6_link_local_only_on_interface(config_db, interface_dict, interface_type, interface_name, "disable")
 
-
 #
 # 'vrf' group ('config vrf ...')
 #
