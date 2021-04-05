@@ -732,9 +732,6 @@ def download(fwfile, port):
 
         physical_port_list = []
         physical_port_list, asic_index = get_physical_port_list(port)
-        f = open("demofile2.txt", "w")
-        f.write("yes ")
-        f.write("{} ".format(len(physical_port_list)))
         physical_port = physical_port_list[0]
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
