@@ -167,8 +167,7 @@ setup(
     install_requires=[
         'click-default-group',
         'click',
-        'natsort',
-        'deepdiff==5.2.3'
+        'natsort'
     ],
     setup_requires= [
         'pytest-runner'
@@ -176,7 +175,8 @@ setup(
     tests_require = [
         'pytest',
         'mock>=2.0.0',
-        'mockredispy>=2.9.3'
+        'mockredispy>=2.9.3',
+        'deepdiff==5.2.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
