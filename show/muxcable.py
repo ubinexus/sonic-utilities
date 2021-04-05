@@ -899,7 +899,6 @@ def version(port):
             sys.exit(CONFIG_FAIL)
 
         mux_info_dict = {}
-        result_dict = {}
         physical_port = physical_port_list[0]
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
