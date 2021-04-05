@@ -1,11 +1,7 @@
 #!/usr/sbin/env python
 
 import click
-import syslog
-import re
 import swsssdk
-import ipaddress
-
 import utilities_common.cli as clicommon
 
 def mclag_domain_id_valid(domain_id):
