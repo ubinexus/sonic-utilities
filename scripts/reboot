@@ -9,7 +9,7 @@ REBOOT_TIME=$(date)
 VMCORE_FILE=/proc/vmcore
 if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
         echo "We have a /proc/vmcore, then we just kdump'ed"
-        echo "User issued 'kdump' command [User: kdump, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+        echo "Kernel Panic [Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
         sync
         PLATFORM=$(grep -oP 'sonic_platform=\K\S+' /proc/cmdline)
         if [ ! -z "${PLATFORM}" -a -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
@@ -17,13 +17,13 @@ if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
         fi
         # If no platform-specific reboot tool, just run /sbin/reboot
         /sbin/reboot
-        echo 1 > /proc/sys/kernel/sysrq
         echo b > /proc/sysrq-trigger
 fi
 
 REBOOT_USER=$(logname)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
+SUBTYPE=$(sonic-cfggen -d -v DEVICE_METADATA.localhost.subtype)
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
@@ -52,6 +52,10 @@ function tag_images()
 
 function stop_sonic_services()
 {
+    if [[ x"$SUBTYPE" == x"DualToR" ]]; then
+        debug "DualToR detected, stopping mux container before reboot..."
+        systemctl stop mux
+    fi
     if [[ x"$ASIC_TYPE" != x"mellanox" ]]; then
         debug "Stopping syncd process..."
         docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
