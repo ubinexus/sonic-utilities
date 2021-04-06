@@ -23,12 +23,12 @@ class ConfigLock:
         pass
 
 class PatchOrderer:
-    def order(patch):
+    def order(self, patch):
         # TODO: Implement patch orderer
         pass
 
 class ChangeApplier:
-    def apply(change):
+    def apply(self, change):
         # TODO: Implement change applier
         pass
 
@@ -111,7 +111,6 @@ class ConfigWrapper:
             return self.default_config_db_connector
 
         db_kwargs = dict()
-        data = dict()
         config_db = ConfigDBConnector(**db_kwargs)
         config_db.connect()
         return config_db
