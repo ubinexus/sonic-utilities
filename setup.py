@@ -176,7 +176,7 @@ setup(
         'pytest',
         'mock>=2.0.0',
         'mockredispy>=2.9.3',
-        'deepdiff==5.2.3'
+        'deepdiff'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
