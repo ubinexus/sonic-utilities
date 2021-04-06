@@ -3,7 +3,7 @@
         "sonic-vlan:VLAN_MEMBER": {
             "VLAN_MEMBER_LIST": [
                 {
-                    "vlan_name": "Vlan1000",
+                    "name": "Vlan1000",
                     "port": "Ethernet4",
                     "tagging_mode": "untagged"
                 }

@@ -3,32 +3,32 @@
         "sonic-vlan:VLAN_MEMBER": {
             "VLAN_MEMBER_LIST": [
                 {
-                    "vlan_name": "Vlan1000",
+                    "name": "Vlan1000",
                     "port": "Ethernet0",
                     "tagging_mode": "untagged"
                 },
                 {
-                    "vlan_name": "Vlan1000",
+                    "name": "Vlan1000",
                     "port": "Ethernet4",
                     "tagging_mode": "untagged"
                 },
                 {
-                    "vlan_name": "Vlan1000",
+                    "name": "Vlan1000",
                     "port": "Ethernet8",
                     "tagging_mode": "untagged"
                 },
                 {
-                    "vlan_name": "Vlan100",
+                    "name": "Vlan100",
                     "port": "Ethernet2",
                     "tagging_mode": "untagged"
                 },
                 {
-                    "vlan_name": "Vlan100",
+                    "name": "Vlan100",
                     "port": "Ethernet3",
                     "tagging_mode": "untagged"
                 },
                 {
-                    "vlan_name": "Vlan100",
+                    "name": "Vlan100",
                     "port": "Ethernet1",
                     "tagging_mode": "untagged"
                 }
@@ -37,7 +37,7 @@
         "sonic-vlan:VLAN": {
             "VLAN_LIST": [
                 {
-                    "vlan_name": "Vlan1000",
+                    "name": "Vlan1000",
                     "vlanid": 1000,
                     "dhcp_servers": [
                         "192.0.0.1",
@@ -98,14 +98,14 @@
         "sonic-port:PORT": {
             "PORT_LIST": [
                 {
-                    "port_name": "Ethernet0",
+                    "name": "Ethernet0",
                     "alias": "Eth1/1",
                     "lanes": "65",
                     "description": "",
                     "speed": 10000
                 },
                 {
-                    "port_name": "Ethernet4",
+                    "name": "Ethernet4",
                     "admin_status": "up",
                     "alias": "fortyGigE0/4",
                     "description": "Servers0:eth0",
@@ -116,7 +116,7 @@
                     "speed": 40000
                 },
                 {
-                    "port_name": "Ethernet8",
+                    "name": "Ethernet8",
                     "admin_status": "up",
                     "alias": "fortyGigE0/8",
                     "description": "Servers1:eth0",
@@ -127,21 +127,21 @@
                     "speed": 40000
                 },
                 {
-                    "port_name": "Ethernet3",
+                    "name": "Ethernet3",
                     "alias": "Eth1/4",
                     "lanes": "68",
                     "description": "",
                     "speed": 10000
                 },
                 {
-                    "port_name": "Ethernet1",
+                    "name": "Ethernet1",
                     "alias": "Eth1/2",
                     "lanes": "66",
                     "description": "",
                     "speed": 10000
                 },
                 {
-                    "port_name": "Ethernet2",
+                    "name": "Ethernet2",
                     "alias": "Eth1/3",
                     "lanes": "67",
                     "description": "",

@@ -9,6 +9,10 @@ from imp import load_source
 load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 from sonic_cfggen import deep_update, FormatConverter
 
+YANG_DIR = "/usr/local/yang-models"
+CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
+CHECKPOINT_EXT = ".cp.json"
+
 class JsonChange:
     # TODO: Implement JsonChange
     pass
@@ -32,7 +36,6 @@ class ChangeApplier:
         # TODO: Implement change applier
         pass
 
-YANG_DIR = "/usr/local/yang-models"
 class ConfigWrapper:
     def __init__(self, default_config_db_connector = None, yang_dir = YANG_DIR):
         self.default_config_db_connector = default_config_db_connector
@@ -221,8 +224,6 @@ class ConfigReplacer:
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise Exception(f"After applying patch to config, there is still some parts not updated")
 
-CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
-CHECKPOINT_EXT = ".cp.json"
 class FileSystemConfigRollbacker:
     def __init__( \
             self, \

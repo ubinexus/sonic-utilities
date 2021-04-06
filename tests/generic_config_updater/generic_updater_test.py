@@ -17,7 +17,7 @@ class MockSideEffectDict:
         l = [str(arg) for arg in args]
         key = tuple(l)
         value = self.map.get(key)
-        if value == None:
+        if value is None:
             raise ValueError(f"Given arguments were not found in arguments map.\n  Arguments: {key}\n  Map: {self.map}")
 
         return value

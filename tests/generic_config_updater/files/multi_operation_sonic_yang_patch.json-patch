@@ -3,7 +3,7 @@
         "op": "add",
         "path": "/sonic-vlan:sonic-vlan/sonic-vlan:VLAN_MEMBER/VLAN_MEMBER_LIST/3",
         "value": {
-            "vlan_name": "Vlan100",
+            "name": "Vlan100",
             "port": "Ethernet2",
             "tagging_mode": "untagged"
         }
@@ -12,7 +12,7 @@
         "op": "add",
         "path": "/sonic-vlan:sonic-vlan/sonic-vlan:VLAN_MEMBER/VLAN_MEMBER_LIST/4",
         "value": {
-            "vlan_name": "Vlan100",
+            "name": "Vlan100",
             "port": "Ethernet3",
             "tagging_mode": "untagged"
         }
@@ -21,7 +21,7 @@
         "op": "add",
         "path": "/sonic-vlan:sonic-vlan/sonic-vlan:VLAN_MEMBER/VLAN_MEMBER_LIST/5",
         "value": {
-            "vlan_name": "Vlan100",
+            "name": "Vlan100",
             "port": "Ethernet1",
             "tagging_mode": "untagged"
         }
@@ -50,7 +50,7 @@
         "op": "add",
         "path": "/sonic-port:sonic-port/sonic-port:PORT/PORT_LIST/3",
         "value": {
-            "port_name": "Ethernet3",
+            "name": "Ethernet3",
             "alias": "Eth1/4",
             "lanes": "68",
             "description": "",
@@ -61,7 +61,7 @@
         "op": "add",
         "path": "/sonic-port:sonic-port/sonic-port:PORT/PORT_LIST/4",
         "value": {
-            "port_name": "Ethernet1",
+            "name": "Ethernet1",
             "alias": "Eth1/2",
             "lanes": "66",
             "description": "",
@@ -72,7 +72,7 @@
         "op": "add",
         "path": "/sonic-port:sonic-port/sonic-port:PORT/PORT_LIST/5",
         "value": {
-            "port_name": "Ethernet2",
+            "name": "Ethernet2",
             "alias": "Eth1/3",
             "lanes": "67",
             "description": "",
