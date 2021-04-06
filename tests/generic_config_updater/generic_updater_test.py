@@ -26,6 +26,9 @@ def create_side_effect_dict(map):
     return MockSideEffectDict(map).side_effect_func
 
 class FilesLoader:
+    def __init__(self):
+        self.test_path = os.path.dirname(os.path.abspath(__file__))
+
     def __getattr__(self, attr):
         return self.__load(attr)
 
@@ -33,21 +36,21 @@ class FilesLoader:
         normalized_file_name = file_name.lower()
 
         # Try load dict file
-        json_file_path = os.path.join("files", f"{normalized_file_name}.py-dict")
+        json_file_path = os.path.join(self.test_path, "files", f"{normalized_file_name}.py-dict")
         if os.path.isfile(json_file_path):
             with open(json_file_path) as fh:
                 text = fh.read()
                 return eval(text)
 
         # Try load json file
-        json_file_path = os.path.join("files", f"{normalized_file_name}.json")
+        json_file_path = os.path.join(self.test_path, "files", f"{normalized_file_name}.json")
         if os.path.isfile(json_file_path):
             with open(json_file_path) as fh:
                 text = fh.read()
                 return json.loads(text)
 
         # Try load json-patch file
-        jsonpatch_file_path = os.path.join("files", f"{normalized_file_name}.json-patch")
+        jsonpatch_file_path = os.path.join(self.test_path, "files", f"{normalized_file_name}.json-patch")
         if os.path.isfile(jsonpatch_file_path):
             with open(jsonpatch_file_path) as fh:
                 text = fh.read()
@@ -872,18 +875,79 @@ class TestGenericUpdater(unittest.TestCase):
         # Assert
         self.assertListEqual(expected, actual)
 
+class TestDecorator(unittest.TestCase):
+    def setUp(self):
+        self.decorated_patch_applier = Mock()
+        self.decorated_config_replacer = Mock()
+        self.decorated_config_rollbacker = Mock()
+
+        self.any_checkpoint_name = "anycheckpoint"
+        self.any_other_checkpoint_name = "anyothercheckpoint"
+        self.any_checkpoints_list = [self.any_checkpoint_name, self.any_other_checkpoint_name]
+        self.decorated_config_rollbacker.list_checkpoints.return_value = self.any_checkpoints_list
+    
+        self.decorator = gu.Decorator( \
+            self.decorated_patch_applier, self.decorated_config_replacer, self.decorated_config_rollbacker)
+    
+    def test_apply__calls_decorated_applier(self):
+        # Act
+        self.decorator.apply(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)
+
+        # Assert
+        self.decorated_patch_applier.apply.assert_has_calls([call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
+
+    def test_replace__calls_decorated_replacer(self):
+        # Act
+        self.decorator.replace(Files.SONIC_YANG_AS_JSON)
+
+        # Assert
+        self.decorated_config_replacer.replace.assert_has_calls([call(Files.SONIC_YANG_AS_JSON)])
+
+    def test_rollback__calls_decorated_rollbacker(self):
+        # Act
+        self.decorator.rollback(self.any_checkpoint_name)
+
+        # Assert
+        self.decorated_config_rollbacker.rollback.assert_has_calls([call(self.any_checkpoint_name)])
+
+    def test_checkpoint__calls_decorated_rollbacker(self):
+        # Act
+        self.decorator.checkpoint(self.any_checkpoint_name)
+
+        # Assert
+        self.decorated_config_rollbacker.checkpoint.assert_has_calls([call(self.any_checkpoint_name)])
+
+    def test_delete_checkpoint__calls_decorated_rollbacker(self):
+        # Act
+        self.decorator.delete_checkpoint(self.any_checkpoint_name)
+
+        # Assert
+        self.decorated_config_rollbacker.delete_checkpoint.assert_has_calls([call(self.any_checkpoint_name)])
+
+    def test_list_checkpoints__calls_decorated_rollbacker(self):
+        # Arrange
+        expected = self.any_checkpoints_list
+
+        # Act
+        actual = self.decorator.list_checkpoints()
+
+        # Assert
+        self.decorated_config_rollbacker.list_checkpoints.assert_called_once()
+        self.assertListEqual(expected, actual)
+
 class TestConfigDbDecorator(unittest.TestCase):
     def test_apply__converts_to_yang_and_calls_decorated_class(self):
         # Arrange
         config_db_decorator = self.__create_config_db_decorator()
 
         # Act
-        config_db_decorator.apply(Files.CONFIG_DB_AS_JSON)
+        config_db_decorator.apply(Files.SINGLE_OPERATION_CONFIG_DB_PATCH)
 
         # Assert
         config_db_decorator.patch_wrapper.convert_config_db_patch_to_sonic_yang_patch.assert_has_calls( \
-            [call(Files.CONFIG_DB_AS_JSON)])
-        config_db_decorator.decorated_patch_applier.apply.assert_has_calls([call(Files.SONIC_YANG_AS_JSON)])
+            [call(Files.SINGLE_OPERATION_CONFIG_DB_PATCH)])
+        config_db_decorator.decorated_patch_applier.apply.assert_has_calls( \
+            [call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
 
     def test_replace__converts_to_yang_and_calls_decorated_class(self):
         # Arrange
@@ -896,14 +960,15 @@ class TestConfigDbDecorator(unittest.TestCase):
         config_db_decorator.config_wrapper.convert_config_db_to_sonic_yang.assert_has_calls( \
             [call(Files.CONFIG_DB_AS_JSON)])
         config_db_decorator.decorated_config_replacer.replace.assert_has_calls([call(Files.SONIC_YANG_AS_JSON)])
-
+    
     def __create_config_db_decorator(self):
         patch_applier = Mock()
-        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.SONIC_YANG_AS_JSON),): 0})
+        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.SINGLE_OPERATION_SONIC_YANG_PATCH),): 0})
 
         patch_wrapper = Mock()
         patch_wrapper.convert_config_db_patch_to_sonic_yang_patch.side_effect = \
-            create_side_effect_dict({(str(Files.CONFIG_DB_AS_JSON),): Files.SONIC_YANG_AS_JSON})
+            create_side_effect_dict({(str(Files.SINGLE_OPERATION_CONFIG_DB_PATCH),): \
+                Files.SINGLE_OPERATION_SONIC_YANG_PATCH})
 
         config_replacer = Mock()
         config_replacer.replace.side_effect = create_side_effect_dict({(str(Files.SONIC_YANG_AS_JSON),): 0})
@@ -983,6 +1048,8 @@ class TestConfigLockDecorator(unittest.TestCase):
         config_rollbacker = Mock()
         config_rollbacker.rollback.side_effect = create_side_effect_dict({(self.any_checkpoint_name,): 0})
         config_rollbacker.checkpoint.side_effect = create_side_effect_dict({(self.any_checkpoint_name,): 0})
+
+        config_rollbacker.delete_checkpoint.side_effect = create_side_effect_dict({(self.any_checkpoint_name,): 0})
 
         return gu.ConfigLockDecorator( \
             config_lock=config_lock, \

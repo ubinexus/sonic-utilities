@@ -13,7 +13,7 @@ class JsonChange:
     # TODO: Implement JsonChange
     pass
 
-class ConfigLock():
+class ConfigLock:
     def acquire_lock(self):
         # TODO: Implement ConfigLock
         pass
@@ -121,7 +121,7 @@ class DryRunConfigWrapper(ConfigWrapper):
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
     pass
 
-class PatchWrapper():
+class PatchWrapper:
     def __init__(self, config_wrapper = ConfigWrapper()):
         self.config_wrapper = config_wrapper
 
@@ -293,44 +293,72 @@ class FileSystemConfigRollbacker:
         path = self.__get_checkpoint_full_path(name)
         return os.remove(path)
 
-class ConfigDbDecorator(PatchApplier, ConfigReplacer):
-    def __init__(self, patch_wrapper, config_wrapper, decorated_patch_applier=None, decorated_config_replacer=None):
+class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
+    def __init__(self, decorated_patch_applier=None, decorated_config_replacer=None, decorated_config_rollbacker=None):
+        # initing base classes to make LGTM happy
+        PatchApplier.__init__(self)
+        ConfigReplacer.__init__(self)
+        FileSystemConfigRollbacker.__init__(self)
+
         self.decorated_patch_applier = decorated_patch_applier
         self.decorated_config_replacer = decorated_config_replacer
+        self.decorated_config_rollbacker = decorated_config_rollbacker
+
+    def apply(self, patch):
+        self.decorated_patch_applier.apply(patch)
+
+    def replace(self, target_config):
+        self.decorated_config_replacer.replace(target_config)
+
+    def rollback(self, checkpoint_name):
+        self.decorated_config_rollbacker.rollback(checkpoint_name)
+
+    def checkpoint(self, checkpoint_name):
+        self.decorated_config_rollbacker.checkpoint(checkpoint_name)
+
+    def list_checkpoints(self):
+        return self.decorated_config_rollbacker.list_checkpoints()
+
+    def delete_checkpoint(self, checkpoint_name):
+        self.decorated_config_rollbacker.delete_checkpoint(checkpoint_name)
+
+class ConfigDbDecorator(Decorator):
+    def __init__(self, patch_wrapper, config_wrapper, decorated_patch_applier=None, decorated_config_replacer=None):
+        Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer)
+
         self.patch_wrapper = patch_wrapper
         self.config_wrapper = config_wrapper
 
     def apply(self, patch):
         yang_patch = self.patch_wrapper.convert_config_db_patch_to_sonic_yang_patch(patch)
-        self.decorated_patch_applier.apply(yang_patch)
+        Decorator.apply(self, yang_patch)
 
     def replace(self, target_config):
         yang_target_config = self.config_wrapper.convert_config_db_to_sonic_yang(target_config)
-        self.decorated_config_replacer.replace(yang_target_config)
+        Decorator.replace(self, yang_target_config)
 
-class ConfigLockDecorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
+class ConfigLockDecorator(Decorator):
     def __init__( \
         self, \
             decorated_patch_applier=None, \
                 decorated_config_replacer=None, \
                     decorated_config_rollbacker=None, \
                         config_lock = ConfigLock()):
+        Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer, decorated_config_rollbacker)
+
         self.config_lock = config_lock
-        self.decorated_patch_applier = decorated_patch_applier
-        self.decorated_config_replacer = decorated_config_replacer
-        self.decorated_config_rollbacker = decorated_config_rollbacker
 
     def apply(self, patch):
-        self.execute_write_action(self.decorated_patch_applier.apply, patch)
-
+        self.execute_write_action(Decorator.apply, self, patch)
+        
     def replace(self, target_config):
-        self.execute_write_action(self.decorated_config_replacer.replace, target_config)
+        self.execute_write_action(Decorator.replace, self, target_config)
 
     def rollback(self, checkpoint_name):
-        self.execute_write_action(self.decorated_config_rollbacker.rollback, checkpoint_name)
+        self.execute_write_action(Decorator.rollback, self, checkpoint_name)
 
     def checkpoint(self, checkpoint_name):
-        self.execute_write_action(self.decorated_config_rollbacker.checkpoint, checkpoint_name)
+        self.execute_write_action(Decorator.checkpoint, self, checkpoint_name)
 
     def execute_write_action(self, action, *args):
         self.config_lock.acquire_lock()
