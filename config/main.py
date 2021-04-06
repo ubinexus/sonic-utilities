@@ -783,7 +783,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
-def add_del_route(ctx, command_str, command):
+def cli_sroute_to_config(ctx, command_str):
     if len(command_str) < 4 or len(command_str) > 9:
         ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
     if "prefix" not in command_str:
@@ -794,65 +794,37 @@ def add_del_route(ctx, command_str, command):
         if "nexthop" == command_str[i]:
             prefix_str = command_str[:i]
             nexthop_str = command_str[i:]
-    vrf_name = ""
-    prefix_mask = ""
-    config_entry = {}
 
-    if command == 'add':
-        cmd = 'sudo vtysh -c "configure terminal" -c "ip route'
-    else:
-        cmd = 'sudo vtysh -c "configure terminal" -c "no ip route'
+    config_entry = {}
+    ip_prefix = ""
+    vrf_name = ""
 
     if prefix_str:
         if len(prefix_str) == 2:
-            prefix_mask = prefix_str[1]
-            cmd += ' {}'.format(prefix_mask)
+            ip_prefix = prefix_str[1]
         elif len(prefix_str) == 4:
             vrf_name = prefix_str[2]
-            if not vrf_name.startswith("Vrf"):
-                ctx.fail("vrf is not start with Vrf")
-            prefix_mask = prefix_str[3]
-            cmd += ' {}'.format(prefix_mask)
+            ip_prefix = prefix_str[3]
         else:
             ctx.fail("prefix is not in pattern!")
     if nexthop_str:
         if len(nexthop_str) == 2:
-            ip = nexthop_str[1]
-            if vrf_name == "":
-                cmd += ' {}'.format(ip)
-                config_entry["nexthop"] = ip
-            else:
-                cmd += ' {} vrf {}'.format(ip, vrf_name)
-                config_entry["nexthop"] = ip
-                config_entry["vrf_name"] = vrf_name
+            config_entry["nexthop"] = nexthop_str[1]
         elif len(nexthop_str) == 3:
-            dev_name = nexthop_str[2]
-            if vrf_name == "":
-                cmd += ' {}'.format(dev_name)
-                config_entry["dev_name"] = dev_name
-            else:
-                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
-                config_entry["dev_name"] = dev_name
-                config_entry["vrf_name"] = vrf_name
+            config_entry["ifname"] = nexthop_str[2]
         elif len(nexthop_str) == 4:
-            vrf_name_dst = nexthop_str[2]
-            if not vrf_name_dst.startswith("Vrf"):
-                ctx.fail("vrf is not start with Vrf")
-            ip = nexthop_str[3]
-            if vrf_name == "":
-                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
-                config_entry["nexthop"] = ip
-                config_entry["nexthop_vrf"] = vrf_name_dst
-            else:
-                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
-                config_entry["nexthop"] = ip
-                config_entry["vrf_name"] = vrf_name
-                config_entry["nexthop_vrf"] = vrf_name_dst
+            config_entry["nexthop"] = nexthop_str[3]
+            config_entry["nexthop-vrf"] = nexthop_str[2]
         else:
             ctx.fail("nexthop is not in pattern!")
-    cmd += '"'
-    # Return cmd to vtysh, dictionary to CONFIG_DB and nexthop name
-    return {'cmd':cmd, 'config_dict':config_entry, 'name':prefix_mask}
+
+    key = ""
+    if not vrf_name == "":
+        key = vrf_name + "|" + ip_prefix
+    else:
+        key = ip_prefix
+
+    return key, config_entry
 
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
@@ -3229,55 +3201,23 @@ def route(ctx):
     ctx.obj = {}
     ctx.obj['config_db'] = config_db
 
-@route.command('update',context_settings={"ignore_unknown_options":True})
-@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-@click.pass_context
-def update_route(ctx, verbose):
-    # Transfer static routes from CONFIG_DB to FRR
-    config_db = ctx.obj['config_db']
-    route_keys = config_db.get_keys("STATIC_ROUTE")
-    for key in route_keys:
-        entry = config_db.get_entry("STATIC_ROUTE", key)
-
-        argument = ['prefix']
-        if 'vrf_name' in entry:
-            argument.append('vrf')
-            argument.append(entry['vrf_name'])
-        argument.append(key)
-        argument.append('nexthop')
-        if 'nexthop_vrf' in entry:
-            argument.append('vrf')
-            argument.append(entry['nexthop_vrf'])
-        if 'nexthop' in entry:
-            argument.append(entry['nexthop'])
-        if 'dev_name' in entry:
-            argument.append('dev')
-            argument.append(entry['dev_name'])
-
-        route = add_del_route(ctx, argument, 'add')
-        clicommon.run_command(route['cmd'])
-        if verbose:
-            click.echo('Added static route {}'.format(route['name']))
-
 @route.command('add', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
     """Add route command"""
-    route = add_del_route(ctx, command_str, 'add')
+    key, route = cli_sroute_to_config(ctx, command_str)
     config_db = ctx.obj['config_db']
-    config_db.set_entry("STATIC_ROUTE", route['name'], route['config_dict'])
-    clicommon.run_command(route['cmd'])
+    config_db.set_entry("STATIC_ROUTE", key, route)
 
 @route.command('del', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
     """Del route command"""
-    route = add_del_route(ctx, command_str, 'del')
+    key, route = cli_sroute_to_config(ctx, command_str)
     config_db = ctx.obj['config_db']
-    config_db.set_entry("STATIC_ROUTE", route['name'], None)
-    clicommon.run_command(route['cmd'])
+    config_db.set_entry("STATIC_ROUTE", key, None)
 
 #
 # 'acl' group ('config acl ...')
