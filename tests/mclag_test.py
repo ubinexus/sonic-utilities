@@ -47,9 +47,9 @@ class TestMclag(object):
         assert result.exit_code != 0
         assert "Error: mclag src ip is invalid'" in result.output
 
- 
 
-        @classmethod
+
+    @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")
