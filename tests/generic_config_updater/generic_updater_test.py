@@ -554,7 +554,8 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         actual = rollbacker.list_checkpoints()
 
         # Assert
-        self.assertListEqual(expected, actual)
+        # 'assertCountEqual' does check same count, same elements ignoring order
+        self.assertCountEqual(expected, actual)
 
     def test_delete_checkpoint__checkpoint_does_not_exist__failure(self):
         # Arrange
