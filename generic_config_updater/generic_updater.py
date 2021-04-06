@@ -39,9 +39,9 @@ class ConfigWrapper:
         self.yang_dir = YANG_DIR
 
     def get_config_db_as_json(self):
-        configdb = self.__create_and_connect_config_db()
+        config_db = self.__create_and_connect_config_db()
         data = dict()
-        deep_update(data, FormatConverter.db_to_output(configdb.get_config()))
+        deep_update(data, FormatConverter.db_to_output(config_db.get_config()))
         return FormatConverter.to_serialized(data)
 
     def get_sonic_yang_as_json(self):
@@ -52,6 +52,7 @@ class ConfigWrapper:
         sy = sonic_yang.SonicYang(self.yang_dir)
         sy.loadYangModel()
 
+        # Crop config_db tables that do not have sonic yang models
         cropped_config_db_as_json = self.crop_tables_without_yang(config_db_as_json)
 
         sonic_yang_as_json = dict()
@@ -111,9 +112,9 @@ class ConfigWrapper:
 
         db_kwargs = dict()
         data = dict()
-        configdb = ConfigDBConnector(**db_kwargs)
-        configdb.connect()
-        return configdb
+        config_db = ConfigDBConnector(**db_kwargs)
+        config_db.connect()
+        return config_db
 
 class DryRunConfigWrapper(ConfigWrapper):
     # TODO: implement DryRunConfigWrapper
@@ -121,8 +122,8 @@ class DryRunConfigWrapper(ConfigWrapper):
     pass
 
 class PatchWrapper():
-    def __init__(self, configwrapper = ConfigWrapper()):
-        self.configwrapper = configwrapper
+    def __init__(self, config_wrapper = ConfigWrapper()):
+        self.config_wrapper = config_wrapper
 
     def validate_config_db_patch(self, patch):
         config_db = {}
@@ -136,7 +137,7 @@ class PatchWrapper():
             else:
                 config_db[tokens[0]] = {}
 
-        cropped_config_db = self.configwrapper.crop_tables_without_yang(config_db)
+        cropped_config_db = self.config_wrapper.crop_tables_without_yang(config_db)
 
         # valid if no tables dropped during cropping
         return len(cropped_config_db.keys()) == len(config_db.keys())
@@ -155,11 +156,11 @@ class PatchWrapper():
         if not(self.validate_config_db_patch(patch)):
             raise Exception(f"Given patch is not valid")
 
-        current_config_db = self.configwrapper.get_config_db_as_json()
+        current_config_db = self.config_wrapper.get_config_db_as_json()
         target_config_db = self.simulate_patch(patch, current_config_db)
 
-        current_yang = self.configwrapper.convert_config_db_to_sonic_yang(current_config_db)
-        target_yang = self.configwrapper.convert_config_db_to_sonic_yang(target_config_db)
+        current_yang = self.config_wrapper.convert_config_db_to_sonic_yang(current_config_db)
+        target_yang = self.config_wrapper.convert_config_db_to_sonic_yang(target_config_db)
 
         return self.generate_patch(current_yang, target_yang)
 
@@ -172,22 +173,22 @@ class PatchApplier:
         self, \
             patchorderer = PatchOrderer(), \
                 changeapplier = ChangeApplier(), \
-                    configwrapper = ConfigWrapper(), \
-                        patchwrapper = PatchWrapper()):
+                    config_wrapper = ConfigWrapper(), \
+                        patch_wrapper = PatchWrapper()):
         self.patchorderer = patchorderer
         self.changeapplier = changeapplier
-        self.configwrapper = configwrapper
-        self.patchwrapper = patchwrapper
+        self.config_wrapper = config_wrapper
+        self.patch_wrapper = patch_wrapper
 
     def apply(self, patch):
         # 1. Get old config as SONiC Yang
-        old_config = self.configwrapper.get_sonic_yang_as_json()
+        old_config = self.config_wrapper.get_sonic_yang_as_json()
 
         # 2. Generate target config
-        target_config = self.patchwrapper.simulate_patch(patch, old_config)
+        target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
         # 3. Validate target config
-        if not(self.configwrapper.validate_sonic_yang_config(target_config)):
+        if not(self.config_wrapper.validate_sonic_yang_config(target_config)):
             raise Exception(f"The given patch is not valid")
 
         # 4. Generate list of changes to apply
@@ -198,27 +199,27 @@ class PatchApplier:
             self.changeapplier.apply(change)
 
         # 6. Validate config updated successfully
-        new_config = self.configwrapper.get_sonic_yang_as_json()
-        if not(self.patchwrapper.verify_same_json(target_config, new_config)):
+        new_config = self.config_wrapper.get_sonic_yang_as_json()
+        if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise Exception(f"After applying patch to config, there are still some parts not updated")
 
 class ConfigReplacer:
-    def __init__(self, patchapplier = PatchApplier(), configwrapper = ConfigWrapper(), patchwrapper = PatchWrapper()):
-        self.patchapplier = patchapplier
-        self.configwrapper = configwrapper
-        self.patchwrapper = patchwrapper
+    def __init__(self, patch_applier = PatchApplier(), config_wrapper = ConfigWrapper(), patch_wrapper = PatchWrapper()):
+        self.patch_applier = patch_applier
+        self.config_wrapper = config_wrapper
+        self.patch_wrapper = patch_wrapper
 
     def replace(self, target_config):
-        if not(self.configwrapper.validate_sonic_yang_config(target_config)):
+        if not(self.config_wrapper.validate_sonic_yang_config(target_config)):
             raise Exception(f"The given target config is not valid")
 
-        old_config = self.configwrapper.get_sonic_yang_as_json()
-        patch = self.patchwrapper.generate_patch(old_config, target_config)
+        old_config = self.config_wrapper.get_sonic_yang_as_json()
+        patch = self.patch_wrapper.generate_patch(old_config, target_config)
 
-        self.patchapplier.apply(patch)
+        self.patch_applier.apply(patch)
 
-        new_config = self.configwrapper.get_sonic_yang_as_json()
-        if not(self.patchwrapper.verify_same_json(target_config, new_config)):
+        new_config = self.config_wrapper.get_sonic_yang_as_json()
+        if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise Exception(f"After applying patch to config, there is still some parts not updated")
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
@@ -228,10 +229,10 @@ class FileSystemConfigRollbacker:
             self, \
                 checkpoints_dir = CHECKPOINTS_DIR, \
                     config_replacer = ConfigReplacer(), \
-                        configwrapper = ConfigWrapper()):
+                        config_wrapper = ConfigWrapper()):
         self.checkpoints_dir = checkpoints_dir
         self.config_replacer = config_replacer
-        self.configwrapper = configwrapper
+        self.config_wrapper = config_wrapper
 
     def rollback(self, checkpoint_name):
         if not self.__check_checkpoint_exists(checkpoint_name):
@@ -242,7 +243,7 @@ class FileSystemConfigRollbacker:
         self.config_replacer.replace(target_config)
 
     def checkpoint(self, checkpoint_name):
-        json_content = self.configwrapper.get_sonic_yang_as_json()
+        json_content = self.config_wrapper.get_sonic_yang_as_json()
 
         path = self.__get_checkpoint_full_path(checkpoint_name)
 
@@ -292,20 +293,64 @@ class FileSystemConfigRollbacker:
         path = self.__get_checkpoint_full_path(name)
         return os.remove(path)
 
+class ConfigDbDecorator(PatchApplier, ConfigReplacer):
+    def __init__(self, patch_wrapper, config_wrapper, decorated_patch_applier=None, decorated_config_replacer=None):
+        self.decorated_patch_applier = decorated_patch_applier
+        self.decorated_config_replacer = decorated_config_replacer
+        self.patch_wrapper = patch_wrapper
+        self.config_wrapper = config_wrapper
+
+    def apply(self, patch):
+        yang_patch = self.patch_wrapper.convert_config_db_patch_to_sonic_yang_patch(patch)
+        self.decorated_patch_applier.apply(yang_patch)
+
+    def replace(self, target_config):
+        yang_target_config = self.config_wrapper.convert_config_db_to_sonic_yang(target_config)
+        self.decorated_config_replacer.replace(yang_target_config)
+
+class ConfigLockDecorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
+    def __init__( \
+        self, \
+            decorated_patch_applier=None, \
+                decorated_config_replacer=None, \
+                    decorated_config_rollbacker=None, \
+                        config_lock = ConfigLock()):
+        self.config_lock = config_lock
+        self.decorated_patch_applier = decorated_patch_applier
+        self.decorated_config_replacer = decorated_config_replacer
+        self.decorated_config_rollbacker = decorated_config_rollbacker
+
+    def apply(self, patch):
+        self.execute_write_action(self.decorated_patch_applier.apply, patch)
+
+    def replace(self, target_config):
+        self.execute_write_action(self.decorated_config_replacer.replace, target_config)
+
+    def rollback(self, checkpoint_name):
+        self.execute_write_action(self.decorated_config_rollbacker.rollback, checkpoint_name)
+
+    def checkpoint(self, checkpoint_name):
+        self.execute_write_action(self.decorated_config_rollbacker.checkpoint, checkpoint_name)
+
+    def execute_write_action(self, action, *args):
+        self.config_lock.acquire_lock()
+        action(*args)
+        self.config_lock.release_lock()
+
 class GenericUpdateFactory:
     def create_patch_applier(self, config_format, verbose, dry_run):
         self.init_verbose_logging(verbose)
 
-        configwrapper = self.get_config_wrapper(dry_run)
+        config_wrapper = self.get_config_wrapper(dry_run)
 
-        patch_applier = PatchApplier(configwrapper=configwrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper)
 
-        patchwrapper = PatchWrapper(configwrapper)
+        patch_wrapper = PatchWrapper(config_wrapper)
 
         if config_format == ConfigFormat.CONFIGDB:
             patch_applier = \
                 ConfigDbDecorator( \
-                    decorated_patch_applier = patch_applier, patchwrapper=patchwrapper, configwrapper=configwrapper)
+                    decorated_patch_applier = patch_applier, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
         elif config_format == ConfigFormat.SONICYANG:
             pass
         else:
@@ -319,17 +364,17 @@ class GenericUpdateFactory:
     def create_config_replacer(self, config_format, verbose, dry_run):
         self.init_verbose_logging(verbose)
 
-        configwrapper = self.get_config_wrapper(dry_run)
+        config_wrapper = self.get_config_wrapper(dry_run)
 
-        patchapplier = PatchApplier(configwrapper=configwrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper)
 
-        patchwrapper = PatchWrapper(configwrapper)
+        patch_wrapper = PatchWrapper(config_wrapper)
 
-        config_replacer = ConfigReplacer(patchapplier=patchapplier, configwrapper=configwrapper)
+        config_replacer = ConfigReplacer(patch_applier=patch_applier, config_wrapper=config_wrapper)
         if config_format == ConfigFormat.CONFIGDB:
             config_replacer = \
                 ConfigDbDecorator( \
-                    decorated_config_replacer = config_replacer, patchwrapper=patchwrapper, configwrapper=configwrapper)
+                    decorated_config_replacer = config_replacer, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
         elif config_format == ConfigFormat.SONICYANG:
             pass
         else:
@@ -343,11 +388,11 @@ class GenericUpdateFactory:
     def create_config_rollbacker(self, verbose, dry_run):
         self.init_verbose_logging(verbose)
 
-        configwrapper = self.get_config_wrapper(dry_run)
+        config_wrapper = self.get_config_wrapper(dry_run)
 
-        patchapplier = PatchApplier(configwrapper=configwrapper)
-        config_replacer = ConfigReplacer(configwrapper=configwrapper, patchapplier=patchapplier)
-        config_rollbacker = FileSystemConfigRollbacker(configwrapper = configwrapper, config_replacer = config_replacer)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper)
+        config_replacer = ConfigReplacer(config_wrapper=config_wrapper, patch_applier=patch_applier)
+        config_rollbacker = FileSystemConfigRollbacker(config_wrapper = config_wrapper, config_replacer = config_replacer)
 
         if not dry_run:
             config_rollbacker = ConfigLockDecorator(decorated_config_rollbacker = config_rollbacker)
@@ -394,47 +439,3 @@ class GenericUpdater:
     def list_checkpoints(self, verbose, dry_run):
         config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run)
         return config_rollbacker.list_checkpoints()
-
-class ConfigDbDecorator(PatchApplier, ConfigReplacer):
-    def __init__(self, patchwrapper, configwrapper, decorated_patch_applier=None, decorated_config_replacer=None):
-        self.decorated_patch_applier = decorated_patch_applier
-        self.decorated_config_replacer = decorated_config_replacer
-        self.patchwrapper = patchwrapper
-        self.configwrapper = configwrapper
-
-    def apply(self, patch):
-        yang_patch = self.patchwrapper.convert_config_db_patch_to_sonic_yang_patch(patch)
-        self.decorated_patch_applier.apply(yang_patch)
-
-    def replace(self, target_config):
-        yang_target_config = self.configwrapper.convert_config_db_to_sonic_yang(target_config)
-        self.decorated_config_replacer.replace(yang_target_config)
-
-class ConfigLockDecorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
-    def __init__( \
-        self, \
-            decorated_patch_applier=None, \
-                decorated_config_replacer=None, \
-                    decorated_config_rollbacker=None, \
-                        configlock = ConfigLock()):
-        self.configlock = configlock
-        self.decorated_patch_applier = decorated_patch_applier
-        self.decorated_config_replacer = decorated_config_replacer
-        self.decorated_config_rollbacker = decorated_config_rollbacker
-
-    def apply(self, patch):
-        self.execute_write_action(self.decorated_patch_applier.apply, patch)
-
-    def replace(self, target_config):
-        self.execute_write_action(self.decorated_config_replacer.replace, target_config)
-
-    def rollback(self, checkpoint_name):
-        self.execute_write_action(self.decorated_config_rollbacker.rollback, checkpoint_name)
-
-    def checkpoint(self, checkpoint_name):
-        self.execute_write_action(self.decorated_config_rollbacker.checkpoint, checkpoint_name)
-
-    def execute_write_action(self, action, *args):
-        self.configlock.acquire_lock()
-        action(*args)
-        self.configlock.release_lock()
