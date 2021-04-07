@@ -3,6 +3,7 @@
 import click
 import swsssdk
 import utilities_common.cli as clicommon
+from .main import is_portchannel_name_valid 
 
 def mclag_domain_id_valid(domain_id):
     """Check if the domain id is in acceptable range (between 1 and 4095)
