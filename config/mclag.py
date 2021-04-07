@@ -89,7 +89,6 @@ def check_if_interface_is_valid(db, interface_name):
     from main import interface_name_is_valid
     if interface_name_is_valid(db,interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
-    pass
 
 ######
 #
