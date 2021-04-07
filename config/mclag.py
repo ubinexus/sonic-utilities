@@ -3,7 +3,12 @@
 import click
 import swsssdk
 import utilities_common.cli as clicommon
-from .main import is_portchannel_name_valid 
+
+
+CFG_PORTCHANNEL_PREFIX = "PortChannel"
+CFG_PORTCHANNEL_PREFIX_LEN = 11
+CFG_PORTCHANNEL_MAX_VAL = 9999
+CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
 
 def mclag_domain_id_valid(domain_id):
     """Check if the domain id is in acceptable range (between 1 and 4095)
@@ -39,6 +44,21 @@ def mclag_session_timeout_valid(session_tmout):
     if session_tmout < 3 or session_tmout > 3600:
         return False, "Session timeout %s not in valid range[3-3600]" % session_tmout
     return True, ""
+
+
+def is_portchannel_name_valid(portchannel_name):
+    """Port channel name validation
+    """
+
+    # Return True if Portchannel name is PortChannelXXXX (XXXX can be 0-9999)
+    if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX :
+        return False
+    if (portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:].isdigit() is False or
+          int(portchannel_name[CFG_PORTCHANNEL_PREFIX_LEN:]) > CFG_PORTCHANNEL_MAX_VAL) :
+        return False
+    if len(portchannel_name) > CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX:
+        return False
+    return True
 
 
 ######
