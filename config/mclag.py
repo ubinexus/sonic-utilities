@@ -2,7 +2,7 @@
 
 import click
 import swsssdk
-import utilities_common.cli as clicommon
+import ipaddress
 
 
 CFG_PORTCHANNEL_PREFIX = "PortChannel"
@@ -60,6 +60,31 @@ def is_portchannel_name_valid(portchannel_name):
         return False
     return True
 
+def is_ipv4_addr_valid(addr):
+    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
+    try:
+        ip = ipaddress.ip_address(unicode(addr))
+        if (ip.version == 4):
+            if (ip.is_reserved):
+                click.echo ("{} Not Valid, Reason: IPv4 reserved address range.".format(addr))
+                return False
+            elif (ip.is_multicast):
+                click.echo ("{} Not Valid, Reason: IPv4 Multicast address range.".format(addr))
+                return False
+            elif (ip in v4_invalid_list):
+                click.echo ("{} Not Valid.".format(addr))
+                return False
+            else:
+                return True
+
+        else:
+            click.echo ("{} Not Valid, Reason: Not an IPv4 address".format(addr))
+            return False
+
+    except ValueError:
+        return False
+
+
 
 ######
 #
@@ -85,9 +110,9 @@ def add_mclag_domain(ctx, domain_id, source_ip_addr, peer_ip_addr, peer_ifname):
 
     if not mclag_domain_id_valid(domain_id):
         ctx.fail("{} invalid domain ID, valid range is 1 to 4095".format(domain_id))  
-    if not clicommon.is_ipaddress(source_ip_addr):
+    if not is_ipv4_addr_valid(source_ip_addr):
         ctx.fail("{} invalid local ip address".format(source_ip_addr))
-    if not clicommon.is_ipaddress(peer_ip_addr):
+    if not is_ipv4_addr_valid(peer_ip_addr):
         ctx.fail("{} invalid peer ip address".format(peer_ip_addr))
 
     db = ctx.obj['db']
