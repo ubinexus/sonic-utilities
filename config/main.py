@@ -3018,7 +3018,6 @@ def bind(ctx, interface_name, vrf_name):
     for interface_del in interface_dependent:
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
-
     # When config_db del entry and then add entry with same key, the DEL will lost.
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
         state_db = SonicV2Connector(use_unix_socket_path=True)
