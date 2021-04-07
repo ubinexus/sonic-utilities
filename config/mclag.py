@@ -49,7 +49,6 @@ def mclag_session_timeout_valid(session_tmout):
 def is_portchannel_name_valid(portchannel_name):
     """Port channel name validation
     """
-
     # Return True if Portchannel name is PortChannelXXXX (XXXX can be 0-9999)
     if portchannel_name[:CFG_PORTCHANNEL_PREFIX_LEN] != CFG_PORTCHANNEL_PREFIX :
         return False
@@ -85,6 +84,12 @@ def is_ipv4_addr_valid(addr):
         return False
 
 
+
+def check_if_interface_is_valid(db, interface_name):
+    from main import interface_name_is_valid
+    if interface_name_is_valid(db,interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+    pass
 
 ######
 #
@@ -122,7 +127,7 @@ def add_mclag_domain(ctx, domain_id, source_ip_addr, peer_ip_addr, peer_ifname):
     if peer_ifname is not None:
         if (peer_ifname.startswith("Ethernet") is False) and (peer_ifname.startswith("PortChannel") is False):
             ctx.fail("peer interface is invalid, should be Ethernet interface or portChannel !!")
-        if (peer_ifname.startswith("Ethernet") is True) and (interface_name_is_valid(db, peer_ifname) is False):
+        if (peer_ifname.startswith("Ethernet") is True) and (check_if_interface_is_valid(db, peer_ifname) is False):
             ctx.fail("peer Ethernet interface name is invalid. it is not present in port table of configDb!!")
         if (peer_ifname.startswith("PortChannel")) and (is_portchannel_name_valid(peer_ifname) is False):
             ctx.fail("peer PortChannel interface name is invalid !!")
