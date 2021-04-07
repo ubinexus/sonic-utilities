@@ -29,7 +29,7 @@ class TestMclag(object):
         obj = {'db':db.cfgdb}
 
         # add mclag with invalid src
-        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID], [MCLAG_INVALID_SRC_IP1], [MCLAG_PEER_IP], [MCLAG_PEER_LINK], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SRC_IP1, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
@@ -41,7 +41,7 @@ class TestMclag(object):
         obj = {'db':db.cfgdb}
 
         # add mclag with invalid src
-        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID], [MCLAG_INVALID_SRC_IP2], [MCLAG_PEER_IP], [MCLAG_PEER_LINK], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SRC_IP2, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
