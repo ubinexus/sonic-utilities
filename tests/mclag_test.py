@@ -32,8 +32,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SRC_IP1, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code != 0
-        assert "Error: mclag src ip is invalid'" in result.output
+        assert result.exit_code != 0, "Error: invalid local ip address"
 
     def test_add_mclag_with_invalid_src_mcast_ip(self):
         runner = CliRunner()
@@ -44,8 +43,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SRC_IP2, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code != 0
-        assert "Error: mclag src ip is invalid'" in result.output
+        assert result.exit_code != 0, "Error: invalid local ip address"
 
 
 
