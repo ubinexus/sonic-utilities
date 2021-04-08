@@ -129,7 +129,7 @@ class TestMclag(object):
         obj = {'db':db.cfgdb}
 
         # configure non multiple keepalive timer
-        result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_KEEPALIVE_TIMER], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_KEEPALIVE_TIMER], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0, "failed testing of invalid keepalive timer "
@@ -140,7 +140,7 @@ class TestMclag(object):
         obj = {'db':db.cfgdb}
 
         # configure valid keepalive timer
-        result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_KEEPALIVE_TIMER], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_KEEPALIVE_TIMER], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "failed test for setting valid keepalive timer "
@@ -151,7 +151,7 @@ class TestMclag(object):
         obj = {'db':db.cfgdb}
 
         # configure non multiple session timeout
-        result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SESSION_TIMEOUT], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SESSION_TIMEOUT], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0, "failed invalid session timeout setting case"
@@ -162,7 +162,7 @@ class TestMclag(object):
         obj = {'db':db.cfgdb}
 
         # configure valid session timeout
-        result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SESSION_TIMEOUT], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_SESSION_TIMEOUT], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "failed setting valid session timeout" 
