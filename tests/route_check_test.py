@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import sys
+import syslog
 import time
 from unittest.mock import MagicMock, patch
 
@@ -176,6 +177,44 @@ test_data = {
                     RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            }
+        }
+    },
+    "4": {
+        DESCR: "Good one with routes on voq inband interface",
+        ARGS: "route_check",
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "0.0.0.0/0" : { "ifname": "portchannel0" },
+                    "10.10.196.12/31" : { "ifname": "portchannel0" },
+                    "10.10.196.20/31" : { "ifname": "portchannel0" },
+                    "10.10.196.30/31" : { "ifname": "lo" },
+                    "10.10.197.1" : { "ifname": "Ethernet-IB0", "nexthop": "0.0.0.0"},
+                    "2603:10b0:503:df5::1" : { "ifname": "Ethernet-IB0", "nexthop": "::"},
+                    "100.0.0.2/32" : { "ifname": "Ethernet-IB0", "nexthop": "0.0.0.0" },
+                    "2064:100::2/128" : { "ifname": "Ethernet-IB0", "nexthop": "::" },
+                    "101.0.0.0/24" : { "ifname": "Ethernet-IB0", "nexthop": "100.0.0.2"}
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:10.10.196.24/31": {},
+                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                    "PortChannel1024": {},
+                    "Ethernet-IB0:10.10.197.1/24": {},
+                    "Ethernet-IB0:2603:10b0:503:df5::1/64": {}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.197.1/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df5::1/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "101.0.0.0/24" + RT_ENTRY_KEY_SUFFIX: {}
                 }
             }
         }
@@ -442,8 +481,18 @@ class TestRouteCheck(object):
             assert ex_str == expect, "{} != {}".format(ex_str, expect)
         assert ex_raised, "Exception expected"
 
-
-
+        # Test print_msg
+        route_check.PRINT_MSG_LEN_MAX = 5
+        msg = route_check.print_message(syslog.LOG_ERR, "abcdefghi")
+        assert len(msg) == 5
+        msg = route_check.print_message(syslog.LOG_ERR, "ab")
+        assert len(msg) == 2
+        msg = route_check.print_message(syslog.LOG_ERR, "abcde")
+        assert len(msg) == 5
+        msg = route_check.print_message(syslog.LOG_ERR, "a", "b", "c", "d", "e", "f")
+        assert len(msg) == 5
+               
+        
 
 
 

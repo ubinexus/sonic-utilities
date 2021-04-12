@@ -22,7 +22,9 @@ setup(
     packages=[
         'acl_loader',
         'clear',
+        'clear.plugins',
         'config',
+        'config.plugins',
         'connect',
         'consutil',
         'counterpoll',
@@ -42,6 +44,7 @@ setup(
         'pddf_ledutil',
         'show',
         'show.interfaces',
+        'show.plugins',
         'sonic_installer',
         'sonic_installer.bootloader',
         'tests',
@@ -166,7 +169,7 @@ setup(
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
-        'xmltodict==0.12.0',
+        'xmltodict==0.12.0'
     ],
     setup_requires= [
         'pytest-runner',
@@ -175,7 +178,8 @@ setup(
     tests_require = [
         'pytest',
         'mockredispy>=2.9.3',
-        'sonic-config-engine'
+        'sonic-config-engine',
+        'deepdiff==5.2.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
