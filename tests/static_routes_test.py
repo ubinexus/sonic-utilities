@@ -77,7 +77,7 @@ class TestStaticRoutes(object):
         print(result.exit_code, result.output)
         assert not ('3.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
 
-    def test_several_nexthops_static_route(self):
+    def test_multiple_nexthops_static_route(self):
         db = Db()
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
@@ -156,7 +156,7 @@ class TestStaticRoutes(object):
         print(result.exit_code, result.output)
         assert not ('10.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
 
-    def test_static_route_ECMP_nexthop_vrf(self):
+    def test_static_route_ECMP_nexthop_with_vrf(self):
         db = Db()
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}

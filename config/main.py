@@ -3235,7 +3235,7 @@ def del_route(ctx, command_str):
     """Del route command"""
     config_db = ctx.obj['config_db']
     key, route = cli_sroute_to_config(ctx, command_str)
-    keys = config_db.get_keys('STATIC_ROUTE', split=False)
+    keys = config_db.get_keys('STATIC_ROUTE')
     prefix_tuple = tuple(key.split('|'))
     if not key in keys and not prefix_tuple in keys:
         ctx.fail('Route {} doesnt exist'.format(key))
@@ -3253,9 +3253,15 @@ def del_route(ctx, command_str):
         if 'ifname' in current_entry:
             ifname = current_entry['ifname'].split(',')
 
+        # Zip data from config_db into tuples
+        # {'nexthop': '10.0.0.2,20.0.0.2', 'vrf-nexthop': ',Vrf-RED', 'ifname': ','}
+        # [('10.0.0.2', '', ''), ('20.0.0.2', 'Vrf-RED', '')]
         nh_zip = list(itertools.zip_longest(nh, nh_vrf, ifname, fillvalue=''))
         cmd_tuple = ()
 
+        # Create tuple from CLI argument
+        # config route add prefix 1.4.3.4/32 nexthop vrf Vrf-RED 20.0.0.2
+        # ('20.0.0.2', 'Vrf-RED', '')
         for entry in ENTRY_NAME:
             if entry in route:
                 cmd_tuple += (route[entry],)
