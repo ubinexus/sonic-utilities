@@ -73,8 +73,8 @@ function stop_sonic_services()
         debug "Stopping syncd process..."
         docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
         sleep 3
-        stop_pmon_service
     fi
+    stop_pmon_service
 }
 
 function clear_warm_boot()
