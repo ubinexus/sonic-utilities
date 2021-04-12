@@ -388,6 +388,8 @@ class IntfStatus(object):
                                 appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
                                 state_db_port_optics_get(self.db, key, PORT_OPTICS_TYPE),
                                 appl_db_port_status_get(self.db, key, PORT_PFC_ASYM_STATUS)))
+            if self.intf_name:
+                return table
 
             for po, value in self.portchannel_speed_dict.iteritems():
                 if self.multi_asic.skip_display(constants.PORT_CHANNEL_OBJ, po):
@@ -420,7 +422,7 @@ class IntfStatus(object):
     @multi_asic_util.run_on_multi_asic
     def get_intf_status(self):
         self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
-        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, None)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, self.intf_name)
         self.int_to_vlan_dict = get_interface_vlan_dict(self.config_db)
         self.get_raw_po_int_configdb_info = get_raw_portchannel_info(self.config_db)
         self.portchannel_list = get_portchannel_list(self.get_raw_po_int_configdb_info)

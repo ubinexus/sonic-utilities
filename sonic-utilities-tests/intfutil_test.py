@@ -27,16 +27,37 @@ class TestIntfutil(TestCase):
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["status"], [])
         print >> sys.stderr, result.output
         expected_output = (
-              "Interface    Lanes    Speed    MTU    FEC      Alias    Vlan    Oper    Admin             Type    Asym PFC\n"
-            "-----------  -------  -------  -----  -----  ---------  ------  ------  -------  ---------------  ----------\n"
-            "  Ethernet0        0      25G   9100     rs  Ethernet0  routed    down       up  QSFP28 or later         off"
+           "      Interface    Lanes    Speed    MTU    FEC       Alias             Vlan    Oper    Admin             Type    Asym PFC\n"
+           "---------------  -------  -------  -----  -----  ----------  ---------------  ------  -------  ---------------  ----------\n"
+           "      Ethernet0        0      25G   9100     rs   Ethernet0           routed    down       up  QSFP28 or later         off\n"
+           "    Ethernet104        0      25G   9100     rs  Ethernet20  PortChannel1001    down       up              N/A         off\n"
+           "PortChannel1001      N/A      25G   9100    N/A         N/A           routed      up       up              N/A         N/A\n"
         )
-        self.assertEqual(result.output.strip(), expected_output)
+        self.assertEqual(result.output, expected_output)
 
         # Test 'intfutil status'
         output = subprocess.check_output('intfutil -c status', stderr=subprocess.STDOUT, shell=True)
         print >> sys.stderr, output
-        self.assertEqual(output.strip(), expected_output)
+        self.assertEqual(output, expected_output)
+
+    # Test 'show interfaces status Ethernet104' / 'intfutil status -i Ethernet104'
+    def test_intf_status_Ethernet104(self):
+        # Test 'show interfaces status'
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["status"], ["Ethernet104"])
+        print >> sys.stderr, result.output
+        expected_output = (
+           "  Interface    Lanes    Speed    MTU    FEC       Alias             Vlan    Oper    Admin    Type    Asym PFC\n"
+           "-----------  -------  -------  -----  -----  ----------  ---------------  ------  -------  ------  ----------\n"
+           "Ethernet104        0      25G   9100     rs  Ethernet20  PortChannel1001    down       up     N/A         off\n"
+
+        )
+        self.assertEqual(result.output, expected_output)
+
+        # Test 'intfutil status'
+        output = subprocess.check_output('intfutil -c status -i Ethernet104', stderr=subprocess.STDOUT, shell=True)
+        print >> sys.stderr, output
+        self.assertEqual(output, expected_output)
+
 
     # Test 'show interfaces status --verbose'
     def test_intf_status_verbose(self):

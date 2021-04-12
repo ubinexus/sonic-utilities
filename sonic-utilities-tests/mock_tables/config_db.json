@@ -42,6 +42,17 @@
         "mtu": "9100",
         "speed": "40000"
     },
+    "PORTCHANNEL|PortChannel1001": {
+        "admin_status": "up",
+        "members": [
+            "Ethernet104"
+        ],
+        "min_links": "1",
+        "mtu": "9100"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel1001|Ethernet104": {
+        "NULL": "NULL"
+    },
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },

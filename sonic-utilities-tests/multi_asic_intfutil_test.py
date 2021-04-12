@@ -110,6 +110,13 @@ class TestInterfacesMultiAsic(object):
         assert return_code == 0
         assert result == intf_status
 
+    def test_multi_asic_interface_status_Ethernet0(self):
+        return_code, result = get_result_and_return_code( 'intfutil -c status -i Ethernet0')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_status_Ethernet0
+
     def test_multi_asic_interface_status_asic0_all(self):
         return_code, result = get_result_and_return_code('intfutil -c status -n asic0 -d all')
         print("return_code: {}".format(return_code))

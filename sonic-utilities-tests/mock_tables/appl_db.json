@@ -10,6 +10,17 @@
         "fec": "rs",
         "admin_status": "up"
     },
+    "PORT_TABLE:Ethernet104": {
+        "lanes": "0",
+        "alias": "Ethernet20",
+        "description": "ARISTA02T2:Ethernet1",
+        "speed": "25000",
+        "oper_status": "down",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "fec": "rs",
+        "admin_status": "up"
+    },
     "PORT_TABLE:Ethernet200": {
         "lanes": "200,201,202,203",
         "alias": "Ethernet200",
@@ -19,6 +30,11 @@
         "fec": "rs",
         "mtu": "9100",
         "pfc_asym": "off"
+    },
+    "LAG_TABLE:PortChannel1001": {
+        "admin_status": "up",
+        "oper_status": "up",
+        "mtu": "9100"
     },
     "INTF_TABLE:Ethernet0.10": {
         "admin_status": "up"
