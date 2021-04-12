@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import time
+import itertools
 
 from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
@@ -3206,18 +3207,79 @@ def route(ctx):
 @click.pass_context
 def add_route(ctx, command_str):
     """Add route command"""
-    key, route = cli_sroute_to_config(ctx, command_str)
     config_db = ctx.obj['config_db']
-    config_db.set_entry("STATIC_ROUTE", key, route)
+    key, route = cli_sroute_to_config(ctx, command_str)
+    # Check if exist entry with key
+    keys = config_db.get_keys('STATIC_ROUTE')
+    if key in keys:
+        # If exist update current entry
+        current_entry = config_db.get_entry('STATIC_ROUTE', key)
+
+        ENTRY_NAME = ['nexthop', 'nexthop-vrf', 'ifname']
+        for entry in ENTRY_NAME:
+            if not entry in current_entry:
+                    current_entry[entry] = ''
+            if entry in route:
+                current_entry[entry] += ',' + route[entry]
+            else:
+                current_entry[entry] += ','
+
+        config_db.set_entry("STATIC_ROUTE", key, current_entry)
+    else:
+        config_db.set_entry("STATIC_ROUTE", key, route)
 
 @route.command('del', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
     """Del route command"""
-    key, route = cli_sroute_to_config(ctx, command_str)
     config_db = ctx.obj['config_db']
-    config_db.set_entry("STATIC_ROUTE", key, None)
+    key, route = cli_sroute_to_config(ctx, command_str)
+    keys = config_db.get_keys('STATIC_ROUTE', split=False)
+    prefix_tuple = tuple(key.split('|'))
+    if not key in keys and not prefix_tuple in keys:
+        ctx.fail('Route {} doesnt exist'.format(key))
+    else:
+        current_entry = config_db.get_entry('STATIC_ROUTE', key)
+
+        ENTRY_NAME = ['nexthop', 'nexthop-vrf', 'ifname']
+        nh = ['']
+        nh_vrf = ['']
+        ifname = ['']
+        if 'nexthop' in current_entry:
+            nh = current_entry['nexthop'].split(',')
+        if 'nexthop-vrf' in current_entry:
+            nh_vrf = current_entry['nexthop-vrf'].split(',')
+        if 'ifname' in current_entry:
+            ifname = current_entry['ifname'].split(',')
+
+        nh_zip = list(itertools.zip_longest(nh, nh_vrf, ifname, fillvalue=''))
+        cmd_tuple = ()
+
+        for entry in ENTRY_NAME:
+            if entry in route:
+                cmd_tuple += (route[entry],)
+            else:
+                cmd_tuple += ('',)
+
+        if cmd_tuple in nh_zip:
+            idx = nh_zip.index(cmd_tuple)
+            if len(nh) - 1 >= idx:
+                del nh[idx]
+            if len(nh_vrf) - 1 >= idx:
+                del nh_vrf[idx]
+            if len(ifname) - 1 >= idx:
+                del ifname[idx]
+        else:
+            ctx.fail('Not found {} in {}'.format(cmd_tuple, key))
+
+        if len(nh) == 0 or (len(nh) == 1 and nh[0] == ''):
+            config_db.set_entry("STATIC_ROUTE", key, None)
+        else:
+            current_entry['nexthop'] = ','.join((str(e)) for e in nh)
+            current_entry['nexthop-vrf'] = ','.join((str(e)) for e in nh_vrf)
+            current_entry['ifname'] = ','.join((str(e)) for e in ifname)
+            config_db.set_entry("STATIC_ROUTE", key, current_entry)
 
 #
 # 'acl' group ('config acl ...')
