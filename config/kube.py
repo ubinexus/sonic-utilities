@@ -1,5 +1,4 @@
 import click
-import socket
 
 from utilities_common.cli import AbbreviationGroup, pass_db
 
