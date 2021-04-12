@@ -3235,7 +3235,7 @@ def del_route(ctx, command_str):
     """Del route command"""
     config_db = ctx.obj['config_db']
     key, route = cli_sroute_to_config(ctx, command_str)
-    keys = config_db.get_keys('STATIC_ROUTE', split=False)
+    keys = config_db.get_keys('STATIC_ROUTE')
     prefix_tuple = tuple(key.split('|'))
     if not key in keys and not prefix_tuple in keys:
         ctx.fail('Route {} doesnt exist'.format(key))
