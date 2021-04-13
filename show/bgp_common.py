@@ -158,7 +158,7 @@ def print_ip_routes(route_info, filter_by_ip):
                     if "directlyConnected" in info[i]['nexthops'][j]:
                         print("  * directly connected, {}\n".format(info[i]['nexthops'][j]['interfaceName']))
                     else:
-                        str_2_print = get_nexthop_info_str(info[i]['nexthops'][j], 1)
+                        str_2_print = get_nexthop_info_str(info[i]['nexthops'][j], True)
                         print(str_2_print)
                 print("")
             else:
@@ -183,7 +183,7 @@ def print_ip_routes(route_info, filter_by_ip):
                         # For all subsequent nexthops skip the spacing to not repeat the prefix section
                         str_2_print += " "*(str_length - 3)
                     # Get the nexhop info portion of the string
-                    str_2_print += get_nexthop_info_str(info[i]['nexthops'][j], 0)
+                    str_2_print += get_nexthop_info_str(info[i]['nexthops'][j], False)
                     # add uptime at the end of the string
                     str_2_print += " {}".format(info[i]['uptime'])
                     # print out this string
