@@ -296,7 +296,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             for waitTime in range(timeout):
                 self.sysLog(logLevel=syslog.LOG_DEBUG, \
                     msg='Check App DB: {} try'.format(waitTime+1))
-                # checkPortsDownAppDb will return True if all ports are Oper
+                # _checkPortsDownAppDb will return True if all ports are Oper
                 # down in APP DB
                 if self._checkPortsDownAppDb(db, ports):
                     break
@@ -318,7 +318,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         return True
 
-    def checkKeyinAsicDB(self, key, db):
+    def _checkKeyInAsicDB(self, key, db):
         '''
         Check if a key exists in ASIC DB or not.
 
@@ -357,7 +357,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             db.connect(db.ASIC_DB)
             for port in ports:
                 key = self.oidKey + portMap[port]
-                if self._checkKeyinAsicDB(key, db) == True:
+                if self._checkKeyInAsicDB(key, db) == True:
                     return False
 
         except Exception as e:
