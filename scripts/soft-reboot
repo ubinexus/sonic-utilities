@@ -172,6 +172,5 @@ fi
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
 exec ${REBOOT_METHOD}
 
-
 VERBOSE=yes debug "Issuing OS-level reboot ..." >&2
 exec /sbin/reboot $@
