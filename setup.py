@@ -167,6 +167,7 @@ setup(
         'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
+        'sonic_cfggen',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0',

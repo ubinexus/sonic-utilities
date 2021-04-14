@@ -6,8 +6,6 @@ import copy
 from enum import Enum
 from swsssdk import ConfigDBConnector
 from imp import load_source
-# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
-load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 from sonic_cfggen import deep_update, FormatConverter
 
 YANG_DIR = "/usr/local/yang-models"
