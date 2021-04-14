@@ -109,11 +109,11 @@ PACKAGE_SOURCE_OPTIONS = [
 
 
 PACKAGE_COMMON_INSTALL_OPTIONS = [
-    click.option('--skip-cli-plugin-installation',
+    click.option('--skip-host-plugins',
                   is_flag=True,
-                  help='Do not install CLI plugins provided by the package '
-                  'on the host OS. NOTE: In case when package /cli/mandatory '
-                  'field is set to True this option will fail the installation.'),
+                  help='Do not install host OS plugins provided by the package (CLI, etc). '
+                  'NOTE: In case when package host OS plugins are set as mandatory in '
+                  'package manifest this option will fail the installation.'),
 ]
 
 
@@ -286,7 +286,9 @@ def changelog(ctx,
 @click.pass_context
 @root_privileges_required
 def add(ctx, name, repository, default_reference, description):
-    """ Add a new repository to database. """
+    """ Add a new repository to database.
+    Repository in Docker Registry V2.
+    """
 
     manager: PackageManager = ctx.obj
 
@@ -338,8 +340,8 @@ def install(ctx,
             yes,
             enable,
             default_owner,
-            skip_cli_plugin_installation):
-    """ Install package """
+            skip_host_plugins):
+    """ Install package using [PACKAGE_EXPR] in format "<name>==<version>" """
 
     manager: PackageManager = ctx.obj
 
@@ -353,7 +355,7 @@ def install(ctx,
         'force': force,
         'enable': enable,
         'default_owner': default_owner,
-        'skip_cli_plugin_installation': skip_cli_plugin_installation,
+        'skip_host_plugins': skip_host_plugins,
     }
 
     try:
@@ -379,8 +381,8 @@ def upgrade(ctx,
             from_tarball,
             force,
             yes,
-            skip_cli_plugin_installation):
-    """ Upgrade package """
+            skip_host_plugins):
+    """ Upgrade package using [PACKAGE_EXPR] in format "<name>==<version>" """
 
     manager: PackageManager = ctx.obj
 
@@ -392,7 +394,7 @@ def upgrade(ctx,
 
     upgrade_opts = {
         'force': force,
-        'skip_cli_plugin_installation': skip_cli_plugin_installation,
+        'skip_host_plugins': skip_host_plugins,
     }
 
     try:

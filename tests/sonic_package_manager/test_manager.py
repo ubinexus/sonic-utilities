@@ -164,7 +164,7 @@ def test_installation_cli_plugin_skipped(package_manager, fake_metadata_resolver
     manifest = fake_metadata_resolver.metadata_store['Azure/docker-test']['1.6.0']['manifest']
     manifest['cli']= {'show': '/cli/plugin.py'}
     package_manager._install_cli_plugins = Mock()
-    package_manager.install('test-package', skip_cli_plugin_installation=True)
+    package_manager.install('test-package', skip_host_plugins=True)
     package_manager._install_cli_plugins.assert_not_called()
 
 
@@ -174,7 +174,7 @@ def test_installation_cli_plugin_is_mandatory_but_skipped(package_manager, fake_
     with pytest.raises(PackageManagerError,
                        match='CLI is mandatory for package test-package but '
                              'it was requested to be not installed'):
-        package_manager.install('test-package', skip_cli_plugin_installation=True)
+        package_manager.install('test-package', skip_host_plugins=True)
 
 
 def test_installation(package_manager, mock_docker_api, anything):
