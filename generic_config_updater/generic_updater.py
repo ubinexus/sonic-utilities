@@ -30,7 +30,7 @@ class ConfigLock:
         pass
 
 class PatchSorter:
-    def order(self, patch):
+    def sort(self, patch):
         # TODO: Implement patch sorter
         pass
 
@@ -103,6 +103,18 @@ class ConfigWrapper:
         except sonic_yang.SonicYangException as ex:
             return False
 
+    def validate_config_db_config(self, config_db_as_json):
+        sy = sonic_yang.SonicYang(self.yang_dir)
+        sy.loadYangModel()
+
+        try:
+            sy.loadData(config_db_as_json)
+
+            sy.validate_data_tree()
+            return True
+        except sonic_yang.SonicYangException as ex:
+            return False
+
     def crop_tables_without_yang(self, config_db_as_json):
         sy = sonic_yang.SonicYang(self.yang_dir)
         sy.loadYangModel()
@@ -119,7 +131,6 @@ class ConfigWrapper:
         if self.default_config_db_connector != None:
             return self.default_config_db_connector
 
-        db_kwargs = dict()
         config_db = ConfigDBConnector()
         config_db.connect()
         return config_db
@@ -133,7 +144,7 @@ class PatchWrapper:
     def __init__(self, config_wrapper=None):
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
 
-    def validate_config_db_patch(self, patch):
+    def validate_config_db_patch_has_yang_models(self, patch):
         config_db = {}
         for operation in patch:
             tokens = operation['path'].split('/')[1:]
@@ -161,7 +172,7 @@ class PatchWrapper:
         return patch.apply(jsonconfig)
 
     def convert_config_db_patch_to_sonic_yang_patch(self, patch):
-        if not(self.validate_config_db_patch(patch)):
+        if not(self.validate_config_db_patch_has_yang_models(patch)):
             raise ValueError(f"Given patch is not valid")
 
         current_config_db = self.config_wrapper.get_config_db_as_json()
@@ -171,6 +182,15 @@ class PatchWrapper:
         target_yang = self.config_wrapper.convert_config_db_to_sonic_yang(target_config_db)
 
         return self.generate_patch(current_yang, target_yang)
+
+    def convert_sonic_yang_patch_to_config_db_patch(self, patch):
+        current_yang = self.config_wrapper.get_sonic_yang_as_json()
+        target_yang = self.simulate_patch(patch, current_yang)
+
+        current_config_db = self.config_wrapper.convert_sonic_yang_to_config_db(current_yang)
+        target_config_db = self.config_wrapper.convert_sonic_yang_to_config_db(target_yang)
+
+        return self.generate_patch(current_config_db, target_config_db)
 
 class ConfigFormat(Enum):
     SONICYANG = 1
@@ -188,25 +208,29 @@ class PatchApplier:
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
 
     def apply(self, patch):
-        # Get old config as SONiC Yang
-        old_config = self.config_wrapper.get_sonic_yang_as_json()
+        # validate patch is only updating tables with yang models
+        if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(patch)):
+            raise ValueError(f"Given patch is not valid because it has changes to tables without YANG models")
+
+        # Get old config
+        old_config = self.config_wrapper.get_config_db_as_json()
 
         # Generate target config
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
         # Validate target config
-        if not(self.config_wrapper.validate_sonic_yang_config(target_config)):
-            raise ValueError(f"The given patch is not valid")
+        if not(self.config_wrapper.validate_config_db_config(target_config)):
+            raise ValueError(f"Given patch is not valid because it will result in an invalid config")
 
         # Generate list of changes to apply
-        changes = self.patchsorter.order(patch)
+        changes = self.patchsorter.sort(patch)
 
         # Apply changes in order
         for change in changes:
             self.changeapplier.apply(change)
 
         # Validate config updated successfully
-        new_config = self.config_wrapper.get_sonic_yang_as_json()
+        new_config = self.config_wrapper.get_config_db_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise ConfigNotCompletelyUpdatedError(f"After applying patch to config, there are still some parts not updated")
 
@@ -217,15 +241,15 @@ class ConfigReplacer:
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
 
     def replace(self, target_config):
-        if not(self.config_wrapper.validate_sonic_yang_config(target_config)):
+        if not(self.config_wrapper.validate_config_db_config(target_config)):
             raise ValueError(f"The given target config is not valid")
 
-        old_config = self.config_wrapper.get_sonic_yang_as_json()
+        old_config = self.config_wrapper.get_config_db_as_json()
         patch = self.patch_wrapper.generate_patch(old_config, target_config)
 
         self.patch_applier.apply(patch)
 
-        new_config = self.config_wrapper.get_sonic_yang_as_json()
+        new_config = self.config_wrapper.get_config_db_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise ConfigNotCompletelyUpdatedError(f"After replacing config, there is still some parts not updated")
 
@@ -333,7 +357,7 @@ class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
     def delete_checkpoint(self, checkpoint_name):
         self.decorated_config_rollbacker.delete_checkpoint(checkpoint_name)
 
-class ConfigDbDecorator(Decorator):
+class SonicYangDecorator(Decorator):
     def __init__(self, patch_wrapper, config_wrapper, decorated_patch_applier=None, decorated_config_replacer=None):
         Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer)
 
@@ -341,12 +365,12 @@ class ConfigDbDecorator(Decorator):
         self.config_wrapper = config_wrapper
 
     def apply(self, patch):
-        yang_patch = self.patch_wrapper.convert_config_db_patch_to_sonic_yang_patch(patch)
-        Decorator.apply(self, yang_patch)
+        config_db_patch = self.patch_wrapper.convert_sonic_yang_patch_to_config_db_patch(patch)
+        Decorator.apply(self, config_db_patch)
 
     def replace(self, target_config):
-        yang_target_config = self.config_wrapper.convert_config_db_to_sonic_yang(target_config)
-        Decorator.replace(self, yang_target_config)
+        config_db_target_config = self.config_wrapper.convert_sonic_yang_to_config_db(target_config)
+        Decorator.replace(self, config_db_target_config)
 
 class ConfigLockDecorator(Decorator):
     def __init__(self,
@@ -386,10 +410,10 @@ class GenericUpdateFactory:
         patch_wrapper = PatchWrapper(config_wrapper)
 
         if config_format == ConfigFormat.CONFIGDB:
-            patch_applier = ConfigDbDecorator(
-                    decorated_patch_applier = patch_applier, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
-        elif config_format == ConfigFormat.SONICYANG:
             pass
+        elif config_format == ConfigFormat.SONICYANG:
+            patch_applier = SonicYangDecorator(
+                    decorated_patch_applier = patch_applier, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
         else:
             raise ValueError(f"config-format '{config_format}' is not supported")
 
@@ -409,10 +433,10 @@ class GenericUpdateFactory:
 
         config_replacer = ConfigReplacer(patch_applier=patch_applier, config_wrapper=config_wrapper)
         if config_format == ConfigFormat.CONFIGDB:
-            config_replacer = ConfigDbDecorator(
-                    decorated_config_replacer = config_replacer, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
-        elif config_format == ConfigFormat.SONICYANG:
             pass
+        elif config_format == ConfigFormat.SONICYANG:
+            config_replacer = SonicYangDecorator(
+                    decorated_config_replacer = config_replacer, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
         else:
             raise ValueError(f"config-format '{config_format}' is not supported")
 

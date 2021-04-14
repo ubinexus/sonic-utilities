@@ -179,6 +179,28 @@ class TestConfigWrapper(unittest.TestCase):
         # Assert
         self.assertEqual(expected, actual)
 
+    def test_validate_config_db_config__valid_config__returns_true(self):
+        # Arrange
+        config_wrapper = gu.ConfigWrapper()
+        expected = True
+
+        # Act
+        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+    def test_config_db_config__invvalid_config__returns_false(self):
+        # Arrange
+        config_wrapper = gu.ConfigWrapper()
+        expected = False
+
+        # Act
+        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON_INVALID)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
         config_wrapper = gu.ConfigWrapper()
@@ -196,26 +218,26 @@ class TestConfigWrapper(unittest.TestCase):
         return mock_connector
 
 class TestPatchWrapper(unittest.TestCase):
-    def test_validate_config_db_patch__table_without_yang_model__returns_false(self):
+    def test_validate_config_db_patch_has_yang_models__table_without_yang_model__returns_false(self):
         # Arrange
         patch_wrapper = gu.PatchWrapper()
         patch = [ { 'op': 'remove', 'path': '/TABLE_WITHOUT_YANG' } ]
         expected = False
 
         # Act
-        actual = patch_wrapper.validate_config_db_patch(patch)
+        actual = patch_wrapper.validate_config_db_patch_has_yang_models(patch)
 
         # Assert
         self.assertEqual(expected, actual)
 
-    def test_validate_config_db_patch__table_with_yang_model__returns_true(self):
+    def test_validate_config_db_patch_has_yang_models__table_with_yang_model__returns_true(self):
         # Arrange
         patch_wrapper = gu.PatchWrapper()
         patch = [ { 'op': 'remove', 'path': '/ACL_TABLE' } ]
         expected = True
 
         # Act
-        actual = patch_wrapper.validate_config_db_patch(patch)
+        actual = patch_wrapper.validate_config_db_patch_has_yang_models(patch)
 
         # Assert
         self.assertEqual(expected, actual)
@@ -327,17 +349,56 @@ class TestPatchWrapper(unittest.TestCase):
         # Assert
         self.__assert_same_patch(config_db_patch, sonic_yang_patch, config_wrapper, patch_wrapper)
 
+    def test_convert_sonic_yang_patch_to_config_db_patch__empty_patch__returns_empty_patch(self):
+        # Arrange
+        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
+        patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
+        patch = jsonpatch.JsonPatch([])
+        expected = jsonpatch.JsonPatch([])
+
+        # Act
+        actual = patch_wrapper.convert_sonic_yang_patch_to_config_db_patch(patch)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+    def test_convert_sonic_yang_patch_to_config_db_patch__single_operation_patch__returns_config_db_patch(self):
+        # Arrange
+        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
+        patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
+        patch = Files.SINGLE_OPERATION_SONIC_YANG_PATCH
+        expected = Files.SINGLE_OPERATION_CONFIG_DB_PATCH
+
+        # Act
+        actual = patch_wrapper.convert_sonic_yang_patch_to_config_db_patch(patch)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+    def test_convert_sonic_yang_patch_to_config_db_patch__multiple_operations_patch__returns_config_db_patch(self):
+        # Arrange
+        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
+        patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
+        sonic_yang_patch = Files.MULTI_OPERATION_SONIC_YANG_PATCH
+
+        # Act
+        config_db_patch = patch_wrapper.convert_sonic_yang_patch_to_config_db_patch(sonic_yang_patch)
+
+        # Assert
+        self.__assert_same_patch(config_db_patch, sonic_yang_patch, config_wrapper, patch_wrapper)
+
     def __assert_same_patch(self, config_db_patch, sonic_yang_patch, config_wrapper, patch_wrapper):
         sonic_yang = config_wrapper.get_sonic_yang_as_json()
         config_db = config_wrapper.get_config_db_as_json()
 
         after_update_sonic_yang = patch_wrapper.simulate_patch(sonic_yang_patch, sonic_yang)
         after_update_config_db = patch_wrapper.simulate_patch(config_db_patch, config_db)
+        after_update_config_db_cropped = config_wrapper.crop_tables_without_yang(after_update_config_db)
 
-        after_update_config_db_as_sonic_yang = \
-            config_wrapper.convert_config_db_to_sonic_yang(after_update_config_db)
+        after_update_sonic_yang_as_config_db = \
+            config_wrapper.convert_sonic_yang_to_config_db(after_update_sonic_yang)
 
-        self.assertTrue(patch_wrapper.verify_same_json(after_update_sonic_yang, after_update_config_db_as_sonic_yang))
+        self.assertTrue(patch_wrapper.verify_same_json(after_update_config_db_cropped, after_update_sonic_yang_as_config_db))
 
     def __get_config_wrapper_mock(self, config_db_as_dict):
         config_db_connector_mock = self.__get_config_db_connector_mock(config_db_as_dict)
@@ -350,19 +411,26 @@ class TestPatchWrapper(unittest.TestCase):
         return mock_connector
 
 class TestPatchApplier(unittest.TestCase):
-    def test_apply__invalid_sonic_yang__failure(self):
+    def test_apply__invalid_patch_updating_tables_without_yang_models__failure(self):
         # Arrange
-        patch_applier = self.__create_patch_applier(valid_sonic_yang=False)
+        patch_applier = self.__create_patch_applier(valid_patch_only_tables_with_yang_models=False)
 
         # Act and assert
-        self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_SONIC_YANG_PATCH)
+        self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
+
+    def test_apply__invalid_config_db__failure(self):
+        # Arrange
+        patch_applier = self.__create_patch_applier(valid_config_db=False)
+
+        # Act and assert
+        self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
 
     def test_apply__json_not_fully_updated__failure(self):
         # Arrange
         patch_applier = self.__create_patch_applier(verified_same_config=False)
 
         # Act and assert
-        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, patch_applier.apply, Files.MULTI_OPERATION_SONIC_YANG_PATCH)
+        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
 
     def test_apply__no_errors__update_successful(self):
         # Arrange
@@ -370,40 +438,49 @@ class TestPatchApplier(unittest.TestCase):
         patch_applier = self.__create_patch_applier(changes)
 
         # Act
-        patch_applier.apply(Files.MULTI_OPERATION_SONIC_YANG_PATCH)
+        patch_applier.apply(Files.MULTI_OPERATION_CONFIG_DB_PATCH)
 
         # Assert
-        patch_applier.config_wrapper.get_sonic_yang_as_json.assert_has_calls([call(), call()])
+        patch_applier.patch_wrapper.validate_config_db_patch_has_yang_models.assert_has_calls(
+            [call(Files.MULTI_OPERATION_CONFIG_DB_PATCH)])
+        patch_applier.config_wrapper.get_config_db_as_json.assert_has_calls([call(), call()])
         patch_applier.patch_wrapper.simulate_patch.assert_has_calls(
-            [call(Files.MULTI_OPERATION_SONIC_YANG_PATCH, Files.SONIC_YANG_AS_JSON)])
-        patch_applier.config_wrapper.validate_sonic_yang_config.assert_has_calls(
-            [call(Files.SONIC_YANG_AFTER_MULTI_PATCH)])
-        patch_applier.patchsorter.order.assert_has_calls([call(Files.MULTI_OPERATION_SONIC_YANG_PATCH)])
+            [call(Files.MULTI_OPERATION_CONFIG_DB_PATCH, Files.CONFIG_DB_AS_JSON)])
+        patch_applier.config_wrapper.validate_config_db_config.assert_has_calls(
+            [call(Files.CONFIG_DB_AFTER_MULTI_PATCH)])
+        patch_applier.patchsorter.sort.assert_has_calls([call(Files.MULTI_OPERATION_CONFIG_DB_PATCH)])
         patch_applier.changeapplier.apply.assert_has_calls([call(changes[0]), call(changes[1])])
         patch_applier.patch_wrapper.verify_same_json.assert_has_calls(
-            [call(Files.SONIC_YANG_AFTER_MULTI_PATCH, Files.SONIC_YANG_AFTER_MULTI_PATCH)])
+            [call(Files.CONFIG_DB_AFTER_MULTI_PATCH, Files.CONFIG_DB_AFTER_MULTI_PATCH)])
 
-    def __create_patch_applier(self, changes=None, valid_sonic_yang=True, verified_same_config=True):
+    def __create_patch_applier(self,
+                               changes=None,
+                               valid_patch_only_tables_with_yang_models=True,
+                               valid_config_db=True,
+                               verified_same_config=True):
         config_wrapper = Mock()
-        config_wrapper.get_sonic_yang_as_json.side_effect = \
-            [Files.SONIC_YANG_AS_JSON, Files.SONIC_YANG_AFTER_MULTI_PATCH]
-        config_wrapper.validate_sonic_yang_config.side_effect = \
-            create_side_effect_dict({(str(Files.SONIC_YANG_AFTER_MULTI_PATCH),): valid_sonic_yang})
+        config_wrapper.get_config_db_as_json.side_effect = \
+            [Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH]
+        config_wrapper.validate_config_db_config.side_effect = \
+            create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): valid_config_db})
 
         patch_wrapper = Mock()
+        patch_wrapper.validate_config_db_patch_has_yang_models.side_effect = \
+            create_side_effect_dict(
+                {(str(Files.MULTI_OPERATION_CONFIG_DB_PATCH),): valid_patch_only_tables_with_yang_models})
         patch_wrapper.simulate_patch.side_effect = \
             create_side_effect_dict(
-                {(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH), str(Files.SONIC_YANG_AS_JSON)):
-                    Files.SONIC_YANG_AFTER_MULTI_PATCH})
+                {(str(Files.MULTI_OPERATION_CONFIG_DB_PATCH), str(Files.CONFIG_DB_AS_JSON)):
+                    Files.CONFIG_DB_AFTER_MULTI_PATCH})
         patch_wrapper.verify_same_json.side_effect = \
             create_side_effect_dict(
-                {(str(Files.SONIC_YANG_AFTER_MULTI_PATCH), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)):
+                {(str(Files.CONFIG_DB_AFTER_MULTI_PATCH), str(Files.CONFIG_DB_AFTER_MULTI_PATCH)):
                     verified_same_config})
 
         changes = [Mock(), Mock()] if not changes else changes
         patchsorter = Mock()
-        patchsorter.order.side_effect = \
-            create_side_effect_dict({(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH),): changes})
+        patchsorter.sort.side_effect = \
+            create_side_effect_dict({(str(Files.MULTI_OPERATION_CONFIG_DB_PATCH),): changes})
 
         changeapplier = Mock()
         changeapplier.apply.side_effect = create_side_effect_dict({(str(changes[0]),): 0, (str(changes[1]),): 0})
@@ -411,61 +488,61 @@ class TestPatchApplier(unittest.TestCase):
         return gu.PatchApplier(patchsorter, changeapplier, config_wrapper, patch_wrapper)
 
 class TestConfigReplacer(unittest.TestCase):
-    def test_replace__invalid_sonic_yang__failure(self):
+    def test_replace__invalid_config_db__failure(self):
         # Arrange
-        config_replacer = self.__create_config_replacer(valid_sonic_yang=False)
+        config_replacer = self.__create_config_replacer(valid_config_db=False)
 
         # Act and assert
-        self.assertRaises(ValueError, config_replacer.replace, Files.SONIC_YANG_AFTER_MULTI_PATCH)
+        self.assertRaises(ValueError, config_replacer.replace, Files.CONFIG_DB_AFTER_MULTI_PATCH)
 
     def test_replace__json_not_fully_updated__failure(self):
         # Arrange
         config_replacer = self.__create_config_replacer(verified_same_config=False)
 
         # Act and assert
-        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, config_replacer.replace, Files.SONIC_YANG_AFTER_MULTI_PATCH)
+        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, config_replacer.replace, Files.CONFIG_DB_AFTER_MULTI_PATCH)
 
     def test_replace__no_errors__update_successful(self):
         # Arrange
         config_replacer = self.__create_config_replacer()
 
         # Act
-        config_replacer.replace(Files.SONIC_YANG_AFTER_MULTI_PATCH)
+        config_replacer.replace(Files.CONFIG_DB_AFTER_MULTI_PATCH)
 
         # Assert
-        config_replacer.config_wrapper.validate_sonic_yang_config.assert_has_calls(
-            [call(Files.SONIC_YANG_AFTER_MULTI_PATCH)])
-        config_replacer.config_wrapper.get_sonic_yang_as_json.assert_has_calls([call(), call()])
+        config_replacer.config_wrapper.validate_config_db_config.assert_has_calls(
+            [call(Files.CONFIG_DB_AFTER_MULTI_PATCH)])
+        config_replacer.config_wrapper.get_config_db_as_json.assert_has_calls([call(), call()])
         config_replacer.patch_wrapper.generate_patch.assert_has_calls(
-            [call(Files.SONIC_YANG_AS_JSON, Files.SONIC_YANG_AFTER_MULTI_PATCH)])
-        config_replacer.patch_applier.apply.assert_has_calls([call(Files.MULTI_OPERATION_SONIC_YANG_PATCH)])
+            [call(Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH)])
+        config_replacer.patch_applier.apply.assert_has_calls([call(Files.MULTI_OPERATION_CONFIG_DB_PATCH)])
         config_replacer.patch_wrapper.verify_same_json.assert_has_calls(
-            [call(Files.SONIC_YANG_AFTER_MULTI_PATCH, Files.SONIC_YANG_AFTER_MULTI_PATCH)])
+            [call(Files.CONFIG_DB_AFTER_MULTI_PATCH, Files.CONFIG_DB_AFTER_MULTI_PATCH)])
 
-    def __create_config_replacer(self, changes=None, valid_sonic_yang=True, verified_same_config=True):
+    def __create_config_replacer(self, changes=None, valid_config_db=True, verified_same_config=True):
         config_wrapper = Mock()
-        config_wrapper.validate_sonic_yang_config.side_effect = \
-            create_side_effect_dict({(str(Files.SONIC_YANG_AFTER_MULTI_PATCH),): valid_sonic_yang})
-        config_wrapper.get_sonic_yang_as_json.side_effect = \
-            [Files.SONIC_YANG_AS_JSON, Files.SONIC_YANG_AFTER_MULTI_PATCH]
+        config_wrapper.validate_config_db_config.side_effect = \
+            create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): valid_config_db})
+        config_wrapper.get_config_db_as_json.side_effect = \
+            [Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH]
 
         patch_wrapper = Mock()
         patch_wrapper.generate_patch.side_effect = \
             create_side_effect_dict(
-                {(str(Files.SONIC_YANG_AS_JSON), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)):
-                    Files.MULTI_OPERATION_SONIC_YANG_PATCH})
+                {(str(Files.CONFIG_DB_AS_JSON), str(Files.CONFIG_DB_AFTER_MULTI_PATCH)):
+                    Files.MULTI_OPERATION_CONFIG_DB_PATCH})
         patch_wrapper.verify_same_json.side_effect = \
             create_side_effect_dict(
-                {(str(Files.SONIC_YANG_AFTER_MULTI_PATCH), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)): \
+                {(str(Files.CONFIG_DB_AFTER_MULTI_PATCH), str(Files.CONFIG_DB_AFTER_MULTI_PATCH)): \
                     verified_same_config})
 
         changes = [Mock(), Mock()] if not changes else changes
         patchsorter = Mock()
-        patchsorter.order.side_effect = create_side_effect_dict({(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH),): \
+        patchsorter.sort.side_effect = create_side_effect_dict({(str(Files.MULTI_OPERATION_CONFIG_DB_PATCH),): \
             changes})
 
         patch_applier = Mock()
-        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH),): 0})
+        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.MULTI_OPERATION_CONFIG_DB_PATCH),): 0})
 
         return gu.ConfigReplacer(patch_applier, config_wrapper, patch_wrapper)
 
@@ -672,8 +749,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
             {"dry_run": {True: None, False: gu.ConfigLockDecorator}},
             {
                 "config_format": {
-                    gu.ConfigFormat.SONICYANG: None,
-                    gu.ConfigFormat.CONFIGDB: gu.ConfigDbDecorator
+                    gu.ConfigFormat.SONICYANG: gu.SonicYangDecorator,
+                    gu.ConfigFormat.CONFIGDB: None,
                 }
             },
         ]
@@ -696,8 +773,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
             {"dry_run": {True: None, False: gu.ConfigLockDecorator}},
             {
                 "config_format": {
-                    gu.ConfigFormat.SONICYANG: None,
-                    gu.ConfigFormat.CONFIGDB: gu.ConfigDbDecorator
+                    gu.ConfigFormat.SONICYANG: gu.SonicYangDecorator,
+                    gu.ConfigFormat.CONFIGDB: None,
                 }
             },
         ]
@@ -956,49 +1033,49 @@ class TestDecorator(unittest.TestCase):
         self.decorated_config_rollbacker.list_checkpoints.assert_called_once()
         self.assertListEqual(expected, actual)
 
-class TestConfigDbDecorator(unittest.TestCase):
-    def test_apply__converts_to_yang_and_calls_decorated_class(self):
+class TestSonicYangDecorator(unittest.TestCase):
+    def test_apply__converts_to_config_db_and_calls_decorated_class(self):
         # Arrange
-        config_db_decorator = self.__create_config_db_decorator()
+        sonic_yang_decorator = self.__create_sonic_yang_decorator()
 
         # Act
-        config_db_decorator.apply(Files.SINGLE_OPERATION_CONFIG_DB_PATCH)
+        sonic_yang_decorator.apply(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)
 
         # Assert
-        config_db_decorator.patch_wrapper.convert_config_db_patch_to_sonic_yang_patch.assert_has_calls(
-            [call(Files.SINGLE_OPERATION_CONFIG_DB_PATCH)])
-        config_db_decorator.decorated_patch_applier.apply.assert_has_calls(
+        sonic_yang_decorator.patch_wrapper.convert_sonic_yang_patch_to_config_db_patch.assert_has_calls(
             [call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
+        sonic_yang_decorator.decorated_patch_applier.apply.assert_has_calls(
+            [call(Files.SINGLE_OPERATION_CONFIG_DB_PATCH)])
 
-    def test_replace__converts_to_yang_and_calls_decorated_class(self):
+    def test_replace__converts_to_config_db_and_calls_decorated_class(self):
         # Arrange
-        config_db_decorator = self.__create_config_db_decorator()
+        sonic_yang_decorator = self.__create_sonic_yang_decorator()
 
         # Act
-        config_db_decorator.replace(Files.CONFIG_DB_AS_JSON)
+        sonic_yang_decorator.replace(Files.SONIC_YANG_AS_JSON)
 
         # Assert
-        config_db_decorator.config_wrapper.convert_config_db_to_sonic_yang.assert_has_calls(
-            [call(Files.CONFIG_DB_AS_JSON)])
-        config_db_decorator.decorated_config_replacer.replace.assert_has_calls([call(Files.SONIC_YANG_AS_JSON)])
+        sonic_yang_decorator.config_wrapper.convert_sonic_yang_to_config_db.assert_has_calls(
+            [call(Files.SONIC_YANG_AS_JSON)])
+        sonic_yang_decorator.decorated_config_replacer.replace.assert_has_calls([call(Files.CONFIG_DB_AS_JSON)])
     
-    def __create_config_db_decorator(self):
+    def __create_sonic_yang_decorator(self):
         patch_applier = Mock()
-        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.SINGLE_OPERATION_SONIC_YANG_PATCH),): 0})
+        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.SINGLE_OPERATION_CONFIG_DB_PATCH),): 0})
 
         patch_wrapper = Mock()
-        patch_wrapper.convert_config_db_patch_to_sonic_yang_patch.side_effect = \
-            create_side_effect_dict({(str(Files.SINGLE_OPERATION_CONFIG_DB_PATCH),): \
-                Files.SINGLE_OPERATION_SONIC_YANG_PATCH})
+        patch_wrapper.convert_sonic_yang_patch_to_config_db_patch.side_effect = \
+            create_side_effect_dict({(str(Files.SINGLE_OPERATION_SONIC_YANG_PATCH),): \
+                Files.SINGLE_OPERATION_CONFIG_DB_PATCH})
 
         config_replacer = Mock()
-        config_replacer.replace.side_effect = create_side_effect_dict({(str(Files.SONIC_YANG_AS_JSON),): 0})
+        config_replacer.replace.side_effect = create_side_effect_dict({(str(Files.CONFIG_DB_AS_JSON),): 0})
 
         config_wrapper = Mock()
-        config_wrapper.convert_config_db_to_sonic_yang.side_effect = \
-            create_side_effect_dict({(str(Files.CONFIG_DB_AS_JSON),): Files.SONIC_YANG_AS_JSON})
+        config_wrapper.convert_sonic_yang_to_config_db.side_effect = \
+            create_side_effect_dict({(str(Files.SONIC_YANG_AS_JSON),): Files.CONFIG_DB_AS_JSON})
 
-        return gu.ConfigDbDecorator(decorated_patch_applier=patch_applier,
+        return gu.SonicYangDecorator(decorated_patch_applier=patch_applier,
                                     decorated_config_replacer=config_replacer,
                                     patch_wrapper=patch_wrapper,
                                     config_wrapper=config_wrapper)
