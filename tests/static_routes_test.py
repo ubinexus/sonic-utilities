@@ -16,6 +16,10 @@ Error: Route {} doesnt exist
 ERROR_DEL_NONEXIST_ENTRY_STR = '''
 Error: Not found {} in {}
 '''
+ERROR_INVALID_IP = '''
+Error: ip address is not valid.
+'''
+
 
 class TestStaticRoutes(object):
     @classmethod
@@ -40,6 +44,28 @@ class TestStaticRoutes(object):
         ["prefix", "1.2.3.4/32", "nexthop", "30.0.0.5"], obj=obj)
         print(result.exit_code, result.output)
         assert not '1.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
+
+    def test_static_route_invalid_prefix_ip(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config route add prefix 1.2.3/32 nexthop 30.0.0.5
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "1.2.3/32", "nexthop", "30.0.0.5"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ERROR_INVALID_IP in result.output
+        
+    def test_static_route_invalid_nexthop_ip(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config route add prefix 1.2.3.4/32 nexthop 30.0.5
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "1.2.3.4/32", "nexthop", "30.0.5"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ERROR_INVALID_IP in result.output
 
     def test_vrf_static_route(self):
         db = Db()
