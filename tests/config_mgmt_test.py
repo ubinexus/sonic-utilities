@@ -124,7 +124,7 @@ class TestConfigMgmt(TestCase):
         # So that we can update oper_status in PORT_TABLE of APPL_DB.
         db = ConfigDBConnector()
         db.db_connect('APPL_DB')
-        db.connect = MagicMock(return_value=True)
+        db.connect = mock.MagicMock(return_value=True)
         # get dPorts
         dPorts, _ = self.generate_args(portIdx=8, laneIdx=73, \
             curMode='4x25G', newMode='2x50G')
