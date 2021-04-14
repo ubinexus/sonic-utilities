@@ -16,6 +16,7 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
+from utilities_common import util_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -28,11 +29,11 @@ from . import console
 from . import feature
 from . import kdump
 from . import kube
-from . import mlnx
 from . import muxcable
 from . import nat
 from . import vlan
 from . import vxlan
+from . import plugins
 from .config_mgmt import ConfigMgmtDPB
 
 # mock masic APIs for unit test
@@ -695,16 +696,16 @@ def _restart_services():
     click.echo("Restarting SONiC target ...")
     clicommon.run_command("sudo systemctl restart sonic.target")
 
-    # Reload Monit configuration to pick up new hostname in case it changed
-    click.echo("Reloading Monit configuration ...")
-    clicommon.run_command("sudo monit reload")
-
     try:
         subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Enabling container monitoring ...")
         clicommon.run_command("sudo monit monitor container_checker")
     except subprocess.CalledProcessError as err:
         pass
+
+    # Reload Monit configuration to pick up new hostname in case it changed
+    click.echo("Reloading Monit configuration ...")
+    clicommon.run_command("sudo monit reload")
 
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
@@ -848,9 +849,6 @@ def config(ctx):
         asic_type = version_info['asic_type']
     except (KeyError, TypeError):
         raise click.Abort()
-
-    if asic_type == 'mellanox':
-        platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
     num_asic = multi_asic.get_num_asics()
@@ -1188,7 +1186,7 @@ def load_minigraph(db, no_service_restart):
 
     # get the device type
     device_type = _get_device_type()
-    if device_type != 'MgmtToRRouter':
+    if device_type != 'MgmtToRRouter' and device_type != 'EPMS':
         clicommon.run_command("pfcwd start_default", display_cmd=True)
 
     # Update SONiC environmnet file
@@ -4414,6 +4412,13 @@ def delete(ctx):
 
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, config)
+
 
 if __name__ == '__main__':
     config()
