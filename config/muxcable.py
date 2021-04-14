@@ -487,7 +487,7 @@ def setswitchmode(state, port):
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
     if port is not None and port != "all":
@@ -549,11 +549,11 @@ def setswitchmode(state, port):
             click.echo("ERR: This logical Port {} is not on a muxcable".format(port))
             sys.exit(CONFIG_FAIL)
 
+        import sonic_y_cable.y_cable
         if state == "auto":
             mode = sonic_y_cable.y_cable.SWITCHING_MODE_AUTO
         elif state == "manual":
             mode = sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL
-        import sonic_y_cable.y_cable
         result = sonic_y_cable.y_cable.set_switching_mode(physical_port, mode)
         if result == False:
             click.echo(("ERR: Unable to set switching mode for the cable port {}".format(port)))
@@ -642,7 +642,7 @@ def get_per_npu_statedb(per_npu_statedb, port_table_keys):
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
         # replace these with correct macros
-        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
