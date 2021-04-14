@@ -2,12 +2,12 @@ import json
 import jsonpatch
 import os
 import shutil
+import sys
 import unittest
 from imp import load_source
 from unittest.mock import Mock, call
-load_source('gu', \
-    os.path.join(os.path.dirname(__file__), '../..', 'generic_config_updater', 'generic_updater.py'))
-import gu
+sys.path.insert(1, '../../generic_config_updater')
+import generic_updater as gu
 
 class MockSideEffectDict:
     def __init__(self, map):
@@ -136,6 +136,27 @@ class TestConfigWrapper(unittest.TestCase):
         # Assert
         self.assertDictEqual(expected, actual)
 
+    def test_convert_sonic_yang_to_config_db__table_name_without_colons__returns_config_db_as_json(self):
+        # Arrange
+        config_wrapper = gu.ConfigWrapper()
+        expected = Files.CROPPED_CONFIG_DB_AS_JSON
+
+        # Act
+        actual = config_wrapper.convert_sonic_yang_to_config_db(Files.SONIC_YANG_AS_JSON_WITHOUT_COLONS)
+
+        # Assert
+        self.assertDictEqual(expected, actual)
+
+    def test_convert_sonic_yang_to_config_db__table_name_with_unexpected_colons__returns_config_db_as_json(self):
+        # Arrange
+        config_wrapper = gu.ConfigWrapper()
+        expected = Files.CROPPED_CONFIG_DB_AS_JSON
+
+        # Act and assert
+        self.assertRaises(ValueError,
+                          config_wrapper.convert_sonic_yang_to_config_db,
+                          Files.SONIC_YANG_AS_JSON_WITH_UNEXPECTED_COLONS)
+
     def test_validate_sonic_yang_config__valid_config__returns_true(self):
         # Arrange
         config_wrapper = gu.ConfigWrapper()
@@ -205,7 +226,7 @@ class TestPatchWrapper(unittest.TestCase):
         patch = [ { 'op': 'remove', 'path': '/TABLE_WITHOUT_YANG' } ]
 
         # Act and Assert
-        self.assertRaises(Exception, patch_wrapper.convert_config_db_patch_to_sonic_yang_patch, patch)
+        self.assertRaises(ValueError, patch_wrapper.convert_config_db_patch_to_sonic_yang_patch, patch)
 
     def test_same_patch__no_diff__returns_true(self):
         # Arrange
@@ -334,14 +355,14 @@ class TestPatchApplier(unittest.TestCase):
         patch_applier = self.__create_patch_applier(valid_sonic_yang=False)
 
         # Act and assert
-        self.assertRaises(Exception, patch_applier.apply, Files.MULTI_OPERATION_SONIC_YANG_PATCH)
+        self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_SONIC_YANG_PATCH)
 
     def test_apply__json_not_fully_updated__failure(self):
         # Arrange
         patch_applier = self.__create_patch_applier(verified_same_config=False)
 
         # Act and assert
-        self.assertRaises(Exception, patch_applier.apply, Files.MULTI_OPERATION_SONIC_YANG_PATCH)
+        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, patch_applier.apply, Files.MULTI_OPERATION_SONIC_YANG_PATCH)
 
     def test_apply__no_errors__update_successful(self):
         # Arrange
@@ -353,13 +374,13 @@ class TestPatchApplier(unittest.TestCase):
 
         # Assert
         patch_applier.config_wrapper.get_sonic_yang_as_json.assert_has_calls([call(), call()])
-        patch_applier.patch_wrapper.simulate_patch.assert_has_calls( \
+        patch_applier.patch_wrapper.simulate_patch.assert_has_calls(
             [call(Files.MULTI_OPERATION_SONIC_YANG_PATCH, Files.SONIC_YANG_AS_JSON)])
-        patch_applier.config_wrapper.validate_sonic_yang_config.assert_has_calls( \
+        patch_applier.config_wrapper.validate_sonic_yang_config.assert_has_calls(
             [call(Files.SONIC_YANG_AFTER_MULTI_PATCH)])
-        patch_applier.patchorderer.order.assert_has_calls([call(Files.MULTI_OPERATION_SONIC_YANG_PATCH)])
+        patch_applier.patchsorter.order.assert_has_calls([call(Files.MULTI_OPERATION_SONIC_YANG_PATCH)])
         patch_applier.changeapplier.apply.assert_has_calls([call(changes[0]), call(changes[1])])
-        patch_applier.patch_wrapper.verify_same_json.assert_has_calls( \
+        patch_applier.patch_wrapper.verify_same_json.assert_has_calls(
             [call(Files.SONIC_YANG_AFTER_MULTI_PATCH, Files.SONIC_YANG_AFTER_MULTI_PATCH)])
 
     def __create_patch_applier(self, changes=None, valid_sonic_yang=True, verified_same_config=True):
@@ -371,23 +392,23 @@ class TestPatchApplier(unittest.TestCase):
 
         patch_wrapper = Mock()
         patch_wrapper.simulate_patch.side_effect = \
-            create_side_effect_dict( \
-                {(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH), str(Files.SONIC_YANG_AS_JSON)): \
+            create_side_effect_dict(
+                {(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH), str(Files.SONIC_YANG_AS_JSON)):
                     Files.SONIC_YANG_AFTER_MULTI_PATCH})
         patch_wrapper.verify_same_json.side_effect = \
-            create_side_effect_dict( \
-                {(str(Files.SONIC_YANG_AFTER_MULTI_PATCH), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)): \
+            create_side_effect_dict(
+                {(str(Files.SONIC_YANG_AFTER_MULTI_PATCH), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)):
                     verified_same_config})
 
         changes = [Mock(), Mock()] if not changes else changes
-        patchorderer = Mock()
-        patchorderer.order.side_effect = \
+        patchsorter = Mock()
+        patchsorter.order.side_effect = \
             create_side_effect_dict({(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH),): changes})
 
         changeapplier = Mock()
         changeapplier.apply.side_effect = create_side_effect_dict({(str(changes[0]),): 0, (str(changes[1]),): 0})
 
-        return gu.PatchApplier(patchorderer, changeapplier, config_wrapper, patch_wrapper)
+        return gu.PatchApplier(patchsorter, changeapplier, config_wrapper, patch_wrapper)
 
 class TestConfigReplacer(unittest.TestCase):
     def test_replace__invalid_sonic_yang__failure(self):
@@ -395,14 +416,14 @@ class TestConfigReplacer(unittest.TestCase):
         config_replacer = self.__create_config_replacer(valid_sonic_yang=False)
 
         # Act and assert
-        self.assertRaises(Exception, config_replacer.replace, Files.SONIC_YANG_AFTER_MULTI_PATCH)
+        self.assertRaises(ValueError, config_replacer.replace, Files.SONIC_YANG_AFTER_MULTI_PATCH)
 
     def test_replace__json_not_fully_updated__failure(self):
         # Arrange
         config_replacer = self.__create_config_replacer(verified_same_config=False)
 
         # Act and assert
-        self.assertRaises(Exception, config_replacer.replace, Files.SONIC_YANG_AFTER_MULTI_PATCH)
+        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, config_replacer.replace, Files.SONIC_YANG_AFTER_MULTI_PATCH)
 
     def test_replace__no_errors__update_successful(self):
         # Arrange
@@ -412,13 +433,13 @@ class TestConfigReplacer(unittest.TestCase):
         config_replacer.replace(Files.SONIC_YANG_AFTER_MULTI_PATCH)
 
         # Assert
-        config_replacer.config_wrapper.validate_sonic_yang_config.assert_has_calls( \
+        config_replacer.config_wrapper.validate_sonic_yang_config.assert_has_calls(
             [call(Files.SONIC_YANG_AFTER_MULTI_PATCH)])
         config_replacer.config_wrapper.get_sonic_yang_as_json.assert_has_calls([call(), call()])
-        config_replacer.patch_wrapper.generate_patch.assert_has_calls( \
+        config_replacer.patch_wrapper.generate_patch.assert_has_calls(
             [call(Files.SONIC_YANG_AS_JSON, Files.SONIC_YANG_AFTER_MULTI_PATCH)])
         config_replacer.patch_applier.apply.assert_has_calls([call(Files.MULTI_OPERATION_SONIC_YANG_PATCH)])
-        config_replacer.patch_wrapper.verify_same_json.assert_has_calls( \
+        config_replacer.patch_wrapper.verify_same_json.assert_has_calls(
             [call(Files.SONIC_YANG_AFTER_MULTI_PATCH, Files.SONIC_YANG_AFTER_MULTI_PATCH)])
 
     def __create_config_replacer(self, changes=None, valid_sonic_yang=True, verified_same_config=True):
@@ -430,17 +451,17 @@ class TestConfigReplacer(unittest.TestCase):
 
         patch_wrapper = Mock()
         patch_wrapper.generate_patch.side_effect = \
-            create_side_effect_dict( \
-                {(str(Files.SONIC_YANG_AS_JSON), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)): \
+            create_side_effect_dict(
+                {(str(Files.SONIC_YANG_AS_JSON), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)):
                     Files.MULTI_OPERATION_SONIC_YANG_PATCH})
         patch_wrapper.verify_same_json.side_effect = \
-            create_side_effect_dict( \
+            create_side_effect_dict(
                 {(str(Files.SONIC_YANG_AFTER_MULTI_PATCH), str(Files.SONIC_YANG_AFTER_MULTI_PATCH)): \
                     verified_same_config})
 
         changes = [Mock(), Mock()] if not changes else changes
-        patchorderer = Mock()
-        patchorderer.order.side_effect = create_side_effect_dict({(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH),): \
+        patchsorter = Mock()
+        patchsorter.order.side_effect = create_side_effect_dict({(str(Files.MULTI_OPERATION_SONIC_YANG_PATCH),): \
             changes})
 
         patch_applier = Mock()
@@ -465,7 +486,7 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         rollbacker = self.create_rollbacker()
 
         # Act and assert
-        self.assertRaises(Exception, rollbacker.rollback, "NonExistingCheckpoint")
+        self.assertRaises(ValueError, rollbacker.rollback, "NonExistingCheckpoint")
 
     def test_rollback__no_errors__success(self):
         # Arrange
@@ -562,7 +583,7 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         rollbacker = self.create_rollbacker()
 
         # Act and assert
-        self.assertRaises(Exception, rollbacker.delete_checkpoint, self.any_checkpoint_name)
+        self.assertRaises(ValueError, rollbacker.delete_checkpoint, self.any_checkpoint_name)
 
     def test_delete_checkpoint__checkpoint_exist__success(self):
         # Arrange
@@ -627,10 +648,9 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         config_wrapper = Mock()
         config_wrapper.get_sonic_yang_as_json.return_value = self.any_config
 
-        return gu.FileSystemConfigRollbacker( \
-            checkpoints_dir=self.checkpoints_dir, \
-                config_replacer=replacer, \
-                    config_wrapper=config_wrapper)
+        return gu.FileSystemConfigRollbacker(checkpoints_dir=self.checkpoints_dir,
+                                             config_replacer=replacer,
+                                             config_wrapper=config_wrapper)
 
 class TestGenericUpdateFactory(unittest.TestCase):
     def setUp(self):
@@ -642,7 +662,7 @@ class TestGenericUpdateFactory(unittest.TestCase):
         factory = gu.GenericUpdateFactory()
 
         # Act and assert
-        self.assertRaises( \
+        self.assertRaises(
             ValueError, factory.create_patch_applier, "INVALID_FORMAT", self.any_verbose, self.any_dry_run)
 
     def test_create_patch_applier__different_options(self):
@@ -666,7 +686,7 @@ class TestGenericUpdateFactory(unittest.TestCase):
         factory = gu.GenericUpdateFactory()
 
         # Act and assert
-        self.assertRaises( \
+        self.assertRaises(
             ValueError, factory.create_config_replacer, "INVALID_FORMAT", self.any_verbose, self.any_dry_run)
 
     def test_create_config_replacer__different_options(self):
@@ -752,12 +772,12 @@ class TestGenericUpdateFactory(unittest.TestCase):
         if params["dry_run"]:
             self.assertIsInstance(config_rollbacker.config_wrapper, gu.DryRunConfigWrapper)
             self.assertIsInstance(config_rollbacker.config_replacer.config_wrapper, gu.DryRunConfigWrapper)
-            self.assertIsInstance( \
+            self.assertIsInstance(
                 config_rollbacker.config_replacer.patch_applier.config_wrapper, gu.DryRunConfigWrapper)
         else:
             self.assertIsInstance(config_rollbacker.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(config_rollbacker.config_replacer.config_wrapper, gu.ConfigWrapper)
-            self.assertIsInstance( \
+            self.assertIsInstance(
                 config_rollbacker.config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
 
 class TestGenericUpdater(unittest.TestCase):
@@ -776,13 +796,13 @@ class TestGenericUpdater(unittest.TestCase):
 
         factory = Mock()
         factory.create_patch_applier.side_effect = \
-            create_side_effect_dict( \
+            create_side_effect_dict(
                 {(str(self.any_config_format), str(self.any_verbose), str(self.any_dry_run),): patch_applier})
 
         generic_updater = gu.GenericUpdater(factory)
 
         # Act
-        generic_updater.apply_patch( \
+        generic_updater.apply_patch(
             Files.SINGLE_OPERATION_SONIC_YANG_PATCH, self.any_config_format, self.any_verbose, self.any_dry_run)
 
         # Assert
@@ -795,7 +815,7 @@ class TestGenericUpdater(unittest.TestCase):
 
         factory = Mock()
         factory.create_config_replacer.side_effect = \
-            create_side_effect_dict( \
+            create_side_effect_dict(
                 {(str(self.any_config_format), str(self.any_verbose), str(self.any_dry_run),): config_replacer})
 
         generic_updater = gu.GenericUpdater(factory)
@@ -887,7 +907,7 @@ class TestDecorator(unittest.TestCase):
         self.any_checkpoints_list = [self.any_checkpoint_name, self.any_other_checkpoint_name]
         self.decorated_config_rollbacker.list_checkpoints.return_value = self.any_checkpoints_list
     
-        self.decorator = gu.Decorator( \
+        self.decorator = gu.Decorator(
             self.decorated_patch_applier, self.decorated_config_replacer, self.decorated_config_rollbacker)
     
     def test_apply__calls_decorated_applier(self):
@@ -945,9 +965,9 @@ class TestConfigDbDecorator(unittest.TestCase):
         config_db_decorator.apply(Files.SINGLE_OPERATION_CONFIG_DB_PATCH)
 
         # Assert
-        config_db_decorator.patch_wrapper.convert_config_db_patch_to_sonic_yang_patch.assert_has_calls( \
+        config_db_decorator.patch_wrapper.convert_config_db_patch_to_sonic_yang_patch.assert_has_calls(
             [call(Files.SINGLE_OPERATION_CONFIG_DB_PATCH)])
-        config_db_decorator.decorated_patch_applier.apply.assert_has_calls( \
+        config_db_decorator.decorated_patch_applier.apply.assert_has_calls(
             [call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
 
     def test_replace__converts_to_yang_and_calls_decorated_class(self):
@@ -958,7 +978,7 @@ class TestConfigDbDecorator(unittest.TestCase):
         config_db_decorator.replace(Files.CONFIG_DB_AS_JSON)
 
         # Assert
-        config_db_decorator.config_wrapper.convert_config_db_to_sonic_yang.assert_has_calls( \
+        config_db_decorator.config_wrapper.convert_config_db_to_sonic_yang.assert_has_calls(
             [call(Files.CONFIG_DB_AS_JSON)])
         config_db_decorator.decorated_config_replacer.replace.assert_has_calls([call(Files.SONIC_YANG_AS_JSON)])
     
@@ -978,11 +998,10 @@ class TestConfigDbDecorator(unittest.TestCase):
         config_wrapper.convert_config_db_to_sonic_yang.side_effect = \
             create_side_effect_dict({(str(Files.CONFIG_DB_AS_JSON),): Files.SONIC_YANG_AS_JSON})
 
-        return gu.ConfigDbDecorator( \
-            decorated_patch_applier=patch_applier, \
-                decorated_config_replacer=config_replacer, \
-                    patch_wrapper=patch_wrapper, \
-                        config_wrapper=config_wrapper)
+        return gu.ConfigDbDecorator(decorated_patch_applier=patch_applier,
+                                    decorated_config_replacer=config_replacer,
+                                    patch_wrapper=patch_wrapper,
+                                    config_wrapper=config_wrapper)
 
 class TestConfigLockDecorator(unittest.TestCase):
     def setUp(self):
@@ -997,7 +1016,7 @@ class TestConfigLockDecorator(unittest.TestCase):
 
         # Assert
         config_lock_decorator.config_lock.acquire_lock.assert_called_once()
-        config_lock_decorator.decorated_patch_applier.apply.assert_has_calls( \
+        config_lock_decorator.decorated_patch_applier.apply.assert_has_calls(
             [call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
         config_lock_decorator.config_lock.release_lock.assert_called_once()
 
@@ -1052,8 +1071,7 @@ class TestConfigLockDecorator(unittest.TestCase):
 
         config_rollbacker.delete_checkpoint.side_effect = create_side_effect_dict({(self.any_checkpoint_name,): 0})
 
-        return gu.ConfigLockDecorator( \
-            config_lock=config_lock, \
-                decorated_patch_applier=patch_applier, \
-                    decorated_config_replacer=config_replacer, \
-                        decorated_config_rollbacker=config_rollbacker)
+        return gu.ConfigLockDecorator(config_lock=config_lock,
+                                      decorated_patch_applier=patch_applier,
+                                      decorated_config_replacer=config_replacer,
+                                      decorated_config_rollbacker=config_rollbacker)

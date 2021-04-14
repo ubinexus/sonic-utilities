@@ -13,6 +13,9 @@ YANG_DIR = "/usr/local/yang-models"
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
 
+class ConfigNotCompletelyUpdatedError(Exception):
+    pass
+
 class JsonChange:
     # TODO: Implement JsonChange
     pass
@@ -26,9 +29,9 @@ class ConfigLock:
         # TODO: Implement ConfigLock
         pass
 
-class PatchOrderer:
+class PatchSorter:
     def order(self, patch):
-        # TODO: Implement patch orderer
+        # TODO: Implement patch sorter
         pass
 
 class ChangeApplier:
@@ -42,7 +45,7 @@ class ConfigWrapper:
         self.yang_dir = YANG_DIR
 
     def get_config_db_as_json(self):
-        config_db = self.__create_and_connect_config_db()
+        config_db = self._create_and_connect_config_db()
         data = dict()
         deep_update(data, FormatConverter.db_to_output(config_db.get_config()))
         return FormatConverter.to_serialized(data)
@@ -70,10 +73,13 @@ class ConfigWrapper:
 
         # replace container of the format 'module:table' with just 'table'
         new_sonic_yang_json = {}
-        for module_top in sonic_yang_as_json.keys():
+        for module_top in sonic_yang_as_json:
             new_sonic_yang_json[module_top] = {}
-            for container in sonic_yang_as_json[module_top].keys():
-                table = container.split(':')[1]
+            for container in sonic_yang_as_json[module_top]:
+                tokens = container.split(':')
+                if len(tokens) > 2:
+                    raise ValueError(f"Expecting '<module>:<table>' or '<table>', found {container}")
+                table = container if len(tokens) == 1 else tokens[1]
                 new_sonic_yang_json[module_top][table] = sonic_yang_as_json[module_top][container]
 
         config_db_as_json = dict()
@@ -94,7 +100,7 @@ class ConfigWrapper:
 
             sy.validate_data_tree()
             return True
-        except Exception as ex:
+        except sonic_yang.SonicYangException as ex:
             return False
 
     def crop_tables_without_yang(self, config_db_as_json):
@@ -109,12 +115,12 @@ class ConfigWrapper:
 
         return sy.jIn
 
-    def __create_and_connect_config_db(self):
+    def _create_and_connect_config_db(self):
         if self.default_config_db_connector != None:
             return self.default_config_db_connector
 
         db_kwargs = dict()
-        config_db = ConfigDBConnector(**db_kwargs)
+        config_db = ConfigDBConnector()
         config_db.connect()
         return config_db
 
@@ -124,8 +130,8 @@ class DryRunConfigWrapper(ConfigWrapper):
     pass
 
 class PatchWrapper:
-    def __init__(self, config_wrapper = ConfigWrapper()):
-        self.config_wrapper = config_wrapper
+    def __init__(self, config_wrapper=None):
+        self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
 
     def validate_config_db_patch(self, patch):
         config_db = {}
@@ -135,7 +141,7 @@ class PatchWrapper:
                 tables_dict = {table_name: {} for table_name in operation['value']}
                 config_db.update(tables_dict)
             elif not tokens[0]: # Not empty
-                raise Exception("Table name in patch cannot be empty")
+                raise ValueError("Table name in patch cannot be empty")
             else:
                 config_db[tokens[0]] = {}
 
@@ -156,7 +162,7 @@ class PatchWrapper:
 
     def convert_config_db_patch_to_sonic_yang_patch(self, patch):
         if not(self.validate_config_db_patch(patch)):
-            raise Exception(f"Given patch is not valid")
+            raise ValueError(f"Given patch is not valid")
 
         current_config_db = self.config_wrapper.get_config_db_as_json()
         target_config_db = self.simulate_patch(patch, current_config_db)
@@ -171,49 +177,48 @@ class ConfigFormat(Enum):
     CONFIGDB = 2
 
 class PatchApplier:
-    def __init__( \
-        self, \
-            patchorderer = PatchOrderer(), \
-                changeapplier = ChangeApplier(), \
-                    config_wrapper = ConfigWrapper(), \
-                        patch_wrapper = PatchWrapper()):
-        self.patchorderer = patchorderer
-        self.changeapplier = changeapplier
-        self.config_wrapper = config_wrapper
-        self.patch_wrapper = patch_wrapper
+    def __init__(self,
+                 patchsorter=None,
+                 changeapplier=None,
+                 config_wrapper=None,
+                 patch_wrapper=None):
+        self.patchsorter = patchsorter if patchsorter is not None else PatchSorter()
+        self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
+        self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
+        self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
 
     def apply(self, patch):
-        # 1. Get old config as SONiC Yang
+        # Get old config as SONiC Yang
         old_config = self.config_wrapper.get_sonic_yang_as_json()
 
-        # 2. Generate target config
+        # Generate target config
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
-        # 3. Validate target config
+        # Validate target config
         if not(self.config_wrapper.validate_sonic_yang_config(target_config)):
-            raise Exception(f"The given patch is not valid")
+            raise ValueError(f"The given patch is not valid")
 
-        # 4. Generate list of changes to apply
-        changes = self.patchorderer.order(patch)
+        # Generate list of changes to apply
+        changes = self.patchsorter.order(patch)
 
-        # 5. Apply changes in order
+        # Apply changes in order
         for change in changes:
             self.changeapplier.apply(change)
 
-        # 6. Validate config updated successfully
+        # Validate config updated successfully
         new_config = self.config_wrapper.get_sonic_yang_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
-            raise Exception(f"After applying patch to config, there are still some parts not updated")
+            raise ConfigNotCompletelyUpdatedError(f"After applying patch to config, there are still some parts not updated")
 
 class ConfigReplacer:
-    def __init__(self, patch_applier = PatchApplier(), config_wrapper = ConfigWrapper(), patch_wrapper = PatchWrapper()):
-        self.patch_applier = patch_applier
-        self.config_wrapper = config_wrapper
-        self.patch_wrapper = patch_wrapper
+    def __init__(self, patch_applier=None, config_wrapper=None, patch_wrapper=None):
+        self.patch_applier = patch_applier if patch_applier is not None else PatchApplier()
+        self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
+        self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
 
     def replace(self, target_config):
         if not(self.config_wrapper.validate_sonic_yang_config(target_config)):
-            raise Exception(f"The given target config is not valid")
+            raise ValueError(f"The given target config is not valid")
 
         old_config = self.config_wrapper.get_sonic_yang_as_json()
         patch = self.patch_wrapper.generate_patch(old_config, target_config)
@@ -222,75 +227,81 @@ class ConfigReplacer:
 
         new_config = self.config_wrapper.get_sonic_yang_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
-            raise Exception(f"After applying patch to config, there is still some parts not updated")
+            raise ConfigNotCompletelyUpdatedError(f"After replacing config, there is still some parts not updated")
 
 class FileSystemConfigRollbacker:
-    def __init__( \
-            self, \
-                checkpoints_dir = CHECKPOINTS_DIR, \
-                    config_replacer = ConfigReplacer(), \
-                        config_wrapper = ConfigWrapper()):
+    def __init__(self,
+                 checkpoints_dir=CHECKPOINTS_DIR,
+                 config_replacer=None,
+                 config_wrapper=None):
         self.checkpoints_dir = checkpoints_dir
-        self.config_replacer = config_replacer
-        self.config_wrapper = config_wrapper
+        self.config_replacer = config_replacer if config_replacer is not None else ConfigReplacer()
+        self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
 
     def rollback(self, checkpoint_name):
-        if not self.__check_checkpoint_exists(checkpoint_name):
-            raise Exception(f"Checkpoint '{checkpoint_name}' does not exist")
+        if not self._check_checkpoint_exists(checkpoint_name):
+            raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
 
-        target_config = self.__get_checkpoint_content(checkpoint_name)
+        target_config = self._get_checkpoint_content(checkpoint_name)
 
         self.config_replacer.replace(target_config)
 
     def checkpoint(self, checkpoint_name):
         json_content = self.config_wrapper.get_sonic_yang_as_json()
 
-        path = self.__get_checkpoint_full_path(checkpoint_name)
+        path = self._get_checkpoint_full_path(checkpoint_name)
 
-        self.__ensure_checkpoints_dir_exists()
+        self._ensure_checkpoints_dir_exists()
 
-        self.__save_json_file(path, json_content)
+        self._save_json_file(path, json_content)
 
     def list_checkpoints(self):
-        if not self.__checkpoints_dir_exist():
+        if not self._checkpoints_dir_exist():
             return []
 
-        return self.__get_checkpoint_names()
+        return self._get_checkpoint_names()
 
     def delete_checkpoint(self, checkpoint_name):
-        if not self.__check_checkpoint_exists(checkpoint_name):
-            raise Exception("Checkpoint does not exist")
+        if not self._check_checkpoint_exists(checkpoint_name):
+            raise ValueError("Checkpoint does not exist")
 
-        self.__delete_checkpoint(checkpoint_name)
+        self._delete_checkpoint(checkpoint_name)
 
-    def __ensure_checkpoints_dir_exists(self):
+    def _ensure_checkpoints_dir_exists(self):
         os.makedirs(self.checkpoints_dir, exist_ok=True)
 
-    def __save_json_file(self, path, json_content):
+    def _save_json_file(self, path, json_content):
         with open(path, "w") as fh:
             fh.write(json.dumps(json_content))
 
-    def __get_checkpoint_content(self, checkpoint_name):
-        path = self.__get_checkpoint_full_path(checkpoint_name)
+    def _get_checkpoint_content(self, checkpoint_name):
+        path = self._get_checkpoint_full_path(checkpoint_name)
         with open(path) as fh:
             text = fh.read()
             return json.loads(text)
 
-    def __get_checkpoint_full_path(self, name):
+    def _get_checkpoint_full_path(self, name):
         return os.path.join(self.checkpoints_dir, f"{name}{CHECKPOINT_EXT}")
 
-    def __get_checkpoint_names(self):
-        return [f[:-len(CHECKPOINT_EXT)] for f in os.listdir(self.checkpoints_dir) if f.endswith(CHECKPOINT_EXT)]
+    def _get_checkpoint_names(self):
+        file_names = []
+        for file_name in os.listdir(self.checkpoints_dir):
+            if file_name.endswith(CHECKPOINT_EXT):
+                # Remove extension from file name.
+                # Example assuming ext is '.cp.json', then 'checkpoint1.cp.json' becomes 'checkpoint1'
+                file_names.append(file_name[:-len(CHECKPOINT_EXT)])
 
-    def __checkpoints_dir_exist(self):
+        return file_names
+
+    def _checkpoints_dir_exist(self):
         return os.path.isdir(self.checkpoints_dir)
 
-    def __check_checkpoint_exists(self, name):
-        path = self.__get_checkpoint_full_path(name)
+    def _check_checkpoint_exists(self, name):
+        path = self._get_checkpoint_full_path(name)
         return os.path.isfile(path)
 
-    def __delete_checkpoint(self, name):
-        path = self.__get_checkpoint_full_path(name)
+    def _delete_checkpoint(self, name):
+        path = self._get_checkpoint_full_path(name)
         return os.remove(path)
 
 class Decorator(PatchApplier, ConfigReplacer, FileSystemConfigRollbacker):
@@ -338,12 +349,11 @@ class ConfigDbDecorator(Decorator):
         Decorator.replace(self, yang_target_config)
 
 class ConfigLockDecorator(Decorator):
-    def __init__( \
-        self, \
-            decorated_patch_applier=None, \
-                decorated_config_replacer=None, \
-                    decorated_config_rollbacker=None, \
-                        config_lock = ConfigLock()):
+    def __init__(self,
+                 decorated_patch_applier=None,
+                 decorated_config_replacer=None,
+                 decorated_config_rollbacker=None,
+                 config_lock = ConfigLock()):
         Decorator.__init__(self, decorated_patch_applier, decorated_config_replacer, decorated_config_rollbacker)
 
         self.config_lock = config_lock
@@ -376,8 +386,7 @@ class GenericUpdateFactory:
         patch_wrapper = PatchWrapper(config_wrapper)
 
         if config_format == ConfigFormat.CONFIGDB:
-            patch_applier = \
-                ConfigDbDecorator( \
+            patch_applier = ConfigDbDecorator(
                     decorated_patch_applier = patch_applier, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
         elif config_format == ConfigFormat.SONICYANG:
             pass
@@ -400,8 +409,7 @@ class GenericUpdateFactory:
 
         config_replacer = ConfigReplacer(patch_applier=patch_applier, config_wrapper=config_wrapper)
         if config_format == ConfigFormat.CONFIGDB:
-            config_replacer = \
-                ConfigDbDecorator( \
+            config_replacer = ConfigDbDecorator(
                     decorated_config_replacer = config_replacer, patch_wrapper=patch_wrapper, config_wrapper=config_wrapper)
         elif config_format == ConfigFormat.SONICYANG:
             pass
@@ -441,8 +449,9 @@ class GenericUpdateFactory:
             return ConfigWrapper()
 
 class GenericUpdater:
-    def __init__(self, generic_update_factory = GenericUpdateFactory()):
-        self.generic_update_factory = generic_update_factory
+    def __init__(self, generic_update_factory=None):
+        self.generic_update_factory = \
+            generic_update_factory if generic_update_factory is not None else GenericUpdateFactory()
 
     def apply_patch(self, patch, config_format, verbose, dry_run):
         patch_applier = self.generic_update_factory.create_patch_applier(config_format, verbose, dry_run)
