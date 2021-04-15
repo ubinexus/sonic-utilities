@@ -269,19 +269,6 @@ def test_installation_fault(package_manager, mock_docker_api, mock_service_creat
     mock_docker_api.rmi.assert_called_once()
 
 
-def test_installation_package_with_description(package_manager, fake_metadata_resolver):
-    package_entry = package_manager.database.get_package('test-package')
-    description = package_entry.description
-    references = fake_metadata_resolver.metadata_store[package_entry.repository]
-    manifest = references[package_entry.default_reference]['manifest']
-    new_description = description + ' changed description '
-    manifest['package']['description'] = new_description
-    package_manager.install('test-package')
-    package_entry = package_manager.database.get_package('test-package')
-    description = package_entry.description
-    assert description == new_description
-
-
 def test_manager_installation_version_range(package_manager):
     with pytest.raises(PackageManagerError,
                        match='Can only install specific version. '
@@ -296,6 +283,15 @@ def test_manager_upgrade(package_manager, sonic_fs):
 
     upgraded_package = package_manager.get_installed_package('test-package-6')
     assert upgraded_package.entry.version == Version(2, 0, 0)
+
+
+def test_manager_package_reset(package_manager, sonic_fs):
+    package_manager.install('test-package-6==1.5.0')
+    package_manager.upgrade('test-package-6==2.0.0')
+
+    package_manager.reset('test-package-6')
+    upgraded_package = package_manager.get_installed_package('test-package-6')
+    assert upgraded_package.entry.version == Version(1, 5, 0)
 
 
 def test_manager_migration(package_manager, fake_db_for_migration):

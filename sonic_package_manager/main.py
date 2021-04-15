@@ -281,8 +281,8 @@ def changelog(ctx,
 @repository.command()
 @click.argument('name', type=str)
 @click.argument('repository', type=str)
-@click.option('--default-reference', type=str, help='Default installation reference.')
-@click.option('--description', type=str, help='Default installation reference.')
+@click.option('--default-reference', type=str, help='Default installation reference')
+@click.option('--description', type=str, help='Optional package entry description')
 @click.pass_context
 @root_privileges_required
 def add(ctx, name, repository, default_reference, description):
@@ -404,6 +404,29 @@ def upgrade(ctx,
                         **upgrade_opts)
     except Exception as err:
         exit_cli(f'Failed to upgrade {package_source}: {err}', fg='red')
+    except KeyboardInterrupt:
+        exit_cli(f'Operation canceled by user', fg='red')
+
+
+@cli.command()
+@add_options(PACKAGE_COMMON_OPERATION_OPTIONS)
+@add_options(PACKAGE_COMMON_INSTALL_OPTIONS)
+@click.argument('name')
+@click.pass_context
+@root_privileges_required
+def reset(ctx, name, force, yes, skip_host_plugins):
+    """ Reset package to the default version """
+
+    manager: PackageManager = ctx.obj
+
+    if not yes and not force:
+        click.confirm(f'Package {name} is going to be reset to default version, '
+                      f'continue?', abort=True, show_default=True)
+
+    try:
+        manager.reset(name, force, skip_host_plugins)
+    except Exception as err:
+        exit_cli(f'Failed to reset package {name}: {err}', fg='red')
     except KeyboardInterrupt:
         exit_cli(f'Operation canceled by user', fg='red')
 

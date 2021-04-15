@@ -8010,14 +8010,14 @@ This command will add a new entry in the package database. The package has to be
 
 - Usage:
   ```
-  Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
+Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
 
-    Add a new repository to database.
+  Add a new repository to database. Repository in Docker Registry V2.
 
-  Options:
-    --default-reference TEXT  Default installation reference.
-    --description TEXT        Optional package entry description.
-    --help                    Show this message and exit.
+Options:
+  --default-reference TEXT  Default installation reference
+  --description TEXT        Optional package entry description
+  --help                    Show this message and exit.
   ```
 - Example:
   ```
@@ -8049,41 +8049,34 @@ This command pulls and installs package on SONiC host. *NOTE*: this command requ
 
 - Usage:
   ```
-  Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
+Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
 
-    Install package
+  Install package using [PACKAGE_EXPR] in format "<name>==<version>"
 
-  Options:
-    --enable                        Set the default state of the feature to
-                                    enabled and enable feature right after
-                                    installation. NOTE: user needs to execute
-                                    "config save -y" to make this setting
-                                    persistent
-
-    --default-owner [local|kube]    Default owner configuration setting for a
-                                    feature
-
-    --from-repository TEXT          Fetch package directly from image registry
-                                    repository NOTE: This argument is mutually
-                                    exclusive with arguments: [from_tarball,
-                                    package_expr].
-
-    --from-tarball FILE             Fetch package from saved image tarball
-                                    NOTE: This argument is mutually exclusive
-                                    with arguments: [from_repository,
-                                    package_expr].
-
-    -f, --force                     Force operation by ignoring failures
-    -y, --yes                       Automatically answer yes on prompts
-    -v, --verbosity LVL             Either CRITICAL, ERROR, WARNING, INFO or
-                                    DEBUG
-
-    --skip-cli-plugin-installation  Do not install CLI plugins provided by the
-                                    package on the host OS. NOTE: In case when
-                                    package /cli/mandatory field is set to True
-                                    this option will fail the installation.
-
-    --help                          Show this message and exit.
+Options:
+  --enable                      Set the default state of the feature to
+                                enabled and enable feature right after
+                                installation. NOTE: user needs to execute
+                                "config save -y" to make this setting
+                                persistent
+  --default-owner [local|kube]  Default owner configuration setting for a
+                                feature
+  --from-repository TEXT        Fetch package directly from image registry
+                                repository NOTE: This argument is mutually
+                                exclusive with arguments: [package_expr,
+                                from_tarball].
+  --from-tarball FILE           Fetch package from saved image tarball NOTE:
+                                This argument is mutually exclusive with
+                                arguments: [package_expr, from_repository].
+  -f, --force                   Force operation by ignoring failures
+  -y, --yes                     Automatically answer yes on prompts
+  -v, --verbosity LVL           Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+  --skip-host-plugins           Do not install host OS plugins provided by the
+                                package (CLI, etc). NOTE: In case when package
+                                host OS plugins are set as mandatory in
+                                package manifest this option will fail the
+                                installation.
+  --help                        Show this message and exit.
   ```
 - Example:
   ```
@@ -8124,32 +8117,25 @@ This command upgrades package on SONiC host to a newer version. The procedure of
 
 - Usage:
   ```
-  Usage: sonic-package-manager upgrade [OPTIONS] [PACKAGE_EXPR]
+Usage: sonic-package-manager upgrade [OPTIONS] [PACKAGE_EXPR]
 
-    Upgrade package
+  Upgrade package using [PACKAGE_EXPR] in format "<name>==<version>"
 
-  Options:
-    --from-repository TEXT          Fetch package directly from image registry
-                                    repository NOTE: This argument is mutually
-                                    exclusive with arguments: [package_expr,
-                                    from_tarball].
-
-    --from-tarball FILE             Fetch package from saved image tarball
-                                    NOTE: This argument is mutually exclusive
-                                    with arguments: [package_expr,
-                                    from_repository].
-
-    -f, --force                     Force operation by ignoring failures
-    -y, --yes                       Automatically answer yes on prompts
-    -v, --verbosity LVL             Either CRITICAL, ERROR, WARNING, INFO or
-                                    DEBUG
-
-    --skip-cli-plugin-installation  Do not install CLI plugins provided by the
-                                    package on the host OS. NOTE: In case when
-                                    package /cli/mandatory field is set to True
-                                    this option will fail the installation.
-
-    --help                          Show this message and exit.
+Options:
+  --from-repository TEXT  Fetch package directly from image registry
+                          repository NOTE: This argument is mutually exclusive
+                          with arguments: [package_expr, from_tarball].
+  --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                          argument is mutually exclusive with arguments:
+                          [from_repository, package_expr].
+  -f, --force             Force operation by ignoring failures
+  -y, --yes               Automatically answer yes on prompts
+  -v, --verbosity LVL     Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+  --skip-host-plugins     Do not install host OS plugins provided by the
+                          package (CLI, etc). NOTE: In case when package host
+                          OS plugins are set as mandatory in package manifest
+                          this option will fail the installation.
+  --help                  Show this message and exit.
   ```
 - Example:
   ```
@@ -8160,6 +8146,31 @@ This command upgrades package on SONiC host to a newer version. The procedure of
   ```
   ```
   admin@sonic:~$ sudo sonic-package-manager upgrade --from-tarball sonic-docker-image.gz
+  ```
+
+**sonic-package-manager reset**
+
+This comamnd resets the package by reinstalling it to its default version.
+
+- Usage:
+  ```
+Usage: sonic-package-manager reset [OPTIONS] NAME
+
+  Reset package to the default version
+
+Options:
+  -f, --force          Force operation by ignoring failures
+  -y, --yes            Automatically answer yes on prompts
+  -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+  --skip-host-plugins  Do not install host OS plugins provided by the package
+                       (CLI, etc). NOTE: In case when package host OS plugins
+                       are set as mandatory in package manifest this option
+                       will fail the installation.
+  --help               Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager reset dhcp-relay
   ```
 
 **sonic-package-manager show package versions**

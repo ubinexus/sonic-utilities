@@ -29,7 +29,7 @@ def mock_docker_api():
             return {'RepoTags': [self.id]}
 
     def pull(repo, ref):
-        return Image(f'{repo}:latest')
+        return Image(f'{repo}:{ref}')
 
     def load(filename):
         return Image(filename)

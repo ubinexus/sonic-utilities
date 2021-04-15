@@ -442,7 +442,8 @@ class PackageManager:
     def upgrade_from_source(self,
                             source: PackageSource,
                             force=False,
-                            skip_host_plugins=False):
+                            skip_host_plugins=False,
+                            allow_downgrade=False):
         """ Upgrade SONiC Package to a version the package reference
         expression specifies. Can force the upgrade if force parameter
         is True. Force can allow a package downgrade.
@@ -451,6 +452,7 @@ class PackageManager:
             source: SONiC Package source
             force: Force the upgrade.
             skip_host_plugins: Skip host OS plugins installation.
+            allow_downgrade: Flag to allow package downgrade.
         Raises:
             PackageManagerError
         """
@@ -478,11 +480,9 @@ class PackageManager:
 
             # TODO: Not all packages might support downgrade.
             # We put a check here but we understand that for some packages
-            # the downgrade might be safe to do. In that case we might want to
-            # add another argument to this function: allow_downgrade: bool = False.
-            # Another way to do that might be a variable in manifest describing package
-            # downgrade ability or downgrade-able versions.
-            if new_version < old_version:
+            # the downgrade might be safe to do. There can be a variable in manifest
+            # describing package downgrade ability or downgrade-able versions.
+            if new_version < old_version and not allow_downgrade:
                 raise PackageUpgradeError(f'Request to downgrade from {old_version} to {new_version}. '
                                           f'Downgrade might be not supported by the package')
 
@@ -542,6 +542,33 @@ class PackageManager:
         new_package_entry.version = new_version
         self.database.update_package(new_package_entry)
         self.database.commit()
+
+    @under_lock
+    def reset(self, name: str, force: bool = False, skip_host_plugins: bool = False):
+        """ Reset package to defaults version
+
+        Args:
+            name: SONiC Package name.
+            force: Force the installation.
+            skip_host_plugins: Skip host plugins installation.
+        Raises:
+            PackageManagerError
+        """
+
+        with failure_ignore(force):
+            if not self.is_installed(name):
+                raise PackageManagerError(f'{name} is not installed')
+
+        package = self.get_installed_package(name)
+        default_reference = package.entry.default_reference
+        if default_reference is None:
+            raise PackageManagerError(f'package {name} has no default reference')
+
+        package_ref = PackageReference(name, default_reference)
+        source = self.get_package_source(package_ref=package_ref)
+        self.upgrade_from_source(source, force=force,
+                                 allow_downgrade=True,
+                                 skip_host_plugins=skip_host_plugins)
 
     @under_lock
     def migrate_packages(self,

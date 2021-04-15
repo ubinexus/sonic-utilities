@@ -76,20 +76,20 @@ class PackageSource(object):
         name = manifest['package']['name']
         description = manifest['package']['description']
 
+        # Will be resolved in install() method.
+        # When installing from tarball we don't know yet
+        # the repository for this package.
         repository = None
 
         if self.database.has_package(name):
             # inherit package database info
-            package = self.database.get_package(name)
-            repository = package.repository
-            description = description or package.description
+            package_entry = self.database.get_package(name)
+        else:
+            package_entry = PackageEntry(name, repository,
+                                         description=description)
 
         return Package(
-            PackageEntry(
-                name,
-                repository,
-                description,
-            ),
+            package_entry,
             metadata
         )
 
