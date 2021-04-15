@@ -888,7 +888,6 @@ def link_local_mode(verbose):
     """show ipv6 link-local-mode"""
     header = ['Interface Name', 'Mode']
     body = []
-    link_local = []
     interfaces = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE']
     config_db = ConfigDBConnector()
     config_db.connect()
