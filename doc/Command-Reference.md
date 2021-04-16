@@ -7988,7 +7988,7 @@ SONiC package status can be *Installed*, *Not installed* or *Built-In*. "Built-I
   Name            Repository                   Description                   Version    Status
   --------------  ---------------------------  ----------------------------  ---------  ---------
   database        docker-database              SONiC database package        1.0.0      Built-In
-  dhcp-relay      docker-dhcp-relay            SONiC dhcp-relay package      1.0.0      Installed
+  dhcp-relay      azure/docker-dhcp-relay      SONiC dhcp-relay package      1.0.0      Installed
   fpm-frr         docker-fpm-frr               SONiC fpm-frr package         1.0.0      Built-In
   lldp            docker-lldp                  SONiC lldp package            1.0.0      Built-In
   macsec          docker-macsec                SONiC macsec package          1.0.0      Built-In
@@ -8006,18 +8006,18 @@ SONiC package status can be *Installed*, *Not installed* or *Built-In*. "Built-I
 
 **sonic-package-manager repository add**
 
-This command will add a new entry in the package database. The package has to be *Not Installed* in order to be removed from package database. *NOTE*: this command requires elevated (root) privileges to run.
+This command will add a new entry in the package database. *NOTE*: this command requires elevated (root) privileges to run.
 
 - Usage:
   ```
-Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
+  Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
 
-  Add a new repository to database. Repository in Docker Registry V2.
+    Add a new repository to database. Repository in Docker Registry V2.
 
-Options:
-  --default-reference TEXT  Default installation reference
-  --description TEXT        Optional package entry description
-  --help                    Show this message and exit.
+  Options:
+    --default-reference TEXT  Default installation reference
+    --description TEXT        Optional package entry description
+    --help                    Show this message and exit.
   ```
 - Example:
   ```
@@ -8027,7 +8027,7 @@ Options:
 
 **sonic-package-manager repository remove**
 
-This command will remove an entry from the package database. *NOTE*: this command requires elevated (root) privileges to run.
+This command will remove an entry from the package database. The package has to be *Not Installed* in order to be removed from package database. *NOTE*: this command requires elevated (root) privileges to run.
 
 - Usage:
   ```
@@ -8049,34 +8049,34 @@ This command pulls and installs package on SONiC host. *NOTE*: this command requ
 
 - Usage:
   ```
-Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
+  Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
 
-  Install package using [PACKAGE_EXPR] in format "<name>==<version>"
+    Install package using [PACKAGE_EXPR] in format "<name>==<version>"
 
-Options:
-  --enable                      Set the default state of the feature to
-                                enabled and enable feature right after
-                                installation. NOTE: user needs to execute
-                                "config save -y" to make this setting
-                                persistent
-  --default-owner [local|kube]  Default owner configuration setting for a
-                                feature
-  --from-repository TEXT        Fetch package directly from image registry
-                                repository NOTE: This argument is mutually
-                                exclusive with arguments: [package_expr,
-                                from_tarball].
-  --from-tarball FILE           Fetch package from saved image tarball NOTE:
-                                This argument is mutually exclusive with
-                                arguments: [package_expr, from_repository].
-  -f, --force                   Force operation by ignoring failures
-  -y, --yes                     Automatically answer yes on prompts
-  -v, --verbosity LVL           Either CRITICAL, ERROR, WARNING, INFO or DEBUG
-  --skip-host-plugins           Do not install host OS plugins provided by the
-                                package (CLI, etc). NOTE: In case when package
-                                host OS plugins are set as mandatory in
-                                package manifest this option will fail the
-                                installation.
-  --help                        Show this message and exit.
+  Options:
+    --enable                      Set the default state of the feature to
+                                  enabled and enable feature right after
+                                  installation. NOTE: user needs to execute
+                                  "config save -y" to make this setting
+                                  persistent
+    --default-owner [local|kube]  Default owner configuration setting for a
+                                  feature
+    --from-repository TEXT        Fetch package directly from image registry
+                                  repository NOTE: This argument is mutually
+                                  exclusive with arguments: [package_expr,
+                                  from_tarball].
+    --from-tarball FILE           Fetch package from saved image tarball NOTE:
+                                  This argument is mutually exclusive with
+                                  arguments: [package_expr, from_repository].
+    -f, --force                   Force operation by ignoring failures
+    -y, --yes                     Automatically answer yes on prompts
+    -v, --verbosity LVL           Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    --skip-host-plugins           Do not install host OS plugins provided by the
+                                  package (CLI, etc). NOTE: In case when package
+                                  host OS plugins are set as mandatory in
+                                  package manifest this option will fail the
+                                  installation.
+    --help                        Show this message and exit.
   ```
 - Example:
   ```
@@ -8117,25 +8117,25 @@ This command upgrades package on SONiC host to a newer version. The procedure of
 
 - Usage:
   ```
-Usage: sonic-package-manager upgrade [OPTIONS] [PACKAGE_EXPR]
+  Usage: sonic-package-manager upgrade [OPTIONS] [PACKAGE_EXPR]
 
-  Upgrade package using [PACKAGE_EXPR] in format "<name>==<version>"
+    Upgrade package using [PACKAGE_EXPR] in format "<name>==<version>"
 
-Options:
-  --from-repository TEXT  Fetch package directly from image registry
-                          repository NOTE: This argument is mutually exclusive
-                          with arguments: [package_expr, from_tarball].
-  --from-tarball FILE     Fetch package from saved image tarball NOTE: This
-                          argument is mutually exclusive with arguments:
-                          [from_repository, package_expr].
-  -f, --force             Force operation by ignoring failures
-  -y, --yes               Automatically answer yes on prompts
-  -v, --verbosity LVL     Either CRITICAL, ERROR, WARNING, INFO or DEBUG
-  --skip-host-plugins     Do not install host OS plugins provided by the
-                          package (CLI, etc). NOTE: In case when package host
-                          OS plugins are set as mandatory in package manifest
-                          this option will fail the installation.
-  --help                  Show this message and exit.
+  Options:
+    --from-repository TEXT  Fetch package directly from image registry
+                            repository NOTE: This argument is mutually exclusive
+                            with arguments: [package_expr, from_tarball].
+    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                            argument is mutually exclusive with arguments:
+                            [from_repository, package_expr].
+    -f, --force             Force operation by ignoring failures
+    -y, --yes               Automatically answer yes on prompts
+    -v, --verbosity LVL     Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    --skip-host-plugins     Do not install host OS plugins provided by the
+                            package (CLI, etc). NOTE: In case when package host
+                            OS plugins are set as mandatory in package manifest
+                            this option will fail the installation.
+    --help                  Show this message and exit.
   ```
 - Example:
   ```
@@ -8154,19 +8154,19 @@ This comamnd resets the package by reinstalling it to its default version.
 
 - Usage:
   ```
-Usage: sonic-package-manager reset [OPTIONS] NAME
+  Usage: sonic-package-manager reset [OPTIONS] NAME
 
-  Reset package to the default version
+    Reset package to the default version
 
-Options:
-  -f, --force          Force operation by ignoring failures
-  -y, --yes            Automatically answer yes on prompts
-  -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG
-  --skip-host-plugins  Do not install host OS plugins provided by the package
-                       (CLI, etc). NOTE: In case when package host OS plugins
-                       are set as mandatory in package manifest this option
-                       will fail the installation.
-  --help               Show this message and exit.
+  Options:
+    -f, --force          Force operation by ignoring failures
+    -y, --yes            Automatically answer yes on prompts
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    --skip-host-plugins  Do not install host OS plugins provided by the package
+                        (CLI, etc). NOTE: In case when package host OS plugins
+                        are set as mandatory in package manifest this option
+                        will fail the installation.
+    --help               Show this message and exit.
   ```
 - Example:
   ```
