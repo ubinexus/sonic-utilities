@@ -40,7 +40,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_1_0_4'
+        self.CURRENT_VERSION = 'version_1_0_6'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -233,9 +233,24 @@ class DBMigrator():
 
     def version_1_0_5(self):
         """
-        Current latest version. Nothing to do here.
+        Version 1_0_5.
         """
         log.log_info('Handling version_1_0_5')
+
+        # Check ASIC type, if Mellanox platform then need DB migration
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_5', 'version_1_0_6') and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_5', 'version_1_0_6'):
+                self.set_version('version_1_0_6')
+        else:
+            self.set_version('version_1_0_6')
+
+        return 'version_1_0_6'
+
+    def version_1_0_6(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_1_0_6')
 
         return None
 

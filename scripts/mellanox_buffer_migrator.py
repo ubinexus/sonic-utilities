@@ -3,9 +3,10 @@ Mellanox buffer migrator:
     Migrate buffer configuration to the default one in the new version automatically
     if the configuration matched the default on in the old version.
 
-    Current version: 1.0.5 for shared headroom pool support on 201911
+    Current version: 1.0.6 for 2km cable support
     Historical version:
      - 201911:
+       - 1.0.5 for shared headroom pool support
        - 1.0.4 for optimized headroom calculation:
           - For Microsoft SKUs, calculate headroom with small packet percentage as 50%
           - For all SKUs, fix some bugs in the formula
@@ -290,7 +291,20 @@ class MellanoxBufferMigrator():
         },
         "version_1_0_5": {
             # version 1.0.5 is introduced for shared headroom pools
-            "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc2_3800_t0_pool", "spc2_3800_t1_pool"],
+            "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool",
+                                        "spc1_2700_t0_pool_shp", "spc1_2700_t1_pool_shp",
+                                        "spc1_2700-d48c8_t0_pool_shp", "spc1_2700-d48c8_t1_pool_shp",
+                                        "spc1_2700_t0_single_pool_shp", "spc1_2700_t1_single_pool_shp",
+                                        "spc1_2700-d48c8_t0_single_pool_shp", "spc1_2700-d48c8_t1_single_pool_shp",
+
+                                        "spc2_3800-c64_t0_pool_shp", "spc2_3800-c64_t1_pool_shp",
+                                        "spc2_3800-d112c8_t0_pool_shp", "spc2_3800-d112c8_t1_pool_shp",
+                                        "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d24c52_t1_pool_shp",
+                                        "spc2_3800-d28c50_t0_pool_shp", "spc2_3800-d28c50_t1_pool_shp",
+
+                                        "spc2_3800_t0_pool", "spc2_3800_t1_pool",
+                                        "spc3_t0_pool", "spc3_t1_pool"],
+
             "pool_convert_map": {
                 "spc1_t0_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700-d48c8_t0_pool_shp",
                                          "Mellanox-SN2700-D48C8": "spc1_2700-d48c8_t0_pool_shp",
@@ -330,14 +344,14 @@ class MellanoxBufferMigrator():
                 "spc1_2700-d48c8_t1_single_pool_shp": {"singlepool": { "size": "9686016", "xoff": "1179648" }, "egress_lossless_pool": { "size": "13945824"}},
 
                 # The following pools are used for upgrading from 1.0.5 to the newer version
-                "spc2_3800-c64_t0_pool": {"singlepool": {"size": "23343104"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-c64_t1_pool": {"singlepool": {"size": "19410944"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d112c8_t0_pool": {"singlepool": {"size": "16576512"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d112c8_t1_pool": {"singlepool": {"size": "14790656"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d24c52_t0_pool": {"singlepool": {"size": "21819392"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d24c52_t1_pool": {"singlepool": {"size": "17862656"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d28c50_t0_pool": {"singlepool": {"size": "21565440"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d28c50_t1_pool": {"singlepool": {"size": "17604608"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-c64_t0_pool_shp": {"singlepool": {"size": "25866240", "xoff": "2523136"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-c64_t1_pool_shp": {"singlepool": {"size": "23900160", "xoff": "4489216"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d112c8_t0_pool_shp": {"singlepool": {"size": "20017152", "xoff": "3440640"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d112c8_t1_pool_shp": {"singlepool": {"size": "19124224", "xoff": "4333568"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d24c52_t0_pool_shp": {"singlepool": {"size": "24576000", "xoff": "2756608"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d24c52_t1_pool_shp": {"singlepool": {"size": "22597632", "xoff": "4734976"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d28c50_t0_pool_shp": {"singlepool": {"size": "24360960", "xoff": "2795520"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d28c50_t1_pool_shp": {"singlepool": {"size": "22380544", "xoff": "4775936"}, "egress_lossless_pool": {"size": "34287552"}},
 
                 "spc2_3800_t0_pool": {"doublepool": { "size": "13924352" }, "egress_lossless_pool": { "size": "34287552"}},
                 "spc2_3800_t1_pool": {"doublepool": { "size": "12457984" }, "egress_lossless_pool": { "size": "34287552"}},
@@ -401,6 +415,41 @@ class MellanoxBufferMigrator():
                             "pg_lossless_100000_300m_profile": {"xoff": "102400", "xon":"19456"}}
                 }
             }
+        },
+        "version_1_0_6": {
+            # Version 1.0.6 is introduced for 2km cable support
+            #
+            # pool_mapped_from_old_version is not required because no pool flavor mapping changed
+
+            # Buffer pool info for normal mode
+            "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
+
+            "buffer_pools": {
+                "spc1_2700_t1_pool_shp": {"doublepool": { "size": "2090496", "xoff": "6684672" }, "egress_lossless_pool": { "size": "13945824"}},
+                "spc1_2700-d48c8_t1_pool_shp": {"doublepool": { "size": "2311680", "xoff": "4128768" }, "egress_lossless_pool": { "size": "13945824"}},
+
+                # Buffer pool for single pool
+                "spc1_2700_t1_single_pool_shp": {"singlepool": { "size": "4180992", "xoff": "6684672" }, "egress_lossless_pool": { "size": "13945824"}},
+                "spc1_2700-d48c8_t1_single_pool_shp": {"singlepool": { "size": "4623360", "xoff": "4128768" }, "egress_lossless_pool": { "size": "13945824"}},
+
+                # The following pools are used for upgrading from 1.0.5 to the newer version
+                "spc2_3800-c64_t1_pool_shp": {"singlepool": {"size": "12759040", "xoff": "15630336"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d112c8_t1_pool_shp": {"singlepool": {"size": "16338944", "xoff": "7118848"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d24c52_t1_pool_shp": {"singlepool": {"size": "11456512", "xoff": "15876096"}, "egress_lossless_pool": {"size": "34287552"}},
+                "spc2_3800-d28c50_t1_pool_shp": {"singlepool": {"size": "11239424", "xoff": "15917056"}, "egress_lossless_pool": {"size": "34287552"}}
+            },
+            "buffer_pools_inherited": {
+                "version_1_0_4": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc3_t0_pool", "spc3_t1_pool"],
+                "version_1_0_5": ["spc1_2700_t0_pool",
+                                  "spc2_3800_t0_pool",
+                                  "spc2_3800_t1_pool",
+                                  "spc1_2700_t0_pool_shp",
+                                  "spc1_2700_t0_single_pool_shp",
+                                  "spc1_2700-d48c8_t0_pool_shp",
+                                  "spc1_2700-d48c8_t0_single_pool_shp",
+                                  "spc2_3800-c64_t0_pool_shp", "spc2_3800-d112c8_t0_pool_shp",
+                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d28c50_t0_pool_shp"]
+            }
         }
     }
 
@@ -418,6 +467,17 @@ class MellanoxBufferMigrator():
         """
 
         return self.mellanox_default_parameter[db_version].get(table)
+
+    def mlnx_merge_inherited_info(self, db_version, buffer_pools):
+        inherited_info = self.mlnx_default_buffer_parameters(db_version, "buffer_pools_inherited")
+        if inherited_info:
+            for from_version, inherited_pool_list in inherited_info.iteritems():
+                pools_in_base_version = self.mlnx_default_buffer_parameters(from_version, "buffer_pools")
+                log.log_info("inherited pool list {} from version {} loaded".format(inherited_pool_list, from_version))
+                for key in inherited_pool_list:
+                    pool_config = pools_in_base_version.get(key)
+                    if pool_config:
+                        buffer_pools[key] = pool_config
 
     def mlnx_migrate_map_old_pool_to_new(self, pool_mapping, pool_convert_map, old_config_name):
         new_config_name = None
@@ -530,6 +590,7 @@ class MellanoxBufferMigrator():
         pool_convert_map = self.mlnx_default_buffer_parameters(new_version, "pool_convert_map")
         log.log_info("got old configuration {}".format(configdb_buffer_pools))
         default_buffer_pools_old = self.mlnx_default_buffer_parameters(old_version, "buffer_pools")
+        self.mlnx_merge_inherited_info(old_version, default_buffer_pools_old)
         for old_config_name in default_pool_conf_list_old:
             old_config = default_buffer_pools_old[old_config_name]
             self.mlnx_migrate_extend_condensed_pool(old_config, old_config_name)
@@ -547,6 +608,7 @@ class MellanoxBufferMigrator():
             return True
 
         default_buffer_pools_new = self.mlnx_default_buffer_parameters(new_version, "buffer_pools")
+        self.mlnx_merge_inherited_info(new_version, default_buffer_pools_new)
         new_buffer_pool_conf = default_buffer_pools_new.get(new_config_name)
         if not new_buffer_pool_conf:
             log.log_error("Can't find the buffer pool configuration for {} in {}".format(new_config_name, new_version))
@@ -590,7 +652,7 @@ class MellanoxBufferMigrator():
         default_headroom_sets_new = self.mlnx_default_buffer_parameters(new_version, "headrooms")
         default_headrooms_old = None
         default_headrooms_new = None
-        if default_headroom_sets_old and default_headroom_sets_old:
+        if default_headroom_sets_old and default_headroom_sets_new:
             if self.platform == 'x86_64-mlnx_msn3800-r0':
                 default_headrooms_old = default_headroom_sets_old.get("spc2_3800_headroom")
                 default_headrooms_new = default_headroom_sets_new.get("spc2_3800_headroom")
