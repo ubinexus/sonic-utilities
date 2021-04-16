@@ -784,38 +784,47 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
-def cli_sroute_to_config(ctx, command_str):
-    if len(command_str) < 4 or len(command_str) > 9:
+def cli_sroute_to_config(ctx, command_str, strict_nh = True):
+    if len(command_str) < 2 or len(command_str) > 9:
         ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
     if "prefix" not in command_str:
         ctx.fail("argument is incomplete, prefix not found!")
-    if "nexthop" not in command_str:
+    if "nexthop" not in command_str and strict_nh:
         ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0,len(command_str)):
-        if "nexthop" == command_str[i]:
-            prefix_str = command_str[:i]
-            nexthop_str = command_str[i:]
 
+    nexthop_str = None
     config_entry = {}
-    ip_prefix = ""
     vrf_name = ""
 
+    if "nexthop" in command_str:
+        idx = command_str.index("nexthop")
+        prefix_str = command_str[:idx]
+        nexthop_str = command_str[idx:]
+    else:
+        prefix_str = command_str[:]
+
     if prefix_str:
-        if len(prefix_str) == 2:
-            ip_prefix = prefix_str[1]
-        elif len(prefix_str) == 4:
+        if 'prefix' in prefix_str and 'vrf' in prefix_str:
+            # prefix_str: ['prefix', 'vrf', Vrf-name, ip]
             vrf_name = prefix_str[2]
             ip_prefix = prefix_str[3]
+        elif 'prefix' in prefix_str:
+            # prefix_str: ['prefix', ip]
+            ip_prefix = prefix_str[1]
         else:
             ctx.fail("prefix is not in pattern!")
+
     if nexthop_str:
-        if len(nexthop_str) == 2:
-            config_entry["nexthop"] = nexthop_str[1]
-        elif len(nexthop_str) == 3:
-            config_entry["ifname"] = nexthop_str[2]
-        elif len(nexthop_str) == 4:
+        if 'nexthop' in nexthop_str and 'vrf' in nexthop_str:
+            # nexthop_str: ['nexthop', 'vrf', Vrf-name, ip]
             config_entry["nexthop"] = nexthop_str[3]
             config_entry["nexthop-vrf"] = nexthop_str[2]
+        elif 'nexthop' in nexthop_str:
+            # nexthop_str: ['nexthop', ip]
+            config_entry["nexthop"] = nexthop_str[1]
+        elif 'dev' in nexthop_str:
+            # nexthop_str: ['nexthop', 'dev', ifname]
+            config_entry["ifname"] = nexthop_str[2]
         else:
             ctx.fail("nexthop is not in pattern!")
 
@@ -828,7 +837,6 @@ def cli_sroute_to_config(ctx, command_str):
     except ValueError:
         ctx.fail("ip address is not valid.")
 
-    key = ""
     if not vrf_name == "":
         key = vrf_name + "|" + ip_prefix
     else:
@@ -3218,14 +3226,21 @@ def add_route(ctx, command_str):
     """Add route command"""
     config_db = ctx.obj['config_db']
     key, route = cli_sroute_to_config(ctx, command_str)
+
+    # If defined intf name, check if it exists
+    if 'ifname' in route:
+        if (not route['ifname'] in config_db.get_keys('VLAN') and
+            not route['ifname'] in config_db.get_keys('INTERFACE') and
+            not route['ifname'] in config_db.get_keys('PORTCHANNEL')):
+            ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
+
     # Check if exist entry with key
     keys = config_db.get_keys('STATIC_ROUTE')
     if key in keys:
         # If exist update current entry
         current_entry = config_db.get_entry('STATIC_ROUTE', key)
 
-        ENTRY_NAME = ['nexthop', 'nexthop-vrf', 'ifname']
-        for entry in ENTRY_NAME:
+        for entry in ['nexthop', 'nexthop-vrf', 'ifname']:
             if not entry in current_entry:
                     current_entry[entry] = ''
             if entry in route:
@@ -3243,15 +3258,19 @@ def add_route(ctx, command_str):
 def del_route(ctx, command_str):
     """Del route command"""
     config_db = ctx.obj['config_db']
-    key, route = cli_sroute_to_config(ctx, command_str)
+    key, route = cli_sroute_to_config(ctx, command_str, strict_nh=False)
     keys = config_db.get_keys('STATIC_ROUTE')
     prefix_tuple = tuple(key.split('|'))
     if not key in keys and not prefix_tuple in keys:
         ctx.fail('Route {} doesnt exist'.format(key))
     else:
+        # If not defined nexthop or intf name remove entire route
+        if not 'nexthop' in route and not 'ifname' in route:
+            config_db.set_entry("STATIC_ROUTE", key, None)
+            return
+
         current_entry = config_db.get_entry('STATIC_ROUTE', key)
 
-        ENTRY_NAME = ['nexthop', 'nexthop-vrf', 'ifname']
         nh = ['']
         nh_vrf = ['']
         ifname = ['']
@@ -3271,7 +3290,7 @@ def del_route(ctx, command_str):
         # Create tuple from CLI argument
         # config route add prefix 1.4.3.4/32 nexthop vrf Vrf-RED 20.0.0.2
         # ('20.0.0.2', 'Vrf-RED', '')
-        for entry in ENTRY_NAME:
+        for entry in ['nexthop', 'nexthop-vrf', 'ifname']:
             if entry in route:
                 cmd_tuple += (route[entry],)
             else:
