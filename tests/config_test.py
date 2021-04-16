@@ -4,6 +4,7 @@ import os
 import traceback
 import json
 import jsonpatch
+import sys
 import unittest
 from unittest import mock
 
@@ -13,7 +14,6 @@ from click.testing import CliRunner
 from sonic_py_common import device_info
 from utilities_common.db import Db
 
-import sys
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 generic_config_updater_path = os.path.join(modules_path, "generic_config_updater")
