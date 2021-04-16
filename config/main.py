@@ -4540,9 +4540,9 @@ def delete(ctx):
 
 
 # Load plugins and register them
-# helper = util_base.UtilHelper()
-# for plugin in helper.load_plugins(plugins):
-#     helper.register_plugin(plugin, config)
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, config)
 
 
 if __name__ == '__main__':
