@@ -3,6 +3,7 @@ config_mgmt.py provides classes for configuration validation and for Dynamic
 Port Breakout.
 '''
 try:
+    import os
     import re
     import syslog
 
@@ -53,33 +54,37 @@ class ConfigMgmt():
         try:
             self.configdbJsonIn = None
             self.configdbJsonOut = None
+            self.source = source
             self.allowTablesWithoutYang = allowTablesWithoutYang
 
             # logging vars
             self.SYSLOG_IDENTIFIER = "ConfigMgmt"
             self.DEBUG = debug
 
-            self.sy = sonic_yang.SonicYang(YANG_DIR, debug=debug)
-            # load yang models
-            self.sy.loadYangModel()
-            # load jIn from config DB or from config DB json file.
-            if source.lower() == 'configdb':
-                self.readConfigDB()
-            # treat any other source as file input
-            else:
-                self.readConfigDBJson(source)
-            # this will crop config, xlate and load.
-            self.sy.loadData(self.configdbJsonIn)
-
-            # Raise if tables without YANG models are not allowed but exist.
-            if not allowTablesWithoutYang and len(self.sy.tablesWithOutYang):
-                raise Exception('Config has tables without YANG models')
+            self.__init_sonic_yang()
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
             raise Exception('ConfigMgmt Class creation failed')
 
         return
+    
+    def __init_sonic_yang(self):
+        self.sy = sonic_yang.SonicYang(YANG_DIR, debug=self.DEBUG)
+        # load yang models
+        self.sy.loadYangModel()
+        # load jIn from config DB or from config DB json file.
+        if self.source.lower() == 'configdb':
+            self.readConfigDB()
+        # treat any other source as file input
+        else:
+            self.readConfigDBJson(self.source)
+        # this will crop config, xlate and load.
+        self.sy.loadData(self.configdbJsonIn)
+
+        # Raise if tables without YANG models are not allowed but exist.
+        if not self.allowTablesWithoutYang and len(self.sy.tablesWithOutYang):
+            raise Exception('Config has tables without YANG models')
 
     def __del__(self):
         pass
@@ -219,6 +224,67 @@ class ConfigMgmt():
         configdb.mod_config(FormatConverter.output_to_db(data))
 
         return
+    
+    def add_module(self, yang_module_text, allow_if_exists=False):
+        """
+        Validate and add new YANG module to the system.
+
+        Parameters:
+            yang_module_text (str): YANG module string.
+        
+        Returns:
+            None
+        """
+
+        module_name = self.get_module_name(yang_module_text)
+        module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
+        if os.path.exists(module_path):
+            raise Exception('{} already exists'.format(module_name))
+        try:
+            with open(module_path, 'w') as module_file:
+                module_file.write(yang_module_text)
+            self.__init_sonic_yang()
+        except Exception:
+            os.remove(module_path)
+            raise
+
+    def remove_module(self, module_name):
+        """
+        Remove YANG module on the system and validate.
+
+        Parameters:
+            module_name (str): YANG module name.
+        
+        Returns:
+            None
+        """
+
+        module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
+        try:
+            with open(module_path, 'r') as module_file:
+                yang_module_text = module_file.read()
+            os.remove(module_path)
+            self.__init_sonic_yang()
+        except Exception:
+            self.add_module(yang_module_text)
+            raise
+    
+    @staticmethod
+    def get_module_name(yang_module_text):
+        """
+        Read yangs module name from yang_module_text
+
+        Parameters:
+            yang_module_text(str): YANG module string.
+        
+        Returns:
+            str: Module name
+        """
+
+        sy = sonic_yang.SonicYang(YANG_DIR)
+        module = sy.ctx.parse_module_mem(yang_module_text, ly.LYS_IN_YANG)
+        return module.name()
+ 
 
 # End of Class ConfigMgmt
 

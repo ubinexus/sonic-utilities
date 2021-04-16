@@ -8,6 +8,7 @@ from typing import Any, Iterable, Callable, Dict, Optional
 
 import docker
 import filelock
+from config import config_mgmt
 from sonic_py_common import device_info
 
 from sonic_package_manager import utils
@@ -235,7 +236,8 @@ class PackageManager:
                  metadata_resolver: MetadataResolver,
                  service_creator: ServiceCreator,
                  device_information: Any,
-                 lock: filelock.FileLock):
+                 lock: filelock.FileLock,
+                 cfg_mgmt: config_mgmt.ConfigMgmt):
         """ Initialize PackageManager. """
 
         self.lock = lock
@@ -248,6 +250,7 @@ class PackageManager:
         self.is_multi_npu = device_information.is_multi_npu()
         self.num_npus = device_information.get_num_npus()
         self.version_info = device_information.get_sonic_version_info()
+        self.cfg_mgmt = cfg_mgmt
 
     @under_lock
     def add_repository(self, *args, **kwargs):
@@ -347,6 +350,9 @@ class PackageManager:
                 self.service_creator.create(package, state=feature_state, owner=default_owner)
                 exit_stack.callback(rollback_wrapper(self.service_creator.remove, package))
 
+                self._install_yang_module(package)
+                exit_stack.callback(rollback_wrapper(self._uninstall_yang_module, package))
+
                 if not skip_host_plugins:
                     self._install_cli_plugins(package)
                     exit_stack.callback(rollback_wrapper(self._uninstall_cli_plugins, package))
@@ -399,6 +405,7 @@ class PackageManager:
 
         try:
             self._uninstall_cli_plugins(package)
+            self._uninstall_yang_module(package)
             self.service_creator.remove(package)
 
             # Clean containers based on this image
@@ -524,6 +531,7 @@ class PackageManager:
                 self.docker.rmi(old_package.image_id, force=True)
 
                 self.service_creator.create(new_package, register_feature=False)
+                self._upgrade_yang_module(new_package)
 
                 if self.feature_registry.is_feature_enabled(new_feature):
                     self._systemctl_action(new_package, 'start')
@@ -880,6 +888,16 @@ class PackageManager:
             raise PackageManagerError(f'Failed to get plugins path for {command} CLI')
         plugins_pkg_path = os.path.dirname(pkg_loader.path)
         return os.path.join(plugins_pkg_path, cls._get_cli_plugin_name(package))
+    
+    def _install_yang_module(self, package: Package):
+        self.cfg_mgmt.add_module(package.metadata.yang_module_text)
+
+    def _upgrade_yang_module(self, package: Package):
+        self.cfg_mgmt.add_module(package.metadata.yang_module_text, allow_if_exists=True)
+
+    def _uninstall_yang_module(self, package: Package):
+        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
+        self.cfg_mgmt.remove_module(module_name)
 
     def _install_cli_plugins(self, package: Package):
         for command in ('show', 'config', 'clear'):
@@ -920,4 +938,5 @@ class PackageManager:
                               MetadataResolver(docker_api, registry_resolver),
                               ServiceCreator(FeatureRegistry(SonicDB), SonicDB),
                               device_info,
-                              filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0))
+                              filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0),
+                              config_mgmt.ConfigMgmt())

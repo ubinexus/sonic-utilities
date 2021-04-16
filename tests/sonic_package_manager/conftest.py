@@ -66,6 +66,11 @@ def mock_sonic_db():
 
 
 @pytest.fixture
+def mock_config_mgmt():
+    yield Mock()
+
+
+@pytest.fixture
 def fake_metadata_resolver():
     class FakeMetadataResolver:
         def __init__(self):
@@ -355,6 +360,7 @@ def patch_pkgutil():
 def package_manager(mock_docker_api,
                     mock_registry_resolver,
                     mock_service_creator,
+                    mock_config_mgmt,
                     fake_metadata_resolver,
                     fake_db,
                     fake_device_info):
@@ -362,7 +368,8 @@ def package_manager(mock_docker_api,
                          fake_db, fake_metadata_resolver,
                          mock_service_creator,
                          fake_device_info,
-                         MagicMock())
+                         MagicMock(),
+                         mock_config_mgmt)
 
 
 @pytest.fixture
