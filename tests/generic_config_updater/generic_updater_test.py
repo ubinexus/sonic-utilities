@@ -927,12 +927,12 @@ class TestGenericUpdater(unittest.TestCase):
 
         factory = Mock()
         factory.create_config_rollbacker.side_effect = \
-            create_side_effect_dict({(str(self.any_verbose), str(self.any_dry_run),): config_rollbacker})
+            create_side_effect_dict({(str(self.any_verbose),): config_rollbacker})
 
         generic_updater = gu.GenericUpdater(factory)
 
         # Act
-        generic_updater.checkpoint(self.any_checkpoint_name, self.any_verbose, self.any_dry_run)
+        generic_updater.checkpoint(self.any_checkpoint_name, self.any_verbose)
 
         # Assert
         config_rollbacker.checkpoint.assert_has_calls([call(self.any_checkpoint_name)])
@@ -944,12 +944,12 @@ class TestGenericUpdater(unittest.TestCase):
 
         factory = Mock()
         factory.create_config_rollbacker.side_effect = \
-            create_side_effect_dict({(str(self.any_verbose), str(self.any_dry_run),): config_rollbacker})
+            create_side_effect_dict({(str(self.any_verbose),): config_rollbacker})
 
         generic_updater = gu.GenericUpdater(factory)
 
         # Act
-        generic_updater.delete_checkpoint(self.any_checkpoint_name, self.any_verbose, self.any_dry_run)
+        generic_updater.delete_checkpoint(self.any_checkpoint_name, self.any_verbose)
 
         # Assert
         config_rollbacker.delete_checkpoint.assert_has_calls([call(self.any_checkpoint_name)])
@@ -961,14 +961,14 @@ class TestGenericUpdater(unittest.TestCase):
 
         factory = Mock()
         factory.create_config_rollbacker.side_effect = \
-            create_side_effect_dict({(str(self.any_verbose), str(self.any_dry_run),): config_rollbacker})
+            create_side_effect_dict({(str(self.any_verbose),): config_rollbacker})
 
         generic_updater = gu.GenericUpdater(factory)
 
         expected = self.any_checkpoints_list
 
         # Act
-        actual = generic_updater.list_checkpoints(self.any_verbose, self.any_dry_run)
+        actual = generic_updater.list_checkpoints(self.any_verbose)
 
         # Assert
         self.assertListEqual(expected, actual)

@@ -446,7 +446,7 @@ class GenericUpdateFactory:
 
         return config_replacer
 
-    def create_config_rollbacker(self, verbose, dry_run):
+    def create_config_rollbacker(self, verbose, dry_run=False):
         self.init_verbose_logging(verbose)
 
         config_wrapper = self.get_config_wrapper(dry_run)
@@ -490,14 +490,14 @@ class GenericUpdater:
         config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run)
         config_rollbacker.rollback(checkpoint_name)
 
-    def checkpoint(self, checkpoint_name, verbose, dry_run):
-        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run)
+    def checkpoint(self, checkpoint_name, verbose):
+        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose)
         config_rollbacker.checkpoint(checkpoint_name)
 
-    def delete_checkpoint(self, checkpoint_name, verbose, dry_run):
-        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run)
+    def delete_checkpoint(self, checkpoint_name, verbose):
+        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose)
         config_rollbacker.delete_checkpoint(checkpoint_name)
 
-    def list_checkpoints(self, verbose, dry_run):
-        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run)
+    def list_checkpoints(self, verbose):
+        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose)
         return config_rollbacker.list_checkpoints()

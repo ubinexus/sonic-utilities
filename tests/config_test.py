@@ -535,7 +535,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Checkpoint created successfully"
-        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False, False)
+        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             # Act
@@ -551,14 +551,13 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Checkpoint created successfully"
-        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True, True)
+        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
 
             # Act
             result = self.runner.invoke(config.config.commands["checkpoint"],
                                         [self.any_checkpoint_name,
-                                            "--dry-run",
                                             "--verbose"],
                                         catch_exceptions=False)
 
@@ -588,10 +587,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_checkpoint__optional_parameters_passed_correctly(self):
         self.validate_checkpoint_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_checkpoint_name, True, False))
-        self.validate_checkpoint_optional_parameter(
-            ["--dry-run"],
-            mock.call(self.any_checkpoint_name, False, True))
+            mock.call(self.any_checkpoint_name, True))
     
     def validate_checkpoint_optional_parameter(self, param_args, expected_call):
         # Arrange
@@ -638,7 +634,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Checkpoint deleted successfully"
-        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False, False)
+        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             # Act
@@ -654,14 +650,13 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Checkpoint deleted successfully"
-        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True, True)
+        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
 
             # Act
             result = self.runner.invoke(config.config.commands["delete-checkpoint"],
                                         [self.any_checkpoint_name,
-                                            "--dry-run",
                                             "--verbose"],
                                         catch_exceptions=False)
 
@@ -691,10 +686,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_delete_checkpoint__optional_parameters_passed_correctly(self):
         self.validate_delete_checkpoint_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_checkpoint_name, True, False))
-        self.validate_delete_checkpoint_optional_parameter(
-            ["--dry-run"],
-            mock.call(self.any_checkpoint_name, False, True))
+            mock.call(self.any_checkpoint_name, True))
     
     def validate_delete_checkpoint_optional_parameter(self, param_args, expected_call):
         # Arrange
@@ -729,15 +721,14 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = self.any_checkpoints_list_as_text
-        expected_call_with_non_default_values = mock.call(True, True)
+        expected_call_with_non_default_values = mock.call(True)
         mock_generic_updater = mock.Mock()
         mock_generic_updater.list_checkpoints.return_value = self.any_checkpoints_list
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
 
             # Act
             result = self.runner.invoke(config.config.commands["list-checkpoints"],
-                                        ["--dry-run",
-                                         "--verbose"],
+                                        ["--verbose"],
                                         catch_exceptions=False)
 
         # Assert
@@ -765,10 +756,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_list_checkpoints__optional_parameters_passed_correctly(self):
         self.validate_list_checkpoints_optional_parameter(
             ["--verbose"],
-            mock.call(True, False))
-        self.validate_list_checkpoints_optional_parameter(
-            ["--dry-run"],
-            mock.call(False, True))
+            mock.call(True))
 
     def validate_list_checkpoints_optional_parameter(self, param_args, expected_call):
         # Arrange

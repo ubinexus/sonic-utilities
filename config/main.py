@@ -1069,15 +1069,14 @@ def rollback(ctx, checkpoint_name, dry_run, verbose):
 
 @config.command()
 @click.argument('checkpoint-name', type=str, required=True)
-@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config/disk states')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def checkpoint(ctx, checkpoint_name, dry_run, verbose):
+def checkpoint(ctx, checkpoint_name, verbose):
     """Take a checkpoint of the whole current config with the specified checkpoint name.
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        GenericUpdater().checkpoint(checkpoint_name, verbose, dry_run)
+        GenericUpdater().checkpoint(checkpoint_name, verbose)
 
         click.secho("Checkpoint created successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1086,15 +1085,14 @@ def checkpoint(ctx, checkpoint_name, dry_run, verbose):
 
 @config.command('delete-checkpoint')
 @click.argument('checkpoint-name', type=str, required=True)
-@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config/disk states')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def delete_checkpoint(ctx, checkpoint_name, dry_run, verbose):
+def delete_checkpoint(ctx, checkpoint_name, verbose):
     """Delete a checkpoint with the specified checkpoint name.
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        GenericUpdater().delete_checkpoint(checkpoint_name, verbose, dry_run)
+        GenericUpdater().delete_checkpoint(checkpoint_name, verbose)
 
         click.secho("Checkpoint deleted successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1102,13 +1100,12 @@ def delete_checkpoint(ctx, checkpoint_name, dry_run, verbose):
         ctx.fail(ex)
 
 @config.command('list-checkpoints')
-@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config/disk states')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def list_checkpoints(ctx, dry_run, verbose):
+def list_checkpoints(ctx, verbose):
     """List the config checkpoints available."""
     try:
-        checkpoints_list = GenericUpdater().list_checkpoints(verbose, dry_run)
+        checkpoints_list = GenericUpdater().list_checkpoints(verbose)
         formatted_output = json.dumps(checkpoints_list, indent=4)
         click.echo(formatted_output)
     except Exception as ex:
