@@ -8051,7 +8051,7 @@ This command pulls and installs package on SONiC host. *NOTE*: this command requ
   ```
   Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
 
-    Install package using [PACKAGE_EXPR] in format "<name>==<version>"
+    Install package using [PACKAGE_EXPR] in format "<name>==<version>" or "<name>@<tag|digest>"
 
   Options:
     --enable                      Set the default state of the feature to
