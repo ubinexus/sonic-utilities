@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 
+from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
@@ -36,7 +37,6 @@ from . import vlan
 from . import vxlan
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB
-from .generic_updater import GenericUpdater, ConfigFormat
 
 # mock masic APIs for unit test
 try:

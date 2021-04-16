@@ -30,6 +30,7 @@ setup(
         'counterpoll',
         'crm',
         'debug',
+        'generic_config_updater',
         'pfcwd',
         'sfputil',
         'ssdutil',
