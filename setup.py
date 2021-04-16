@@ -165,7 +165,6 @@ setup(
         'pexpect==4.8.0',
         'pyroute2==0.5.14',
         'requests==2.25.0',
-        'sonic_cfggen',
         'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
