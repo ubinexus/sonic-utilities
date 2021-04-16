@@ -14,13 +14,7 @@ from click.testing import CliRunner
 from sonic_py_common import device_info
 from utilities_common.db import Db
 
-test_path = os.path.dirname(os.path.abspath(__file__))
-modules_path = os.path.dirname(test_path)
-generic_config_updater_path = os.path.join(modules_path, "generic_config_updater")
-sys.path.insert(0, modules_path)
-sys.path.insert(0, generic_config_updater_path)
-
-from generic_updater import ConfigFormat
+from generic_config_updater.generic_updater import ConfigFormat
 
 import config.main as config
 

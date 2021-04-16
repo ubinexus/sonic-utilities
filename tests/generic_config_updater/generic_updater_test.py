@@ -7,13 +7,7 @@ import unittest
 from imp import load_source
 from unittest.mock import Mock, call
 
-generic_config_updater_test_path = os.path.dirname(os.path.abspath(__file__))
-test_path = os.path.dirname(generic_config_updater_test_path)
-modules_path = os.path.dirname(test_path)
-generic_config_updater_path = os.path.join(modules_path, "generic_config_updater")
-sys.path.insert(0, generic_config_updater_path)
-
-import generic_updater as gu
+import generic_config_updater.generic_updater as gu
 
 class MockSideEffectDict:
     def __init__(self, map):
