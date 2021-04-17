@@ -398,7 +398,7 @@ class TestPatchApplier(unittest.TestCase):
         patch_applier = self.__create_patch_applier(verified_same_config=False)
 
         # Act and assert
-        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
+        self.assertRaises(gu.GenericConfigUpdaterError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
 
     def test_apply__no_errors__update_successful(self):
         # Arrange
@@ -468,7 +468,7 @@ class TestConfigReplacer(unittest.TestCase):
         config_replacer = self.__create_config_replacer(verified_same_config=False)
 
         # Act and assert
-        self.assertRaises(gu.ConfigNotCompletelyUpdatedError, config_replacer.replace, Files.CONFIG_DB_AFTER_MULTI_PATCH)
+        self.assertRaises(gu.GenericConfigUpdaterError, config_replacer.replace, Files.CONFIG_DB_AFTER_MULTI_PATCH)
 
     def test_replace__no_errors__update_successful(self):
         # Arrange
@@ -694,7 +694,7 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         replacer.replace.side_effect = create_side_effect_dict({(str(self.any_config),): 0})
 
         config_wrapper = Mock()
-        config_wrapper.get_sonic_yang_as_json.return_value = self.any_config
+        config_wrapper.get_config_db_as_json.return_value = self.any_config
 
         return gu.FileSystemConfigRollbacker(checkpoints_dir=self.checkpoints_dir,
                                              config_replacer=replacer,

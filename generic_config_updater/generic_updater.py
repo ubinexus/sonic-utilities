@@ -10,13 +10,7 @@ YANG_DIR = "/usr/local/yang-models"
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
 
-class GenericUpdaterException(Exception):
-    pass
-
-class ConfigNotCompletelyUpdatedError(GenericUpdaterException):
-    pass
-
-class FailedToGetRunningConfigError(GenericUpdaterException):
+class GenericConfigUpdaterError(Exception):
     pass
 
 class JsonChange:
@@ -57,7 +51,7 @@ class ConfigWrapper:
         text, err = result.communicate()
         return_code = result.returncode
         if return_code: # non-zero means failure
-            raise FailedToGetRunningConfig(f"Return code: {return_code}, Error: {err}")
+            raise GenericConfigUpdaterError(f"Failed to get running config, Return code: {return_code}, Error: {err}")
         return text
 
     def get_sonic_yang_as_json(self):
@@ -242,7 +236,7 @@ class PatchApplier:
         # Validate config updated successfully
         new_config = self.config_wrapper.get_config_db_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
-            raise ConfigNotCompletelyUpdatedError(f"After applying patch to config, there are still some parts not updated")
+            raise GenericConfigUpdaterError(f"After applying patch to config, there are still some parts not updated")
 
 class ConfigReplacer:
     def __init__(self, patch_applier=None, config_wrapper=None, patch_wrapper=None):
@@ -261,7 +255,7 @@ class ConfigReplacer:
 
         new_config = self.config_wrapper.get_config_db_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
-            raise ConfigNotCompletelyUpdatedError(f"After replacing config, there is still some parts not updated")
+            raise GenericConfigUpdaterError(f"After replacing config, there is still some parts not updated")
 
 class FileSystemConfigRollbacker:
     def __init__(self,
@@ -281,7 +275,7 @@ class FileSystemConfigRollbacker:
         self.config_replacer.replace(target_config)
 
     def checkpoint(self, checkpoint_name):
-        json_content = self.config_wrapper.get_sonic_yang_as_json()
+        json_content = self.config_wrapper.get_config_db_as_json()
 
         path = self._get_checkpoint_full_path(checkpoint_name)
 
