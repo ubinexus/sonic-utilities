@@ -265,7 +265,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.validate_apply_patch_optional_parameter(
             ["--dry-run"],
             mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, True))
-    
+
     def validate_apply_patch_optional_parameter(self, param_args, expected_call):
         # Arrange
         expected_exit_code = 0
@@ -378,7 +378,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.validate_replace_optional_parameter(
             ["--dry-run"],
             mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, True))
-    
+
     def validate_replace_optional_parameter(self, param_args, expected_call):
         # Arrange
         expected_exit_code = 0
@@ -483,7 +483,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.validate_rollback_optional_parameter(
             ["--dry-run"],
             mock.call(self.any_checkpoint_name, False, True))
-    
+
     def validate_rollback_optional_parameter(self, param_args, expected_call):
         # Arrange
         expected_exit_code = 0
@@ -582,7 +582,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.validate_checkpoint_optional_parameter(
             ["--verbose"],
             mock.call(self.any_checkpoint_name, True))
-    
+
     def validate_checkpoint_optional_parameter(self, param_args, expected_call):
         # Arrange
         expected_exit_code = 0
@@ -681,7 +681,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         self.validate_delete_checkpoint_optional_parameter(
             ["--verbose"],
             mock.call(self.any_checkpoint_name, True))
-    
+
     def validate_delete_checkpoint_optional_parameter(self, param_args, expected_call):
         # Arrange
         expected_exit_code = 0

@@ -828,7 +828,7 @@ def cache_arp_entries():
         if filter_err:
             click.echo("Could not filter FDB entries prior to reloading")
             success = False
-    
+
     # If we are able to successfully cache ARP table info, signal SWSS to restore from our cache
     # by creating /host/config-reload/needs-restore
     if success:
@@ -1008,7 +1008,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
             text = fh.read()
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
-        
+
         config_format = ConfigFormat[format.upper()]
 
         GenericUpdater().apply_patch(patch, config_format, verbose, dry_run)
@@ -1038,7 +1038,7 @@ def replace(ctx, target_file_path, format, dry_run, verbose):
         with open(target_file_path, 'r') as fh:
             target_config_as_text = fh.read()
             target_config = json.loads(target_config_as_text)
-        
+
         config_format = ConfigFormat[format.upper()]
 
         GenericUpdater().replace(target_config, config_format, verbose, dry_run)
@@ -2705,8 +2705,8 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before 
-    # changing it to a router port 
+    # Add a validation to check this interface is not a member in vlan before
+    # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
             click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))

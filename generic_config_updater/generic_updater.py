@@ -3,18 +3,20 @@ import jsonpatch
 import sonic_yang
 import os
 import copy
+import subprocess
 from enum import Enum
-from swsssdk import ConfigDBConnector
-from imp import load_source
-# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
-load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-from sonic_cfggen import deep_update, FormatConverter
 
 YANG_DIR = "/usr/local/yang-models"
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
 
-class ConfigNotCompletelyUpdatedError(Exception):
+class GenericUpdaterException(Exception):
+    pass
+
+class ConfigNotCompletelyUpdatedError(GenericUpdaterException):
+    pass
+
+class FailedToGetRunningConfigError(GenericUpdaterException):
     pass
 
 class JsonChange:
@@ -41,15 +43,22 @@ class ChangeApplier:
         pass
 
 class ConfigWrapper:
-    def __init__(self, default_config_db_connector = None, yang_dir = YANG_DIR):
-        self.default_config_db_connector = default_config_db_connector
+    def __init__(self, yang_dir = YANG_DIR):
         self.yang_dir = YANG_DIR
 
     def get_config_db_as_json(self):
-        config_db = self._create_and_connect_config_db()
-        data = dict()
-        deep_update(data, FormatConverter.db_to_output(config_db.get_config()))
-        return FormatConverter.to_serialized(data)
+        text = self._get_config_db_as_text()
+        return json.loads(text)
+
+    def _get_config_db_as_text(self):
+        # TODO: Getting configs from CLI is very slow, need to get it from sonic-cffgen directly
+        cmd = "show runningconfiguration all"
+        result = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        text, err = result.communicate()
+        return_code = result.returncode
+        if return_code: # non-zero means failure
+            raise FailedToGetRunningConfig(f"Return code: {return_code}, Error: {err}")
+        return text
 
     def get_sonic_yang_as_json(self):
         config_db_json = self.get_config_db_as_json()
@@ -194,8 +203,8 @@ class PatchWrapper:
         return self.generate_patch(current_config_db, target_config_db)
 
 class ConfigFormat(Enum):
-    SONICYANG = 1
-    CONFIGDB = 2
+    CONFIGDB = 1
+    SONICYANG = 2
 
 class PatchApplier:
     def __init__(self,
@@ -385,7 +394,7 @@ class ConfigLockDecorator(Decorator):
 
     def apply(self, patch):
         self.execute_write_action(Decorator.apply, self, patch)
-        
+
     def replace(self, target_config):
         self.execute_write_action(Decorator.replace, self, target_config)
 

@@ -4,8 +4,7 @@ import os
 import shutil
 import sys
 import unittest
-from imp import load_source
-from unittest.mock import Mock, call
+from unittest.mock import MagicMock, Mock, call
 
 import generic_config_updater.generic_updater as gu
 
@@ -27,63 +26,47 @@ def create_side_effect_dict(map):
 
 class FilesLoader:
     def __init__(self):
-        self.test_path = os.path.dirname(os.path.abspath(__file__))
+        self.files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "files")
+        self.cache = {}
 
     def __getattr__(self, attr):
-        return self.__load(attr)
+        return self._load(attr)
 
-    def __load(self, file_name):
+    def _load(self, file_name):
         normalized_file_name = file_name.lower()
 
-        # Try load dict file
-        json_file_path = os.path.join(self.test_path, "files", f"{normalized_file_name}.py-dict")
-        if os.path.isfile(json_file_path):
-            with open(json_file_path) as fh:
-                text = fh.read()
-                return eval(text)
-
         # Try load json file
-        json_file_path = os.path.join(self.test_path, "files", f"{normalized_file_name}.json")
+        json_file_path = os.path.join(self.files_path, f"{normalized_file_name}.json")
         if os.path.isfile(json_file_path):
             with open(json_file_path) as fh:
                 text = fh.read()
                 return json.loads(text)
 
         # Try load json-patch file
-        jsonpatch_file_path = os.path.join(self.test_path, "files", f"{normalized_file_name}.json-patch")
+        jsonpatch_file_path = os.path.join(self.files_path, f"{normalized_file_name}.json-patch")
         if os.path.isfile(jsonpatch_file_path):
             with open(jsonpatch_file_path) as fh:
                 text = fh.read()
                 return jsonpatch.JsonPatch(json.loads(text))
-        
+
         raise ValueError(f"There is no file called '{file_name}' in 'files/' directory")
-        
+
 # Files.File_Name will look for a file called "file_name" in the "files/" directory
 Files = FilesLoader()
 
 class TestConfigWrapper(unittest.TestCase):
+    def setUp(self):
+        self.config_wrapper_mock = gu.ConfigWrapper()
+        self.config_wrapper_mock.get_config_db_as_json=MagicMock(return_value=Files.CONFIG_DB_AS_JSON)
+
     def test_ctor__default_values_set(self):
         config_wrapper = gu.ConfigWrapper()
 
-        self.assertEqual(None, config_wrapper.default_config_db_connector)
         self.assertEqual("/usr/local/yang-models", gu.YANG_DIR)
-
-    def test_get_config_db_as_json__returns_config_db_as_json(self):
-        # Arrange
-        config_db_connector_mock = self.__get_config_db_connector_mock(Files.CONFIG_DB_AS_DICT)
-        config_wrapper = gu.ConfigWrapper(default_config_db_connector = config_db_connector_mock)
-        expected = Files.CONFIG_DB_AS_JSON
-
-        # Act
-        actual = config_wrapper.get_config_db_as_json()
-
-        # Assert
-        self.assertDictEqual(expected, actual)
 
     def test_get_sonic_yang_as_json__returns_sonic_yang_as_json(self):
         # Arrange
-        config_db_connector_mock = self.__get_config_db_connector_mock(Files.CONFIG_DB_AS_DICT)
-        config_wrapper = gu.ConfigWrapper(default_config_db_connector = config_db_connector_mock)
+        config_wrapper = self.config_wrapper_mock
         expected = Files.SONIC_YANG_AS_JSON
 
         # Act
@@ -212,12 +195,11 @@ class TestConfigWrapper(unittest.TestCase):
         # Assert
         self.assertDictEqual(expected, actual)
 
-    def __get_config_db_connector_mock(self, config_db_as_dict):
-        mock_connector = Mock()
-        mock_connector.get_config.return_value = config_db_as_dict
-        return mock_connector
-
 class TestPatchWrapper(unittest.TestCase):
+    def setUp(self):
+        self.config_wrapper_mock = gu.ConfigWrapper()
+        self.config_wrapper_mock.get_config_db_as_json=MagicMock(return_value=Files.CONFIG_DB_AS_JSON)
+
     def test_validate_config_db_patch_has_yang_models__table_without_yang_model__returns_false(self):
         # Arrange
         patch_wrapper = gu.PatchWrapper()
@@ -313,8 +295,7 @@ class TestPatchWrapper(unittest.TestCase):
 
     def test_convert_config_db_patch_to_sonic_yang_patch__empty_patch__returns_empty_patch(self):
         # Arrange
-        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
-        patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
+        patch_wrapper = gu.PatchWrapper(config_wrapper = self.config_wrapper_mock)
         patch = jsonpatch.JsonPatch([])
         expected = jsonpatch.JsonPatch([])
 
@@ -326,8 +307,7 @@ class TestPatchWrapper(unittest.TestCase):
 
     def test_convert_config_db_patch_to_sonic_yang_patch__single_operation_patch__returns_sonic_yang_patch(self):
         # Arrange
-        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
-        patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
+        patch_wrapper = gu.PatchWrapper(config_wrapper = self.config_wrapper_mock)
         patch = Files.SINGLE_OPERATION_CONFIG_DB_PATCH
         expected = Files.SINGLE_OPERATION_SONIC_YANG_PATCH
 
@@ -339,7 +319,7 @@ class TestPatchWrapper(unittest.TestCase):
 
     def test_convert_config_db_patch_to_sonic_yang_patch__multiple_operations_patch__returns_sonic_yang_patch(self):
         # Arrange
-        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
+        config_wrapper = self.config_wrapper_mock
         patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
         config_db_patch = Files.MULTI_OPERATION_CONFIG_DB_PATCH
 
@@ -351,8 +331,7 @@ class TestPatchWrapper(unittest.TestCase):
 
     def test_convert_sonic_yang_patch_to_config_db_patch__empty_patch__returns_empty_patch(self):
         # Arrange
-        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
-        patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
+        patch_wrapper = gu.PatchWrapper(config_wrapper = self.config_wrapper_mock)
         patch = jsonpatch.JsonPatch([])
         expected = jsonpatch.JsonPatch([])
 
@@ -364,8 +343,7 @@ class TestPatchWrapper(unittest.TestCase):
 
     def test_convert_sonic_yang_patch_to_config_db_patch__single_operation_patch__returns_config_db_patch(self):
         # Arrange
-        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
-        patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
+        patch_wrapper = gu.PatchWrapper(config_wrapper = self.config_wrapper_mock)
         patch = Files.SINGLE_OPERATION_SONIC_YANG_PATCH
         expected = Files.SINGLE_OPERATION_CONFIG_DB_PATCH
 
@@ -377,7 +355,7 @@ class TestPatchWrapper(unittest.TestCase):
 
     def test_convert_sonic_yang_patch_to_config_db_patch__multiple_operations_patch__returns_config_db_patch(self):
         # Arrange
-        config_wrapper = self.__get_config_wrapper_mock(Files.CONFIG_DB_AS_DICT)
+        config_wrapper = self.config_wrapper_mock
         patch_wrapper = gu.PatchWrapper(config_wrapper = config_wrapper)
         sonic_yang_patch = Files.MULTI_OPERATION_SONIC_YANG_PATCH
 
@@ -399,16 +377,6 @@ class TestPatchWrapper(unittest.TestCase):
             config_wrapper.convert_sonic_yang_to_config_db(after_update_sonic_yang)
 
         self.assertTrue(patch_wrapper.verify_same_json(after_update_config_db_cropped, after_update_sonic_yang_as_config_db))
-
-    def __get_config_wrapper_mock(self, config_db_as_dict):
-        config_db_connector_mock = self.__get_config_db_connector_mock(config_db_as_dict)
-        config_wrapper = gu.ConfigWrapper(default_config_db_connector = config_db_connector_mock)
-        return config_wrapper
-
-    def __get_config_db_connector_mock(self, config_db_as_dict):
-        mock_connector = Mock()
-        mock_connector.get_config.return_value = config_db_as_dict
-        return mock_connector
 
 class TestPatchApplier(unittest.TestCase):
     def test_apply__invalid_patch_updating_tables_without_yang_models__failure(self):
@@ -610,8 +578,8 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         actual = rollbacker.list_checkpoints()
 
         # Assert
-        self.assertListEqual(expected, actual)
-
+        # 'assertCountEqual' does check same count, same elements ignoring order
+        self.assertCountEqual(expected, actual)
 
     def test_list_checkpoints__checkpoints_dir_exist_but_no_files__empty_list(self):
         # Arrange
@@ -623,7 +591,8 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         actual = rollbacker.list_checkpoints()
 
         # Assert
-        self.assertListEqual(expected, actual)
+        # 'assertCountEqual' does check same count, same elements ignoring order
+        self.assertCountEqual(expected, actual)
 
     def test_list_checkpoints__checkpoints_dir_has_multiple_files__multiple_files(self):
         # Arrange
@@ -637,7 +606,8 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         actual = rollbacker.list_checkpoints()
 
         # Assert
-        self.assertListEqual(expected, actual)
+        # 'assertCountEqual' does check same count, same elements ignoring order
+        self.assertCountEqual(expected, actual)
 
     def test_list_checkpoints__checkpoints_names_have_special_characters__multiple_files(self):
         # Arrange
@@ -677,24 +647,25 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
     def test_multiple_operations(self):
         rollbacker = self.create_rollbacker()
 
-        self.assertListEqual([], rollbacker.list_checkpoints())
+        # 'assertCountEqual' does check same count, same elements ignoring order
+        self.assertCountEqual([], rollbacker.list_checkpoints())
 
         rollbacker.checkpoint(self.any_checkpoint_name)
-        self.assertListEqual([self.any_checkpoint_name], rollbacker.list_checkpoints())
+        self.assertCountEqual([self.any_checkpoint_name], rollbacker.list_checkpoints())
         self.assertEqual(self.any_config, self.get_checkpoint(self.any_checkpoint_name))
 
         rollbacker.rollback(self.any_checkpoint_name)
         rollbacker.config_replacer.replace.assert_has_calls([call(self.any_config)])
 
         rollbacker.checkpoint(self.any_other_checkpoint_name)
-        self.assertListEqual([self.any_checkpoint_name, self.any_other_checkpoint_name], rollbacker.list_checkpoints())
+        self.assertCountEqual([self.any_checkpoint_name, self.any_other_checkpoint_name], rollbacker.list_checkpoints())
         self.assertEqual(self.any_config, self.get_checkpoint(self.any_other_checkpoint_name))
 
         rollbacker.delete_checkpoint(self.any_checkpoint_name)
-        self.assertListEqual([self.any_other_checkpoint_name], rollbacker.list_checkpoints())
+        self.assertCountEqual([self.any_other_checkpoint_name], rollbacker.list_checkpoints())
 
         rollbacker.delete_checkpoint(self.any_other_checkpoint_name)
-        self.assertListEqual([], rollbacker.list_checkpoints())
+        self.assertCountEqual([], rollbacker.list_checkpoints())
 
     def clean_up(self):
         if os.path.isdir(self.checkpoints_dir):
@@ -971,7 +942,7 @@ class TestGenericUpdater(unittest.TestCase):
         actual = generic_updater.list_checkpoints(self.any_verbose)
 
         # Assert
-        self.assertListEqual(expected, actual)
+        self.assertCountEqual(expected, actual)
 
 class TestDecorator(unittest.TestCase):
     def setUp(self):
@@ -983,10 +954,10 @@ class TestDecorator(unittest.TestCase):
         self.any_other_checkpoint_name = "anyothercheckpoint"
         self.any_checkpoints_list = [self.any_checkpoint_name, self.any_other_checkpoint_name]
         self.decorated_config_rollbacker.list_checkpoints.return_value = self.any_checkpoints_list
-    
+
         self.decorator = gu.Decorator(
             self.decorated_patch_applier, self.decorated_config_replacer, self.decorated_config_rollbacker)
-    
+
     def test_apply__calls_decorated_applier(self):
         # Act
         self.decorator.apply(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)
@@ -1058,7 +1029,7 @@ class TestSonicYangDecorator(unittest.TestCase):
         sonic_yang_decorator.config_wrapper.convert_sonic_yang_to_config_db.assert_has_calls(
             [call(Files.SONIC_YANG_AS_JSON)])
         sonic_yang_decorator.decorated_config_replacer.replace.assert_has_calls([call(Files.CONFIG_DB_AS_JSON)])
-    
+
     def __create_sonic_yang_decorator(self):
         patch_applier = Mock()
         patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.SINGLE_OPERATION_CONFIG_DB_PATCH),): 0})
