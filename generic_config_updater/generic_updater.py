@@ -1,9 +1,8 @@
 import json
-import sonic_yang
 import os
 from enum import Enum
-from .gu_common import GenericConfigUpdaterError, JsonChange, \
-                      ConfigWrapper, DryRunConfigWrapper, PatchWrapper
+from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
+                       DryRunConfigWrapper, PatchWrapper
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
@@ -20,12 +19,12 @@ class ConfigLock:
 class PatchSorter:
     def sort(self, patch):
         # TODO: Implement patch sorter
-        pass
+        raise NotImplementedError("PatchSorter.sort(patch) is not implemented yet")
 
 class ChangeApplier:
     def apply(self, change):
         # TODO: Implement change applier
-        pass
+        raise NotImplementedError("ChangeApplier.apply(change) is not implemented yet")
 
 class ConfigFormat(Enum):
     CONFIGDB = 1
@@ -122,7 +121,7 @@ class FileSystemConfigRollbacker:
 
     def delete_checkpoint(self, checkpoint_name):
         if not self._check_checkpoint_exists(checkpoint_name):
-            raise ValueError("Checkpoint does not exist")
+            raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
 
         self._delete_checkpoint(checkpoint_name)
 

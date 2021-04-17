@@ -1,6 +1,7 @@
 import json
 import jsonpatch
 import sonic_yang
+import subprocess
 import copy
 
 YANG_DIR = "/usr/local/yang-models"
@@ -88,7 +89,9 @@ class ConfigWrapper:
         sy.loadYangModel()
 
         try:
-            sy.loadData(config_db_as_json)
+            tmp_config_db_as_json = copy.deepcopy(config_db_as_json)
+
+            sy.loadData(tmp_config_db_as_json)
 
             sy.validate_data_tree()
             return True

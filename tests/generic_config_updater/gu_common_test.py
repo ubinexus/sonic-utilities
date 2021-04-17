@@ -1,3 +1,4 @@
+import json
 import jsonpatch
 import unittest
 from unittest.mock import MagicMock, Mock
@@ -128,7 +129,7 @@ class TestConfigWrapper(unittest.TestCase):
         # Assert
         self.assertEqual(expected, actual)
 
-    def test_config_db_config__invvalid_config__returns_false(self):
+    def test_validate_config_db_config__invalid_config__returns_false(self):
         # Arrange
         config_wrapper = gu_common.ConfigWrapper()
         expected = False
