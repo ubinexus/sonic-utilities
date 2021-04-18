@@ -107,6 +107,9 @@ class FileSystemConfigRollbacker:
     def checkpoint(self, checkpoint_name):
         json_content = self.config_wrapper.get_config_db_as_json()
 
+        if not self.config_wrapper.validate_config_db_config(json_content):
+            raise ValueError(f"Running configs on the device are not valid.")
+
         path = self._get_checkpoint_full_path(checkpoint_name)
 
         self._ensure_checkpoints_dir_exists()

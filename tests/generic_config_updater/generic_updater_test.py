@@ -190,6 +190,13 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         self.assertTrue(os.path.isdir(self.checkpoints_dir))
         self.assertEqual(self.any_config, self.get_checkpoint(self.any_checkpoint_name))
 
+    def test_checkpoint__config_not_valid__failure(self):
+        # Arrange
+        rollbacker = self.create_rollbacker(valid_config=False)
+
+        # Act and assert
+        self.assertRaises(ValueError, rollbacker.checkpoint, self.any_checkpoint_name)
+
     def test_checkpoint__checkpoints_dir_exists__checkpoint_created(self):
         # Arrange
         self.create_checkpoints_dir()
@@ -322,12 +329,13 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         path=os.path.join(self.checkpoints_dir, f"{name}{self.checkpoint_ext}")
         return os.path.isfile(path)
 
-    def create_rollbacker(self):
+    def create_rollbacker(self, valid_config=True):
         replacer = Mock()
         replacer.replace.side_effect = create_side_effect_dict({(str(self.any_config),): 0})
 
         config_wrapper = Mock()
         config_wrapper.get_config_db_as_json.return_value = self.any_config
+        config_wrapper.validate_config_db_config.return_value = valid_config
 
         return gu.FileSystemConfigRollbacker(checkpoints_dir=self.checkpoints_dir,
                                              config_replacer=replacer,
