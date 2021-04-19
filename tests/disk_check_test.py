@@ -117,15 +117,15 @@ class TestDiskCheck(object):
             print("-----------Start tc {}---------".format(i))
             init_tc(tc)
 
-            sys.argv = tc["args"]
-            if "upperdir" in tc:
-                swap_upper(tc)
+            with patch('sys.argv', tc["args"]):
+                if "upperdir" in tc:
+                    swap_upper(tc)
 
-            ret = disk_check.main()
+                ret = disk_check.main()
 
-            if "upperdir" in tc:
-                # restore
-                swap_upper(tc)
+                if "upperdir" in tc:
+                    # restore
+                    swap_upper(tc)
 
             print("ret = {}".format(ret))
             print("err_data={}".format(err_data))
