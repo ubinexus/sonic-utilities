@@ -451,30 +451,30 @@ class MellanoxBufferMigrator():
             "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
 
             "buffer_pools": {
-                "spc1_2700_t1_pool_shp": {"doublepool": { "size": "2090496", "xoff": "6684672" }, "egress_lossless_pool": { "size": "13945824"}},
-                "spc1_2700-d48c8_t1_pool_shp": {"doublepool": { "size": "2311680", "xoff": "4128768" }, "egress_lossless_pool": { "size": "13945824"}},
+                "spc1_2700_t1_pool_shp": {"doublepool": { "size": "3565056", "xoff": "3735552" }, "egress_lossless_pool": { "size": "13945824"}},
 
                 # Buffer pool for single pool
-                "spc1_2700_t1_single_pool_shp": {"singlepool": { "size": "4180992", "xoff": "6684672" }, "egress_lossless_pool": { "size": "13945824"}},
-                "spc1_2700-d48c8_t1_single_pool_shp": {"singlepool": { "size": "4623360", "xoff": "4128768" }, "egress_lossless_pool": { "size": "13945824"}},
+                "spc1_2700_t1_single_pool_shp": {"singlepool": { "size": "7130112", "xoff": "3735552" }, "egress_lossless_pool": { "size": "13945824"}},
 
                 # The following pools are used for upgrading from 1.0.5 to the newer version
-                "spc2_3800-c64_t1_pool_shp": {"singlepool": {"size": "12759040", "xoff": "15630336"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d112c8_t1_pool_shp": {"singlepool": {"size": "16338944", "xoff": "7118848"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d24c52_t1_pool_shp": {"singlepool": {"size": "11456512", "xoff": "15876096"}, "egress_lossless_pool": {"size": "34287552"}},
-                "spc2_3800-d28c50_t1_pool_shp": {"singlepool": {"size": "11239424", "xoff": "15917056"}, "egress_lossless_pool": {"size": "34287552"}}
+                "spc2_3800-c64_t1_pool_shp": {"singlepool": {"size": "22417408", "xoff": "5971968"}, "egress_lossless_pool": {"size": "34287552"}}
             },
             "buffer_pools_inherited": {
                 "version_1_0_4": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc3_t0_pool", "spc3_t1_pool"],
-                "version_1_0_5": ["spc1_2700_t0_pool",
+                "version_1_0_5": [# Generic SKUs for 3800
                                   "spc2_3800_t0_pool",
                                   "spc2_3800_t1_pool",
+                                  # Non generic SKUs
                                   "spc1_2700_t0_pool_shp",
                                   "spc1_2700_t0_single_pool_shp",
                                   "spc1_2700-d48c8_t0_pool_shp",
                                   "spc1_2700-d48c8_t0_single_pool_shp",
                                   "spc2_3800-c64_t0_pool_shp", "spc2_3800-d112c8_t0_pool_shp",
-                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d28c50_t0_pool_shp"]
+                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d28c50_t0_pool_shp",
+                                  "spc1_2700-d48c8_t1_pool_shp",
+                                  "spc1_2700-d48c8_t1_single_pool_shp",
+                                  "spc2_3800-d112c8_t1_pool_shp",
+                                  "spc2_3800-d24c52_t1_pool_shp", "spc2_3800-d28c50_t1_pool_shp"],
             }
         },
         "version_2_0_0": {
@@ -499,20 +499,19 @@ class MellanoxBufferMigrator():
                 "spc3_pool": {"doublepool": {"size": "dynamic"}, "egress_lossless_pool": { "size": "60817392" }}
             },
             "buffer_pools_inherited": {
-                "version_1_0_5": ["spc1_2700_t0_pool",
-                                  "spc1_2700_t0_pool_shp",
+                "version_1_0_5": ["spc1_2700_t0_pool_shp",
                                   "spc1_2700_t0_single_pool_shp",
                                   "spc1_2700-d48c8_t0_pool_shp",
                                   "spc1_2700-d48c8_t0_single_pool_shp",
                                   "spc2_3800-c64_t0_pool_shp", "spc2_3800-d112c8_t0_pool_shp",
-                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d28c50_t0_pool_shp"],
-                "version_1_0_6": ["spc1_2700_t1_pool",
-                                  "spc1_2700_t1_pool_shp",
-                                  "spc1_2700_t1_single_pool_shp",
+                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d28c50_t0_pool_shp",
                                   "spc1_2700-d48c8_t1_pool_shp",
                                   "spc1_2700-d48c8_t1_single_pool_shp",
-                                  "spc2_3800-c64_t1_pool_shp", "spc2_3800-d112c8_t1_pool_shp",
+                                  "spc2_3800-d112c8_t1_pool_shp",
                                   "spc2_3800-d24c52_t1_pool_shp", "spc2_3800-d28c50_t1_pool_shp"],
+                "version_1_0_6": ["spc1_2700_t1_pool_shp",
+                                  "spc1_2700_t1_single_pool_shp",
+                                  "spc2_3800-c64_t1_pool_shp"]
             }
         }
     }
