@@ -5,13 +5,13 @@ from clear.main import run_command
 #
 # This group houses Spanning_tree commands and subgroups
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=False, invoke_without_command=True)
+@cli.group(cls=AliasedGroup)
 @click.pass_context
 def spanning_tree(ctx):
     '''Clear Spanning-tree counters'''
     pass
 
-@spanning_tree.group('statistics', cls=AliasedGroup, default_if_no_args=False, invoke_without_command=True)
+@spanning_tree.group('statistics', cls=AliasedGroup, invoke_without_command=True)
 @click.pass_context
 def stp_clr_stats(ctx):
     if ctx.invoked_subcommand is None:

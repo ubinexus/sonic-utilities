@@ -4,9 +4,9 @@
 #
 
 import click
+import utilities_common.cli as clicommon
 import netaddr
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from natsort import natsorted
 import logging
 
@@ -89,8 +89,7 @@ def validate_params(forward_delay, max_age, hello_time):
         return False
 
 
-def is_valid_stp_vlan_parameters(ctx, vlan_name, param_type, new_value):
-    db = ctx.obj['db']
+def is_valid_stp_vlan_parameters(ctx, db, vlan_name, param_type, new_value):
     stp_vlan_entry = db.get_entry('STP_VLAN', vlan_name)
     cfg_vlan_forward_delay = stp_vlan_entry.get("forward_delay")
     cfg_vlan_max_age = stp_vlan_entry.get("max_age")
@@ -107,8 +106,7 @@ def is_valid_stp_vlan_parameters(ctx, vlan_name, param_type, new_value):
         ctx.fail("2*(forward_delay-1) >= max_age >= 2*(hello_time +1 ) not met for VLAN")
 
 
-def is_valid_stp_global_parameters(ctx, param_type, new_value):
-    db = ctx.obj['db']
+def is_valid_stp_global_parameters(ctx, db, param_type, new_value):
     stp_global_entry = db.get_entry('STP', "GLOBAL")
     cfg_forward_delay = stp_global_entry.get("forward_delay")
     cfg_max_age = stp_global_entry.get("max_age")
@@ -134,13 +132,14 @@ def get_max_stp_instances():
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)
     max_inst = state_db.get(state_db.STATE_DB, "STP_TABLE|GLOBAL", "max_stp_inst")
+    #if max_inst == "":
+    return PVST_MAX_INSTANCES
     if max_inst != None and max_inst != 0 and max_inst < PVST_MAX_INSTANCES:
         return max_inst
     else:
         return PVST_MAX_INSTANCES
 
-def update_stp_vlan_parameter(ctx, param_type, new_value):
-    db = ctx.obj['db']
+def update_stp_vlan_parameter(db, param_type, new_value):
     stp_global_entry = db.get_entry('STP', "GLOBAL")
 
     if param_type == parameter_forward_delay:
@@ -174,8 +173,7 @@ def update_stp_vlan_parameter(ctx, param_type, new_value):
     pass
 
 
-def check_if_vlan_exist_in_db(ctx, vid):
-    db = ctx.obj['db']
+def check_if_vlan_exist_in_db(db, ctx, vid):
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
     if len(vlan) == 0:
@@ -183,31 +181,26 @@ def check_if_vlan_exist_in_db(ctx, vid):
     pass
 
 
-def enable_stp_for_vlans(ctx):
-    db = ctx.obj['db']
+def enable_stp_for_vlans(db):
     vlan_count = 0
     fvs = {'enabled': 'true',
-           'forward_delay': get_global_stp_forward_delay(ctx),
-           'hello_time': get_global_stp_hello_time(ctx),
-           'max_age': get_global_stp_max_age(ctx),
-           'priority': get_global_stp_priority(ctx)
+           'forward_delay': get_global_stp_forward_delay(db),
+           'hello_time': get_global_stp_hello_time(db),
+           'max_age': get_global_stp_max_age(db),
+           'priority': get_global_stp_priority(db)
            }
-    clients = db.redis_clients["CONFIG_DB"]
-    pipe = clients.pipeline()
     vlan_dict = natsorted(db.get_table('VLAN'))
     max_stp_instances = get_max_stp_instances()
     for vlan_key in vlan_dict:
         if vlan_count >= max_stp_instances:
             logging.warning("Exceeded maximum STP configurable VLAN instances for {}".format(vlan_key))
             break
-        pipe.hmset('STP_VLAN|{}'.format(vlan_key), fvs)
+        db.set_entry('STP_VLAN', vlan_key, fvs)
         vlan_count += 1
-    pipe.execute()
     pass
 
 
-def get_stp_enabled_vlan_count(ctx):
-    db = ctx.obj['db']
+def get_stp_enabled_vlan_count(db):
     count = 0
     stp_vlan_keys = db.get_table('STP_VLAN').keys()
     for key in stp_vlan_keys:
@@ -216,52 +209,31 @@ def get_stp_enabled_vlan_count(ctx):
     return count
 
 
-def vlan_enable_stp(ctx, vlan_name):
-    db = ctx.obj['db']
+def vlan_enable_stp(db, vlan_name):
     fvs = {'enabled': 'true',
-           'forward_delay': get_global_stp_forward_delay(ctx),
-           'hello_time': get_global_stp_hello_time(ctx),
-           'max_age': get_global_stp_max_age(ctx),
-           'priority': get_global_stp_priority(ctx)
+           'forward_delay': get_global_stp_forward_delay(db),
+           'hello_time': get_global_stp_hello_time(db),
+           'max_age': get_global_stp_max_age(db),
+           'priority': get_global_stp_priority(db)
            }
-    if get_stp_enabled_vlan_count(ctx) < get_max_stp_instances():
+    if get_stp_enabled_vlan_count(db) < get_max_stp_instances():
         db.set_entry('STP_VLAN', vlan_name, fvs)
     else:
         logging.warning("Exceeded maximum STP configurable VLAN instances for {}".format(vlan_name))
 
 
-def vlan_disable_stp(ctx, vlan_name):
-    vlan_set_stp_enable(ctx, vlan_name, 'false')
-
-
-def vlan_set_stp_enable(ctx, vlan_name, state):
-    db = ctx.obj['db']
-    db.set_entry('STP_VLAN', vlan_name, {'enabled': state})
-
-
-def interface_enable_stp(ctx, interface_name):
-    db = ctx.obj['db']
+def interface_enable_stp(db, interface_name):
     fvs = {'enabled': 'true',
            'root_guard': 'false',
            'bpdu_guard': 'false',
            'bpdu_guard_do_disable': 'false',
-           'portfast': 'true',
+           'portfast': 'false',
            'uplink_fast': 'false'
            }
     db.set_entry('STP_PORT', interface_name, fvs)
 
 
-def interface_disable_stp(ctx, interface_name):
-    interface_set_stp_enable(ctx, interface_name, 'false')
-
-
-def interface_set_stp_enable(ctx, interface_name, state):
-    db = ctx.obj['db']
-    db.set_entry('STP_PORT', interface_name, {'enabled': state})
-
-
-def is_vlan_configured_interface(ctx, interface_name):
-    db = ctx.obj['db']
+def is_vlan_configured_interface(db, interface_name):
     intf_to_vlan_list = get_vlan_list_for_interface(db, interface_name)
     if intf_to_vlan_list:  # if empty
         return True
@@ -269,11 +241,11 @@ def is_vlan_configured_interface(ctx, interface_name):
         return False
 
 
-def is_interface_vlan_member(ctx, vlan_name, interface_name):
-    db = ctx.obj['db']
+def is_interface_vlan_member(db, vlan_name, interface_name):
+    ctx = click.get_current_context()
     key = vlan_name + '|' + interface_name
     entry = db.get_entry('VLAN_MEMBER', key)
-    if not entry:  # if empty
+    if len(entry) == 0:  # if empty
         ctx.fail("{} is not member of {}".format(interface_name, vlan_name))
 
 def get_vlan_list_for_interface(db, interface_name):
@@ -313,8 +285,7 @@ def get_intf_list_from_stp_vlan_intf_table(db, vlan_name):
     return intf_list
 
 
-def is_portchannel_member_port(ctx, interface_name):
-    db = ctx.obj['db']
+def is_portchannel_member_port(db, interface_name):
     pc_member_port_list = get_pc_member_port_list(db)
     if interface_name in pc_member_port_list:
         return True
@@ -322,34 +293,29 @@ def is_portchannel_member_port(ctx, interface_name):
         return False
 
 
-def enable_stp_for_interfaces(ctx):
-    db = ctx.obj['db']
+def enable_stp_for_interfaces(db):
     fvs = {'enabled': 'true',
            'root_guard': 'false',
            'bpdu_guard': 'false',
            'bpdu_guard_do_disable': 'false',
-           'portfast': 'true',
+           'portfast': 'false',
            'uplink_fast': 'false'
            }
-    clients = db.redis_clients["CONFIG_DB"]
-    pipe = clients.pipeline()
     port_dict = natsorted(db.get_table('PORT'))
     intf_list_in_vlan_member_table = get_intf_list_in_vlan_member_table(db)
 
     for port_key in port_dict:
         if port_key in intf_list_in_vlan_member_table:
-            pipe.hmset('STP_PORT|{}'.format(port_key), fvs)
+            db.set_entry('STP_PORT', port_key, fvs)
 
     po_ch_dict = natsorted(db.get_table('PORTCHANNEL'))
     for po_ch_key in po_ch_dict:
         if po_ch_key in intf_list_in_vlan_member_table:
-            pipe.hmset('STP_PORT|{}'.format(po_ch_key), fvs)
-    pipe.execute()
+            db.set_entry('STP_PORT', po_ch_key, fvs)
     pass
 
 
-def is_global_stp_enabled(ctx):
-    db = ctx.obj['db']
+def is_global_stp_enabled(db):
     stp_entry = db.get_entry('STP', "GLOBAL")
     mode = stp_entry.get("mode")
     if mode:
@@ -358,60 +324,45 @@ def is_global_stp_enabled(ctx):
         return False
 
 
-def check_if_global_stp_enabled(ctx):
-    if not is_global_stp_enabled(ctx):
+def check_if_global_stp_enabled(db, ctx):
+    if not is_global_stp_enabled(db):
         ctx.fail("Global STP is not enabled - first configure STP mode")
 
 
-def get_global_stp_mode(ctx):
-    db = ctx.obj['db']
+def get_global_stp_mode(db):
     stp_entry = db.get_entry('STP', "GLOBAL")
     mode = stp_entry.get("mode")
     return mode
 
 
-def get_global_stp_root_guard_timeout(ctx):
-    db = ctx.obj['db']
-    stp_entry = db.get_entry('STP', "GLOBAL")
-    root_guard_timeout = stp_entry.get("root_guard_timeout")
-    return root_guard_timeout
-
-
-def get_global_stp_forward_delay(ctx):
-    db = ctx.obj['db']
+def get_global_stp_forward_delay(db):
     stp_entry = db.get_entry('STP', "GLOBAL")
     forward_delay = stp_entry.get("forward_delay")
     return forward_delay
 
 
-def get_global_stp_hello_time(ctx):
-    db = ctx.obj['db']
+def get_global_stp_hello_time(db):
     stp_entry = db.get_entry('STP', "GLOBAL")
     hello_time = stp_entry.get("hello_time")
     return hello_time
 
 
-def get_global_stp_max_age(ctx):
-    db = ctx.obj['db']
+def get_global_stp_max_age(db):
     stp_entry = db.get_entry('STP', "GLOBAL")
     max_age = stp_entry.get("max_age")
     return max_age
 
 
-def get_global_stp_priority(ctx):
-    db = ctx.obj['db']
+def get_global_stp_priority(db):
     stp_entry = db.get_entry('STP', "GLOBAL")
     priority = stp_entry.get("priority")
     return priority
 
 
 @click.group()
-@click.pass_context
-def spanning_tree(ctx):
+@clicommon.pass_db
+def spanning_tree(_db):
     """STP command line"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {'db': config_db}
     pass
 
 
@@ -422,12 +373,13 @@ def spanning_tree(ctx):
 # cmd: STP enable
 @spanning_tree.command('enable')
 @click.argument('mode', metavar='<pvst>', required=True, type=click.Choice(["pvst"]))
-@click.pass_context
-def spanning_tree_enable(ctx, mode):
+@clicommon.pass_db
+def spanning_tree_enable(_db, mode):
     """enable STP """
-    if mode == "pvst" and get_global_stp_mode(ctx) == "pvst":
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    if mode == "pvst" and get_global_stp_mode(db) == "pvst":
         ctx.fail("PVST is already configured")
-    db = ctx.obj['db']
     fvs = {'mode': mode,
            'rootguard_timeout': STP_DEFAULT_ROOT_GUARD_TIMEOUT,
            'forward_delay': STP_DEFAULT_FORWARD_DELAY,
@@ -437,18 +389,18 @@ def spanning_tree_enable(ctx, mode):
            }
     db.set_entry('STP', "GLOBAL", fvs)
     # Enable STP for VLAN by default
-    enable_stp_for_interfaces(ctx)
-    enable_stp_for_vlans(ctx)
+    enable_stp_for_interfaces(db)
+    enable_stp_for_vlans(db)
     pass
 
 
 # cmd: STP disable
 @spanning_tree.command('disable')
 @click.argument('mode', metavar='<pvst>', required=True, type=click.Choice(["pvst"]))
-@click.pass_context
-def stp_disable(ctx, mode):
+@clicommon.pass_db
+def stp_disable(_db, mode):
     """disable STP """
-    db = ctx.obj['db']
+    db = _db.cfgdb
     db.set_entry('STP', "GLOBAL", None)
     # Disable STP for all VLANs and interfaces
     db.delete_table('STP_VLAN')
@@ -460,12 +412,13 @@ def stp_disable(ctx, mode):
 # cmd: STP global root guard timeout
 @spanning_tree.command('root_guard_timeout')
 @click.argument('root_guard_timeout', metavar='<5-600 seconds>', required=True, type=int)
-@click.pass_context
-def stp_global_root_guard_timeout(ctx, root_guard_timeout):
+@clicommon.pass_db
+def stp_global_root_guard_timeout(_db, root_guard_timeout):
     """Configure STP global root guard timeout value"""
-    check_if_global_stp_enabled(ctx)
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_global_stp_enabled(db, ctx)
     is_valid_root_guard_timeout(ctx, root_guard_timeout)
-    db = ctx.obj['db']
     db.mod_entry('STP', "GLOBAL", {'rootguard_timeout': root_guard_timeout})
     pass
 
@@ -473,14 +426,15 @@ def stp_global_root_guard_timeout(ctx, root_guard_timeout):
 # cmd: STP global forward delay
 @spanning_tree.command('forward_delay')
 @click.argument('forward_delay', metavar='<4-30 seconds>', required=True, type=int)
-@click.pass_context
-def stp_global_forward_delay(ctx, forward_delay):
+@clicommon.pass_db
+def stp_global_forward_delay(_db, forward_delay):
     """Configure STP global forward delay"""
-    check_if_global_stp_enabled(ctx)
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_global_stp_enabled(db, ctx)
     is_valid_forward_delay(ctx, forward_delay)
-    is_valid_stp_global_parameters(ctx, parameter_forward_delay, forward_delay)
-    db = ctx.obj['db']
-    update_stp_vlan_parameter(ctx, parameter_forward_delay, forward_delay)
+    is_valid_stp_global_parameters(ctx, db, parameter_forward_delay, forward_delay)
+    update_stp_vlan_parameter(db, parameter_forward_delay, forward_delay)
     db.mod_entry('STP', "GLOBAL", {'forward_delay': forward_delay})
     pass
 
@@ -488,14 +442,15 @@ def stp_global_forward_delay(ctx, forward_delay):
 # cmd: STP global hello interval
 @spanning_tree.command('hello')
 @click.argument('hello_interval', metavar='<1-10 seconds>', required=True, type=int)
-@click.pass_context
-def stp_global_hello_interval(ctx, hello_interval):
+@clicommon.pass_db
+def stp_global_hello_interval(_db, hello_interval):
     """Configure STP global hello interval"""
-    check_if_global_stp_enabled(ctx)
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_global_stp_enabled(db, ctx)
     is_valid_hello_interval(ctx, hello_interval)
-    is_valid_stp_global_parameters(ctx, parameter_hello_time, hello_interval)
-    db = ctx.obj['db']
-    update_stp_vlan_parameter(ctx, parameter_hello_time, hello_interval)
+    is_valid_stp_global_parameters(ctx, db, parameter_hello_time, hello_interval)
+    update_stp_vlan_parameter(db, parameter_hello_time, hello_interval)
     db.mod_entry('STP', "GLOBAL", {'hello_time': hello_interval})
     pass
 
@@ -503,14 +458,15 @@ def stp_global_hello_interval(ctx, hello_interval):
 # cmd: STP global max age
 @spanning_tree.command('max_age')
 @click.argument('max_age', metavar='<6-40 seconds>', required=True, type=int)
-@click.pass_context
-def stp_global_max_age(ctx, max_age):
+@clicommon.pass_db
+def stp_global_max_age(_db, max_age):
     """Configure STP global max_age"""
-    check_if_global_stp_enabled(ctx)
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_global_stp_enabled(db, ctx)
     is_valid_max_age(ctx, max_age)
-    is_valid_stp_global_parameters(ctx, parameter_max_age, max_age)
-    db = ctx.obj['db']
-    update_stp_vlan_parameter(ctx, parameter_max_age, max_age)
+    is_valid_stp_global_parameters(ctx, db, parameter_max_age, max_age)
+    update_stp_vlan_parameter(db, parameter_max_age, max_age)
     db.mod_entry('STP', "GLOBAL", {'max_age': max_age})
     pass
 
@@ -518,13 +474,14 @@ def stp_global_max_age(ctx, max_age):
 # cmd: STP global bridge priority
 @spanning_tree.command('priority')
 @click.argument('priority', metavar='<0-61440>', required=True, type=int)
-@click.pass_context
-def stp_global_priority(ctx, priority):
+@clicommon.pass_db
+def stp_global_priority(_db, priority):
     """Configure STP global bridge priority"""
-    check_if_global_stp_enabled(ctx)
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_global_stp_enabled(db, ctx)
     is_valid_bridge_priority(ctx, priority)
-    db = ctx.obj['db']
-    update_stp_vlan_parameter(ctx, parameter_bridge_priority, priority)
+    update_stp_vlan_parameter(db, parameter_bridge_priority, priority)
     db.mod_entry('STP', "GLOBAL", {'priority': priority})
     pass
 
@@ -533,14 +490,13 @@ def stp_global_priority(ctx, priority):
 # STP VLAN commands implementation
 ###############################################
 @spanning_tree.group('vlan')
-@click.pass_context
-def spanning_tree_vlan(ctx):
+@clicommon.pass_db
+def spanning_tree_vlan(_db):
     """Configure STP for a VLAN"""
     pass
 
 
-def is_stp_enabled_for_vlan(ctx, vlan_name):
-    db = ctx.obj['db']
+def is_stp_enabled_for_vlan(db, vlan_name):
     stp_entry = db.get_entry('STP_VLAN', vlan_name)
     stp_enabled = stp_entry.get("enabled")
     if stp_enabled == "true":
@@ -549,33 +505,34 @@ def is_stp_enabled_for_vlan(ctx, vlan_name):
         return False
 
 
-def check_if_stp_enabled_for_vlan(ctx, vlan_name):
-    if not is_stp_enabled_for_vlan(ctx, vlan_name):
+def check_if_stp_enabled_for_vlan(ctx, db, vlan_name):
+    if not is_stp_enabled_for_vlan(db, vlan_name):
         ctx.fail("STP is not enabled for VLAN")
 
 
 @spanning_tree_vlan.command('enable')
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
-@click.pass_context
-def stp_vlan_enable(ctx, vid):
+@clicommon.pass_db
+def stp_vlan_enable(_db, vid):
     """Enable STP for a VLAN"""
-    check_if_vlan_exist_in_db(ctx, vid)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_vlan_exist_in_db(db, ctx, vid)
     vlan_name = 'Vlan{}'.format(vid)
-    if is_stp_enabled_for_vlan(ctx, vlan_name):
+    if is_stp_enabled_for_vlan(db, vlan_name):
         ctx.fail("STP is already enabled for " + vlan_name)
-    if get_stp_enabled_vlan_count(ctx) >= get_max_stp_instances():
+    if get_stp_enabled_vlan_count(db) >= get_max_stp_instances():
         ctx.fail("Exceeded maximum STP configurable VLAN instances")
-    check_if_global_stp_enabled(ctx)
+    check_if_global_stp_enabled(db, ctx)
     # when enabled for first time, create VLAN entry with
     # global values - else update only VLAN STP state
     stp_vlan_entry = db.get_entry('STP_VLAN', vlan_name)
     if len(stp_vlan_entry) == 0:
         fvs = {'enabled': 'true',
-               'forward_delay': get_global_stp_forward_delay(ctx),
-               'hello_time': get_global_stp_hello_time(ctx),
-               'max_age': get_global_stp_max_age(ctx),
-               'priority': get_global_stp_priority(ctx)
+               'forward_delay': get_global_stp_forward_delay(db),
+               'hello_time': get_global_stp_hello_time(db),
+               'max_age': get_global_stp_max_age(db),
+               'priority': get_global_stp_priority(db)
                }
         db.set_entry('STP_VLAN', vlan_name, fvs)
     else:
@@ -591,11 +548,12 @@ def stp_vlan_enable(ctx, vid):
 
 @spanning_tree_vlan.command('disable')
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
-@click.pass_context
-def stp_vlan_disable(ctx, vid):
+@clicommon.pass_db
+def stp_vlan_disable(_db, vid):
     """Disable STP for a VLAN"""
-    check_if_vlan_exist_in_db(ctx, vid)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_vlan_exist_in_db(db, ctx, vid)
     vlan_name = 'Vlan{}'.format(vid)
     db.mod_entry('STP_VLAN', vlan_name, {'enabled': 'false'})
     pass
@@ -604,15 +562,16 @@ def stp_vlan_disable(ctx, vid):
 @spanning_tree_vlan.command('forward_delay')
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
 @click.argument('forward_delay', metavar='<4-30 seconds>', required=True, type=int)
-@click.pass_context
-def stp_vlan_forward_delay(ctx, vid, forward_delay):
+@clicommon.pass_db
+def stp_vlan_forward_delay(_db, vid, forward_delay):
     """Configure STP forward delay for VLAN"""
-    check_if_vlan_exist_in_db(ctx, vid)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_vlan_exist_in_db(db, ctx, vid)
     vlan_name = 'Vlan{}'.format(vid)
-    check_if_stp_enabled_for_vlan(ctx, vlan_name)
+    check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_forward_delay(ctx, forward_delay)
-    is_valid_stp_vlan_parameters(ctx, vlan_name, parameter_forward_delay, forward_delay)
+    is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_forward_delay, forward_delay)
     db.mod_entry('STP_VLAN', vlan_name, {'forward_delay': forward_delay})
     pass
 
@@ -620,15 +579,16 @@ def stp_vlan_forward_delay(ctx, vid, forward_delay):
 @spanning_tree_vlan.command('hello')
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
 @click.argument('hello_interval', metavar='<1-10 seconds>', required=True, type=int)
-@click.pass_context
-def stp_vlan_hello_interval(ctx, vid, hello_interval):
+@clicommon.pass_db
+def stp_vlan_hello_interval(_db, vid, hello_interval):
     """Configure STP hello interval for VLAN"""
-    check_if_vlan_exist_in_db(ctx, vid)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_vlan_exist_in_db(db, ctx, vid)
     vlan_name = 'Vlan{}'.format(vid)
-    check_if_stp_enabled_for_vlan(ctx, vlan_name)
+    check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_hello_interval(ctx, hello_interval)
-    is_valid_stp_vlan_parameters(ctx, vlan_name, parameter_hello_time, hello_interval)
+    is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_hello_time, hello_interval)
     db.mod_entry('STP_VLAN', vlan_name, {'hello_time': hello_interval})
     pass
 
@@ -636,15 +596,16 @@ def stp_vlan_hello_interval(ctx, vid, hello_interval):
 @spanning_tree_vlan.command('max_age')
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
 @click.argument('max_age', metavar='<6-40 seconds>', required=True, type=int)
-@click.pass_context
-def stp_vlan_max_age(ctx, vid, max_age):
+@clicommon.pass_db
+def stp_vlan_max_age(_db, vid, max_age):
     """Configure STP max age for VLAN"""
-    check_if_vlan_exist_in_db(ctx, vid)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_vlan_exist_in_db(db, ctx, vid)
     vlan_name = 'Vlan{}'.format(vid)
-    check_if_stp_enabled_for_vlan(ctx, vlan_name)
+    check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_max_age(ctx, max_age)
-    is_valid_stp_vlan_parameters(ctx, vlan_name, parameter_max_age, max_age)
+    is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_max_age, max_age)
     db.mod_entry('STP_VLAN', vlan_name, {'max_age': max_age})
     pass
 
@@ -652,13 +613,14 @@ def stp_vlan_max_age(ctx, vid, max_age):
 @spanning_tree_vlan.command('priority')
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
 @click.argument('priority', metavar='<0-61440>', required=True, type=int)
-@click.pass_context
-def stp_vlan_priority(ctx, vid, priority):
+@clicommon.pass_db
+def stp_vlan_priority(_db, vid, priority):
     """Configure STP bridge priority for VLAN"""
-    check_if_vlan_exist_in_db(ctx, vid)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_vlan_exist_in_db(db, ctx, vid)
     vlan_name = 'Vlan{}'.format(vid)
-    check_if_stp_enabled_for_vlan(ctx, vlan_name)
+    check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_bridge_priority(ctx, priority)
     db.mod_entry('STP_VLAN', vlan_name, {'priority': priority})
     pass
@@ -669,8 +631,7 @@ def stp_vlan_priority(ctx, vid, priority):
 ###############################################
 
 
-def is_stp_enabled_for_interface(ctx, intf_name):
-    db = ctx.obj['db']
+def is_stp_enabled_for_interface(db, intf_name):
     stp_entry = db.get_entry('STP_PORT', intf_name)
     stp_enabled = stp_entry.get("enabled")
     if stp_enabled == "true":
@@ -679,50 +640,52 @@ def is_stp_enabled_for_interface(ctx, intf_name):
         return False
 
 
-def check_if_stp_enabled_for_interface(ctx, intf_name):
-    if not is_stp_enabled_for_interface(ctx, intf_name):
+def check_if_stp_enabled_for_interface(ctx, db, intf_name):
+    if not is_stp_enabled_for_interface(db, intf_name):
         ctx.fail("STP is not enabled for interface {}".format(intf_name))
 
 
-def check_if_interface_is_valid(ctx, interface_name):
-    from main import interface_name_is_valid
-    db = ctx.obj['db']
+def check_if_interface_is_valid(ctx, db, interface_name):
+    from config.main import interface_name_is_valid
     if interface_name_is_valid(db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
-    for k, v in db.get_table('INTERFACE').iteritems():
-        if k == interface_name:
-            ctx.fail(" {} has ip address {} configured - It's not a L2 interface".format(interface_name, v))
-    if is_portchannel_member_port(ctx, interface_name):
+    for key in db.get_table('INTERFACE'):
+        if type(key) != tuple:
+            continue
+        if key[0] == interface_name:
+            ctx.fail(" {} has ip address {} configured - It's not a L2 interface".format(interface_name, key[1]))
+    if is_portchannel_member_port(db, interface_name):
         ctx.fail(" {} is a portchannel member port - STP can't be configured".format(interface_name))
-    if not is_vlan_configured_interface(ctx, interface_name):
+    if not is_vlan_configured_interface(db, interface_name):
         ctx.fail(" {} has no VLAN configured - It's not a L2 interface".format(interface_name))
     pass
 
 
 @spanning_tree.group('interface')
-@click.pass_context
-def spanning_tree_interface(ctx):
+@clicommon.pass_db
+def spanning_tree_interface(_db):
     """Configure STP for interface"""
     pass
 
 
 @spanning_tree_interface.command('enable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_enable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_enable(_db, interface_name):
     """Enable STP for interface"""
-    check_if_global_stp_enabled(ctx)
-    if is_stp_enabled_for_interface(ctx, interface_name):
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_global_stp_enabled(db, ctx)
+    if is_stp_enabled_for_interface(db, interface_name):
         ctx.fail("STP is already enabled for " + interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    check_if_interface_is_valid(ctx, db, interface_name)
     stp_intf_entry = db.get_entry('STP_PORT', interface_name)
     if len(stp_intf_entry) == 0:
         fvs = {'enabled': 'true',
                'root_guard': 'false',
                'bpdu_guard': 'false',
                'bpdu_guard_do_disable': 'false',
-               'portfast': 'true',
+               'portfast': 'false',
                'uplink_fast': 'false'
         }
         db.set_entry('STP_PORT', interface_name, fvs)
@@ -732,12 +695,13 @@ def stp_interface_enable(ctx, interface_name):
 
 @spanning_tree_interface.command('disable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_disable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_disable(_db, interface_name):
     """Disable STP for interface"""
-    check_if_global_stp_enabled(ctx)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_global_stp_enabled(db, ctx)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'enabled': 'false'})
 
 
@@ -755,13 +719,14 @@ def is_valid_interface_priority(ctx, intf_priority):
 @spanning_tree_interface.command('priority')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('priority', metavar='<0-240>', required=True, type=int)
-@click.pass_context
-def stp_interface_priority(ctx, interface_name, priority):
+@clicommon.pass_db
+def stp_interface_priority(_db, interface_name, priority):
     """Configure STP port priority for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     is_valid_interface_priority(ctx, priority)
-    db = ctx.obj['db']
     curr_intf_proirty = db.get_entry('STP_PORT', interface_name).get('priority')
     db.mod_entry('STP_PORT', interface_name, {'priority': priority})
     # update interface priority in all stp_vlan_intf entries if entry exists
@@ -789,13 +754,14 @@ def is_valid_interface_path_cost(ctx, intf_path_cost):
 @spanning_tree_interface.command('cost')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('cost', metavar='<1-200000000>', required=True, type=int)
-@click.pass_context
-def stp_interface_path_cost(ctx, interface_name, cost):
+@clicommon.pass_db
+def stp_interface_path_cost(_db, interface_name, cost):
     """Configure STP path cost for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     is_valid_interface_path_cost(ctx, cost)
-    db = ctx.obj['db']
     curr_intf_cost = db.get_entry('STP_PORT', interface_name).get('path_cost')
     db.mod_entry('STP_PORT', interface_name, {'path_cost': cost})
     # update interface path_cost in all stp_vlan_intf entries if entry exists
@@ -812,38 +778,40 @@ def stp_interface_path_cost(ctx, interface_name, cost):
 
 # STP interface root guard
 @spanning_tree_interface.group('root_guard')
-@click.pass_context
-def spanning_tree_interface_root_guard(ctx):
+@clicommon.pass_db
+def spanning_tree_interface_root_guard(_db):
     """Configure STP root guard for interface"""
     pass
 
 
 @spanning_tree_interface_root_guard.command('enable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_root_guard_enable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_root_guard_enable(_db, interface_name):
     """Enable STP root guard for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'root_guard': 'true'})
 
 
 @spanning_tree_interface_root_guard.command('disable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_root_guard_disable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_root_guard_disable(_db, interface_name):
     """Disable STP root guard for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'root_guard': 'false'})
 
 
 # STP interface bpdu guard
 @spanning_tree_interface.group('bpdu_guard')
-@click.pass_context
-def spanning_tree_interface_bpdu_guard(ctx):
+@clicommon.pass_db
+def spanning_tree_interface_bpdu_guard(_db):
     """Configure STP bpdu guard for interface"""
     pass
 
@@ -851,12 +819,13 @@ def spanning_tree_interface_bpdu_guard(ctx):
 @spanning_tree_interface_bpdu_guard.command('enable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.option('-s', '--shutdown', is_flag=True)
-@click.pass_context
-def stp_interface_bpdu_guard_enable(ctx, interface_name, shutdown):
+@clicommon.pass_db
+def stp_interface_bpdu_guard_enable(_db, interface_name, shutdown):
     """Enable STP bpdu guard for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     if shutdown is True:
         bpdu_guard_do_disable = 'true'
     else:
@@ -869,72 +838,77 @@ def stp_interface_bpdu_guard_enable(ctx, interface_name, shutdown):
 
 @spanning_tree_interface_bpdu_guard.command('disable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_bpdu_guard_disable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_bpdu_guard_disable(_db, interface_name):
     """Disable STP bpdu guard for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'bpdu_guard': 'false'})
 
 
 # STP interface portfast
 @spanning_tree_interface.group('portfast')
-@click.pass_context
-def spanning_tree_interface_portfast(ctx):
+@clicommon.pass_db
+def spanning_tree_interface_portfast(_db):
     """Configure STP portfast for interface"""
     pass
 
 
 @spanning_tree_interface_portfast.command('enable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_portfast_enable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_portfast_enable(_db, interface_name):
     """Enable STP portfast for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'portfast': 'true'})
 
 
 @spanning_tree_interface_portfast.command('disable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_portfast_disable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_portfast_disable(_db, interface_name):
     """Disable STP portfast for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'portfast': 'false'})
 
 
 # STP interface root uplink_fast
 @spanning_tree_interface.group('uplink_fast')
-@click.pass_context
-def spanning_tree_interface_uplink_fast(ctx):
+@clicommon.pass_db
+def spanning_tree_interface_uplink_fast(_db):
     """Configure STP uplink fast for interface"""
     pass
 
 
 @spanning_tree_interface_uplink_fast.command('enable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_uplink_fast_enable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_uplink_fast_enable(_db, interface_name):
     """Enable STP uplink fast for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'uplink_fast': 'true'})
 
 
 @spanning_tree_interface_uplink_fast.command('disable')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.pass_context
-def stp_interface_uplink_fast_disable(ctx, interface_name):
+@clicommon.pass_db
+def stp_interface_uplink_fast_disable(_db, interface_name):
     """Disable STP uplink fast for interface"""
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_interface_is_valid(ctx, interface_name)
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_interface_is_valid(ctx, db, interface_name)
     db.mod_entry('STP_PORT', interface_name, {'uplink_fast': 'false'})
 
 
@@ -942,8 +916,8 @@ def stp_interface_uplink_fast_disable(ctx, interface_name):
 # STP interface per VLAN commands implementation
 ###############################################
 @spanning_tree_vlan.group('interface')
-@click.pass_context
-def spanning_tree_vlan_interface(ctx):
+@clicommon.pass_db
+def spanning_tree_vlan_interface(_db):
     """Configure STP parameters for interface per VLAN"""
     pass
 
@@ -958,15 +932,16 @@ def is_valid_vlan_interface_priority(ctx, priority):
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('priority', metavar='<0-240>', required=True, type=int)
-@click.pass_context
-def stp_vlan_interface_priority(ctx, vid, interface_name, priority):
+@clicommon.pass_db
+def stp_vlan_interface_priority(_db, vid, interface_name, priority):
     """Configure STP per vlan port priority for interface"""
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
     vlan_name = 'Vlan{}'.format(vid)
-    check_if_stp_enabled_for_vlan(ctx, vlan_name)
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_vlan_exist_in_db(ctx, vid)
-    is_interface_vlan_member(ctx, vlan_name, interface_name)
+    check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_vlan_exist_in_db(db, ctx, vid)
+    is_interface_vlan_member(db, vlan_name, interface_name)
     is_valid_vlan_interface_priority(ctx, priority)
     vlan_interface = str(vlan_name) + "|" + interface_name
     db.mod_entry('STP_VLAN_PORT', vlan_interface, {'priority': priority})
@@ -976,20 +951,21 @@ def stp_vlan_interface_priority(ctx, vid, interface_name, priority):
 @click.argument('vid', metavar='<Vlan>', required=True, type=int)
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('cost', metavar='<1-200000000>', required=True, type=int)
-@click.pass_context
-def stp_vlan_interface_cost(ctx, vid, interface_name, cost):
+@clicommon.pass_db
+def stp_vlan_interface_cost(_db, vid, interface_name, cost):
     """Configure STP per vlan path cost for interface"""
-    db = ctx.obj['db']
+    ctx = click.get_current_context()
+    db = _db.cfgdb
     vlan_name = 'Vlan{}'.format(vid)
-    check_if_stp_enabled_for_vlan(ctx, vlan_name)
-    check_if_stp_enabled_for_interface(ctx, interface_name)
-    check_if_vlan_exist_in_db(ctx, vid)
-    is_interface_vlan_member(ctx, vlan_name, interface_name)
+    check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
+    check_if_stp_enabled_for_interface(ctx, db, interface_name)
+    check_if_vlan_exist_in_db(db, ctx, vid)
+    is_interface_vlan_member(db, vlan_name, interface_name)
     is_valid_interface_path_cost(ctx, cost)
     vlan_interface = str(vlan_name) + "|" + interface_name
     db.mod_entry('STP_VLAN_PORT', vlan_interface, {'path_cost': cost})
 
 
 # Invoke main()
-if __name__ == '__main__':
-    spanning_tree()
+#if __name__ == '__main__':
+#    spanning_tree()

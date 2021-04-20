@@ -34,6 +34,7 @@ from . import nat
 from . import vlan
 from . import vxlan
 from . import plugins
+from . import stp
 from .config_mgmt import ConfigMgmtDPB
 
 # mock masic APIs for unit test
@@ -52,10 +53,6 @@ except KeyError:
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
-
-import aaa
-import mlnx
-import stp
 
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'

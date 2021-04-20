@@ -3,9 +3,8 @@ import re
 import sys
 import click
 import subprocess
-from show.main import AliasedGroup,cli
-from swsssdk import SonicV2Connector
-from swsssdk import ConfigDBConnector
+import utilities_common.cli as clicommon
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
 
 ##############################################################################
@@ -26,6 +25,7 @@ g_stp_vlanid = 0
 # Utility API's
 #
 def is_stp_docker_running():
+    return True
     running_docker = subprocess.check_output('docker ps', shell=True)
     if running_docker.find('docker-stp') == -1:
         return False
@@ -33,7 +33,7 @@ def is_stp_docker_running():
         return True
 
 def connect_to_cfg_db():
-    config_db = ConfigDBConnector(host="127.0.0.1")
+    config_db = ConfigDBConnector()
     config_db.connect()
     return config_db
 
@@ -149,7 +149,7 @@ def stp_get_entry_from_vlan_intf_tb(db, vlanid, ifname):
 #
 # This group houses Spanning_tree commands and subgroups
 #
-@cli.group(cls=AliasedGroup, default_if_no_args=False, invoke_without_command=True)
+@click.group(cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.pass_context
 def spanning_tree(ctx):
     """Show spanning_tree commands"""
@@ -189,7 +189,7 @@ def spanning_tree(ctx):
     pass
 
 
-@spanning_tree.group('vlan', cls=AliasedGroup, default_if_no_args=False, invoke_without_command=True)
+@spanning_tree.group('vlan', cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.argument('vlanid', metavar='<vlanid>', required=True, type=int)
 @click.pass_context
 def show_stp_vlan(ctx, vlanid):
@@ -363,7 +363,7 @@ def show_stp_root_guard(ctx):
     pass
 
 
-@spanning_tree.group('statistics', cls=AliasedGroup, default_if_no_args=False, invoke_without_command=True)
+@spanning_tree.group('statistics', cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.pass_context
 def show_stp_statistics(ctx):
     """Show spanning_tree statistics"""
@@ -391,7 +391,7 @@ def show_stp_statistics(ctx):
 def show_stp_vlan_statistics(ctx, vlanid):
     """Show spanning_tree statistics vlan"""
 
-    stp_inst_entry = stp_get_all_from_pattern(g_stp_appl_db, g_stp_appl_db.APPL_DB, "*STP_VLAN_INSTANCE_TABLE:Vlan{}".format(vlanid))
+    stp_inst_entry = stp_get_all_from_pattern(g_stp_appl_db, g_stp_appl_db.APPL_DB, "*STP_VLAN_TABLE:Vlan{}".format(vlanid))
     if not stp_inst_entry:
         return
 

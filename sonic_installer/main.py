@@ -458,6 +458,7 @@ DOCKER_CONTAINER_LIST = [
     "swss",
     "syncd",
     "teamd",
+    "stp",
     "telemetry"
 ]
 

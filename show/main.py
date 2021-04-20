@@ -36,6 +36,7 @@ from . import vxlan
 from . import system_health
 from . import warm_restart
 from . import plugins
+from . import stp
 
 
 # Global Variables
@@ -177,9 +178,8 @@ cli.add_command(warm_restart.warm_restart)
 if is_gearbox_configured():
     cli.add_command(gearbox.gearbox)
 
-from .stp import spanning_tree
-cli.add_command(spanning_tree)
 
+cli.add_command(stp.spanning_tree)
 
 #
 # 'vrf' command ("show vrf")
@@ -1166,7 +1166,7 @@ def spanning_tree(verbose):
     for key in stp_list:
         table = config_db.get_table(key)
         if len(table):
-            print "\"" + key + "\":"
+            print("\"" + key + "\":")
             cmd = 'sudo sonic-cfggen -d --var-json ' + key
             run_command(cmd, display_cmd=verbose)
 
