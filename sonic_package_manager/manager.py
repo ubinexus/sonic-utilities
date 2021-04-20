@@ -409,8 +409,6 @@ class PackageManager:
         package = self.get_installed_package(name)
         service_name = package.manifest['service']['name']
 
-        name = package.name
-
         with failure_ignore(force):
             if self.feature_registry.is_feature_enabled(service_name):
                 raise PackageUninstallationError(
