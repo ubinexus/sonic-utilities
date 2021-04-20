@@ -21,10 +21,10 @@ def bgp():
 def summary():
     """Show summarized information of IPv4 BGP state"""
     try:
-        device_output = run_command('sudo vtysh -c "show ip bgp summary"', return_cmd=True)
+        device_output = run_command('sudo rvtysh -c "show ip bgp summary"', return_cmd=True)
         get_bgp_summary_extended(device_output)
     except Exception:
-        run_command('sudo vtysh -c "show ip bgp summary"')
+        run_command('sudo rvtysh -c "show ip bgp summary"')
 
 
 # 'neighbors' subcommand ("show ip bgp neighbors")
@@ -34,7 +34,7 @@ def summary():
 def neighbors(ipaddress, info_type):
     """Show IP (IPv4) BGP neighbors"""
 
-    command = 'sudo vtysh -c "show ip bgp neighbor'
+    command = 'sudo rvtysh -c "show ip bgp neighbor'
 
     if ipaddress is not None:
         command += ' {}'.format(ipaddress)

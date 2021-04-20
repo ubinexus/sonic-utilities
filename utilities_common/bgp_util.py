@@ -153,8 +153,11 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
     if bgp_namespace is not multi_asic.DEFAULT_NAMESPACE:
         bgp_instance_id = " -n {} ".format(multi_asic.get_asic_id_from_name(bgp_namespace))
 
-    cmd = 'sudo vtysh {} -c "{}"'.format(
-        bgp_instance_id, vtysh_cmd)
+    vtysh = 'vtysh'
+    if vtysh_cmd.startswith('show'):
+        vtysh = 'rvtysh'
+    cmd = 'sudo {} {} -c "{}"'.format(
+        vtysh, bgp_instance_id, vtysh_cmd)
     try:
         output = clicommon.run_command(cmd, return_cmd=True)
     except Exception:

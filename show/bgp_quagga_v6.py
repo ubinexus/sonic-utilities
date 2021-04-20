@@ -21,10 +21,10 @@ def bgp():
 def summary():
     """Show summarized information of IPv6 BGP state"""
     try:
-        device_output = run_command('sudo vtysh -c "show ipv6 bgp summary"', return_cmd=True)
+        device_output = run_command('sudo rvtysh -c "show ipv6 bgp summary"', return_cmd=True)
         get_bgp_summary_extended(device_output)
     except Exception:
-        run_command('sudo vtysh -c "show ipv6 bgp summary"')
+        run_command('sudo rvtysh -c "show ipv6 bgp summary"')
 
 
 # 'neighbors' subcommand ("show ipv6 bgp neighbors")
@@ -33,5 +33,5 @@ def summary():
 @click.argument('info_type', type=click.Choice(['routes', 'advertised-routes', 'received-routes']), required=True)
 def neighbors(ipaddress, info_type):
     """Show IPv6 BGP neighbors"""
-    command = 'sudo vtysh -c "show ipv6 bgp neighbor {} {}"'.format(ipaddress, info_type)
+    command = 'sudo rvtysh -c "show ipv6 bgp neighbor {} {}"'.format(ipaddress, info_type)
     run_command(command)
