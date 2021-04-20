@@ -3285,19 +3285,20 @@ def del_route(ctx, command_str):
         # {'nexthop': '10.0.0.2,20.0.0.2', 'vrf-nexthop': ',Vrf-RED', 'ifname': ','}
         # [('10.0.0.2', '', ''), ('20.0.0.2', 'Vrf-RED', '')]
         nh_zip = list(itertools.zip_longest(nh, nh_vrf, ifname, fillvalue=''))
-        cmd_tuple = ()
+        cli_tuple = ()
 
         # Create tuple from CLI argument
         # config route add prefix 1.4.3.4/32 nexthop vrf Vrf-RED 20.0.0.2
         # ('20.0.0.2', 'Vrf-RED', '')
         for entry in ['nexthop', 'nexthop-vrf', 'ifname']:
             if entry in route:
-                cmd_tuple += (route[entry],)
+                cli_tuple += (route[entry],)
             else:
-                cmd_tuple += ('',)
+                cli_tuple += ('',)
 
-        if cmd_tuple in nh_zip:
-            idx = nh_zip.index(cmd_tuple)
+        if cli_tuple in nh_zip:
+            # If cli tuple is in config_db find its index and delete from lists
+            idx = nh_zip.index(cli_tuple)
             if len(nh) - 1 >= idx:
                 del nh[idx]
             if len(nh_vrf) - 1 >= idx:
@@ -3305,11 +3306,14 @@ def del_route(ctx, command_str):
             if len(ifname) - 1 >= idx:
                 del ifname[idx]
         else:
-            ctx.fail('Not found {} in {}'.format(cmd_tuple, key))
+            ctx.fail('Not found {} in {}'.format(cli_tuple, key))
 
-        if len(nh) == 0 or (len(nh) == 1 and nh[0] == ''):
+        if (len(nh) == 0 or (len(nh) == 1 and nh[0] == '')) and \
+            (len(ifname) == 0 or (len(ifname) == 1 and ifname[0] == '')):
+            # If there are no nexthop and ifname fields in the current record, delete it
             config_db.set_entry("STATIC_ROUTE", key, None)
         else:
+            # Otherwise it still has ECMP nexthop or ifname fields, so compose it from the lists in db
             current_entry['nexthop'] = ','.join((str(e)) for e in nh)
             current_entry['nexthop-vrf'] = ','.join((str(e)) for e in nh_vrf)
             current_entry['ifname'] = ','.join((str(e)) for e in ifname)
