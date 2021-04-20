@@ -7986,7 +7986,8 @@ SONiC package status can be *Installed*, *Not installed* or *Built-In*. "Built-I
   ```
   admin@sonic:~$ sonic-package-manager list
   Name            Repository                   Description                   Version    Status
-  --------------  ---------------------------  ----------------------------  ---------  ---------
+  --------------  ---------------------------  ----------------------------  ---------  --------------
+  cpu-report      azure/cpu-report             CPU report package            N/A        Not Installed
   database        docker-database              SONiC database package        1.0.0      Built-In
   dhcp-relay      azure/docker-dhcp-relay      SONiC dhcp-relay package      1.0.0      Installed
   fpm-frr         docker-fpm-frr               SONiC fpm-frr package         1.0.0      Built-In
@@ -8045,13 +8046,15 @@ This command will remove an entry from the package database. The package has to 
 
 **sonic-package-manager install**
 
-This command pulls and installs package on SONiC host. *NOTE*: this command requires elevated (root) privileges to run.
+This command pulls and installs or upgrades (if already installed) package on SONiC host. *NOTE*: this command requires elevated (root) privileges to run.
+The procedure of upgrading a package will restart the corresponding service.
 
 - Usage:
   ```
   Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
 
-    Install package using [PACKAGE_EXPR] in format "<name>==<version>" or "<name>@<tag|digest>"
+    Install/Upgrade package using [PACKAGE_EXPR] in format
+    "<name>[=<version>|@<reference>]"
 
   Options:
     --enable                      Set the default state of the feature to
@@ -8080,7 +8083,13 @@ This command pulls and installs package on SONiC host. *NOTE*: this command requ
   ```
 - Example:
   ```
-  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay==1.0.2
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay=1.0.2
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay@latest
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay@sha256:9780f6d83e45878749497a6297ed9906c19ee0cc48cc88dc63827564bb8768fd
   ```
   ```
   admin@sonic:~$ sudo sonic-package-manager install --from-repository azure/sonic-cpu-report:latest
@@ -8111,46 +8120,9 @@ This command uninstalls package from SONiC host. *NOTE*: this command requires e
   admin@sonic:~$ sudo sonic-package-manager uninstall dhcp-relay
   ```
 
-**sonic-package-manager upgrade**
-
-This command upgrades package on SONiC host to a newer version. The procedure of upgrading a package will restart the corresponding service. *NOTE*: this command requires elevated (root) privileges to run.
-
-- Usage:
-  ```
-  Usage: sonic-package-manager upgrade [OPTIONS] [PACKAGE_EXPR]
-
-    Upgrade package using [PACKAGE_EXPR] in format "<name>==<version>"
-
-  Options:
-    --from-repository TEXT  Fetch package directly from image registry
-                            repository NOTE: This argument is mutually exclusive
-                            with arguments: [package_expr, from_tarball].
-    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
-                            argument is mutually exclusive with arguments:
-                            [from_repository, package_expr].
-    -f, --force             Force operation by ignoring failures
-    -y, --yes               Automatically answer yes on prompts
-    -v, --verbosity LVL     Either CRITICAL, ERROR, WARNING, INFO or DEBUG
-    --skip-host-plugins     Do not install host OS plugins provided by the
-                            package (CLI, etc). NOTE: In case when package host
-                            OS plugins are set as mandatory in package manifest
-                            this option will fail the installation.
-    --help                  Show this message and exit.
-  ```
-- Example:
-  ```
-  admin@sonic:~$ sudo sonic-package-manager upgrade dhcp-relay==2.0.0
-  ```
-  ```
-  admin@sonic:~$ sudo sonic-package-manager upgrade --from-repository azure/sonic-cpu-report:latest
-  ```
-  ```
-  admin@sonic:~$ sudo sonic-package-manager upgrade --from-tarball sonic-docker-image.gz
-  ```
-
 **sonic-package-manager reset**
 
-This comamnd resets the package by reinstalling it to its default version.
+This comamnd resets the package by reinstalling it to its default version. *NOTE*: this command requires elevated (root) privileges to run.
 
 - Usage:
   ```
@@ -8194,6 +8166,19 @@ This command will access repository for corresponding package and retrieve a lis
   • 1.0.0
   • 1.0.2
   • 2.0.0
+  ```
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay --plain
+  1.0.0
+  1.0.2
+  2.0.0
+  ```
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay --all
+  • 1.0.0
+  • 1.0.2
+  • 2.0.0
+  • latest
   ```
 
 **sonic-package-manager show package changelog**
@@ -8247,7 +8232,7 @@ This command fetches the package manifest and displays it. *NOTE*: package manif
   ```
 - Example:
   ```
-  admin@sonic:~$ sonic-package-manager show package manifest dhcp-relay==2.0.0
+  admin@sonic:~$ sonic-package-manager show package manifest dhcp-relay=2.0.0
   {
     "version": "1.0.0",
     "package": {

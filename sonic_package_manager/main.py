@@ -174,7 +174,7 @@ def package(ctx):
 @cli.command()
 @click.pass_context
 def list(ctx):
-    """ List available repositories """
+    """ List available packages """
 
     table_header = ['Name', 'Repository', 'Description', 'Version', 'Status']
     table_body = []
@@ -341,11 +341,14 @@ def install(ctx,
             enable,
             default_owner,
             skip_host_plugins):
-    """ Install package using [PACKAGE_EXPR] in format "<name>==<version>" """
+    """ Install/Upgrade package using [PACKAGE_EXPR] in format
+        "<name>[=<version>|@<reference>]" """
 
     manager: PackageManager = ctx.obj
 
     package_source = package_expr or from_repository or from_tarball
+    if not package_source:
+        exit_cli(f'Package source is not specified', fg='red')
 
     if not yes and not force:
         click.confirm(f'{package_source} is going to be installed, '
@@ -365,45 +368,6 @@ def install(ctx,
                         **install_opts)
     except Exception as err:
         exit_cli(f'Failed to install {package_source}: {err}', fg='red')
-    except KeyboardInterrupt:
-        exit_cli(f'Operation canceled by user', fg='red')
-
-
-@cli.command()
-@add_options(PACKAGE_SOURCE_OPTIONS)
-@add_options(PACKAGE_COMMON_OPERATION_OPTIONS)
-@add_options(PACKAGE_COMMON_INSTALL_OPTIONS)
-@click.pass_context
-@root_privileges_required
-def upgrade(ctx,
-            package_expr,
-            from_repository,
-            from_tarball,
-            force,
-            yes,
-            skip_host_plugins):
-    """ Upgrade package using [PACKAGE_EXPR] in format "<name>==<version>" """
-
-    manager: PackageManager = ctx.obj
-
-    package_source = package_expr or from_repository or from_tarball
-
-    if not yes and not force:
-        click.confirm(f'Package is going to be upgraded with {package_source}, '
-                      f'continue?', abort=True, show_default=True)
-
-    upgrade_opts = {
-        'force': force,
-        'skip_host_plugins': skip_host_plugins,
-    }
-
-    try:
-        manager.upgrade(package_expr,
-                        from_repository,
-                        from_tarball,
-                        **upgrade_opts)
-    except Exception as err:
-        exit_cli(f'Failed to upgrade {package_source}: {err}', fg='red')
     except KeyboardInterrupt:
         exit_cli(f'Operation canceled by user', fg='red')
 
