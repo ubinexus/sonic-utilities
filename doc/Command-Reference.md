@@ -8218,7 +8218,7 @@ This command fetches the package manifest and displays it. *NOTE*: package manif
   ```
   Usage: sonic-package-manager show package manifest [OPTIONS] [PACKAGE_EXPR]
 
-    Print package manifest content
+    Show package manifest
 
   Options:
     --from-repository TEXT  Fetch package directly from image registry
