@@ -8013,7 +8013,7 @@ This command will add a new repository as source for SONiC packages to the datab
   ```
   Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
 
-    Add a new repository to database. Repository in Docker Registry V2.
+    Add new repository to database
 
   Options:
     --default-reference TEXT  Default installation reference
