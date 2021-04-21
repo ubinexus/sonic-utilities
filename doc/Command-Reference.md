@@ -8034,7 +8034,7 @@ This command will remove a repository as source for SONiC packages from the data
   ```
   Usage: sonic-package-manager repository remove [OPTIONS] NAME
 
-    Remove package from database.
+    Remove repository from database
 
   Options:
     --help  Show this message and exit.
@@ -8146,13 +8146,13 @@ This comamnd resets the package by reinstalling it to its default version. *NOTE
 
 **sonic-package-manager show package versions**
 
-This command will access repository for corresponding package and retrieve a list of available versions.
+This command will retrieve a list of all available versions for the given package from the configured upstream repository
 
 - Usage:
   ```
   Usage: sonic-package-manager show package versions [OPTIONS] NAME
 
-    Print available versions
+    Show available versions
 
   Options:
     --all    Show all available tags in repository
@@ -8182,13 +8182,13 @@ This command will access repository for corresponding package and retrieve a lis
 
 **sonic-package-manager show package changelog**
 
-This command fetches the changelog from package manifest and displays it. *NOTE*: package changelog can be retrieved from registry or read from image tarball without installing it.
+This command fetches the changelog from the package manifest and displays it. *NOTE*: package changelog can be retrieved from registry or read from image tarball without installing it.
 
 - Usage:
   ```
   Usage: sonic-package-manager show package changelog [OPTIONS] [PACKAGE_EXPR]
 
-    Print package changelog
+    Show package changelog
 
   Options:
     --from-repository TEXT  Fetch package directly from image registry
@@ -8217,7 +8217,7 @@ This command fetches the package manifest and displays it. *NOTE*: package manif
   ```
   Usage: sonic-package-manager show package manifest [OPTIONS] [PACKAGE_EXPR]
 
-    Print package manifest content
+    Show package manifest
 
   Options:
     --from-repository TEXT  Fetch package directly from image registry
@@ -8315,7 +8315,7 @@ This command is used to install a new image on the alternate image partition.  T
   Done
   ```
 
-SONiC image installation will install SONiC packages that are installed in currently running SONiC image. In order to perform clean SONiC installation use *--skip-package-migration* option when installing SONiC image:
+Installing a new image using the sonic-installer will keep using the packages installed on the currently running SONiC image and automatically migrate those. In order to perform clean SONiC installation use the *--skip-package-migration* option:
 
 - Example:
   ```
