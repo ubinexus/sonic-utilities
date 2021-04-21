@@ -8316,7 +8316,7 @@ This command is used to install a new image on the alternate image partition.  T
   Done
   ```
 
-SONiC image installation will install SONiC packages that are installed in currently running SONiC image. In order to perform clean SONiC installation use *--skip-package-migration* option when installing SONiC image:
+Installing a new image using the sonic-installer will keep using the packages installed on the currently running SONiC image and automatically migrate those. In order to perform clean SONiC installation use the *--skip-package-migration* option:
 
 - Example:
   ```
