@@ -166,6 +166,7 @@ setup(
         'pexpect==4.8.0',
         'pyroute2==0.5.14',
         'requests==2.25.0',
+        'sonic-config-engine',
         'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
@@ -180,7 +181,6 @@ setup(
     tests_require = [
         'pytest',
         'mockredispy>=2.9.3',
-        'sonic-config-engine',
         'deepdiff==5.2.3'
     ],
     classifiers=[
