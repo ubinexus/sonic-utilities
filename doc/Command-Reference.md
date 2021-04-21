@@ -8153,7 +8153,7 @@ This command will access repository for corresponding package and retrieve a lis
   ```
   Usage: sonic-package-manager show package versions [OPTIONS] NAME
 
-    Print available versions
+    Show available versions
 
   Options:
     --all    Show all available tags in repository
