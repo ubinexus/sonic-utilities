@@ -8189,7 +8189,7 @@ This command fetches the changelog from package manifest and displays it. *NOTE*
   ```
   Usage: sonic-package-manager show package changelog [OPTIONS] [PACKAGE_EXPR]
 
-    Print package changelog
+    Show package changelog
 
   Options:
     --from-repository TEXT  Fetch package directly from image registry
