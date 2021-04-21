@@ -8007,7 +8007,7 @@ SONiC package status can be *Installed*, *Not installed* or *Built-In*. "Built-I
 
 **sonic-package-manager repository add**
 
-This command will add a new entry in the package database. *NOTE*: this command requires elevated (root) privileges to run.
+This command will add a new repository as source for SONiC packages to the database. *NOTE*: requires elevated (root) privileges to run
 
 - Usage:
   ```
