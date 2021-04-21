@@ -7970,7 +7970,7 @@ SONiC packages are available as prebuilt Docker images and meant to be installed
 
 ### SONiC Package Manager
 
-This is a command line tool that provides functionality to manage SONiC Packages on SONiC device.
+The *sonic-package-manager* is a command line tool to manage (e.g. install, upgrade or uninstall) SONiC Packages.
 
 **sonic-package-manager list**
 
