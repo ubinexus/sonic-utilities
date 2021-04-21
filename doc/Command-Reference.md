@@ -7966,7 +7966,7 @@ SONiC images can be installed in one of two methods:
 1. From within a running SONiC image using the `sonic-installer` utility
 2. From the vendor's bootloader (E.g., ONIE,  Aboot, etc.)
 
-SONiC feature Docker images (aka "SONiC packages") available to be installed with *sonic-package-manager* utility.
+SONiC packages are available as prebuilt Docker images and meant to be installed with the *sonic-package-manager* utility.
 
 ### SONiC Package Manager
 
