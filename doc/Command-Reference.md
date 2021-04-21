@@ -8028,7 +8028,7 @@ This command will add a new repository as source for SONiC packages to the datab
 
 **sonic-package-manager repository remove**
 
-This command will remove an entry from the package database. The package has to be *Not Installed* in order to be removed from package database. *NOTE*: this command requires elevated (root) privileges to run.
+This command will remove a repository as source for SONiC packages from the database . The package has to be *Not Installed* in order to be removed from package database. *NOTE*: requires elevated (root) privileges to run
 
 - Usage:
   ```
