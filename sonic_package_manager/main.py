@@ -208,7 +208,7 @@ def manifest(ctx,
              package_expr,
              from_repository,
              from_tarball):
-    """ Print package manifest content """
+    """ Show package manifest """
 
     manager: PackageManager = ctx.obj
 
@@ -228,7 +228,7 @@ def manifest(ctx,
 @click.option('--plain', is_flag=True, help='Plain output')
 @click.pass_context
 def versions(ctx, name, all, plain):
-    """ Print available versions """
+    """ Show available versions """
 
     try:
         manager: PackageManager = ctx.obj
@@ -248,7 +248,7 @@ def changelog(ctx,
               package_expr,
               from_repository,
               from_tarball):
-    """ Print package changelog """
+    """ Show package changelog """
 
     manager: PackageManager = ctx.obj
 
@@ -286,9 +286,7 @@ def changelog(ctx,
 @click.pass_context
 @root_privileges_required
 def add(ctx, name, repository, default_reference, description):
-    """ Add a new repository to database.
-    Repository in Docker Registry V2.
-    """
+    """ Add a new repository to database """
 
     manager: PackageManager = ctx.obj
 
@@ -306,7 +304,7 @@ def add(ctx, name, repository, default_reference, description):
 @click.pass_context
 @root_privileges_required
 def remove(ctx, name):
-    """ Remove package from database. """
+    """ Remove repository from database. """
 
     manager: PackageManager = ctx.obj
 

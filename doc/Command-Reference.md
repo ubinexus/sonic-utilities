@@ -8046,8 +8046,7 @@ This command will remove a repository as source for SONiC packages from the data
 
 **sonic-package-manager install**
 
-This command pulls and installs or upgrades (if already installed) package on SONiC host. *NOTE*: this command requires elevated (root) privileges to run.
-The procedure of upgrading a package will restart the corresponding service.
+This command pulls and installs a package on SONiC host. *NOTE*: this command requires elevated (root) privileges to run
 
 - Usage:
   ```
