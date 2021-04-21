@@ -7962,7 +7962,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#waterm
 
 ## Software Installation and Management
 
-SONiC image can be installed in one of two methods:
+SONiC images can be installed in one of two methods:
 1. From within a running SONiC image using the `sonic-installer` utility
 2. From the vendor's bootloader (E.g., ONIE,  Aboot, etc.)
 
