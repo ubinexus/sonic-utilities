@@ -8034,7 +8034,7 @@ This command will remove a repository as source for SONiC packages from the data
   ```
   Usage: sonic-package-manager repository remove [OPTIONS] NAME
 
-    Remove package from database.
+    Remove repository from database
 
   Options:
     --help  Show this message and exit.
