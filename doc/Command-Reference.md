@@ -8147,7 +8147,7 @@ This comamnd resets the package by reinstalling it to its default version. *NOTE
 
 **sonic-package-manager show package versions**
 
-This command will access repository for corresponding package and retrieve a list of available versions.
+This command will retrieve a list of all available versions for the given package from the configured upstream repository
 
 - Usage:
   ```
