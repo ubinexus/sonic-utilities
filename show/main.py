@@ -1230,10 +1230,10 @@ def services():
                 break
 
 @cli.command()
-def aaa():
+@clicommon.pass_db
+def aaa(db):
     """Show AAA configuration"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = db.cfgdb
     data = config_db.get_table('AAA')
     output = ''
 
@@ -1282,11 +1282,11 @@ def tacacs():
     click.echo(output)
 
 @cli.command()
-def radius():
+@clicommon.pass_db
+def radius(db):
     """Show RADIUS configuration"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
     output = ''
+    config_db = db.cfgdb
     data = config_db.get_table('RADIUS')
 
     radius = {
