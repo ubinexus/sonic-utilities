@@ -8183,7 +8183,7 @@ This command will access repository for corresponding package and retrieve a lis
 
 **sonic-package-manager show package changelog**
 
-This command fetches the changelog from package manifest and displays it. *NOTE*: package changelog can be retrieved from registry or read from image tarball without installing it.
+This command fetches the changelog from the package manifest and displays it. *NOTE*: package changelog can be retrieved from registry or read from image tarball without installing it.
 
 - Usage:
   ```
