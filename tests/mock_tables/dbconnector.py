@@ -8,11 +8,12 @@ import mockredis
 import redis
 import swsssdk
 from sonic_py_common import multi_asic
-from swsssdk import SonicDBConfig, SonicV2Connector
+from swsssdk import SonicDBConfig, SonicV2Connector, ConfigDBConnector, ConfigDBPipeConnector
 from swsscommon import swsscommon
 
 
 topo = None
+dedicated_dbs = {}
 
 def clean_up_config():
     # Set SonicDBConfig variables to initial state
@@ -47,7 +48,11 @@ def connect_SonicV2Connector(self, db_name, retry_on=True):
     # add the namespace to kwargs for testing multi asic
     self.dbintf.redis_kwargs['namespace'] = self.namespace
     # Mock DB filename for unit-test
-    self.dbintf.redis_kwargs['db_name'] = db_name
+    global dedicated_dbs
+    if dedicated_dbs and dedicated_dbs.get(db_name):
+        self.dbintf.redis_kwargs['db_name'] = dedicated_dbs[db_name]
+    else:
+        self.dbintf.redis_kwargs['db_name'] = db_name
     self.dbintf.redis_kwargs['decode_responses'] = True
     _old_connect_SonicV2Connector(self, db_name, retry_on)
 
@@ -116,20 +121,14 @@ class SwssSyncClient(mockredis.MockRedis):
 
     # Patch mockredis/mockredis/client.py
     # The offical implementation assume decode_responses=False
-    # Here we detect the option first and only encode when decode_responses=False
+    # Here we detect the option and decode after doing encode
     def _encode(self, value):
         "Return a bytestring representation of the value. Taken from redis-py connection.py"
-        if isinstance(value, bytes):
-            return value
-        elif isinstance(value, int):
-            value = str(value).encode('utf-8')
-        elif isinstance(value, float):
-            value = repr(value).encode('utf-8')
-        elif not isinstance(value, str):
-            value = str(value).encode('utf-8')
-        elif not self.decode_responses:
-            value = value.encode('utf-8', 'strict')
-        return value
+
+        value = super(SwssSyncClient, self)._encode(value)
+
+        if self.decode_responses:
+           return value.decode('utf-8')
 
     # Patch mockredis/mockredis/client.py
     # The official implementation will filter out keys with a slash '/'
@@ -144,7 +143,7 @@ class SwssSyncClient(mockredis.MockRedis):
         regex = re.compile(regex)
 
         # Find every key that matches the pattern
-        return [key for key in list(self.redis.keys()) if regex.match(key)]
+        return [key for key in self.redis if regex.match(key)]
 
 
 swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification
@@ -152,3 +151,5 @@ mockredis.MockRedis.config_set = config_set
 redis.StrictRedis = SwssSyncClient
 SonicV2Connector.connect = connect_SonicV2Connector
 swsscommon.SonicV2Connector = SonicV2Connector
+swsscommon.ConfigDBConnector = ConfigDBConnector
+swsscommon.ConfigDBPipeConnector = ConfigDBPipeConnector

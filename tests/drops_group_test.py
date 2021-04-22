@@ -68,7 +68,6 @@ expected_counts_with_type = """\
 Ethernet0        D        10         100         80         20
 Ethernet4      N/A         0        1000        800        100
 Ethernet8      N/A       100          10         10          0
-
 """
 
 expected_counts_with_clear = """\
@@ -83,7 +82,7 @@ Ethernet8      N/A         0           0         0           0          0       
 sonic_drops_test               0                    0
 """
 
-dropstat_path = "/tmp/dropstat"
+dropstat_path = "/tmp/dropstat-27"
 
 class TestDropCounters(object):
     @classmethod

@@ -22,7 +22,9 @@ setup(
     packages=[
         'acl_loader',
         'clear',
+        'clear.plugins',
         'config',
+        'config.plugins',
         'connect',
         'consutil',
         'counterpoll',
@@ -42,6 +44,7 @@ setup(
         'pddf_ledutil',
         'show',
         'show.interfaces',
+        'show.plugins',
         'sonic_installer',
         'sonic_installer.bootloader',
         'tests',
@@ -53,19 +56,25 @@ setup(
         'show': ['aliases.ini'],
         'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
+                  'db_migrator_input/*.json',
+                  'db_migrator_input/config_db/*.json',
+                  'db_migrator_input/appl_db/*.json',
                   'counterpoll_input/*',
                   'mock_tables/*.py',
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
                   'mock_tables/asic1/*.json',
+                  'mock_tables/asic2/*.json',
                   'filter_fdb_input/*',
                   'pfcwd_input/*',
-                  'wm_input/*']
+                  'wm_input/*',
+                  'ecn_input/*']
     },
     scripts=[
         'scripts/aclshow',
         'scripts/asic_config_check',
         'scripts/boot_part',
+        'scripts/buffershow',
         'scripts/coredump-compress',
         'scripts/configlet',
         'scripts/db_migrator.py',
@@ -84,6 +93,7 @@ setup(
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',
+        'scripts/ipintutil',
         'scripts/lldpshow',
         'scripts/log_ssd_health',
         'scripts/mellanox_buffer_migrator.py',
@@ -104,13 +114,15 @@ setup(
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
+        'scripts/storyteller',
         'scripts/syseeprom-to-json',
         'scripts/tempershow',
         'scripts/update_json.py',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
-        'scripts/sonic-kdump-config'
+        'scripts/sonic-kdump-config',
+        'scripts/centralize_database'
     ],
     entry_points={
         'console_scripts': [
@@ -150,12 +162,14 @@ setup(
         'netaddr==0.8.0',
         'netifaces==0.10.7',
         'pexpect==4.8.0',
+        'pyroute2==0.5.14',
         'requests==2.25.0',
+        'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
-        'xmltodict==0.12.0',
+        'xmltodict==0.12.0'
     ],
     setup_requires= [
         'pytest-runner',
@@ -164,7 +178,8 @@ setup(
     tests_require = [
         'pytest',
         'mockredispy>=2.9.3',
-        'sonic-config-engine'
+        'sonic-config-engine',
+        'deepdiff==5.2.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

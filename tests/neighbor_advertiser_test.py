@@ -1,16 +1,21 @@
-import sys
 import os
+import subprocess
+import sys
+from unittest import mock
+
 import pytest
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
+from utilities_common.general import load_module_from_source
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, modules_path)
 
-from imp import load_source
-load_source('neighbor_advertiser', scripts_path+'/neighbor_advertiser')
-import neighbor_advertiser
+# Load the file under test
+neighbor_advertiser_path = os.path.join(scripts_path, 'neighbor_advertiser')
+neighbor_advertiser = load_module_from_source('neighbor_advertiser', neighbor_advertiser_path)
+
 
 class TestNeighborAdvertiser(object):
     @pytest.fixture
@@ -19,6 +24,7 @@ class TestNeighborAdvertiser(object):
         neighbor_advertiser.connect_app_db()
 
     def test_neighbor_advertiser_slice(self, set_up):
+        neighbor_advertiser.get_link_local_addr = mock.MagicMock(return_value='fe80::1e34:daff:fe1e:2800')
         output = neighbor_advertiser.construct_neighbor_advertiser_slice()
         expected_output = dict(
             {
@@ -29,7 +35,8 @@ class TestNeighborAdvertiser(object):
                             {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': '192.168.0.1', 'ipPrefixLen': '32'}
                         ],
                         'ipv6AddrMappings': [
-                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fc02:1000::1', 'ipPrefixLen': '128'}
+                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fc02:1000::1', 'ipPrefixLen': '128'},
+                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fe80::1e34:daff:fe1e:2800', 'ipPrefixLen': '128'}
                         ],
                         'vxlanId': '1000',
                         'vlanId': '1000',
@@ -40,7 +47,8 @@ class TestNeighborAdvertiser(object):
                             {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': '192.168.0.10', 'ipPrefixLen': '21'}
                         ],
                         'ipv6AddrMappings': [
-                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fc02:1011::1', 'ipPrefixLen': '64'}
+                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fc02:1011::1', 'ipPrefixLen': '64'},
+                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fe80::1e34:daff:fe1e:2800', 'ipPrefixLen': '128'}
                         ],
                         'vxlanId': '2000',
                         'vlanId': '2000',

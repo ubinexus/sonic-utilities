@@ -20,7 +20,7 @@ optional arguments:
 import argparse
 import json
 import os
-import swsssdk
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 import sys
 
 from tabulate import tabulate
@@ -60,10 +60,10 @@ class AclStat(object):
             self.table_list = tables.split(",")
 
         # Set up db connections
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.COUNTERS_DB)
 
-        self.configdb = swsssdk.ConfigDBConnector()
+        self.configdb = ConfigDBConnector()
         self.configdb.connect()
 
     def previous_counters(self):
@@ -124,7 +124,7 @@ class AclStat(object):
             """
             Get ACL counters from the DB
             """
-            for table, rule in self.acl_rules.keys():
+            for table, rule in self.acl_rules:
                 cnt_props = lowercase_keys(self.db.get_all(self.db.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
                 self.acl_counters[table, rule] = cnt_props
 
@@ -163,7 +163,7 @@ class AclStat(object):
 
         header = ACL_HEADER
         aclstat = []
-        for rule_key in self.acl_rules.keys():
+        for rule_key in self.acl_rules:
             if not display_all and (self.get_counter_value(rule_key, 'packets') == '0' or \
                     self.get_counter_value(rule_key, 'packets') == 'N/A'):
                 continue
@@ -212,7 +212,7 @@ def main():
         acls.previous_counters()
         acls.display_acl_stat(args.all)
     except Exception as e:
-        print(e.message, file=sys.stderr)
+        print(str(e), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

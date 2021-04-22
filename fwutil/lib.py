@@ -220,7 +220,10 @@ class SquashFs(object):
     OVERLAY_MOUNTPOINT_TEMPLATE = "/tmp/image-{}-overlay"
 
     def __init__(self):
-        image_stem = self.next_image.lstrip(self.OS_PREFIX)
+        image_stem = self.next_image
+
+        if image_stem.startswith(self.OS_PREFIX):
+            image_stem = image_stem[len(self.OS_PREFIX):]
 
         self.fs_path = self.FS_PATH_TEMPLATE.format(image_stem)
         self.fs_rw = self.FS_RW_TEMPLATE.format(image_stem)
@@ -254,6 +257,9 @@ class SquashFs(object):
             self.fs_mountpoint
         )
         subprocess.check_call(cmd, shell=True)
+
+        if not (os.path.exists(self.fs_rw) and os.path.exists(self.fs_work)):
+            return self.fs_mountpoint
 
         os.mkdir(self.overlay_mountpoint)
         cmd = "mount -n -r -t overlay -o lowerdir={},upperdir={},workdir={} overlay {}".format(
@@ -471,24 +477,6 @@ class PlatformComponentsParser(object):
             self.__module_component_map[key] = OrderedDict()
             self.__parse_component_section(key, value[self.COMPONENT_KEY], True)
 
-    # TODO: This function should not be necessary once we no longer support Python 2
-    def __deunicodify_hook(self, pairs):
-        new_pairs = [ ]
-
-        for key, value in pairs:
-            try:
-                key = key.encode(self.UTF8_ENCODING)
-            except Exception:
-                pass
-
-            try:
-                value = value.encode(self.UTF8_ENCODING)
-            except Exception:
-                pass
-
-            new_pairs.append((key, value))
-
-        return OrderedDict(new_pairs)
 
     def get_chassis_component_map(self):
         return self.__chassis_component_map
@@ -505,7 +493,7 @@ class PlatformComponentsParser(object):
             platform_components_path = self.__get_platform_components_path(root_path)
 
         with open(platform_components_path) as platform_components:
-            data = json.load(platform_components, object_pairs_hook=self.__deunicodify_hook)
+            data = json.load(platform_components)
 
             if not self.__is_dict(data):
                 self.__parser_platform_fail("dictionary is expected: key=root")
@@ -574,7 +562,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 )
             )
 
-        for key in list(pdp_map.keys()):
+        for key in pdp_map:
             diff_keys = self.__diff_keys(list(pdp_map[key].keys()), list(pcp_map[key].keys()))
 
             if diff_keys:

@@ -4,16 +4,14 @@
 # Helper code for CLI for interacting with switches via console device
 #
 
-try:
-    import click
-    import re
-    import subprocess
-    import pexpect
-    import sys
-    import os
-    from sonic_py_common import device_info
-except ImportError as e:
-    raise ImportError("%s - required module not found" % str(e))
+import os
+import pexpect
+import re
+import subprocess
+import sys
+
+import click
+from sonic_py_common import device_info
 
 ERR_DISABLE = 1
 ERR_CMD = 2
@@ -22,6 +20,8 @@ ERR_CFG = 4
 ERR_BUSY = 5
 
 CONSOLE_PORT_TABLE = "CONSOLE_PORT"
+CONSOLE_SWITCH_TABLE = "CONSOLE_SWITCH"
+
 LINE_KEY = "LINE"
 CUR_STATE_KEY = "CUR_STATE"
 
@@ -29,6 +29,8 @@ CUR_STATE_KEY = "CUR_STATE"
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
+FEATURE_KEY = "console_mgmt"
+FEATURE_ENABLED_KEY = "enabled"
 
 # STATE_DB Keys
 STATE_KEY = "state"
@@ -42,7 +44,7 @@ IDLE_FLAG = "idle"
 PICOCOM_READY = "Terminal ready"
 PICOCOM_BUSY = "Resource temporarily unavailable"
 
-FILENAME = "udevprefix.conf"
+UDEV_PREFIX_CONF_FILENAME = "udevprefix.conf"
 
 TIMEOUT_SEC = 0.2
 
@@ -262,12 +264,12 @@ class SysInfoProvider(object):
     @staticmethod
     def init_device_prefix():
         platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
-        PLUGIN_PATH = "/".join([platform_path, "plugins", FILENAME])
+        UDEV_PREFIX_CONF_FILE_PATH = os.path.join(platform_path, UDEV_PREFIX_CONF_FILENAME)
 
-        if os.path.exists(PLUGIN_PATH):
-            fp = open(PLUGIN_PATH, 'r')
-            line = fp.readlines()
-            SysInfoProvider.DEVICE_PREFIX = "/dev/" + line[0]
+        if os.path.exists(UDEV_PREFIX_CONF_FILE_PATH):
+            fp = open(UDEV_PREFIX_CONF_FILE_PATH, 'r')
+            lines = fp.readlines()
+            SysInfoProvider.DEVICE_PREFIX = "/dev/" + lines[0].rstrip()
 
     @staticmethod
     def list_console_ttys():
