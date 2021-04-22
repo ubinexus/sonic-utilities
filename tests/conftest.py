@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 from unittest import mock
 
@@ -10,7 +11,14 @@ from swsscommon.swsscommon import ConfigDBConnector
 
 from .mock_tables import dbconnector
 from . import show_ip_route_common
-from .mock_tables import bgp_neighbor
+from .bgp_commands_input.bgp_neighbor_test_vector import(
+    mock_show_bgp_neighbor_single_asic,
+    mock_show_bgp_neighbor_multi_asic,
+    )
+from .bgp_commands_input.bgp_network_test_vector import (
+    mock_show_bgp_network_single_asic,
+    mock_show_bgp_network_multi_asic
+    )
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -142,30 +150,7 @@ def setup_single_bgp_instance(request):
         else:
             return ""
 
-    def mock_show_bgp_neighbor(request):
-        if request.param == 'bgp_v4_neighbors':
-            return bgp_neighbor.bgp_v4_neighbors
-        elif request.param == 'bgp_v6_neighbors':
-            return bgp_neighbor.bgp_v6_neighbors
-        elif request.param == 'bgp_v4_neighbor_adv_routes':
-            return bgp_neighbor.bgp_v4_neighbor_adv_routes
-        elif request.param == 'bgp_v4_neighbor_recv_routes':
-            return bgp_neighbor.bgp_v4_neighbor_recv_routes
-        elif request.param == 'bgp_v6_neighbor_adv_routes':
-            return bgp_neighbor.bgp_v6_neighbor_adv_routes
-        elif request.param == 'bgp_v6_neighbor_recv_routes':
-            return bgp_neighbor.bgp_v6_neighbor_recv_routes
-        elif request.param == 'bgp_v6_invalid_neighbor':
-            return bgp_neighbor.bgp_v6_neighbor_recv_routes
-        elif request.param == 'bgp_v4_neighbor_invalid':
-            return bgp_neighbor.bgp_v4_neighbor_invalid
-        elif request.param == 'bgp_v6_invalid_neighbor':
-            return bgp_neighbor.bgp_v6_neighbor_invalid
-        elif request.param == 'bgp_v4_neighbor_invalid_address':
-            return bgp_neighbor.bgp_v4_neighbor_invalid_address
-        elif request.param == 'bgp_v6_neighbor_invalid_address':
-            return bgp_neighbor.bgp_v6_neighbor_invalid_address
-
+            
     if any ([request.param == 'ipv6_route_err', request.param == 'ip_route',\
              request.param == 'ip_specific_route', request.param == 'ip_special_route',\
              request.param == 'ipv6_route', request.param == 'ipv6_specific_route']):
@@ -174,7 +159,11 @@ def setup_single_bgp_instance(request):
     elif request.param.startswith('bgp_v4_neighbor') or \
             request.param.startswith('bgp_v6_neighbor'):
         bgp_util.run_bgp_command = mock.MagicMock(
-            return_value=mock_show_bgp_neighbor(request))
+            return_value=mock_show_bgp_neighbor_single_asic(request))
+    elif request.param.startswith('bgp_v4_network') or \
+        request.param.startswith('bgp_v6_network'):
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=mock_show_bgp_network_single_asic(request))
     else:
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_bgp_summary("", ""))
@@ -202,11 +191,24 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = 'ip_special_recursive_route.json'
     elif request.param == 'ip_route_summary':
         m_asic_json_file = 'ip_route_summary.txt'
+    elif request.param.startswith('bgp_v4_network') or \
+        request.param.startswith('bgp_v6_network') or \
+        request.param.startswith('bgp_v4_neighbor') or \
+        request.param.startswith('bgp_v6_neighbor'):
+        m_asic_json_file = request.param
     else:
         m_asic_json_file = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
 
     def mock_run_bgp_command(vtysh_cmd, bgp_namespace):
+        if m_asic_json_file.startswith('bgp_v4_network') or \
+            m_asic_json_file.startswith('bgp_v6_network'):
+            return mock_show_bgp_network_multi_asic(m_asic_json_file)
+        
+        if m_asic_json_file.startswith('bgp_v4_neighbor') or \
+            m_asic_json_file.startswith('bgp_v6_neighbor'):
+            return mock_show_bgp_neighbor_multi_asic(m_asic_json_file, bgp_namespace)
+
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', bgp_namespace, m_asic_json_file)
         if os.path.isfile(bgp_mocked_json):
@@ -239,3 +241,4 @@ def setup_ip_route_commands():
     import show.main as show
 
     return show
+

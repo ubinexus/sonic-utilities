@@ -40,14 +40,14 @@ def summary(namespace, display):
                 '-n',
                 'namespace',
                 default=None,
-                type=click.Choice(multi_asic_util.multi_asic_ns_choices()),
+                type=str,
                 show_default=True,
-                help='Namespace name or all')
+                help='Namespace name or all',
+                callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def neighbors(ipaddress, info_type, namespace):
     """Show IP (IPv4) BGP neighbors"""
 
     command = 'show ip bgp neighbor'
-
     if ipaddress is not None:
         if not bgp_util.is_ipv4_address(ipaddress):
             ctx = click.get_current_context()
@@ -57,9 +57,8 @@ def neighbors(ipaddress, info_type, namespace):
                 ipaddress)
             if namespace is not None and namespace != actual_namespace:
                 click.echo(
-                    "[WARNING]: bgp neighbor {} is present in namespace {} \
-                        not in {}".format(ipaddress, actual_namespace,
-                                          namespace))
+                    "[WARNING]: bgp neighbor {} is present in namespace {} not in {}"
+                    .format(ipaddress, actual_namespace, namespace))
 
             # save the namespace in which the bgp neighbor is configured
             namespace = actual_namespace
@@ -77,7 +76,7 @@ def neighbors(ipaddress, info_type, namespace):
     output = ""
     for ns in ns_list:
         output += bgp_util.run_bgp_command(command, ns)
-    
+
     click.echo(output.rstrip('\n'))
 
 
@@ -94,16 +93,21 @@ def neighbors(ipaddress, info_type, namespace):
 @click.option('--namespace',
                 '-n',
                 'namespace',
-                type=click.Choice(multi_asic_util.multi_asic_ns_choices()),
+                type=str,
                 show_default=True,
                 required=True if multi_asic.is_multi_asic is True else False,
                 help='Namespace name or all',
-                default=multi_asic.DEFAULT_NAMESPACE)
+                default=None,
+                callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def network(ipaddress, info_type, namespace):
     """Show IP (IPv4) BGP network"""
 
-    command = 'show ip bgp'
+    if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
+        ctx = click.get_current_context()
+        ctx.fail('-n/--namespace option required. provide namespace from list {}'\
+            .format(multi_asic.get_namespace_list()))
 
+    command = 'show ip bgp'
     if ipaddress is not None:
         if '/' in ipaddress:
             # For network prefixes then this all info_type(s) are available

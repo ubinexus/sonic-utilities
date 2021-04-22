@@ -1,175 +1,125 @@
+import importlib
 import os
 
 import pytest
 
 from click.testing import CliRunner
-from .mock_tables.bgp_neighbor import *
+from .bgp_commands_input.bgp_neighbor_test_vector import *
+
+
+def executor(test_vector, show):
+    runner = CliRunner()
+    input = testData[test_vector]
+    if test_vector.startswith('bgp_v6'):
+        exec_cmd = show.cli.commands["ipv6"].commands["bgp"].commands["neighbors"]
+    else:
+        exec_cmd = show.cli.commands["ip"].commands["bgp"].commands["neighbors"]
+
+    result = runner.invoke(exec_cmd, input['args'])
+
+    print(result.exit_code)
+    print(result.output)
+
+    if input['rc'] == 0:
+        assert result.exit_code == 0
+    else:
+        assert result.exit_code == input['rc']
+
+    if 'rc_err_msg' in input:
+        output = result.output.strip().split("\n")[-1]
+        assert input['rc_err_msg'] == output
+
+    if 'rc_output' in input:
+        assert result.output == input['rc_output']
+
+    if 'rc_warning_msg' in input:
+        output = result.output.strip().split("\n")[0]
+        assert input['rc_warning_msg'] in output
+
 
 class TestBgpNeighbors(object):
 
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config()
 
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v4_neighbors'],
+    @pytest.mark.parametrize('setup_single_bgp_instance, test_vector',
+                             [
+                                ('bgp_v4_neighbors_output', 'bgp_v4_neighbors'),
+                                ('bgp_v4_neighbors_output', 'bgp_v4_neighbors'),
+                                ('bgp_v4_neighbor_output',
+                                'bgp_v4_neighbor_invalid'),
+                                ('bgp_v4_neighbor_output',
+                                'bgp_v4_neighbor_invalid_address'),
+                                ('bgp_v4_neighbor_output_adv_routes',
+                                'bgp_v4_neighbor_adv_routes'),
+                                ('bgp_v4_neighbor_output_recv_routes',
+                                'bgp_v4_neighbor_recv_routes'),
+                                ('bgp_v6_neighbors_output', 'bgp_v6_neighbors'),
+                                ('bgp_v6_neighbors_output', 'bgp_v6_neighbors'),
+                                ('bgp_v6_neighbor', 'bgp_v6_neighbor_invalid'),
+                                ('bgp_v6_neighbor',
+                                'bgp_v6_neighbor_invalid_address'),
+                                ('bgp_v6_neighbor_output_adv_routes',
+                                'bgp_v6_neighbor_adv_routes'),
+                                ('bgp_v6_neighbor_output_recv_routes',
+                                'bgp_v6_neighbor_recv_routes'),
+                             ],
                              indirect=['setup_single_bgp_instance'])
-    def test_bgp_v4_neighbors(self, setup_bgp_commands,
-                            setup_single_bgp_instance):
+    def test_bgp_neighbors(self,
+                           setup_bgp_commands,
+                           setup_single_bgp_instance,
+                           test_vector):
         show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["bgp"].commands["neighbors"], [])
-        print("bgp_output {}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v4_neighbors
-
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v4_neighbors'],
-                             indirect=['setup_single_bgp_instance'])
-    def test_bgp_v4_neighbor(self, setup_bgp_commands,
-                            setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["bgp"].commands["neighbors"],
-            ["10.0.0.57"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v4_neighbors
-
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v4_neighbor_invalid'],
-                            indirect=['setup_single_bgp_instance'])
-    def test_bgp_v4_invalid_neighbor(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["bgp"].commands["neighbors"],
-            ["20.1.1.1"])
-        print("{}".format(result.output))
-        assert result.exit_code == 2
-        assert result.output == bgp_v4_neighbor_invalid
-    
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v4_neighbor_invalid_address'],
-                            indirect=['setup_single_bgp_instance'])
-    def test_bgp_v4_invalid_neighbor_address(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["bgp"].commands["neighbors"],
-            ["invalid_address"])
-        print("{}".format(result.output))
-        assert result.exit_code == 2
-        output =  result.output.strip().split("\n")[-1]
-        print("{}".format(output))
-        assert output == bgp_v4_neighbor_invalid_address
-
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v4_neighbor_adv_routes'],
-                                indirect=['setup_single_bgp_instance'])
-    def test_bgp_v4_neighbor_adv_routes(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["bgp"].commands["neighbors"],
-            ["10.0.0.57", "advertised-routes"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v4_neighbor_adv_routes
-    
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v4_neighbor_recv_routes'],
-                                indirect=['setup_single_bgp_instance'])
-    def test_bgp_v4_neighbor_recv_routes(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["bgp"].commands["neighbors"],
-            ["10.0.0.57", "received-routes"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v4_neighbor_recv_routes
-
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v6_neighbors'],
-                             indirect=['setup_single_bgp_instance'])
-    def test_bgp_v6_neighbors(self, setup_bgp_commands,
-                            setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["neighbors"], [])
-        print("bgp_output {}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v6_neighbors
-
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v6_neighbors'],
-                             indirect=['setup_single_bgp_instance'])
-    def test_bgp_v6_neighbor(self, setup_bgp_commands,
-                            setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["neighbors"],
-            ["fc00::72"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v6_neighbors
-
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v6_neighbor_invalid'],
-                            indirect=['setup_single_bgp_instance'])
-    def test_bgp_v6_invalid_neighbor(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["neighbors"],
-            ["aa00::72"])
-        print("{}".format(result.output))
-        assert result.exit_code == 2
-        output =  result.output.strip().split("\n")[-1]
-        print("{}".format(output))
-        assert output == bgp_v6_neighbor_invalid
-    
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v6_neighbor_invalid_address'],
-                            indirect=['setup_single_bgp_instance'])
-    def test_bgp_v6_invalid_neighbor_address(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["neighbors"],
-            ["20.1.1.1"])
-        print("{}".format(result.output))
-        assert result.exit_code == 2
-        output =  result.output.strip().split("\n")[-1]
-        print("{}".format(output))
-        assert output == bgp_v6_neighbor_invalid_address
-
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v6_neighbor_adv_routes'],
-                                indirect=['setup_single_bgp_instance'])
-    def test_bgp_v6_neighbor_adv_routes(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["neighbors"],
-            ["fc00::72", "advertised-routes"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v6_neighbor_adv_routes
-    
-    @pytest.mark.parametrize('setup_single_bgp_instance', ['bgp_v6_neighbor_recv_routes'],
-                                indirect=['setup_single_bgp_instance'])
-    def test_bgp_v6_neighbor_recv_routes(self, setup_bgp_commands,
-                                    setup_single_bgp_instance):
-        show = setup_bgp_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ipv6"].commands["bgp"].commands["neighbors"],
-            ["fc00::72", "received-routes"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == bgp_v6_neighbor_recv_routes
+        executor(test_vector, show)
 
 
+class TestBgpNeighborsMultiAsic(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config()
 
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance, test_vector',
+                             [
+                                ('bgp_v4_neighbors_output_all_asics',
+                                'bgp_v4_neighbors_multi_asic'),
+                                ('bgp_v4_neighbors_output_asic1',
+                                'bgp_v4_neighbors_asic'),
+                                ('bgp_v4_neighbors_output_asic1',
+                                'bgp_v4_neighbors_internal'),
+                                ('bgp_v4_neighbors_output_asic0',
+                                'bgp_v4_neighbors_external'),
+                                ('bgp_v6_neighbor_output_warning',
+                                'bgp_v6_neighbor_warning'),
+                                ('bgp_v6_neighbors_output_all_asics',
+                                'bgp_v6_neighbors_multi_asic'),
+                                ('bgp_v6_neighbors_output_asic0',
+                                'bgp_v6_neighbors_asic'),
+                                ('bgp_v6_neighbors_output_asic0',
+                                'bgp_v6_neighbors_external'),
+                                ('bgp_v6_neighbors_output_asic1',
+                                'bgp_v6_neighbors_internal')
+                             ],
+                             indirect=['setup_multi_asic_bgp_instance'])
+    def test_bgp_neighbors(self,
+                           setup_bgp_commands,
+                           setup_multi_asic_bgp_instance,
+                           test_vector):
+        show = setup_bgp_commands
+        executor(test_vector, show)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config

@@ -40,9 +40,10 @@ def summary(namespace, display):
                 '-n',
                 'namespace',
                 default=None,
-                type=click.Choice(multi_asic_util.multi_asic_ns_choices()),
+                type=str,
                 show_default=True,
-                help='Namespace name or all')
+                help='Namespace name or all',
+             callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def neighbors(ipaddress, info_type, namespace):
     """Show IPv6 BGP neighbors"""
 
@@ -91,15 +92,21 @@ def neighbors(ipaddress, info_type, namespace):
 @click.option('--namespace',
                 '-n',
                 'namespace',
-                type=click.Choice(multi_asic_util.multi_asic_ns_choices()),
+                type=str,
                 show_default=True,
                 required=True if multi_asic.is_multi_asic is True else False,
                 help='Namespace name or all',
-                default=constants.DEFAULT_NAMESPACE)
+                default=None,
+                callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def network(ipaddress, info_type, namespace):
     """Show BGP ipv6 network"""
 
     command = 'show bgp ipv6'
+
+    if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
+        ctx = click.get_current_context()
+        ctx.fail('-n/--namespace option required. provide namespace from list {}'\
+            .format(multi_asic.get_namespace_list()))
 
     if ipaddress is not None:
         if '/' in ipaddress:
@@ -117,8 +124,6 @@ def network(ipaddress, info_type, namespace):
         # info_type is only valid if prefix/ipaddress is specified
         if info_type is not None:
             command += ' {}'.format(info_type)
-
-    command += '"'
 
     output  =  bgp_util.run_bgp_command(command, namespace)
     click.echo(output.rstrip('\n'))
