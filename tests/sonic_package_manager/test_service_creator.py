@@ -105,9 +105,11 @@ def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registr
     package = Package(entry, Metadata(manifest))
 
     creator.create(package)
-
     mock_table.set.assert_called_with('key_a', [('field_1', 'value_1'),
                                                 ('field_2', 'original_value_2')])
+
+    creator.remove(package)
+    mock_table._del.assert_called_with('key_a')
 
 
 def test_feature_registration(mock_sonic_db, manifest):

@@ -2,29 +2,23 @@
 config_mgmt.py provides classes for configuration validation and for Dynamic
 Port Breakout.
 '''
-try:
-    import os
-    import re
-    import syslog
 
-    from json import load
-    from time import sleep as tsleep
-    from imp import load_source
-    from jsondiff import diff
-    from sys import flags
+import os
+import re
+import syslog
+from json import load
+from sys import flags
+from time import sleep as tsleep
 
-    # SONiC specific imports
-    import sonic_yang
-    from swsssdk import port_util
-    from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+import sonic_yang
+from jsondiff import diff
+from swsssdk import port_util
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from utilities_common.general import load_module_from_source
 
-    # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
-    # since /usr/local/bin/sonic-cfggen does not have .py extension.
-    load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    from sonic_cfggen import deep_update, FormatConverter
 
-except ImportError as e:
-    raise ImportError("%s - required module not found" % str(e))
+# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
+sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 # Globals
 YANG_DIR = "/usr/local/yang-models"
@@ -198,8 +192,8 @@ class ConfigMgmt():
         data = dict()
         configdb = ConfigDBConnector()
         configdb.connect()
-        deep_update(data, FormatConverter.db_to_output(configdb.get_config()))
-        self.configdbJsonIn =  FormatConverter.to_serialized(data)
+        sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.db_to_output(configdb.get_config()))
+        self.configdbJsonIn = sonic_cfggen.FormatConverter.to_serialized(data)
         self.sysLog(syslog.LOG_DEBUG, 'Reading Input from ConfigDB {}'.\
             format(self.configdbJsonIn))
 
@@ -219,13 +213,13 @@ class ConfigMgmt():
         data = dict()
         configdb = ConfigDBConnector()
         configdb.connect(False)
-        deep_update(data, FormatConverter.to_deserialized(jDiff))
+        sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.to_deserialized(jDiff))
         self.sysLog(msg="Write in DB: {}".format(data))
-        configdb.mod_config(FormatConverter.output_to_db(data))
+        configdb.mod_config(sonic_cfggen.FormatConverter.output_to_db(data))
 
         return
     
-    def add_module(self, yang_module_text, allow_if_exists=False):
+    def add_module(self, yang_module_text, replace_if_exists=False):
         """
         Validate and add new YANG module to the system.
 
@@ -238,7 +232,7 @@ class ConfigMgmt():
 
         module_name = self.get_module_name(yang_module_text)
         module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
-        if os.path.exists(module_path):
+        if os.path.exists(module_path) and not replace_if_exists:
             raise Exception('{} already exists'.format(module_name))
         try:
             with open(module_path, 'w') as module_file:
@@ -487,8 +481,8 @@ class ConfigMgmtDPB(ConfigMgmt):
                     deps.extend(dep)
 
             # No further action with no force and deps exist
-            if force == False and deps:
-                return configToLoad, deps, False;
+            if not force and deps:
+                return configToLoad, deps, False
 
             # delets all deps, No topological sort is needed as of now, if deletion
             # of deps fails, return immediately
@@ -506,8 +500,8 @@ class ConfigMgmtDPB(ConfigMgmt):
                 self.sy.deleteNode(str(xPathPort))
 
             # Let`s Validate the tree now
-            if self.validateConfigData()==False:
-                return configToLoad, deps, False;
+            if not self.validateConfigData():
+                return configToLoad, deps, False
 
             # All great if we are here, Lets get the diff
             self.configdbJsonOut = self.sy.getData()

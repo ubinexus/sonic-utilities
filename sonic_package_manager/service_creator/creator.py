@@ -146,6 +146,7 @@ class ServiceCreator:
 
         if deregister_feature:
             self.feature_registry.deregister(package.manifest['service']['name'])
+            self.remove_config(package)
 
     def post_operation_hook(self):
         if not in_chroot():
@@ -287,31 +288,31 @@ class ServiceCreator:
         render_template(scrip_template, script_path, render_ctx, executable=True)
         log.info(f'generated {script_path}')
 
+    def get_tables(self, table_name):
+        tables = []
+
+        running_table = self.sonic_db.running_table(table_name)
+        if running_table is not None:
+            tables.append(running_table)
+
+        persistent_table = self.sonic_db.persistent_table(table_name)
+        if persistent_table is not None:
+            tables.append(persistent_table)
+
+        initial_table = self.sonic_db.initial_table(table_name)
+        if initial_table is not None:
+            tables.append(initial_table)
+
+        return tables
+
     def set_initial_config(self, package):
         init_cfg = package.manifest['package']['init-cfg']
-
-        def get_tables(table_name):
-            tables = []
-
-            running_table = self.sonic_db.running_table(table_name)
-            if running_table is not None:
-                tables.append(running_table)
-
-            persistent_table = self.sonic_db.persistent_table(table_name)
-            if persistent_table is not None:
-                tables.append(persistent_table)
-
-            initial_table = self.sonic_db.initial_table(table_name)
-            if initial_table is not None:
-                tables.append(initial_table)
-
-            return tables
 
         for tablename, content in init_cfg.items():
             if not isinstance(content, dict):
                 continue
 
-            tables = get_tables(tablename)
+            tables = self.get_tables(tablename)
 
             for key in content:
                 for table in tables:
@@ -321,3 +322,20 @@ class ServiceCreator:
                         cfg.update(old_fvs)
                     fvs = list(cfg.items())
                     table.set(key, fvs)
+
+    def remove_config(self, package):
+        # Remove configuration based on init-cfg tables, so having
+        # init-cfg even with tables without keys might be a good idea.
+        # TODO: init-cfg should be validated with yang model
+        # TODO: remove config from tables known to yang model
+        init_cfg = package.manifest['package']['init-cfg']
+
+        for tablename, content in init_cfg.items():
+            if not isinstance(content, dict):
+                continue
+
+            tables = self.get_tables(tablename)
+
+            for key in content:
+                for table in tables:
+                    table._del(key)

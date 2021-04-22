@@ -4,6 +4,7 @@ import functools
 import os
 import pkgutil
 import tempfile
+from inspect import signature
 from typing import Any, Iterable, Callable, Dict, Optional
 
 import docker
@@ -38,7 +39,10 @@ from sonic_package_manager.package import Package
 from sonic_package_manager.progress import ProgressManager
 from sonic_package_manager.reference import PackageReference
 from sonic_package_manager.registry import RegistryResolver
-from sonic_package_manager.service_creator.creator import ServiceCreator, run_command
+from sonic_package_manager.service_creator.creator import (
+    ServiceCreator,
+    run_command
+)
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 from sonic_package_manager.service_creator.sonic_db import SonicDB
 from sonic_package_manager.service_creator.utils import in_chroot
@@ -52,7 +56,8 @@ from sonic_package_manager.utils import DockerReference
 from sonic_package_manager.version import (
     Version,
     VersionRange,
-    version_to_tag, tag_to_version
+    version_to_tag,
+    tag_to_version
 )
 
 
@@ -81,7 +86,23 @@ def under_lock(func: Callable) -> Callable:
     return wrapped_function
 
 
-def rollback_wrapper(func, *args, **kwargs):
+def opt_check(func: Callable) -> Callable:
+    """ Check kwargs for function. """
+
+    @functools.wraps(func)
+    def wrapped_function(*args, **kwargs):
+        sig = signature(func)
+        redundant_opts = [opt for opt in kwargs if opt not in sig.parameters]
+        if redundant_opts:
+            raise PackageManagerError(
+                f'Unsupported options: {",".join(redundant_opts)} for {func.__name__}'
+            )
+        return func(*args, **kwargs)
+
+    return wrapped_function
+
+
+def rollback(func, *args, **kwargs):
     """ Used in rollback callbacks to ignore failure
     but proceed with rollback. Error will be printed
     but not fail the whole procedure of rollback. """
@@ -105,7 +126,7 @@ def package_constraint_to_reference(constraint: PackageConstraint) -> PackageRef
         return PackageReference(package_name, None)
     if not isinstance(version_constraint, Version):
         raise PackageManagerError(f'Can only install specific version. '
-                                  f'Use only following expression "{package_name}==<version>" '
+                                  f'Use only following expression "{package_name}=<version>" '
                                   f'to install specific version')
     return PackageReference(package_name, version_to_tag(version_constraint))
 
@@ -283,23 +304,29 @@ class PackageManager:
                 repotag: Optional[str] = None,
                 tarball: Optional[str] = None,
                 **kwargs):
-        """ Install SONiC Package from either an expression representing
-        the package and its version, repository and tag or digest in
-        same format as "docker pulL" accepts or an image tarball path.
+        """ Install/Upgrade SONiC Package from either an expression
+        representing the package and its version, repository and tag or
+        digest in same format as "docker pulL" accepts or an image tarball path.
 
         Args:
             expression: SONiC Package reference expression
-            repotag: Install from REPO[:TAG][@DIGEST]
-            tarball: Install from tarball, path to tarball file
-            kwargs: Install options for self.install_from_source
+            repotag: Install/Upgrade from REPO[:TAG][@DIGEST]
+            tarball: Install/Upgrade from tarball, path to tarball file
+            kwargs: Install/Upgrade options for self.install_from_source
         Raises:
             PackageManagerError
         """
 
         source = self.get_package_source(expression, repotag, tarball)
-        self.install_from_source(source, **kwargs)
+        package = source.get_package()
+
+        if self.is_installed(package.name):
+            self.upgrade_from_source(source, **kwargs)
+        else:
+            self.install_from_source(source, **kwargs)
 
     @under_lock
+    @opt_check
     def install_from_source(self,
                             source: PackageSource,
                             force=False,
@@ -343,21 +370,21 @@ class PackageManager:
             self.database.add_package(package.name, package.repository)
 
         try:
-            with contextlib.ExitStack() as exit_stack:
+            with contextlib.ExitStack() as exits:
                 source.install(package)
-                exit_stack.callback(rollback_wrapper(source.uninstall, package))
+                exits.callback(rollback(source.uninstall, package))
 
                 self.service_creator.create(package, state=feature_state, owner=default_owner)
-                exit_stack.callback(rollback_wrapper(self.service_creator.remove, package))
+                exits.callback(rollback(self.service_creator.remove, package))
 
                 self._install_yang_module(package)
-                exit_stack.callback(rollback_wrapper(self._uninstall_yang_module, package))
+                exits.callback(rollback(self._uninstall_yang_module, package))
 
                 if not skip_host_plugins:
                     self._install_cli_plugins(package)
-                    exit_stack.callback(rollback_wrapper(self._uninstall_cli_plugins, package))
+                    exits.callback(rollback(self._uninstall_cli_plugins, package))
 
-                exit_stack.pop_all()
+                exits.pop_all()
         except Exception as err:
             raise PackageInstallationError(f'Failed to install {package.name}: {err}')
         except KeyboardInterrupt:
@@ -369,6 +396,7 @@ class PackageManager:
         self.database.commit()
 
     @under_lock
+    @opt_check
     def uninstall(self, name: str, force=False):
         """ Uninstall SONiC Package referenced by name. The uninstallation
         can be forced if force argument is True.
@@ -409,14 +437,17 @@ class PackageManager:
             self.service_creator.remove(package)
 
             # Clean containers based on this image
-            containers = self.docker.ps(filters={'ancestor': package.image_id}, all=True)
+            containers = self.docker.ps(filters={'ancestor': package.image_id},
+                                        all=True)
             for container in containers:
                 self.docker.rm(container.id, force=True)
 
             self.docker.rmi(package.image_id, force=True)
             package.entry.image_id = None
         except Exception as err:
-            raise PackageUninstallationError(f'Failed to uninstall {package.name}: {err}')
+            raise PackageUninstallationError(
+                f'Failed to uninstall {package.name}: {err}'
+            )
 
         package.entry.installed = False
         package.entry.version = None
@@ -424,28 +455,7 @@ class PackageManager:
         self.database.commit()
 
     @under_lock
-    def upgrade(self,
-                expression: Optional[str] = None,
-                repotag: Optional[str] = None,
-                tarball: Optional[str] = None,
-                **kwargs):
-        """ Upgrade SONiC Package from either an expression representing
-        the package and its version, repository and tag or digest in
-        same format as "docker pulL" accepts or an image tarball path.
-
-        Args:
-            expression: SONiC Package reference expression
-            repotag: Upgrade from REPO[:TAG][@DIGEST]
-            tarball: Upgrade from tarball, path to tarball file
-            kwargs: Upgrade options for self.upgrade_from_source
-        Raises:
-            PackageManagerError
-        """
-
-        source = self.get_package_source(expression, repotag, tarball)
-        self.upgrade_from_source(source, **kwargs)
-
-    @under_lock
+    @opt_check
     def upgrade_from_source(self,
                             source: PackageSource,
                             force=False,
@@ -474,7 +484,9 @@ class PackageManager:
         old_package = self.get_installed_package(name)
 
         if old_package.built_in:
-            raise PackageUpgradeError(f'Cannot upgrade built-in package {old_package.name}')
+            raise PackageUpgradeError(
+                f'Cannot upgrade built-in package {old_package.name}'
+            )
 
         old_feature = old_package.manifest['service']['name']
         new_feature = new_package.manifest['service']['name']
@@ -490,8 +502,10 @@ class PackageManager:
             # the downgrade might be safe to do. There can be a variable in manifest
             # describing package downgrade ability or downgrade-able versions.
             if new_version < old_version and not allow_downgrade:
-                raise PackageUpgradeError(f'Request to downgrade from {old_version} to {new_version}. '
-                                          f'Downgrade might be not supported by the package')
+                raise PackageUpgradeError(
+                    f'Request to downgrade from {old_version} to {new_version}. '
+                    f'Downgrade might be not supported by the package'
+                )
 
         # remove currently installed package from the list
         installed_packages = self._get_installed_packages_and(new_package)
@@ -504,42 +518,45 @@ class PackageManager:
         # After all checks are passed we proceed to actual upgrade
 
         try:
-            with contextlib.ExitStack() as exit_stack:
+            with contextlib.ExitStack() as exits:
                 self._uninstall_cli_plugins(old_package)
-                exit_stack.callback(rollback_wrapper(self._install_cli_plugins, old_package))
+                exits.callback(rollback(self._install_cli_plugins, old_package))
 
                 source.install(new_package)
-                exit_stack.callback(rollback_wrapper(source.uninstall, new_package))
+                exits.callback(rollback(source.uninstall, new_package))
 
                 if self.feature_registry.is_feature_enabled(old_feature):
                     self._systemctl_action(old_package, 'stop')
-                    exit_stack.callback(rollback_wrapper(self._systemctl_action,
+                    exits.callback(rollback(self._systemctl_action,
                                                          old_package, 'start'))
 
                 self.service_creator.remove(old_package, deregister_feature=False)
-                exit_stack.callback(rollback_wrapper(self.service_creator.create,
-                                                     old_package, register_feature=False))
-
-                # This is no return point, after we start removing old Docker images
-                # there is no guaranty we can actually successfully roll-back.
+                exits.callback(rollback(self.service_creator.create,
+                                        old_package, register_feature=False))
 
                 # Clean containers based on the old image
-                containers = self.docker.ps(filters={'ancestor': old_package.image_id}, all=True)
+                containers = self.docker.ps(filters={'ancestor': old_package.image_id},
+                                            all=True)
                 for container in containers:
                     self.docker.rm(container.id, force=True)
 
-                self.docker.rmi(old_package.image_id, force=True)
-
                 self.service_creator.create(new_package, register_feature=False)
+                exits.callback(rollback(self.service_creator.remove, new_package,
+                                        register_feature=False))
+
                 self._upgrade_yang_module(new_package)
+                exits.callback(rollback(self._upgrade_yang_module(old_package)))
 
                 if self.feature_registry.is_feature_enabled(new_feature):
                     self._systemctl_action(new_package, 'start')
 
                 if not skip_host_plugins:
                     self._install_cli_plugins(new_package)
+                    exits.callback(rollback(self._uninstall_cli_plugin, old_package))
 
-                exit_stack.pop_all()
+                self.docker.rmi(old_package.image_id, force=True)
+
+                exits.pop_all()
         except Exception as err:
             raise PackageUpgradeError(f'Failed to upgrade {new_package.name}: {err}')
         except KeyboardInterrupt:
@@ -552,6 +569,7 @@ class PackageManager:
         self.database.commit()
 
     @under_lock
+    @opt_check
     def reset(self, name: str, force: bool = False, skip_host_plugins: bool = False):
         """ Reset package to defaults version
 
@@ -582,19 +600,18 @@ class PackageManager:
     def migrate_packages(self,
                          old_package_database: PackageDatabase,
                          dockerd_sock: Optional[str] = None):
-        """ Migrate packages from old database. This function can
-        do a comparison between current database and the database
-        passed in as argument.
-            If the package is missing in the current database it will be added.
-            If the package is installed in the passed database and in the current
-        it is not installed it will be installed with a passed database package version.
-            If the package is installed in the passed database and it is installed
-        in the current database but with older version the package will be upgraded to
-        the never version.
-            If the package is installed in the passed database and in the current
-        it is installed but with never version - no actions are taken.
-            If dockerd_sock parameter is passed, the migration process will use loaded
-        images from docker library of the currently installed image.
+        """
+        Migrate packages from old database. This function can do a comparison between 
+        current database and the database passed in as argument. If the package is 
+        missing in the current database it will be added. If the package is installed 
+        in the passed database and in the current it is not installed it will be 
+        installed with a passed database package version. If the package is installed 
+        in the passed database and it is installed in the current database but with 
+        older version the package will be upgraded to the never version. If the package 
+        is installed in the passed database and in the current it is installed but with 
+        never version - no actions are taken. If dockerd_sock parameter is passed, the 
+        migration process will use loaded images from docker library of the currently 
+        installed image.
 
         Args:
             old_package_database: SONiC Package Database to migrate packages from.
@@ -606,23 +623,13 @@ class PackageManager:
         self._migrate_package_database(old_package_database)
 
         def migrate_package(old_package_entry,
-                            new_package_entry,
-                            migrate_operation=None):
+                            new_package_entry):
             """ Migrate package routine
 
             Args:
                 old_package_entry: Entry in old package database.
                 new_package_entry: Entry in new package database.
-                migrate_operation: Operation to perform: install or upgrade.
             """
-
-            try:
-                migrate_func = {
-                    'install': self.install,
-                    'upgrade': self.upgrade,
-                }[migrate_operation]
-            except KeyError:
-                raise ValueError(f'Invalid operation passed in {migrate_operation}')
 
             name = new_package_entry.name
             version = new_package_entry.version
@@ -630,7 +637,7 @@ class PackageManager:
             if dockerd_sock:
                 # dockerd_sock is defined, so use docked_sock to connect to
                 # dockerd and fetch package image from it.
-                log.info(f'{migrate_operation} {name} from old docker library')
+                log.info(f'installing {name} from old docker library')
                 docker_api = DockerApi(docker.DockerClient(base_url=f'unix://{dockerd_sock}'))
 
                 image = docker_api.get_image(old_package_entry.image_id)
@@ -639,11 +646,11 @@ class PackageManager:
                     for chunk in image.save(named=True):
                         file.write(chunk)
 
-                    migrate_func(tarball=file.name)
+                    self.install(tarball=file.name)
             else:
-                log.info(f'{migrate_operation} {name} version {version}')
+                log.info(f'installing {name} version {version}')
 
-                migrate_func(f'{name}=={version}')
+                self.install(f'{name}={version}')
 
         # TODO: Topological sort packages by their dependencies first.
         for old_package in old_package_database:
@@ -661,7 +668,7 @@ class PackageManager:
                              f'{old_package.version} > {new_package.version}')
                     log.info(f'upgrading {new_package.name} to {old_package.version}')
                     new_package.version = old_package.version
-                    migrate_package(old_package, new_package, 'upgrade')
+                    migrate_package(old_package, new_package)
                 else:
                     log.info(f'skipping {new_package.name} as installed version is newer')
             elif new_package.default_reference is not None:
@@ -674,14 +681,14 @@ class PackageManager:
                              f'then the default in new image: '
                              f'{old_package.version} > {new_package_default_version}')
                     new_package.version = old_package.version
-                    migrate_package(old_package, new_package, 'install')
+                    migrate_package(old_package, new_package)
                 else:
-                    self.install(f'{new_package.name}=={new_package_default_version}')
+                    self.install(f'{new_package.name}={new_package_default_version}')
             else:
                 # No default version and package is not installed.
                 # Migrate old package same version.
                 new_package.version = old_package.version
-                migrate_package(old_package, new_package, 'install')
+                migrate_package(old_package, new_package)
 
             self.database.commit()
 
@@ -893,7 +900,7 @@ class PackageManager:
         self.cfg_mgmt.add_module(package.metadata.yang_module_text)
 
     def _upgrade_yang_module(self, package: Package):
-        self.cfg_mgmt.add_module(package.metadata.yang_module_text, allow_if_exists=True)
+        self.cfg_mgmt.add_module(package.metadata.yang_module_text, replace_if_exists=True)
 
     def _uninstall_yang_module(self, package: Package):
         module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
