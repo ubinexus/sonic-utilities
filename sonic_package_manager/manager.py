@@ -603,16 +603,16 @@ class PackageManager:
                          old_package_database: PackageDatabase,
                          dockerd_sock: Optional[str] = None):
         """
-        Migrate packages from old database. This function can do a comparison between 
-        current database and the database passed in as argument. If the package is 
-        missing in the current database it will be added. If the package is installed 
-        in the passed database and in the current it is not installed it will be 
-        installed with a passed database package version. If the package is installed 
-        in the passed database and it is installed in the current database but with 
-        older version the package will be upgraded to the never version. If the package 
-        is installed in the passed database and in the current it is installed but with 
-        never version - no actions are taken. If dockerd_sock parameter is passed, the 
-        migration process will use loaded images from docker library of the currently 
+        Migrate packages from old database. This function can do a comparison between
+        current database and the database passed in as argument. If the package is
+        missing in the current database it will be added. If the package is installed
+        in the passed database and in the current it is not installed it will be
+        installed with a passed database package version. If the package is installed
+        in the passed database and it is installed in the current database but with
+        older version the package will be upgraded to the never version. If the package
+        is installed in the passed database and in the current it is installed but with
+        never version - no actions are taken. If dockerd_sock parameter is passed, the
+        migration process will use loaded images from docker library of the currently
         installed image.
 
         Args:
@@ -897,7 +897,7 @@ class PackageManager:
             raise PackageManagerError(f'Failed to get plugins path for {command} CLI')
         plugins_pkg_path = os.path.dirname(pkg_loader.path)
         return os.path.join(plugins_pkg_path, cls._get_cli_plugin_name(package))
-    
+
     def _install_yang_module(self, package: Package):
         self.cfg_mgmt.add_module(package.metadata.yang_module_text)
 
