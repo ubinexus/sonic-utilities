@@ -182,7 +182,7 @@ class MetadataResolver:
                     components[component] = Version.parse(version)
                 except ValueError as err:
                     raise MetadataError(f'Failed to parse component version: {err}')
-        
+
         yang_module_text = sonic_metadata.get('yang-module')
 
         return Metadata(Manifest.marshal(manifest_dict), components, yang_module_text)
