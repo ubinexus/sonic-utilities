@@ -62,7 +62,7 @@ class ConfigMgmt():
             raise Exception('ConfigMgmt Class creation failed')
 
         return
-    
+
     def __init_sonic_yang(self):
         self.sy = sonic_yang.SonicYang(YANG_DIR, debug=self.DEBUG)
         # load yang models
@@ -218,14 +218,14 @@ class ConfigMgmt():
         configdb.mod_config(sonic_cfggen.FormatConverter.output_to_db(data))
 
         return
-    
+
     def add_module(self, yang_module_text, replace_if_exists=False):
         """
         Validate and add new YANG module to the system.
 
         Parameters:
             yang_module_text (str): YANG module string.
-        
+
         Returns:
             None
         """
@@ -248,7 +248,7 @@ class ConfigMgmt():
 
         Parameters:
             module_name (str): YANG module name.
-        
+
         Returns:
             None
         """
@@ -262,7 +262,7 @@ class ConfigMgmt():
         except Exception:
             self.add_module(yang_module_text)
             raise
-    
+
     @staticmethod
     def get_module_name(yang_module_text):
         """
@@ -270,7 +270,7 @@ class ConfigMgmt():
 
         Parameters:
             yang_module_text(str): YANG module string.
-        
+
         Returns:
             str: Module name
         """
@@ -278,7 +278,7 @@ class ConfigMgmt():
         sy = sonic_yang.SonicYang(YANG_DIR)
         module = sy.ctx.parse_module_mem(yang_module_text, ly.LYS_IN_YANG)
         return module.name()
- 
+
 
 # End of Class ConfigMgmt
 
