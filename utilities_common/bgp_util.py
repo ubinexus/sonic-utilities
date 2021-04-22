@@ -165,7 +165,6 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
 
 
 def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
-
     device = multi_asic_util.MultiAsic(display, namespace)
     ctx = click.get_current_context()
     if af is constants.IPV4:
@@ -177,7 +176,20 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
     bgp_summary = {}
     cmd_output_json = {}
-    for ns in device.get_ns_list_based_on_options():
+    ns_list = []
+
+    if not device.is_multi_asic:
+        ns_list = [multi_asic.DEFAULT_NAMESPACE]
+    else:
+        if namespace is not None:
+            if namespace not in multi_asic.get_namespace_list():
+                raise ValueError(
+                        'Unknown Namespace {}'.format(namespace))
+            ns_list = [namespace]
+        else:
+            ns_list = multi_asic.get_namespace_list()
+
+    for ns in ns_list:
         cmd_output = run_bgp_command(vtysh_cmd, ns)
         try:
             cmd_output_json = json.loads(cmd_output)
@@ -258,7 +270,7 @@ def process_bgp_summary_json(bgp_summary, cmd_output, device):
         bgp_summary['peerGroupMemory'] = bgp_summary.get(
             'peerGroupMemory', 0) + cmd_output['peerGroupMemory']
 
-        #store instance level field is seperate dict
+        # store instance level field is seperate dict
         router_info = {}
         router_info['router_id'] = cmd_output['routerId']
         router_info['vrf'] = cmd_output['vrfId']

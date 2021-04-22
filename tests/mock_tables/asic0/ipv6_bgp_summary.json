@@ -1,0 +1,81 @@
+{
+    "ipv6Unicast": {
+        "routerId": "10.1.0.32",
+        "as": 65100,
+        "vrfId": 0,
+        "vrfName": "default",
+        "tableVersion": 8185,
+        "ribCount": 12885,
+        "ribMemory": 2370840,
+        "peerCount": 4,
+        "peerMemory": 83680,
+        "peerGroupCount": 4,
+        "peerGroupMemory": 256,
+        "peers": {
+            "2603:10e2:400:1::1": {
+                "hostname": "sonic",
+                "remoteAs": 65100,
+                "version": 4,
+                "msgRcvd": 6265,
+                "msgSent": 3591,
+                "tableVersion": 0,
+                "outq": 0,
+                "inq": 0,
+                "peerUptime": "00:02:14",
+                "peerUptimeMsec": 134000,
+                "peerUptimeEstablishedEpoch": 1614892951,
+                "prefixReceivedCount": 6445,
+                "pfxRcd": 6445,
+                "pfxSnt": 6380,
+                "state": "Established",
+                "connectionsEstablished": 1,
+                "connectionsDropped": 0,
+                "idType": "ipv6"
+            },
+            "fc00::2": {
+                "remoteAs": 65200,
+                "version": 4,
+                "msgRcvd": 3192,
+                "msgSent": 12,
+                "tableVersion": 0,
+                "outq": 0,
+                "inq": 0,
+                "peerUptime": "00:02:13",
+                "peerUptimeMsec": 133000,
+                "peerUptimeEstablishedEpoch": 1614892952,
+                "prefixReceivedCount": 6370,
+                "pfxRcd": 6370,
+                "pfxSnt": 33,
+                "state": "Established",
+                "connectionsEstablished": 1,
+                "connectionsDropped": 0,
+                "idType": "ipv6"
+            },
+            "fc00::6": {
+                "remoteAs": 65200,
+                "version": 4,
+                "msgRcvd": 3192,
+                "msgSent": 12,
+                "tableVersion": 0,
+                "outq": 0,
+                "inq": 0,
+                "peerUptime": "00:02:13",
+                "peerUptimeMsec": 133000,
+                "peerUptimeEstablishedEpoch": 1614892952,
+                "prefixReceivedCount": 6370,
+                "pfxRcd": 6370,
+                "pfxSnt": 33,
+                "state": "Established",
+                "connectionsEstablished": 1,
+                "connectionsDropped": 0,
+                "idType": "ipv6"
+            }
+        },
+        "failedPeers": 0,
+        "totalPeers": 4,
+        "dynamicPeers": 0,
+        "bestPath": {
+            "multiPathRelax": "true"
+        }
+    }
+}

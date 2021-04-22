@@ -1,0 +1,43 @@
+{
+    "ipv6Unicast": {
+        "routerId": "8.0.0.4",
+        "as": 65100,
+        "vrfId": 0,
+        "vrfName": "default",
+        "tableVersion": 12148,
+        "ribCount": 12885,
+        "ribMemory": 2370840,
+        "peerCount": 4,
+        "peerMemory": 83680,
+        "peerGroupCount": 2,
+        "peerGroupMemory": 128,
+        "peers": {
+            "2603:10e2:400:1::2": {
+                "hostname": "sonic",
+                "remoteAs": 65100,
+                "version": 4,
+                "msgRcvd": 4887,
+                "msgSent": 6052,
+                "tableVersion": 0,
+                "outq": 0,
+                "inq": 0,
+                "peerUptime": "00:09:37",
+                "peerUptimeMsec": 577000,
+                "peerUptimeEstablishedEpoch": 1614893673,
+                "prefixReceivedCount": 6380,
+                "pfxRcd": 6380,
+                "pfxSnt": 6445,
+                "state": "Established",
+                "connectionsEstablished": 1,
+                "connectionsDropped": 0,
+                "idType": "ipv6"
+            }
+        },
+        "failedPeers": 0,
+        "totalPeers": 1,
+        "dynamicPeers": 0,
+        "bestPath": {
+            "multiPathRelax": "true"
+        }
+    }
+}

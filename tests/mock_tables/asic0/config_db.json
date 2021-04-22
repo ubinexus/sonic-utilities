@@ -38,7 +38,7 @@
         "speed": "40000",
         "asic_port_name": "Eth1-ASIC0"
     },
-    "PORT|Ethernet-BP0" : {
+    "PORT|Ethernet-BP0": {
         "lanes": "93,94,95,96",
         "description": "ASIC1:Eth0-ASIC1",
         "pfc_asym": "off",
@@ -49,7 +49,7 @@
         "speed": "40000",
         "asic_port_name": "Eth16-ASIC0"
     },
-    "PORT|Ethernet-BP4" : {
+    "PORT|Ethernet-BP4": {
         "lanes": "97,98,99,100",
         "description": "ASIC1:Eth1-ASIC1",
         "pfc_asym": "off",
@@ -182,21 +182,81 @@
     },
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
-	"server_ipv4": "10.1.1.1",
-	"server_ipv6": "fc00::75"
+        "server_ipv4": "10.1.1.1",
+        "server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet0": {
         "state": "auto",
-	"server_ipv4": "10.2.1.1",
-	"server_ipv6": "e800::46"
+        "server_ipv4": "10.2.1.1",
+        "server_ipv6": "e800::46"
     },
-    "PEER_SWITCH|sonic" : {
-      "address_ipv4": "10.2.2.2"
+    "PEER_SWITCH|sonic": {
+        "address_ipv4": "10.2.2.2"
     },
     "FEATURE|bgp": {
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled"
+    },
+    "BGP_NEIGHBOR|10.0.0.5": {
+        "rrclient": "0",
+        "name": "ARISTA03T2",
+        "local_addr": "10.0.0.4",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "10",
+        "asn": "65200",
+        "keepalive": "3"
+    },
+    "BGP_NEIGHBOR|fc00::6": {
+        "rrclient": "0",
+        "name": "ARISTA03T2",
+        "local_addr": "fc00::5",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "10",
+        "asn": "65200",
+        "keepalive": "3"
+    },
+    "BGP_NEIGHBOR|10.0.0.1": {
+        "rrclient": "0",
+        "name": "ARISTA01T2",
+        "local_addr": "10.0.0.0",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "10",
+        "asn": "65200",
+        "keepalive": "3"
+    },
+    "BGP_NEIGHBOR|fc00::2": {
+        "rrclient": "0",
+        "name": "ARISTA01T2",
+        "local_addr": "fc00::1",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "10",
+        "asn": "65200",
+        "keepalive": "3"
+    },
+    "BGP_INTERNAL_NEIGHBOR|10.1.0.2": {
+        "rrclient": "0",
+        "name": "ASIC1",
+        "local_addr": "10.1.0.3",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
+    },
+    "BGP_INTERNAL_NEIGHBOR|2603:10e2:400:1::1": {
+        "rrclient": "0",
+        "name": "ASIC1",
+        "local_addr": "2603:10e2:400:1::2",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
     },
     "VLAN|Vlan1000": {
         "vlanid": "1000"
