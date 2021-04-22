@@ -528,7 +528,7 @@ class PackageManager:
                 if self.feature_registry.is_feature_enabled(old_feature):
                     self._systemctl_action(old_package, 'stop')
                     exits.callback(rollback(self._systemctl_action,
-                                                         old_package, 'start'))
+                                            old_package, 'start'))
 
                 self.service_creator.remove(old_package, deregister_feature=False)
                 exits.callback(rollback(self.service_creator.create,
@@ -549,6 +549,8 @@ class PackageManager:
 
                 if self.feature_registry.is_feature_enabled(new_feature):
                     self._systemctl_action(new_package, 'start')
+                    exits.callback(rollback(self._systemctl_action,
+                                            new_package, 'stop'))
 
                 if not skip_host_plugins:
                     self._install_cli_plugins(new_package)
