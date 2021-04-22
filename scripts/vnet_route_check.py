@@ -72,6 +72,16 @@ def print_message(lvl, *args):
             syslog.syslog(lvl, msg)
 
 
+def check_vnet_cfg():
+    ''' Returns True if VNET is configured in APP_DB or False if no VNET configuration.
+    '''
+    db = swsscommon.DBConnector('APPL_DB', 0)
+
+    vnet_db_keys = swsscommon.Table(db, 'VNET_TABLE').getKeys()
+
+    return True if vnet_db_keys else False
+
+
 def get_vnet_intfs():
     ''' Returns dictionary of VNETs and related VNET interfaces.
     Format: { <vnet_name>: [ <vnet_rif_name> ] }
@@ -105,6 +115,11 @@ def get_all_rifs_oids():
     rif_table = swsscommon.Table(db, 'COUNTERS_RIF_NAME_MAP')
     rif_keys = rif_table.getKeys()
 
+    rif_name_oid_map = {}
+
+    for rif_name in rif_keys:
+        rif_name_oid_map[rif_name] = rif_table.get(rif_name)[1]
+
     return rif_name_oid_map
 
 
@@ -132,15 +147,19 @@ def get_vrf_entries():
     Format: { <vnet_rif_name>: <vrf_oid> }
     '''
     db = swsscommon.DBConnector('ASIC_DB', 0)
+    rif_table = swsscommon.Table(db, 'ASIC_STATE')
 
     vnet_rifs_oids = get_vnet_rifs_oids()
 
     rif_vrf_map = {}
     for vnet_rif_name in vnet_rifs_oids:
-        rif_attrs = db.get_all(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_ROUTER_INTERFACE:{}'.format(vnet_rifs_oids[vnet_rif_name]))
-        rif_vrf_map[vnet_rif_name] = rif_attrs['SAI_ROUTER_INTERFACE_ATTR_VIRTUAL_ROUTER_ID']
 
-    print("*** {}".format(rif_vrf_map))
+        db_keys = rif_table.getKeys()
+
+        for db_key in db_keys:
+            if 'SAI_OBJECT_TYPE_ROUTER_INTERFACE' in db_key:
+                rif_attrs = rif_table.get(db_key)[1]
+                rif_vrf_map[vnet_rif_name] = rif_attrs['SAI_ROUTER_INTERFACE_ATTR_VIRTUAL_ROUTER_ID']
 
     return rif_vrf_map
 
@@ -149,11 +168,10 @@ def filter_out_vnet_ip2me_routes(vnet_routes):
     ''' Filters out IP2ME routes from the provided dictionary with VNET routes
     Format: { <vnet_name>: { 'routes': [ <pfx/pfx_len> ], 'vrf_oid': <oid> } }
     '''
-    db = ConfigDBConnector()
-    db.db_connect('APPL_DB')
+    db = swsscommon.DBConnector('APPL_DB', 0)
 
+    all_rifs_db_keys = swsscommon.Table(db, 'INTF_TABLE').getKeys()
     vnet_intfs = get_vnet_intfs()
-    all_rifs_db_keys = db.get_keys('INTF_TABLE')
 
     vnet_intfs = [vnet_intfs[k] for k in vnet_intfs]
     vnet_intfs = [val for sublist in vnet_intfs for val in sublist]
@@ -239,6 +257,10 @@ def get_vnet_routes_from_asic_db():
 
     for route_db_key in routes_db_keys:
         route_attrs = route_db_key.lower().split('\"', -1)
+
+        if 'sai_object_type_route_entry' not in route_attrs[0]:
+            continue
+
         # route_attrs[11] - VRF OID for the VNET route
         # route_attrs[3] - VNET route IP subnet
         vrf_oid = route_attrs[11]
@@ -304,6 +326,12 @@ def get_sdk_vnet_routes_diff(routes):
 
 def main():
 
+    rc = RC_OK
+
+    # Don't run VNET routes consistancy logic if there is no VNET configuration
+    if not check_vnet_cfg():
+        return rc
+
     app_db_vnet_routes = get_vnet_routes_from_app_db()
     asic_db_vnet_routes = get_vnet_routes_from_asic_db()
 
@@ -329,8 +357,8 @@ def main():
         print_message(syslog.LOG_ERR, json.dumps(res, indent=4))
         print_message(syslog.LOG_ERR, 'Vnet Route Mismatch reported')
 
-    sys.exit(rc)
+    return rc, res
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
