@@ -977,6 +977,12 @@ def version(verbose):
     click.echo("ASIC: {}".format(asic_type))
     click.echo("ASIC Count: {}".format(asic_count))
     click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
+    try:
+        sonic_platform.cli.show.version(verbose)
+    except (AttributeError, NameError):
+        pass
+    except Exception as e:
+        click.echo(e)
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
