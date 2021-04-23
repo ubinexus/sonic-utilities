@@ -5,7 +5,6 @@
 
 import click
 import utilities_common.cli as clicommon
-from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 import logging
 

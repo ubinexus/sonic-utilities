@@ -1,6 +1,4 @@
 import os
-import traceback
-from unittest import mock
 from click.testing import CliRunner
 
 import config.main as config
