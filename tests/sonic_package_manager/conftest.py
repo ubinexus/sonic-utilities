@@ -67,7 +67,7 @@ def mock_sonic_db():
 
 @pytest.fixture
 def mock_config_mgmt():
-    yield Mock()
+    yield MagicMock()
 
 
 @pytest.fixture

@@ -20,7 +20,7 @@ class FileDbTable:
         self._file = file
         self._table = table
 
-    def keys(self):
+    def getKeys(self):
         with open(self._file) as stream:
             config = json.load(stream)
             return config.get(self._table, {}).keys()

@@ -64,7 +64,7 @@ class FeatureRegistry:
     def get_multi_instance_features(self):
         res = []
         init_db_table = self._sonic_db.initial_table(FEATURE)
-        for feature in init_db_table.keys():
+        for feature in init_db_table.getKeys():
             exists, cfg = init_db_table.get(feature)
             assert exists
             cfg = dict(cfg)

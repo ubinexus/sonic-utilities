@@ -377,9 +377,6 @@ class PackageManager:
                 self.service_creator.create(package, state=feature_state, owner=default_owner)
                 exits.callback(rollback(self.service_creator.remove, package))
 
-                self._install_yang_module(package)
-                exits.callback(rollback(self._uninstall_yang_module, package))
-
                 if not skip_host_plugins:
                     self._install_cli_plugins(package)
                     exits.callback(rollback(self._uninstall_cli_plugins, package))
@@ -433,7 +430,6 @@ class PackageManager:
 
         try:
             self._uninstall_cli_plugins(package)
-            self._uninstall_yang_module(package)
             self.service_creator.remove(package)
 
             # Clean containers based on this image
@@ -543,9 +539,6 @@ class PackageManager:
                 self.service_creator.create(new_package, register_feature=False)
                 exits.callback(rollback(self.service_creator.remove, new_package,
                                         register_feature=False))
-
-                self._upgrade_yang_module(new_package)
-                exits.callback(rollback(self._upgrade_yang_module(old_package)))
 
                 if self.feature_registry.is_feature_enabled(new_feature):
                     self._systemctl_action(new_package, 'start')
@@ -898,16 +891,6 @@ class PackageManager:
         plugins_pkg_path = os.path.dirname(pkg_loader.path)
         return os.path.join(plugins_pkg_path, cls._get_cli_plugin_name(package))
 
-    def _install_yang_module(self, package: Package):
-        self.cfg_mgmt.add_module(package.metadata.yang_module_text)
-
-    def _upgrade_yang_module(self, package: Package):
-        self.cfg_mgmt.add_module(package.metadata.yang_module_text, replace_if_exists=True)
-
-    def _uninstall_yang_module(self, package: Package):
-        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
-        self.cfg_mgmt.remove_module(module_name)
-
     def _install_cli_plugins(self, package: Package):
         for command in ('show', 'config', 'clear'):
             self._install_cli_plugin(package, command)
@@ -941,11 +924,11 @@ class PackageManager:
 
         docker_api = DockerApi(docker.from_env())
         registry_resolver = RegistryResolver()
+        cfg_mgmt = config_mgmt.ConfigMgmt()
         return PackageManager(DockerApi(docker.from_env(), ProgressManager()),
                               registry_resolver,
                               PackageDatabase.from_file(),
                               MetadataResolver(docker_api, registry_resolver),
-                              ServiceCreator(FeatureRegistry(SonicDB), SonicDB),
+                              ServiceCreator(FeatureRegistry(SonicDB), SonicDB, cfg_mgmt),
                               device_info,
-                              filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0),
-                              config_mgmt.ConfigMgmt())
+                              filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0))

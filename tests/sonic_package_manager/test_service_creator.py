@@ -37,8 +37,9 @@ def manifest():
     })
 
 
-def test_service_creator(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
-    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
+def test_service_creator(sonic_fs, manifest, mock_feature_registry,
+                         mock_sonic_db, mock_config_mgmt):
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db, mock_config_mgmt)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
     creator.create(package)
@@ -49,8 +50,9 @@ def test_service_creator(sonic_fs, manifest, mock_feature_registry, mock_sonic_d
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.service'))
 
 
-def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
-    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
+def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_registry,
+                                         mock_sonic_db, mock_config_mgmt):
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db, mock_config_mgmt)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
     creator.create(package)
@@ -64,8 +66,9 @@ def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_regist
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.timer'))
 
 
-def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
-    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
+def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_registry,
+                                         mock_sonic_db, mock_config_mgmt):
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db, mock_config_mgmt)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
     creator.create(package)
@@ -79,14 +82,15 @@ def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_regist
     assert sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
 
-def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
+def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registry,
+                                        mock_sonic_db, mock_config_mgmt):
     mock_table = Mock()
     mock_table.get = Mock(return_value=(True, (('field_2', 'original_value_2'),)))
     mock_sonic_db.initial_table = Mock(return_value=mock_table)
     mock_sonic_db.persistent_table = Mock(return_value=mock_table)
     mock_sonic_db.running_table = Mock(return_value=mock_table)
 
-    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db, mock_config_mgmt)
 
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))

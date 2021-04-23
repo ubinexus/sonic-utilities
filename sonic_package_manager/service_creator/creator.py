@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 import contextlib
+import json
 import os
 import stat
 import subprocess
 from typing import Dict
 
 import jinja2 as jinja2
+from config.config_mgmt import ConfigMgmt
 from prettyprinter import pformat
-
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator import ETC_SONIC_PATH
 from sonic_package_manager.service_creator.feature import FeatureRegistry
+from sonic_package_manager.service_creator.sonic_db import (
+    CONFIG_DB_JSON,
+    INIT_CFG_JSON
+)
 from sonic_package_manager.service_creator.utils import in_chroot
 
 SERVICE_FILE_TEMPLATE = 'sonic.service.j2'
@@ -99,9 +104,11 @@ class ServiceCreator:
     """ Creates and registers services in SONiC based on the package
      manifest. """
 
-    def __init__(self, feature_registry: FeatureRegistry, sonic_db):
+    def __init__(self, feature_registry: FeatureRegistry,
+                 sonic_db, cfg_mgmt: ConfigMgmt):
         self.feature_registry = feature_registry
         self.sonic_db = sonic_db
+        self.cfg_mgmt = cfg_mgmt
 
     def create(self,
                package: Package,
@@ -114,9 +121,9 @@ class ServiceCreator:
             self.update_dependent_list_file(package)
             self.generate_systemd_service(package)
             self.generate_dump_script(package)
+            self.install_yang_module(package)
 
             self.set_initial_config(package)
-
             self.post_operation_hook()
 
             if register_feature:
@@ -126,7 +133,9 @@ class ServiceCreator:
             self.remove(package, not register_feature)
             raise
 
-    def remove(self, package: Package, deregister_feature=True):
+    def remove(self, package: Package,
+               deregister_feature=True,
+               keep_config=False):
         name = package.manifest['service']['name']
 
         def remove_file(path):
@@ -139,6 +148,7 @@ class ServiceCreator:
         remove_file(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, f'{name}'))
+        self.uninstall_yang_module(package)
 
         self.update_dependent_list_file(package, remove=True)
 
@@ -146,6 +156,8 @@ class ServiceCreator:
 
         if deregister_feature:
             self.feature_registry.deregister(package.manifest['service']['name'])
+
+        if deregister_feature and not keep_config:
             self.remove_config(package)
 
     def post_operation_hook(self):
@@ -307,6 +319,8 @@ class ServiceCreator:
 
     def set_initial_config(self, package):
         init_cfg = package.manifest['package']['init-cfg']
+        if not init_cfg:
+            return
 
         for tablename, content in init_cfg.items():
             if not isinstance(content, dict):
@@ -322,20 +336,38 @@ class ServiceCreator:
                         cfg.update(old_fvs)
                     fvs = list(cfg.items())
                     table.set(key, fvs)
+        
+        self.validate_configs()
 
     def remove_config(self, package):
-        # Remove configuration based on init-cfg tables, so having
-        # init-cfg even with tables without keys might be a good idea.
-        # TODO: init-cfg should be validated with yang model
-        # TODO: remove config from tables known to yang model
-        init_cfg = package.manifest['package']['init-cfg']
-
-        for tablename, content in init_cfg.items():
-            if not isinstance(content, dict):
+        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
+        for tablename, module in self.cfg_mgmt.sy.confDbYangMap.items():
+            if module['module'] != module_name:
                 continue
 
             tables = self.get_tables(tablename)
-
-            for key in content:
-                for table in tables:
+            for table in tables:
+                for key in table.getKeys():
                     table._del(key)
+
+    def validate_configs(self):
+        """ Validate configuration through YANG """
+
+        log.debug('validating running configuration')
+        self.cfg_mgmt.readConfigDB()
+        self.cfg_mgmt.loadData(self.cfg_mgmt.configdbJsonIn)
+
+        log.debug('validating saved configuration')
+        self.cfg_mgmt.readConfigDBJson(CONFIG_DB_JSON)
+        self.cfg_mgmt.loadData(self.cfg_mgmt.configdbJsonIn)
+
+        log.debug('validating initial configuration')
+        self.cfg_mgmt.readConfigDBJson(INIT_CFG_JSON)
+        self.cfg_mgmt.loadData(self.cfg_mgmt.configdbJsonIn)
+
+    def install_yang_module(self, package: Package):
+        self.cfg_mgmt.add_module(package.metadata.yang_module_text)
+
+    def uninstall_yang_module(self, package: Package):
+        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
+        self.cfg_mgmt.remove_module(module_name)
