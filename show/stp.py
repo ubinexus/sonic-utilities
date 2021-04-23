@@ -1,6 +1,4 @@
-import time
 import re
-import sys
 import click
 import subprocess
 import utilities_common.cli as clicommon
@@ -26,11 +24,11 @@ g_stp_vlanid = 0
 #
 def is_stp_docker_running():
     return True
-    running_docker = subprocess.check_output('docker ps', shell=True)
-    if running_docker.find('docker-stp') == -1:
-        return False
-    else:
-        return True
+    #running_docker = subprocess.check_output('docker ps', shell=True)
+    #if running_docker.find('docker-stp') == -1:
+    #    return False
+    #else:
+    #    return True
 
 def connect_to_cfg_db():
     config_db = ConfigDBConnector()
@@ -186,8 +184,6 @@ def spanning_tree(ctx):
         for vlanid in vlan_list:
             ctx.invoke(show_stp_vlan, vlanid=vlanid)
 
-    pass
-
 
 @spanning_tree.group('vlan', cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.argument('vlanid', metavar='<vlanid>', required=True, type=int)
@@ -287,9 +283,6 @@ def show_stp_interface(ctx, ifname):
         ))
 
 
-    pass
-
-
 @spanning_tree.command('bpdu_guard')
 @click.pass_context
 def show_stp_bpdu_guard(ctx):
@@ -318,8 +311,6 @@ def show_stp_bpdu_guard(ctx):
                 click.echo("{:17}{:13}{}".format(ifname,"Yes",disabled))
             else:
                 click.echo("{:17}{:13}{}".format(ifname,"No","NA"))
-
-    pass
 
 
 @spanning_tree.command('root_guard')
@@ -360,8 +351,6 @@ def show_stp_root_guard(ctx):
 
 
 
-    pass
-
 
 @spanning_tree.group('statistics', cls=clicommon.AliasedGroup, invoke_without_command=True)
 @click.pass_context
@@ -382,7 +371,6 @@ def show_stp_statistics(ctx):
         vlan_list.sort()
         for vlanid in vlan_list:
             ctx.invoke(show_stp_vlan_statistics, vlanid=vlanid)
-    pass
 
 
 @show_stp_statistics.command('vlan')
@@ -415,7 +403,5 @@ def show_stp_vlan_statistics(ctx, vlanid):
                     entry['tc_received'] = '-'
 
                 click.echo("{:17}{:15}{:15}{:15}{:15}".format(ifname, entry['bpdu_sent'], entry['bpdu_received'], entry['tc_sent'], entry['tc_received']))
-
-    pass
 
 

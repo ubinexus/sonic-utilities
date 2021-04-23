@@ -5,6 +5,7 @@ import sys
 
 import click
 
+from . import stp
 from utilities_common import util_base
 
 from . import plugins
@@ -127,8 +128,7 @@ def cli():
 #
 # 'STP'
 #
-from .stp import spanning_tree
-cli.add_command(spanning_tree)
+cli.add_command(stp.spanning_tree)
 
 #
 # 'ip' group ###

@@ -5,8 +5,7 @@
 
 import click
 import utilities_common.cli as clicommon
-import netaddr
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 import logging
 
@@ -53,25 +52,21 @@ def get_intf_list_in_vlan_member_table(config_db):
 def is_valid_root_guard_timeout(ctx, root_guard_timeout):
     if root_guard_timeout not in range(STP_MIN_ROOT_GUARD_TIMEOUT, STP_MAX_ROOT_GUARD_TIMEOUT + 1):
         ctx.fail("STP root guard timeout must be in range 5-600")
-    pass
 
 
 def is_valid_forward_delay(ctx, forward_delay):
     if forward_delay not in range(STP_MIN_FORWARD_DELAY, STP_MAX_FORWARD_DELAY + 1):
         ctx.fail("STP forward delay value must be in range 4-30")
-    pass
 
 
 def is_valid_hello_interval(ctx, hello_interval):
     if hello_interval not in range(STP_MIN_HELLO_INTERVAL, STP_MAX_HELLO_INTERVAL + 1):
         ctx.fail("STP hello timer must be in range 1-10")
-    pass
 
 
 def is_valid_max_age(ctx, max_age):
     if max_age not in range(STP_MIN_MAX_AGE, STP_MAX_MAX_AGE + 1):
         ctx.fail("STP max age value must be in range 6-40")
-    pass
 
 
 def is_valid_bridge_priority(ctx, priority):
@@ -79,7 +74,6 @@ def is_valid_bridge_priority(ctx, priority):
         ctx.fail("STP bridge priority must be in range 0-61440")
     if priority % 4096 != 0:
         ctx.fail("STP bridge priority must be multiple of 4096")
-    pass
 
 
 def validate_params(forward_delay, max_age, hello_time):
@@ -129,15 +123,16 @@ parameter_max_age = 3
 parameter_bridge_priority = 4
 
 def get_max_stp_instances():
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)
-    max_inst = state_db.get(state_db.STATE_DB, "STP_TABLE|GLOBAL", "max_stp_inst")
-    #if max_inst == "":
     return PVST_MAX_INSTANCES
-    if max_inst != None and max_inst != 0 and max_inst < PVST_MAX_INSTANCES:
-        return max_inst
-    else:
-        return PVST_MAX_INSTANCES
+    #state_db = SonicV2Connector(host='127.0.0.1')
+    #state_db.connect(state_db.STATE_DB, False)
+    #max_inst = state_db.get(state_db.STATE_DB, "STP_TABLE|GLOBAL", "max_stp_inst")
+    #if max_inst == "":
+    #    return PVST_MAX_INSTANCES
+    #if max_inst != None and max_inst != 0 and max_inst < PVST_MAX_INSTANCES:
+    #    return max_inst
+    #else:
+    #    return PVST_MAX_INSTANCES
 
 def update_stp_vlan_parameter(db, param_type, new_value):
     stp_global_entry = db.get_entry('STP', "GLOBAL")
@@ -170,7 +165,6 @@ def update_stp_vlan_parameter(db, param_type, new_value):
             current_vlan_value = vlan_entry.get("priority")
             if current_global_value == current_vlan_value:
                 db.mod_entry('STP_VLAN', vlan, {'priority': new_value})
-    pass
 
 
 def check_if_vlan_exist_in_db(db, ctx, vid):
@@ -178,7 +172,6 @@ def check_if_vlan_exist_in_db(db, ctx, vid):
     vlan = db.get_entry('VLAN', vlan_name)
     if len(vlan) == 0:
         ctx.fail("{} doesn't exist".format(vlan_name))
-    pass
 
 
 def enable_stp_for_vlans(db):
@@ -197,7 +190,6 @@ def enable_stp_for_vlans(db):
             break
         db.set_entry('STP_VLAN', vlan_key, fvs)
         vlan_count += 1
-    pass
 
 
 def get_stp_enabled_vlan_count(db):
@@ -312,7 +304,6 @@ def enable_stp_for_interfaces(db):
     for po_ch_key in po_ch_dict:
         if po_ch_key in intf_list_in_vlan_member_table:
             db.set_entry('STP_PORT', po_ch_key, fvs)
-    pass
 
 
 def is_global_stp_enabled(db):
@@ -391,7 +382,6 @@ def spanning_tree_enable(_db, mode):
     # Enable STP for VLAN by default
     enable_stp_for_interfaces(db)
     enable_stp_for_vlans(db)
-    pass
 
 
 # cmd: STP disable
@@ -406,7 +396,6 @@ def stp_disable(_db, mode):
     db.delete_table('STP_VLAN')
     db.delete_table('STP_PORT')
     db.delete_table('STP_VLAN_PORT')
-    pass
 
 
 # cmd: STP global root guard timeout
@@ -420,7 +409,6 @@ def stp_global_root_guard_timeout(_db, root_guard_timeout):
     check_if_global_stp_enabled(db, ctx)
     is_valid_root_guard_timeout(ctx, root_guard_timeout)
     db.mod_entry('STP', "GLOBAL", {'rootguard_timeout': root_guard_timeout})
-    pass
 
 
 # cmd: STP global forward delay
@@ -436,7 +424,6 @@ def stp_global_forward_delay(_db, forward_delay):
     is_valid_stp_global_parameters(ctx, db, parameter_forward_delay, forward_delay)
     update_stp_vlan_parameter(db, parameter_forward_delay, forward_delay)
     db.mod_entry('STP', "GLOBAL", {'forward_delay': forward_delay})
-    pass
 
 
 # cmd: STP global hello interval
@@ -452,7 +439,6 @@ def stp_global_hello_interval(_db, hello_interval):
     is_valid_stp_global_parameters(ctx, db, parameter_hello_time, hello_interval)
     update_stp_vlan_parameter(db, parameter_hello_time, hello_interval)
     db.mod_entry('STP', "GLOBAL", {'hello_time': hello_interval})
-    pass
 
 
 # cmd: STP global max age
@@ -468,7 +454,6 @@ def stp_global_max_age(_db, max_age):
     is_valid_stp_global_parameters(ctx, db, parameter_max_age, max_age)
     update_stp_vlan_parameter(db, parameter_max_age, max_age)
     db.mod_entry('STP', "GLOBAL", {'max_age': max_age})
-    pass
 
 
 # cmd: STP global bridge priority
@@ -483,7 +468,6 @@ def stp_global_priority(_db, priority):
     is_valid_bridge_priority(ctx, priority)
     update_stp_vlan_parameter(db, parameter_bridge_priority, priority)
     db.mod_entry('STP', "GLOBAL", {'priority': priority})
-    pass
 
 
 ###############################################
@@ -543,7 +527,6 @@ def stp_vlan_enable(_db, vid):
             vlan_intf_key = "{}|{}".format(vlan_name, intf)
             vlan_intf_entry = db.get_entry('STP_VLAN_PORT', vlan_intf_key)
             db.mod_entry('STP_VLAN_PORT', vlan_intf_key, vlan_intf_entry)
-    pass
 
 
 @spanning_tree_vlan.command('disable')
@@ -556,7 +539,6 @@ def stp_vlan_disable(_db, vid):
     check_if_vlan_exist_in_db(db, ctx, vid)
     vlan_name = 'Vlan{}'.format(vid)
     db.mod_entry('STP_VLAN', vlan_name, {'enabled': 'false'})
-    pass
 
 
 @spanning_tree_vlan.command('forward_delay')
@@ -573,7 +555,6 @@ def stp_vlan_forward_delay(_db, vid, forward_delay):
     is_valid_forward_delay(ctx, forward_delay)
     is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_forward_delay, forward_delay)
     db.mod_entry('STP_VLAN', vlan_name, {'forward_delay': forward_delay})
-    pass
 
 
 @spanning_tree_vlan.command('hello')
@@ -590,7 +571,6 @@ def stp_vlan_hello_interval(_db, vid, hello_interval):
     is_valid_hello_interval(ctx, hello_interval)
     is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_hello_time, hello_interval)
     db.mod_entry('STP_VLAN', vlan_name, {'hello_time': hello_interval})
-    pass
 
 
 @spanning_tree_vlan.command('max_age')
@@ -607,7 +587,6 @@ def stp_vlan_max_age(_db, vid, max_age):
     is_valid_max_age(ctx, max_age)
     is_valid_stp_vlan_parameters(ctx, db, vlan_name, parameter_max_age, max_age)
     db.mod_entry('STP_VLAN', vlan_name, {'max_age': max_age})
-    pass
 
 
 @spanning_tree_vlan.command('priority')
@@ -623,7 +602,6 @@ def stp_vlan_priority(_db, vid, priority):
     check_if_stp_enabled_for_vlan(ctx, db, vlan_name)
     is_valid_bridge_priority(ctx, priority)
     db.mod_entry('STP_VLAN', vlan_name, {'priority': priority})
-    pass
 
 
 ###############################################
@@ -658,7 +636,6 @@ def check_if_interface_is_valid(ctx, db, interface_name):
         ctx.fail(" {} is a portchannel member port - STP can't be configured".format(interface_name))
     if not is_vlan_configured_interface(db, interface_name):
         ctx.fail(" {} has no VLAN configured - It's not a L2 interface".format(interface_name))
-    pass
 
 
 @spanning_tree.group('interface')
