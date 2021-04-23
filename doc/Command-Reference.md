@@ -8013,11 +8013,14 @@ This command will add a new repository as source for SONiC packages to the datab
   ```
   Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
 
-    Add new repository to database
+    Add a new repository to database.
+
+    NOTE: This command requires elevated (root) privileges to run.
 
   Options:
-    --default-reference TEXT  Default installation reference
-    --description TEXT        Optional package entry description
+    --default-reference TEXT  Default installation reference. Can be a tag or
+                              sha256 digest in repository.
+    --description TEXT        Optional package entry description.
     --help                    Show this message and exit.
   ```
 - Example:
@@ -8034,7 +8037,9 @@ This command will remove a repository as source for SONiC packages from the data
   ```
   Usage: sonic-package-manager repository remove [OPTIONS] NAME
 
-    Remove repository from database
+    Remove repository from database.
+
+    NOTE: This command requires elevated (root) privileges to run.
 
   Options:
     --help  Show this message and exit.
@@ -8053,32 +8058,46 @@ This command pulls and installs a package on SONiC host. *NOTE*: this command re
   Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
 
     Install/Upgrade package using [PACKAGE_EXPR] in format
-    "<name>[=<version>|@<reference>]"
+    "<name>[=<version>|@<reference>]".
+
+      The repository to pull the package from is resolved by lookup in
+      package database,    thus the package has to be added via "sonic-
+      package-manager repository add" command.
+
+      In case when [PACKAGE_EXPR] is a package name "<name>" this command
+      will install or upgrade    to a version referenced by "default-
+      reference" in package database.
+
+    NOTE: This command requires elevated (root) privileges to run.
 
   Options:
-    --enable                      Set the default state of the feature to
-                                  enabled and enable feature right after
-                                  installation. NOTE: user needs to execute
-                                  "config save -y" to make this setting
-                                  persistent
-    --default-owner [local|kube]  Default owner configuration setting for a
-                                  feature
-    --from-repository TEXT        Fetch package directly from image registry
-                                  repository NOTE: This argument is mutually
-                                  exclusive with arguments: [package_expr,
-                                  from_tarball].
-    --from-tarball FILE           Fetch package from saved image tarball NOTE:
-                                  This argument is mutually exclusive with
-                                  arguments: [package_expr, from_repository].
-    -f, --force                   Force operation by ignoring failures
-    -y, --yes                     Automatically answer yes on prompts
-    -v, --verbosity LVL           Either CRITICAL, ERROR, WARNING, INFO or DEBUG
-    --skip-host-plugins           Do not install host OS plugins provided by the
-                                  package (CLI, etc). NOTE: In case when package
-                                  host OS plugins are set as mandatory in
-                                  package manifest this option will fail the
-                                  installation.
-    --help                        Show this message and exit.
+    --enable                  Set the default state of the feature to enabled
+                              and enable feature right after installation. NOTE:
+                              user needs to execute "config save -y" to make
+                              this setting persistent.
+    --set-owner [local|kube]  Default owner configuration setting for a feature.
+    --from-repository TEXT    Fetch package directly from image registry
+                              repository. NOTE: This argument is mutually
+                              exclusive with arguments: [package_expr,
+                              from_tarball].
+    --from-tarball FILE       Fetch package from saved image tarball. NOTE: This
+                              argument is mutually exclusive with arguments:
+                              [package_expr, from_repository].
+    -f, --force               Force operation by ignoring package dependency
+                              tree and package manifest validation failures.
+    -y, --yes                 Automatically answer yes on prompts.
+    -v, --verbosity LVL       Either CRITICAL, ERROR, WARNING, INFO or DEBUG.
+                              Default is INFO.
+    --skip-host-plugins       Do not install host OS plugins provided by the
+                              package (CLI, etc). NOTE: In case when package
+                              host OS plugins are set as mandatory in package
+                              manifest this option will fail the installation.
+    --allow-downgrade         Allow package downgrade. By default an attempt to
+                              downgrade the package will result in a failure
+                              since downgrade might not be supported by the
+                              package, thus requires explicit request from the
+                              user.
+    --help                    Show this message and exit..
   ```
 - Example:
   ```
@@ -8099,20 +8118,24 @@ This command pulls and installs a package on SONiC host. *NOTE*: this command re
 
 **sonic-package-manager uninstall**
 
-This command uninstalls package from SONiC host. *NOTE*: this command requires elevated (root) privileges to run.
+This command uninstalls package from SONiC host. User needs to stop the feature prior to uninstalling it.
+*NOTE*: this command requires elevated (root) privileges to run.
 
 - Usage:
   ```
   Usage: sonic-package-manager uninstall [OPTIONS] NAME
 
-    Uninstall package
+    Uninstall package.
+
+    NOTE: This command requires elevated (root) privileges to run.
 
   Options:
-    -f, --force          Force operation by ignoring failures
-    -y, --yes            Automatically answer yes on prompts
-    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    -f, --force          Force operation by ignoring package dependency tree and
+                        package manifest validation failures.
+    -y, --yes            Automatically answer yes on prompts.
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG. Default
+                        is INFO.
     --help               Show this message and exit.
-
   ```
 - Example:
   ```
@@ -8127,12 +8150,16 @@ This comamnd resets the package by reinstalling it to its default version. *NOTE
   ```
   Usage: sonic-package-manager reset [OPTIONS] NAME
 
-    Reset package to the default version
+    Reset package to the default version.
+
+    NOTE: This command requires elevated (root) privileges to run.
 
   Options:
-    -f, --force          Force operation by ignoring failures
-    -y, --yes            Automatically answer yes on prompts
-    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    -f, --force          Force operation by ignoring package dependency tree and
+                        package manifest validation failures.
+    -y, --yes            Automatically answer yes on prompts.
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG. Default
+                        is INFO.
     --skip-host-plugins  Do not install host OS plugins provided by the package
                         (CLI, etc). NOTE: In case when package host OS plugins
                         are set as mandatory in package manifest this option
@@ -8152,11 +8179,11 @@ This command will retrieve a list of all available versions for the given packag
   ```
   Usage: sonic-package-manager show package versions [OPTIONS] NAME
 
-    Show available versions
+    Show available versions.
 
   Options:
-    --all    Show all available tags in repository
-    --plain  Plain output
+    --all    Show all available tags in repository.
+    --plain  Plain output.
     --help   Show this message and exit.
   ```
 - Example:
@@ -8188,7 +8215,7 @@ This command fetches the changelog from the package manifest and displays it. *N
   ```
   Usage: sonic-package-manager show package changelog [OPTIONS] [PACKAGE_EXPR]
 
-    Show package changelog
+    Show package changelog.
 
   Options:
     --from-repository TEXT  Fetch package directly from image registry
@@ -8217,7 +8244,7 @@ This command fetches the package manifest and displays it. *NOTE*: package manif
   ```
   Usage: sonic-package-manager show package manifest [OPTIONS] [PACKAGE_EXPR]
 
-    Show package manifest
+    Show package manifest.
 
   Options:
     --from-repository TEXT  Fetch package directly from image registry

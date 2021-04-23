@@ -46,6 +46,8 @@ def root_privileges_required(func: typing.Callable) -> typing.Callable:
 
         return func(*args, **kwargs)
 
+    wrapped_function.__doc__ += '\n\n NOTE: This command requires elevated (root) privileges to run.'
+
     return wrapped_function
 
 
@@ -91,7 +93,7 @@ class MutuallyExclusiveOption(click.Option):
 
 PACKAGE_SOURCE_OPTIONS = [
     click.option('--from-repository',
-                 help='Fetch package directly from image registry repository',
+                 help='Fetch package directly from image registry repository.',
                  cls=MutuallyExclusiveOption,
                  mutually_exclusive=['from_tarball', 'package_expr']),
     click.option('--from-tarball',
@@ -99,7 +101,7 @@ PACKAGE_SOURCE_OPTIONS = [
                                  readable=True,
                                  file_okay=True,
                                  dir_okay=False),
-                 help='Fetch package from saved image tarball',
+                 help='Fetch package from saved image tarball.',
                  cls=MutuallyExclusiveOption,
                  mutually_exclusive=['from_repository', 'package_expr']),
     click.argument('package-expr',
@@ -110,21 +112,21 @@ PACKAGE_SOURCE_OPTIONS = [
 
 PACKAGE_COMMON_INSTALL_OPTIONS = [
     click.option('--skip-host-plugins',
-                  is_flag=True,
-                  help='Do not install host OS plugins provided by the package (CLI, etc). '
-                  'NOTE: In case when package host OS plugins are set as mandatory in '
-                  'package manifest this option will fail the installation.'),
+                 is_flag=True,
+                 help='Do not install host OS plugins provided by the package (CLI, etc). '
+                 'NOTE: In case when package host OS plugins are set as mandatory in '
+                 'package manifest this option will fail the installation.')
 ]
 
 
 PACKAGE_COMMON_OPERATION_OPTIONS = [
     click.option('-f', '--force',
                  is_flag=True,
-                 help='Force operation by ignoring failures'),
+                 help='Force operation by ignoring package dependency tree and package manifest validation failures.'),
     click.option('-y', '--yes',
                  is_flag=True,
-                 help='Automatically answer yes on prompts'),
-    click_log.simple_verbosity_option(log),
+                 help='Automatically answer yes on prompts.'),
+    click_log.simple_verbosity_option(log, help='Either CRITICAL, ERROR, WARNING, INFO or DEBUG. Default is INFO.'),
 ]
 
 
@@ -150,7 +152,7 @@ def cli(ctx):
 @cli.group()
 @click.pass_context
 def repository(ctx):
-    """ Repository management commands """
+    """ Repository management commands. """
 
     pass
 
@@ -158,7 +160,7 @@ def repository(ctx):
 @cli.group()
 @click.pass_context
 def show(ctx):
-    """ Package manager show commands """
+    """ Package manager show commands. """
 
     pass
 
@@ -166,7 +168,7 @@ def show(ctx):
 @show.group()
 @click.pass_context
 def package(ctx):
-    """ Package show commands """
+    """ Package show commands. """
 
     pass
 
@@ -174,7 +176,7 @@ def package(ctx):
 @cli.command()
 @click.pass_context
 def list(ctx):
-    """ List available packages """
+    """ List available packages. """
 
     table_header = ['Name', 'Repository', 'Description', 'Version', 'Status']
     table_body = []
@@ -208,7 +210,7 @@ def manifest(ctx,
              package_expr,
              from_repository,
              from_tarball):
-    """ Show package manifest """
+    """ Show package manifest. """
 
     manager: PackageManager = ctx.obj
 
@@ -224,11 +226,11 @@ def manifest(ctx,
 
 @package.command()
 @click.argument('name')
-@click.option('--all', is_flag=True, help='Show all available tags in repository')
-@click.option('--plain', is_flag=True, help='Plain output')
+@click.option('--all', is_flag=True, help='Show all available tags in repository.')
+@click.option('--plain', is_flag=True, help='Plain output.')
 @click.pass_context
 def versions(ctx, name, all, plain):
-    """ Show available versions """
+    """ Show available versions. """
 
     try:
         manager: PackageManager = ctx.obj
@@ -248,7 +250,7 @@ def changelog(ctx,
               package_expr,
               from_repository,
               from_tarball):
-    """ Show package changelog """
+    """ Show package changelog. """
 
     manager: PackageManager = ctx.obj
 
@@ -281,12 +283,12 @@ def changelog(ctx,
 @repository.command()
 @click.argument('name', type=str)
 @click.argument('repository', type=str)
-@click.option('--default-reference', type=str, help='Default installation reference')
-@click.option('--description', type=str, help='Optional package entry description')
+@click.option('--default-reference', type=str, help='Default installation reference. Can be a tag or sha256 digest in repository.')
+@click.option('--description', type=str, help='Optional package entry description.')
 @click.pass_context
 @root_privileges_required
 def add(ctx, name, repository, default_reference, description):
-    """ Add a new repository to database """
+    """ Add a new repository to database. """
 
     manager: PackageManager = ctx.obj
 
@@ -320,11 +322,16 @@ def remove(ctx, name):
               help='Set the default state of the feature to enabled '
                    'and enable feature right after installation. '
                    'NOTE: user needs to execute "config save -y" to make '
-                   'this setting persistent')
-@click.option('--default-owner',
+                   'this setting persistent.')
+@click.option('--set-owner',
               type=click.Choice(['local', 'kube']),
               default='local',
-              help='Default owner configuration setting for a feature')
+              help='Default owner configuration setting for a feature.')
+@click.option('--allow-downgrade',
+              is_flag=True,
+              help='Allow package downgrade. By default an attempt to downgrade the package '
+              'will result in a failure since downgrade might not be supported by the package, '
+              'thus requires explicit request from the user.')
 @add_options(PACKAGE_SOURCE_OPTIONS)
 @add_options(PACKAGE_COMMON_OPERATION_OPTIONS)
 @add_options(PACKAGE_COMMON_INSTALL_OPTIONS)
@@ -337,10 +344,16 @@ def install(ctx,
             force,
             yes,
             enable,
-            default_owner,
-            skip_host_plugins):
-    """ Install/Upgrade package using [PACKAGE_EXPR] in format
-        "<name>[=<version>|@<reference>]" """
+            set_owner,
+            skip_host_plugins,
+            allow_downgrade):
+    """ Install/Upgrade package using [PACKAGE_EXPR] in format "<name>[=<version>|@<reference>]".
+
+    The repository to pull the package from is resolved by lookup in package database,
+    thus the package has to be added via "sonic-package-manager repository add" command.
+
+    In case when [PACKAGE_EXPR] is a package name "<name>" this command will install or upgrade
+    to a version referenced by "default-reference" in package database. """
 
     manager: PackageManager = ctx.obj
 
@@ -355,8 +368,9 @@ def install(ctx,
     install_opts = {
         'force': force,
         'enable': enable,
-        'default_owner': default_owner,
+        'default_owner': set_owner,
         'skip_host_plugins': skip_host_plugins,
+        'allow_downgrade': allow_downgrade,
     }
 
     try:
@@ -377,7 +391,7 @@ def install(ctx,
 @click.pass_context
 @root_privileges_required
 def reset(ctx, name, force, yes, skip_host_plugins):
-    """ Reset package to the default version """
+    """ Reset package to the default version. """
 
     manager: PackageManager = ctx.obj
 
@@ -399,7 +413,7 @@ def reset(ctx, name, force, yes, skip_host_plugins):
 @click.pass_context
 @root_privileges_required
 def uninstall(ctx, name, force, yes):
-    """ Uninstall package """
+    """ Uninstall package. """
 
     manager: PackageManager = ctx.obj
 
@@ -422,7 +436,7 @@ def uninstall(ctx, name, force, yes):
 @click.pass_context
 @root_privileges_required
 def migrate(ctx, database, force, yes, dockerd_socket):
-    """ Migrate packages from the given database file """
+    """ Migrate packages from the given database file. """
 
     manager: PackageManager = ctx.obj
 
