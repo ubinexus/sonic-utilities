@@ -91,11 +91,7 @@ def opt_check(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapped_function(*args, **kwargs):
         sig = signature(func)
-        redundant_opts = [opt for opt in kwargs if opt not in sig.parameters]
-        if redundant_opts:
-            raise PackageManagerError(
-                f'Unsupported options: {",".join(redundant_opts)} for {func.__name__}'
-            )
+        kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
         return func(*args, **kwargs)
 
     return wrapped_function
