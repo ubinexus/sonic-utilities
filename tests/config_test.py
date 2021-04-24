@@ -226,7 +226,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
                 # Act
                 result = self.runner.invoke(config.config.commands["apply-patch"],
                                             [self.any_path,
-                                             "--format", ConfigFormat.SONICYANG.name.lower(),
+                                             "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
                                              "--verbose"],
                                             catch_exceptions=False)
@@ -257,7 +257,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
 
     def test_apply_patch__optional_parameters_passed_correctly(self):
         self.validate_apply_patch_optional_parameter(
-            ["--format", ConfigFormat.SONICYANG.name.lower()],
+            ["--format", ConfigFormat.SONICYANG.name],
             mock.call(self.any_patch, ConfigFormat.SONICYANG, False, False))
         self.validate_apply_patch_optional_parameter(
             ["--verbose"],
@@ -339,7 +339,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
                 # Act
                 result = self.runner.invoke(config.config.commands["replace"],
                                             [self.any_path,
-                                             "--format", ConfigFormat.SONICYANG.name.lower(),
+                                             "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
                                              "--verbose"],
                                             catch_exceptions=False)
@@ -370,7 +370,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
 
     def test_replace__optional_parameters_passed_correctly(self):
         self.validate_replace_optional_parameter(
-            ["--format", ConfigFormat.SONICYANG.name.lower()],
+            ["--format", ConfigFormat.SONICYANG.name],
             mock.call(self.any_target_config, ConfigFormat.SONICYANG, False, False))
         self.validate_replace_optional_parameter(
             ["--verbose"],

@@ -990,8 +990,8 @@ def load(filename, yes):
 
 @config.command('apply-patch')
 @click.argument('patch-file-path', type=str, required=True)
-@click.option('-f', '--format', type=click.Choice([e.name.lower() for e in ConfigFormat]),
-               default=ConfigFormat.CONFIGDB.name.lower(),
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
                help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
@@ -1015,13 +1015,13 @@ def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
 
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
     except Exception as ex:
-        click.secho("Failed to apply patch", fg="red", underline=True)
+        click.secho("Failed to apply patch", fg="red", underline=True, err=True)
         ctx.fail(ex)
 
 @config.command()
 @click.argument('target-file-path', type=str, required=True)
-@click.option('-f', '--format', type=click.Choice([e.name.lower() for e in ConfigFormat]),
-               default=ConfigFormat.CONFIGDB.name.lower(),
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
                help='format of target config is either ConfigDb(ABNF) or SonicYang')
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
@@ -1045,7 +1045,7 @@ def replace(ctx, target_file_path, format, dry_run, verbose):
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
-        click.secho("Failed to replace config", fg="red", underline=True)
+        click.secho("Failed to replace config", fg="red", underline=True, err=True)
         ctx.fail(ex)
 
 @config.command()
@@ -1064,7 +1064,7 @@ def rollback(ctx, checkpoint_name, dry_run, verbose):
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)
     except Exception as ex:
-        click.secho("Failed to rollback config", fg="red", underline=True)
+        click.secho("Failed to rollback config", fg="red", underline=True, err=True)
         ctx.fail(ex)
 
 @config.command()
@@ -1080,7 +1080,7 @@ def checkpoint(ctx, checkpoint_name, verbose):
 
         click.secho("Checkpoint created successfully.", fg="cyan", underline=True)
     except Exception as ex:
-        click.secho("Failed to create a config checkpoint", fg="red", underline=True)
+        click.secho("Failed to create a config checkpoint", fg="red", underline=True, err=True)
         ctx.fail(ex)
 
 @config.command('delete-checkpoint')
@@ -1096,7 +1096,7 @@ def delete_checkpoint(ctx, checkpoint_name, verbose):
 
         click.secho("Checkpoint deleted successfully.", fg="cyan", underline=True)
     except Exception as ex:
-        click.secho("Failed to delete config checkpoint", fg="red", underline=True)
+        click.secho("Failed to delete config checkpoint", fg="red", underline=True, err=True)
         ctx.fail(ex)
 
 @config.command('list-checkpoints')
@@ -1109,7 +1109,7 @@ def list_checkpoints(ctx, verbose):
         formatted_output = json.dumps(checkpoints_list, indent=4)
         click.echo(formatted_output)
     except Exception as ex:
-        click.secho("Failed to list config checkpoints", fg="red", underline=True)
+        click.secho("Failed to list config checkpoints", fg="red", underline=True, err=True)
         ctx.fail(ex)
 
 @config.command()
