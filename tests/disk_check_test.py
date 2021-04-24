@@ -10,39 +10,46 @@ disk_check.MOUNTS_FILE = "/tmp/proc_mounts"
 
 test_data = {
     "0": {
+        "desc": "All good as /tmp is read-write",
         "args": ["", "-d", "/tmp"],
         "err": ""
     },
     "1": {
+        "desc": "Not good as /tmpx is not read-write; But fix skipped",
         "args": ["", "-d", "/tmpx", "-s"],
-        "err": "/tmpx dir is not RW"
+        "err": "/tmpx is not read-write"
     },
     "2": {
+        "desc": "Not good as /tmpx is not read-write; expect mount",
         "args": ["", "-d", "/tmpx"],
+        "upperdir": "/tmp/tmpx",
+        "workdir": "/tmp/tmpy",
         "mounts": "overlay_tmpx blahblah",
-        "err": "/tmpx dir is not RW",
-        "cmds": ['mkdir /run/mount/upper', 'mkdir /run/mount/work',
-            'mount -t overlay overlay_tmpx -o lowerdir=/tmpx,upperdir=/run/mount/upper,workdir=/run/mount/work /tmpx']
+        "err": "/tmpx is not read-write|READ-ONLY: Mounted ['/tmpx'] to make Read-Write",
+        "cmds": ['mount -t overlay overlay_tmpx -o lowerdir=/tmpx,upperdir=/tmp/tmpx,workdir=/tmp/tmpy /tmpx']
     },
     "3": {
+        "desc": "Not good as /tmpx is not read-write; mount fail as create of upper fails",
         "args": ["", "-d", "/tmpx"],
-        "cmds": ['mkdir /run/mount/upper'],
-        "proc": [ {"ret": -1, "stdout": "blah", "stderr": "blah blah"} ],
-        "expect_ret": -1
+        "upperdir": "/tmpx",
+        "expect_ret": 1
     },
     "4": {
+        "desc": "Not good as /tmpx is not read-write; mount fail as upper exist",
         "args": ["", "-d", "/tmpx"],
         "upperdir": "/tmp",
-        "err": "/tmpx dir is not RW|Already mounted",
+        "err": "/tmpx is not read-write|Already mounted",
         "expect_ret": 1
     },
     "5": {
+        "desc": "/tmp is read-write, but as well mount exists; hence report",
         "args": ["", "-d", "/tmp"],
         "upperdir": "/tmp",
         "mounts": "overlay_tmp blahblah",
-        "err": "READ-ONLY: Mounted ['/tmp'] to make RW"
+        "err": "READ-ONLY: Mounted ['/tmp'] to make Read-Write"
     },
     "6": {
+        "desc": "Test another code path for good case",
         "args": ["", "-d", "/tmp"],
         "upperdir": "/tmp"
     }
@@ -103,6 +110,12 @@ def swap_upper(tc):
     disk_check.UPPER_DIR = tmp_u
 
 
+def swap_work(tc):
+    tmp_w = tc["workdir"]
+    tc["upperdir"] = disk_check.WORK_DIR
+    disk_check.WORK_DIR = tmp_w
+
+
 class TestDiskCheck(object):
     def setup(self):
         pass
@@ -121,11 +134,19 @@ class TestDiskCheck(object):
                 if "upperdir" in tc:
                     swap_upper(tc)
 
+                if "workdir" in tc:
+                    # restore
+                    swap_work(tc)
+
                 ret = disk_check.main()
 
                 if "upperdir" in tc:
                     # restore
                     swap_upper(tc)
+
+                if "workdir" in tc:
+                    # restore
+                    swap_work(tc)
 
             print("ret = {}".format(ret))
             print("err_data={}".format(err_data))

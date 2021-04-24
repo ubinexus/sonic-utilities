@@ -3,19 +3,19 @@
 
 """
 What:
-    There have been cases, where disk turns RO due to kernel bug.
-    In RO state, system blocks new remote user login via TACACS.
+    There have been cases, where disk turns Read-only due to kernel bug.
+    In Read-only state, system blocks new remote user login via TACACS.
     This utility is to check & make transient recovery as needed.
 
 How:
-    check for RW permission. If RO, create writable overlay using tmpfs.
+    check for Read-Write permission. If Read-only, create writable overlay using tmpfs.
 
-    By default "/etc" & "/home" are checked and if in RO state, make them RW
+    By default "/etc" & "/home" are checked and if in Read-only state, make them Read-Write
     using overlay on top of tmpfs.
 
-    Making /etc/ & /home as writable lets successful new remote user login.
+    Making /etc & /home as writable lets successful new remote user login.
 
-    If in RO state or in RW state with the help of tmpfs overlay,
+    If in Read-only state or in Read-Write state with the help of tmpfs overlay,
     syslog ERR messages are written, to help raise alerts.
 
     Monit may be used to invoke it periodically, to help scan & fix and
@@ -51,14 +51,14 @@ def log_debug(m):
     syslog.syslog(syslog.LOG_DEBUG, m)
 
 
-def test_rw(dirs): 
+def test_writable(dirs): 
     for d in dirs:
         rw = os.access(d, os.W_OK)
         if not rw:
-            log_err("{} dir is not RW".format(d))
+            log_err("{} is not read-write".format(d))
             return False
         else:
-            log_debug("{} dir is RW".format(d))
+            log_debug("{} is Read-Write".format(d))
     return True
 
 
@@ -78,7 +78,7 @@ def run_cmd(cmd):
 
 
 def get_dname(path_name):
-    return path_name.replace('/', ' ').strip().split()[-1]
+    return os.path.basename(os.path.normpath(path_name))
 
 
 def do_mnt(dirs):
@@ -87,20 +87,23 @@ def do_mnt(dirs):
         return 1
 
     for i in (UPPER_DIR, WORK_DIR):
-        ret = run_cmd("mkdir {}".format(i))
+        try:
+            os.mkdir(i)
+        except OSError as error:
+            log_err("Failed to create {}".format(i))
+            return 1
+
+    for d in dirs:
+        ret = run_cmd("mount -t overlay overlay_{} -o lowerdir={},"
+        "upperdir={},workdir={} {}".format(
+            get_dname(d), d, UPPER_DIR, WORK_DIR, d))
         if ret:
             break
 
-    for d in dirs:
-        if not ret:
-            ret = run_cmd("mount -t overlay overlay_{} -o lowerdir={},"
-            "upperdir={},workdir={} {}".format(
-                get_dname(d), d, UPPER_DIR, WORK_DIR, d))
-
     if ret:
-        log_err("Failed to mount {} as RW".format(dirs))
+        log_err("Failed to mount {} as Read-Write".format(dirs))
     else:
-        log_info("{} are mounted as RW".format(dirs))
+        log_info("{} are mounted as Read-Write".format(dirs))
     return ret
 
 
@@ -123,22 +126,22 @@ def is_mounted(dirs):
 
 def do_check(skip_mount, dirs):
     ret = 0
-    if not test_rw(dirs):
+    if not test_writable(dirs):
         if not skip_mount:
             ret = do_mnt(dirs)
 
     # Check if mounted
     if (not ret) and is_mounted(dirs):
-        log_err("READ-ONLY: Mounted {} to make RW".format(dirs))
+        log_err("READ-ONLY: Mounted {} to make Read-Write".format(dirs))
 
     return ret
 
 
 def main():
     parser=argparse.ArgumentParser(
-            description="check disk for RW and mount etc & home as RW")
+            description="check disk for Read-Write and mount etc & home as Read-Write")
     parser.add_argument('-s', "--skip-mount", action='store_true', default=False,
-            help="Skip mounting /etc & /home as RW")
+            help="Skip mounting /etc & /home as Read-Write")
     parser.add_argument('-d', "--dirs", default="/etc,/home",
             help="dirs to mount")
     args = parser.parse_args()
