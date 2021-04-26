@@ -58,7 +58,7 @@ class ComponentConstraints:
         """
 
         return {
-            component: str(version) for component, version in self.components
+            component: str(version) for component, version in self.components.items()
         }
 
 
