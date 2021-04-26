@@ -71,7 +71,6 @@ def report_err_msg(lvl, m):
             err_data += "|"
         err_data += m
 
-disk_check.TEST_LOG_FN = report_err_msg
 
 class proc:
     returncode = 0
@@ -121,11 +120,14 @@ class TestDiskCheck(object):
         pass
 
 
+    @patch("disk_check.syslog.syslog")
     @patch("disk_check.subprocess.run")
-    def test_readonly(self, mock_proc):
+    def test_readonly(self, mock_proc, mock_log):
         global err_data, cmds
 
         mock_proc.side_effect = mock_subproc_run
+        mock_log.side_effect = report_err_msg
+
         for i, tc in test_data.items():
             print("-----------Start tc {}---------".format(i))
             init_tc(tc)

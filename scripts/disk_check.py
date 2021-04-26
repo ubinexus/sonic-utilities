@@ -29,16 +29,13 @@ import sys
 import syslog
 import subprocess
 
-TEST_LOG_FN = None
 UPPER_DIR = "/run/mount/upper"
 WORK_DIR = "/run/mount/work"
 MOUNTS_FILE = "/proc/mounts"
 
 def log_err(m):
-    print("Err: {}".format(m))
+    print("Err: {}".format(m), file=sys.stderr)
     syslog.syslog(syslog.LOG_ERR, m)
-    if TEST_LOG_FN:
-        TEST_LOG_FN(syslog.LOG_ERR, m)
 
 
 def log_info(m):
