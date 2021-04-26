@@ -651,7 +651,7 @@ testData = {
         'rc': 0,
         'rc_output': bgp_v4_neighbors_output
     },
-    'bgp_v4_neighbor': {
+    'bgp_v4_neighbor_ip_address': {
         'args': ['10.0.0.57'],
         'rc': 0,
         'rc_output': bgp_v4_neighbors_output
@@ -681,7 +681,7 @@ testData = {
         'rc': 0,
         'rc_output': bgp_v6_neighbors_output
     },
-    'bgp_v6_neighbor': {
+    'bgp_v6_neighbor_ip_address': {
         'args': ['fc00::72'],
         'rc': 0,
         'rc_output': bgp_v6_neighbors_output
