@@ -19,6 +19,7 @@ from .bgp_commands_input.bgp_network_test_vector import (
     mock_show_bgp_network_single_asic,
     mock_show_bgp_network_multi_asic
     )
+from . import config_int_ip_common
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -133,6 +134,14 @@ def setup_single_bgp_instance(request):
                 mock_frr_data = json_data.read()
             return mock_frr_data
         return ""
+    
+    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace=""):
+        if vtysh_cmd == "show ip route vrf all static":
+            return config_int_ip_common.show_ip_route_with_static_expected_output
+        elif vtysh_cmd == "show ipv6 route vrf all static":
+            return config_int_ip_common.show_ipv6_route_with_static_expected_output
+        else:
+            return ""
 
     def mock_run_show_ip_route_commands(request):
         if request.param == 'ipv6_route_err':
@@ -164,9 +173,17 @@ def setup_single_bgp_instance(request):
         request.param.startswith('bgp_v6_network'):
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_bgp_network_single_asic(request))
+    elif request.param == 'ip_route_for_int_ip':
+        _old_run_bgp_command = bgp_util.run_bgp_command
+        bgp_util.run_bgp_command = mock_run_bgp_command_for_static
     else:
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_bgp_summary("", ""))
+
+    yield
+
+    if request.param == 'ip_route_for_int_ip':
+        bgp_util.run_bgp_command = _old_run_bgp_command
 
 
 @pytest.fixture
@@ -200,6 +217,16 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
 
+    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace=""):
+        if bgp_namespace != 'test_ns':
+            return ""
+        if vtysh_cmd == "show ip route vrf all static":
+            return config_int_ip_common.show_ip_route_with_static_expected_output
+        elif vtysh_cmd == "show ipv6 route vrf all static":
+            return config_int_ip_common.show_ipv6_route_with_static_expected_output
+        else:
+            return ""
+
     def mock_run_bgp_command(vtysh_cmd, bgp_namespace):
         if m_asic_json_file.startswith('bgp_v4_network') or \
             m_asic_json_file.startswith('bgp_v6_network'):
@@ -219,7 +246,10 @@ def setup_multi_asic_bgp_instance(request):
             return ""
 
     _old_run_bgp_command = bgp_util.run_bgp_command
-    bgp_util.run_bgp_command = mock_run_bgp_command
+    if request.param == 'ip_route_for_int_ip':
+        bgp_util.run_bgp_command = mock_run_bgp_command_for_static
+    else:
+        bgp_util.run_bgp_command = mock_run_bgp_command
 
     yield
 
