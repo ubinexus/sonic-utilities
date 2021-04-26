@@ -130,7 +130,7 @@ class ServiceCreator:
                 self.feature_registry.register(package.manifest,
                                                state, owner)
         except (Exception, KeyboardInterrupt):
-            self.remove(package, not register_feature)
+            self.remove(package, register_feature)
             raise
 
     def remove(self, package: Package,
