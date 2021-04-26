@@ -319,16 +319,18 @@ def remove(ctx, name):
 @cli.command()
 @click.option('--enable',
               is_flag=True,
+              default=None,
               help='Set the default state of the feature to enabled '
                    'and enable feature right after installation. '
                    'NOTE: user needs to execute "config save -y" to make '
                    'this setting persistent.')
 @click.option('--set-owner',
               type=click.Choice(['local', 'kube']),
-              default='local',
+              default=None,
               help='Default owner configuration setting for a feature.')
 @click.option('--allow-downgrade',
               is_flag=True,
+              default=None,
               help='Allow package downgrade. By default an attempt to downgrade the package '
               'will result in a failure since downgrade might not be supported by the package, '
               'thus requires explicit request from the user.')
@@ -367,11 +369,14 @@ def install(ctx,
 
     install_opts = {
         'force': force,
-        'enable': enable,
-        'default_owner': set_owner,
         'skip_host_plugins': skip_host_plugins,
-        'allow_downgrade': allow_downgrade,
     }
+    if enable is not None:
+        install_opts['enable'] = enable
+    if set_owner is not None:
+        install_opts['default_owner'] = set_owner
+    if allow_downgrade is not None:
+        install_opts['allow_downgrade'] = allow_downgrade
 
     try:
         manager.install(package_expr,

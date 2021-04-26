@@ -91,7 +91,11 @@ def opt_check(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapped_function(*args, **kwargs):
         sig = signature(func)
-        kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+        unsupported_opts = [opt for opt in kwargs if opt not in sig.parameters]
+        if unsupported_opts:
+            raise PackageManagerError(
+                f'Unsupported options {unsupported_opts} for {func.__name__}'
+            )
         return func(*args, **kwargs)
 
     return wrapped_function
