@@ -119,14 +119,14 @@ def setup_single_bgp_instance(request):
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
 
-    def mock_run_bgp_command(vtysh_cmd, bgp_namespace):
+    def mock_run_bgp_command(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=''):
         if os.path.isfile(bgp_mocked_json):
             with open(bgp_mocked_json) as json_data:
                 mock_frr_data = json_data.read()
             return mock_frr_data
         return ""
     
-    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace=""):
+    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace="", vtysh_shell_cmd=''):
         if vtysh_cmd == "show ip route vrf all static":
             return config_int_ip_common.show_ip_route_with_static_expected_output
         elif vtysh_cmd == "show ipv6 route vrf all static":
@@ -195,7 +195,7 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
 
-    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace=""):
+    def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace="", vtysh_shell_cmd=''):
         if bgp_namespace != 'test_ns':
             return ""
         if vtysh_cmd == "show ip route vrf all static":
@@ -205,7 +205,7 @@ def setup_multi_asic_bgp_instance(request):
         else:
             return ""
 
-    def mock_run_bgp_command(vtysh_cmd, bgp_namespace):
+    def mock_run_bgp_command(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=''):
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', bgp_namespace, m_asic_json_file)
         if os.path.isfile(bgp_mocked_json):
