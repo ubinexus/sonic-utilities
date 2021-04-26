@@ -6,6 +6,7 @@ Port Breakout.
 import os
 import re
 import syslog
+import yang as ly
 from json import load
 from sys import flags
 from time import sleep as tsleep
@@ -234,9 +235,9 @@ class ConfigMgmt():
         module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
         if os.path.exists(module_path) and not replace_if_exists:
             raise Exception('{} already exists'.format(module_name))
+        with open(module_path, 'w') as module_file:
+            module_file.write(yang_module_text)
         try:
-            with open(module_path, 'w') as module_file:
-                module_file.write(yang_module_text)
             self.__init_sonic_yang()
         except Exception:
             os.remove(module_path)
@@ -254,9 +255,11 @@ class ConfigMgmt():
         """
 
         module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
+        if not os.path.exists(module_path):
+            return
+        with open(module_path, 'r') as module_file:
+            yang_module_text = module_file.read()
         try:
-            with open(module_path, 'r') as module_file:
-                yang_module_text = module_file.read()
             os.remove(module_path)
             self.__init_sonic_yang()
         except Exception:

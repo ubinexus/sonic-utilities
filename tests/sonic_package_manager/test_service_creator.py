@@ -83,7 +83,7 @@ def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_regist
 
 
 def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registry,
-                                        mock_sonic_db, mock_config_mgmt):
+                                        mock_sonic_db, mock_config_mgmt, test_yang):
     mock_table = Mock()
     mock_table.get = Mock(return_value=(True, (('field_2', 'original_value_2'),)))
     mock_sonic_db.initial_table = Mock(return_value=mock_table)
@@ -93,7 +93,7 @@ def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registr
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db, mock_config_mgmt)
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest))
+    package = Package(entry, Metadata(manifest, yang_module_text=test_yang))
     creator.create(package)
 
     assert not sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))

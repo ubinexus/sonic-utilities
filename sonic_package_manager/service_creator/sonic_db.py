@@ -51,6 +51,8 @@ class FileDbTable:
 
         with contextlib.suppress(KeyError):
             config[self._table].pop(key)
+            if not config[self._table]:
+                config.pop(self._table)
 
         with open(self._file, 'w') as stream:
             json.dump(config, stream, indent=4)

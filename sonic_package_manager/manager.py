@@ -253,8 +253,7 @@ class PackageManager:
                  metadata_resolver: MetadataResolver,
                  service_creator: ServiceCreator,
                  device_information: Any,
-                 lock: filelock.FileLock,
-                 cfg_mgmt: config_mgmt.ConfigMgmt):
+                 lock: filelock.FileLock):
         """ Initialize PackageManager. """
 
         self.lock = lock
@@ -267,7 +266,6 @@ class PackageManager:
         self.is_multi_npu = device_information.is_multi_npu()
         self.num_npus = device_information.get_num_npus()
         self.version_info = device_information.get_sonic_version_info()
-        self.cfg_mgmt = cfg_mgmt
 
     @under_lock
     def add_repository(self, *args, **kwargs):

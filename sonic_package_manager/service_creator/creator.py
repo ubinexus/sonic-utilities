@@ -148,17 +148,18 @@ class ServiceCreator:
         remove_file(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, f'{name}'))
-        self.uninstall_yang_module(package)
 
         self.update_dependent_list_file(package, remove=True)
+
+        if deregister_feature and not keep_config:
+            self.remove_config(package)
+
+        self.uninstall_yang_module(package)
 
         self.post_operation_hook()
 
         if deregister_feature:
             self.feature_registry.deregister(package.manifest['service']['name'])
-
-        if deregister_feature and not keep_config:
-            self.remove_config(package)
 
     def post_operation_hook(self):
         if not in_chroot():
@@ -336,10 +337,14 @@ class ServiceCreator:
                         cfg.update(old_fvs)
                     fvs = list(cfg.items())
                     table.set(key, fvs)
-        
-        self.validate_configs()
+
+        if package.metadata.yang_module_text:
+            self.validate_configs()
 
     def remove_config(self, package):
+        if not package.metadata.yang_module_text:
+            return
+
         module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
         for tablename, module in self.cfg_mgmt.sy.confDbYangMap.items():
             if module['module'] != module_name:
@@ -366,8 +371,13 @@ class ServiceCreator:
         self.cfg_mgmt.loadData(self.cfg_mgmt.configdbJsonIn)
 
     def install_yang_module(self, package: Package):
+        if not package.metadata.yang_module_text:
+            return
+
         self.cfg_mgmt.add_module(package.metadata.yang_module_text)
 
     def uninstall_yang_module(self, package: Package):
+        if not package.metadata.yang_module_text:
+            return
         module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
         self.cfg_mgmt.remove_module(module_name)
