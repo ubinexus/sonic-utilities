@@ -20,211 +20,6 @@ from sonic_package_manager.version import Version
 from sonic_package_manager.service_creator.creator import *
 
 
-CONFIG_DB_JSON_DATA = {
-    "ACL_TABLE": {
-        "NO-NSW-PACL-TEST": {
-            "policy_desc": "NO-NSW-PACL-TEST",
-            "type": "L3",
-            "stage": "INGRESS",
-            "ports": [
-                "Ethernet9",
-                "Ethernet11",
-            ]
-        },
-        "NO-NSW-PACL-V4": {
-            "policy_desc": "NO-NSW-PACL-V4",
-            "type": "L3",
-            "stage": "INGRESS",
-            "ports": [
-                "Ethernet0",
-                "Ethernet4",
-                "Ethernet8",
-                "Ethernet10"
-            ]
-        }
-    },
-    "VLAN": {
-        "Vlan100": {
-            "admin_status": "up",
-            "description": "server_vlan",
-            "dhcp_servers": [
-                "10.186.72.116"
-            ]
-        },
-    },
-    "VLAN_MEMBER": {
-        "Vlan100|Ethernet0": {
-            "tagging_mode": "untagged"
-        },
-        "Vlan100|Ethernet2": {
-            "tagging_mode": "untagged"
-        },
-        "Vlan100|Ethernet8": {
-            "tagging_mode": "untagged"
-        },
-        "Vlan100|Ethernet11": {
-            "tagging_mode": "untagged"
-        },
-    },
-    "INTERFACE": {
-        "Ethernet10": {},
-        "Ethernet10|2a04:0000:40:a709::1/126": {
-            "scope": "global",
-            "family": "IPv6"
-        }
-    },
-    "PORT": {
-        "Ethernet0": {
-            "alias": "Eth1/1",
-            "lanes": "65",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet1": {
-            "alias": "Eth1/2",
-            "lanes": "66",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet2": {
-            "alias": "Eth1/3",
-            "lanes": "67",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet3": {
-            "alias": "Eth1/4",
-            "lanes": "68",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet4": {
-            "alias": "Eth2/1",
-            "lanes": "69",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet5": {
-            "alias": "Eth2/2",
-            "lanes": "70",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet6": {
-            "alias": "Eth2/3",
-            "lanes": "71",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet7": {
-            "alias": "Eth2/4",
-            "lanes": "72",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet8": {
-            "alias": "Eth3/1",
-            "lanes": "73",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet9": {
-            "alias": "Eth3/2",
-            "lanes": "74",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet10": {
-            "alias": "Eth3/3",
-            "lanes": "75",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        },
-        "Ethernet11": {
-            "alias": "Eth3/4",
-            "lanes": "76",
-            "description": "",
-            "speed": "25000",
-            "admin_status": "up"
-        }
-    }
-}
-
-
-TEST_YANG = """
-module sonic-test {
-
-    yang-version 1.1;
-
-    namespace "http://github.com/Azure/sonic-test";
-    prefix test;
-
-    description "Test yang Module for SONiC OS";
-
-    revision 2020-05-01 {
-        description "First Revision";
-    }
-
-    container sonic-test {
-
-        container TEST_OBJ {
-
-            description "Test objects configuration";
-
-            list TEST_OBJ_LIST {
-
-                description "List of Test objects";
-
-                key "name";
-
-                leaf name {
-                    type string {
-                        pattern "l1|forwarding|buffer";
-                    }
-                }
-
-                leaf "type" {
-                    type string {
-                        pattern "type1|type2";
-                    }
-                }
-            }
-            /* end of TEST_OBJ_LIST */
-        }
-        /* end of TEST_OBJ container */
-
-        container TEST {
-
-            description "Test global configuration";
-
-            container global {
-
-                leaf mode {
-                    type string {
-                        pattern "debug";
-                    }
-                    default "debug";
-                }
-            }
-        }
-        /* end of container TEST */
-    }
-    /* end of container sonic-test */
-    }
-/* end of module sonic-test */
-"""
-
 @pytest.fixture
 def mock_docker_api():
     docker = MagicMock(DockerApi)
@@ -276,14 +71,7 @@ def mock_sonic_db():
 
 @pytest.fixture
 def mock_config_mgmt():
-    with open('config_db.json', 'w') as cfg:
-        json.dump(CONFIG_DB_JSON_DATA, cfg)
-    yield ConfigMgmt(source='config_db.json')
-
-
-@pytest.fixture
-def test_yang():
-    yield TEST_YANG
+    yield MagicMock()
 
 
 @pytest.fixture
@@ -297,7 +85,6 @@ def fake_metadata_resolver():
                          'libswsscommon': Version.parse('1.0.0'),
                          'libsairedis': Version.parse('1.0.0')
                      },
-                     yang=TEST_YANG,
             )
             self.add('Azure/docker-test', '1.6.0', 'test-package', '1.6.0')
             self.add('Azure/docker-test-2', '1.5.0', 'test-package-2', '1.5.0')
@@ -559,7 +346,6 @@ def fake_db_for_migration(fake_metadata_resolver):
 @pytest.fixture()
 def sonic_fs(fs):
     fs.create_file('/proc/1/root')
-    fs.create_dir('/usr/local/yang-models')
     fs.create_dir(ETC_SONIC_PATH)
     fs.create_dir(SYSTEMD_LOCATION)
     fs.create_dir(DOCKER_CTL_SCRIPT_LOCATION)
@@ -590,8 +376,7 @@ def package_manager(mock_docker_api,
                          fake_db, fake_metadata_resolver,
                          mock_service_creator,
                          fake_device_info,
-                         MagicMock(),
-                         mock_config_mgmt)
+                         MagicMock())
 
 
 @pytest.fixture

@@ -82,9 +82,10 @@ def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_regist
     assert sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
 
-def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registry,
-                                        mock_sonic_db, mock_config_mgmt, test_yang):
+def test_service_creator_yang(sonic_fs, manifest, mock_feature_registry,
+                                        mock_sonic_db, mock_config_mgmt):
     mock_table = Mock()
+    test_yang = 'TEST YANG'
     mock_table.get = Mock(return_value=(True, (('field_2', 'original_value_2'),)))
     mock_sonic_db.initial_table = Mock(return_value=mock_table)
     mock_sonic_db.persistent_table = Mock(return_value=mock_table)
@@ -96,7 +97,8 @@ def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registr
     package = Package(entry, Metadata(manifest, yang_module_text=test_yang))
     creator.create(package)
 
-    assert not sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
+    mock_config_mgmt.add_module.assert_called_with('TEST YANG')
+    mock_config_mgmt.get_module_name = Mock(return_value='sonic-test')
 
     manifest['package']['init-cfg'] = {
         'TABLE_A': {
@@ -106,14 +108,23 @@ def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registr
             },
         },
     }
-    package = Package(entry, Metadata(manifest))
+    package = Package(entry, Metadata(manifest, yang_module_text=test_yang))
 
     creator.create(package)
+
+    mock_config_mgmt.add_module.assert_called_with('TEST YANG')
+
     mock_table.set.assert_called_with('key_a', [('field_1', 'value_1'),
                                                 ('field_2', 'original_value_2')])
 
+    mock_config_mgmt.sy.confDbYangMap = {
+        'TABLE_A': {'module': 'sonic-test'}
+    }
+    mock_table.getKeys = Mock(return_value=['key_a'])
+
     creator.remove(package)
     mock_table._del.assert_called_with('key_a')
+    mock_config_mgmt.remove_module.assert_called_with('sonic-test')
 
 
 def test_feature_registration(mock_sonic_db, manifest):
