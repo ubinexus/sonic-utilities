@@ -3,6 +3,7 @@
 import click
 import ipaddress
 import json
+import jsonpatch
 import netaddr
 import netifaces
 import os
@@ -11,6 +12,7 @@ import subprocess
 import sys
 import time
 
+from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
@@ -20,6 +22,7 @@ from utilities_common import util_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from .utils import log
 
@@ -826,7 +829,7 @@ def cache_arp_entries():
         if filter_err:
             click.echo("Could not filter FDB entries prior to reloading")
             success = False
-    
+
     # If we are able to successfully cache ARP table info, signal SWSS to restore from our cache
     # by creating /host/config-reload/needs-restore
     if success:
@@ -866,6 +869,7 @@ def config(ctx):
 # Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(aaa.radius)
 config.add_command(chassis_modules.chassis_modules)
 config.add_command(console.console)
 config.add_command(feature.feature)
@@ -986,6 +990,129 @@ def load(filename, yes):
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
 
+@config.command('apply-patch')
+@click.argument('patch-file-path', type=str, required=True)
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
+               help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
+    """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
+       This command can be used do partial updates to the config with minimum disruption to running processes.
+       It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
+       format or SonicYang format.
+
+       <patch-file-path>: Path to the patch file on the file-system."""
+    try:
+        with open(patch_file_path, 'r') as fh:
+            text = fh.read()
+            patch_as_json = json.loads(text)
+            patch = jsonpatch.JsonPatch(patch_as_json)
+
+        config_format = ConfigFormat[format.upper()]
+
+        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run)
+
+        click.secho("Patch applied successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to apply patch", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('target-file-path', type=str, required=True)
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
+               help='format of target config is either ConfigDb(ABNF) or SonicYang')
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def replace(ctx, target_file_path, format, dry_run, verbose):
+    """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
+       if ACL config is different between current and target config only ACL config is updated, and other config/services
+       such as DHCP will not be affected.
+
+       **WARNING** The target config file should be the whole config, not just the part intended to be updated.
+
+       <target-file-path>: Path to the target file on the file-system."""
+    try:
+        with open(target_file_path, 'r') as fh:
+            target_config_as_text = fh.read()
+            target_config = json.loads(target_config_as_text)
+
+        config_format = ConfigFormat[format.upper()]
+
+        GenericUpdater().replace(target_config, config_format, verbose, dry_run)
+
+        click.secho("Config replaced successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to replace config", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def rollback(ctx, checkpoint_name, dry_run, verbose):
+    """Rollback the whole config to the specified checkpoint. The config is rolled back with minimum disruption e.g.
+       if ACL config is different between current and checkpoint config only ACL config is updated, and other config/services
+       such as DHCP will not be affected.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().rollback(checkpoint_name, verbose, dry_run)
+
+        click.secho("Config rolled back successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to rollback config", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def checkpoint(ctx, checkpoint_name, verbose):
+    """Take a checkpoint of the whole current config with the specified checkpoint name.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().checkpoint(checkpoint_name, verbose)
+
+        click.secho("Checkpoint created successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to create a config checkpoint", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command('delete-checkpoint')
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def delete_checkpoint(ctx, checkpoint_name, verbose):
+    """Delete a checkpoint with the specified checkpoint name.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().delete_checkpoint(checkpoint_name, verbose)
+
+        click.secho("Checkpoint deleted successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to delete config checkpoint", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command('list-checkpoints')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def list_checkpoints(ctx, verbose):
+    """List the config checkpoints available."""
+    try:
+        checkpoints_list = GenericUpdater().list_checkpoints(verbose)
+        formatted_output = json.dumps(checkpoints_list, indent=4)
+        click.echo(formatted_output)
+    except Exception as ex:
+        click.secho("Failed to list config checkpoints", fg="red", underline=True, err=True)
+        ctx.fail(ex)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
@@ -2580,8 +2707,8 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before 
-    # changing it to a router port 
+    # Add a validation to check this interface is not a member in vlan before
+    # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
             click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
@@ -2661,6 +2788,25 @@ def remove(ctx, interface_name, ip_addr):
         table_name = get_interface_table_name(interface_name)
         if table_name == "":
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+        # If we deleting the last IP entry of the interface, check whether a static route present for the RIF
+        # before deleting the entry and also the RIF.
+        if len(interface_dependent) == 1 and interface_dependent[0][1] == ip_addr:
+            # Check both IPv4 and IPv6 routes.
+            ip_versions = [ "ip", "ipv6"]
+            for ip_ver in ip_versions:
+                # Compete the command and ask Zebra to return the routes.
+                # Scopes of all VRFs will be checked.
+                cmd = "show {} route vrf all static".format(ip_ver)
+                if multi_asic.is_multi_asic():
+                    output = bgp_util.run_bgp_command(cmd, ctx.obj['namespace'])
+                else:
+                    output = bgp_util.run_bgp_command(cmd)
+                # If there is output data, check is there a static route,
+                # bound to the interface.
+                if output != "":
+                    if any(interface_name in output_line for output_line in output.splitlines()):
+                        ctx.fail("Cannot remove the last IP entry of interface {}. A static {} route is still bound to the RIF.".format(interface_name, ip_ver))
         config_db.set_entry(table_name, (interface_name, ip_addr), None)
         interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
         if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
@@ -3339,7 +3485,7 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage):
     if ports:
         for port in ports.split(","):
             port_list += expand_vlan_ports(port)
-        port_list = set(port_list)
+        port_list = list(set(port_list))  # convert to set first to remove duplicate ifaces
     else:
         port_list = valid_acl_ports
 
@@ -3347,7 +3493,7 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage):
         if port not in valid_acl_ports:
             raise ValueError("Cannot bind ACL to specified port {}".format(port))
 
-    table_info["ports@"] = ",".join(port_list)
+    table_info["ports"] = port_list
 
     table_info["stage"] = stage
 
