@@ -461,10 +461,17 @@ def status(ctx):
         cli_abort(ctx, str(e))
 
 
-# 'auto_update_status' subcommand
-@show.command()
+# 'updates' subcommand
+@cli.group()
 @click.pass_context
-def auto_update_status(ctx):
+def show_update(ctx):
+    pass
+
+
+# 'status' subcommand
+@show_update.command()
+@click.pass_context
+def update_status(ctx):
     """Show platform components auto_update status"""
     try:
         csp = ComponentStatusProvider()
@@ -479,11 +486,16 @@ def version():
     """Show utility version"""
     click.echo("fwutil version {0}".format(VERSION))
 
+show.add_command(show_update, name='update')
+show_update.add_command(update_status, name='status')
+
 install.add_command(chassis_install, name='chassis')
 install.add_command(module_install, name='module')
 
 update.add_command(chassis_update, name='chassis')
 update.add_command(module_update, name='module')
+update.add_command(auto_update, name='all')
+update.add_command(update_status, name='status')
 
 chassis_install.add_command(component_install, name='component')
 module_install.add_command(component_install, name='component')
