@@ -4,6 +4,7 @@ import click
 from click.testing import CliRunner
 import pytest
 import swsssdk
+import traceback
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -190,6 +191,25 @@ class TestSNMPShowCommands(object):
             assert result.exit_code == 0
             assert result.output == json_data_show_run_snmp_location_expected
 
+    def test_show_run_snmp_location_json_bad_key(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["runningconfiguration"].commands["snmp"].commands["location"], ["--json"])            
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert "{}" in result.output
+
+
+    def test_show_run_snmp_location_bad_key(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["runningconfiguration"].commands["snmp"].commands["location"], [])
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert "" in result.output
+
     def test_show_run_snmp_contact_tabular(self):
         db = Db()
         runner = CliRunner()
@@ -228,6 +248,25 @@ class TestSNMPShowCommands(object):
             assert result.exit_code == 0
             assert result.output == json_data_show_run_snmp_contact_expected 
 
+    def test_show_run_snmp_contact_json_bad_key(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["runningconfiguration"].commands["snmp"].commands["contact"], ["--json"])
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert '{}' in result.output
+
+    def test_show_run_snmp_contact_tabular_bad_key(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["runningconfiguration"].commands["snmp"].commands["contact"])
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert '' in result.output
+
+
     def test_show_run_snmp_community_tabular(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["runningconfiguration"].commands["snmp"].commands["community"], [])
@@ -260,6 +299,138 @@ class TestSNMPShowCommands(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == json_data_show_run_snmp_user_expected
+
+    def test_show_run_snmp_user_json_bad_key(self):
+        db = Db()
+        runner = CliRunner()
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_authpriv_RO_1"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_authpriv_RO_1 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_authpriv_RO_2"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_authpriv_RO_2 removed from configuration' in result.output 
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_authpriv_RO_3"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_authpriv_RO_3 removed from configuration' in result.output 
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_authpriv_RW_1"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_authpriv_RW_1 removed from configuration' in result.output
+ 
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_authpriv_RW_2"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_authpriv_RW_2 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_authpriv_RW_3"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_authpriv_RW_3 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_nopriv_RO_1"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_nopriv_RO_1 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_nopriv_RW_1"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_nopriv_RW_1 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RO_1"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RO_1 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RO_2"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RO_2 removed from configuration' in result.output            
+            
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RO_3"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RO_3 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RO_4"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RO_4 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RO_5"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RO_5 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RO_6"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RO_6 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RW_1"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RW_1 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RW_2"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RW_2 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RW_3"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RW_3 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RW_4"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RW_4 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RW_5"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RW_5 removed from configuration' in result.output
+
+            result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["del"],
+                ["test_priv_RW_6"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 0
+            assert 'SNMP user test_priv_RW_6 removed from configuration' in result.output
+
+            result = runner.invoke(show.cli.commands["runningconfiguration"].commands["snmp"].commands["user"], ["--json"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "{}" in result.output
+
 
     def test_show_run_snmp_tabular(self):
         db = Db()
