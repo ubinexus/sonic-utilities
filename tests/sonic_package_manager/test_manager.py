@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from unittest.mock import Mock, call
 
 import pytest

@@ -191,7 +191,6 @@ setup(
     tests_require = [
         'pyfakefs',
         'pytest',
-        'mock>=2.0.0',
         'mockredispy>=2.9.3',
         'sonic-config-engine',
         'deepdiff==5.2.3'

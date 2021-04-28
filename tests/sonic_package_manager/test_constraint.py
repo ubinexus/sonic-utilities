@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from sonic_package_manager import version
 from sonic_package_manager.constraint import PackageConstraint
 from sonic_package_manager.version import Version, VersionRange
