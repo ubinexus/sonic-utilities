@@ -819,12 +819,12 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
             # nexthop_str: ['nexthop', 'vrf', Vrf-name, ip]
             config_entry["nexthop"] = nexthop_str[3]
             config_entry["nexthop-vrf"] = nexthop_str[2]
+        elif 'nexthop' in nexthop_str and 'dev' in nexthop_str:
+            # nexthop_str: ['nexthop', 'dev', ifname]
+            config_entry["ifname"] = nexthop_str[2]
         elif 'nexthop' in nexthop_str:
             # nexthop_str: ['nexthop', ip]
             config_entry["nexthop"] = nexthop_str[1]
-        elif 'dev' in nexthop_str:
-            # nexthop_str: ['nexthop', 'dev', ifname]
-            config_entry["ifname"] = nexthop_str[2]
         else:
             ctx.fail("nexthop is not in pattern!")
 
@@ -3234,9 +3234,12 @@ def add_route(ctx, command_str):
             not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE')):
             ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
 
+    entry_counter = 1
+    if 'nexthop' in route:
+        entry_counter = len(route['nexthop'].split(','))
+
     # Alignment in case the command contains several nexthop ip
-    nh_counter = len(route['nexthop'].split(','))
-    for i in range(nh_counter):
+    for i in range(entry_counter):
         if 'nexthop-vrf' in route:
             if i > 0:
                 vrf = route['nexthop-vrf'].split(',')[0]
@@ -3244,8 +3247,12 @@ def add_route(ctx, command_str):
         else:
             route['nexthop-vrf'] = ''
 
+        if not 'nexthop' in route:
+            route['nexthop'] = ''
+
         if 'ifname' in route:
-            route['ifname'] += ','
+            if i > 0:
+                route['ifname'] += ','
         else:
             route['ifname'] = ''
 
