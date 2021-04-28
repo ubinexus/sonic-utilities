@@ -3227,12 +3227,38 @@ def add_route(ctx, command_str):
     config_db = ctx.obj['config_db']
     key, route = cli_sroute_to_config(ctx, command_str)
 
-    # If defined intf name, check if it exists
+    # If defined intf name, check if it belongs to interface
     if 'ifname' in route:
-        if (not route['ifname'] in config_db.get_keys('VLAN') and
+        if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
             not route['ifname'] in config_db.get_keys('INTERFACE') and
-            not route['ifname'] in config_db.get_keys('PORTCHANNEL')):
+            not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE')):
             ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
+
+    # Alignment in case the command contains several nexthop ip
+    nh_counter = len(route['nexthop'].split(','))
+    for i in range(nh_counter):
+        if 'nexthop-vrf' in route:
+            if i > 0:
+                vrf = route['nexthop-vrf'].split(',')[0]
+                route['nexthop-vrf'] += ',' + vrf
+        else:
+            route['nexthop-vrf'] = ''
+
+        if 'ifname' in route:
+            route['ifname'] += ','
+        else:
+            route['ifname'] = ''
+
+        # Set default values for distance and blackhole because the command doesn't have such an option
+        if 'distance' in route:
+            route['distance'] += ',0'
+        else:
+            route['distance'] = '0'
+
+        if 'blackhole' in route:
+            route['blackhole'] += ',false'
+        else:
+            route['blackhole'] = 'false'
 
     # Check if exist entry with key
     keys = config_db.get_keys('STATIC_ROUTE')
@@ -3240,9 +3266,9 @@ def add_route(ctx, command_str):
         # If exist update current entry
         current_entry = config_db.get_entry('STATIC_ROUTE', key)
 
-        for entry in ['nexthop', 'nexthop-vrf', 'ifname']:
+        for entry in ['nexthop', 'nexthop-vrf', 'ifname', 'distance', 'blackhole']:
             if not entry in current_entry:
-                    current_entry[entry] = ''
+                current_entry[entry] = ''
             if entry in route:
                 current_entry[entry] += ',' + route[entry]
             else:
@@ -3274,12 +3300,18 @@ def del_route(ctx, command_str):
         nh = ['']
         nh_vrf = ['']
         ifname = ['']
+        distance = ['']
+        blackhole = ['']
         if 'nexthop' in current_entry:
             nh = current_entry['nexthop'].split(',')
         if 'nexthop-vrf' in current_entry:
             nh_vrf = current_entry['nexthop-vrf'].split(',')
         if 'ifname' in current_entry:
             ifname = current_entry['ifname'].split(',')
+        if 'distance' in current_entry:
+            distance = current_entry['distance'].split(',')
+        if 'blackhole' in current_entry:
+            blackhole = current_entry['blackhole'].split(',')
 
         # Zip data from config_db into tuples
         # {'nexthop': '10.0.0.2,20.0.0.2', 'vrf-nexthop': ',Vrf-RED', 'ifname': ','}
@@ -3305,6 +3337,10 @@ def del_route(ctx, command_str):
                 del nh_vrf[idx]
             if len(ifname) - 1 >= idx:
                 del ifname[idx]
+            if len(distance) - 1 >= idx:
+                del distance[idx]
+            if len(blackhole) - 1 >= idx:
+                del blackhole[idx]
         else:
             ctx.fail('Not found {} in {}'.format(cli_tuple, key))
 
@@ -3313,10 +3349,12 @@ def del_route(ctx, command_str):
             # If there are no nexthop and ifname fields in the current record, delete it
             config_db.set_entry("STATIC_ROUTE", key, None)
         else:
-            # Otherwise it still has ECMP nexthop or ifname fields, so compose it from the lists in db
+            # Otherwise it still has ECMP nexthop or ifname fields, so compose it from the lists into db
             current_entry['nexthop'] = ','.join((str(e)) for e in nh)
             current_entry['nexthop-vrf'] = ','.join((str(e)) for e in nh_vrf)
             current_entry['ifname'] = ','.join((str(e)) for e in ifname)
+            current_entry['distance'] = ','.join((str(e)) for e in distance)
+            current_entry['blackhole'] = ','.join((str(e)) for e in blackhole)
             config_db.set_entry("STATIC_ROUTE", key, current_entry)
 
 #
