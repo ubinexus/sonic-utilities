@@ -30,6 +30,7 @@ setup(
         'counterpoll',
         'crm',
         'debug',
+        'generic_config_updater',
         'pfcwd',
         'sfputil',
         'ssdutil',
@@ -80,6 +81,7 @@ setup(
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
+        'scripts/disk_check.py',
         'scripts/dropconfig',
         'scripts/dropstat',
         'scripts/dump_nat_entries.py',
@@ -157,6 +159,7 @@ setup(
         'click==7.0',
         'ipaddress==1.0.23',
         'jsondiff==1.2.0',
+        'jsonpatch==1.32.0',
         'm2crypto==0.31.0',
         'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr==0.8.0',
@@ -164,12 +167,13 @@ setup(
         'pexpect==4.8.0',
         'pyroute2==0.5.14',
         'requests==2.25.0',
+        'sonic-config-engine',
         'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
-        'xmltodict==0.12.0'
+        'xmltodict==0.12.0',
     ],
     setup_requires= [
         'pytest-runner',
@@ -178,7 +182,6 @@ setup(
     tests_require = [
         'pytest',
         'mockredispy>=2.9.3',
-        'sonic-config-engine',
         'deepdiff==5.2.3'
     ],
     classifiers=[
