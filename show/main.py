@@ -950,14 +950,7 @@ def logging(process, lines, follow, verbose):
 def version(verbose):
     """Show version information"""
     version_info = device_info.get_sonic_version_info()
-
-    platform = device_info.get_platform()
-    hwsku = device_info.get_hwsku()
-    asic_type = version_info['asic_type']
-    asic_count = multi_asic.get_num_asics()
-
-    serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    hw_info = platform.get_hw_info_dict()
 
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -968,11 +961,13 @@ def version(verbose):
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
-    click.echo("\nPlatform: {}".format(platform))
-    click.echo("HwSKU: {}".format(hwsku))
-    click.echo("ASIC: {}".format(asic_type))
-    click.echo("ASIC Count: {}".format(asic_count))
-    click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
+    click.echo("\nPlatform: {}".format(hw_info['platform']))
+    click.echo("HwSKU: {}".format(hw_info['hwsku']))
+    click.echo("ASIC: {}".format(hw_info['asic_type']))
+    click.echo("ASIC Count: {}".format(hw_info['asic_count']))
+    click.echo("Serial Number: {}".format(hw_info['serial']))
+    click.echo("Model Number: {}".format(hw_info['model']))
+    click.echo("Hardware Rev: {}".format(hw_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'

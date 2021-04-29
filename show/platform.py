@@ -5,13 +5,32 @@ import sys
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import device_info, multi_asic
+from swsscommon import swsscommon
 
 
+#
+# Constants
+# 
+
+CHASSIS_INFO_TABLE = 'CHASSIS_TABLE'
+CHASSIS_INFO_KEY_TEMPLATE = 'CHASSIS {}'
+CHASSIS_INFO_CARD_NUM_FIELD = 'module_num'
+CHASSIS_INFO_SERIAL_FIELD = 'serial'
+CHASSIS_INFO_MODEL_FIELD = 'model'
+CHASSIS_INFO_REV_FIELD = 'revision'
+
+# Get hardware information
 def get_hw_info_dict():
     """
     This function is used to get the HW info helper function
     """
     hw_info_dict = {}
+
+    # Init statedb connection
+    state_db = swsscommon.SonicV2Connector()
+    state_db.connect(state_db.STATE_DB)
+    chassis_table = swsscommon.Table(state_db, CHASSIS_INFO_TABLE)
+    chassis_info = chassis_table.get(CHASSIS_INFO_KEY_TEMPLATE.format(1))
 
     version_info = device_info.get_sonic_version_info()
 
@@ -19,6 +38,9 @@ def get_hw_info_dict():
     hw_info_dict['hwsku'] = device_info.get_hwsku()
     hw_info_dict['asic_type'] = version_info['asic_type']
     hw_info_dict['asic_count'] = multi_asic.get_num_asics()
+    hw_info_dict['serial'] = chassis_info[CHASSIS_INFO_SERIAL_FIELD]
+    hw_info_dict['model'] = chassis_info[CHASSIS_INFO_MODEL_FIELD]
+    hw_info_dict['revision'] = chassis_info[CHASSIS_INFO_REV_FIELD]
 
     return hw_info_dict
 
@@ -49,6 +71,9 @@ def summary(json):
         click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
         click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
         click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
+        click.echo("Serial Number: {}".format(hw_info_dict['serial']))
+        click.echo("Model Number: {}".format(hw_info_dict['model']))
+        click.echo("Hardware Rev: {}".format(hw_info_dict['revision']))
 
 
 # 'syseeprom' subcommand ("show platform syseeprom")
