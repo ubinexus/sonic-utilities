@@ -52,7 +52,6 @@ import json
 import os
 import sys
 
-import swsssdk
 from tabulate import tabulate
 
 # mock the redis for unit test purposes #
@@ -66,6 +65,9 @@ try:
 
 except KeyError:
     pass
+
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+
 
 WRED_PROFILE_TABLE_NAME = "WRED_PROFILE"
 WRED_CONFIG_FIELDS = {
@@ -89,6 +91,10 @@ OFF                        = "[]"
 
 lossless_queues         = ['3', '4']
 
+def chk_exec_privilege():
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        sys.exit("Root privileges required for this operation")
+
 class EcnConfig(object):
     """
     Process ecnconfig
@@ -100,7 +106,7 @@ class EcnConfig(object):
         self.verbose = verbose
 
         # Set up db connections
-        self.db = swsssdk.ConfigDBConnector()
+        self.db = ConfigDBConnector()
         self.db.connect()
 
     def list(self):
@@ -166,8 +172,7 @@ class EcnConfig(object):
         return result
 
     def set_wred_threshold(self, profile, threshold, value):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
 
         field = WRED_CONFIG_FIELDS[threshold]
         if self.verbose:
@@ -179,8 +184,7 @@ class EcnConfig(object):
                 json.dump(prof_table, fd)
 
     def set_wred_prob(self, profile, drop_color, value):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
 
         field = WRED_CONFIG_FIELDS[drop_color]
         if self.verbose:
@@ -202,10 +206,10 @@ class EcnQ(object):
         self.verbose = verbose
 
         # Set up db connections
-        self.config_db = swsssdk.ConfigDBConnector()
+        self.config_db = ConfigDBConnector()
         self.config_db.connect()
 
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.CONFIG_DB)
 
         self.gen_ports_key()
@@ -227,8 +231,8 @@ class EcnQ(object):
             )
 
     def set(self, enable):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
+
         for queue in self.queues:
             if self.verbose:
                 print("%s ECN on %s queue %s" % ("Enable" if enable else "Disable", ','.join(self.ports_key), queue))

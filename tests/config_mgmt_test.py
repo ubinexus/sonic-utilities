@@ -1,16 +1,15 @@
-import imp
 import os
 import sys
-
-# import file under test i.e. config_mgmt.py
-imp.load_source('config_mgmt', \
-    os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py'))
-import config_mgmt
-
-from unittest import TestCase
-from mock import MagicMock, call
 from json import dump
 from copy import deepcopy
+from unittest import mock, TestCase
+
+from utilities_common.general import load_module_from_source
+
+# Import file under test i.e., config_mgmt.py
+config_mgmt_py_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py')
+config_mgmt = load_module_from_source('config_mgmt', config_mgmt_py_path)
+
 
 class TestConfigMgmt(TestCase):
     '''
@@ -42,15 +41,15 @@ class TestConfigMgmt(TestCase):
         curConfig = deepcopy(configDbJson)
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
         cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
-        out = cmdpb.configWithKeys(portBreakOutConfigDbJson, \
-            ["Ethernet8","Ethernet9"])
+        out = cmdpb.configWithKeys(portBreakOutConfigDbJson,
+                                   ["Ethernet8", "Ethernet9"])
         assert "VLAN" not in out
         assert "INTERFACE" not in out
         for k in out['ACL_TABLE']:
             # only ports must be chosen
             len(out['ACL_TABLE'][k]) == 1
-        out = cmdpb.configWithKeys(portBreakOutConfigDbJson, \
-            ["Ethernet10","Ethernet11"])
+        out = cmdpb.configWithKeys(portBreakOutConfigDbJson,
+                                   ["Ethernet10", "Ethernet11"])
         assert "INTERFACE" in out
         for k in out['ACL_TABLE']:
             # only ports must be chosen
@@ -59,13 +58,13 @@ class TestConfigMgmt(TestCase):
 
     def test_break_out(self):
         # prepare default config
-        self.writeJson(portBreakOutConfigDbJson, \
-            config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE)
+        self.writeJson(portBreakOutConfigDbJson,
+                       config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE)
         # prepare config dj json to start with
         curConfig = deepcopy(configDbJson)
-        #Ethernet8: start from 4x25G-->2x50G with -f -l
+        # Ethernet8: start from 4x25G-->2x50G with -f -l
         self.dpb_port8_4x25G_2x50G_f_l(curConfig)
-        #Ethernet8: move from 2x50G-->1x100G without force, list deps
+        # Ethernet8: move from 2x50G-->1x100G without force, list deps
         self.dpb_port8_2x50G_1x100G(curConfig)
         # Ethernet8: move from 2x50G-->1x100G with force, where deps exists
         self.dpb_port8_2x50G_1x100G_f(curConfig)
@@ -108,8 +107,8 @@ class TestConfigMgmt(TestCase):
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
         cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
         # mock funcs
-        cmdpb.writeConfigDB = MagicMock(return_value=True)
-        cmdpb._verifyAsicDB = MagicMock(return_value=True)
+        cmdpb.writeConfigDB = mock.MagicMock(return_value=True)
+        cmdpb._verifyAsicDB = mock.MagicMock(return_value=True)
         from .mock_tables import dbconnector
         return cmdpb
 
@@ -137,28 +136,39 @@ class TestConfigMgmt(TestCase):
         '''
         # default params
         pre = "Ethernet"
-        laneMap = {"4x25G": [1,1,1,1], "2x50G": [2,2], "1x100G":[4], \
-            "1x50G(2)+2x25G(2)":[2,1,1], "2x25G(2)+1x50G(2)":[1,1,2]}
+        laneMap = {"4x25G": [1, 1, 1, 1], "2x50G": [2, 2], "1x100G": [4],
+                   "1x50G(2)+2x25G(2)": [2, 1, 1], "2x25G(2)+1x50G(2)": [1, 1, 2]}
         laneSpeed = 25000
         # generate dPorts
-        l = list(laneMap[curMode]); l.insert(0, 0); id = portIdx; dPorts = list()
+        l = list(laneMap[curMode])
+        l.insert(0, 0)
+        id = portIdx
+        dPorts = list()
         for i in l[:-1]:
             id = id + i
             portName = portName = "{}{}".format(pre, id)
             dPorts.append(portName)
         # generate aPorts
-        l = list(laneMap[newMode]); l.insert(0, 0); id = portIdx; aPorts = list()
+        l = list(laneMap[newMode])
+        l.insert(0, 0)
+        id = portIdx
+        aPorts = list()
         for i in l[:-1]:
             id = id + i
             portName = portName = "{}{}".format(pre, id)
             aPorts.append(portName)
         # generate pJson
-        l = laneMap[newMode]; pJson = {"PORT": {}}; li = laneIdx; pi = 0
+        l = laneMap[newMode]
+        pJson = {"PORT": {}}
+        li = laneIdx
+        pi = 0
         for i in l:
             speed = laneSpeed*i
-            lanes = [str(li+j) for j in range(i)]; lanes = ','.join(lanes)
+            lanes = [str(li+j) for j in range(i)]
+            lanes = ','.join(lanes)
             pJson['PORT'][aPorts[pi]] = {"speed": str(speed), "lanes": str(lanes)}
-            li = li+i; pi = pi + 1
+            li = li+i
+            pi = pi + 1
         return dPorts, pJson
 
     def updateConfig(self, conf, uconf):
@@ -218,7 +228,7 @@ class TestConfigMgmt(TestCase):
         Return:
             void
         '''
-        calls = [call(delConfig), call(addConfig)]
+        calls = [mock.call(delConfig), mock.call(addConfig)]
         assert cmdpb.writeConfigDB.call_count == 2
         cmdpb.writeConfigDB.assert_has_calls(calls, any_order=False)
         return
@@ -257,10 +267,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
-            curMode='1x100G', newMode='1x50G(2)+2x25G(2)')
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73,
+                                           curMode='1x100G', newMode='1x50G(2)+2x25G(2)')
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
-            force=True, loadDefConfig=True)
+                                       force=True, loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             'PORT': {
@@ -323,10 +333,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
-            curMode='4x25G', newMode='1x100G')
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73,
+                                           curMode='4x25G', newMode='1x100G')
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
-            force=False, loadDefConfig=False)
+                                       force=False, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             'PORT': {
@@ -353,10 +363,10 @@ class TestConfigMgmt(TestCase):
             assert for success and failure.
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
-        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
-            curMode='1x100G', newMode='4x25G')
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73,
+                                           curMode='1x100G', newMode='4x25G')
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
-            force=False, loadDefConfig=False)
+                                       force=False, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             'PORT': {
@@ -381,10 +391,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
-            curMode='2x50G', newMode='1x100G')
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73,
+                                           curMode='2x50G', newMode='1x100G')
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
-            force=True, loadDefConfig=False)
+                                       force=True, loadDefConfig=False)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             'ACL_TABLE': {
@@ -417,10 +427,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
-            curMode='2x50G', newMode='1x100G')
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73,
+                                           curMode='2x50G', newMode='1x100G')
         deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson,
-            force=False, loadDefConfig=False)
+                                       force=False, loadDefConfig=False)
         # Expected Result
         assert ret == False and len(deps) == 3
         assert cmdpb.writeConfigDB.call_count == 0
@@ -439,10 +449,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73, \
-            curMode='4x25G', newMode='2x50G')
-        cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True, \
-            loadDefConfig=True)
+        dPorts, pJson = self.generate_args(portIdx=8, laneIdx=73,
+                                           curMode='4x25G', newMode='2x50G')
+        cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True,
+                           loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             'ACL_TABLE': {
@@ -505,10 +515,10 @@ class TestConfigMgmt(TestCase):
         '''
         cmdpb = self.config_mgmt_dpb(curConfig)
         # create ARGS
-        dPorts, pJson = self.generate_args(portIdx=4, laneIdx=69, \
-            curMode='4x25G', newMode='2x50G')
-        cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True, \
-            loadDefConfig=True)
+        dPorts, pJson = self.generate_args(portIdx=4, laneIdx=69,
+                                           curMode='4x25G', newMode='2x50G')
+        cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, force=True,
+                           loadDefConfig=True)
         # Expected Result delConfig and addConfig is pushed in order
         delConfig = {
             'ACL_TABLE': {
@@ -544,8 +554,9 @@ class TestConfigMgmt(TestCase):
         self.postUpdateConfig(curConfig, delConfig, addConfig)
         return
 
+
 ###########GLOBAL Configs#####################################
-configDbJson =  {
+configDbJson = {
     "ACL_TABLE": {
         "NO-NSW-PACL-TEST": {
             "policy_desc": "NO-NSW-PACL-TEST",
@@ -554,7 +565,7 @@ configDbJson =  {
             "ports": [
                 "Ethernet9",
                 "Ethernet11",
-                ]
+            ]
         },
         "NO-NSW-PACL-V4": {
             "policy_desc": "NO-NSW-PACL-V4",
@@ -565,7 +576,7 @@ configDbJson =  {
                 "Ethernet4",
                 "Ethernet8",
                 "Ethernet10"
-                ]
+            ]
         }
     },
     "VLAN": {
@@ -692,7 +703,7 @@ portBreakOutConfigDbJson = {
             "ports": [
                 "Ethernet9",
                 "Ethernet11",
-                ]
+            ]
         },
         "NO-NSW-PACL-V4": {
             "policy_desc": "NO-NSW-PACL-V4",
@@ -701,7 +712,7 @@ portBreakOutConfigDbJson = {
                 "Ethernet4",
                 "Ethernet8",
                 "Ethernet10"
-                ]
+            ]
         }
     },
     "VLAN": {
@@ -719,7 +730,7 @@ portBreakOutConfigDbJson = {
         },
         "Vlan100|Ethernet11": {
             "tagging_mode": "untagged"
-       }
+        }
     },
     "INTERFACE": {
         "Ethernet11": {},

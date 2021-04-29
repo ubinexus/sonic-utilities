@@ -110,6 +110,7 @@
   * [QoS Show commands](#qos-show-commands)
     * [PFC](#pfc)
     * [Queue And Priority-Group](#queue-and-priority-group)
+    * [Buffer Pool](#buffer-pool)
   * [QoS config commands](#qos-config-commands)
 * [sFlow](#sflow)
   * [sFlow Show commands](#sflow-show-commands)
@@ -142,6 +143,7 @@
   * [Watermark Show commands](#watermark-show-commands)
   * [Watermark Config commands](#watermark-config-commands)
 * [Software Installation and Management](#software-installation-and-management)
+  * [SONiC Package Manager](#sonic-package-manager)
   * [SONiC Installer](#sonic-installer)
 * [Troubleshooting Commands](#troubleshooting-commands)
 * [Routing Stack](#routing-stack)
@@ -340,6 +342,7 @@ This command displays the full list of show commands available in the software; 
     aaa                   Show AAA configuration
     acl                   Show ACL related information
     arp                   Show IP ARP table
+    buffer_pool           Show details of the Buffer-pools
     clock                 Show date and time
     ecn                   Show ECN configuration
     environment           Show environmentals (voltages, fans, temps)
@@ -1369,6 +1372,35 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
 
+**config acl add table**
+
+This command is used to create new ACL tables.
+
+- Usage:
+  ```
+  config acl add table [OPTIONS] <table_name> <table_type> [-d <description>] [-p <ports>] [-s (ingress | egress)]
+  ```
+
+- Parameters:
+  - table_name: The name of the ACL table to create.
+  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "MIRROR")
+  - description: A description of the table for the user. (default is the table_name)
+  - ports: A comma-separated list of ports/interfaces to add to the table. The behavior is as follows:
+    - Physical ports will be bound as physical ports
+    - Portchannels will be bound as portchannels - passing a portchannel member is invalid
+    - VLANs will be expanded into their members (e.g. "Vlan1000" will become "Ethernet0,Ethernet2,Ethernet4...")
+  - stage: The stage this ACL table will be applied to, either ingress or egress. (default is ingress)
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config acl add table EXAMPLE L3 -p Ethernet0,Ethernet4 -s ingress
+  ```
+  ```
+  admin@sonic:~$ sudo config acl add table EXAMPLE_2 L3V6 -p Vlan1000,PortChannel0001,Ethernet128 -s egress
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
+
 
 ## ARP & NDP
 
@@ -1962,13 +1994,13 @@ This command displays serial port or a virtual network connection status.
 - Example:
   ```
   admin@sonic:~$ show line
-  Line    Baud    PID    Start Time    Device
-  ------  ------  -----  ------------  --------
-      0       -      -             -
-      1    9600      -             -   switch1
-      2       -      -             -
-      3       -      -             -
-      4       -      -             -
+    Line    Baud    Flow Control    PID    Start Time    Device
+  ------  ------  --------------  -----  ------------  --------
+       1    9600         Enabled      -             -   switch1
+       2       -        Disabled      -             -
+       3       -        Disabled      -             -
+       4       -        Disabled      -             -
+       5       -        Disabled      -             -
   ```
 
 Optionally, you can display configured console ports only by specifying the `-b` or `--breif` flag.
@@ -1976,14 +2008,42 @@ Optionally, you can display configured console ports only by specifying the `-b`
 - Example:
   ```
   admin@sonic:~$ show line -b
-    Line    Baud    PID    Start Time    Device
-  ------  ------  -----  ------------  --------
-       1    9600      -             -   switch1
+    Line    Baud    Flow Control    PID    Start Time    Device
+  ------  ------  --------------  -----  ------------  --------
+       1    9600         Enabled      -             -   switch1
   ```
 
 ## Console config commands
 
 This sub-section explains the list of configuration options available for console management module.
+
+**config console enable**
+
+This command is used to enable SONiC console switch feature.
+
+- Usage:
+  ```
+  config console enable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console enable
+  ```
+
+**config console disable**
+
+This command is used to disable SONiC console switch feature.
+
+- Usage:
+  ```
+  config console disable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console disable
+  ```
 
 **config console add**
 
@@ -2363,6 +2423,31 @@ Dynamic buffer management is responsible for calculating buffer size according t
 
 ### Configuration commands
 
+**configure shared headroom pool**
+
+This command is used to configure the shared headroom pool. The shared headroom pool can be enabled in the following ways:
+
+- Configure the over subscribe ratio. In this case, the size of shared headroom pool is calculated as the accumulative xoff of all of the lossless PG divided by the over subscribe ratio.
+- Configure the size.
+
+In case both of the above parameters have been configured, the `size` will take effect. To disable shared headroom pool, configure both parameters to zero.
+
+- Usage:
+
+  ```
+  config buffer shared-headroom-pool over-subscribe-ratio <over-subscribe-ratio>
+  config buffer shared-headroom-pool size <size>
+  ```
+
+  The range of over-subscribe-ratio is from 1 to number of ports inclusive.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config shared-headroom-pool over-subscribe-ratio 2
+  admin@sonic:~$ sudo config shared-headroom-pool size 1024000
+  ```
+
 **configure a lossless buffer profile**
 
 This command is used to configure a lossless buffer profile.
@@ -2370,18 +2455,21 @@ This command is used to configure a lossless buffer profile.
 - Usage:
 
   ```
-  config buffer_profile add <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
-  config buffer_profile set <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
-  config buffer_profile remove <profile_name>
+  config buffer profile add <profile_name> --xon <xon_threshold> --xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer profile set <profile_name> --xon <xon_threshold> --xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer profile remove <profile_name>
   ```
 
   All the parameters are devided to two groups, one for headroom and one for dynamic_th. For any command at lease one group of parameters should be provided.
   For headroom parameters:
 
-  - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
-  All other parameters are optional.
   - `xon` is madantory.
-  - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
+  - If shared headroom pool is disabled:
+    - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
+    - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
+  - If shared headroom pool is enabled:
+    - `xoff` should be provided.
+    - `size` = `xoff` if it is not provided.
 
   If only headroom parameters are provided, the `dynamic_th` will be taken from `CONFIG_DB.DEFAULT_LOSSLESS_BUFFER_PARAMETER.default_dynamic_th`.
 
@@ -2397,8 +2485,8 @@ This command is used to configure a lossless buffer profile.
 - Example:
 
   ```
-  admin@sonic:~$ sudo config buffer_profile add profile1 -xon 18432 -xoff 18432
-  admin@sonic:~$ sudo config buffer_profile remove profile1
+  admin@sonic:~$ sudo config buffer profile add profile1 --xon 18432 --xoff 18432
+  admin@sonic:~$ sudo config buffer profile remove profile1
   ```
 
 **config interface cable_length**
@@ -2597,6 +2685,12 @@ This command is used to display the status of buffer pools and profiles currentl
 
   ```
   admin@sonic:~$ show buffer configuration
+  Lossless traffic pattern:
+  --------------------  -
+  default_dynamic_th    0
+  over_subscribe_ratio  0
+  --------------------  -
+
   Pool: ingress_lossless_pool
   ----  --------
   type  ingress
@@ -4734,6 +4828,54 @@ While displaying the muxcable configuration, users can configure the following f
           }
     ```
 
+**show muxcable ber-info**
+
+This command displays the ber(Bit error rate) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable ber-info [OPTIONS] PORT TARGET
+  ```
+
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the ber info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        0       0
+    ```
+
+**show muxcable ber-info**
+
+This command displays the eye info in mv(milli volts) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable eye-info [OPTIONS] PORT TARGET
+  ```
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the eye info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        632      622
+    ```
 
 ### Muxcable Config commands
 
@@ -4769,7 +4911,6 @@ While configuring the muxcable, users needs to configure the following fields fo
                "Ethernet0": "OK"  
            }
     ```    
-  
     ```
         admin@sonic:~$ sudo config muxcable  mode active all  
         port        state  
@@ -4785,7 +4926,67 @@ While configuring the muxcable, users needs to configure the following fields fo
                 "Ethernet32": "INPROGRESS",  
                 "Ethernet0": "OK"
            }
-    ```    
+    ```
+**config muxcable prbs enable/disable**
+
+This command is used for setting the configuration and enable/diable of prbs on a port user provides. While enabling in addition to port the user also needs to provides the target, prbs mode and lane map on which the user intends to run prbs on. The target reflects where the enable/dsiable will happen.
+
+- Usage:
+  ```
+  config muxcable prbs enable [OPTIONS] PORT TARGET MODE_VALUE LANE_MAP
+  config muxcable prbs disable [OPTIONS] PORT TARGET
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the prbs on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- MODE_VALUE  required - the mode/type for configuring the PRBS mode.
+             0x00 = PRBS 9, 0x01 = PRBS 15, 0x02 = PRBS 23, 0x03 = PRBS 31
+- LANE_MAP  required - an integer representing the lane_map to be run PRBS on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable prbs enable 1 1 3 3
+        PRBS config sucessful
+        admin@sonic:~$  sudo config muxcable prbs disable 1 0
+        PRBS disable sucessful
+    ```
+
+**config muxcable loopback enable/disable**
+
+This command is used for setting the configuration and enable/disable of loopback on a port user provides. While enabling in addition to port the user also needs to provides the target and lane map on which the user intends to run loopback on. The target reflects where the enable/dsiable will happen.
+
+- Usage:
+  ```
+  config muxcable loopback enable [OPTIONS] PORT TARGET LANE_MAP
+  config muxcable loopback disable [OPTIONS] PORT TARGET
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the loopback on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- LANE_MAP  required - an integer representing the lane_map to be run loopback on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable loopback enable 1 1 3
+        loopback config sucessful
+        admin@sonic:~$  sudo config muxcable loopback disable 1 0
+        loopback disable sucessfull
+    ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 
@@ -5953,11 +6154,14 @@ This command displays the user watermark for the queues (Egress shared pool occu
 
 **show priority-group**
 
-This command displays the user watermark or persistent-watermark for the Ingress "headroom" or "shared pool occupancy" per priority-group for  all ports
+This command displays:
+1) The user watermark or persistent-watermark for the Ingress "headroom" or "shared pool occupancy" per priority-group for all ports.
+2) Dropped packets per priority-group for all ports
 
 - Usage:
   ```
   show priority-group (watermark | persistent-watermark) (headroom | shared)
+  show priority-group drop counters
   ```
 
 - Example:
@@ -5985,6 +6189,18 @@ This command displays the user watermark or persistent-watermark for the Ingress
 - Example (Ingress headroom per PG):
   ```
   admin@sonic:~$ show priority-group persistent-watermark headroom
+  ```
+
+- Example (Ingress dropped packets per PG):
+  ```
+  admin@sonic:~$ show priority-group drop counters
+  Ingress PG dropped packets:
+        Port    PG0    PG1    PG2    PG3    PG4    PG5    PG6    PG7
+  -----------  -----  -----  -----  -----  -----  -----  -----  -----
+    Ethernet0      0      0      0      0      0      0      0      0
+    Ethernet4      0      0      0      0      0      0      0      0
+    Ethernet8      0      0      0      0      0      0      0      0
+   Ethernet12      0      0      0      0      0      0      0      0
   ```
 
 In addition to user watermark("show queue|priority-group watermark ..."), a persistent watermark is available.
@@ -6016,7 +6232,7 @@ This command displays the user persistet-watermark for the queues (Egress shared
   admin@sonic:~$ show queue persistent-watermark multicast
   ```
 
-- NOTE: Both "user watermark" and "persistent watermark" can be cleared by user:
+- NOTE: "user watermark", "persistent watermark" and "ingress dropped packets" can be cleared by user:
 
   ```
   admin@sonic:~$ sonic-clear queue persistent-watermark unicast
@@ -6026,7 +6242,55 @@ This command displays the user persistet-watermark for the queues (Egress shared
   admin@sonic:~$ sonic-clear priority-group persistent-watermark shared
 
   admin@sonic:~$ sonic-clear priority-group persistent-watermark headroom
+
+  admin@sonic:~$ sonic-clear priority-group drop counters
   ```
+
+#### Buffer Pool
+
+This sub-section explains the following buffer pool parameters that can be displayed using "show buffer_pool" command.
+1) buffer pool watermark
+2) buffer pool persistent-watermark
+
+**show buffer_pool watermark**
+
+This command displays the user watermark for all the buffer pools
+
+- Usage:
+  ```
+  show buffer_pool watermark
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show buffer_pool watermark
+  Shared pool maximum occupancy:
+                   Pool    Bytes
+  ---------------------  -------
+  ingress_lossless_pool        0
+             lossy_pool     2464
+  ```
+
+
+**show buffer_pool persistent-watermark**
+
+This command displays the user persistent-watermark for all the buffer pools
+
+- Usage:
+  ```
+  show buffer_pool persistent-watermark
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show buffer_pool persistent-watermark
+  Shared pool maximum occupancy:
+                   Pool    Bytes
+  ---------------------  -------
+  ingress_lossless_pool        0
+             lossy_pool     2464
+  ```
+
 
 
 ### QoS config commands
@@ -7698,8 +7962,316 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#waterm
 
 ## Software Installation and Management
 
-SONiC software can be installed in two methods, viz, "using sonic-installer tool", "ONIE Installer".
+SONiC images can be installed in one of two methods:
+1. From within a running SONiC image using the `sonic-installer` utility
+2. From the vendor's bootloader (E.g., ONIE,  Aboot, etc.)
 
+SONiC packages are available as prebuilt Docker images and meant to be installed with the *sonic-package-manager* utility.
+
+### SONiC Package Manager
+
+The *sonic-package-manager* is a command line tool to manage (e.g. install, upgrade or uninstall) SONiC Packages.
+
+**sonic-package-manager list**
+
+This command lists all available SONiC packages, their desription, installed version and installation status.
+SONiC package status can be *Installed*, *Not installed* or *Built-In*. "Built-In" status means that a feature is built-in to SONiC image and can't be upgraded or uninstalled.
+
+- Usage:
+  ```
+  sonic-package-manager list
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager list
+  Name            Repository                   Description                   Version    Status
+  --------------  ---------------------------  ----------------------------  ---------  --------------
+  cpu-report      azure/cpu-report             CPU report package            N/A        Not Installed
+  database        docker-database              SONiC database package        1.0.0      Built-In
+  dhcp-relay      azure/docker-dhcp-relay      SONiC dhcp-relay package      1.0.0      Installed
+  fpm-frr         docker-fpm-frr               SONiC fpm-frr package         1.0.0      Built-In
+  lldp            docker-lldp                  SONiC lldp package            1.0.0      Built-In
+  macsec          docker-macsec                SONiC macsec package          1.0.0      Built-In
+  mgmt-framework  docker-sonic-mgmt-framework  SONiC mgmt-framework package  1.0.0      Built-In
+  nat             docker-nat                   SONiC nat package             1.0.0      Built-In
+  pmon            docker-platform-monitor      SONiC pmon package            1.0.0      Built-In
+  radv            docker-router-advertiser     SONiC radv package            1.0.0      Built-In
+  sflow           docker-sflow                 SONiC sflow package           1.0.0      Built-In
+  snmp            docker-snmp                  SONiC snmp package            1.0.0      Built-In
+  swss            docker-orchagent             SONiC swss package            1.0.0      Built-In
+  syncd           docker-syncd-mlnx            SONiC syncd package           1.0.0      Built-In
+  teamd           docker-teamd                 SONiC teamd package           1.0.0      Built-In
+  telemetry       docker-sonic-telemetry       SONiC telemetry package       1.0.0      Built-In
+  ```
+
+**sonic-package-manager repository add**
+
+This command will add a new repository as source for SONiC packages to the database. *NOTE*: requires elevated (root) privileges to run
+
+- Usage:
+  ```
+  Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
+
+    Add a new repository to database.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    --default-reference TEXT  Default installation reference. Can be a tag or
+                              sha256 digest in repository.
+    --description TEXT        Optional package entry description.
+    --help                    Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager repository add \
+    cpu-report azure/sonic-cpu-report --default-reference 1.0.0
+  ```
+
+**sonic-package-manager repository remove**
+
+This command will remove a repository as source for SONiC packages from the database . The package has to be *Not Installed* in order to be removed from package database. *NOTE*: requires elevated (root) privileges to run
+
+- Usage:
+  ```
+  Usage: sonic-package-manager repository remove [OPTIONS] NAME
+
+    Remove repository from database.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    --help  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager repository remove cpu-report
+  ```
+
+**sonic-package-manager install**
+
+This command pulls and installs a package on SONiC host. *NOTE*: this command requires elevated (root) privileges to run
+
+- Usage:
+  ```
+  Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
+
+    Install/Upgrade package using [PACKAGE_EXPR] in format
+    "<name>[=<version>|@<reference>]".
+
+      The repository to pull the package from is resolved by lookup in
+      package database,    thus the package has to be added via "sonic-
+      package-manager repository add" command.
+
+      In case when [PACKAGE_EXPR] is a package name "<name>" this command
+      will install or upgrade    to a version referenced by "default-
+      reference" in package database.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    --enable                  Set the default state of the feature to enabled
+                              and enable feature right after installation. NOTE:
+                              user needs to execute "config save -y" to make
+                              this setting persistent.
+    --set-owner [local|kube]  Default owner configuration setting for a feature.
+    --from-repository TEXT    Fetch package directly from image registry
+                              repository. NOTE: This argument is mutually
+                              exclusive with arguments: [package_expr,
+                              from_tarball].
+    --from-tarball FILE       Fetch package from saved image tarball. NOTE: This
+                              argument is mutually exclusive with arguments:
+                              [package_expr, from_repository].
+    -f, --force               Force operation by ignoring package dependency
+                              tree and package manifest validation failures.
+    -y, --yes                 Automatically answer yes on prompts.
+    -v, --verbosity LVL       Either CRITICAL, ERROR, WARNING, INFO or DEBUG.
+                              Default is INFO.
+    --skip-host-plugins       Do not install host OS plugins provided by the
+                              package (CLI, etc). NOTE: In case when package
+                              host OS plugins are set as mandatory in package
+                              manifest this option will fail the installation.
+    --allow-downgrade         Allow package downgrade. By default an attempt to
+                              downgrade the package will result in a failure
+                              since downgrade might not be supported by the
+                              package, thus requires explicit request from the
+                              user.
+    --help                    Show this message and exit..
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay=1.0.2
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay@latest
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay@sha256:9780f6d83e45878749497a6297ed9906c19ee0cc48cc88dc63827564bb8768fd
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install --from-repository azure/sonic-cpu-report:latest
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install --from-tarball sonic-docker-image.gz
+  ```
+
+**sonic-package-manager uninstall**
+
+This command uninstalls package from SONiC host. User needs to stop the feature prior to uninstalling it.
+*NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager uninstall [OPTIONS] NAME
+
+    Uninstall package.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    -f, --force          Force operation by ignoring package dependency tree and
+                        package manifest validation failures.
+    -y, --yes            Automatically answer yes on prompts.
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG. Default
+                        is INFO.
+    --help               Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager uninstall dhcp-relay
+  ```
+
+**sonic-package-manager reset**
+
+This comamnd resets the package by reinstalling it to its default version. *NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager reset [OPTIONS] NAME
+
+    Reset package to the default version.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    -f, --force          Force operation by ignoring package dependency tree and
+                        package manifest validation failures.
+    -y, --yes            Automatically answer yes on prompts.
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG. Default
+                        is INFO.
+    --skip-host-plugins  Do not install host OS plugins provided by the package
+                        (CLI, etc). NOTE: In case when package host OS plugins
+                        are set as mandatory in package manifest this option
+                        will fail the installation.
+    --help               Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager reset dhcp-relay
+  ```
+
+**sonic-package-manager show package versions**
+
+This command will retrieve a list of all available versions for the given package from the configured upstream repository
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package versions [OPTIONS] NAME
+
+    Show available versions.
+
+  Options:
+    --all    Show all available tags in repository.
+    --plain  Plain output.
+    --help   Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay
+  • 1.0.0
+  • 1.0.2
+  • 2.0.0
+  ```
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay --plain
+  1.0.0
+  1.0.2
+  2.0.0
+  ```
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay --all
+  • 1.0.0
+  • 1.0.2
+  • 2.0.0
+  • latest
+  ```
+
+**sonic-package-manager show package changelog**
+
+This command fetches the changelog from the package manifest and displays it. *NOTE*: package changelog can be retrieved from registry or read from image tarball without installing it.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package changelog [OPTIONS] [PACKAGE_EXPR]
+
+    Show package changelog.
+
+  Options:
+    --from-repository TEXT  Fetch package directly from image registry
+                            repository NOTE: This argument is mutually exclusive
+                            with arguments: [from_tarball, package_expr].
+    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                            argument is mutually exclusive with arguments:
+                            [package_expr, from_repository].
+    --help                  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package changelog dhcp-relay
+  1.0.0:
+
+    • Initial release
+
+        Author (author@email.com) Mon, 25 May 2020 12:25:00 +0300
+  ```
+
+**sonic-package-manager show package manifest**
+
+This command fetches the package manifest and displays it. *NOTE*: package manifest can be retrieved from registry or read from image tarball without installing it.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package manifest [OPTIONS] [PACKAGE_EXPR]
+
+    Show package manifest.
+
+  Options:
+    --from-repository TEXT  Fetch package directly from image registry
+                            repository NOTE: This argument is mutually exclusive
+                            with arguments: [package_expr, from_tarball].
+    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                            argument is mutually exclusive with arguments:
+                            [from_repository, package_expr].
+    -v, --verbosity LVL     Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    --help                  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package manifest dhcp-relay=2.0.0
+  {
+    "version": "1.0.0",
+    "package": {
+      "version": "2.0.0",
+      "depends": [
+        "database>=1.0.0,<2.0.0"
+      ]
+    },
+    "service": {
+      "name": "dhcp_relay"
+    }
+  }
+  ```
 
 ### SONiC Installer
 This is a command line tool available as part of the SONiC software; If the device is already running the SONiC software, this tool can be used to install an alternate image in the partition.
@@ -7768,6 +8340,13 @@ This command is used to install a new image on the alternate image partition.  T
   Command: grub-set-default --boot-directory=/host 0
 
   Done
+  ```
+
+Installing a new image using the sonic-installer will keep using the packages installed on the currently running SONiC image and automatically migrate those. In order to perform clean SONiC installation use the *--skip-package-migration* option:
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin --skip-package-migration
   ```
 
 **sonic-installer set_default**

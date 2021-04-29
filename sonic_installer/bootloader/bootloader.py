@@ -2,6 +2,7 @@
 Abstract Bootloader class
 """
 
+from contextlib import contextmanager
 from os import path
 
 from ..common import (
@@ -68,3 +69,7 @@ class Bootloader(object):
         prefix = path.join(HOST_PATH, IMAGE_DIR_PREFIX)
         return image.replace(IMAGE_PREFIX, prefix)
 
+    @contextmanager
+    def get_path_in_image(self, image_path, path_in_image):
+        """returns the path to the squashfs"""
+        yield path.join(image_path, path_in_image)

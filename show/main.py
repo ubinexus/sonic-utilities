@@ -5,14 +5,13 @@ import sys
 import re
 
 import click
-import netifaces
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
 from sonic_py_common import device_info, multi_asic
-from swsssdk import ConfigDBConnector
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
+from utilities_common import util_base
 from utilities_common.db import Db
 
 from . import acl
@@ -25,7 +24,6 @@ from . import gearbox
 from . import interfaces
 from . import kdump
 from . import kube
-from . import mlnx
 from . import muxcable
 from . import nat
 from . import platform
@@ -37,6 +35,7 @@ from . import vnet
 from . import vxlan
 from . import system_health
 from . import warm_restart
+from . import plugins
 
 
 # Global Variables
@@ -58,8 +57,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                text=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
@@ -522,7 +520,8 @@ def queue():
 @queue.command()
 @click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(interfacename, verbose):
+@click.option('--json', is_flag=True, help="JSON output")
+def counters(interfacename, verbose, json):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -533,6 +532,9 @@ def counters(interfacename, verbose):
 
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
+
+    if json:
+        cmd += " -j"
 
     run_command(cmd, display_cmd=verbose)
 
@@ -559,6 +561,13 @@ def wm_q_multi():
     command = 'watermarkstat -t q_shared_multi'
     run_command(command)
 
+# 'all' subcommand ("show queue watermarks all")
+@watermark.command('all')
+def wm_q_all():
+    """Show user WM for all queues"""
+    command = 'watermarkstat -t q_shared_all'
+    run_command(command)
+
 #
 # 'persistent-watermarks' subgroup ("show queue persistent-watermarks ...")
 #
@@ -582,6 +591,12 @@ def pwm_q_multi():
     command = 'watermarkstat -p -t q_shared_multi'
     run_command(command)
 
+# 'all' subcommand ("show queue persistent-watermarks all")
+@persistent_watermark.command('all')
+def pwm_q_all():
+    """Show persistent WM for all queues"""
+    command = 'watermarkstat -p -t q_shared_all'
+    run_command(command)
 
 #
 # 'priority-group' group ("show priority-group ...")
@@ -606,6 +621,17 @@ def wm_pg_headroom():
 def wm_pg_shared():
     """Show user shared WM for pg"""
     command = 'watermarkstat -t pg_shared'
+    run_command(command)
+
+@priority_group.group()
+def drop():
+    """Show priority-group"""
+    pass
+
+@drop.command('counters')
+def pg_drop_counters():
+    """Show dropped packets for priority-group"""
+    command = 'pg-drop -c show'
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -716,65 +742,6 @@ def ip():
 
 
 #
-# get_if_admin_state
-#
-# Given an interface name, return its admin state reported by the kernel.
-#
-def get_if_admin_state(iface):
-    admin_file = "/sys/class/net/{0}/flags"
-
-    try:
-        state_file = open(admin_file.format(iface), "r")
-    except IOError as e:
-        print("Error: unable to open file: %s" % str(e))
-        return "error"
-
-    content = state_file.readline().rstrip()
-    flags = int(content, 16)
-
-    if flags & 0x1:
-        return "up"
-    else:
-        return "down"
-
-
-#
-# get_if_oper_state
-#
-# Given an interface name, return its oper state reported by the kernel.
-#
-def get_if_oper_state(iface):
-    oper_file = "/sys/class/net/{0}/carrier"
-
-    try:
-        state_file = open(oper_file.format(iface), "r")
-    except IOError as e:
-        print("Error: unable to open file: %s" % str(e))
-        return "error"
-
-    oper_state = state_file.readline().rstrip()
-    if oper_state == "1":
-        return "up"
-    else:
-        return "down"
-
-
-#
-# get_if_master
-#
-# Given an interface name, return its master reported by the kernel.
-#
-def get_if_master(iface):
-    oper_file = "/sys/class/net/{0}/master"
-
-    if os.path.exists(oper_file.format(iface)):
-        real_path = os.path.realpath(oper_file.format(iface))
-        return os.path.basename(real_path)
-    else:
-        return ""
-
-
-#
 # 'show ip interfaces' command
 #
 # Display all interfaces with master, an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
@@ -782,75 +749,14 @@ def get_if_master(iface):
 # excluded.
 #
 @ip.command()
-def interfaces():
-    """Show interfaces IPv4 address"""
-    import netaddr
-    header = ['Interface', 'Master', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
-    data = []
-    bgp_peer = get_bgp_peer()
+@multi_asic_util.multi_asic_click_options
+def interfaces(namespace, display):
+    cmd = "sudo ipintutil -a ipv4"
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
-    interfaces = natsorted(netifaces.interfaces())
-
-    for iface in interfaces:
-        ipaddresses = netifaces.ifaddresses(iface)
-
-        if netifaces.AF_INET in ipaddresses:
-            ifaddresses = []
-            neighbor_info = []
-            for ipaddr in ipaddresses[netifaces.AF_INET]:
-                neighbor_name = 'N/A'
-                neighbor_ip = 'N/A'
-                local_ip = str(ipaddr['addr'])
-                netmask = netaddr.IPAddress(ipaddr['netmask']).netmask_bits()
-                ifaddresses.append(["", local_ip + "/" + str(netmask)])
-                try:
-                    neighbor_name = bgp_peer[local_ip][0]
-                    neighbor_ip = bgp_peer[local_ip][1]
-                except Exception:
-                    pass
-                neighbor_info.append([neighbor_name, neighbor_ip])
-
-            if len(ifaddresses) > 0:
-                admin = get_if_admin_state(iface)
-                if admin == "up":
-                    oper = get_if_oper_state(iface)
-                else:
-                    oper = "down"
-                master = get_if_master(iface)
-                if clicommon.get_interface_naming_mode() == "alias":
-                    iface = iface_alias_converter.name_to_alias(iface)
-
-                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
-                neighbor_info.pop(0)
-
-                for ifaddr in ifaddresses[1:]:
-                    data.append(["", "", ifaddr[1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
-                    neighbor_info.pop(0)
-
-    print(tabulate(data, header, tablefmt="simple", stralign='left', missingval=""))
-
-# get bgp peering info
-def get_bgp_peer():
-    """
-    collects local and bgp neighbor ip along with device name in below format
-    {
-     'local_addr1':['neighbor_device1_name', 'neighbor_device1_ip'],
-     'local_addr2':['neighbor_device2_name', 'neighbor_device2_ip']
-     }
-    """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    bgp_peer = {}
-    bgp_neighbor_tables = ['BGP_NEIGHBOR', 'BGP_INTERNAL_NEIGHBOR']
-
-    for table in bgp_neighbor_tables:
-        data = config_db.get_table(table)
-        for neighbor_ip in data:
-            local_addr = data[neighbor_ip]['local_addr']
-            neighbor_name = data[neighbor_ip]['name']
-            bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
-
-    return bgp_peer
+    cmd += " -d {}".format(display)
+    clicommon.run_command(cmd)
 
 #
 # 'route' subcommand ("show ip route")
@@ -926,49 +832,16 @@ def prefix_list(prefix_list_name, verbose):
 # excluded.
 #
 @ipv6.command()
-def interfaces():
-    """Show interfaces IPv6 address"""
-    header = ['Interface', 'Master', 'IPv6 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
-    data = []
-    bgp_peer = get_bgp_peer()
+@multi_asic_util.multi_asic_click_options
+def interfaces(namespace, display):
+    cmd = "sudo ipintutil -a ipv6"
 
-    interfaces = natsorted(netifaces.interfaces())
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
-    for iface in interfaces:
-        ipaddresses = netifaces.ifaddresses(iface)
+    cmd += " -d {}".format(display)
 
-        if netifaces.AF_INET6 in ipaddresses:
-            ifaddresses = []
-            neighbor_info = []
-            for ipaddr in ipaddresses[netifaces.AF_INET6]:
-                neighbor_name = 'N/A'
-                neighbor_ip = 'N/A'
-                local_ip = str(ipaddr['addr'])
-                netmask = ipaddr['netmask'].split('/', 1)[-1]
-                ifaddresses.append(["", local_ip + "/" + str(netmask)])
-                try:
-                    neighbor_name = bgp_peer[local_ip][0]
-                    neighbor_ip = bgp_peer[local_ip][1]
-                except Exception:
-                    pass
-                neighbor_info.append([neighbor_name, neighbor_ip])
-
-            if len(ifaddresses) > 0:
-                admin = get_if_admin_state(iface)
-                if admin == "up":
-                    oper = get_if_oper_state(iface)
-                else:
-                    oper = "down"
-                master = get_if_master(iface)
-                if clicommon.get_interface_naming_mode() == "alias":
-                    iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
-                neighbor_info.pop(0)
-                for ifaddr in ifaddresses[1:]:
-                    data.append(["", "", ifaddr[1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
-                    neighbor_info.pop(0)
-
-    print(tabulate(data, header, tablefmt="simple", stralign='left', missingval=""))
+    clicommon.run_command(cmd)
 
 
 #
@@ -1375,10 +1248,10 @@ def services():
                 break
 
 @cli.command()
-def aaa():
+@clicommon.pass_db
+def aaa(db):
     """Show AAA configuration"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = db.cfgdb
     data = config_db.get_table('AAA')
     output = ''
 
@@ -1424,6 +1297,58 @@ def tacacs():
             output += ('\nTACPLUS_SERVER address %s\n' % row)
             for key in entry:
                 output += ('               %s %s\n' % (key, str(entry[key])))
+    click.echo(output)
+
+@cli.command()
+@clicommon.pass_db
+def radius(db):
+    """Show RADIUS configuration"""
+    output = ''
+    config_db = db.cfgdb
+    data = config_db.get_table('RADIUS')
+
+    radius = {
+        'global': {
+            'auth_type': 'pap (default)',
+            'retransmit': '3 (default)',
+            'timeout': '5 (default)',
+            'passkey': '<EMPTY_STRING> (default)'
+        }
+    }
+    if 'global' in data:
+        radius['global'].update(data['global'])
+    for key in radius['global']:
+        output += ('RADIUS global %s %s\n' % (str(key), str(radius['global'][key])))
+
+    data = config_db.get_table('RADIUS_SERVER')
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            output += ('\nRADIUS_SERVER address %s\n' % row)
+            for key in entry:
+                output += ('               %s %s\n' % (key, str(entry[key])))
+
+    counters_db = SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB, retry_on=False)
+
+    if radius['global'].get('statistics', False) and (data != {}):
+        for row in data:
+            exists = counters_db.exists(counters_db.COUNTERS_DB,
+                                     'RADIUS_SERVER_STATS:{}'.format(row))
+            if not exists:
+                continue
+
+            counter_entry = counters_db.get_all(counters_db.COUNTERS_DB,
+                    'RADIUS_SERVER_STATS:{}'.format(row))
+            output += ('\nStatistics for RADIUS_SERVER address %s\n' % row)
+            for key in counter_entry:
+                if counter_entry[key] != "0":
+                    output += ('               %s %s\n' % (key, str(counter_entry[key])))
+    try:
+        counters_db.close(counters_db.COUNTERS_DB)
+    except Exception as e:
+        pass
+
     click.echo(output)
 
 #
@@ -1544,6 +1469,13 @@ def ztp(status, verbose):
     if verbose:
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
+
 
 if __name__ == '__main__':
     cli()
