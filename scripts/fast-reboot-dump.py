@@ -274,7 +274,7 @@ def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
     # send arp/ndp packets
     for vlan_name, dst_mac, dst_ip in neighbor_entries:
         src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
-        if ipaddress.ip_interface(dst_ip).ip.version == 4:
+        if ipaddress.ip_interface(unicode(dst_ip)).ip.version == 4:
             send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
         else:
             send_ndp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
