@@ -375,7 +375,9 @@ class PackageManager:
                 self.service_creator.create(package, state=feature_state, owner=default_owner)
                 exits.callback(rollback(self.service_creator.remove, package))
 
-                self.service_creator.generate_shutdown_sequence_files(self._get_installed_packages_and(package))
+                self.service_creator.generate_shutdown_sequence_files(
+                    self._get_installed_packages_and(package)
+                )
                 exits.callback(rollback(
                     self.service_creator.generate_shutdown_sequence_files,
                     self.get_installed_packages())
@@ -435,7 +437,9 @@ class PackageManager:
         try:
             self._uninstall_cli_plugins(package)
             self.service_creator.remove(package)
-            self.service_creator.generate_shutdown_sequence_files(self._get_installed_packages_except(package))
+            self.service_creator.generate_shutdown_sequence_files(
+                self._get_installed_packages_except(package)
+            )
 
             # Clean containers based on this image
             containers = self.docker.ps(filters={'ancestor': package.image_id},

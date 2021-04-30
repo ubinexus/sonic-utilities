@@ -195,7 +195,6 @@ class ManifestSchema:
         ]),
         ManifestArray('processes', ManifestRoot('processes', [
             ManifestField('name', DefaultMarshaller(str)),
-            ManifestField('command', DefaultMarshaller(str), ''),
             ManifestField('reconciles', DefaultMarshaller(bool), False),
         ])),
         ManifestRoot('cli', [

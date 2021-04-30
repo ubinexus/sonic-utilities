@@ -9,12 +9,13 @@ from typing import Dict, List, Optional
 
 import jinja2 as jinja2
 from prettyprinter import pformat
+from toposort import toposort_flatten, CircularDependencyError
+
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator import ETC_SONIC_PATH
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 from sonic_package_manager.service_creator.utils import in_chroot
-from toposort import toposort_flatten, CircularDependencyError
 
 SERVICE_FILE_TEMPLATE = 'sonic.service.j2'
 TIMER_UNIT_TEMPLATE = 'timer.unit.j2'
