@@ -12,8 +12,7 @@ from swsscommon import swsscommon
 # Constants
 # 
 
-CHASSIS_INFO_TABLE = 'CHASSIS_TABLE'
-CHASSIS_INFO_KEY_TEMPLATE = 'CHASSIS {}'
+CHASSIS_INFO_TABLE = 'CHASSIS_INFO|chassis {}'
 CHASSIS_INFO_CARD_NUM_FIELD = 'module_num'
 CHASSIS_INFO_SERIAL_FIELD = 'serial'
 CHASSIS_INFO_MODEL_FIELD = 'model'
@@ -27,10 +26,9 @@ def get_hw_info_dict():
     hw_info_dict = {}
 
     # Init statedb connection
-    state_db = swsscommon.SonicV2Connector()
-    state_db.connect(state_db.STATE_DB)
-    chassis_table = swsscommon.Table(state_db, CHASSIS_INFO_TABLE)
-    chassis_info = chassis_table.get(CHASSIS_INFO_KEY_TEMPLATE.format(1))
+    db = swsscommon.SonicV2Connector()
+    db.connect(db.STATE_DB)
+    table = CHASSIS_INFO_TABLE.format(1)
 
     version_info = device_info.get_sonic_version_info()
 
@@ -38,9 +36,9 @@ def get_hw_info_dict():
     hw_info_dict['hwsku'] = device_info.get_hwsku()
     hw_info_dict['asic_type'] = version_info['asic_type']
     hw_info_dict['asic_count'] = multi_asic.get_num_asics()
-    hw_info_dict['serial'] = chassis_info[CHASSIS_INFO_SERIAL_FIELD]
-    hw_info_dict['model'] = chassis_info[CHASSIS_INFO_MODEL_FIELD]
-    hw_info_dict['revision'] = chassis_info[CHASSIS_INFO_REV_FIELD]
+    hw_info_dict['serial'] = db.get(db.STATE_DB, table, CHASSIS_INFO_SERIAL_FIELD)
+    hw_info_dict['model'] = db.get(db.STATE_DB, table, CHASSIS_INFO_MODEL_FIELD)
+    hw_info_dict['revision'] = db.get(db.STATE_DB, table, CHASSIS_INFO_REV_FIELD)
 
     return hw_info_dict
 
