@@ -3469,7 +3469,7 @@ def expand_vlan_ports(port_name):
     return members
 
 
-def parse_acl_table_info(table_name, table_type, description, ports, stage, services):
+def parse_acl_table_info(table_name, table_type, description, ports, stage, services=None):
     table_info = {"type": table_type}
 
     if description:
