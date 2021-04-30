@@ -28,7 +28,6 @@ def manifest():
             'dependent-of': ['swss'],
             'asic-service': False,
             'host-service': True,
-<<<<<<< HEAD
             'warm-shutdown': {
                 'before': ['syncd'],
                 'after': ['swss'],
@@ -36,15 +35,12 @@ def manifest():
             'fast-shutdown': {
                 'before': ['swss'],
             },
-=======
->>>>>>> 08337aa7637b290bb8407c38b2a5dbe3e8383b3e
         },
         'container': {
             'privileged': True,
             'volumes': [
                 '/etc/sonic:/etc/sonic:ro'
             ]
-<<<<<<< HEAD
         },
         'processes': [
             {
@@ -70,24 +66,12 @@ def test_service_creator(sonic_fs, manifest, package_manager, mock_feature_regis
     installed_packages = package_manager._get_installed_packages_and(package)
     creator.create(package)
     creator.generate_shutdown_sequence_files(installed_packages)
-=======
-        }
-    })
-
-
-def test_service_creator(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
-    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
-    entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest))
-    creator.create(package)
->>>>>>> 08337aa7637b290bb8407c38b2a5dbe3e8383b3e
 
     assert sonic_fs.exists(os.path.join(ETC_SONIC_PATH, 'swss_dependent'))
     assert sonic_fs.exists(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.service'))
 
-<<<<<<< HEAD
     def read_file(name):
         with open(os.path.join(ETC_SONIC_PATH, name)) as file:
             return file.read()
@@ -96,8 +80,6 @@ def test_service_creator(sonic_fs, manifest, mock_feature_registry, mock_sonic_d
     assert read_file('fast-reboot_order') == 'teamd test swss syncd'
     assert read_file('test_reconcile') == 'test-process test-process-3'
 
-=======
->>>>>>> 08337aa7637b290bb8407c38b2a5dbe3e8383b3e
 
 def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
