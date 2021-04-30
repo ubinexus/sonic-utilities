@@ -1142,11 +1142,13 @@ def syslog(verbose):
     syslog_dict = {}
     with open("/etc/rsyslog.conf") as syslog_file:
         data = syslog_file.readlines()
+
     for line in data:
-        if line.startswith("*.* @"):
-            line = line.split(":")
-            server = line[0][5:]
+        match = re.search('target="([\w:.]*)"|@\[([\w:.]*)\]:', line)
+        if match:
+            server = match.group(1) if match.group(1) else match.group(2)
             syslog_servers.append(server)
+
     syslog_dict['Syslog Servers'] = syslog_servers
     print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
