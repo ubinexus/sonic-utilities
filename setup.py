@@ -112,6 +112,7 @@ setup(
         'scripts/portconfig',
         'scripts/portstat',
         'scripts/pfcstat',
+        'scripts/pg-drop',
         'scripts/psushow',
         'scripts/queuestat',
         'scripts/reboot',
