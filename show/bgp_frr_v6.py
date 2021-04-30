@@ -1,5 +1,6 @@
 import click
 
+from sonic_py_common import multi_asic
 import utilities_common.bgp_util as bgp_util
 import utilities_common.constants as constants
 import utilities_common.multi_asic as multi_asic_util

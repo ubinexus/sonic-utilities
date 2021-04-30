@@ -47,7 +47,7 @@ def summary(namespace, display):
 def neighbors(ipaddress, info_type, namespace):
     """Show IP (IPv4) BGP neighbors"""
 
-    command = 'show ip bgp neighbor''
+    command = 'show ip bgp neighbor'
     if ipaddress is not None:
         if not bgp_util.is_ipv4_address(ipaddress):
             ctx = click.get_current_context()
