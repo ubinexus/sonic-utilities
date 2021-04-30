@@ -49,6 +49,18 @@ class ComponentConstraints:
                      for component, version in constraints.items()}
         return ComponentConstraints(components)
 
+    def deparse(self) -> Dict[str, str]:
+        """ Returns the manifest representation of components constraints.
+
+        Returns:
+            Dictionary of string keys and string values.
+
+        """
+
+        return {
+            component: str(version) for component, version in self.components.items()
+        }
+
 
 @dataclass
 class PackageConstraint:
@@ -56,10 +68,12 @@ class PackageConstraint:
 
     name: str
     constraint: VersionConstraint
-    components: Dict[str, VersionConstraint] = field(default_factory=dict)
+    _components: ComponentConstraints = ComponentConstraints({})
 
-    def __str__(self):
-        return f'{self.name}{self.constraint}'
+    def __str__(self): return f'{self.name}{self.constraint}'
+
+    @property
+    def components(self): return self._components.components
 
     @staticmethod
     def from_string(constraint_expression: str) -> 'PackageConstraint':
@@ -115,8 +129,7 @@ class PackageConstraint:
 
         name = constraint_dict['name']
         version = VersionConstraint.parse(constraint_dict.get('version') or '*')
-        components = {component: VersionConstraint.parse(version)
-                     for component, version in constraint_dict.get('components', {}).items()}
+        components = ComponentConstraints.parse(constraint_dict.get('components', {}))
         return PackageConstraint(name, version, components)
 
     @staticmethod
@@ -138,3 +151,16 @@ class PackageConstraint:
         else:
             raise ValueError('Input argument should be either str or dict')
 
+    def deparse(self) -> Dict:
+        """ Returns the manifest representation of package constraint.
+
+        Returns:
+            Dictionary in manifest representation.
+
+        """
+
+        return {
+            'name': self.name,
+            'version': str(self.constraint),
+            'components': self._components.deparse(),
+        }

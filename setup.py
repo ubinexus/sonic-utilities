@@ -22,12 +22,15 @@ setup(
     packages=[
         'acl_loader',
         'clear',
+        'clear.plugins',
         'config',
+        'config.plugins',
         'connect',
         'consutil',
         'counterpoll',
         'crm',
         'debug',
+        'generic_config_updater',
         'pfcwd',
         'sfputil',
         'ssdutil',
@@ -42,6 +45,7 @@ setup(
         'pddf_ledutil',
         'show',
         'show.interfaces',
+        'show.plugins',
         'sonic_installer',
         'sonic_installer.bootloader',
         'sonic_package_manager',
@@ -79,6 +83,7 @@ setup(
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
+        'scripts/disk_check.py',
         'scripts/dropconfig',
         'scripts/dropstat',
         'scripts/dump_nat_entries.py',
@@ -165,6 +170,7 @@ setup(
         'ipaddress==1.0.23',
         'jinja2==2.11.3',
         'jsondiff==1.2.0',
+        'jsonpatch==1.32.0',
         'm2crypto==0.31.0',
         'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr==0.8.0',
@@ -174,6 +180,7 @@ setup(
         'prettyprinter==0.18.0',
         'pyroute2==0.5.14',
         'requests==2.25.0',
+        'sonic-config-engine',
         'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
@@ -190,9 +197,8 @@ setup(
     tests_require = [
         'pyfakefs',
         'pytest',
-        'mock>=2.0.0',
         'mockredispy>=2.9.3',
-        'sonic-config-engine'
+        'deepdiff==5.2.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

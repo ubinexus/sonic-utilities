@@ -233,14 +233,14 @@ def mount_squash_fs(squashfs_path, mount_point):
 
 
 def umount(mount_point, read_only=True, recursive=False, force=True, remove_dir=True):
-    flags = "-"
+    flags = []
     if read_only:
-        flags = flags + "r"
+        flags.append("-r")
     if force:
-        flags = flags + "f"
+        flags.append("-f")
     if recursive:
-        flags = flags + "R"
-    run_command_or_raise(["umount", flags, mount_point])
+        flags.append("-R")
+    run_command_or_raise(["umount", *flags, mount_point])
     if remove_dir:
         run_command_or_raise(["rm", "-rf", mount_point])
 

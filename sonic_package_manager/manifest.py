@@ -1,15 +1,15 @@
 #!/usr/bin/env python
+
 from abc import ABC
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 
 from sonic_package_manager.constraint import (
     ComponentConstraints,
-    PackageConstraint,
-    VersionConstraint
+    PackageConstraint
 )
 from sonic_package_manager.errors import ManifestError
-from sonic_package_manager.version import Version, VersionRange
+from sonic_package_manager.version import Version
 
 
 class ManifestSchema:
@@ -54,6 +54,8 @@ class ManifestSchema:
 
         def unmarshal(self, value):
             try:
+                if hasattr(value, 'deparse'):
+                    return value.deparse()
                 return str(value)
             except Exception as err:
                 raise ManifestError(f'Failed to unmarshal {value}: {err}')
@@ -192,7 +194,6 @@ class ManifestSchema:
             ManifestArray('tmpfs', DefaultMarshaller(str)),
         ]),
         ManifestArray('processes', ManifestRoot('processes', [
-            ManifestField('critical', DefaultMarshaller(bool), False),
             ManifestField('name', DefaultMarshaller(str)),
             ManifestField('command', DefaultMarshaller(str), ''),
             ManifestField('reconciles', DefaultMarshaller(bool), False),

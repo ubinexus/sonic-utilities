@@ -28,10 +28,12 @@ class PackageSource(object):
         """
         raise NotImplementedError
 
-    def install_image(self):
+    def install_image(self, package: Package):
         """ Install image based on package source.
         Child class has to implement this method.
 
+        Args:
+            package: SONiC Package
         Returns:
             Docker Image object.
         """
@@ -46,7 +48,7 @@ class PackageSource(object):
             package: SONiC Package
         """
 
-        image = self.install_image()
+        image = self.install_image(package)
         package.entry.image_id = image.id
         # if no repository is defined for this package
         # get repository from image
@@ -76,20 +78,20 @@ class PackageSource(object):
         name = manifest['package']['name']
         description = manifest['package']['description']
 
+        # Will be resolved in install() method.
+        # When installing from tarball we don't know yet
+        # the repository for this package.
         repository = None
 
         if self.database.has_package(name):
             # inherit package database info
-            package = self.database.get_package(name)
-            repository = package.repository
-            description = description or package.description
+            package_entry = self.database.get_package(name)
+        else:
+            package_entry = PackageEntry(name, repository,
+                                         description=description)
 
         return Package(
-            PackageEntry(
-                name,
-                repository,
-                description,
-            ),
+            package_entry,
             metadata
         )
 
@@ -113,7 +115,7 @@ class TarballSource(PackageSource):
 
         return self.metadata_resolver.from_tarball(self.tarball_path)
 
-    def install_image(self):
+    def install_image(self, package: Package):
         """ Installs image from local tarball source. """
 
         return self.docker.load(self.tarball_path)
@@ -141,10 +143,13 @@ class RegistrySource(PackageSource):
         return self.metadata_resolver.from_registry(self.repository,
                                                     self.reference)
 
-    def install_image(self):
+    def install_image(self, package: Package):
         """ Installs image from registry. """
 
-        return self.docker.pull(self.repository, self.reference)
+        image_id = self.docker.pull(self.repository, self.reference)
+        if not package.entry.default_reference:
+            package.entry.default_reference = self.reference
+        return image_id
 
 
 class LocalSource(PackageSource):
