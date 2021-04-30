@@ -5,7 +5,7 @@ import os
 import stat
 import subprocess
 from collections import defaultdict
-from typing import Dict, Optional
+from typing import Dict
 
 import jinja2 as jinja2
 from prettyprinter import pformat
