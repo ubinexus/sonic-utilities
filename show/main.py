@@ -960,7 +960,7 @@ def version(verbose):
     asic_type = version_info['asic_type']
     asic_count = multi_asic.get_num_asics()
 
-    serial_number=''
+    serial_number = None
     db = SonicV2Connector()
     db.connect(db.STATE_DB)
     eeprom_table = db.get_all(db.STATE_DB, 'EEPROM_INFO|0x23')
