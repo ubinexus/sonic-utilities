@@ -10,6 +10,32 @@ from sonic_py_common import multi_asic
 from tabulate import tabulate
 from utilities_common import constants
 
+def get_namespace_for_bgp_neighbor(neighbor_ip):
+    namespace_list = multi_asic.get_namespace_list()
+    for namespace in namespace_list:
+        if is_bgp_neigh_present(neighbor_ip, namespace):
+            return namespace
+
+    # neighbor IP not present in any namespace
+    raise ValueError(
+                 ' Bgp neighbor {} not configured'.format(neighbor_ip))
+
+
+def is_bgp_neigh_present(neighbor_ip, namespace=multi_asic.DEFAULT_NAMESPACE):
+    config_db = multi_asic.connect_config_db_for_ns(namespace)
+    #check the internal
+    bgp_session = config_db.get_entry(multi_asic.BGP_NEIGH_CFG_DB_TABLE,
+                                      neighbor_ip)
+    if bgp_session:
+        return True
+
+    bgp_session = config_db.get_entry(
+        multi_asic.BGP_INTERNAL_NEIGH_CFG_DB_TABLE, neighbor_ip)
+    if bgp_session:
+        return True
+    return False
+
+
 
 def is_ipv4_address(ip_address):
     """
