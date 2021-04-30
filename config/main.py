@@ -2090,17 +2090,20 @@ def is_valid_community_type(commstr_type):
 
 
 def is_valid_user_type(user_type):
+    convert_user_type = {'noauthnopriv': 'noAuthNoPriv', 'authnopriv': 'AuthNoPriv', 'priv': 'Priv'}
     user_types = ['noauthnopriv', 'authnopriv', 'priv']
     if user_type not in user_types:
-        click.echo("Invalid user type.  Must be one of these one of these three "
+        message = ("Invalid user type.  Must be one of these one of these three "
                    "'noauthnopriv' or 'authnopriv' or 'priv'")
-        return False
-    return True
+        click.echo(message)
+        return False, message
+    return True, convert_user_type[user_type]
 
 
 def is_valid_auth_type(user_auth_type):
     user_auth_types = ['MD5', 'SHA', 'HMAC-SHA-2']
     if user_auth_type not in user_auth_types:
+        click.echo("Invalid user authentication type. Must be one of these 'MD5', 'SHA', or 'HMAC-SHA-2'")
         return False
     return True
 
@@ -2184,26 +2187,22 @@ def add_community(db, community, string_type):
     """ Add snmp community string"""
     string_type = string_type.upper()
     if not is_valid_community_type(string_type):
-        click.echo("SNMP type must be RO or RW and not {}".format(string_type))
         sys.exit(1)
     if not snmp_community_secret_check(community):
-        click.echo("Bad community")
         sys.exit(2)
     snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
     if community in snmp_communities:
         click.echo("SNMP community {} is already configured".format(community))
         sys.exit(3)
-    else:
-        db.cfgdb.set_entry('SNMP_COMMUNITY', community, {'TYPE': string_type})
-        click.echo("SNMP community {} added to configuration".format(community))
-        try:
-            click.echo("Restarting SNMP service...")
-            clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
-            clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
-        except SystemExit as e:
-            db.cfgdb.set_entry('SNMP_COMMUNITY', community, None)
-            click.echo("Restart service snmp failed with error {}".format(e))
-            raise click.Abort()
+    db.cfgdb.set_entry('SNMP_COMMUNITY', community, {'TYPE': string_type})
+    click.echo("SNMP community {} added to configuration".format(community))
+    try:
+        click.echo("Restarting SNMP service...")
+        clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+        clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+    except SystemExit as e:
+        click.echo("Restart service snmp failed with error {}".format(e))
+        raise click.Abort()
 
 
 @community.command('del')
@@ -2238,7 +2237,6 @@ def replace_community(db, current_community, new_community):
         click.echo("Current SNMP community {} is not configured".format(current_community))
         sys.exit(1)
     if not snmp_community_secret_check(new_community):
-        click.echo("Bad community")
         sys.exit(2)
     elif new_community in snmp_communities:
         click.echo("New SNMP community {} to replace current SNMP community {} already "
@@ -2249,7 +2247,6 @@ def replace_community(db, current_community, new_community):
         db.cfgdb.set_entry('SNMP_COMMUNITY', new_community, {'TYPE': string_type})
         click.echo("SNMP community {} added to configuration".format(new_community))
         db.cfgdb.set_entry('SNMP_COMMUNITY', current_community, None)
-        click.echo('SNMP community {} removed from configuration'.format(current_community))
         click.echo('SNMP community {} replace community {}'.format(new_community, current_community))
         try:
             click.echo("Restarting SNMP service...")
@@ -2281,9 +2278,6 @@ def add_contact(db, contact, contact_email):
         if snmp['CONTACT']:
             click.echo("Contact already exists.  Use sudo config snmp contact modify instead")
             sys.exit(1)
-        if not is_valid_email(contact_email):
-            click.echo("Contact email {} is not valid".format(contact_email))
-            sys.exit(2)
         else:
             db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email})
             click.echo("Contact name {} and contact email {} have been added to "
@@ -2297,6 +2291,9 @@ def add_contact(db, contact, contact_email):
                 raise click.Abort()
     except KeyError:
         if "CONTACT" not in snmp.keys():
+            if not is_valid_email(contact_email):
+                click.echo("Contact email {} is not valid".format(contact_email))
+                sys.exit(2)
             db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email})
             click.echo("Contact name {} and contact email {} have been added to "
                        "configuration".format(contact, contact_email))
@@ -2352,6 +2349,9 @@ def modify_contact(db, contact, contact_email):
             click.echo("SNMP contact {} {} already exists".format(contact, contact_email))
             sys.exit(1)
         elif contact == current_snmp_contact_name and contact_email != current_snmp_contact_email:
+            if not is_valid_email(contact_email):
+                click.echo("Contact email {} is not valid".format(contact_email))
+                sys.exit(2)
             db.cfgdb.mod_entry('SNMP', 'CONTACT', {contact: contact_email})
             click.echo("SNMP contact {} email updated to {}".format(contact, contact_email))
             try:
@@ -2362,6 +2362,9 @@ def modify_contact(db, contact, contact_email):
                 click.echo("Restart service snmp failed with error {}".format(e))
                 raise click.Abort()
         else:
+            if not is_valid_email(contact_email):
+                click.echo("Contact email {} is not valid".format(contact_email))
+                sys.exit(2)
             db.cfgdb.set_entry('SNMP', 'CONTACT', None)
             db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email})
             click.echo("SNMP contact {} and contact email {} updated".format(contact, contact_email))
@@ -2375,7 +2378,7 @@ def modify_contact(db, contact, contact_email):
     except KeyError:
         if "CONTACT" not in snmp.keys():
             click.echo("Contact name {} is not configured".format(contact))
-            sys.exit(2)
+            sys.exit(3)
 
 
 @snmp.group(cls=clicommon.AbbreviationGroup)
@@ -2471,6 +2474,24 @@ def modify_location(db, location):
         sys.exit(2)
 
 
+from enum import IntEnum
+class SnmpUserError(IntEnum):
+    NameCheckFailure = 1
+    TypeNoAuthNoPrivOrAuthNoPrivOrPrivCheckFailure = 2
+    RoRwCheckFailure = 3
+    NoAuthNoPrivHasAuthType = 4
+    AuthTypeMd5OrShaOrHmacsha2IsMissing = 5
+    AuthTypeMd5OrShaOrHmacsha2Failure = 6
+    AuthPasswordMissing = 7
+    AuthPasswordFailsComplexityRequirements = 8
+    EncryptPasswordNotAllowedWithAuthNoPriv = 9
+    EncryptTypeDesOrAesIsMissing = 10
+    EncryptTypeFailsComplexityRequirements = 11
+    EncryptPasswordMissingFailure = 12
+    EncryptPasswordFailsComplexityRequirements = 13
+    UserAlreadyConfigured = 14
+
+
 @snmp.group(cls=clicommon.AbbreviationGroup)
 @clicommon.pass_db
 def user(db):
@@ -2486,71 +2507,58 @@ def user(db):
 @click.argument('user_encrypt_type', metavar='<DES|AES>', required=False)
 @click.argument('user_encrypt_password', metavar='<encrypt_password>', required=False)
 @clicommon.pass_db
-def add_user(db, user, user_type, user_permission_type, user_auth_type, user_auth_password, user_encrypt_type, 
+def add_user(db, user, user_type, user_permission_type, user_auth_type, user_auth_password, user_encrypt_type,
              user_encrypt_password):
     """ Add snmp user"""
-    click.echo(user)
     if not snmp_username_check(user):
-        click.echo("Bad SNMP user")
-        sys.exit(1)
+        sys.exit(SnmpUserError.NameCheckFailure)
     user_type = user_type.lower()
-    if not is_valid_user_type(user_type):
-        click.echo("User type {} is invalid.  Must be noauthnopriv, authnopriv, or priv".format(user_type))
-        sys.exit(2)
-    if user_type == "noauthnopriv":
-        user_type = "noAuthNoPriv"
-    elif user_type == "authnopriv":
-        user_type = "AuthNoPriv"
-    elif user_type == "priv":
-        user_type = "Priv"
+    if not is_valid_user_type(user_type)[0]:
+        sys.exit(SnmpUserError.TypeNoAuthNoPrivOrAuthNoPrivOrPrivCheckFailure)
+    user_type = is_valid_user_type(user_type)[1]
     user_permission_type = user_permission_type.upper()
     if not is_valid_community_type(user_permission_type):
-        click.echo("User permission type {} is invalid.  Must be RO or RW".format(user_permission_type))
-        sys.exit(3)
+        sys.exit(SnmpUserError.RoRwCheckFailure)
     if user_type == "noAuthNoPriv":
         if user_auth_type:
             click.echo("User auth type not used with 'noAuthNoPriv'.  Please use 'AuthNoPriv' or 'Priv' instead")
-            sys.exit(4)
-    if user_type is not 'noAuthNoPriv':
+            sys.exit(SnmpUserError.NoAuthNoPrivHasAuthType)
+    else:
         if not user_auth_type:
             click.echo("User auth type is missing.  Must be MD5, SHA, or HMAC-SHA-2")
-            sys.exit(5)
+            sys.exit(SnmpUserError.AuthTypeMd5OrShaOrHmacsha2IsMissing)
         if user_auth_type:
             user_auth_type = user_auth_type.upper()
             if not is_valid_auth_type(user_auth_type):
-                click.echo("User auth type {} is invalid.  Must be MD5, SHA, or HMAC-SHA-2".format(user_auth_type))
-                sys.exit(6)
+                sys.exit(SnmpUserError.AuthTypeMd5OrShaOrHmacsha2Failure)
             elif not user_auth_password:
                 click.echo("User auth password is missing")
-                sys.exit(7)
+                sys.exit(SnmpUserError.AuthPasswordMissing)
             elif user_auth_password:
                 if not snmp_user_secret_check(user_auth_password):
-                    click.echo("Bad user auth password")
-                    sys.exit(8)
+                    sys.exit(SnmpUserError.AuthPasswordFailsComplexityRequirements)
         if user_type == "AuthNoPriv":
             if user_encrypt_type:
                 click.echo("User encrypt type not used with 'AuthNoPriv'.  Please use 'Priv' instead")
-                sys.exit(9)
+                sys.exit(SnmpUserError.EncryptPasswordNotAllowedWithAuthNoPriv)
         elif user_type == "Priv":
             if not user_encrypt_type:
                 click.echo("User encrypt type is missing.  Must be DES or AES")
-                sys.exit(10)
+                sys.exit(SnmpUserError.EncryptTypeDesOrAesIsMissing)
             if user_encrypt_type:
                 user_encrypt_type = user_encrypt_type.upper()
                 if not is_valid_encrypt_type(user_encrypt_type):
-                    click.echo("User encryption type {} is invalid.  Must be DES or AES".format(user_encrypt_type))
-                    sys.exit(11)
+                    sys.exit(SnmpUserError.EncryptTypeFailsComplexityRequirements)
                 elif not user_encrypt_password:
                     click.echo("User encrypt password is missing")
-                    sys.exit(12)
+                    sys.exit(SnmpUserError.EncryptPasswordMissingFailure)
                 elif user_encrypt_password:
                     if not snmp_user_secret_check(user_encrypt_password):
-                        click.echo("Bad user encrypt password")
-                        sys.exit(13)
+                        sys.exit(SnmpUserError.EncryptPasswordFailsComplexityRequirements)
     snmp_users = db.cfgdb.get_table("SNMP_USER")
     if user in snmp_users.keys():
         click.echo("SNMP user {} is already configured".format(user))
-        sys.exit(14)
+        sys.exit(SnmpUserError.UserAlreadyConfigured)
     else:
         if not user_auth_type:
             user_auth_type = ''
@@ -2575,6 +2583,7 @@ def add_user(db, user, user_type, user_permission_type, user_auth_type, user_aut
             click.echo("Restart service snmp failed with error {}".format(e))
             raise click.Abort()
 
+
 @user.command('del')
 @click.argument('user', metavar='<snmp_user>', required=True)
 @clicommon.pass_db
@@ -2594,7 +2603,6 @@ def del_user(db, user):
         except SystemExit as e:
             click.echo("Restart service snmp failed with error {}".format(e))
             raise click.Abort()
-
 
 #
 # 'bgp' group ('config bgp ...')

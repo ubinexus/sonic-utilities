@@ -141,7 +141,7 @@ class TestSNMPConfigCommands(object):
         result = runner.invoke(config.config.commands["snmp"].commands["community"].commands["add"], ["Everest", "RT"])
         print(result.exit_code)
         assert result.exit_code == 1
-        assert 'SNMP type must be RO or RW and not RT' in result.output
+        assert 'Invalid community type.  Must be either RO or RW' in result.output
 
     def test_config_snmp_community_add_invalid_community_over_32_characters(self):
         runner = CliRunner()
@@ -198,7 +198,7 @@ class TestSNMPConfigCommands(object):
         assert db.cfgdb.get_entry("SNMP_COMMUNITY", "Everest") == \
                 expected_snmp_community_replace_existing_community_with_new_community_output
 
-    def test_config_snmp_community_replace_existing_community_does_not_exist(self):
+    def test_config_snmp_community_replace_existing_community_non_existing_community(self):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["snmp"].commands["community"].commands["replace"],
                                                      ["Denali", "Everest"])
@@ -247,7 +247,7 @@ class TestSNMPConfigCommands(object):
         result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["modify"], 
                                                      ["blah", "blah@contoso.com"], obj=db)
         print(result.exit_code)
-        assert result.exit_code == 2
+        assert result.exit_code == 3
         assert 'Contact name blah is not configured' in result.output
         assert db.cfgdb.get_entry("SNMP", "CONTACT") == {}
 
@@ -290,8 +290,19 @@ class TestSNMPConfigCommands(object):
             assert result.exit_code == 1
             assert 'Contact already exists.  Use sudo config snmp contact modify instead' in result.output
 
+    def test_config_snmp_contact_add_invalid_email(self):
+        db = Db()
+        runner = CliRunner()
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
+                              ["testuser", "testusercontoso.com"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 2
+            assert "Contact email testusercontoso.com is not valid" in result.output
+
+
     # Delete snmp contact tests
-    def test_config_snmp_contact_del_without_existing_contact(self):
+    def test_config_snmp_contact_del_new_contact_when_contact_exists(self):
         db = Db()
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
@@ -364,6 +375,43 @@ class TestSNMPConfigCommands(object):
             print(result.exit_code)
             assert result.exit_code == 1
             assert 'SNMP contact testuser testuser@contoso.com already exists' in result.output
+
+    def test_config_snmp_contact_modify_existing_contact_with_invalid_email(self):
+        db = Db()
+        runner = CliRunner()
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
+                                    ["testuser", "testuser@contoso.com"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_snmp_contact_add_del_new_contact
+            assert db.cfgdb.get_entry("SNMP", "CONTACT") == {"testuser": "testuser@contoso.com"}
+
+            result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["modify"],
+                                                     ["testuser", "testuser@contosocom"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 2
+            assert 'Contact email testuser@contosocom is not valid' in result.output
+
+
+    def test_config_snmp_contact_modify_new_contact_with_invalid_email(self):
+        db = Db()
+        runner = CliRunner()
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["add"],
+                                    ["testuser", "testuser@contoso.com"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_snmp_contact_add_del_new_contact
+            assert db.cfgdb.get_entry("SNMP", "CONTACT") == {"testuser": "testuser@contoso.com"}
+
+            result = runner.invoke(config.config.commands["snmp"].commands["contact"].commands["modify"],
+                                                     ["blah", "blah@contoso@com"], obj=db)
+            print(result.exit_code)
+            assert result.exit_code == 2
+            assert 'Contact email blah@contoso@com is not valid' in result.output
 
     # Add snmp location tests
     def test_config_snmp_location_add_exiting_location_with_same_location_already_existing(self):
@@ -521,8 +569,10 @@ class TestSNMPConfigCommands(object):
         result = runner.invoke(config.config.commands["snmp"].commands["user"].commands["add"],
                                                      ["test_nopriv_RO_3", "nopriv", "ro"])
         print(result.exit_code)
+        print(result)
+        print(result.output)
         assert result.exit_code == 2
-        assert 'User type nopriv is invalid.  Must be noauthnopriv, authnopriv, or priv' in result.output
+        assert "Invalid user type.  Must be one of these one of these three 'noauthnopriv' or 'authnopriv' or 'priv'" in result.output
 
     def test_config_snmp_user_add_invalid_permission_type(self):
         runner = CliRunner()
@@ -530,7 +580,7 @@ class TestSNMPConfigCommands(object):
                                                      ["test_nopriv_RO_3", "noauthnopriv", "ab"])
         print(result.exit_code)
         assert result.exit_code == 3
-        assert 'User permission type AB is invalid.  Must be RO or RW' in result.output
+        assert "Invalid community type.  Must be either RO or RW" in result.output
 
     def test_config_snmp_user_add_user_type_noauthnopriv_with_unnecessary_auth_type(self):
         runner = CliRunner()
@@ -538,8 +588,7 @@ class TestSNMPConfigCommands(object):
                                                      ["test_nopriv_RO_3", "noauthnopriv", "ro", "sha"])
         print(result.exit_code)
         assert result.exit_code == 4
-        assert "User auth type not used with 'noAuthNoPriv'.  Please use 'AuthNoPriv' or 'Priv' instead" \
-               in result.output
+        assert "User auth type not used with 'noAuthNoPriv'.  Please use 'AuthNoPriv' or 'Priv' instead" in result.output
 
     def test_config_snmp_user_add_user_type_authnopriv_missing_auth_type(self):
         runner = CliRunner()
@@ -620,7 +669,7 @@ class TestSNMPConfigCommands(object):
                               ["test_nopriv_RO_3", "authnopriv", "ro", "DM5", "user_auth_pass"])
         print(result.exit_code)
         assert result.exit_code == 6
-        assert 'User auth type DM5 is invalid.  Must be MD5, SHA, or HMAC-SHA-2' in result.output
+        assert "Invalid user authentication type. Must be one of these 'MD5', 'SHA', or 'HMAC-SHA-2'" in result.output
 
     def test_config_snmp_user_add_missing_auth_password(self):
         runner = CliRunner()
@@ -636,7 +685,7 @@ class TestSNMPConfigCommands(object):
                               ["test_nopriv_RO_3", "priv", "ro", "SHA", "user_auth_pass", "EAS", "user_encrypt_pass"])
         print(result.exit_code)
         assert result.exit_code == 11
-        assert 'User encryption type EAS is invalid.  Must be DES or AES' in result.output
+        assert "Invalid user encryption type.  Must be one of these two 'DES' or 'AES'" in result.output
 
     def test_config_snmp_user_add_missing_encrypt_password(self):
         runner = CliRunner()
@@ -812,3 +861,4 @@ class TestSNMPConfigCommands(object):
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+
