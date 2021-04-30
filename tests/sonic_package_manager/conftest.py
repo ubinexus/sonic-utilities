@@ -75,7 +75,6 @@ def fake_metadata_resolver():
                      components={
                          'libswsscommon': Version.parse('1.0.0'),
                          'libsairedis': Version.parse('1.0.0')
-<<<<<<< HEAD
                      },
                      warm_shutdown={
                          'before': ['syncd'],
@@ -106,8 +105,6 @@ def fake_metadata_resolver():
                      },
                      fast_shutdown={
                          'before': ['swss'],
-=======
->>>>>>> 08337aa7637b290bb8407c38b2a5dbe3e8383b3e
                      }
             )
             self.add('Azure/docker-test', '1.6.0', 'test-package', '1.6.0')
@@ -141,13 +138,9 @@ def fake_metadata_resolver():
             components = self.metadata_store[path][ref]['components']
             return Metadata(manifest, components)
 
-<<<<<<< HEAD
         def add(self, repo, reference, name, version, components=None,
                 warm_shutdown=None, fast_shutdown=None,
                 processes=None):
-=======
-        def add(self, repo, reference, name, version, components=None):
->>>>>>> 08337aa7637b290bb8407c38b2a5dbe3e8383b3e
             repo_dict = self.metadata_store.setdefault(repo, {})
             repo_dict[reference] = {
                 'manifest': {
@@ -158,14 +151,10 @@ def fake_metadata_resolver():
                     },
                     'service': {
                         'name': name,
-<<<<<<< HEAD
                         'warm-shutdown': warm_shutdown or {},
                         'fast-shutdown': fast_shutdown or {},
                     },
                     'processes': processes or {}
-=======
-                    }
->>>>>>> 08337aa7637b290bb8407c38b2a5dbe3e8383b3e
                 },
                 'components': components or {},
             }
@@ -238,7 +227,6 @@ def fake_db(fake_metadata_resolver):
     add_package(
         content,
         fake_metadata_resolver,
-<<<<<<< HEAD
         'docker-syncd',
         'latest',
         description='SONiC syncd service',
@@ -259,8 +247,6 @@ def fake_db(fake_metadata_resolver):
     add_package(
         content,
         fake_metadata_resolver,
-=======
->>>>>>> 08337aa7637b290bb8407c38b2a5dbe3e8383b3e
         'Azure/docker-test',
         '1.6.0',
         description='SONiC Package Manager Test Package',
