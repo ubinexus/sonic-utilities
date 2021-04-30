@@ -79,8 +79,7 @@ Paths: (4 available, best #4, table default)
 """
 
 bgp_v4_network_longer_prefixes_error = \
-"""
-The parameter option: "longer-prefixes" only available if passing a network prefix
+"""The parameter option: "longer-prefixes" only available if passing a network prefix
 EX: 'show ip bgp network 10.0.0.0/24 longer-prefixes'
 Aborted!
 """
@@ -187,10 +186,9 @@ Paths: (4 available, best #4, table default)
 """
 
 bgp_v6_network_longer_prefixes_error = \
-"""
-The parameter option: "longer-prefixes" only available if passing a network prefix
+"""The parameter option: "longer-prefixes" only available if passing a network prefix
 EX: 'show ipv6 bgp network fc00:1::/64 longer-prefixes'
-Aborted! 
+Aborted!
 """
 
 bgp_v6_network_longer_prefixes = \
@@ -227,7 +225,7 @@ Paths: (4 available, best #4, table default)
 """
 
 multi_asic_bgp_network_err = \
-"""Error: -n/--namespace option required. provide namespace for list ['asic0', 'asic1']"""
+"""Error: -n/--namespace option required. provide namespace from list ['asic0', 'asic1']"""
 
 bgp_v4_network_asic0 = \
 """
@@ -428,9 +426,9 @@ def mock_show_bgp_network_multi_asic(param):
     if param == "bgp_v6_network_asic0":
         return bgp_v4_network_asic0
     elif param == 'bgp_v6_network_ip_address_asic0':
-        return bgp_v4_network_ip_address_asic0
+        return bgp_v6_network_ip_address_asic0
     elif param == 'bgp_v6_network_bestpath_asic0':
-        return bgp_v4_network_bestpath_asic0
+        return bgp_v6_network_ip_address_asic0_bestpath
     else:
         return ''
 
@@ -453,8 +451,8 @@ testData = {
     },
     'bgp_v4_network_longer_prefixes_error': {
         'args': [' 193.11.248.128', 'longer-prefixes'],
-        'rc': 2,
-        'rc_err_msg': bgp_v4_network_longer_prefixes_error
+        'rc': 1,
+        'rc_output': bgp_v4_network_longer_prefixes_error
     },
     'bgp_v6_network': {
         'args': [],
@@ -471,20 +469,17 @@ testData = {
         'rc': 0,
         'rc_output': bgp_v6_network_bestpath
     },
-    'bgp_v6_network_longer_prefix_error': {
+    'bgp_v6_network_longer_prefixes_error': {
         'args': [' 20c0:a820:0:80::', 'longer-prefixes'],
-        'rc': 2,
-        'rc_err_msg': bgp_v6_network_longer_prefixes_error
+        'rc': 1,
+        'rc_output': bgp_v6_network_longer_prefixes_error
     },
     'bgp_v6_network_longer_prefixes': {
         'args': [' 20c0:a820:0:80::/64', 'longer-prefixes'],
         'rc': 0,
-        'rc_err_msg': bgp_v6_network_longer_prefixes
+        'rc_output': bgp_v6_network_longer_prefixes
     },
-}
-
-masicTestData = {
-    'bgp_v4_network': {
+    'bgp_v4_network_multi_asic': {
         'args': [],
         'rc': 2,
         'rc_err_msg': multi_asic_bgp_network_err
@@ -495,7 +490,7 @@ masicTestData = {
         'rc_output': bgp_v4_network_asic0
     },
     'bgp_v4_network_ip_address_asic0': {
-        'args': ['nasic0', '10.0.0.44'],
+        'args': ['-nasic0', '10.0.0.44'],
         'rc': 0,
         'rc_output': bgp_v4_network_ip_address_asic0
     },
@@ -504,7 +499,7 @@ masicTestData = {
         'rc': 0,
         'rc_output': bgp_v4_network_bestpath_asic0
     },
-    'bgp_v6_network': {
+    'bgp_v6_network_multi_asic': {
         'args': [],
         'rc': 2,
         'rc_err_msg': multi_asic_bgp_network_err
@@ -517,9 +512,9 @@ masicTestData = {
     'bgp_v6_network_ip_address_asic0': {
         'args': ['-nasic0', '20c0:a808:0:80::/64'],
         'rc': 0,
-        'rc_output': bgp_v4_network_ip_address_asic0
+        'rc_output': bgp_v6_network_ip_address_asic0
     },
-    'bgp_v6_network_ip_address_asic0_bestpath': {
+    'bgp_v6_network_bestpath_asic0': {
         'args': ['-nasic0', '20c0:a808:0:80::/64', 'bestpath'],
         'rc': 0,
         'rc_output': bgp_v6_network_ip_address_asic0_bestpath

@@ -75,13 +75,7 @@ Read thread: on  Write thread: on  FD used: 28
 """
 
 bgp_v4_neighbor_invalid = \
-"""Usage: neighbors [OPTIONS] [IPADDRESS] [[routes|advertised-routes|received-
-                 routes]]
-Try 'neighbors --help' for help.
-
-Error:  Bgp neighbor 20.1.1.1 not configured
-
-"""
+"""Error:  Bgp neighbor 20.1.1.1 not configured"""
 
 bgp_v4_neighbor_invalid_address = \
 """Error: invalid_address is not valid ipv4 address"""
@@ -365,7 +359,7 @@ BGP neighbor is 10.0.0.1, remote AS 65200, local AS 65100, external link
       IPv4 Unicast: RX advertised IPv4 Unicast and received
     Route refresh: advertised and received(new)
     Address Family IPv4 Unicast: advertised and received
-    Hostname Capability: advertised (name: str-nsonic-acs-2,domain name: n/a) not received
+    Hostname Capability: advertised (name: str-n3164-acs-2,domain name: n/a) not received
     Graceful Restart Capabilty: advertised and received
       Remote Restart timer is 300 seconds
       Address families by peer:
@@ -428,7 +422,7 @@ Hostname: sonic
       IPv4 Unicast: RX advertised IPv4 Unicast and received
     Route refresh: advertised and received(old & new)
     Address Family IPv4 Unicast: advertised and received
-    Hostname Capability: advertised (name: str-nsonic-acs-2,domain name: n/a) received (name: str-nsonic-acs-2,domain name: n/a)
+    Hostname Capability: advertised (name: str-n3164-acs-2,domain name: n/a) received (name: str-n3164-acs-2,domain name: n/a)
     Graceful Restart Capabilty: advertised and received
       Remote Restart timer is 240 seconds
       Address families by peer:
@@ -477,7 +471,7 @@ Read thread: on  Write thread: on  FD used: 17
 bgp_v4_neighbors_output_all_asics = bgp_v4_neighbors_output_asic0 + bgp_v4_neighbors_output_asic1
 
 bgp_v6_neighbor_output_warning =\
-"""bgp neighbor 2603:10e2:400:1::2 is present in namespace asic2 not in asic0"""
+"""bgp neighbor 2603:10e2:400:1::2 is present in namespace asic1 not in asic0"""
 
 bgp_v6_neighbors_output_asic0  = \
 """
@@ -494,7 +488,7 @@ bgp_v6_neighbors_output_asic0  = \
       IPv6 Unicast: RX advertised IPv6 Unicast and received
     Route refresh: advertised and received(new)
     Address Family IPv6 Unicast: advertised and received
-    Hostname Capability: advertised (name: str-nsonic-acs-2,domain name: n/a) not received
+    Hostname Capability: advertised (name: str-n3164-acs-2,domain name: n/a) not received
     Graceful Restart Capabilty: advertised and received
       Remote Restart timer is 300 seconds
       Address families by peer:
@@ -545,7 +539,7 @@ bgp_v6_neighbors_output_asic1 = \
 """
  BGP neighbor is 2603:10e2:400:1::2, remote AS 65100, local AS 65100, internal link
  Description: ASIC0
-Hostname: str-nsonic-acs-2
+Hostname: str-n3164-acs-2
  Member of peer-group INTERNAL_PEER_V6 for session parameters
   BGP version 4, remote router ID 10.1.0.32, local router ID 8.0.0.4
   BGP state = Established, up for 13:28:48
@@ -558,7 +552,7 @@ Hostname: str-nsonic-acs-2
       IPv6 Unicast: RX advertised IPv6 Unicast and received
     Route refresh: advertised and received(old & new)
     Address Family IPv6 Unicast: advertised and received
-    Hostname Capability: advertised (name: str-nsonic-acs-2,domain name: n/a) received (name: str-nsonic-acs-2,domain name: n/a)
+    Hostname Capability: advertised (name: str-n3164-acs-2,domain name: n/a) received (name: str-n3164-acs-2,domain name: n/a)
     Graceful Restart Capabilty: advertised and received
       Remote Restart timer is 240 seconds
       Address families by peer:
@@ -605,22 +599,30 @@ BGP Connect Retry Timer in Seconds: 10
 Read thread: on  Write thread: on  FD used: 22
 """
 
-bgp_v6_neighbors_output_all_asics = bgp_v4_neighbors_output_asic0 +\
-     bgp_v4_neighbors_output_asic1
+bgp_v6_neighbors_output_all_asics = bgp_v6_neighbors_output_asic0 +\
+     bgp_v6_neighbors_output_asic1
 
 
-def mock_show_bgp_neighbor_multi_asic(request):
-    if request.param == 'bgp_v4_neighbors_output_all_asics':
-        return bgp_v4_neighbors_output_all_asics
-    if request.param == 'bgp_v4_neighbors_output_asic0':
+def mock_show_bgp_neighbor_multi_asic(param, namespace):
+    if param == 'bgp_v4_neighbors_output_all_asics':
+        if namespace == 'asic0':
+            return bgp_v4_neighbors_output_asic0
+        if namespace == 'asic1':
+            return bgp_v4_neighbors_output_asic1
+    if param == 'bgp_v6_neighbors_output_all_asics':
+        if namespace == 'asic0':
+            return bgp_v6_neighbors_output_asic0
+        if namespace == 'asic1':
+            return bgp_v6_neighbors_output_asic1
+    if param == 'bgp_v4_neighbors_output_asic0':
         return bgp_v4_neighbors_output_asic0
-    if request.param == 'bgp_v4_neighbors_output_asic1':
+    if param == 'bgp_v4_neighbors_output_asic1':
         return bgp_v4_neighbors_output_asic1
-    elif request.param == 'bgp_v6_neighbors_output_all_asics':
+    elif param == 'bgp_v6_neighbors_output_all_asics':
         return bgp_v6_neighbors_output_all_asics
-    if request.param == 'bgp_v6_neighbors_output_asic0':
+    if param == 'bgp_v6_neighbors_output_asic0':
         return bgp_v6_neighbors_output_asic0
-    if request.param == 'bgp_v6_neighbors_output_asic1':
+    if param == 'bgp_v6_neighbors_output_asic1':
         return bgp_v6_neighbors_output_asic1
     else:
         return ""
@@ -649,7 +651,7 @@ testData = {
         'rc': 0,
         'rc_output': bgp_v4_neighbors_output
     },
-    'bgp_v4_neighbor': {
+    'bgp_v4_neighbor_ip_address': {
         'args': ['10.0.0.57'],
         'rc': 0,
         'rc_output': bgp_v4_neighbors_output
@@ -679,7 +681,7 @@ testData = {
         'rc': 0,
         'rc_output': bgp_v6_neighbors_output
     },
-    'bgp_v6_neighbor': {
+    'bgp_v6_neighbor_ip_address': {
         'args': ['fc00::72'],
         'rc': 0,
         'rc_output': bgp_v6_neighbors_output
@@ -699,23 +701,20 @@ testData = {
         'rc': 0,
         'rc_output': bgp_v6_neighbor_output_adv_routes
     },
-    'bgp_v4_neighbor_recv_routes': {
+    'bgp_v6_neighbor_recv_routes': {
         'args': ["fc00::72", "received-routes"],
         'rc': 0,
-        'rc_output': bgp_v4_neighbor_output_recv_routes
-    }
-}
-
-testDataMultiAsic = {
-    'bgp_v4_neighbors' : {
+        'rc_output': bgp_v6_neighbor_output_recv_routes
+    },
+    'bgp_v4_neighbors_multi_asic' : {
         'args': [],
         'rc': 0,
         'rc_output': bgp_v4_neighbors_output_all_asics
     },
     'bgp_v4_neighbors_asic' : {
-        'args': ['-nasic0'],
+        'args': ['-nasic1'],
         'rc': 0,
-        'rc_output': bgp_v4_neighbors_output_asic0
+        'rc_output': bgp_v4_neighbors_output_asic1
     },
     'bgp_v4_neighbors_external' : {
         'args': ['10.0.0.1'],
@@ -727,7 +726,7 @@ testDataMultiAsic = {
         'rc': 0,
         'rc_output': bgp_v4_neighbors_output_asic1
     },
-    ' bgp_v6_neighbors' : {
+    'bgp_v6_neighbors_multi_asic' : {
         'args': [],
         'rc': 0,
         'rc_output': bgp_v6_neighbors_output_all_asics
@@ -748,8 +747,8 @@ testDataMultiAsic = {
         'rc_output': bgp_v6_neighbors_output_asic1
     },
     'bgp_v6_neighbor_warning' : {
-        'args': ['10.1.0.1', '-nasic1'],
-        'rc': 2,
+        'args': ['2603:10e2:400:1::2', '-nasic0'],
+        'rc': 0,
         'rc_warning_msg': bgp_v6_neighbor_output_warning
     },
 
