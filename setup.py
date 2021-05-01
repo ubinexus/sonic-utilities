@@ -156,7 +156,7 @@ setup(
         ]
     },
     install_requires=[
-        'click>=7.0',
+        'click==7.0',
         'ipaddress>=1.0.23',
         'jsondiff>=1.2.0',
         'jsonpatch>=1.32.0',
