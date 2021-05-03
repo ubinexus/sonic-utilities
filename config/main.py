@@ -2091,8 +2091,7 @@ def is_valid_community_type(commstr_type):
 
 def is_valid_user_type(user_type):
     convert_user_type = {'noauthnopriv': 'noAuthNoPriv', 'authnopriv': 'AuthNoPriv', 'priv': 'Priv'}
-    user_types = ['noauthnopriv', 'authnopriv', 'priv']
-    if user_type not in user_types:
+    if user_type not in convert_user_type.keys():
         message = ("Invalid user type.  Must be one of these one of these three "
                    "'noauthnopriv' or 'authnopriv' or 'priv'")
         click.echo(message)
@@ -2513,9 +2512,10 @@ def add_user(db, user, user_type, user_permission_type, user_auth_type, user_aut
     if not snmp_username_check(user):
         sys.exit(SnmpUserError.NameCheckFailure)
     user_type = user_type.lower()
-    if not is_valid_user_type(user_type)[0]:
+    user_type_info = is_valid_user_type(user_type)
+    if not user_type_info[0]:
         sys.exit(SnmpUserError.TypeNoAuthNoPrivOrAuthNoPrivOrPrivCheckFailure)
-    user_type = is_valid_user_type(user_type)[1]
+    user_type = user_type_info[1]
     user_permission_type = user_permission_type.upper()
     if not is_valid_community_type(user_permission_type):
         sys.exit(SnmpUserError.RoRwCheckFailure)
