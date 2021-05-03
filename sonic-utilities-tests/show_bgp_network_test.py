@@ -1,6 +1,4 @@
 from imp import reload
-import os
-
 import pytest
 
 from click.testing import CliRunner
