@@ -966,8 +966,7 @@ def version(verbose):
     eeprom_table = db.get_all(db.STATE_DB, 'EEPROM_INFO|0x23')
     if "Name" in eeprom_table and eeprom_table["Name"] == "Serial Number" and "Value" in eeprom_table:
         serial_number = eeprom_table["Value"]
-
-    if not serial_number:
+    else:
         serial_number_cmd = "sudo decode-syseeprom -s"
         serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE).stdout.read()
 
