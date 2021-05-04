@@ -9,6 +9,7 @@ CFG_PORTCHANNEL_PREFIX = "PortChannel"
 CFG_PORTCHANNEL_PREFIX_LEN = 11
 CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NAME_TOTAL_LEN_MAX = 15
+CFG_PORTCHANNEL_NO="<0-9999>"
 
 def mclag_domain_id_valid(domain_id):
     """Check if the domain id is in acceptable range (between 1 and 4095)
@@ -89,6 +90,17 @@ def check_if_interface_is_valid(db, interface_name):
     from main import interface_name_is_valid
     if interface_name_is_valid(db,interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+def get_intf_vrf_bind_unique_ip(db, interface_name, interface_type):
+    intfvrf = db.get_table(interface_type)
+    if interface_name in intfvrf:
+        if 'vrf_name' in intfvrf[interface_name]:
+            return intfvrf[interface_name]['vrf_name']
+        else:
+            return ""
+    else:
+        return ""
+
 
 ######
 #

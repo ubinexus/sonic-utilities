@@ -108,14 +108,10 @@ class TestMclag(object):
 
         # add valid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        print(result.exit_code)
-        print(result.output)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # add valid mclag domain again
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID2, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        print(result.exit_code)
-        print(result.output)
         assert result.exit_code != 0, "test_mclag_domain_add_again with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_mclag_invalid_keepalive_timer(self):
@@ -126,14 +122,10 @@ class TestMclag(object):
 
         # add valid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        print(result.exit_code)
-        print(result.output)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # configure non multiple keepalive timer
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_KEEPALIVE_TIMER], obj=obj)
-        print(result.exit_code)
-        print(result.output)
         assert result.exit_code != 0, "failed testing of invalid keepalive timer with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_mclag_keepalive_timer(self):
@@ -165,6 +157,12 @@ class TestMclag(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
+        # configure valid keepalive timer
+        result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_KEEPALIVE_TIMER], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "failed test for setting valid keepalive timer with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # configure non multiple session timeout
         result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SESSION_TIMEOUT], obj=obj)
@@ -293,9 +291,7 @@ class TestMclag(object):
 
         # delete mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["del"], [MCLAG_DOMAIN_ID], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code != 0, "testing of non-existing delete of mclag domain failed" 
+        assert result.exit_code != 0, "testing  non-existing domain deletion{}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_add_unique_ip_for_nonexisting_domain(self):
         runner = CliRunner()
