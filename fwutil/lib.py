@@ -742,7 +742,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         return update_available_components
 
     def get_notification(self, chassis_name, module_name, component_name):
-        if self.is_modular_chassis():
+        if module_name is not None:
             component = self.module_component_map[module_name][component_name]
             parser = self.__pcp.module_component_map[module_name][component_name]
         else:
@@ -760,7 +760,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         return component.get_firmware_update_notification(firmware_path)
 
     def update_firmware(self, chassis_name, module_name, component_name):
-        if self.is_modular_chassis():
+        if module_name is not None:
             component = self.module_component_map[module_name][component_name]
             parser = self.__pcp.module_component_map[module_name][component_name]
 
@@ -931,7 +931,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         return True
 
     def is_firmware_update_available(self, chassis_name, module_name, component_name):
-        if self.is_modular_chassis():
+        if module_name is not None:
             component = self.__pcp.module_component_map[module_name][component_name]
         else:
             component = self.__pcp.chassis_component_map[chassis_name][component_name]
@@ -942,7 +942,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         return True
 
     def is_firmware_update_required(self, chassis_name, module_name, component_name):
-        if self.is_modular_chassis():
+        if module_name is not None:
             component = self.module_component_map[module_name][component_name]
             parser = self.__pcp.module_component_map[module_name][component_name]
         else:
