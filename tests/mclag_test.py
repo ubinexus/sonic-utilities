@@ -112,12 +112,7 @@ class TestMclag(object):
         print(result.output)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
-    def test_add_mclag_domain_again(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'db':db.cfgdb}
-
-        # add valid mclag domain
+        # add valid mclag domain again
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID2, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
@@ -127,6 +122,13 @@ class TestMclag(object):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
+
+
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # configure non multiple keepalive timer
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_KEEPALIVE_TIMER], obj=obj)
@@ -139,6 +141,13 @@ class TestMclag(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
+
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
         # configure valid keepalive timer
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_KEEPALIVE_TIMER], obj=obj)
         print(result.exit_code)
@@ -150,6 +159,13 @@ class TestMclag(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
+
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
         # configure non multiple session timeout
         result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SESSION_TIMEOUT], obj=obj)
         print(result.exit_code)
@@ -160,6 +176,12 @@ class TestMclag(object):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
+
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # configure valid session timeout
         result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_SESSION_TIMEOUT], obj=obj)
@@ -185,6 +207,12 @@ class TestMclag(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
         # add invaid mclag member Ethernet instead of PortChannel
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_MCLAG_MEMBER], obj=obj)
         print(result.exit_code)
@@ -196,38 +224,56 @@ class TestMclag(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
+
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
         # add valid mclag member
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
-        print(result.exit_code)
-        print(result.output)
         assert result.exit_code == 0, "failed adding valid mclag member with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
-    def test_mclag_del_member(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'db':db.cfgdb}
-
-        # del mclag member
-        result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["del"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "testing of deleting valid mclag member failed" 
-
-    def test_mclag_add_member_again(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'db':db.cfgdb}
-
-        # add mclag member
+        # add mclag member again
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "testing of adding mclag member again failed" 
 
+        # delete mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["del"], [MCLAG_DOMAIN_ID], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "testing of delete of mclag domain failed" 
+
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
+        # add valid mclag member
+        result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
+        assert result.exit_code == 0, "mclag member add with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
+        # del valid mclag member
+        result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["del"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
+        assert result.exit_code == 0, "mclag member deletion failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
+        # del mclag member
+        result =
+        runner.invoke(config.config.commands["mclag"].commands["member"].commands["del"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_MCLAG_MEMBER], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0, "testing of deleting valid mclag member failed" 
+
+
+
     def test_mclag_add_unique_ip(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
+
+        # add valid mclag domain
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # add mclag unique ip
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
@@ -235,27 +281,11 @@ class TestMclag(object):
         print(result.output)
         assert result.exit_code == 0, "testing of adding unique ip failed" 
 
-    def test_mclag_del_unique_ip(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'db':db.cfgdb}
-
         # delete mclag unique ip
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["del"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "testing of delete of unique ip failed" 
-
-    def test_mclag_del_mclag_domain(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'db':db.cfgdb}
-
-        # delete mclag domain
-        result = runner.invoke(config.config.commands["mclag"].commands["del"], [MCLAG_DOMAIN_ID], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "testing of delete of mclag domain failed" 
 
     def test_mclag_not_present_domain(self):
         runner = CliRunner()
