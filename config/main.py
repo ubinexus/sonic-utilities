@@ -3507,7 +3507,7 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage, serv
 #
 
 def validate_services(ctx, param, value):
-    if value == None:
+    if value is None:
         return None
 
     service_list = value.split(',')
