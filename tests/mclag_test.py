@@ -110,7 +110,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0, "mclag creation failed"
+        assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_add_mclag_domain_again(self):
         runner = CliRunner()
@@ -121,7 +121,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID2, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code != 0, "failed test_mclag_donain_again case"
+        assert result.exit_code != 0, "test_mclag_domain_add_again with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_mclag_invalid_keepalive_timer(self):
         runner = CliRunner()
@@ -132,7 +132,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_KEEPALIVE_TIMER], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code != 0, "failed testing of invalid keepalive timer "
+        assert result.exit_code != 0, "failed testing of invalid keepalive timer with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_mclag_keepalive_timer(self):
         runner = CliRunner()
@@ -143,7 +143,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_KEEPALIVE_TIMER], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0, "failed test for setting valid keepalive timer "
+        assert result.exit_code == 0, "failed test for setting valid keepalive timer with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_mclag_invalid_session_timeout(self):
         runner = CliRunner()
@@ -165,7 +165,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_SESSION_TIMEOUT], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0, "failed setting valid session timeout" 
+        assert result.exit_code == 0, "failed test for setting valid session timeout with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
 
     def test_mclag_add_mclag_member_to_nonexisting_domain(self):
@@ -200,7 +200,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0, "testing of adding valid mclag member failed" 
+        assert result.exit_code == 0, "failed adding valid mclag member with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_mclag_del_member(self):
         runner = CliRunner()
