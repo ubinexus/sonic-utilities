@@ -7,6 +7,8 @@ import show.main as show
 import clear.main as clear
 import config.main as config
 
+import pytest
+
 from unittest import mock
 from unittest.mock import patch
 from utilities_common.db import Db
@@ -856,6 +858,12 @@ class TestSNMPConfigCommands(object):
         print(result.exit_code)
         assert result.exit_code == 1
         assert 'SNMP user test_nopriv_RO_2 is not configured' in result.output
+
+    @pytest.mark.parametrize("invalid_email", ['test@contoso', 'test.contoso.com', 'testcontoso@com', 
+                                               '123_%contoso.com', 'mytest@contoso.comm'])
+    def test_is_valid_email(self, invalid_email):
+        output = config.is_valid_email(invalid_email)
+        assert output == False
 
     @classmethod
     def teardown_class(cls):

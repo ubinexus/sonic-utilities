@@ -2091,7 +2091,7 @@ def is_valid_community_type(commstr_type):
 
 def is_valid_user_type(user_type):
     convert_user_type = {'noauthnopriv': 'noAuthNoPriv', 'authnopriv': 'AuthNoPriv', 'priv': 'Priv'}
-    if user_type not in convert_user_type.keys():
+    if user_type not in convert_user_type:
         message = ("Invalid user type.  Must be one of these one of these three "
                    "'noauthnopriv' or 'authnopriv' or 'priv'")
         click.echo(message)
