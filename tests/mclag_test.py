@@ -258,8 +258,7 @@ class TestMclag(object):
         assert result.exit_code == 0, "mclag member deletion failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # del mclag member
-        result =
-        runner.invoke(config.config.commands["mclag"].commands["member"].commands["del"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_MCLAG_MEMBER], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["del"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_MCLAG_MEMBER], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "testing of deleting valid mclag member failed" 
