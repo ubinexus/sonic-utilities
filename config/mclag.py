@@ -60,9 +60,9 @@ def is_portchannel_name_valid(portchannel_name):
     return True
 
 def is_ipv4_addr_valid(addr):
-    v4_invalid_list = [ipaddress.IPv4Address(unicode('0.0.0.0')), ipaddress.IPv4Address(unicode('255.255.255.255'))]
+    v4_invalid_list = [ipaddress.IPv4Address(str('0.0.0.0')), ipaddress.IPv4Address(str('255.255.255.255'))]
     try:
-        ip = ipaddress.ip_address(unicode(addr))
+        ip = ipaddress.ip_address(str(addr))
         if (ip.version == 4):
             if (ip.is_reserved):
                 click.echo ("{} Not Valid, Reason: IPv4 reserved address range.".format(addr))
