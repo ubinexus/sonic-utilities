@@ -297,7 +297,7 @@ def state(state, port):
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} state. Continue?'.format(port, state)), abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.reacquireLock()
+        cdblock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
         if port not in logical_port_list:
             click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
@@ -387,7 +387,7 @@ def state(state, port):
 
         click.confirm(('Muxcables at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.reacquireLock()
+        cdblock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
         rc = True
@@ -496,7 +496,7 @@ def setswitchmode(state, port):
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} switching mode. Continue?'.format(port, state)), abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.reacquireLock()
+        cdblock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
         if port not in logical_port_list:
             click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
@@ -570,7 +570,7 @@ def setswitchmode(state, port):
 
         click.confirm(('Muxcable at port {} will be changed to {} switching mode. Continue?'.format(port, state)), abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.reacquireLock()
+        cdblock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
         rc = True

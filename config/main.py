@@ -198,7 +198,7 @@ def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
                 "to the system\n {}".format(json.dumps(tables, indent=2)))
             click.confirm('Do you wish to Continue?', abort=True)
             # Reacquire lock, if confirmation is needed for this command
-            cdblock.reacquireLock()
+            cdblock.acquireLock()
     except Exception as e:
         raise Exception("Failed in breakout_warnUser_extraTables. Error: {}".format(str(e)))
     return
@@ -650,7 +650,7 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
     # Reacquire lock, if confirmation is needed for this command
-    cdblock.reacquireLock()
+    cdblock.acquireLock()
 
 
 def _get_disabled_services_list(config_db):
@@ -853,56 +853,40 @@ class ConfigDbLock():
     def acquireLock(self):
         try:
             # connect to db
-            db_kwargs = dict()
             configdb = ConfigDBConnector()
             configdb.connect()
-
             self.client = configdb.get_redis_client('CONFIG_DB')
             # Set lock and expire time. Process may get killed b/w set lock and
             # expire call.
             if self.client.hsetnx(self.lockName, "PID", self.pid):
                 self.client.expire(self.lockName, self.timeout)
                 log.log_debug(":::Lock Acquired:::")
-            # if lock exists but expire timer not running, run expire time and
-            # abort.
+                return
+
+            # Lock exists already in DB,
+            p = self.client.pipeline(True)
+            # watch, we do not want to work on modified lock
+            p.watch(self.lockName)
+            # if current process is holding lock then extend the timer
+            if p.hget(self.lockName, "PID") == str(self.pid):
+                self.client.expire(self.lockName, self.timeout)
+                log.log_debug(":::Lock Timer Extended:::");
+                p.unwatch()
+                return
             elif self.client.ttl(self.lockName) == -1:
+                # if lock exists with other PID and expire timer not running,
+                # run expire time and abort.
                 self.client.expire(self.lockName, self.timeout)
                 click.echo(":::Can not acquire lock, Reset Timer & Abort:::");
                 sys.exit(1)
             else:
-                click.echo(":::Can not acquire lock, Abort:::");
+                # some other process is holding the lock with time on.
+                click.echo(":::Can not acquire config lock, LOCK PID: {} and self.pid:{}:::".\
+                    format(p.hget(self.lockName, "PID"), self.pid))
+                p.unwatch()
                 sys.exit(1)
         except Exception as e:
-            click.echo(":::Exception: acquireLock {}:::".format(e))
-            sys.exit(1)
-        return
-
-    def reacquireLock(self):
-        try:
-            # Try to set lock first
-            if self.client.hsetnx(self.lockName, "PID", self.pid):
-                self.client.expire(self.lockName, self.timeout)
-                log.log_debug(":::Lock Reacquired:::")
-            # if lock exists, check who owns it
-            else:
-                p = self.client.pipeline(True)
-                # watch, we do not want to work on modified lock
-                p.watch(self.lockName)
-                # if current process holding then extend the timer
-                if p.hget(self.lockName, "PID") == str(self.pid):
-                    self.client.expire(self.lockName, self.timeout)
-                    log.log_debug(":::Lock Timer Extended:::");
-                    p.unwatch()
-                    return
-                else:
-                    # some other process is holding the lock.
-                    click.echo(":::Can not acquire lock LOCK PID: {} and self.pid:{}:::".\
-                        format(p.hget(self.lockName, "PID"), self.pid))
-                    p.unwatch()
-                    sys.exit(1)
-
-        except Exception as e:
-            click.echo(":::Exception: reacquireLock {}:::".format(e))
+            click.echo(":::Exception in acquireLock {}:::".format(e))
             sys.exit(1)
         return
 
@@ -964,11 +948,12 @@ def config(ctx):
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
+    ctx.obj = Db()
+
     # Take lock only when config command is executed, to avoid taking lock for
     # TABs and for -h. Note ? is treated as input python clicks
     cdblock.acquireLock()
 
-    ctx.obj = Db()
 
 
 # Add groups from other modules
@@ -1049,7 +1034,7 @@ def load(filename, yes):
     if not yes:
         click.confirm(message, abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.reacquireLock()
+        cdblock.acquireLock()
 
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
@@ -1240,7 +1225,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     if not yes:
         click.confirm(message, abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.reacquireLock()
+        cdblock.acquireLock()
 
     log.log_info("'reload' executing...")
 
