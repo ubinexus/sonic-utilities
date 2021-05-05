@@ -37,6 +37,7 @@ from . import nat
 from . import vlan
 from . import vxlan
 from . import plugins
+from . import stp
 from .config_mgmt import ConfigMgmtDPB
 
 # mock masic APIs for unit test
@@ -879,6 +880,7 @@ config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
+config.add_command(stp.spanning_tree)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
