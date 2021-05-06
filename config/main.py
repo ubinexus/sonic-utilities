@@ -24,7 +24,7 @@ from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
-from .utils import log
+from .utils import log, cfglock
 
 from . import aaa
 from . import chassis_modules
@@ -198,7 +198,7 @@ def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
                 "to the system\n {}".format(json.dumps(tables, indent=2)))
             click.confirm('Do you wish to Continue?', abort=True)
             # Reacquire lock, if confirmation is needed for this command
-            cdblock.acquireLock()
+            cfglock.acquireLock()
     except Exception as e:
         raise Exception("Failed in breakout_warnUser_extraTables. Error: {}".format(str(e)))
     return
@@ -650,7 +650,7 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
     # Reacquire lock, if confirmation is needed for this command
-    cdblock.acquireLock()
+    cfglock.acquireLock()
 
 
 def _get_disabled_services_list(config_db):
@@ -841,87 +841,6 @@ def cache_arp_entries():
         open(restore_flag_file, 'w').close()
     return success
 
-# class for locking entire config process
-class ConfigDbLock():
-    def __init__(self):
-        self.lockName = "LOCK|configDbLock"
-        self.timeout = 10
-        self.pid = os.getpid()
-        self.client = None
-        return
-
-    def acquireLock(self):
-        try:
-            # connect to db
-            configdb = ConfigDBConnector()
-            configdb.connect()
-            self.client = configdb.get_redis_client('CONFIG_DB')
-            # Set lock and expire time. Process may get killed b/w set lock and
-            # expire call.
-            if self.client.hsetnx(self.lockName, "PID", self.pid):
-                self.client.expire(self.lockName, self.timeout)
-                log.log_debug(":::Lock Acquired:::")
-                return
-
-            # Lock exists already in DB,
-            p = self.client.pipeline(True)
-            # watch, we do not want to work on modified lock
-            p.watch(self.lockName)
-            # if current process is holding lock then extend the timer
-            if p.hget(self.lockName, "PID") == str(self.pid):
-                self.client.expire(self.lockName, self.timeout)
-                log.log_debug(":::Lock Timer Extended:::");
-                p.unwatch()
-                return
-            elif self.client.ttl(self.lockName) == -1:
-                # if lock exists with other PID and expire timer not running,
-                # run expire time and abort.
-                self.client.expire(self.lockName, self.timeout)
-                click.echo(":::Can not acquire lock, Reset Timer & Abort:::");
-                sys.exit(1)
-            else:
-                # some other process is holding the lock with time on.
-                click.echo(":::Can not acquire config lock, LOCK PID: {} and self.pid:{}:::".\
-                    format(p.hget(self.lockName, "PID"), self.pid))
-                p.unwatch()
-                sys.exit(1)
-        except Exception as e:
-            click.echo(":::Exception in acquireLock {}:::".format(e))
-            sys.exit(1)
-        return
-
-    def _releaseLock(self):
-        try:
-            """
-            If LOCK was never acquired, self.client should be None. This
-            happens with 'config ?' command
-            """
-            if self.client == None:
-                return
-
-            p = self.client.pipeline(True)
-            # watch, we do not want to work on modified lock
-            p.watch(self.lockName)
-            # if current process holding the lock then release it.
-            if p.hget(self.lockName, "PID") == str(self.pid):
-                p.multi()
-                p.delete(self.lockName)
-                p.execute()
-                return
-            else:
-                # some other process is holding the lock. Do nothing.
-                pass
-            p.unwatch()
-        except Exception as e:
-            raise e
-        return
-
-    def __del__(self):
-        self._releaseLock()
-        return
-# end of class configdblock
-
-cdblock = ConfigDbLock()
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -952,7 +871,7 @@ def config(ctx):
 
     # Take lock only when config command is executed, to avoid taking lock for
     # TABs and for -h. Note ? is treated as input python clicks
-    cdblock.acquireLock()
+    cfglock.acquireLock()
 
 
 
@@ -1034,7 +953,7 @@ def load(filename, yes):
     if not yes:
         click.confirm(message, abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.acquireLock()
+        cfglock.acquireLock()
 
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
@@ -1225,7 +1144,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     if not yes:
         click.confirm(message, abort=True)
         # Reacquire lock, if confirmation is needed for this command
-        cdblock.acquireLock()
+        cfglock.acquireLock()
 
     log.log_info("'reload' executing...")
 
