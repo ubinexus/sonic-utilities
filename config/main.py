@@ -3231,7 +3231,8 @@ def add_route(ctx, command_str):
     if 'ifname' in route:
         if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
             not route['ifname'] in config_db.get_keys('INTERFACE') and
-            not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE')):
+            not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+            not route['ifname'] == 'null'):
             ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
 
     entry_counter = 1
@@ -3265,7 +3266,11 @@ def add_route(ctx, command_str):
         if 'blackhole' in route:
             route['blackhole'] += ',false'
         else:
-            route['blackhole'] = 'false'
+            # If the user configure with "ifname" as "null", set 'blackhole' attribute as true.
+            if 'ifname' in route and route['ifname'] == 'null':
+                route['blackhole'] = 'true'
+            else:
+                route['blackhole'] = 'false'
 
     # Check if exist entry with key
     keys = config_db.get_keys('STATIC_ROUTE')
