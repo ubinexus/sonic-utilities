@@ -1,9 +1,10 @@
 #!/usr/bin/python
 """
     Script to show sfp eeprom and presence status.
-    Not like sfputil this scripts get the sfp data from DB directly.  
+    Not like sfputil this scripts get the sfp data from DB directly.
 """
 import argparse
+import ast
 import json
 import sys
 import click
@@ -30,7 +31,7 @@ try:
             import mock_tables.mock_multi_asic
             mock_tables.dbconnector.load_namespace_config()
 except KeyError:
-    pass 
+    pass
 
 qsfp_data_map = {'model': 'Vendor PN',
                  'vendor_oui': 'Vendor OUI',
@@ -176,7 +177,7 @@ class SFPShow(object):
                                dom_unit_map[key])
                 out_put  = out_put + current_val + '\n'
         return out_put
-     
+
     # Convert dom sensor info in DB to cli output string
     def convert_dom_to_output_string(self, sfp_type, dom_info_dict):
         ident = '        '
@@ -270,7 +271,7 @@ class SFPShow(object):
     def convert_sfp_info_to_output_string(self, sfp_info_dict):
         ident = '        '
         out_put = ''
-        
+
         sorted_qsfp_data_map = sorted(qsfp_data_map.items(), key=operator.itemgetter(1))
         for key in sorted_qsfp_data_map:
             key1 = key[0]
@@ -283,10 +284,15 @@ class SFPShow(object):
                     out_put = out_put + ident + qsfp_data_map[key1] + ': ' + sfp_info_dict[key1] + '\n'
                 else:
                     out_put = out_put + ident + qsfp_data_map['specification_compliance'] + ': ' + '\n'
-                    spefic_compliance_dict = eval(sfp_info_dict['specification_compliance'])
-                    sorted_compliance_key_table = natsorted(spefic_compliance_dict)
-                    for compliance_key in sorted_compliance_key_table:
-                        out_put = out_put + ident + ident + compliance_key + ': ' + spefic_compliance_dict[compliance_key] + '\n'
+
+                    spec_compliance_dict = {}
+                    try:
+                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
+                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
+                        for compliance_key in sorted_compliance_key_table:
+                            out_put += '{}{}: {}\n'.format((ident * 2), compliance_key, spec_compliance_dict[compliance_key])
+                    except ValueError as e:
+                        out_put += '{}N/A\n'.format((ident * 2))
             else:
                 out_put = out_put + ident + qsfp_data_map[key1] + ': ' + sfp_info_dict[key1] + '\n'
 
@@ -328,9 +334,9 @@ class SFPShow(object):
                     if presence:
                         out_put = out_put + self.convert_interface_sfp_info_to_cli_output_string(self.db, interface, self.dump_dom)
                     else:
-                       out_put = out_put + interface + ': ' + 'SFP EEPROM Not detected' + '\n' 
+                       out_put = out_put + interface + ': ' + 'SFP EEPROM Not detected' + '\n'
 
-                    out_put = out_put + '\n' 
+                    out_put = out_put + '\n'
 
         self.output += out_put
 
@@ -354,7 +360,7 @@ class SFPShow(object):
                         port_table.append((key,'Present'))
                     else:
                         port_table.append((key,'Not present'))
-        
+
         self.table += port_table
 
     def display_eeprom(self):
