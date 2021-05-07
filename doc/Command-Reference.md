@@ -6577,12 +6577,12 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#sflow)
 This command displays the global SNMP configuration that includes the location, contact, community, and user setttings.
 
 - Usage:
-  """
+  ```
   show run snmp
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp 
   Location
   ------------
@@ -6603,119 +6603,119 @@ This command displays the global SNMP configuration that includes the location, 
   ------  -----------------  ------  -----------  ---------------  -----------------  ---------------------
   Travis  RO                 Priv    SHA          TravisAuthPass   AES                TravisEncryptPass
   admin@switch1:~$ 
-  """
+  ```
 
 **show run snmp location**
 
 This command display the SNMP location setting.
 
 - Usage:
-  """
+  ```
   show run snmp location
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp location
   Location
   ------------
   Emerald City
-  """
+  ```
 
 - Usage:
-  """
+  ```
   show run snmp location --json
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp location --json
   {'Location': 'Emerald City'}
-  """
+  ```
 
 **show run snmp contact**
 
 This command display the SNMP contact setting.
 
 - Usage:
-  """
+  ```
   show run snmp contact
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp contact
   Contact    Contact Email
   ---------  ---------------
   joe        joe@contoso.com
-  """
+  ```
 
 - Usage:
-  """
+  ```
   show run snmp contact --json
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp contact --json
   {'joe': 'joe@contoso.com'}
-  """
+  ```
 
 **show run snmp community**
 
 This command display the SNMP community settings.
 
 - Usage:
-  """
+  ```
   show run snmp community
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp community
   Community String    Community Type
   ------------------  ----------------
   Jack                RW
-  """
+  ```
 
 - Usage:
-  """
+  ```
   show run snmp community --json
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp community --json
   {'Jack': {'TYPE': 'RW'}}
-  """
+  ```
 
 **show run snmp user**
 
 This command display the SNMP user settings.
 
 - Usage:
-  """
+  ```
   show run snmp user
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp user
   User    Permission Type    Type    Auth Type    Auth Password    Encryption Type    Encryption Password
   ------  -----------------  ------  -----------  ---------------  -----------------  ---------------------
   Travis  RO                 Priv    SHA          TravisAuthPass   AES                TravisEncryptPass
-  """
+  ```
 
 - Usage:
-  """
+  ```
   show run snmp user --json
-  """
+  ```
 
 - Example:
-  """
+  ```
   admin@switch1:~$ show run snmp user --json
   {'Travis': {'SNMP_USER_TYPE': 'Priv', 'SNMP_USER_PERMISSION': 'RO', 'SNMP_USER_AUTH_TYPE': 'SHA', 'SNMP_USER_AUTH_PASSWORD': 'TravisAuthPass', 'SNMP_USER_ENCRYPTION_TYPE': 'AES', 'SNMP_USER_ENCRYPTION_PASSWORD': 'TravisEncryptPass'}}
-  """
+  ```
 
 
 ### SNMP Config commands
@@ -6727,141 +6727,141 @@ This sub-section explains how to configure SNMP.
 This command is used to add, delete, or modify the SNMP location.
 
 - Usage:
-  """
+  ```
   config snmp location (add | del | modify) <location>
-  """
+  ```
 
 - Example (Add new SNMP location "Emerald City" if it does not already exist):
-  """
+  ```
   admin@switch1:~$ sudo config snmp location add Emerald City
   SNMP Location Emerald City has been added to configuration
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 - Example (Del SNMP location "Emerald City" if it already exists):
-  """
+  ```
   admin@switch1:~$ sudo config snmp location del Emerald City
   SNMP Location Emerald City removed from configuration
   Restarting SNMP service...
   admin@switch1:~$
-  ""
+  ```
 
 - Example (Modify SNMP location "Emerald City" to "Redmond"):
-  """
+  ```
   admin@switch1:~$ sudo config snmp location modify Redmond
   SNMP location Redmond modified in configuration
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 **config snmp contact add/del/modify**
 
 This command is used to add, delete, or modify the SNMP contact.
 
 - Usage:
-  """
+  ```
   config snmp contact (add | del | modify) <contact> <contact_email>
-  """
+  ```
 
 - Example (config snmp contact add <contact> <contact_email>):
-  """
+  ```
   admin@switch1:~$ sudo config snmp contact add joe joe@contoso.com
   Contact name joe and contact email joe@contoso.com have been added to configuration
   Restarting SNMP service...
   admin@switch1:~$ 
-  """
+  ```
 
 - Example (config snmp contact del <contact>):
-  """
+  ```
   admin@switch1:~$ sudo config snmp contact del joe
   SNMP contact joe removed from configuration
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 - Example (config snmp contact modify <contact> <contact_email>):
-  """
+  ```
   admin@switch1:~$ sudo config snmp contact modify test test@contoso.com
   SNMP contact test and contact email test@contoso.com updated
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 **config snmp community add/del/replace**
 
 This command is used to add, delete, or replace the SNMP community.
 
 - Usage:
-  """
+  ```
   config snmp community (add | del | replace) <community> (<RO|RW> | <new_community>)
-  """
+  ```
 
 - Example (config snmp community add <community> <RO|RW>)
-  """
+  ```
   admin@switch1:~$ sudo config snmp community add testcomm ro
   SNMP community testcomm added to configuration
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 - Example (config snmp community del <community>)
-  """
+  ```
   admin@switch1:~$ sudo config snmp community del testcomm 
   SNMP community testcomm removed from configuration
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 - Example (config snmp community replace <community> <new_community>):
-  """
+  ```
   admin@switch1:~$ sudo config snmp community replace testcomm newtestcomm
   SNMP community newtestcomm added to configuration
   SNMP community newtestcomm replace community testcomm
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 **config snmp user add/del**
 
 This command is used to add or delete the SNMP user for SNMPv3.
 
 - Usage:
-  """
+  ```
   config snmp user (add | del) <user> <noAuthNoPriv|AuthNoPriv|Priv> <RO|RW> <MD5|SHA|MMAC-SHA-2> <auth_password> <DES|AES> <encrypt_password>
-  """
+  ```
 
 - Exmaple (config snmp user add testuser1 noauthnopriv ro):
-  """
+  ```
   admin@switch1:~$ sudo config snmp user add testuser1 noauthnopriv ro
   SNMP user testuser1 added to configuration
   Restarting SNMP service...
   admin@switch1:~$ 
-  """
+  ```
 
 - Example (config snmp user add testuser2 authnopriv ro sha testuser2_auth_pass):
-  """
+  ```
   admin@switch1:~$ sudo config snmp user add testuser2 authnopriv ro sha testuser2_auth_pass
   SNMP user testuser2 added to configuration
   Restarting SNMP service...
   admin@switch1:~$
-  """
+  ```
 
 - Example (config snmp user add testuser3 priv rw md5 testuser3_auth_pass aes testuser3_encrypt_pass):
-  """
+  ```
   admin@switch1:~$ sudo config snmp user add testuser3 priv rw md5 testuser3_auth_pass aes testuser3_encrypt_pass
   SNMP user testuser3 added to configuration
   Restarting SNMP service...
   admin@switch1:~$ 
-  """
+  ```
 
 - Example (config snmp user del testuser1):
-  """
+  ```
   admin@switch1:~$ sudo config snmp user del testuser1
   SNMP user testuser1 removed from configuration
   Restarting SNMP service...
   admin@switch1:~$ 
-  """
+  ```
 
 ## Startup & Running Configuration
 
