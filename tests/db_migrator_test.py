@@ -85,7 +85,7 @@ class TestMellanoxBufferMigrator(object):
             if expected_dbversion['VERSION'] == self.version_list[-1] and dbmgtr_dbversion['VERSION'] > expected_dbversion['VERSION']:
                 expected_dbversion['VERSION'] = dbmgtr_dbversion['VERSION']
                 expected_db.set_entry('VERSIONS', 'DATABASE', expected_dbversion)
-    
+
     @pytest.mark.parametrize('scenario',
                              ['empty-config',
                               'non-default-config',
@@ -139,7 +139,8 @@ class TestMellanoxBufferMigrator(object):
             import db_migrator
             dbmgtr = db_migrator.DBMigrator(None)
             dbmgtr.migrate()
-             # Eventually, the config db should be migrated to the latest version
+
+            # Eventually, the config db should be migrated to the latest version
             expected_db = self.mock_dedicated_config_db(self.make_db_name_by_sku_topo_version(sku, topo, self.version_list[-1]))
             self.advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb)
             self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
