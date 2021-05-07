@@ -6757,7 +6757,7 @@ This command is used to add, delete, or modify the SNMP contact.
 
 - Usage:
   ```
-  config snmp contact (add | del | modify) <contact> <contact_email>
+  config snmp contact add <contact> <contact_email>
   ```
 
 - Example (config snmp contact add <contact> <contact_email>):
@@ -6767,11 +6767,21 @@ This command is used to add, delete, or modify the SNMP contact.
   Restarting SNMP service...
   ```
 
+- Usage:
+  ```
+  config snmp contact del <contact>
+  ```
+
 - Example (config snmp contact del <contact>):
   ```
   admin@sonic:~$ sudo config snmp contact del joe
   SNMP contact joe removed from configuration
   Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp contact modify <contact> <contact_email>
   ```
 
 - Example (config snmp contact modify <contact> <contact_email>):
@@ -6787,7 +6797,7 @@ This command is used to add, delete, or replace the SNMP community.
 
 - Usage:
   ```
-  config snmp community (add | del | replace) <community> (<RO|RW> | <new_community>)
+  config snmp community add <community> <RO|RW>
   ```
 
 - Example (config snmp community add <community> <RO|RW>)
@@ -6797,11 +6807,21 @@ This command is used to add, delete, or replace the SNMP community.
   Restarting SNMP service...
   ```
 
+- Usage:
+  ```
+  config snmp community del <community>
+  ```
+
 - Example (config snmp community del <community>)
   ```
   admin@sonic:~$ sudo config snmp community del testcomm 
   SNMP community testcomm removed from configuration
   Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp community replace <community> <new_community>
   ```
 
 - Example (config snmp community replace <community> <new_community>):
@@ -6818,7 +6838,7 @@ This command is used to add or delete the SNMP user for SNMPv3.
 
 - Usage:
   ```
-  config snmp user (add | del) <user> <noAuthNoPriv|AuthNoPriv|Priv> <RO|RW> <MD5|SHA|MMAC-SHA-2> <auth_password> <DES|AES> <encrypt_password>
+  config snmp user add <user> <noAuthNoPriv|AuthNoPriv|Priv> <RO|RW> [[<MD5|SHA|MMAC-SHA-2> <auth_password>] [<DES|AES> <encrypt_password>]]
   ```
 
 - Exmaple (config snmp user add testuser1 noauthnopriv ro):
@@ -6840,6 +6860,11 @@ This command is used to add or delete the SNMP user for SNMPv3.
   admin@sonic:~$ sudo config snmp user add testuser3 priv rw md5 testuser3_auth_pass aes testuser3_encrypt_pass
   SNMP user testuser3 added to configuration
   Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp user del <user>
   ```
 
 - Example (config snmp user del testuser1):
