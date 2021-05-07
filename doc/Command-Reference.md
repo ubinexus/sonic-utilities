@@ -6572,18 +6572,18 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#sflow)
 
 ### SNMP Show commands
 
-**show run snmp**
+**show runningconfiguration snmp**
 
 This command displays the global SNMP configuration that includes the location, contact, community, and user setttings.
 
 - Usage:
   ```
-  show run snmp
+  show runningconfiguration snmp
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp 
+  admin@switch1:~$ show runningconfiguration snmp 
   Location
   ------------
   Emerald City
@@ -6605,18 +6605,18 @@ This command displays the global SNMP configuration that includes the location, 
   admin@switch1:~$ 
   ```
 
-**show run snmp location**
+**show runningconfiguration snmp location**
 
 This command display the SNMP location setting.
 
 - Usage:
   ```
-  show run snmp location
+  show runningconfiguration snmp location
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp location
+  admin@switch1:~$ show runningconfiguration snmp location
   Location
   ------------
   Emerald City
@@ -6624,27 +6624,27 @@ This command display the SNMP location setting.
 
 - Usage:
   ```
-  show run snmp location --json
+  show runningconfiguration snmp location --json
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp location --json
+  admin@switch1:~$ show runningconfiguration snmp location --json
   {'Location': 'Emerald City'}
   ```
 
-**show run snmp contact**
+**show runningconfiguration snmp contact**
 
 This command display the SNMP contact setting.
 
 - Usage:
   ```
-  show run snmp contact
+  show runningconfiguration snmp contact
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp contact
+  admin@switch1:~$ show runningconfiguration snmp contact
   Contact    Contact Email
   ---------  ---------------
   joe        joe@contoso.com
@@ -6652,27 +6652,27 @@ This command display the SNMP contact setting.
 
 - Usage:
   ```
-  show run snmp contact --json
+  show runningconfiguration snmp contact --json
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp contact --json
+  admin@switch1:~$ show runningconfiguration snmp contact --json
   {'joe': 'joe@contoso.com'}
   ```
 
-**show run snmp community**
+**show runningconfiguration snmp community**
 
 This command display the SNMP community settings.
 
 - Usage:
   ```
-  show run snmp community
+  show runningconfiguration snmp community
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp community
+  admin@switch1:~$ show runningconfiguration snmp community
   Community String    Community Type
   ------------------  ----------------
   Jack                RW
@@ -6680,27 +6680,27 @@ This command display the SNMP community settings.
 
 - Usage:
   ```
-  show run snmp community --json
+  show runningconfiguration snmp community --json
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp community --json
+  admin@switch1:~$ show runningconfiguration snmp community --json
   {'Jack': {'TYPE': 'RW'}}
   ```
 
-**show run snmp user**
+**show runningconfiguration snmp user**
 
 This command display the SNMP user settings.
 
 - Usage:
   ```
-  show run snmp user
+  show runningconfiguration snmp user
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp user
+  admin@switch1:~$ show runningconfiguration snmp user
   User    Permission Type    Type    Auth Type    Auth Password    Encryption Type    Encryption Password
   ------  -----------------  ------  -----------  ---------------  -----------------  ---------------------
   Travis  RO                 Priv    SHA          TravisAuthPass   AES                TravisEncryptPass
@@ -6708,12 +6708,12 @@ This command display the SNMP user settings.
 
 - Usage:
   ```
-  show run snmp user --json
+  show runningconfiguration snmp user --json
   ```
 
 - Example:
   ```
-  admin@switch1:~$ show run snmp user --json
+  admin@switch1:~$ show runningconfiguration snmp user --json
   {'Travis': {'SNMP_USER_TYPE': 'Priv', 'SNMP_USER_PERMISSION': 'RO', 'SNMP_USER_AUTH_TYPE': 'SHA', 'SNMP_USER_AUTH_PASSWORD': 'TravisAuthPass', 'SNMP_USER_ENCRYPTION_TYPE': 'AES', 'SNMP_USER_ENCRYPTION_PASSWORD': 'TravisEncryptPass'}}
   ```
 
@@ -6739,7 +6739,7 @@ This command is used to add, delete, or modify the SNMP location.
   admin@switch1:~$
   ```
 
-- Example (Del SNMP location "Emerald City" if it already exists):
+- Example (Delete SNMP location "Emerald City" if it already exists):
   ```
   admin@switch1:~$ sudo config snmp location del Emerald City
   SNMP Location Emerald City removed from configuration
