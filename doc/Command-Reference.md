@@ -6760,7 +6760,7 @@ This command is used to add, delete, or modify the SNMP contact.
   config snmp contact add <contact> <contact_email>
   ```
 
-- Example (config snmp contact add <contact> <contact_email>):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp contact add joe joe@contoso.com
   Contact name joe and contact email joe@contoso.com have been added to configuration
@@ -6772,7 +6772,7 @@ This command is used to add, delete, or modify the SNMP contact.
   config snmp contact del <contact>
   ```
 
-- Example (config snmp contact del <contact>):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp contact del joe
   SNMP contact joe removed from configuration
@@ -6784,7 +6784,7 @@ This command is used to add, delete, or modify the SNMP contact.
   config snmp contact modify <contact> <contact_email>
   ```
 
-- Example (config snmp contact modify <contact> <contact_email>):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp contact modify test test@contoso.com
   SNMP contact test and contact email test@contoso.com updated
@@ -6800,7 +6800,7 @@ This command is used to add, delete, or replace the SNMP community.
   config snmp community add <community> (RO | RW)
   ```
 
-- Example (config snmp community add <community> (RO | RW))
+- Example:
   ```
   admin@sonic:~$ sudo config snmp community add testcomm ro
   SNMP community testcomm added to configuration
@@ -6812,7 +6812,7 @@ This command is used to add, delete, or replace the SNMP community.
   config snmp community del <community>
   ```
 
-- Example (config snmp community del <community>)
+- Example:
   ```
   admin@sonic:~$ sudo config snmp community del testcomm 
   SNMP community testcomm removed from configuration
@@ -6824,7 +6824,7 @@ This command is used to add, delete, or replace the SNMP community.
   config snmp community replace <community> <new_community>
   ```
 
-- Example (config snmp community replace <community> <new_community>):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp community replace testcomm newtestcomm
   SNMP community newtestcomm added to configuration
@@ -6841,21 +6841,21 @@ This command is used to add or delete the SNMP user for SNMPv3.
   config snmp user add <user> (noAuthNoPriv | AuthNoPriv | Priv) (RO | RW) [[(MD5 | SHA | MMAC-SHA-2) <auth_password>] [(DES |AES) <encrypt_password>]]
   ```
 
-- Example (config snmp user add testuser1 noauthnopriv ro):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp user add testuser1 noauthnopriv ro
   SNMP user testuser1 added to configuration
   Restarting SNMP service...
   ```
 
-- Example (config snmp user add testuser2 authnopriv ro sha testuser2_auth_pass):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp user add testuser2 authnopriv ro sha testuser2_auth_pass
   SNMP user testuser2 added to configuration
   Restarting SNMP service...
   ```
 
-- Example (config snmp user add testuser3 priv rw md5 testuser3_auth_pass aes testuser3_encrypt_pass):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp user add testuser3 priv rw md5 testuser3_auth_pass aes testuser3_encrypt_pass
   SNMP user testuser3 added to configuration
@@ -6867,7 +6867,7 @@ This command is used to add or delete the SNMP user for SNMPv3.
   config snmp user del <user>
   ```
 
-- Example (config snmp user del testuser1):
+- Example:
   ```
   admin@sonic:~$ sudo config snmp user del testuser1
   SNMP user testuser1 removed from configuration
