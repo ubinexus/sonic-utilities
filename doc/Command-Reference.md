@@ -6574,7 +6574,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#sflow)
 
 **show runningconfiguration snmp**
 
-This command displays the global SNMP configuration that includes the location, contact, community, and user setttings.
+This command displays the global SNMP configuration that includes the location, contact, community, and user settings.
 
 - Usage:
   ```
@@ -6606,7 +6606,7 @@ This command displays the global SNMP configuration that includes the location, 
 
 **show runningconfiguration snmp location**
 
-This command display the SNMP location setting.
+This command displays the SNMP location setting.
 
 - Usage:
   ```
@@ -6634,7 +6634,7 @@ This command display the SNMP location setting.
 
 **show runningconfiguration snmp contact**
 
-This command display the SNMP contact setting.
+This command displays the SNMP contact setting.
 
 - Usage:
   ```
