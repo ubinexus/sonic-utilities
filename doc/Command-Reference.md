@@ -3177,7 +3177,7 @@ The "errors" subcommand is used to display the interface errors.
 
 The "rates" subcommand is used to disply only the interface rates. 
 
-- Exmaple: 
+- Example: 
   ```
   admin@str-s6000-acs-11:/usr/bin$ show int counters rates
       IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    TX_OK    TX_BPS    TX_PPS    TX_UTIL
@@ -6797,10 +6797,10 @@ This command is used to add, delete, or replace the SNMP community.
 
 - Usage:
   ```
-  config snmp community add <community> <RO|RW>
+  config snmp community add <community> (RO | RW)
   ```
 
-- Example (config snmp community add <community> <RO|RW>)
+- Example (config snmp community add <community> (RO | RW))
   ```
   admin@sonic:~$ sudo config snmp community add testcomm ro
   SNMP community testcomm added to configuration
@@ -6838,10 +6838,10 @@ This command is used to add or delete the SNMP user for SNMPv3.
 
 - Usage:
   ```
-  config snmp user add <user> <noAuthNoPriv|AuthNoPriv|Priv> <RO|RW> [[<MD5|SHA|MMAC-SHA-2> <auth_password>] [<DES|AES> <encrypt_password>]]
+  config snmp user add <user> (noAuthNoPriv | AuthNoPriv | Priv) (RO | RW) [[(MD5 | SHA | MMAC-SHA-2) <auth_password>] [(DES |AES) <encrypt_password>]]
   ```
 
-- Exmaple (config snmp user add testuser1 noauthnopriv ro):
+- Example (config snmp user add testuser1 noauthnopriv ro):
   ```
   admin@sonic:~$ sudo config snmp user add testuser1 noauthnopriv ro
   SNMP user testuser1 added to configuration
