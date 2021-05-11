@@ -967,7 +967,7 @@ def version(verbose):
     click.echo("ASIC Count: {}".format(hw_info['asic_count']))
     click.echo("Serial Number: {}".format(hw_info['serial']))
     click.echo("Model Number: {}".format(hw_info['model']))
-    click.echo("Hardware Rev: {}".format(hw_info['revision']))
+    click.echo("Hardware Revision: {}".format(hw_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
