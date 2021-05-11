@@ -1,4 +1,5 @@
 import configparser
+import contextlib
 import os
 import re
 import subprocess
@@ -320,47 +321,47 @@ def migrate_sonic_packages(bootloader, binary_image_version):
     sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
     new_image_dir = bootloader.get_image_path(binary_image_version)
 
-    def get_path(path):
-        """ Closure to get path by entering
-        a context manager of bootloader.get_path_in_image """
+    with contextlib.ExitStack() as stack:
+        def get_path(path):
+            """ Closure to get path by entering 
+            a context manager of bootloader.get_path_in_image """
 
-        with bootloader.get_path_in_image(new_image_dir, path) as path_in_image:
-            return path_in_image
+            return stack.enter_context(bootloader.get_path_in_image(new_image_dir, path))
 
-    new_image_squashfs_path = get_path(ROOTFS_NAME)
-    new_image_upper_dir = get_path(UPPERDIR_NAME)
-    new_image_work_dir = get_path(WORKDIR_NAME)
-    new_image_docker_dir = get_path(DOCKERDIR_NAME)
-    new_image_mount = os.path.join("/", tmp_dir, "image-{0}-fs".format(sonic_version))
-    new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
+        new_image_squashfs_path = get_path(ROOTFS_NAME)
+        new_image_upper_dir = get_path(UPPERDIR_NAME)
+        new_image_work_dir = get_path(WORKDIR_NAME)
+        new_image_docker_dir = get_path(DOCKERDIR_NAME)
+        new_image_mount = os.path.join("/", tmp_dir, "image-{0}-fs".format(sonic_version))
+        new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
 
-    try:
-        mount_squash_fs(new_image_squashfs_path, new_image_mount)
-        # make sure upper dir and work dir exist
-        run_command_or_raise(["mkdir", "-p", new_image_upper_dir])
-        run_command_or_raise(["mkdir", "-p", new_image_work_dir])
-        mount_overlay_fs(new_image_mount, new_image_upper_dir, new_image_work_dir, new_image_mount)
-        mount_bind(new_image_docker_dir, new_image_docker_mount)
-        mount_procfs_chroot(new_image_mount)
-        mount_sysfs_chroot(new_image_mount)
-        run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
-        run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
-        run_command_or_raise(["touch", os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
-        run_command_or_raise(["mount", "--bind",
-                            os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),
-                            os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
-        run_command_or_raise(["chroot", new_image_mount, "sh", "-c", "command -v {}".format(SONIC_PACKAGE_MANAGER)])
-    except SonicRuntimeException as err:
-        echo_and_log("Warning: SONiC Application Extension is not supported in this image: {}".format(err), LOG_ERR, fg="red")
-    else:
-        run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
-                            os.path.join("/", tmp_dir, packages_file),
-                            "--dockerd-socket", os.path.join("/", tmp_dir, DOCKERD_SOCK),
-                            "-y"])
-    finally:
-        run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
-        umount(new_image_mount, recursive=True, read_only=False, remove_dir=False, raise_exception=False)
-        umount(new_image_mount, raise_exception=False)
+        try:
+            mount_squash_fs(new_image_squashfs_path, new_image_mount)
+            # make sure upper dir and work dir exist
+            run_command_or_raise(["mkdir", "-p", new_image_upper_dir])
+            run_command_or_raise(["mkdir", "-p", new_image_work_dir])
+            mount_overlay_fs(new_image_mount, new_image_upper_dir, new_image_work_dir, new_image_mount)
+            mount_bind(new_image_docker_dir, new_image_docker_mount)
+            mount_procfs_chroot(new_image_mount)
+            mount_sysfs_chroot(new_image_mount)
+            run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
+            run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
+            run_command_or_raise(["touch", os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
+            run_command_or_raise(["mount", "--bind",
+                                os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),
+                                os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
+            run_command_or_raise(["chroot", new_image_mount, "sh", "-c", "command -v {}".format(SONIC_PACKAGE_MANAGER)])
+        except SonicRuntimeException as err:
+            echo_and_log("Warning: SONiC Application Extension is not supported in this image: {}".format(err), LOG_ERR, fg="red")
+        else:
+            run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
+                                os.path.join("/", tmp_dir, packages_file),
+                                "--dockerd-socket", os.path.join("/", tmp_dir, DOCKERD_SOCK),
+                                "-y"])
+        finally:
+            run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
+            umount(new_image_mount, recursive=True, read_only=False, remove_dir=False, raise_exception=False)
+            umount(new_image_mount, raise_exception=False)
 
 
 # Main entrypoint
