@@ -425,13 +425,13 @@ class MellanoxBufferMigrator():
             "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
 
             "buffer_pools": {
-                "spc1_2700_t1_pool_shp": {"doublepool": { "size": "4439552", "xoff": "2142208" }, "egress_lossless_pool": { "size": "13945824"}},
+                "spc1_2700_t1_pool_shp": {"doublepool": { "size": "4439552", "xoff": "2146304" }, "egress_lossless_pool": { "size": "13945824"}},
 
                 # Buffer pool for single pool
-                "spc1_2700_t1_single_pool_shp": {"singlepool": { "size": "8879104", "xoff": "2142208" }, "egress_lossless_pool": { "size": "13945824"}},
+                "spc1_2700_t1_single_pool_shp": {"singlepool": { "size": "8719360", "xoff": "2146304" }, "egress_lossless_pool": { "size": "13945824"}},
 
                 # The following pools are used for upgrading from 1.0.5 to the newer version
-                "spc2_3800-c64_t1_pool_shp": {"singlepool": {"size": "24375296", "xoff": "4169728"}, "egress_lossless_pool": {"size": "34287552"}}
+                "spc2_3800-c64_t1_pool_shp": {"singlepool": {"size": "24219648", "xoff": "4169728"}, "egress_lossless_pool": {"size": "34287552"}}
             },
             "buffer_pools_inherited": {
                 "version_1_0_4": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc3_t0_pool", "spc3_t1_pool"],
