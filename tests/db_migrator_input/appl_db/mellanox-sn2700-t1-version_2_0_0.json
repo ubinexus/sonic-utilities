@@ -202,7 +202,7 @@
         "size": "4439552"
     },
     "BUFFER_POOL_TABLE:ingress_lossless_pool": {
-        "xoff": "2142208",
+        "xoff": "2146304",
         "type": "ingress",
         "mode": "dynamic",
         "size": "4439552"
