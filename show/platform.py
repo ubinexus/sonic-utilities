@@ -48,19 +48,19 @@ def platform():
 def summary(json):
     """Show hardware platform information"""
 
-    platform_info_dict = device_info.get_platform_info()
-    chassis_info_dict = get_chassis_info()
+    platform_info = device_info.get_platform_info()
+    chassis_info = get_chassis_info()
 
     if json:
-        click.echo(clicommon.json_dump(hw_info_dict))
+        click.echo(clicommon.json_dump({**platform_info, **chassis_info}))
     else:
-        click.echo("Platform: {}".format(hw_info_dict['platform']))
-        click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-        click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
-        click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
-        click.echo("Serial Number: {}".format(hw_info_dict['serial']))
-        click.echo("Model Number: {}".format(hw_info_dict['model']))
-        click.echo("Hardware Revision: {}".format(hw_info_dict['revision']))
+        click.echo("Platform: {}".format(platform_info['platform']))
+        click.echo("HwSKU: {}".format(platform_info['hwsku']))
+        click.echo("ASIC: {}".format(platform_info['asic_type']))
+        click.echo("ASIC Count: {}".format(platform_info['asic_count']))
+        click.echo("Serial Number: {}".format(chassis_info['serial']))
+        click.echo("Model Number: {}".format(chassis_info['model']))
+        click.echo("Hardware Revision: {}".format(chassis_info['revision']))
 
 
 # 'syseeprom' subcommand ("show platform syseeprom")

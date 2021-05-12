@@ -962,7 +962,7 @@ def version(verbose):
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
-    click.echo("\nPlatform: {}".format(hw_info['platform']))
+    click.echo("\nPlatform: {}".format(platform_info['platform']))
     click.echo("HwSKU: {}".format(platform_info['hwsku']))
     click.echo("ASIC: {}".format(platform_info['asic_type']))
     click.echo("ASIC Count: {}".format(platform_info['asic_count']))
