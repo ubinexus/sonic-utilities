@@ -950,7 +950,8 @@ def logging(process, lines, follow, verbose):
 def version(verbose):
     """Show version information"""
     version_info = device_info.get_sonic_version_info()
-    hw_info = platform.get_hw_info_dict()
+    platform_info = device_info.get_platform_info()
+    chassis_info = platform.get_chassis_info()
 
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -962,12 +963,12 @@ def version(verbose):
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
     click.echo("\nPlatform: {}".format(hw_info['platform']))
-    click.echo("HwSKU: {}".format(hw_info['hwsku']))
-    click.echo("ASIC: {}".format(hw_info['asic_type']))
-    click.echo("ASIC Count: {}".format(hw_info['asic_count']))
-    click.echo("Serial Number: {}".format(hw_info['serial']))
-    click.echo("Model Number: {}".format(hw_info['model']))
-    click.echo("Hardware Revision: {}".format(hw_info['revision']))
+    click.echo("HwSKU: {}".format(platform_info['hwsku']))
+    click.echo("ASIC: {}".format(platform_info['asic_type']))
+    click.echo("ASIC Count: {}".format(platform_info['asic_count']))
+    click.echo("Serial Number: {}".format(chassis_info['serial']))
+    click.echo("Model Number: {}".format(chassis_info['model']))
+    click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
