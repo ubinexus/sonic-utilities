@@ -141,7 +141,7 @@
         "status": "true",
         "model": "0J6J4K",
         "serial": "CN-0J6J4K-17972-5AF-0086-A00",
-	"revision": "1",
+        "revision": "1",
         "temp": "None",
         "temp_threshold": "None",
         "voltage": "12.19",
