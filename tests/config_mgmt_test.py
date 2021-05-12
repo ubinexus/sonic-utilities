@@ -1,6 +1,5 @@
 import os
 import sys
-from imp import load_source
 from json import dump
 from copy import deepcopy
 from unittest import mock, TestCase
@@ -14,7 +13,7 @@ config_mgmt_py_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'c
 config_mgmt = load_module_from_source('config_mgmt', config_mgmt_py_path)
 
 # import file sonic_cfggen
-load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
+load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 from sonic_cfggen import deep_update, FormatConverter
 
 class TestConfigMgmt(TestCase):
