@@ -7,6 +7,32 @@ import utilities_common.cli as clicommon
 from sonic_py_common import device_info, multi_asic
 
 #
+# Helper functions
+#
+
+def get_chassis_info()
+    """
+    Attempts to get the chassis info via STATE_DB and falls back to direct Platform API calls.
+    """
+
+    chassis_info = device_info.get_chassis_info()
+    required_keys = ['serial', 'model', 'revision']
+    failed_vals = ['', 'N/A']
+    platform_chassis = None
+
+    for k in required_keys:
+        if chassis_info.get(k, "") in failed_vals:
+            if platform_chassis is None:
+                import platform
+                platform_chassis = sonic_platform.platform.Platform().get_chassis()
+            try:
+                chassis_info[k] = getattr(platform_chassis, "get_".format(k))()
+            except:
+                pass
+
+    return chassis_info
+
+#
 # 'platform' group ("show platform ...")
 #
 
@@ -22,8 +48,8 @@ def platform():
 def summary(json):
     """Show hardware platform information"""
 
-    hw_info_dict = {}
-    hw_info_dict = device_info.get_hw_info_dict()
+    platform_info_dict = device_info.get_platform_info()
+    chassis_info_dict = get_chassis_info()
 
     if json:
         click.echo(clicommon.json_dump(hw_info_dict))
