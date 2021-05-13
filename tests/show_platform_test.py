@@ -44,7 +44,7 @@ class TestShowPlatform(object):
             """.format(self.TEST_PLATFORM, self.TEST_HWSKU, self.TEST_ASIC_TYPE, self.TEST_ASIC_COUNT, self.TEST_SERIAL, self.TEST_MODEL, self.TEST_REV)
 
         with mock.patch("sonic_py_common.device_info.get_platform_info",
-                        return_value={"platform": self.TEST_PLATFORM, "hwsku": self.TEST_HWSKU, "asic_type": self.TEST_ASIC_TYPE}):
+                return_value={"platform": self.TEST_PLATFORM, "hwsku": self.TEST_HWSKU, "asic_type": self.TEST_ASIC_TYPE, "asic_count": self.TEST_ASIC_COUNT}):
             with mock.patch("show.platform.get_chassis_info",
                             return_value={"serial": self.TEST_SERIAL, "model": self.TEST_MODEL, "revision": self.TEST_REV}):
                 result = CliRunner().invoke(show.cli.commands["platform"].commands["summary"], [])

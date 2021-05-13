@@ -10,7 +10,7 @@ from sonic_py_common import device_info, multi_asic
 # Helper functions
 #
 
-def get_chassis_info()
+def get_chassis_info():
     """
     Attempts to get the chassis info via STATE_DB and falls back to direct Platform API calls.
     """
@@ -47,7 +47,6 @@ def platform():
 @click.option('--json', is_flag=True, help="Output in JSON format")
 def summary(json):
     """Show hardware platform information"""
-
     platform_info = device_info.get_platform_info()
     chassis_info = get_chassis_info()
 
