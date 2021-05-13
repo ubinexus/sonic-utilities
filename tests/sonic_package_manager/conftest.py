@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import json
-
 from dataclasses import dataclass
 from unittest import mock
 from unittest.mock import Mock, MagicMock

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import contextlib
-import json
 import os
 import stat
 import subprocess
