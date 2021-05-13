@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
-try:
-    from collections import OrderedDict
-    from config.config_mgmt import ConfigMgmt
-except ImportError as e:
-    raise ImportError("%s - required module not found" % str(e))
+from collections import OrderedDict
+from config.config_mgmt import ConfigMgmt
 
 class YangParser:
     """ YANG model parser
