@@ -4,11 +4,14 @@ import contextlib
 import os
 import stat
 import subprocess
+from collections import defaultdict
 from typing import Dict
 
 import jinja2 as jinja2
 from config.config_mgmt import ConfigMgmt
 from prettyprinter import pformat
+from toposort import toposort_flatten, CircularDependencyError
+
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator import ETC_SONIC_PATH
@@ -95,7 +98,7 @@ def run_command(command: str):
                             shell=True,
                             executable='/bin/bash',
                             stdout=subprocess.PIPE)
-    (out, _) = proc.communicate()
+    (_, _) = proc.communicate()
     if proc.returncode != 0:
         raise ServiceCreatorError(f'Failed to execute "{command}"')
 
@@ -104,27 +107,50 @@ class ServiceCreator:
     """ Creates and registers services in SONiC based on the package
      manifest. """
 
-    def __init__(self, feature_registry: FeatureRegistry,
-                 sonic_db, cfg_mgmt: ConfigMgmt):
+    def __init__(self,
+                 feature_registry: FeatureRegistry,
+                 sonic_db,
+                 cfg_mgmt: ConfigMgmt):
+        """ Initialize ServiceCreator with:
+        
+        Args:
+            feature_registry: FeatureRegistry object.
+            sonic_db: SonicDb interface.
+            cfg_mgmt: ConfigMgmt instance.
+         """
+
         self.feature_registry = feature_registry
         self.sonic_db = sonic_db
         self.cfg_mgmt = cfg_mgmt
 
     def create(self,
                package: Package,
-               register_feature=True,
-               state='enabled',
-               owner='local'):
+               register_feature: bool = True,
+               state: str = 'enabled',
+               owner: str = 'local'):
+        """ Register package as SONiC service. 
+        
+        Args:
+            package: Package object to install.
+            register_feature: Wether to register this package in FEATURE table.
+            state: Default feature state.
+            owner: Default feature owner.
+
+        Returns:
+            None
+        """
+
         try:
             self.generate_container_mgmt(package)
             self.generate_service_mgmt(package)
             self.update_dependent_list_file(package)
             self.generate_systemd_service(package)
             self.generate_dump_script(package)
+            self.generate_service_reconciliation_file(package)
             self.install_yang_module(package)
 
             self.set_initial_config(package)
-            self.post_operation_hook()
+            self._post_operation_hook()
 
             if register_feature:
                 self.feature_registry.register(package.manifest,
@@ -133,9 +159,21 @@ class ServiceCreator:
             self.remove(package, register_feature)
             raise
 
-    def remove(self, package: Package,
-               deregister_feature=True,
-               keep_config=False):
+    def remove(self,
+               package: Package,
+               deregister_feature: bool = True,
+               keep_config: bool = False):
+        """ Uninstall SONiC service provided by the package.
+        
+        Args:
+            package: Package object to uninstall.
+            deregister_feature: Wether to deregister this package from FEATURE table.
+            keep_config: Whether to remove package configuration.
+
+        Returns:
+            None
+        """
+
         name = package.manifest['service']['name']
 
         def remove_file(path):
@@ -148,6 +186,7 @@ class ServiceCreator:
         remove_file(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, f'{name}.sh'))
         remove_file(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, f'{name}'))
+        remove_file(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'))
 
         self.update_dependent_list_file(package, remove=True)
 
@@ -156,16 +195,20 @@ class ServiceCreator:
 
         self.uninstall_yang_module(package)
 
-        self.post_operation_hook()
+        self._post_operation_hook()
 
         if deregister_feature:
             self.feature_registry.deregister(package.manifest['service']['name'])
 
-    def post_operation_hook(self):
-        if not in_chroot():
-            run_command('systemctl daemon-reload')
-
     def generate_container_mgmt(self, package: Package):
+        """ Generates container management script under /usr/bin/<service>.sh for package. 
+        
+        Args:
+            package: Package object to generate script for.
+        Returns:
+            None
+        """
+
         image_id = package.image_id
         name = package.manifest['service']['name']
         container_spec = package.manifest['container']
@@ -201,6 +244,14 @@ class ServiceCreator:
         log.info(f'generated {script_path}')
 
     def generate_service_mgmt(self, package: Package):
+        """ Generates service management script under /usr/local/bin/<service>.sh for package. 
+        
+        Args:
+            package: Package object to generate script for.
+        Returns:
+            None
+        """
+
         name = package.manifest['service']['name']
         multi_instance_services = self.feature_registry.get_multi_instance_features()
         script_path = os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh')
@@ -214,6 +265,14 @@ class ServiceCreator:
         log.info(f'generated {script_path}')
 
     def generate_systemd_service(self, package: Package):
+        """ Generates systemd service(s) file and timer(s) (if needed) for package. 
+        
+        Args:
+            package: Package object to generate service for.
+        Returns:
+            None
+        """
+
         name = package.manifest['service']['name']
         multi_instance_services = self.feature_registry.get_multi_instance_features()
 
@@ -252,6 +311,15 @@ class ServiceCreator:
                 log.info(f'generated {output_file}')
 
     def update_dependent_list_file(self, package: Package, remove=False):
+        """ This function updates dependent list file for packages listed in "dependent-of"
+            (path: /etc/sonic/<service>_dependent file).
+        
+        Args:
+            package: Package to update packages dependent of it.
+        Returns:
+            None.
+
+        """
         name = package.manifest['service']['name']
         dependent_of = package.manifest['service']['dependent-of']
         host_service = package.manifest['service']['host-service']
@@ -284,6 +352,14 @@ class ServiceCreator:
                 update_dependent(service, name, multi_inst=True)
 
     def generate_dump_script(self, package):
+        """ Generates dump plugin script for package.
+        
+        Args:
+            package: Package object to generate dump plugin script for.
+        Returns:
+            None.
+        """
+
         name = package.manifest['service']['name']
 
         if not package.manifest['package']['debug-dump']:
@@ -301,24 +377,106 @@ class ServiceCreator:
         render_template(scrip_template, script_path, render_ctx, executable=True)
         log.info(f'generated {script_path}')
 
-    def get_tables(self, table_name):
-        tables = []
+    def get_shutdown_sequence(self, reboot_type: str, packages: Dict[str, Package]):
+        """ Returns shutdown sequence file for particular reboot type.
+        
+        Args:
+            reboot_type: Reboot type to generated service shutdown sequence for.
+            packages: Dict of installed packages.
+        Returns:
+            Ordered list of service names.
+        """
 
-        running_table = self.sonic_db.running_table(table_name)
-        if running_table is not None:
-            tables.append(running_table)
+        shutdown_graph = defaultdict(set)
 
-        persistent_table = self.sonic_db.persistent_table(table_name)
-        if persistent_table is not None:
-            tables.append(persistent_table)
+        def service_exists(service):
+            for package in packages.values():
+                if package.manifest['service']['name'] == service:
+                    return True
+            log.info(f'Service {service} is not installed, it is skipped...')
+            return False
 
-        initial_table = self.sonic_db.initial_table(table_name)
-        if initial_table is not None:
-            tables.append(initial_table)
+        def filter_not_available(services):
+            return set(filter(service_exists, services))
 
-        return tables
+        for package in packages.values():
+            service_props = package.manifest['service']
+            after = filter_not_available(service_props[f'{reboot_type}-shutdown']['after'])
+            before = filter_not_available(service_props[f'{reboot_type}-shutdown']['before'])
+
+            if not after and not before:
+                continue
+
+            name = package.manifest['service']['name']
+            shutdown_graph[name].update(after)
+
+            for service in before:
+                shutdown_graph[service].update({name})
+
+        log.debug(f'shutdown graph {pformat(shutdown_graph)}')
+
+        try:
+            order = toposort_flatten(shutdown_graph)
+        except CircularDependencyError as err:
+            raise ServiceCreatorError(f'Circular dependency found in {reboot_type} error: {err}')
+
+        log.debug(f'shutdown order {pformat(order)}')
+        return order
+
+    def generate_shutdown_sequence_file(self, reboot_type: str, packages: Dict[str, Package]):
+        """ Generates shutdown sequence file for particular reboot type
+            (path: /etc/sonic/<reboot-type>-reboot_order).
+        
+        Args:
+            reboot_type: Reboot type to generated service shutdown sequence for.
+            packages: Dict of installed packages.
+        Returns:
+            None.
+        """
+
+        order = self.get_shutdown_sequence(reboot_type, packages)
+        with open(os.path.join(ETC_SONIC_PATH, f'{reboot_type}-reboot_order'), 'w') as file:
+            file.write(' '.join(order))
+    
+    def generate_shutdown_sequence_files(self, packages: Dict[str, Package]):
+        """ Generates shutdown sequence file for fast and warm reboot. 
+            (path: /etc/sonic/<reboot-type>-reboot_order).
+        
+        Args:
+            packages: Dict of installed packages.
+        Returns:
+            None.
+        """
+
+        for reboot_type in ('fast', 'warm'):
+            self.generate_shutdown_sequence_file(reboot_type, packages)
+
+    def generate_service_reconciliation_file(self, package):
+        """ Generates reconciliation file for package
+            (path: /etc/sonic/<service>_reconcile).
+
+        Args:
+            package: Package object to generate dump plugin script for.
+        Returns:
+            None
+        """
+
+        name = package.manifest['service']['name']
+        all_processes = package.manifest['processes']
+        processes = [process['name'] for process in all_processes if process['reconciles']]
+        with open(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'), 'w') as file:
+            file.write(' '.join(processes))
 
     def set_initial_config(self, package):
+        """ Set initial package configuration from manifest.
+        This method updates but does not override existing entries in tables.
+
+        Args:
+            package: Package object to generate dump plugin script for.
+        Returns:
+            None
+        """
+
         init_cfg = package.manifest['package']['init-cfg']
         if not init_cfg:
             return
@@ -327,7 +485,7 @@ class ServiceCreator:
             if not isinstance(content, dict):
                 continue
 
-            tables = self.get_tables(tablename)
+            tables = self._get_tables(tablename)
 
             for key in content:
                 for table in tables:
@@ -342,6 +500,14 @@ class ServiceCreator:
             self.validate_configs()
 
     def remove_config(self, package):
+        """ Remove configuration based on package YANG module.
+
+        Args:
+            package: Package object to generate dump plugin script for.
+        Returns:
+            None
+        """
+
         if not package.metadata.yang_module_text:
             return
 
@@ -350,7 +516,7 @@ class ServiceCreator:
             if module['module'] != module_name:
                 continue
 
-            tables = self.get_tables(tablename)
+            tables = self._get_tables(tablename)
             for table in tables:
                 for key in table.getKeys():
                     table._del(key)
@@ -381,3 +547,28 @@ class ServiceCreator:
             return
         module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
         self.cfg_mgmt.remove_module(module_name)
+
+    def _get_tables(self, table_name):
+        """ Return swsscommon Tables for all kinds of configuration DBs """
+
+        tables = []
+
+        running_table = self.sonic_db.running_table(table_name)
+        if running_table is not None:
+            tables.append(running_table)
+
+        persistent_table = self.sonic_db.persistent_table(table_name)
+        if persistent_table is not None:
+            tables.append(persistent_table)
+
+        initial_table = self.sonic_db.initial_table(table_name)
+        if initial_table is not None:
+            tables.append(initial_table)
+
+        return tables
+
+    def _post_operation_hook(self):
+        """ Common operations executed after service is created/removed. """
+
+        if not in_chroot():
+            run_command('systemctl daemon-reload')

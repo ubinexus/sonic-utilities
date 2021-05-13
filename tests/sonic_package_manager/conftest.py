@@ -83,6 +83,36 @@ def fake_metadata_resolver():
                          'libswsscommon': Version.parse('1.0.0'),
                          'libsairedis': Version.parse('1.0.0')
                      },
+                     warm_shutdown={
+                         'before': ['syncd'],
+                     },
+                     fast_shutdown={
+                         'before': ['syncd'],
+                     },
+                     processes=[
+                        {
+                            'name': 'orchagent',
+                            'reconciles': True,
+                        },
+                        {
+                            'name': 'neighsyncd',
+                            'reconciles': True,
+                        }
+                     ],
+            )
+            self.add('docker-syncd', 'latest', 'syncd', '1.0.0')
+            self.add('docker-teamd', 'latest', 'teamd', '1.0.0',
+                     components={
+                         'libswsscommon': Version.parse('1.0.0'),
+                         'libsairedis': Version.parse('1.0.0')
+                     },
+                     warm_shutdown={
+                         'before': ['syncd'],
+                         'after': ['swss'],
+                     },
+                     fast_shutdown={
+                         'before': ['swss'],
+                     }
             )
             self.add('Azure/docker-test', '1.6.0', 'test-package', '1.6.0')
             self.add('Azure/docker-test-2', '1.5.0', 'test-package-2', '1.5.0')
@@ -118,7 +148,9 @@ def fake_metadata_resolver():
             yang = self.metadata_store[path][ref]['yang']
             return Metadata(manifest, components, yang)
 
-        def add(self, repo, reference, name, version, components=None, yang=None):
+        def add(self, repo, reference, name, version, components=None,
+                warm_shutdown=None, fast_shutdown=None,
+                processes=None, yang=None):
             repo_dict = self.metadata_store.setdefault(repo, {})
             repo_dict[reference] = {
                 'manifest': {
@@ -129,7 +161,10 @@ def fake_metadata_resolver():
                     },
                     'service': {
                         'name': name,
-                    }
+                        'warm-shutdown': warm_shutdown or {},
+                        'fast-shutdown': fast_shutdown or {},
+                    },
+                    'processes': processes or [],
                 },
                 'components': components or {},
                 'yang': yang,
@@ -196,6 +231,26 @@ def fake_db(fake_metadata_resolver):
         'docker-orchagent',
         'latest',
         description='SONiC switch state service',
+        default_reference='1.0.0',
+        installed=True,
+        built_in=True
+    )
+    add_package(
+        content,
+        fake_metadata_resolver,
+        'docker-syncd',
+        'latest',
+        description='SONiC syncd service',
+        default_reference='1.0.0',
+        installed=True,
+        built_in=True
+    )
+    add_package(
+        content,
+        fake_metadata_resolver,
+        'docker-teamd',
+        'latest',
+        description='SONiC teamd service',
         default_reference='1.0.0',
         installed=True,
         built_in=True
