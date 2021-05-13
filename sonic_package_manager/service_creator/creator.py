@@ -5,22 +5,23 @@ import os
 import stat
 import subprocess
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, Type
 
 import jinja2 as jinja2
 from config.config_mgmt import ConfigMgmt
 from prettyprinter import pformat
 from toposort import toposort_flatten, CircularDependencyError
 
+from utilities_common.general import load_module_from_source
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator import ETC_SONIC_PATH
 from sonic_package_manager.service_creator.feature import FeatureRegistry
-from sonic_package_manager.service_creator.sonic_db import (
-    CONFIG_DB_JSON,
-    INIT_CFG_JSON
-)
+from sonic_package_manager.service_creator.sonic_db import SonicDB
 from sonic_package_manager.service_creator.utils import in_chroot
+
+# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
+sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 SERVICE_FILE_TEMPLATE = 'sonic.service.j2'
 TIMER_UNIT_TEMPLATE = 'timer.unit.j2'
@@ -83,6 +84,16 @@ def set_executable_bit(filepath):
     os.chmod(filepath, st.st_mode | stat.S_IEXEC)
 
 
+def remove_if_exists(path):
+    """ Remove filepath if it exists """
+
+    if not os.path.exists(path):
+        return
+
+    os.remove(path)
+    log.info(f'removed {path}')
+
+
 def run_command(command: str):
     """ Run arbitrary bash command.
     Args:
@@ -109,13 +120,13 @@ class ServiceCreator:
 
     def __init__(self,
                  feature_registry: FeatureRegistry,
-                 sonic_db,
+                 sonic_db: Type[SonicDB],
                  cfg_mgmt: ConfigMgmt):
         """ Initialize ServiceCreator with:
         
         Args:
             feature_registry: FeatureRegistry object.
-            sonic_db: SonicDb interface.
+            sonic_db: SonicDB interface.
             cfg_mgmt: ConfigMgmt instance.
          """
 
@@ -148,13 +159,11 @@ class ServiceCreator:
             self.generate_dump_script(package)
             self.generate_service_reconciliation_file(package)
             self.install_yang_module(package)
-
             self.set_initial_config(package)
             self._post_operation_hook()
 
             if register_feature:
-                self.feature_registry.register(package.manifest,
-                                               state, owner)
+                self.feature_registry.register(package.manifest, state, owner)
         except (Exception, KeyboardInterrupt):
             self.remove(package, register_feature)
             raise
@@ -175,26 +184,18 @@ class ServiceCreator:
         """
 
         name = package.manifest['service']['name']
-
-        def remove_file(path):
-            if os.path.exists(path):
-                os.remove(path)
-                log.info(f'removed {path}')
-
-        remove_file(os.path.join(SYSTEMD_LOCATION, f'{name}.service'))
-        remove_file(os.path.join(SYSTEMD_LOCATION, f'{name}@.service'))
-        remove_file(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh'))
-        remove_file(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, f'{name}.sh'))
-        remove_file(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, f'{name}'))
-        remove_file(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'))
-
+        remove_if_exists(os.path.join(SYSTEMD_LOCATION, f'{name}.service'))
+        remove_if_exists(os.path.join(SYSTEMD_LOCATION, f'{name}@.service'))
+        remove_if_exists(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, f'{name}.sh'))
+        remove_if_exists(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, f'{name}.sh'))
+        remove_if_exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, f'{name}'))
+        remove_if_exists(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'))
         self.update_dependent_list_file(package, remove=True)
 
         if deregister_feature and not keep_config:
             self.remove_config(package)
 
         self.uninstall_yang_module(package)
-
         self._post_operation_hook()
 
         if deregister_feature:
@@ -318,8 +319,8 @@ class ServiceCreator:
             package: Package to update packages dependent of it.
         Returns:
             None.
-
         """
+        
         name = package.manifest['service']['name']
         dependent_of = package.manifest['service']['dependent-of']
         host_service = package.manifest['service']['host-service']
@@ -480,24 +481,13 @@ class ServiceCreator:
         init_cfg = package.manifest['package']['init-cfg']
         if not init_cfg:
             return
-
-        for tablename, content in init_cfg.items():
-            if not isinstance(content, dict):
-                continue
-
-            tables = self._get_tables(tablename)
-
-            for key in content:
-                for table in tables:
-                    cfg = content[key]
-                    exists, old_fvs = table.get(key)
-                    if exists:
-                        cfg.update(old_fvs)
-                    fvs = list(cfg.items())
-                    table.set(key, fvs)
-
-        if package.metadata.yang_module_text:
-            self.validate_configs()
+        
+        for conn in self.sonic_db.get_connectors():
+            cfg = conn.get_config()
+            new_cfg = init_cfg.copy()
+            sonic_cfggen.deep_update(new_cfg, cfg)
+            self.validate_config(new_cfg)
+            conn.mod_config(new_cfg)
 
     def remove_config(self, package):
         """ Remove configuration based on package YANG module.
@@ -516,56 +506,55 @@ class ServiceCreator:
             if module['module'] != module_name:
                 continue
 
-            tables = self._get_tables(tablename)
-            for table in tables:
-                for key in table.getKeys():
-                    table._del(key)
+            for conn in self.sonic_db.get_connectors():
+                keys = conn.get_table(tablename).keys()
+                for key in keys:
+                    conn.set_entry(tablename, key, None)
 
-    def validate_configs(self):
-        """ Validate configuration through YANG """
+    def validate_config(self, config):
+        """ Validate configuration through YANG.
+        
+        Args:
+            config: Config DB data.
+        Returns:
+            None.
+        Raises:
+            Exception: if config does not pass YANG validation.
+        """
 
-        log.debug('validating running configuration')
-        self.cfg_mgmt.readConfigDB()
-        self.cfg_mgmt.loadData(self.cfg_mgmt.configdbJsonIn)
-
-        log.debug('validating saved configuration')
-        self.cfg_mgmt.readConfigDBJson(CONFIG_DB_JSON)
-        self.cfg_mgmt.loadData(self.cfg_mgmt.configdbJsonIn)
-
-        log.debug('validating initial configuration')
-        self.cfg_mgmt.readConfigDBJson(INIT_CFG_JSON)
-        self.cfg_mgmt.loadData(self.cfg_mgmt.configdbJsonIn)
+        config = sonic_cfggen.FormatConverter.to_serialized(config)
+        log.debug(f'validating configuration {pformat(config)}')
+        # This will raise exception if configuration is not valid.
+        self.cfg_mgmt.loadData(config)
 
     def install_yang_module(self, package: Package):
+        """ Install package's yang module in the system.
+
+        Args:
+            package: Package object.
+        Returns:
+            None
+        """
+
         if not package.metadata.yang_module_text:
             return
 
         self.cfg_mgmt.add_module(package.metadata.yang_module_text)
 
     def uninstall_yang_module(self, package: Package):
+        """ Uninstall package's yang module in the system.
+
+        Args:
+            package: Package object.
+        Returns:
+            None
+        """
+
         if not package.metadata.yang_module_text:
             return
+
         module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
         self.cfg_mgmt.remove_module(module_name)
-
-    def _get_tables(self, table_name):
-        """ Return swsscommon Tables for all kinds of configuration DBs """
-
-        tables = []
-
-        running_table = self.sonic_db.running_table(table_name)
-        if running_table is not None:
-            tables.append(running_table)
-
-        persistent_table = self.sonic_db.persistent_table(table_name)
-        if persistent_table is not None:
-            tables.append(persistent_table)
-
-        initial_table = self.sonic_db.initial_table(table_name)
-        if initial_table is not None:
-            tables.append(initial_table)
-
-        return tables
 
     def _post_operation_hook(self):
         """ Common operations executed after service is created/removed. """

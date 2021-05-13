@@ -16,6 +16,14 @@ DEFAULT_FEATURE_CONFIG = {
 }
 
 
+def is_enabled(cfg):
+    return cfg.get('state', 'disabled').lower() == 'enabled'
+
+
+def is_multi_instance(cfg):
+    return str(cfg.get('has_per_asic_scope', 'False')).lower() == 'true'
+
+
 class FeatureRegistry:
     """ FeatureRegistry class provides an interface to
     register/de-register new feature persistently. """
@@ -27,51 +35,63 @@ class FeatureRegistry:
                  manifest: Manifest,
                  state: str = 'disabled',
                  owner: str = 'local'):
-        name = manifest['service']['name']
-        for table in self._get_tables():
-            cfg_entries = self.get_default_feature_entries(state, owner)
-            non_cfg_entries = self.get_non_configurable_feature_entries(manifest)
+        """ Register feature in CONFIG DBs.
+        
+        Args:
+            manifest: Feature's manifest.
+            state: Desired feature admin state.
+            owner: Owner of this feature (kube/local).
+        Returns:
+            None.
+        """
 
-            exists, current_cfg = table.get(name)
+        name = manifest['service']['name']
+        db_connectors = self._sonic_db.get_connectors()
+        cfg_entries = self.get_default_feature_entries(state, owner)
+        non_cfg_entries = self.get_non_configurable_feature_entries(manifest)
+
+        for conn in db_connectors:
+            current_cfg = conn.get_entry(FEATURE, name)
 
             new_cfg = cfg_entries.copy()
             # Override configurable entries with CONFIG DB data.
-            new_cfg = {**new_cfg, **dict(current_cfg)}
+            new_cfg = {**new_cfg, **current_cfg}
             # Override CONFIG DB data with non configurable entries.
             new_cfg = {**new_cfg, **non_cfg_entries}
 
-            table.set(name, list(new_cfg.items()))
+            conn.set_entry(FEATURE, name, new_cfg)
 
     def deregister(self, name: str):
-        for table in self._get_tables():
-            table._del(name)
+        """ Deregister feature by name. 
+        
+        Args:
+            name: Name of the feature in CONFIG DB.
+        Returns:
+            None
+        """
+
+        db_connetors = self._sonic_db.get_connectors()
+        for conn in db_connetors:
+            conn.set_entry(FEATURE, name, None)
 
     def is_feature_enabled(self, name: str) -> bool:
         """ Returns whether the feature is current enabled
         or not. Accesses running CONFIG DB. If no running CONFIG_DB
         table is found in tables returns False. """
 
-        running_db_table = self._sonic_db.running_table(FEATURE)
-        if running_db_table is None:
+        conn = self._sonic_db.get_running_db_connector()
+        if conn is None:
             return False
 
-        exists, cfg = running_db_table.get(name)
-        if not exists:
-            return False
-        cfg = dict(cfg)
-        return cfg.get('state').lower() == 'enabled'
+        cfg = conn.get_entry(name)
+        return is_enabled(cfg)
 
     def get_multi_instance_features(self):
-        res = []
-        init_db_table = self._sonic_db.initial_table(FEATURE)
-        for feature in init_db_table.getKeys():
-            exists, cfg = init_db_table.get(feature)
-            assert exists
-            cfg = dict(cfg)
-            asic_flag = str(cfg.get('has_per_asic_scope', 'False'))
-            if asic_flag.lower() == 'true':
-                res.append(feature)
-        return res
+        """ Returns a list of features which run in asic namespace. """
+
+        conn = self._sonic_db.get_initial_db_connector()
+        features = conn.get_table(FEATURE)
+        return [feature for feature, cfg in features if is_multi_instance(cfg)]
 
     @staticmethod
     def get_default_feature_entries(state=None, owner=None) -> Dict[str, str]:
@@ -94,15 +114,3 @@ class FeatureRegistry:
             'has_global_scope': str(manifest['service']['host-service']),
             'has_timer': str(manifest['service']['delayed']),
         }
-
-    def _get_tables(self):
-        tables = []
-        running = self._sonic_db.running_table(FEATURE)
-        if running is not None:  # it's Ok if there is no database container running
-            tables.append(running)
-        persistent = self._sonic_db.persistent_table(FEATURE)
-        if persistent is not None:  # it's Ok if there is no config_db.json
-            tables.append(persistent)
-        tables.append(self._sonic_db.initial_table(FEATURE))  # init_cfg.json is must
-
-        return tables

@@ -64,7 +64,7 @@ def mock_service_creator():
 
 @pytest.fixture
 def mock_sonic_db():
-    yield Mock()
+    yield MagicMock()
 
 
 @pytest.fixture
