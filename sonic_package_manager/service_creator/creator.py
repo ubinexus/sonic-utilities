@@ -456,7 +456,7 @@ class ServiceCreator:
             (path: /etc/sonic/<service>_reconcile).
 
         Args:
-            package: Package object to generate dump plugin script for.
+            package: Package object to generate service reconciliation file for.
         Returns:
             None
         """
@@ -472,7 +472,7 @@ class ServiceCreator:
         This method updates but does not override existing entries in tables.
 
         Args:
-            package: Package object to generate dump plugin script for.
+            package: Package object to set initial configuration for.
         Returns:
             None
         """
@@ -503,7 +503,7 @@ class ServiceCreator:
         """ Remove configuration based on package YANG module.
 
         Args:
-            package: Package object to generate dump plugin script for.
+            package: Package object remove initial configuration for.
         Returns:
             None
         """
