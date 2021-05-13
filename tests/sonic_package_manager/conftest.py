@@ -154,7 +154,7 @@ def fake_metadata_resolver():
                         'warm-shutdown': warm_shutdown or {},
                         'fast-shutdown': fast_shutdown or {},
                     },
-                    'processes': processes or {}
+                    'processes': processes or [],
                 },
                 'components': components or {},
             }
