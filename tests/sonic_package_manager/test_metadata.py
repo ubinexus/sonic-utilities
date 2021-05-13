@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import contextlib
 from unittest.mock import Mock, MagicMock
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from abc import ABC
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
