@@ -119,7 +119,7 @@ def fake_metadata_resolver():
                          'before': ['swss'],
                      }
             )
-            self.add('Azure/docker-test', '1.6.0', 'test-package', '1.6.0')
+            self.add('Azure/docker-test', '1.6.0', 'test-package', '1.6.0', yang='TEST')
             self.add('Azure/docker-test-2', '1.5.0', 'test-package-2', '1.5.0')
             self.add('Azure/docker-test-2', '2.0.0', 'test-package-2', '2.0.0')
             self.add('Azure/docker-test-3', 'latest', 'test-package-3', '1.6.0')
@@ -268,7 +268,7 @@ def fake_db(fake_metadata_resolver):
         description='SONiC Package Manager Test Package',
         default_reference='1.6.0',
         installed=False,
-        built_in=False
+        built_in=False,
     )
     add_package(
         content,
@@ -418,8 +418,9 @@ def sonic_fs(fs):
 
 @pytest.fixture(autouse=True)
 def patch_pkgutil():
-    with mock.patch('pkgutil.get_loader'):
-        yield
+    yield
+    # with mock.patch('pkgutil.get_loader') as loader:
+    #     yield loader
 
 
 @pytest.fixture

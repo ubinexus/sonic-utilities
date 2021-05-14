@@ -137,7 +137,7 @@ def package_constraint_to_reference(constraint: PackageConstraint) -> PackageRef
     return PackageReference(package_name, version_to_tag(version_constraint))
 
 
-def parse_reference_expression(expression) -> PackageReference(name):
+def parse_reference_expression(expression) -> PackageReference:
     try:
         return package_constraint_to_reference(PackageConstraint.parse(expression))
     except ValueError:
