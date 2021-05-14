@@ -83,7 +83,7 @@ class FeatureRegistry:
         if conn is None:
             return False
 
-        cfg = conn.get_entry(name)
+        cfg = conn.get_entry(FEATURE, name)
         return is_enabled(cfg)
 
     def get_multi_instance_features(self):
@@ -91,7 +91,7 @@ class FeatureRegistry:
 
         conn = self._sonic_db.get_initial_db_connector()
         features = conn.get_table(FEATURE)
-        return [feature for feature, cfg in features if is_multi_instance(cfg)]
+        return [feature for feature, cfg in features.items() if is_multi_instance(cfg)]
 
     @staticmethod
     def get_default_feature_entries(state=None, owner=None) -> Dict[str, str]:

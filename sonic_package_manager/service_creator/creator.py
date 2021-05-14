@@ -504,7 +504,7 @@ class ServiceCreator:
 
         module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_text)
         for tablename, module in self.cfg_mgmt.sy.confDbYangMap.items():
-            if module['module'] != module_name:
+            if module.get('module') != module_name:
                 continue
 
             for conn in self.sonic_db.get_connectors():
