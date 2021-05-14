@@ -4,6 +4,7 @@ import contextlib
 import os
 import stat
 import subprocess
+import pkgutil
 from collections import defaultdict
 from typing import Dict, Type
 
@@ -138,7 +139,8 @@ class ServiceCreator:
                package: Package,
                register_feature: bool = True,
                state: str = 'enabled',
-               owner: str = 'local'):
+               owner: str = 'local',
+               skip_host_plugins: bool = False):
         """ Register package as SONiC service. 
         
         Args:
@@ -146,6 +148,7 @@ class ServiceCreator:
             register_feature: Wether to register this package in FEATURE table.
             state: Default feature state.
             owner: Default feature owner.
+            skip_host_plugins: Do not install host plugins from image if set to True.
 
         Returns:
             None

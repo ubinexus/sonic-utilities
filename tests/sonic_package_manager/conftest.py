@@ -73,6 +73,11 @@ def mock_config_mgmt():
 
 
 @pytest.fixture
+def mock_cli_gen():
+    yield MagicMock()
+
+
+@pytest.fixture
 def fake_metadata_resolver():
     class FakeMetadataResolver:
         def __init__(self):
@@ -421,6 +426,7 @@ def patch_pkgutil():
 def package_manager(mock_docker_api,
                     mock_registry_resolver,
                     mock_service_creator,
+                    mock_cli_gen,
                     mock_config_mgmt,
                     fake_metadata_resolver,
                     fake_db,
@@ -428,6 +434,7 @@ def package_manager(mock_docker_api,
     yield PackageManager(mock_docker_api, mock_registry_resolver,
                          fake_db, fake_metadata_resolver,
                          mock_service_creator,
+                         mock_cli_gen,
                          fake_device_info,
                          MagicMock())
 

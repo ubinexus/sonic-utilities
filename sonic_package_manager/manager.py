@@ -2,6 +2,7 @@
 
 import contextlib
 import functools
+import hashlib
 import os
 import pkgutil
 import tempfile
@@ -12,6 +13,8 @@ import docker
 import filelock
 from config import config_mgmt
 from sonic_py_common import device_info
+
+from sonic_cli_gen.generator import CliGenerator
 
 from sonic_package_manager import utils
 from sonic_package_manager.constraint import (
@@ -53,13 +56,15 @@ from sonic_package_manager.source import (
     RegistrySource,
     TarballSource
 )
-from sonic_package_manager.utils import DockerReference
 from sonic_package_manager.version import (
     Version,
     VersionRange,
     version_to_tag,
     tag_to_version
 )
+
+
+SONIC_CLI_COMMANDS = ('show', 'config', 'clear')
 
 
 @contextlib.contextmanager
@@ -103,7 +108,7 @@ def opt_check(func: Callable) -> Callable:
     return wrapped_function
 
 
-def rollback(func, *args, **kwargs):
+def rollback(func, *args, **kwargs) -> Callable:
     """ Used in rollback callbacks to ignore failure
     but proceed with rollback. Error will be printed
     but not fail the whole procedure of rollback. """
@@ -132,13 +137,61 @@ def package_constraint_to_reference(constraint: PackageConstraint) -> PackageRef
     return PackageReference(package_name, version_to_tag(version_constraint))
 
 
-def parse_reference_expression(expression):
+def parse_reference_expression(expression) -> PackageReference(name):
     try:
         return package_constraint_to_reference(PackageConstraint.parse(expression))
     except ValueError:
         # if we failed to parse the expression as constraint expression
         # we will try to parse it as reference
         return PackageReference.parse(expression)
+
+
+def make_python_identifier(package: Package) -> str:
+    """ Generate unique python identifier from package name. 
+    E.g: "sonic-package" and "sonic_package" are both valid package names,
+    while having single pythonized name "sonic_package". Hence, this function
+    calculates sha1 of package name and appends to the pythonized name.
+
+    Args:
+        package: Package to generate python identifier for.
+    Returns:
+        Valid python identifier, unique for every package.
+    """
+
+    pythonized = utils.make_python_identifier(package.name)
+    return pythonized + hashlib.sha1(package.name.encode()).hexdigest()
+
+
+def get_cli_plugin_directory(command: str) -> str:
+    """ Returns a plugins package directory for command group.
+
+    Args:
+        command: SONiC command: "show"/"config"/"clear".
+    Returns:
+        Path to plugins package directory.
+    """
+
+    pkg_loader = pkgutil.get_loader(f'{command}.plugins')
+    if pkg_loader is None:
+        raise PackageManagerError(f'Failed to get plugins path for {command} CLI')
+    plugins_pkg_path = os.path.dirname(pkg_loader.path)
+    return plugins_pkg_path
+
+
+def get_cli_plugin_path(package: Package, command: str, suffix: str = '') -> str:
+    """ Returns a path where to put CLI plugin code.
+    
+    Args:
+        package: Package to generate this path for.
+        command: SONiC command: "show"/"config"/"clear".
+        suffix: Optional suffix for python plugin name.
+    Returns:
+        Path generated for this package.
+    """
+
+    plugin_module_name = make_python_identifier(package) + '_' + suffix
+    plugin_module_file = plugin_module_name + '.py'
+    return os.path.join(get_cli_plugin_directory(command), plugin_module_file)
 
 
 def validate_package_base_os_constraints(package: Package, sonic_version_info: Dict[str, str]):
@@ -257,6 +310,7 @@ class PackageManager:
                  database: PackageDatabase,
                  metadata_resolver: MetadataResolver,
                  service_creator: ServiceCreator,
+                 cli_generator: CliGenerator,
                  device_information: Any,
                  lock: filelock.FileLock):
         """ Initialize PackageManager. """
@@ -267,6 +321,7 @@ class PackageManager:
         self.database = database
         self.metadata_resolver = metadata_resolver
         self.service_creator = service_creator
+        self.cli_generator = cli_generator
         self.feature_registry = service_creator.feature_registry
         self.is_multi_npu = device_information.is_multi_npu()
         self.num_npus = device_information.get_num_npus()
@@ -367,13 +422,18 @@ class PackageManager:
         # package name may not be in database.
         if not self.database.has_package(package.name):
             self.database.add_package(package.name, package.repository)
+        
+        service_create_opts = {
+            'state': feature_state,
+            'owner': default_owner,
+        }
 
         try:
             with contextlib.ExitStack() as exits:
                 source.install(package)
                 exits.callback(rollback(source.uninstall, package))
 
-                self.service_creator.create(package, state=feature_state, owner=default_owner)
+                self.service_creator.create(package, **service_create_opts)
                 exits.callback(rollback(self.service_creator.remove, package))
 
                 self.service_creator.generate_shutdown_sequence_files(
@@ -522,6 +582,14 @@ class PackageManager:
             validate_package_cli_can_be_skipped(new_package, skip_host_plugins)
 
         # After all checks are passed we proceed to actual upgrade
+    
+        service_create_opts = {
+            'register_feature': False,
+        }
+
+        service_remove_opts = {
+            'register_feature': False,
+        }
 
         try:
             with contextlib.ExitStack() as exits:
@@ -536,9 +604,9 @@ class PackageManager:
                     exits.callback(rollback(self._systemctl_action,
                                             old_package, 'start'))
 
-                self.service_creator.remove(old_package, deregister_feature=False)
+                self.service_creator.remove(old_package, **service_remove_opts) 
                 exits.callback(rollback(self.service_creator.create, old_package,
-                                        register_feature=False))
+                                        **service_create_opts))
 
                 # Clean containers based on the old image
                 containers = self.docker.ps(filters={'ancestor': old_package.image_id},
@@ -546,9 +614,9 @@ class PackageManager:
                 for container in containers:
                     self.docker.rm(container.id, force=True)
 
-                self.service_creator.create(new_package, register_feature=False)
+                self.service_creator.create(new_package, **service_create_opts)
                 exits.callback(rollback(self.service_creator.remove, new_package,
-                                        register_feature=False))
+                                        **service_remove_opts))
 
                 self.service_creator.generate_shutdown_sequence_files(
                     self._get_installed_packages_and(new_package)
@@ -743,7 +811,7 @@ class PackageManager:
             ref = parse_reference_expression(package_expression)
             return self.get_package_source(package_ref=ref)
         elif repository_reference:
-            repo_ref = DockerReference.parse(repository_reference)
+            repo_ref = utils.DockerReference.parse(repository_reference)
             repository = repo_ref['name']
             reference = repo_ref['tag'] or repo_ref['digest']
             reference = reference or 'latest'
@@ -906,40 +974,47 @@ class PackageManager:
             for npu in range(self.num_npus):
                 run_command(f'systemctl {action} {name}@{npu}')
 
-    @staticmethod
-    def _get_cli_plugin_name(package: Package):
-        return utils.make_python_identifier(package.name) + '.py'
-
-    @classmethod
-    def _get_cli_plugin_path(cls, package: Package, command):
-        pkg_loader = pkgutil.get_loader(f'{command}.plugins')
-        if pkg_loader is None:
-            raise PackageManagerError(f'Failed to get plugins path for {command} CLI')
-        plugins_pkg_path = os.path.dirname(pkg_loader.path)
-        return os.path.join(plugins_pkg_path, cls._get_cli_plugin_name(package))
-
     def _install_cli_plugins(self, package: Package):
-        for command in ('show', 'config', 'clear'):
+        for command in SONIC_CLI_COMMANDS:
             self._install_cli_plugin(package, command)
+            self._install_autogen_cli(package, command)
 
     def _uninstall_cli_plugins(self, package: Package):
-        for command in ('show', 'config', 'clear'):
+        for command in SONIC_CLI_COMMANDS:
             self._uninstall_cli_plugin(package, command)
+            self._uninstall_autogen_cli(package, command)
 
     def _install_cli_plugin(self, package: Package, command: str):
         image_plugin_path = package.manifest['cli'][command]
         if not image_plugin_path:
             return
-        host_plugin_path = self._get_cli_plugin_path(package, command)
+        host_plugin_path = get_cli_plugin_path(package, command)
         self.docker.extract(package.entry.image_id, image_plugin_path, host_plugin_path)
 
     def _uninstall_cli_plugin(self, package: Package, command: str):
         image_plugin_path = package.manifest['cli'][command]
         if not image_plugin_path:
             return
-        host_plugin_path = self._get_cli_plugin_path(package, command)
+        host_plugin_path = get_cli_plugin_path(package, command)
         if os.path.exists(host_plugin_path):
             os.remove(host_plugin_path)
+
+    def _install_autogen_cli(self, package: Package, command: str):
+        if package.metadata.yang_module_text is None:
+            return
+        if not package.manifest['cli'][f'auto-generate-{command}']:
+            return
+        cfg_mgmt = self.service_creator.cfg_mgmt
+        module_name = cfg_mgmt.get_module_name(package.metadata.yang_module_text)
+
+        plugin_path = get_cli_plugin_path(package, command, 'auto')
+        with open(plugin_path, 'w') as out:
+            self.cli_generator.generate_cli_plugin(module_name, command, out)
+
+    def _uninstall_autogen_cli(self, package: Package, command: str):
+        plugin_path = get_cli_plugin_path(package, command, 'auto')
+        if os.path.exists(plugin_path):
+            os.remove(plugin_path)
 
     @staticmethod
     def get_manager() -> 'PackageManager':
@@ -949,13 +1024,20 @@ class PackageManager:
             PackageManager
         """
 
-        docker_api = DockerApi(docker.from_env())
+        docker_api = DockerApi(docker.from_env(), ProgressManager())
         registry_resolver = RegistryResolver()
+        metadata_resolver = MetadataResolver(docker_api, registry_resolver)
         cfg_mgmt = config_mgmt.ConfigMgmt()
-        return PackageManager(DockerApi(docker.from_env(), ProgressManager()),
+        cli_generator = CliGenerator()
+        sonic_db = SonicDB()
+        feautre_registry = FeatureRegistry(sonic_db)
+        service_creator = ServiceCreator(feature_registry, sonic_db, cfg_mgmt),
+
+        return PackageManager(docker_api,
                               registry_resolver,
                               PackageDatabase.from_file(),
-                              MetadataResolver(docker_api, registry_resolver),
-                              ServiceCreator(FeatureRegistry(SonicDB), SonicDB, cfg_mgmt),
+                              metadata_resolver,
+                              service_creator,
+                              cli_generator,
                               device_info,
                               filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0))
