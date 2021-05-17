@@ -14,7 +14,35 @@ class YangParser:
         y_top_level_container: Reference to top level 'container' entity from YANG model file
         y_table_containers: Reference to 'container' entities from YANG model file
                             that represent Config DB tables
-        yang_2_dict: dictionary created from YANG model file that represent Config DB schema
+        yang_2_dict: dictionary created from YANG model file that represent Config DB schema.
+                     In case if YANG model has a 'list' entity:
+        {
+            'tables': [{
+                'name': 'value',
+                'description': 'value',
+                'dynamic-objects': [
+                    'name': 'value',
+                    'description': 'value,
+                    'attrs': [
+                        {
+                            'name': 'value',
+                            'descruption': 'value',
+                            'is-leaf-list': False,
+                            'is-mandatory': False
+                        }
+                        ...
+                    ],
+                    'keys': [
+                        {
+                            'name': 'ACL_TABLE_NAME',
+                            'description': 'value'
+                        }
+                        ...
+                    ]
+                ],
+            }]
+        }
+        In case if YANG model does NOT have a 'list' entity, it has the same structure as above, but 'dynamic-objects' changed to 'static-objects' and have no 'keys'
     """
     def __init__(self,
                  yang_model_name):
@@ -106,7 +134,6 @@ def on_table_container(y_module: OrderedDict, tbl_cont: OrderedDict) -> dict:
 
     # determine if 'table container' have a 'list' entity
     if tbl_cont.get('list') is None:
-        # TODO: comment aboit it
         y2d_elem['static-objects'] = list()
 
         # 'object' container goes after 'table' container
@@ -120,12 +147,9 @@ def on_table_container(y_module: OrderedDict, tbl_cont: OrderedDict) -> dict:
             static_obj_elem = on_object_container(y_module, obj_cont, is_list=False)
             y2d_elem['static-objects'].append(static_obj_elem)
     else:
-
-        # TODO: comment aboit it
         y2d_elem['dynamic-objects'] = list()
-
         tbl_cont_lists = tbl_cont.get('list')
-        # 'container' can have more than 1 'list'
+        # 'container' can have more than 1 'list' entity
         if isinstance(tbl_cont_lists, list):
             for _list in tbl_cont_lists:
                 dynamic_obj_elem = on_object_container(y_module, _list, is_list=True)
@@ -134,20 +158,10 @@ def on_table_container(y_module: OrderedDict, tbl_cont: OrderedDict) -> dict:
             dynamic_obj_elem = on_object_container(y_module, tbl_cont_lists, is_list=True)
             y2d_elem['dynamic-objects'].append(dynamic_obj_elem)
 
-        # remove 'keys' elementsfrom 'attrs' list
-        remove_keys(y2d_elem['dynamic-objects'])
+        # move 'keys' elements from 'attrs' to 'keys'
+        change_dyn_obj_struct(y2d_elem['dynamic-objects'])
 
     return y2d_elem
-
-# TODO: think about name
-def remove_keys(dynamic_objects: OrderedDict):
-    for obj in dynamic_objects:
-        for key in obj.get('keys'):
-            for attr in obj.get('attrs'):
-                if key.get('name') == attr.get('name'):
-                    key['description'] = attr.get('description')
-                    obj['attrs'].remove(attr)
-                    break
 
 def on_object_container(y_module: OrderedDict, cont: OrderedDict, is_list: bool) -> dict:
     """ Parse a 'object container'.
@@ -366,3 +380,21 @@ def get_list_keys(y_list: OrderedDict) -> list:
         ret_list.append(key)
 
     return ret_list
+
+def change_dyn_obj_struct(dynamic_objects: OrderedDict):
+    """ Rearrange self.yang_2_dict['dynamic_objects'] structure.
+        If YANG model have a 'list' entity - inside the 'list' it has 'key' entity.
+        'key' entity it is whitespace-separeted list of 'leafs', those 'leafs' was
+        parsed by 'on_leaf()' function and placed under 'attrs' in self.yang_2_dict['dynamic_objects']
+        need to move 'leafs' from 'attrs' and put them to 'keys' section of elf.yang_2_dict['dynamic_objects']
+
+        Args:
+            dynamic_objects: reference to self.yang_2_dict['dynamic_objects']
+    """
+    for obj in dynamic_objects:
+        for key in obj.get('keys'):
+            for attr in obj.get('attrs'):
+                if key.get('name') == attr.get('name'):
+                    key['description'] = attr.get('description')
+                    obj['attrs'].remove(attr)
+                    break
