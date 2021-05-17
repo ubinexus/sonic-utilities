@@ -457,13 +457,16 @@ class PackageManager:
 
     @under_lock
     @opt_check
-    def uninstall(self, name: str, force=False):
+    def uninstall(self, name: str,
+                  force: bool = False,
+                  keep_config: bool = False):
         """ Uninstall SONiC Package referenced by name. The uninstallation
         can be forced if force argument is True.
 
         Args:
             name: SONiC Package name.
             force: Force the installation.
+            keep_config: Keep feature configuration in databases.
         Raises:
             PackageManagerError
         """
@@ -493,7 +496,7 @@ class PackageManager:
 
         try:
             self._uninstall_cli_plugins(package)
-            self.service_creator.remove(package)
+            self.service_creator.remove(package, keep_config=keep_config)
             self.service_creator.generate_shutdown_sequence_files(
                 self._get_installed_packages_except(package)
             )

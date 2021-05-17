@@ -104,7 +104,7 @@ def run_command(command: str):
     Args:
         command: String command to execute as bash script
     Raises:
-        PackageManagerError: Raised when the command return code
+        ServiceCreatorError: Raised when the command return code
                              is not 0.
     """
 
@@ -173,7 +173,7 @@ class ServiceCreator:
             if register_feature:
                 self.feature_registry.register(package.manifest, state, owner)
         except (Exception, KeyboardInterrupt):
-            self.remove(package, register_feature)
+            self.remove(package, deregister_feature=register_feature)
             raise
 
     def remove(self,

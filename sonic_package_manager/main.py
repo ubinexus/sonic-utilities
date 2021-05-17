@@ -414,10 +414,11 @@ def reset(ctx, name, force, yes, skip_host_plugins):
 
 @cli.command()
 @add_options(PACKAGE_COMMON_OPERATION_OPTIONS)
+@click.option('--keep-config', is_flag=True, help='Keep features configuration in CONFIG DB.')
 @click.argument('name')
 @click.pass_context
 @root_privileges_required
-def uninstall(ctx, name, force, yes):
+def uninstall(ctx, name, force, yes, keep_config):
     """ Uninstall package. """
 
     manager: PackageManager = ctx.obj
@@ -425,9 +426,14 @@ def uninstall(ctx, name, force, yes):
     if not yes and not force:
         click.confirm(f'Package {name} is going to be uninstalled, '
                       f'continue?', abort=True, show_default=True)
+    
+    uninstall_opts = {
+        'force': force,
+        'keep_config': keep_config,
+    }
 
     try:
-        manager.uninstall(name, force)
+        manager.uninstall(name, **uninstall_opts)
     except Exception as err:
         exit_cli(f'Failed to uninstall package {name}: {err}', fg='red')
     except KeyboardInterrupt:
