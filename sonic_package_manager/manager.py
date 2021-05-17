@@ -587,7 +587,7 @@ class PackageManager:
         }
 
         service_remove_opts = {
-            'register_feature': False,
+            'deregister_feature': False,
         }
 
         try:
