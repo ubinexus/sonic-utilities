@@ -418,24 +418,20 @@ def sonic_fs(fs):
 
 @pytest.fixture(autouse=True)
 def patch_pkgutil():
-    yield
-    # with mock.patch('pkgutil.get_loader') as loader:
-    #     yield loader
+    with mock.patch('pkgutil.get_loader') as loader:
+        yield loader
 
 
 @pytest.fixture
 def package_manager(mock_docker_api,
                     mock_registry_resolver,
                     mock_service_creator,
-                    mock_cli_gen,
-                    mock_config_mgmt,
                     fake_metadata_resolver,
                     fake_db,
                     fake_device_info):
     yield PackageManager(mock_docker_api, mock_registry_resolver,
                          fake_db, fake_metadata_resolver,
                          mock_service_creator,
-                         mock_cli_gen,
                          fake_device_info,
                          MagicMock())
 

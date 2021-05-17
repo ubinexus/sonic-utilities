@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -60,8 +60,16 @@ def manifest():
 
 
 @pytest.fixture()
-def service_creator(mock_feature_registry, mock_sonic_db, mock_config_mgmt):
-    yield ServiceCreator(mock_feature_registry, mock_sonic_db, mock_config_mgmt)
+def service_creator(mock_feature_registry,
+                    mock_sonic_db,
+                    mock_cli_gen,
+                    mock_config_mgmt):
+    yield ServiceCreator(
+        mock_feature_registry,
+        mock_sonic_db,
+        mock_cli_gen,
+        mock_config_mgmt
+    )
 
 
 def test_service_creator(sonic_fs, manifest, service_creator, package_manager):
@@ -164,6 +172,37 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
     service_creator.remove(package)
     mock_connector.set_entry.assert_called_with('TABLE_A', 'key_a', None)
     mock_config_mgmt.remove_module.assert_called_with(test_yang_module)
+
+
+def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
+                                 mock_config_mgmt, service_creator):
+    test_yang = 'TEST YANG'
+    test_yang_module = 'sonic-test'
+
+    manifest['cli']['auto-generate-show'] = True
+    manifest['cli']['auto-generate-config'] = True
+
+    entry = PackageEntry('test', 'azure/sonic-test')
+    package = Package(entry, Metadata(manifest, yang_module_text=test_yang))
+    mock_config_mgmt.get_module_name = Mock(return_value=test_yang_module)
+    service_creator.create(package)
+
+    mock_cli_gen.generate_cli_plugin.assert_has_calls(
+        [
+            call(test_yang_module, 'show'),
+            call(test_yang_module, 'config'),
+        ],
+        any_order=True
+    )
+
+    service_creator.remove(package)
+    mock_cli_gen.remove_cli_plugin.assert_has_calls(
+        [
+            call(test_yang_module, 'show'),
+            call(test_yang_module, 'config'),
+        ],
+        any_order=True
+    )
 
 
 def test_feature_registration(mock_sonic_db, manifest):

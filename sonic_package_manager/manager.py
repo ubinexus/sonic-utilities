@@ -43,6 +43,7 @@ from sonic_package_manager.package import Package
 from sonic_package_manager.progress import ProgressManager
 from sonic_package_manager.reference import PackageReference
 from sonic_package_manager.registry import RegistryResolver
+from sonic_package_manager.service_creator import SONIC_CLI_COMMANDS
 from sonic_package_manager.service_creator.creator import (
     ServiceCreator,
     run_command
@@ -62,9 +63,6 @@ from sonic_package_manager.version import (
     version_to_tag,
     tag_to_version
 )
-
-
-SONIC_CLI_COMMANDS = ('show', 'config', 'clear')
 
 
 @contextlib.contextmanager
@@ -310,7 +308,6 @@ class PackageManager:
                  database: PackageDatabase,
                  metadata_resolver: MetadataResolver,
                  service_creator: ServiceCreator,
-                 cli_generator: CliGenerator,
                  device_information: Any,
                  lock: filelock.FileLock):
         """ Initialize PackageManager. """
@@ -321,7 +318,6 @@ class PackageManager:
         self.database = database
         self.metadata_resolver = metadata_resolver
         self.service_creator = service_creator
-        self.cli_generator = cli_generator
         self.feature_registry = service_creator.feature_registry
         self.is_multi_npu = device_information.is_multi_npu()
         self.num_npus = device_information.get_num_npus()
@@ -978,12 +974,10 @@ class PackageManager:
     def _install_cli_plugins(self, package: Package):
         for command in SONIC_CLI_COMMANDS:
             self._install_cli_plugin(package, command)
-            self._install_autogen_cli(package, command)
 
     def _uninstall_cli_plugins(self, package: Package):
         for command in SONIC_CLI_COMMANDS:
             self._uninstall_cli_plugin(package, command)
-            self._uninstall_autogen_cli(package, command)
 
     def _install_cli_plugin(self, package: Package, command: str):
         image_plugin_path = package.manifest['cli'][command]
@@ -1000,23 +994,6 @@ class PackageManager:
         if os.path.exists(host_plugin_path):
             os.remove(host_plugin_path)
 
-    def _install_autogen_cli(self, package: Package, command: str):
-        if package.metadata.yang_module_text is None:
-            return
-        if not package.manifest['cli'][f'auto-generate-{command}']:
-            return
-        cfg_mgmt = self.service_creator.cfg_mgmt
-        module_name = cfg_mgmt.get_module_name(package.metadata.yang_module_text)
-
-        plugin_path = get_cli_plugin_path(package, command, 'auto')
-        with open(plugin_path, 'w') as out:
-            self.cli_generator.generate_cli_plugin(module_name, command, out)
-
-    def _uninstall_autogen_cli(self, package: Package, command: str):
-        plugin_path = get_cli_plugin_path(package, command, 'auto')
-        if os.path.exists(plugin_path):
-            os.remove(plugin_path)
-
     @staticmethod
     def get_manager() -> 'PackageManager':
         """ Creates and returns PackageManager instance.
@@ -1032,13 +1009,15 @@ class PackageManager:
         cli_generator = CliGenerator()
         sonic_db = SonicDB()
         feature_registry = FeatureRegistry(sonic_db)
-        service_creator = ServiceCreator(feature_registry, sonic_db, cfg_mgmt)
+        service_creator = ServiceCreator(feature_registry,
+                                         sonic_db,
+                                         cfg_mgmt,
+                                         cli_generator)
 
         return PackageManager(docker_api,
                               registry_resolver,
                               PackageDatabase.from_file(),
                               metadata_resolver,
                               service_creator,
-                              cli_generator,
                               device_info,
                               filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0))
