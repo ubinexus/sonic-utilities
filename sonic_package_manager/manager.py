@@ -2,7 +2,6 @@
 
 import contextlib
 import functools
-import hashlib
 import os
 import pkgutil
 import tempfile
@@ -144,22 +143,6 @@ def parse_reference_expression(expression) -> PackageReference:
         return PackageReference.parse(expression)
 
 
-def make_python_identifier(package: Package) -> str:
-    """ Generate unique python identifier from package name. 
-    E.g: "sonic-package" and "sonic_package" are both valid package names,
-    while having single pythonized name "sonic_package". Hence, this function
-    calculates sha1 of package name and appends to the pythonized name.
-
-    Args:
-        package: Package to generate python identifier for.
-    Returns:
-        Valid python identifier, unique for every package.
-    """
-
-    pythonized = utils.make_python_identifier(package.name)
-    return pythonized + hashlib.sha1(package.name.encode()).hexdigest()
-
-
 def get_cli_plugin_directory(command: str) -> str:
     """ Returns a plugins package directory for command group.
 
@@ -176,19 +159,17 @@ def get_cli_plugin_directory(command: str) -> str:
     return plugins_pkg_path
 
 
-def get_cli_plugin_path(package: Package, command: str, suffix: str = '') -> str:
+def get_cli_plugin_path(package: Package, command: str) -> str:
     """ Returns a path where to put CLI plugin code.
     
     Args:
         package: Package to generate this path for.
         command: SONiC command: "show"/"config"/"clear".
-        suffix: Optional suffix for python plugin name.
     Returns:
         Path generated for this package.
     """
 
-    plugin_module_name = make_python_identifier(package) + '_' + suffix
-    plugin_module_file = plugin_module_name + '.py'
+    plugin_module_file = package.name + '.py'
     return os.path.join(get_cli_plugin_directory(command), plugin_module_file)
 
 
