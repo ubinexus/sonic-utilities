@@ -3325,34 +3325,34 @@ This command displays the key fields of the interfaces such as Operational Statu
 - Example:
   ```
   admin@sonic:~$ show interfaces tpid
-      Interface            Alias    Oper    Admin    TPID
----------------  ---------------  ------  -------  ------
-      Ethernet0   fortyGigE1/1/1      up       up  0x8100
-      Ethernet1   fortyGigE1/1/2      up       up  0x8100
-      Ethernet2   fortyGigE1/1/3    down     down  0x8100
-      Ethernet3   fortyGigE1/1/4    down     down  0x8100
-      Ethernet4   fortyGigE1/1/5      up       up  0x8100
-      Ethernet5   fortyGigE1/1/6      up       up  0x8100
-      Ethernet6   fortyGigE1/1/7      up       up  0x9200
-      Ethernet7   fortyGigE1/1/8      up       up  0x88A8
-      Ethernet8   fortyGigE1/1/9      up       up  0x8100
-      ...
-     Ethernet63  fortyGigE1/4/16    down     down  0x8100
-PortChannel0001              N/A      up       up  0x8100
-PortChannel0002              N/A      up       up  0x8100
-PortChannel0003              N/A      up       up  0x8100
-PortChannel0004              N/A      up       up  0x8100
-admin@sonic:~$
+        Interface            Alias    Oper    Admin    TPID
+  ---------------  ---------------  ------  -------  ------
+        Ethernet0   fortyGigE1/1/1      up       up  0x8100
+        Ethernet1   fortyGigE1/1/2      up       up  0x8100
+        Ethernet2   fortyGigE1/1/3    down     down  0x8100
+        Ethernet3   fortyGigE1/1/4    down     down  0x8100
+        Ethernet4   fortyGigE1/1/5      up       up  0x8100
+        Ethernet5   fortyGigE1/1/6      up       up  0x8100
+        Ethernet6   fortyGigE1/1/7      up       up  0x9200
+        Ethernet7   fortyGigE1/1/8      up       up  0x88A8
+        Ethernet8   fortyGigE1/1/9      up       up  0x8100
+        ...
+       Ethernet63  fortyGigE1/4/16    down     down  0x8100
+  PortChannel0001              N/A      up       up  0x8100
+  PortChannel0002              N/A      up       up  0x8100
+  PortChannel0003              N/A      up       up  0x8100
+  PortChannel0004              N/A      up       up  0x8100
+  admin@sonic:~$
   ```
 
 - Example (to only display the TPID for interface Ethernet6):
 
   ```
   admin@sonic:~$ show interfaces tpid Ethernet6
-  Interface           Alias    Oper    Admin    TPID
------------  --------------  ------  -------  ------
-  Ethernet6  fortyGigE1/1/7      up       up  0x9200
-admin@sonic:~$
+    Interface           Alias    Oper    Admin    TPID
+  -----------  --------------  ------  -------  ------
+    Ethernet6  fortyGigE1/1/7      up       up  0x9200
+  admin@sonic:~$
   ```
 
 **show interfaces naming_mode**
