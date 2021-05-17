@@ -1011,8 +1011,8 @@ class PackageManager:
         feature_registry = FeatureRegistry(sonic_db)
         service_creator = ServiceCreator(feature_registry,
                                          sonic_db,
-                                         cfg_mgmt,
-                                         cli_generator)
+                                         cli_generator,
+                                         cfg_mgmt)
 
         return PackageManager(docker_api,
                               registry_resolver,
