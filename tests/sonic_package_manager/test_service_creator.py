@@ -189,8 +189,8 @@ def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
 
     mock_cli_gen.generate_cli_plugin.assert_has_calls(
         [
-            call(test_yang_module, 'show'),
-            call(test_yang_module, 'config'),
+            call('show', test_yang_module),
+            call('config', test_yang_module),
         ],
         any_order=True
     )
@@ -198,8 +198,8 @@ def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
     service_creator.remove(package)
     mock_cli_gen.remove_cli_plugin.assert_has_calls(
         [
-            call(test_yang_module, 'show'),
-            call(test_yang_module, 'config'),
+            call('show', test_yang_module),
+            call('config', test_yang_module),
         ],
         any_order=True
     )
