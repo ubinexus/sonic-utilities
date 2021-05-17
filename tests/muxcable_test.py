@@ -805,8 +805,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(show.cli.commands["muxcable"].commands["metrics"], [
-                               "Ethernet0"], obj=db)
+        result = runner.invoke(show.cli.commands["muxcable"].commands["metrics"],
+                               ["Ethernet0"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_metrics_expected_output
 
@@ -818,8 +818,8 @@ class TestMuxcable(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(show.cli.commands["muxcable"].commands["metrics"], [
-                               "Ethernet0", "--json"], obj=db)
+        result = runner.invoke(show.cli.commands["muxcable"].commands["metrics"],
+                               ["Ethernet0", "--json"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_metrics_expected_output_json
 
