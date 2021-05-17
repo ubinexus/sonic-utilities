@@ -35,7 +35,7 @@ class CliGenerator:
 
 
 def get_cli_plugin_path(command, plugin_name):
-    pkg_loader = pkgutil.get_loader(f'{command}.plugins')
+    pkg_loader = pkgutil.get_loader(f'{command}.plugins.auto')
     if pkg_loader is None:
         raise PackageManagerError(f'Failed to get plugins path for {command} CLI')
     plugins_pkg_path = os.path.dirname(pkg_loader.path)
