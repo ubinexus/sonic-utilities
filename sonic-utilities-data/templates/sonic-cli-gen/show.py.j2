@@ -77,7 +77,8 @@ def {{ name }}(db):
     body = []
 
     table = db.cfgdb.get_table("{{ table.name }}")
-    for key, entry in natsort.natsorted(table).items():
+    for key in natsort.natsorted(table):
+        entry = table[key]
         if not isinstance(key, tuple):
             key = (key,)
 
