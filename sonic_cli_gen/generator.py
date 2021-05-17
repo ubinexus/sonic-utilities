@@ -12,25 +12,22 @@ class CliGenerator:
     show, sonic-clear CLI plugins
     """
 
-    def __init__(self):
+    def __init__(self,
+                 yang_model):
         """ Initialize PackageManager. """
 
+        self.yang_model_name = yang_model
         self.loader = jinja2.FileSystemLoader(['/usr/share/sonic/templates/sonic-cli-gen/'])
         self.env = jinja2.Environment(loader=self.loader)
 
-    def generate_cli_plugin(self, yang_model_name, cli_group, output_stream=None):
+    def generate_cli_plugin(self, cli_group, plugin_name):
         """ Generate CLI plugin. """
-        parser = YangParser(yang_model_name)
+        parser = YangParser(self.yang_model_name)
         yang_dict = parser.parse_yang_model()
+        plugin_path = get_cli_plugin_path(cli_group, plugin_name + '_yang.py')
         template = self.env.get_template(cli_group + '.py.j2')
-
-        if output_stream is None:
-            plugin_name = yang_module_name.replace('-', '_')
-            plugin_path = get_cli_plugin_path(cli_group, plugin_name + '_auto.py')
-            with open(plugin_path, 'w') as output_stream:
-                output_stream.write(template.render(yang_dict))
-        else:
-            output_stream.write(template.render(yang_dict))
+        with open(plugin_path, 'w') as plugin_py:
+            plugin_py.write(template.render(yang_dict))
 
 def get_cli_plugin_path(command, plugin_name):
     pkg_loader = pkgutil.get_loader(f'{command}.plugins')

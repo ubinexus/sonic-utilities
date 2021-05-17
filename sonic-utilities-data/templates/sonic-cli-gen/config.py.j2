@@ -396,7 +396,7 @@ def {{ group }}_delete(db, {{ pythonize(object["keys"]) }}):
 {# Generate another nesting group in case table holds two types of objects #}
 {% if table["dynamic-objects"]|length > 1 %}
 {% set group = table.name + "_" + object.name %}
-@{{ table.name }}.group(name="{{ cli_name(object.name|replace(table.name + "_", "", 1)) }}",
+@{{ table.name }}.group(name="{{ cli_name(object.name) }}",
                         cls=clicommon.AliasedGroup)
 def {{ group }}():
     """ {{ object.description }} """
