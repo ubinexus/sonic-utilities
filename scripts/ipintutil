@@ -10,7 +10,7 @@ from natsort import natsorted
 from tabulate import tabulate
 
 from sonic_py_common import multi_asic
-from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 from utilities_common import constants
 from utilities_common import multi_asic as multi_asic_util
 
