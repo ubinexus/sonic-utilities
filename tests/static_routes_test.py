@@ -25,6 +25,9 @@ Error: Not found {} in {}
 ERROR_INVALID_IP = '''
 Error: ip address is not valid.
 '''
+ERROR_BLACKHOLE = '''
+Error: this route is already configured on nexthop, remove it before configuring to black hole
+'''
 
 
 class TestStaticRoutes(object):
@@ -357,6 +360,70 @@ class TestStaticRoutes(object):
         result = runner.invoke(config.config.commands["route"].commands["del"], ["prefix", "14.2.3.4/32"], obj=obj)
         print(result.exit_code, result.output)
         assert not '14.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
+
+    def test_static_route_blackhole_with_nexthop(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config route add prefix 15.2.3.4/32 nexthop 30.0.0.5
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "15.2.3.4/32", "nexthop", "30.0.0.5"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('15.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '15.2.3.4/32') == {'nexthop': '30.0.0.5', 'blackhole': 'false', 'distance': '0', 'ifname': '', 'nexthop-vrf': ''}
+
+        # config route add prefix 15.2.3.4/32 dev null
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "15.2.3.4/32", "nexthop", "dev", "null"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ERROR_BLACKHOLE in result.output
+
+    def test_static_route_dev_ethernet(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config route add prefix 16.2.3.4/32 nexthop dev Ethernet0
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "16.2.3.4/32", "nexthop", "dev", "Ethernet0"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('16.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '16.2.3.4/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Ethernet0', 'nexthop-vrf': ''}
+
+        # config route del prefix 16.2.3.4/32 nexthop dev Ethernet0
+        result = runner.invoke(config.config.commands["route"].commands["del"], \
+        ["prefix", "16.2.3.4/32", "nexthop", "dev", "Ethernet0"], obj=obj)
+        print(result.exit_code, result.output)
+        assert not '16.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
+
+    def test_static_route_dev_vlan(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config vlan add 40
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["4016"], obj=db)
+        print(result.exit_code, result.output)
+        assert ('Vlan4016') in db.cfgdb.get_table('VLAN')
+
+        # config route add prefix 16.2.3.4/32 nexthop dev Vlan4016
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "16.2.3.4/32", "nexthop", "dev", "Vlan4016"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('16.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '16.2.3.4/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Vlan4016', 'nexthop-vrf': ''}
+
+        # config route del prefix 16.2.3.4/32 nexthop dev Vlan4016
+        result = runner.invoke(config.config.commands["route"].commands["del"], \
+        ["prefix", "16.2.3.4/32", "nexthop", "dev", "Vlan4016"], obj=obj)
+        print(result.exit_code, result.output)
+        assert not '16.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
+
+        # config vlan del 4016
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["4016"], obj=db)
+        print(result.exit_code, result.output)
+        assert not ('Vlan4016') in db.cfgdb.get_table('VLAN')
 
     @classmethod
     def teardown_class(cls):

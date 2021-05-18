@@ -4008,7 +4008,8 @@ def add_route(ctx, command_str):
 
     # If defined intf name, check if it belongs to interface
     if 'ifname' in route:
-        if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
+        if (not route['ifname'] in config_db.get_keys('VLAN') and
+            not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
             not route['ifname'] in config_db.get_keys('INTERFACE') and
             not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE') and
             not route['ifname'] == 'null'):
@@ -4054,6 +4055,9 @@ def add_route(ctx, command_str):
     # Check if exist entry with key
     keys = config_db.get_keys('STATIC_ROUTE')
     if key in keys:
+        if 'null' in route['ifname']:
+             ctx.fail("this route is already configured on nexthop, remove it before configuring to black hole")
+
         # If exist update current entry
         current_entry = config_db.get_entry('STATIC_ROUTE', key)
 
