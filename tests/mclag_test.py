@@ -11,7 +11,7 @@ from utilities_common.db import Db
 MCLAG_DOMAIN_ID = "123"
 MCLAG_DOMAIN_ID2 = "500"
 MCLAG_SRC_IP    = "12.1.1.1"
-RESERVED_IP    = "127.1.1.1"
+RESERVED_IP    = "0.0.0.0"
 INVALID_IP    = "255.255.255.255"
 NOT_IP    = "abcd"
 MCLAG_PEER_IP   = "12.1.1.2"
@@ -74,6 +74,7 @@ class TestMclag(object):
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, RESERVED_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+        assert "" in result.output 
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, INVALID_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
@@ -166,12 +167,10 @@ class TestMclag(object):
 
         # add invalid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [0, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
         # add invalid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [5000, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
 
 
@@ -415,9 +414,7 @@ class TestMclag(object):
 
         # delete mclag unique ip
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["del"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "testing of delete of unique ip failed" 
+        assert result.exit_code == 0, "mclag unique ip delete case failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_mclag_not_present_domain(self):
         runner = CliRunner()
