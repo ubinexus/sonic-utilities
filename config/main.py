@@ -92,7 +92,7 @@ asic_type = None
 #
 
 # Sort nested dict
-def sortDict(data):
+def sort_dict(data):
     """Sort of data dict"""
     if type(data) is not dict:
         return data
@@ -103,7 +103,7 @@ def sortDict(data):
     return OrderedDict(natsorted(data.items()))
 
 # Read given JSON file
-def readJsonFile(fileName):
+def read_json_file(fileName):
     try:
         with open(fileName) as f:
             result = json.load(f)
@@ -121,7 +121,7 @@ def _get_breakout_options(ctx, args, incomplete):
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         return []
     else:
-        breakout_file_input = readJsonFile(breakout_cfg_file)
+        breakout_file_input = read_json_file(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
             breakout_mode_options = [mode for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name \
                                           for mode in v["breakout_modes"].keys()]
@@ -130,7 +130,7 @@ def _get_breakout_options(ctx, args, incomplete):
 
 def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
     """ Validate Parent interface and user selected mode before starting deletion or addition process """
-    breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
+    breakout_file_input = read_json_file(breakout_cfg_file)["interfaces"]
 
     if interface_name not in breakout_file_input:
         click.secho("[ERROR] {} is not a Parent port. So, Breakout Mode is not available on this port".format(interface_name), fg='red')
@@ -977,7 +977,7 @@ def save(filename):
         log.log_info("'save' executing...")
         clicommon.run_command(command, display_cmd=True)
 
-        config_db = sortDict(readJsonFile(file))
+        config_db = sort_dict(read_json_file(file))
         with open(file, 'w') as config_db_file:
             json.dump(config_db, config_db_file, indent=4)
 
