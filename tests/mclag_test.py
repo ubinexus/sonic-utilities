@@ -96,7 +96,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, RESERVED_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code != 0, "mclag invalid peer ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
-        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, INVALID, MCLAG_PEER_LINK], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, INVALID_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code != 0, "mclag invalid peer ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, NOT_IP, MCLAG_PEER_LINK], obj=obj)
@@ -410,7 +410,7 @@ class TestMclag(object):
         assert result.exit_code != 0, "ip config for unique ip vlan failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], ["Vlan111"], obj=obj)
-        assert result.exit_code != 0, "unique ip config for vlan with ip address case failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+        assert result.exit_code == 0, "unique ip config for vlan with ip address case failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # delete mclag unique ip
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["del"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
