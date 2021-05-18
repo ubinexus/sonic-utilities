@@ -902,7 +902,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     boot
                 )
                 click.echo("firmware auto-update starting:utility cmd {}".format(cmd))
-                rt_code = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+                rt_code = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, text=True)
+                rt_code = int(rt_code.strip())
             else:
                 rt_code = component.auto_update_firmware(firmware_path, boot)
             click.echo("{} firmware auto-update status return_code: {}".format(component_path, int(rt_code)))
