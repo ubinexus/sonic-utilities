@@ -41,7 +41,7 @@ MCLAG_INVALID_MCLAG_MEMBER  = "Ethernet4"
 MCLAG_INVALID_PORTCHANNEL1  = "portchannel" 
 MCLAG_INVALID_PORTCHANNEL2  = "PortChannelabcd" 
 MCLAG_INVALID_PORTCHANNEL3  = "PortChannel10000" 
-MCLAG_INVALID_PORTCHANNEL4  = "PortChannel1111" 
+MCLAG_INVALID_PORTCHANNEL4  = "PortChannel00111" 
 
 
 MCLAG_UNIQUE_IP_INTF_INVALID1  = "Ethernet100"
@@ -60,10 +60,7 @@ class TestMclag(object):
 
         # add mclag with invalid src
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SRC_IP1, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "Error: invalid local ip address"
-        assert "invalid local ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_add_mclag_with_invalid_src_mcast_ip(self):
         runner = CliRunner()
@@ -72,22 +69,17 @@ class TestMclag(object):
 
         # add mclag with invalid src
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SRC_IP2, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "Error: invalid local ip address"
-        assert "invalid local ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, RESERVED_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid local ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, INVALID_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid local ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, NOT_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid local ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_add_mclag_with_invalid_peer_ip(self):
         runner = CliRunner()
@@ -98,20 +90,16 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_INVALID_PEER_IP1, MCLAG_PEER_LINK], obj=obj)
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0, "Error: invalid local ip address"
-        assert "invalid peer ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid peer ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, RESERVED_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid peer ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid peer ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, INVALID, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid peer ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid peer ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, NOT_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid peer ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid peer ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
 
     def test_add_mclag_with_invalid_peer_mcast_ip(self):
@@ -121,10 +109,7 @@ class TestMclag(object):
 
         # add mclag with invalid peer ip mcast
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_INVALID_PEER_IP2, MCLAG_PEER_LINK], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "Error: invalid local ip address"
-        assert "invalid peer ip address" in result.output
+        assert result.exit_code != 0, "mclag invalid peer ip mcast test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_add_mclag_with_invalid_peer_link(self):
         runner = CliRunner()
@@ -133,30 +118,19 @@ class TestMclag(object):
 
         # add mclag with invalid peer link
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_INVALID_PEER_LINK1], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "Error: invalid peer link"
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid peer link test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_INVALID_PEER_LINK2], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "Error: invalid peer link"
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid peer link test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_INVALID_PEER_LINK3], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "Error: invalid peer link"
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid peer link test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_INVALID_PEER_LINK4], obj=obj)
-        assert result.exit_code == 0, "mclag invalid peer link test case failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid peer link test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_INVALID_PEER_LINK5], obj=obj)
-        assert result.exit_code == 0, "mclag invalid peer link test case failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid peer link test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_add_invalid_mclag_domain(self):
         runner = CliRunner()
@@ -165,12 +139,10 @@ class TestMclag(object):
 
         # add invalid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [0, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
         # add invalid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [5000, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
-        assert result.exit_code == 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert "invalid " in result.output
+        assert result.exit_code != 0, "mclag invalid domain test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
 
 
@@ -415,7 +387,6 @@ class TestMclag(object):
 
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["del"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_PORTCHANNEL4], obj=obj)
         assert result.exit_code != 0, "mclag invalid member del case failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert result.exit_code != 0, "mclag invalid member del case failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
 
 
@@ -430,16 +401,14 @@ class TestMclag(object):
 
         # add mclag unique ip
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0, "testing of adding unique ip failed" 
+        assert result.exit_code == 0, "mclag unique ip add with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # add mclag unique ip for vlan interface which already has ip
         result = runner.invoke(config.config.commands["vlan"].commands["add"], ["111"], obj=db)
         assert result.exit_code == 0, "add vlan for unique ip failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Vlan111", "111.11.11.1/24"], obj=obj)        
-        assert result.exit_code == 0, "ip config for unique ip vlan failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+        assert result.exit_code != 0, "ip config for unique ip vlan failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], ["Vlan111"], obj=obj)
         assert result.exit_code != 0, "unique ip config for vlan with ip address case failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
