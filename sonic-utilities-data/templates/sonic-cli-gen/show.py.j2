@@ -6,19 +6,46 @@ import tabulate
 import natsort
 import utilities_common.cli as clicommon
 
-{% macro print_attr(attr) %}
-{%- if not attr["is-leaf-list"] %}
-entry.get("{{ attr.name }}", "N/A")
-{%- else %}
-"\n".join(entry.get("{{ attr.name }}", []))
-{%- endif %}
+
+{% macro column_name(name) -%}
+{{ name|upper|replace("_", " ")|replace("-", " ") }}
+{%- endmacro %}
+
+
+def print_attr_helper(entry, attr):
+    if attr["is-leaf-list"]:
+        return "\n".join(entry.get(attr["name"], []))
+    return entry.get(attr["name"], "N/A")
+
+
+def print_group_helper(entry, attrs):
+    data = []
+    for attr in attrs:
+        if entry.get(attr["name"]):
+            data.append((attr["name"] + ":", print_attr_helper(entry, attr)))
+    return tabulate.tabulate(data, tablefmt="plain")
+
+
+{% macro gen_row(entry, attrs) -%}
+[
+{%- for attr in attrs|rejectattr("group", "defined") %}
+print_attr_helper({{ entry }}, {{ attr }}),
+{%- endfor %}
+{%- for group, attrs in attrs|selectattr("group", "defined")|groupby("group") %}
+print_group_helper({{ entry }}, {{ attrs }}),
+{%- endfor %}
+]
 {% endmacro %}
 
-
-{% macro gen_header(attrs) %}
-{% for attr in attrs %}
-"{{ attr.name|upper|replace("_", " ")|replace("-", " ") }}",
+{% macro gen_header(attrs) -%}
+[
+{% for attr in attrs|rejectattr("group", "defined") %}
+"{{ column_name(attr.name) }}",
 {% endfor %}
+{% for group, attrs in attrs|selectattr("group", "defined")|groupby("group") %}
+"{{ column_name(group) }}",
+{% endfor %}
+]
 {% endmacro %}
 
 
@@ -37,12 +64,12 @@ def {{ table.name }}():
 def {{ table.name }}_{{ object.name }}(db):
     """ {{ object.description }} """
 
-    header = [{{ gen_header(object.attrs) }}]
+    header = {{ gen_header(object.attrs) }}
     body = []
 
     table = db.cfgdb.get_table("{{ table.name }}")
     entry = table.get("{{ object.name }}", {})
-    row = [{%- for attr in object.attrs -%} {{ print_attr(attr) }}, {%- endfor %}]
+    row = {{ gen_row("entry", object.attrs) }}
     body.append(row)
     click.echo(tabulate.tabulate(body, header))
 
@@ -73,7 +100,7 @@ def {{ table.name }}():
 def {{ name }}(db):
     """ {{ object.description }} """
 
-    header = [{{ gen_header(object["keys"] + object.attrs) }}]
+    header = {{ gen_header(object["keys"] + object.attrs) }}
     body = []
 
     table = db.cfgdb.get_table("{{ table.name }}")
@@ -82,7 +109,7 @@ def {{ name }}(db):
         if not isinstance(key, tuple):
             key = (key,)
 
-        row = [*key, {%- for attr in object.attrs -%} {{ print_attr(attr) }}, {%- endfor %}]
+        row = [*key] + {{ gen_row("entry", object.attrs) }}
         body.append(row)
 
     click.echo(tabulate.tabulate(body, header))
