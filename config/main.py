@@ -13,10 +13,12 @@ import sys
 import time
 import itertools
 
+from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
-from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
+from natsort import natsorted
 from portconfig import get_child_ports
+from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from utilities_common import util_base
@@ -86,8 +88,19 @@ PORT_SPEED = "speed"
 asic_type = None
 
 #
-# Breakout Mode Helper functions
+# Helper functions
 #
+
+# Sort nested dict
+def sortDict(data):
+    """Sort of data dict"""
+    if type(data) is not dict:
+        return data
+
+    for table in data:
+        if type(data[table]) is dict:
+            data[table] = OrderedDict(natsorted(data[table].items()))
+    return OrderedDict(natsorted(data.items()))
 
 # Read given JSON file
 def readJsonFile(fileName):
@@ -963,6 +976,10 @@ def save(filename):
 
         log.log_info("'save' executing...")
         clicommon.run_command(command, display_cmd=True)
+
+        config_db = sortDict(readJsonFile(file))
+        with open(file, 'w') as config_db_file:
+            json.dump(config_db, config_db_file, indent=4)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
