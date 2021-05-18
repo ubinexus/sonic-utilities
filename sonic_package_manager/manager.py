@@ -2,6 +2,7 @@
 
 import contextlib
 import functools
+from genericpath import exists
 import os
 import pkgutil
 import tempfile
@@ -481,13 +482,7 @@ class PackageManager:
             self.service_creator.generate_shutdown_sequence_files(
                 self._get_installed_packages_except(package)
             )
-
-            # Clean containers based on this image
-            containers = self.docker.ps(filters={'ancestor': package.image_id},
-                                        all=True)
-            for container in containers:
-                self.docker.rm(container.id, force=True)
-
+            self.docker.rm_by_ancestor(package.image_id, force=True)
             self.docker.rmi(package.image_id, force=True)
             package.entry.image_id = None
         except Exception as err:
@@ -566,7 +561,6 @@ class PackageManager:
         service_create_opts = {
             'register_feature': False,
         }
-
         service_remove_opts = {
             'deregister_feature': False,
         }
@@ -579,7 +573,9 @@ class PackageManager:
                 source.install(new_package)
                 exits.callback(rollback(source.uninstall, new_package))
 
-                if self.feature_registry.is_feature_enabled(old_feature):
+                feature_enabled = self.feature_registry.is_feature_enabled(old_feature)
+
+                if feature_enabled: 
                     self._systemctl_action(old_package, 'stop')
                     exits.callback(rollback(self._systemctl_action,
                                             old_package, 'start'))
@@ -588,11 +584,7 @@ class PackageManager:
                 exits.callback(rollback(self.service_creator.create, old_package,
                                         **service_create_opts))
 
-                # Clean containers based on the old image
-                containers = self.docker.ps(filters={'ancestor': old_package.image_id},
-                                            all=True)
-                for container in containers:
-                    self.docker.rm(container.id, force=True)
+                self.docker.rm_by_ancestor(old_package.image_id, force=True)
 
                 self.service_creator.create(new_package, **service_create_opts)
                 exits.callback(rollback(self.service_creator.remove, new_package,
@@ -606,10 +598,18 @@ class PackageManager:
                     self._get_installed_packages_and(old_package))
                 )
 
-                if self.feature_registry.is_feature_enabled(new_feature):
+                if feature_enabled: 
                     self._systemctl_action(new_package, 'start')
                     exits.callback(rollback(self._systemctl_action,
                                             new_package, 'stop'))
+
+                # Update feature configuration after we have started new service.
+                # If we place it before the above, we our service start/stop will
+                # interfier with hostcfgd in rollback path leading to 
+                self.feature_registry.update(old_package.manifest, new_package.manifest)
+                exits.callback(rollback(
+                    self.feature_registry.update, new_package.manifest, old_package.manifest)
+                )
 
                 if not skip_host_plugins:
                     self._install_cli_plugins(new_package)

@@ -73,6 +73,36 @@ class FeatureRegistry:
         db_connetors = self._sonic_db.get_connectors()
         for conn in db_connetors:
             conn.set_entry(FEATURE, name, None)
+    
+    def update(self,
+              old_manifest: Manifest,
+              new_manifest: Manifest):
+        """ Migrate feature configuration. It can be that non-configurable
+        feature entries have to be updated. e.g: "has_timer" for example if
+        the new feature introduces a service timer or name of the service has
+        changed, but user configurable entries are not changed).
+        
+        Args:
+            old_manifest: Old feature manifest.
+            new_manifest: New feature manifest.
+        Returns:
+            None
+        """
+
+        old_name = old_manifest['service']['name']
+        new_name = new_manifest['service']['name']
+        db_connectors = self._sonic_db.get_connectors()
+        non_cfg_entries = self.get_non_configurable_feature_entries(new_manifest)
+
+        for conn in db_connectors:
+            current_cfg = conn.get_entry(FEATURE, old_name)
+            conn.set_entry(FEATURE, old_name, None)
+
+            new_cfg = current_cfg.copy()
+            # Override CONFIG DB data with non configurable entries.
+            new_cfg = {**new_cfg, **non_cfg_entries}
+
+            conn.set_entry(FEATURE, new_name, new_cfg)
 
     def is_feature_enabled(self, name: str) -> bool:
         """ Returns whether the feature is current enabled

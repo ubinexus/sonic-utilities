@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import copy
 from unittest.mock import Mock, call
 
 import pytest
@@ -220,6 +221,41 @@ def test_feature_registration(mock_sonic_db, manifest):
         'has_global_scope': 'True',
         'has_timer': 'False',
     })
+
+
+def test_feature_update(mock_sonic_db, manifest):
+    curr_feature_config = {
+        'state': 'enabled',
+        'auto_restart': 'enabled',
+        'high_mem_alert': 'disabled',
+        'set_owner': 'local',
+        'has_per_asic_scope': 'False',
+        'has_global_scope': 'True',
+        'has_timer': 'False',
+    }
+    mock_connector = Mock()
+    mock_connector.get_entry = Mock(return_value=curr_feature_config)
+    mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
+    feature_registry = FeatureRegistry(mock_sonic_db)
+
+    new_manifest = copy.deepcopy(manifest)
+    new_manifest['service']['name'] = 'test_new'
+    new_manifest['service']['delayed'] = True
+
+    feature_registry.update(manifest, new_manifest)
+
+    mock_connector.set_entry.assert_has_calls([
+        call('FEATURE', 'test', None),
+        call('FEATURE', 'test_new', {
+            'state': 'enabled',
+            'auto_restart': 'enabled',
+            'high_mem_alert': 'disabled',
+            'set_owner': 'local',
+            'has_per_asic_scope': 'False',
+            'has_global_scope': 'True',
+            'has_timer': 'True',
+        }),
+    ], any_order=True)
 
 
 def test_feature_registration_with_timer(mock_sonic_db, manifest):
