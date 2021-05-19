@@ -12,7 +12,7 @@ from config.config_mgmt import ConfigMgmt
 from prettyprinter import pformat
 from toposort import toposort_flatten, CircularDependencyError
 
-from utilities_common.general import load_module_from_source
+from config.config_mgmt import sonic_cfggen
 from sonic_cli_gen.generator import CliGenerator
 
 from sonic_package_manager.logger import log
@@ -25,8 +25,6 @@ from sonic_package_manager.service_creator.feature import FeatureRegistry
 from sonic_package_manager.service_creator.sonic_db import SonicDB
 from sonic_package_manager.service_creator.utils import in_chroot
 
-# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
-sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 SERVICE_FILE_TEMPLATE = 'sonic.service.j2'
 TIMER_UNIT_TEMPLATE = 'timer.unit.j2'
@@ -129,7 +127,7 @@ class ServiceCreator:
                  cli_gen: CliGenerator,
                  cfg_mgmt: ConfigMgmt):
         """ Initialize ServiceCreator with:
-        
+
         Args:
             feature_registry: FeatureRegistry object.
             sonic_db: SonicDB interface.
@@ -146,8 +144,8 @@ class ServiceCreator:
                register_feature: bool = True,
                state: str = 'enabled',
                owner: str = 'local'):
-        """ Register package as SONiC service. 
-        
+        """ Register package as SONiC service.
+
         Args:
             package: Package object to install.
             register_feature: Wether to register this package in FEATURE table.
@@ -181,7 +179,7 @@ class ServiceCreator:
                deregister_feature: bool = True,
                keep_config: bool = False):
         """ Uninstall SONiC service provided by the package.
-        
+
         Args:
             package: Package object to uninstall.
             deregister_feature: Wether to deregister this package from FEATURE table.
@@ -211,8 +209,8 @@ class ServiceCreator:
             self.feature_registry.deregister(package.manifest['service']['name'])
 
     def generate_container_mgmt(self, package: Package):
-        """ Generates container management script under /usr/bin/<service>.sh for package. 
-        
+        """ Generates container management script under /usr/bin/<service>.sh for package.
+
         Args:
             package: Package object to generate script for.
         Returns:
@@ -254,8 +252,8 @@ class ServiceCreator:
         log.info(f'generated {script_path}')
 
     def generate_service_mgmt(self, package: Package):
-        """ Generates service management script under /usr/local/bin/<service>.sh for package. 
-        
+        """ Generates service management script under /usr/local/bin/<service>.sh for package.
+
         Args:
             package: Package object to generate script for.
         Returns:
@@ -275,8 +273,8 @@ class ServiceCreator:
         log.info(f'generated {script_path}')
 
     def generate_systemd_service(self, package: Package):
-        """ Generates systemd service(s) file and timer(s) (if needed) for package. 
-        
+        """ Generates systemd service(s) file and timer(s) (if needed) for package.
+
         Args:
             package: Package object to generate service for.
         Returns:
@@ -323,13 +321,13 @@ class ServiceCreator:
     def update_dependent_list_file(self, package: Package, remove=False):
         """ This function updates dependent list file for packages listed in "dependent-of"
             (path: /etc/sonic/<service>_dependent file).
-        
+
         Args:
             package: Package to update packages dependent of it.
         Returns:
             None.
         """
-        
+
         name = package.manifest['service']['name']
         dependent_of = package.manifest['service']['dependent-of']
         host_service = package.manifest['service']['host-service']
@@ -363,7 +361,7 @@ class ServiceCreator:
 
     def generate_dump_script(self, package):
         """ Generates dump plugin script for package.
-        
+
         Args:
             package: Package object to generate dump plugin script for.
         Returns:
@@ -389,7 +387,7 @@ class ServiceCreator:
 
     def get_shutdown_sequence(self, reboot_type: str, packages: Dict[str, Package]):
         """ Returns shutdown sequence file for particular reboot type.
-        
+
         Args:
             reboot_type: Reboot type to generated service shutdown sequence for.
             packages: Dict of installed packages.
@@ -436,7 +434,7 @@ class ServiceCreator:
     def generate_shutdown_sequence_file(self, reboot_type: str, packages: Dict[str, Package]):
         """ Generates shutdown sequence file for particular reboot type
             (path: /etc/sonic/<reboot-type>-reboot_order).
-        
+
         Args:
             reboot_type: Reboot type to generated service shutdown sequence for.
             packages: Dict of installed packages.
@@ -447,11 +445,11 @@ class ServiceCreator:
         order = self.get_shutdown_sequence(reboot_type, packages)
         with open(os.path.join(ETC_SONIC_PATH, f'{reboot_type}-reboot_order'), 'w') as file:
             file.write(' '.join(order))
-    
+
     def generate_shutdown_sequence_files(self, packages: Dict[str, Package]):
-        """ Generates shutdown sequence file for fast and warm reboot. 
+        """ Generates shutdown sequence file for fast and warm reboot.
             (path: /etc/sonic/<reboot-type>-reboot_order).
-        
+
         Args:
             packages: Dict of installed packages.
         Returns:
@@ -490,7 +488,7 @@ class ServiceCreator:
         init_cfg = package.manifest['package']['init-cfg']
         if not init_cfg:
             return
-        
+
         for conn in self.sonic_db.get_connectors():
             cfg = conn.get_config()
             new_cfg = init_cfg.copy()
@@ -522,7 +520,7 @@ class ServiceCreator:
 
     def validate_config(self, config):
         """ Validate configuration through YANG.
-        
+
         Args:
             config: Config DB data.
         Returns:
@@ -567,7 +565,7 @@ class ServiceCreator:
 
     def install_autogen_cli_all(self, package: Package):
         """ Install autogenerated CLI plugins for package.
-        
+
         Args:
             package: Package
         Returns:
@@ -578,8 +576,8 @@ class ServiceCreator:
             self.install_autogen_cli(package, command)
 
     def uninstall_autogen_cli_all(self, package: Package):
-        """ Remove autogenerated CLI plugins for package. 
-        
+        """ Remove autogenerated CLI plugins for package.
+
         Args:
             package: Package
         Returns:
@@ -590,8 +588,8 @@ class ServiceCreator:
             self.uninstall_autogen_cli(package, command)
 
     def install_autogen_cli(self, package: Package, command: str):
-        """ Install autogenerated CLI plugins for package for particular command. 
-        
+        """ Install autogenerated CLI plugins for package for particular command.
+
         Args:
             package: Package.
             command: Name of command to generate CLI for.
@@ -608,8 +606,8 @@ class ServiceCreator:
         log.debug(f'{command} command line interface autogenerated for {module_name}')
 
     def uninstall_autogen_cli(self, package: Package, command: str):
-        """ Uninstall autogenerated CLI plugins for package for particular command. 
-        
+        """ Uninstall autogenerated CLI plugins for package for particular command.
+
         Args:
             package: Package.
             command: Name of command to remove CLI.

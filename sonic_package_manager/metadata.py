@@ -24,10 +24,10 @@ def deep_update(dst: Dict, src: Dict) -> Dict:
 
     for key, value in src.items():
         if isinstance(value, dict):
-             node = dst.setdefault(key, {})
-             deep_update(node, value)
+            node = dst.setdefault(key, {})
+            deep_update(node, value)
         else:
-             dst[key] = value
+            dst[key] = value
     return dst
 
 

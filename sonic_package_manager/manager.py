@@ -2,7 +2,6 @@
 
 import contextlib
 import functools
-from genericpath import exists
 import os
 import pkgutil
 import tempfile
@@ -162,7 +161,7 @@ def get_cli_plugin_directory(command: str) -> str:
 
 def get_cli_plugin_path(package: Package, command: str) -> str:
     """ Returns a path where to put CLI plugin code.
-    
+
     Args:
         package: Package to generate this path for.
         command: SONiC command: "show"/"config"/"clear".
@@ -251,11 +250,10 @@ def validate_package_tree(packages: Dict[str, Package]):
                     continue
 
                 component_version = conflicting_package.components[component]
-                log.debug(f'conflicting package {dependency.name}: '
+                log.debug(f'conflicting package {conflict.name}: '
                           f'component {component} version is {component_version}')
-
                 if constraint.allows_all(component_version):
-                    raise PackageComponentConflictError(package.name, dependency, component,
+                    raise PackageComponentConflictError(package.name, conflict, component,
                                                         constraint, component_version)
 
 
@@ -400,7 +398,7 @@ class PackageManager:
         # package name may not be in database.
         if not self.database.has_package(package.name):
             self.database.add_package(package.name, package.repository)
-        
+
         service_create_opts = {
             'state': feature_state,
             'owner': default_owner,
@@ -557,7 +555,7 @@ class PackageManager:
             validate_package_cli_can_be_skipped(new_package, skip_host_plugins)
 
         # After all checks are passed we proceed to actual upgrade
-    
+
         service_create_opts = {
             'register_feature': False,
         }
@@ -575,12 +573,15 @@ class PackageManager:
 
                 feature_enabled = self.feature_registry.is_feature_enabled(old_feature)
 
-                if feature_enabled: 
+                if feature_enabled:
+                    self._systemctl_action(new_package, 'disable')
+                    exits.callback(rollback(self._systemctl_action,
+                                            old_package, 'enable'))
                     self._systemctl_action(old_package, 'stop')
                     exits.callback(rollback(self._systemctl_action,
                                             old_package, 'start'))
 
-                self.service_creator.remove(old_package, **service_remove_opts) 
+                self.service_creator.remove(old_package, **service_remove_opts)
                 exits.callback(rollback(self.service_creator.create, old_package,
                                         **service_create_opts))
 
@@ -598,14 +599,18 @@ class PackageManager:
                     self._get_installed_packages_and(old_package))
                 )
 
-                if feature_enabled: 
+                if feature_enabled:
+                    self._systemctl_action(new_package, 'enable')
+                    exits.callback(rollback(self._systemctl_action,
+                                            old_package, 'disable'))
                     self._systemctl_action(new_package, 'start')
                     exits.callback(rollback(self._systemctl_action,
                                             new_package, 'stop'))
 
                 # Update feature configuration after we have started new service.
-                # If we place it before the above, we our service start/stop will
-                # interfier with hostcfgd in rollback path leading to 
+                # If we place it before the above, our service start/stop will
+                # interfere with hostcfgd in rollback path leading to a service
+                # running with new image and not the old one.
                 self.feature_registry.update(old_package.manifest, new_package.manifest)
                 exits.callback(rollback(
                     self.feature_registry.update, new_package.manifest, old_package.manifest)
@@ -662,16 +667,16 @@ class PackageManager:
                          old_package_database: PackageDatabase,
                          dockerd_sock: Optional[str] = None):
         """
-        Migrate packages from old database. This function can do a comparison between 
-        current database and the database passed in as argument. If the package is 
-        missing in the current database it will be added. If the package is installed 
-        in the passed database and in the current it is not installed it will be 
-        installed with a passed database package version. If the package is installed 
-        in the passed database and it is installed in the current database but with 
-        older version the package will be upgraded to the never version. If the package 
-        is installed in the passed database and in the current it is installed but with 
-        never version - no actions are taken. If dockerd_sock parameter is passed, the 
-        migration process will use loaded images from docker library of the currently 
+        Migrate packages from old database. This function can do a comparison between
+        current database and the database passed in as argument. If the package is
+        missing in the current database it will be added. If the package is installed
+        in the passed database and in the current it is not installed it will be
+        installed with a passed database package version. If the package is installed
+        in the passed database and it is installed in the current database but with
+        older version the package will be upgraded to the never version. If the package
+        is installed in the passed database and in the current it is installed but with
+        never version - no actions are taken. If dockerd_sock parameter is passed, the
+        migration process will use loaded images from docker library of the currently
         installed image.
 
         Args:
@@ -823,8 +828,8 @@ class PackageManager:
                 if package_entry.default_reference is not None:
                     package_ref.reference = package_entry.default_reference
                 else:
-                    raise PackageManagerError(f'No default reference tag. '
-                                              f'Please specify the version or tag explicitly')
+                    raise PackageManagerError('No default reference tag. '
+                                              'Please specify the version or tag explicitly')
 
             return RegistrySource(package_entry.repository,
                                   package_ref.reference,
@@ -896,7 +901,7 @@ class PackageManager:
             Installed packages dictionary.
         """
 
-        return [self.get_installed_package(entry.name) 
+        return [self.get_installed_package(entry.name)
                 for entry in self.database if entry.installed]
 
     def _migrate_package_database(self, old_package_database: PackageDatabase):
@@ -991,10 +996,9 @@ class PackageManager:
         metadata_resolver = MetadataResolver(docker_api, registry_resolver)
         cfg_mgmt = config_mgmt.ConfigMgmt()
         cli_generator = CliGenerator()
-        sonic_db = SonicDB()
-        feature_registry = FeatureRegistry(sonic_db)
+        feature_registry = FeatureRegistry(SonicDB)
         service_creator = ServiceCreator(feature_registry,
-                                         sonic_db,
+                                         SonicDB,
                                          cli_generator,
                                          cfg_mgmt)
 

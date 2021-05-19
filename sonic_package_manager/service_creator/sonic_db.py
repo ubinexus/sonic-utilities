@@ -6,17 +6,14 @@ import os
 
 from swsscommon import swsscommon
 
-from utilities_common.general import load_module_from_source
+from config.config_mgmt import sonic_cfggen
+
 from sonic_package_manager.service_creator import ETC_SONIC_PATH
 from sonic_package_manager.service_creator.utils import in_chroot
 
 CONFIG_DB = 'CONFIG_DB'
 CONFIG_DB_JSON = os.path.join(ETC_SONIC_PATH, 'config_db.json')
 INIT_CFG_JSON = os.path.join(ETC_SONIC_PATH, 'init_cfg.json')
-
-
-# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
-sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 
 class PersistentConfigDbConnector:
@@ -66,7 +63,7 @@ class PersistentConfigDbConnector:
         for table_name in config:
             table_data = config[table_name]
             if table_data is None:
-                self._del_table(config, table)
+                self._del_table(config, table_name)
                 continue
             for key in table_data:
                 self.mod_entry(table_name, key, table_data[key])

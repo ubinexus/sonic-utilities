@@ -36,7 +36,7 @@ class FeatureRegistry:
                  state: str = 'disabled',
                  owner: str = 'local'):
         """ Register feature in CONFIG DBs.
-        
+
         Args:
             manifest: Feature's manifest.
             state: Desired feature admin state.
@@ -62,8 +62,8 @@ class FeatureRegistry:
             conn.set_entry(FEATURE, name, new_cfg)
 
     def deregister(self, name: str):
-        """ Deregister feature by name. 
-        
+        """ Deregister feature by name.
+
         Args:
             name: Name of the feature in CONFIG DB.
         Returns:
@@ -73,15 +73,15 @@ class FeatureRegistry:
         db_connetors = self._sonic_db.get_connectors()
         for conn in db_connetors:
             conn.set_entry(FEATURE, name, None)
-    
+
     def update(self,
-              old_manifest: Manifest,
-              new_manifest: Manifest):
+               old_manifest: Manifest,
+               new_manifest: Manifest):
         """ Migrate feature configuration. It can be that non-configurable
         feature entries have to be updated. e.g: "has_timer" for example if
         the new feature introduces a service timer or name of the service has
         changed, but user configurable entries are not changed).
-        
+
         Args:
             old_manifest: Old feature manifest.
             new_manifest: New feature manifest.
