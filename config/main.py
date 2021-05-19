@@ -93,7 +93,9 @@ asic_type = None
 
 # Sort nested dict
 def sort_dict(data):
-    """Sort of data dict"""
+    """ Sort of 1st leve and 2nd level dict of data naturally by its key
+        data: data to be sorted
+    """
     if type(data) is not dict:
         return data
 
