@@ -6,13 +6,14 @@
     which accesses the transceiver directly.
 """
 
+import ast
 import os
 import re
 import sys
 
 import click
 from natsort import natsorted
-from sonic_py_common.interface import front_panel_prefix, backplane_prefix
+from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix
 from sonic_py_common import multi_asic
 from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
@@ -273,10 +274,15 @@ class SFPShow(object):
                     output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
                 else:
                     output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
-                    spefic_compliance_dict = eval(sfp_info_dict['specification_compliance'])
-                    sorted_compliance_key_table = natsorted(spefic_compliance_dict)
-                    for compliance_key in sorted_compliance_key_table:
-                        output += '{}{}: {}\n'.format((indent * 2), compliance_key, spefic_compliance_dict[compliance_key])
+
+                    spec_compliance_dict = {}
+                    try:
+                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
+                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
+                        for compliance_key in sorted_compliance_key_table:
+                            output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
+                    except ValueError as e:
+                        output += '{}N/A\n'.format((indent * 2))
             else:
                 output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
@@ -411,7 +417,7 @@ class SFPShow(object):
             sorted_table_keys = natsorted(port_table_keys)
             for i in sorted_table_keys:
                 interface = re.split(':', i, maxsplit=1)[-1].strip()
-                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith(backplane_prefix()):
+                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith(backplane_prefix()) and not interface.startswith(inband_prefix()):
                     presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
                     if presence:
                         self.output += self.convert_interface_sfp_info_to_cli_output_string(
@@ -435,7 +441,7 @@ class SFPShow(object):
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             for i in port_table_keys:
                 key = re.split(':', i, maxsplit=1)[-1].strip()
-                if key and key.startswith(front_panel_prefix()) and not key.startswith(backplane_prefix()):
+                if key and key.startswith(front_panel_prefix()) and not key.startswith(backplane_prefix()) and not key.startswith(inband_prefix()):
                     presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(key))
                     if presence:
                         port_table.append((key, 'Present'))
