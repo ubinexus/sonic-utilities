@@ -4,7 +4,7 @@ import sys
 
 import click
 import utilities_common.cli as clicommon
-from sonic_py_common import device_info, multi_asic
+from sonic_py_common import device_info
 
 #
 # Helper functions
@@ -27,7 +27,7 @@ def get_chassis_info():
                 platform_chassis = sonic_platform.platform.Platform().get_chassis()
             try:
                 chassis_info[k] = getattr(platform_chassis, "get_".format(k))()
-            except:
+            except AttributeError:
                 chassis_info[k] = 'N/A'
 
     return chassis_info
