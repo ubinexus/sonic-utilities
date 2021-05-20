@@ -11,6 +11,32 @@ from tabulate import tabulate
 from utilities_common import constants
 
 
+def get_namespace_for_bgp_neighbor(neighbor_ip):
+    namespace_list = multi_asic.get_namespace_list()
+    for namespace in namespace_list:
+        if is_bgp_neigh_present(neighbor_ip, namespace):
+            return namespace
+
+    # neighbor IP not present in any namespace
+    raise ValueError(
+                 ' Bgp neighbor {} not configured'.format(neighbor_ip))
+
+
+def is_bgp_neigh_present(neighbor_ip, namespace=multi_asic.DEFAULT_NAMESPACE):
+    config_db = multi_asic.connect_config_db_for_ns(namespace)
+    #check the internal
+    bgp_session = config_db.get_entry(multi_asic.BGP_NEIGH_CFG_DB_TABLE,
+                                      neighbor_ip)
+    if bgp_session:
+        return True
+
+    bgp_session = config_db.get_entry(
+        multi_asic.BGP_INTERNAL_NEIGH_CFG_DB_TABLE, neighbor_ip)
+    if bgp_session:
+        return True
+    return False
+
+
 def is_ipv4_address(ip_address):
     """
     Checks if given ip is ipv4
@@ -151,7 +177,8 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh
     bgp_instance_id = ' '
     output = None
     if bgp_namespace is not multi_asic.DEFAULT_NAMESPACE:
-        bgp_instance_id = " -n {} ".format(multi_asic.get_asic_id_from_name(bgp_namespace))
+        bgp_instance_id = " -n {} ".format(
+            multi_asic.get_asic_id_from_name(bgp_namespace))
 
     cmd = 'sudo {} {} -c "{}"'.format(
         vtysh_shell_cmd, bgp_instance_id, vtysh_cmd)
@@ -159,7 +186,7 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh
         output = clicommon.run_command(cmd, return_cmd=True)
     except Exception:
         ctx = click.get_current_context()
-        ctx.fail("Unable to get summary from bgp".format(bgp_instance_id))
+        ctx.fail("Unable to get summary from bgp {}".format(bgp_instance_id))
 
     return output
 
@@ -260,7 +287,7 @@ def process_bgp_summary_json(bgp_summary, cmd_output, device):
         bgp_summary['peerGroupMemory'] = bgp_summary.get(
             'peerGroupMemory', 0) + cmd_output['peerGroupMemory']
 
-        #store instance level field is seperate dict
+        # store instance level field is seperate dict
         router_info = {}
         router_info['router_id'] = cmd_output['routerId']
         router_info['vrf'] = cmd_output['vrfId']
@@ -290,7 +317,7 @@ def process_bgp_summary_json(bgp_summary, cmd_output, device):
                 peers.append(value['pfxRcd'])
             else:
                 peers.append(value['state'])
-            
+
             # Get the bgp neighbour name ans store it
             neigh_name = get_bgp_neighbor_ip_to_name(
                 peer_ip, static_neighbors, dynamic_neighbors)
