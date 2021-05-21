@@ -20,7 +20,7 @@ from .bgp_commands_input.bgp_network_test_vector import (
     mock_show_bgp_network_multi_asic
     )
 from . import config_int_ip_common
-from .. import utilities_common.constants as constants
+import utilities_common.constants as constants
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
