@@ -823,20 +823,18 @@ def switchmode(port):
             sys.exit(EXIT_FAIL)
 
 
-def get_firmware_dict(physical_port, target, side, mux_info_dict, mux_info_active_dict):
+def get_firmware_dict(physical_port, target, side, mux_info_dict):
 
     import sonic_y_cable.y_cable
     result = sonic_y_cable.y_cable.get_firmware_version(physical_port, target)
 
     if result is not None and isinstance(result, dict):
         mux_info_dict[("version_{}_active".format(side))] = result.get("version_active", None)
-        mux_info_active_dict[("version_{}_active".format(side))] = result.get("version_active", None)
         mux_info_dict[("version_{}_inactive".format(side))] = result.get("version_inactive", None)
         mux_info_dict[("version_{}_next".format(side))] = result.get("version_next", None)
 
     else:
         mux_info_dict[("version_{}_active".format(side))] = "N/A"
-        mux_info_active_dict[("version_{}_active".format(side))] = "N/A"
         mux_info_dict[("version_{}_inactive".format(side))] = "N/A"
         mux_info_dict[("version_{}_next".format(side))] = "N/A"
 
@@ -911,18 +909,24 @@ def version(port, active):
             read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
             if logical_key in y_cable_asic_table_keys:
                 if read_side == 1:
-                    get_firmware_dict(physical_port, 1, "self", mux_info_dict, mux_info_active_dict)
-                    get_firmware_dict(physical_port, 2, "peer", mux_info_dict, mux_info_active_dict)
-                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict, mux_info_active_dict)
+                    get_firmware_dict(physical_port, 1, "self", mux_info_dict)
+                    get_firmware_dict(physical_port, 2, "peer", mux_info_dict)
+                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
                     if active is True:
+                        for key in mux_info_dict:
+                            if key.endswith("_active"):
+                                mux_info_active_dict[key] = mux_info_dict[key]
                         click.echo("{}".format(json.dumps(mux_info_active_dict, indent=4)))
                     else:
                         click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
                 elif read_side == 2:
-                    get_firmware_dict(physical_port, 2, "self", mux_info_dict, mux_info_active_dict)
-                    get_firmware_dict(physical_port, 1, "peer", mux_info_dict, mux_info_active_dict)
-                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict, mux_info_active_dict)
+                    get_firmware_dict(physical_port, 2, "self", mux_info_dict)
+                    get_firmware_dict(physical_port, 1, "peer", mux_info_dict)
+                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
                     if active is True:
+                        for key in mux_info_dict:
+                            if key.endswith("_active"):
+                                mux_info_active_dict[key] = mux_info_dict[key]
                         click.echo("{}".format(json.dumps(mux_info_active_dict, indent=4)))
                     else:
                         click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
