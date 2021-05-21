@@ -823,18 +823,20 @@ def switchmode(port):
             sys.exit(EXIT_FAIL)
 
 
-def get_firmware_dict(physical_port, target, side, mux_info_dict):
+def get_firmware_dict(physical_port, target, side, mux_info_dict, mux_info_active_dict):
 
     import sonic_y_cable.y_cable
     result = sonic_y_cable.y_cable.get_firmware_version(physical_port, target)
 
     if result is not None and isinstance(result, dict):
         mux_info_dict[("version_{}_active".format(side))] = result.get("version_active", None)
+        mux_info_active_dict[("version_{}_active".format(side))] = result.get("version_active", None)
         mux_info_dict[("version_{}_inactive".format(side))] = result.get("version_inactive", None)
         mux_info_dict[("version_{}_next".format(side))] = result.get("version_next", None)
 
     else:
         mux_info_dict[("version_{}_active".format(side))] = "N/A"
+        mux_info_active_dict[("version_{}_active".format(side))] = "N/A"
         mux_info_dict[("version_{}_inactive".format(side))] = "N/A"
         mux_info_dict[("version_{}_next".format(side))] = "N/A"
 
@@ -847,7 +849,8 @@ def firmware():
 
 @firmware.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-def version(port):
+@click.option('--active', 'active', required=False, is_flag=True, type=click.BOOL, help="display the firmware version of only active bank within MCU's")
+def version(port, active):
     """Show muxcable firmware version"""
 
     port_table_keys = {}
@@ -899,6 +902,7 @@ def version(port):
             sys.exit(CONFIG_FAIL)
 
         mux_info_dict = {}
+        mux_info_active_dict = {}
         physical_port = physical_port_list[0]
         if per_npu_statedb[asic_index] is not None:
             y_cable_asic_table_keys = port_table_keys[asic_index]
@@ -907,15 +911,21 @@ def version(port):
             read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
             if logical_key in y_cable_asic_table_keys:
                 if read_side == 1:
-                    get_firmware_dict(physical_port, 1, "self", mux_info_dict)
-                    get_firmware_dict(physical_port, 2, "peer", mux_info_dict)
-                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
-                    click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
+                    get_firmware_dict(physical_port, 1, "self", mux_info_dict, mux_info_active_dict)
+                    get_firmware_dict(physical_port, 2, "peer", mux_info_dict, mux_info_active_dict)
+                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict, mux_info_active_dict)
+                    if active is True:
+                        click.echo("{}".format(json.dumps(mux_info_active_dict, indent=4)))
+                    else:
+                        click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
                 elif read_side == 2:
-                    get_firmware_dict(physical_port, 2, "self", mux_info_dict)
-                    get_firmware_dict(physical_port, 1, "peer", mux_info_dict)
-                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict)
-                    click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
+                    get_firmware_dict(physical_port, 2, "self", mux_info_dict, mux_info_active_dict)
+                    get_firmware_dict(physical_port, 1, "peer", mux_info_dict, mux_info_active_dict)
+                    get_firmware_dict(physical_port, 0, "nic", mux_info_dict, mux_info_active_dict)
+                    if active is True:
+                        click.echo("{}".format(json.dumps(mux_info_active_dict, indent=4)))
+                    else:
+                        click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
                 else:
                     click.echo("Did not get a valid read_side for muxcable".format(port))
                     sys.exit(CONFIG_FAIL)
