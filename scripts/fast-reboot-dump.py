@@ -13,6 +13,10 @@ import syslog
 import traceback
 import ipaddress
 
+def to_unicode(x):
+  if sys.version_info < (3, 0):
+    return unicode(x)
+  return str(x)
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
 ARP_PAD = binascii.unhexlify('00' * 18)
@@ -96,7 +100,7 @@ def get_map_host_port_id_2_iface_name(asic_db):
         port_id = value['SAI_HOSTIF_ATTR_OBJ_ID']
         iface_name = value['SAI_HOSTIF_ATTR_NAME']
         host_port_id_2_iface[port_id] = iface_name
-    
+
     return host_port_id_2_iface
 
 def get_map_lag_port_id_2_portchannel_name(asic_db, app_db, host_port_id_2_iface):
@@ -274,7 +278,7 @@ def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
     # send arp/ndp packets
     for vlan_name, dst_mac, dst_ip in neighbor_entries:
         src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
-        if ipaddress.ip_interface(dst_ip).ip.version == 4:
+        if ipaddress.ip_interface(to_unicode(dst_ip)).ip.version == 4:
             send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
         else:
             send_ndp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
