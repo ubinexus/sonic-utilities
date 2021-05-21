@@ -89,9 +89,9 @@ def add_mclag_domain(ctx, domain_id, local_ip, peer_ip, peer_link):
 
     if not mclag_domain_id_valid(domain_id):
         ctx.fail("{} invalid domain ID, valid range is 1 to 4095".format(domain_id))  
-    if not is_ipv4_addr_valid(local_ip, True):
+    if not is_ipv4_addr_valid(local_ip):
         ctx.fail("{} invalid local ip address".format(local_ip))  
-    if not is_ipv4_addr_valid(peer_ip, True):
+    if not is_ipv4_addr_valid(peer_ip):
         ctx.fail("{} invalid peer ip address".format(peer_ip))  
 
     db = ctx.obj['db']
@@ -212,7 +212,6 @@ def del_mclag_interface(ctx, domain_id, mclag_interface):
 @click.pass_context
 def config_mclag_commit(ctx):
     """Configure MCLAG commit"""
-    db = ctx.obj['db']
     from main import execute_systemctl
 
     services_to_restart = [
