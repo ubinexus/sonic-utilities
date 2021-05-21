@@ -193,7 +193,7 @@ show_muxcable_firmware_version_active_expected_output = """\
 {
     "version_self_active": "0.6MS",
     "version_peer_active": "0.6MS",
-    "version_nic_active": "0.6MS",
+    "version_nic_active": "0.6MS"
 }
 """
 
