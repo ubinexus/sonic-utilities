@@ -228,7 +228,7 @@ def setup_multi_asic_bgp_instance(request):
         else:
             return ""
 
-    def mock_run_bgp_command(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=''):
+    def mock_run_bgp_command(vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND):
         if m_asic_json_file.startswith('bgp_v4_network') or \
             m_asic_json_file.startswith('bgp_v6_network'):
             return mock_show_bgp_network_multi_asic(m_asic_json_file)
