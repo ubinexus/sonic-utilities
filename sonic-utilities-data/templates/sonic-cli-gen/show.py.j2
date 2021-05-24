@@ -94,10 +94,19 @@ Result:
     ),
 {%- endfor %}
 {%- for group, attrs in attrs|selectattr("group", "defined")|groupby("group") %}
+{%- if group == "" %}
+{%- for attr in attrs %}
+    format_attr_value(
+        {{ entry }},
+        {{ attr }}
+    ),
+{%- endfor %}
+{%- else %}
     format_group_value(
         {{ entry }},
         {{ attrs }}
     ),
+{%- endif %}
 {%- endfor %}
 ]
 {% endmacro %}
@@ -128,7 +137,13 @@ Result:
     "{{ column_name(attr.name) }}",
 {% endfor -%}
 {% for group, attrs in attrs|selectattr("group", "defined")|groupby("group") -%}
+{%- if group == "" %}
+{% for attr in attrs -%}
+    "{{ column_name(attr.name) }}",
+{% endfor -%}
+{%- else %}
     "{{ column_name(group) }}",
+{%- endif %}
 {% endfor -%}
 ]
 {% endmacro %}
@@ -148,7 +163,7 @@ def TABLE_NAME():
 @click.group(name="{{ cli_name(table.name) }}",
              cls=clicommon.AliasedGroup)
 def {{ table.name }}():
-    """ {{ table.description }}"""
+    """ {{ table.description }} """
 
     pass
 
@@ -196,12 +211,13 @@ def {{ table.name }}():
 {% set name = table.name %}
 {% endif %}
 
+{# Generate an implementation to display table. #}
 @{{ group }}.group(name="{{ cli_name(name) }}",
              cls=clicommon.AliasedGroup,
              invoke_without_command=True)
 @clicommon.pass_db
 def {{ name }}(db):
-    """ {{ object.description }} """
+    """ {{ object.description }} [Callable command group] """
 
     header = {{ gen_header(object["keys"] + object.attrs) }}
     body = []
