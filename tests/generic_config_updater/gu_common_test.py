@@ -7,11 +7,6 @@ from unittest.mock import MagicMock, Mock
 from .gutest_helpers import create_side_effect_dict, Files
 import generic_config_updater.gu_common as gu_common
 
-# from gutest_helpers import create_side_effect_dict, Files
-# import sys
-# sys.path.insert(0,'../../generic_config_updater')
-# import gu_common
-
 class TestConfigWrapper(unittest.TestCase):
     def setUp(self):
         self.config_wrapper_mock = gu_common.ConfigWrapper()

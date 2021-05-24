@@ -7,14 +7,6 @@ from .gutest_helpers import Files, create_side_effect_dict
 from generic_config_updater.gu_common import ConfigWrapper, PatchWrapper, OperationWrapper, \
                                              GenericConfigUpdaterError, OperationType, JsonChange, PathAddressing
 
-# import sys
-# import os
-# sys.path.append(os.path.join(os.path.dirname(__file__), '../..', 'generic_config_updater'))
-# import patch_sorter as ps
-# from gutest_helpers import Files, create_side_effect_dict
-# from gu_common import ConfigWrapper, PatchWrapper, OperationWrapper, YANG_DIR, \
-#                       GenericConfigUpdaterError, OperationType, JsonChange, PathAddressing
-
 class TestDiff(unittest.TestCase):
     def test_apply_move__updates_current_config(self):
         # Arrange
@@ -75,6 +67,18 @@ class TestDiff(unittest.TestCase):
         # Assert
         self.assertEqual(hash1, hash2) # same target config
         self.assertNotEqual(hash1, hash3)
+
+    def test_hash__swapped_current_and_target_configs__different_hashes(self):
+        # Arrange
+        diff1 = ps.Diff(current_config=Files.ANY_CONFIG_DB, target_config=Files.ANY_OTHER_CONFIG_DB)
+        diff2 = ps.Diff(current_config=Files.ANY_OTHER_CONFIG_DB, target_config=Files.ANY_CONFIG_DB)
+
+        # Act
+        hash1 = hash(diff1)
+        hash2 = hash(diff2)
+
+        # Assert
+        self.assertNotEqual(hash1, hash2)
 
     def test_eq__different_current_config__returns_false(self):
         # Arrange

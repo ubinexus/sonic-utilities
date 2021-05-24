@@ -5,8 +5,6 @@ from collections import deque
 from enum import Enum
 from .gu_common import OperationWrapper, OperationType, GenericConfigUpdaterError, JsonChange, PathAddressing
 
-# from gu_common import OperationWrapper, OperationType, GenericConfigUpdaterError, JsonChange, PathAddressing
-
 class Diff:
     """
     A class that contains the diff info between current and target configs. 
@@ -18,7 +16,7 @@ class Diff:
     def __hash__(self):
         cc = json.dumps(self.current_config, sort_keys=True)
         tc = json.dumps(self.target_config, sort_keys=True)
-        return hash(cc) ^ hash(tc)
+        return hash((cc,tc))
 
     def __eq__(self, other):
         """Overrides the default implementation"""

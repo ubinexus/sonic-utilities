@@ -14,9 +14,10 @@ class GenericConfigUpdaterError(Exception):
 
 class JsonChange:
     """
-    An objects that describes a partial change a JSON object.
-    It is is similar to JsonPatch, but the order of updating the configs is unknown only the final outcome.
-    It provides a single function to apply the change to the given JSON object.
+    A class that describes a partial change to a JSON object.
+    It is is similar to JsonPatch, but the order of updating the configs is unknown.
+    Only the final outcome of the update can be retrieved.
+    It provides a single function to apply the change to a given JSON object.
    """
     def __init__(self, patch):
         self.patch=patch
