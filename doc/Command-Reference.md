@@ -31,18 +31,26 @@
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
-* [Container Auto-restart](#container-auto-restart)
-  * [Container Auto-restart show commands](#container-auto-restart-show-commands)
-  * [Container Auto-restart config command](#container-auto-restart-config-command)
+* [Console](#console)
+  * [Console show commands](#console-show-commands)
+  * [Console config commands](#console-config-commands)
+  * [Console connect commands](#console-connect-commands)
+  * [Console clear commands](#console-clear-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
   * [Drop Counter show commands](#drop-counters-show-commands)
   * [Drop Counter config commands](#drop-counters-config-commands)
   * [Drop Counter clear commands](#drop-counters-clear-commands)
+* [Dynamic Buffer Management](#dynamic-buffer-management)
+  * [Configuration commands](#configuration-commands)
+  * [Show commands](#show-commands)
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Feature](#feature)
+  * [Feature show commands](#feature-show-commands)
+  * [Feature config commands](#feature-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -57,6 +65,9 @@
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
+* [Kubernetes](#Kubernetes)
+  * [Kubernetes show commands](#Kubernetes-show-commands)
+  * [Kubernetes config commands](#Kubernetes-config-commands)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -76,6 +87,9 @@
 * [Mirroring](#mirroring)
   * [Mirroring Show commands](#mirroring-show-commands)
   * [Mirroring Config commands](#mirroring-config-commands)
+* [Muxcable](#muxcable)
+  * [Muxcable Show commands](#muxcable-show-commands)
+  * [Muxcable Config commands](#muxcable-config-commands)
 * [NAT](#nat)
   * [NAT Show commands](#nat-show-commands)
   * [NAT Config commands](#nat-config-commands)
@@ -96,18 +110,24 @@
   * [QoS Show commands](#qos-show-commands)
     * [PFC](#pfc)
     * [Queue And Priority-Group](#queue-and-priority-group)
+    * [Buffer Pool](#buffer-pool)
   * [QoS config commands](#qos-config-commands)
 * [sFlow](#sflow)
   * [sFlow Show commands](#sflow-show-commands)
   * [sFlow Config commands](#sflow-config-commands)
+* [SNMP](#snmp)
+  * [SNMP Show commands](#snmp-show-commands)
+  * [SNMP Config commands](#snmp-config-commands)
 * [Startup & Running Configuration](#startup--running-configuration)
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
+* [Static routing](#static-routing)
 * [Syslog](#syslog)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
   * [Processes](#processes)
   * [Services & Memory](#services--memory)
+* [System-Health](#System-Health)
 * [VLAN & FDB](#vlan--fdb)
   * [VLAN](#vlan)
     * [VLAN show commands](#vlan-show-commands)
@@ -127,6 +147,7 @@
   * [Watermark Show commands](#watermark-show-commands)
   * [Watermark Config commands](#watermark-config-commands)
 * [Software Installation and Management](#software-installation-and-management)
+  * [SONiC Package Manager](#sonic-package-manager)
   * [SONiC Installer](#sonic-installer)
 * [Troubleshooting Commands](#troubleshooting-commands)
 * [Routing Stack](#routing-stack)
@@ -139,6 +160,8 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v6 | May-06-2021 | Add SNMP show and config commands |
+| v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
 | v3 | Jun-26-2019 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
 | v2 | Apr-22-2019 | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
@@ -275,9 +298,11 @@ This command lists all the possible configuration commands at the top level.
     acl                    ACL-related configuration tasks
     bgp                    BGP-related configuration tasks
     ecn                    ECN-related configuration tasks
+    feature                Modify configuration of features
     hostname               Change device hostname without impacting traffic
     interface              Interface-related configuration tasks
     interface_naming_mode  Modify interface naming mode for interacting...
+    kubernetes             Kubernetes server related configuration
     load                   Import a previous saved config DB dump file.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
@@ -295,7 +320,6 @@ This command lists all the possible configuration commands at the top level.
     vrf                    VRF-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
-    container              Modify configuration of containers
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#getting-help)
 
@@ -323,18 +347,22 @@ This command displays the full list of show commands available in the software; 
     aaa                   Show AAA configuration
     acl                   Show ACL related information
     arp                   Show IP ARP table
+    buffer_pool           Show details of the Buffer-pools
     clock                 Show date and time
     ecn                   Show ECN configuration
     environment           Show environmentals (voltages, fans, temps)
+    feature               Show feature status
     interfaces            Show details of the network interfaces
     ip                    Show IP (IPv4) commands
     ipv6                  Show IPv6 commands
+    kubernetes            Show kubernetes commands
     line                  Show all /dev/ttyUSB lines and their info
     lldp                  LLDP (Link Layer Discovery Protocol)...
     logging               Show system log
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
     mmu                   Show mmu configuration
+    muxcable              Show muxcable information
     nat                   Show details of the nat
     ndp                   Show IPv6 Neighbour table
     ntp                   Show NTP information
@@ -358,7 +386,6 @@ This command displays the full list of show commands available in the software; 
     vrf                   Show vrf config
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
-    container             Show details of container
   ```
 
 The same syntax applies to all subgroups of `show` which themselves contain subcommands, and subcommands which accept options/arguments.
@@ -539,6 +566,26 @@ This command displays the cause of the previous reboot
   ```
   admin@sonic:~$ show reboot-cause
   User issued reboot command [User: admin, Time: Mon Mar 25 01:02:03 UTC 2019]
+  ```
+
+**show reboot-cause history**
+
+This command displays the history of the previous reboots up to 10 entry
+
+- Usage:
+  ```
+  show reboot-cause history
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show reboot-cause history
+  Name                 Cause        Time                          User    Comment
+  -------------------  -----------  ----------------------------  ------  ---------
+  2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
+  2020_10_09_01_56_59  reboot       Fri Oct  9 01:53:49 UTC 2020  admin
+  2020_10_09_02_00_53  fast-reboot  Fri Oct  9 01:58:04 UTC 2020  admin
+  2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
   ```
 
 **show uptime**
@@ -728,10 +775,9 @@ This command displays the status of the device's power supply units
 - Example:
   ```
   admin@sonic:~$ show platform psustatus
-  PSU    Status
-  -----  --------
-  PSU 1  OK
-  PSU 2  OK
+  PSU    Model          Serial        HW Rev      Voltage (V)    Current (A)    Power (W)  Status    LED
+  -----  -------------  ------------  --------  -------------  -------------  -----------  --------  -----
+  PSU 1  MTEF-PSF-AC-A  MT1621X15246  A3                11.97           4.56        54.56  OK        green
   ```
 
 **show platform fan**
@@ -1330,6 +1376,35 @@ When the optional argument "max_priority"  is specified, each rule’s priority 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
 
+**config acl add table**
+
+This command is used to create new ACL tables.
+
+- Usage:
+  ```
+  config acl add table [OPTIONS] <table_name> <table_type> [-d <description>] [-p <ports>] [-s (ingress | egress)]
+  ```
+
+- Parameters:
+  - table_name: The name of the ACL table to create.
+  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "MIRROR")
+  - description: A description of the table for the user. (default is the table_name)
+  - ports: A comma-separated list of ports/interfaces to add to the table. The behavior is as follows:
+    - Physical ports will be bound as physical ports
+    - Portchannels will be bound as portchannels - passing a portchannel member is invalid
+    - VLANs will be expanded into their members (e.g. "Vlan1000" will become "Ethernet0,Ethernet2,Ethernet4...")
+  - stage: The stage this ACL table will be applied to, either ingress or egress. (default is ingress)
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo config acl add table EXAMPLE L3 -p Ethernet0,Ethernet4 -s ingress
+  ```
+  ```
+  admin@sonic:~$ sudo config acl add table EXAMPLE_2 L3V6 -p Vlan1000,PortChannel0001,Ethernet128 -s egress
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
+
 
 ## ARP & NDP
 
@@ -1901,64 +1976,223 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
-## Container Auto-restart
+## Console
 
-SONiC includes a feature in which Docker containers can be automatically shut
-down and restarted if one of critical processes running in the container exits
-unexpectedly. Restarting the entire container ensures that configuration is 
-reloaded and all processes in the container get restarted, thus increasing the
-likelihood of entering a healthy state.
+This section explains all Console show commands and configuration options that are supported in SONiC.
 
-### Container Auto-restart show commands
+All commands are used only when SONiC is used as console switch.
 
-**show container feature autorestart**
+All commands under this section are not applicable when SONiC used as regular switch.
 
-This command will display the status of auto-restart feature for containers.
+### Console show commands
+
+**show line**
+
+This command displays serial port or a virtual network connection status.
 
 - Usage:
   ```
-  show container feature autorestart [<container_name>]
+  show line (-b|--breif)
   ```
 
 - Example:
   ```
-  admin@sonic:~$ show container feature autorestart
-  Container Name    Status
-  --------------    --------
-  database          enabled
-  syncd             enabled
-  teamd             disabled
-  dhcp_relay        enabled
-  lldp              enabled
-  pmon              enabled
-  bgp               enabled
-  swss              disabled
-  telemetry         enabled
-  sflow             enabled
-  snmp              enabled
-  radv              disabled
+  admin@sonic:~$ show line
+    Line    Baud    Flow Control    PID    Start Time    Device
+  ------  ------  --------------  -----  ------------  --------
+       1    9600         Enabled      -             -   switch1
+       2       -        Disabled      -             -
+       3       -        Disabled      -             -
+       4       -        Disabled      -             -
+       5       -        Disabled      -             -
   ```
 
-Optionally, you can specify a container name in order to display the auto-restart
-feature status for that container only.
+Optionally, you can display configured console ports only by specifying the `-b` or `--breif` flag.
 
-### Container Auto-restart config command
+- Example:
+  ```
+  admin@sonic:~$ show line -b
+    Line    Baud    Flow Control    PID    Start Time    Device
+  ------  ------  --------------  -----  ------------  --------
+       1    9600         Enabled      -             -   switch1
+  ```
 
-**config container feature autorestart <container_name> <autorestart_status>**
+## Console config commands
 
-This command will configure the status of auto-restart feature for a specific container.
+This sub-section explains the list of configuration options available for console management module.
+
+**config console enable**
+
+This command is used to enable SONiC console switch feature.
 
 - Usage:
   ```
-  config container feature autorestart <container_name> (enabled | disabled)
+  config console enable
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo config container feature autorestart database disabled
-  ``` 
+  admin@sonic:~$ sudo config console enable
+  ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#container-auto-restart)
+**config console disable**
+
+This command is used to disable SONiC console switch feature.
+
+- Usage:
+  ```
+  config console disable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console disable
+  ```
+
+**config console add**
+
+This command is used to add a console port setting.
+
+- Usage:
+  ```
+  config console add <port_name> [--baud|-b <baud_rate>] [--flowcontrol|-f] [--devicename|-d <remote_device>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config console add 1 --baud 9600 --devicename switch1
+  ```
+
+**config console del**
+
+This command is used to remove a console port setting.
+
+- Usage:
+  ```
+  config console del <port_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console del 1
+  ```
+
+**config console remote_device**
+
+This command is used to update the remote device name for a console port.
+
+- Usage:
+  ```
+  config console remote_device <port_name> <remote_device>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console remote_device 1 switch1
+  ```
+
+**config console baud**
+
+This command is used to update the baud rate for a console port.
+
+- Usage:
+  ```
+  config console baud <port_name> <baud_rate>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console baud 1 9600
+  ```
+
+**config console flow_control**
+
+This command is used to enable or disable flow control feature for a console port.
+
+- Usage:
+  ```
+  config console flow_control {enable|disable} <port_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console flow_control enable 1
+  ```
+
+### Console connect commands
+
+**connect line**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  connect line <target> (-d|--devicename)
+  ```
+
+By default, the target is `port_name`.
+
+- Example:
+  ```
+  admin@sonic:~$ connect line 1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
+Optionally, you can connect with a remote device name by specifying the `-d` or `--devicename` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ connect line --devicename switch1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
+**connect device**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  connect device <devicename>
+  ```
+
+The command is same with `connect line --devicename <devicename>`
+
+- Example:
+  ```
+  admin@sonic:~$ connect line 1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
+### Console clear commands
+
+**sonic-clear line**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  sonc-clear line <target> (-d|--devicename)
+  ```
+
+By default, the target is `port_name`.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear line 1
+  ```
+
+Optionally, you can clear with a remote device name by specifying the `-d` or `--devicename` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear --devicename switch1
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#console)
+
 
 ## DHCP Relay
 
@@ -1996,13 +2230,12 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
   admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
   Removed DHCP relay destination address 7.7.7.7 from Vlan1000
   Restarting DHCP relay service...
-  Running command: systemctl restart dhcp_relay
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
 
 
-# Drop Counters
+## Drop Counters
 
 This section explains all the Configurable Drop Counters show commands and configuration options that are supported in SONiC.
 
@@ -2184,8 +2417,344 @@ This comnmand is used to clear drop counters. This is done on a per-user basis.
   Cleared drop counters
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#drop-counters)
+Go Back To [Beginning of the document](#) or [Beginning of this section](##drop-counters)
 
+## Dynamic Buffer Management
+
+This section explains all the show and configuration commands regarding the dynamic buffer management.
+
+Dynamic buffer management is responsible for calculating buffer size according to the ports' configured speed and administrative state. In order to enable dynamic buffer management feature, the ports' speed must be configured. For this please refer [Interface naming mode config commands](#interface-naming-mode-config-commands)
+
+### Configuration commands
+
+**configure shared headroom pool**
+
+This command is used to configure the shared headroom pool. The shared headroom pool can be enabled in the following ways:
+
+- Configure the over subscribe ratio. In this case, the size of shared headroom pool is calculated as the accumulative xoff of all of the lossless PG divided by the over subscribe ratio.
+- Configure the size.
+
+In case both of the above parameters have been configured, the `size` will take effect. To disable shared headroom pool, configure both parameters to zero.
+
+- Usage:
+
+  ```
+  config buffer shared-headroom-pool over-subscribe-ratio <over-subscribe-ratio>
+  config buffer shared-headroom-pool size <size>
+  ```
+
+  The range of over-subscribe-ratio is from 1 to number of ports inclusive.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config shared-headroom-pool over-subscribe-ratio 2
+  admin@sonic:~$ sudo config shared-headroom-pool size 1024000
+  ```
+
+**configure a lossless buffer profile**
+
+This command is used to configure a lossless buffer profile.
+
+- Usage:
+
+  ```
+  config buffer profile add <profile_name> --xon <xon_threshold> --xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer profile set <profile_name> --xon <xon_threshold> --xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer profile remove <profile_name>
+  ```
+
+  All the parameters are devided to two groups, one for headroom and one for dynamic_th. For any command at lease one group of parameters should be provided.
+  For headroom parameters:
+
+  - `xon` is madantory.
+  - If shared headroom pool is disabled:
+    - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
+    - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
+  - If shared headroom pool is enabled:
+    - `xoff` should be provided.
+    - `size` = `xoff` if it is not provided.
+
+  If only headroom parameters are provided, the `dynamic_th` will be taken from `CONFIG_DB.DEFAULT_LOSSLESS_BUFFER_PARAMETER.default_dynamic_th`.
+
+  If only dynamic_th parameter is provided, the `headroom_type` will be set as `dynamic` and `xon`, `xoff` and `size` won't be set. This is only used for non default dynamic_th. In this case, the profile won't be deployed to ASIC directly. It can be configured to a lossless PG and then a dynamic profile will be generated based on the port's speed, cable length, and MTU and deployed to the ASIC.
+
+  The subcommand `add` is designed for adding a new buffer profile to the system.
+
+  The subcommand `set` is designed for modifying an existing buffer profile in the system.
+  For a profile with dynamically calculated headroom information, only `dynamic_th` can be modified. 
+
+  The subcommand `remove` is designed for removing an existing buffer profile from the system. When removing a profile, it shouldn't be referenced by any entry in `CONFIG_DB.BUFFER_PG`.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config buffer profile add profile1 --xon 18432 --xoff 18432
+  admin@sonic:~$ sudo config buffer profile remove profile1
+  ```
+
+**config interface cable_length**
+
+This command is used to configure the length of the cable connected to a port. The cable_length is in unit of meters and must be suffixed with "m".
+
+- Usage:
+
+  ```
+  config interface cable_length <interface_name> <cable_length>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config interface cable_length Ethernet0 40m
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
+**config interface buffer priority-group lossless**
+
+This command is used to configure the priority groups on which lossless traffic runs.
+
+- Usage:
+
+  ```
+  config interface buffer priority-group lossless add <interface_name> <pg_map> [profile]
+  config interface buffer priority-group lossless set <interface_name> <pg_map> [profile]
+  config interface buffer priority-group lossless remove <interface_name> [<pg_map>]
+  ```
+
+  The <pg_map> can be in one of the following two forms:
+
+  - For a range of priorities, the lower bound and upper bound connected by a dash, like `3-4`
+  - For a single priority, the number, like `6`
+
+  The `pg-map` represents the map of priorities for lossless traffic. It should be a string and in form of a bit map like `3-4`. The `-` connects the lower bound and upper bound of a range of priorities.
+
+  The subcommand `add` is designed for adding a new lossless PG on top of current PGs. The new PG range must be disjoint with all existing PGs.
+
+  For example, currently the PG range 3-4 exist on port Ethernet4, to add PG range 4-5 will fail because it isn't disjoint with 3-4. To add PG range 5-6 will succeed. After that both range 3-4 and 5-6 will work as lossless PG.
+
+  The `override-profile` parameter is optional. When provided, it represents the predefined buffer profile for headroom override.
+
+  The subcommand `set` is designed for modifying an existing PG from dynamic calculation to headroom override or vice versa. The `pg-map` must be an existing PG.
+
+  The subcommand `remove` is designed for removing an existing PG. The option `pg-map` must be an existing PG. All lossless PGs will be removed in case no `pg-map` provided.
+
+- Example:
+
+  To configure lossless_pg on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless add Ethernet0 3-4
+  ```
+
+  To change the profile used for lossless_pg on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless set Ethernet0 3-4 new-profile
+  ```
+
+  To remove one lossless priority from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless remove Ethernet0 6
+  ```
+
+  To remove all lossless priorities from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless remove Ethernet0
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
+### Show commands
+
+**show buffer information**
+
+This command is used to display the status of buffer pools and profiles currently deployed to the ASIC.
+
+- Usage:
+
+  ```
+  show buffer information
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show buffer information
+  Pool: ingress_lossless_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Pool: egress_lossless_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  34340822
+  ----  --------
+
+  Pool: ingress_lossy_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Pool: egress_lossy_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Profile: pg_lossless_100000_5m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        18432
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        36864
+  ----------  -----------------------------------
+
+  Profile: q_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        0
+  ----------  -------------------------------
+
+  Profile: egress_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        4096
+  ----------  -------------------------------
+
+  Profile: egress_lossless_profile
+  ----------  ----------------------------------
+  dynamic_th  7
+  pool        [BUFFER_POOL:egress_lossless_pool]
+  size        0
+  ----------  ----------------------------------
+
+  Profile: ingress_lossless_profile
+  ----------  -----------------------------------
+  dynamic_th  0
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        0
+  ----------  -----------------------------------
+
+  Profile: pg_lossless_100000_79m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        60416
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        78848
+  ----------  -----------------------------------
+
+  Profile: pg_lossless_100000_40m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        38912
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        57344
+  ----------  -----------------------------------
+
+  Profile: ingress_lossy_profile
+  ----------  --------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:ingress_lossy_pool]
+  size        0
+  ----------  --------------------------------
+  ```
+
+**show buffer configuration**
+
+This command is used to display the status of buffer pools and profiles currently configured.
+
+- Usage:
+
+  ```
+  show buffer configuration
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show buffer configuration
+  Lossless traffic pattern:
+  --------------------  -
+  default_dynamic_th    0
+  over_subscribe_ratio  0
+  --------------------  -
+
+  Pool: ingress_lossless_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  ----  --------
+
+  Pool: egress_lossless_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  34340822
+  ----  --------
+
+  Pool: ingress_lossy_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  ----  --------
+
+  Pool: egress_lossy_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  ----  --------
+
+  Profile: q_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        0
+  ----------  -------------------------------
+
+  Profile: egress_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        4096
+  ----------  -------------------------------
+
+  Profile: egress_lossless_profile
+  ----------  ----------------------------------
+  dynamic_th  7
+  pool        [BUFFER_POOL:egress_lossless_pool]
+  size        0
+  ----------  ----------------------------------
+
+  Profile: ingress_lossless_profile
+  ----------  -----------------------------------
+  dynamic_th  0
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        0
+  ----------  -----------------------------------
+
+  Profile: ingress_lossy_profile
+  ----------  --------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:ingress_lossy_pool]
+  size        0
+  ----------  --------------------------------
+  ```
 
 ## ECN
 
@@ -2258,6 +2827,160 @@ The list of the WRED profile fields that are configurable is listed in the below
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
+
+## Feature 
+
+SONiC includes a capability in which Feature state can be enabled/disabled
+which will make corresponding feature docker container to start/stop.
+
+Also SONiC provide capability in which Feature docker container can be automatically shut
+down and restarted if one of critical processes running in the container exits
+unexpectedly. Restarting the entire feature container ensures that configuration is 
+reloaded and all processes in the feature container get restarted, thus increasing the
+likelihood of entering a healthy state.
+
+### Feature show commands
+
+**show feature config**
+
+Shows the config of given feature or all if no feature is given. The "fallback" is shown only if configured. The fallback defaults to "true" when not configured.
+
+- Usage:
+  ```
+  show feature config [<feature name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature config
+  Feature         State     AutoRestart    Owner    fallback
+  --------------  --------  -------------  -------  ----------
+  bgp             enabled   enabled        local
+  database        enabled   disabled       local
+  dhcp_relay      enabled   enabled        kube
+  lldp            enabled   enabled        kube     true
+  mgmt-framework  enabled   enabled        local
+  nat             disabled  enabled        local
+  pmon            enabled   enabled        kube
+  radv            enabled   enabled        kube
+  sflow           disabled  enabled        local
+  snmp            enabled   enabled        kube
+  swss            enabled   enabled        local
+  syncd           enabled   enabled        local
+  teamd           enabled   enabled        local
+  telemetry       enabled   enabled        kube
+  ```
+
+**show feature status**
+
+Shows the status of given feature or all if no feature is given. The "fallback" defaults to "true" when not configured.
+The subset of features are configurable for remote management and only those report additional data.
+
+- Usage:
+  ```
+  show feature status [<feature name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show feature status
+  Feature         State     AutoRestart    SystemState    UpdateTime           ContainerId    ContainerVersion    SetOwner    CurrentOwner    RemoteState
+  --------------  --------  -------------  -------------  -------------------  -------------  ------------------  ----------  --------------  -------------
+  bgp             enabled   enabled        up                                                                     local       local           none
+  database        enabled   disabled                                                                              local
+  dhcp_relay      enabled   enabled        up             2020-11-15 18:21:09  249e70102f55   20201230.100        kube        local
+  lldp            enabled   enabled        up             2020-11-15 18:21:09  779c2d55ee12   20201230.100        kube        local
+  mgmt-framework  enabled   enabled        up                                                                     local       local           none
+  nat             disabled  enabled                                                                               local
+  pmon            enabled   enabled        up             2020-11-15 18:20:27  a2b9ffa8aba3   20201230.100        kube        local
+  radv            enabled   enabled        up             2020-11-15 18:21:05  d8ff27dcfe46   20201230.100        kube        local
+  sflow           disabled  enabled                                                                               local
+  snmp            enabled   enabled        up             2020-11-15 18:25:51  8b7d5529e306   20201230.111        kube        kube            running
+  swss            enabled   enabled        up                                                                     local       local           none
+  syncd           enabled   enabled        up                                                                     local       local           none
+  teamd           enabled   enabled        up                                                                     local       local           none
+  telemetry       enabled   enabled        down           2020-11-15 18:24:59                 20201230.100        kube        none
+  ```
+
+**config feature owner**
+
+Configures the owner for a feature as "local" or  "kube". The "local" implies starting the feature container from local image. The "kube" implies that kubernetes server is made eligible to deploy the feature. The deployment of a feature by kubernetes is conditional based on many factors like, whether the kube server is configured or not, connected-to-kube-server or not and if that master has manifest for this feature for this switch or not and more. At some point in future, the deployment *could* happen and till that point the feature can run from local image, called "fallback". The fallback is allowed by default and it could be toggled to "not allowed". When fallback is not allowed, the feature would run only upon deployment by kubernetes master.
+
+- Usage:
+  ```
+  config feature owner [<feature name>] [local/kube]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature owner snmp kube
+  ```
+
+**config feature fallback**
+
+Features configured for "kube" deployment could be allowed to fallback to using local image, until the point of successful kube deployment. The fallback is allowed by default.
+
+- Usage:
+  ```
+  config feature fallback [<feature name>] [on/off]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config feature fallback snmp on
+  ```
+
+**show feature autorestart**
+
+This command will display the status of auto-restart for feature container.
+
+- Usage:
+  ```
+  show feature autorestart [<feature_name>]
+  admin@sonic:~$ show feature autorestart
+  Feature     AutoRestart
+  ----------  --------------
+  bgp         enabled
+  database    always_enabled
+  dhcp_relay  enabled
+  lldp        enabled
+  pmon        enabled
+  radv        enabled
+  snmp        enabled
+  swss        enabled
+  syncd       enabled
+  teamd       enabled
+  telemetry   enabled
+  ```
+
+Optionally, you can specify a feature name in order to display
+status for that feature
+
+### Feature config commands
+
+**config feature state <feature_name> <state>**
+
+This command will configure the state for a specific feature.
+
+- Usage:
+  ```
+  config feature state <feature_name> (enabled | disabled)
+  admin@sonic:~$ sudo config feature state bgp disabled
+  ``` 
+
+**config feature autorestart <feature_name> <autorestart_status>**
+
+This command will configure the status of auto-restart for a specific feature container.
+
+- Usage:
+  ```
+  config feature autorestart <feature_name> (enabled | disabled)
+  admin@sonic:~$ sudo config feature autorestart bgp disabled
+  ``` 
+NOTE: If the existing state or auto-restart value for a feature is "always_enabled" then config
+commands are don't care and will not update state/auto-restart value.
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
 
 ## Gearbox
 
@@ -2345,6 +3068,7 @@ Subsequent pages explain each of these commands in detail.
     -?, -h, --help  Show this message and exit.
 
   Commands:
+  autoneg      Show interface autoneg information
   breakout     Show Breakout Mode information by interfaces
   counters     Show interface counters
   description  Show interface status, protocol and...
@@ -2353,6 +3077,30 @@ Subsequent pages explain each of these commands in detail.
   portchannel  Show PortChannel information
   status       Show Interface status information
   transceiver  Show SFP Transceiver information
+  ```
+
+**show interfaces autoneg**
+
+This show command displays the port auto negotiation status for all interfaces i.e. interface name, auto negotiation mode, speed, advertised speeds, interface type, advertised interface types, operational status, admin status. For a single interface, provide the interface name with the sub-command.
+
+- Usage:
+  ```
+  show interfaces autoneg status
+  show interfaces autoneg status <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces autoneg status
+    Interface    Auto-Neg Mode    Speed    Adv Speeds    Type    Adv Types    Oper    Admin
+  -----------  ---------------  -------  ------------  ------  -----------  ------  -------
+    Ethernet0          enabled      25G       10G,25G      CR       CR,CR4      up       up
+    Ethernet4         disabled     100G           all     CR4          all      up       up
+
+  admin@sonic:~$ show interfaces autoneg status Ethernet8
+    Interface    Auto-Neg Mode    Speed    Adv Speeds    Type    Adv Types    Oper    Admin
+  -----------  ---------------  -------  ------------  ------  -----------  ------  -------
+    Ethernet8         disabled     100G           N/A     CR4          N/A      up       up
   ```
 
 **show interfaces breakout**
@@ -2381,9 +3129,9 @@ This show command displays the port capability for all interfaces i.e. index, la
           "alias_at_lanes": "Eth1/1, Eth1/2, Eth1/3, Eth1/4"
       },... continue
   }
-
+  ```
 The "current-mode" subcommand is used to display current breakout mode for all interfaces.
-
+  ```
   admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode
   +-------------+-------------------------+
   | Interface   | Current Breakout Mode   |
@@ -2450,11 +3198,11 @@ The "errors" subcommand is used to display the interface errors.
     Ethernet4        U         0         0         0         0         0         0
     Ethernet8        U         0         1         0         0         0         0
    Ethernet12        U         0         0         0         0         0         0
-```
+   ```
 
 The "rates" subcommand is used to disply only the interface rates. 
 
-- Exmaple: 
+- Example: 
   ```
   admin@str-s6000-acs-11:/usr/bin$ show int counters rates
       IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    TX_OK    TX_BPS    TX_PPS    TX_UTIL
@@ -2463,7 +3211,7 @@ The "rates" subcommand is used to disply only the interface rates.
     Ethernet4        U   469679       N/A       N/A        N/A   469245       N/A       N/A        N/A
     Ethernet8        U   466660       N/A       N/A        N/A   465982       N/A       N/A        N/A
    Ethernet12        U   466579       N/A       N/A        N/A   466318       N/A       N/A        N/A
-```
+   ```
 
 
 The "rif" subcommand is used to display l3 interface counters. Layer 3 interfaces include router interfaces, portchannels and vlan interfaces.
@@ -2661,6 +3409,10 @@ This sub-section explains the following list of configuration on the interfaces.
 4) speed - to set the interface speed
 5) startup - to bring up the administratively shutdown interface
 6) breakout - to set interface breakout mode
+7) autoneg - to set interface auto negotiation mode
+8) advertised-speeds - to set interface advertised speeds
+9) advertised-types - to set interface advertised types
+10) type - to set interface type
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -2711,7 +3463,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
 
   *Versions >= 201904*
   ```
-  admin@sonic:~$ sudo config interface ip add vlan100 10.11.12.13/24
+  admin@sonic:~$ sudo config interface ip add Vlan100 10.11.12.13/24
   ```
   *Versions <= 201811*
   ```
@@ -2995,6 +3747,127 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
+**config interface autoneg <interface_name> (Versions >= 202106)**
+
+This command is used to set port auto negotiation mode.
+
+- Usage:
+  ```
+  sudo config interface autoneg --help
+  Usage: config interface autoneg [OPTIONS] <interface_name> <mode>
+
+    Set interface auto negotiation mode
+
+  Options:
+    -v, --verbose   Enable verbose output
+    -h, -?, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface autoneg Ethernet0 enabled
+
+  admin@sonic:~$ sudo config interface autoneg Ethernet0 disabled
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface advertised-speeds <interface_name> (Versions >= 202106)**
+
+This command is used to set port advertised speed.
+
+- Usage:
+  ```
+  sudo config interface advertised-speeds --help
+  Usage: config interface advertised-speeds [OPTIONS] <interface_name> <speed_list>
+
+    Set interface advertised speeds
+
+  Options:
+    -v, --verbose   Enable verbose output
+    -h, -?, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface advertised-speeds Ethernet0 all
+
+  admin@sonic:~$ sudo config interface advertised-speeds Ethernet0 50000,100000
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface advertised-types <interface_name> (Versions >= 202106)**
+
+This command is used to set port advertised interface types.
+
+- Usage:
+  ```
+  sudo config interface advertised-types --help
+  Usage: config interface advertised-types [OPTIONS] <interface_name> <interface_type_list>
+
+    Set interface advertised types
+
+  Options:
+    -v, --verbose   Enable verbose output
+    -h, -?, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface advertised-types Ethernet0 all
+
+  admin@sonic:~$ sudo config interface advertised-types Ethernet0 CR,CR4
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface type <interface_name> (Versions >= 202106)**
+
+This command is used to set port interface type.
+
+- Usage:
+  ```
+  sudo config interface type --help
+  Usage: config interface type [OPTIONS] <interface_name> <interface_type_value>
+
+    Set interface type
+
+  Options:
+    -v, --verbose   Enable verbose output
+    -h, -?, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface type Ethernet0 CR4
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface cable_length (Versions >= 202006)**
+
+This command is used to configure the length of the cable connected to a port. The cable_length is in unit of meters and must be suffixed with "m".
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface lossless_pg (Versions >= 202006)**
+
+This command is used to configure the priority groups on which lossless traffic runs.
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface headroom_override (Versions >= 202006)**
+
+This command is used to configure a static buffer profile on a port's lossless priorities. There shouldn't be any `lossless_pg` configured on the port when configuring `headroom_override`. The port's headroom won't be updated after `headroom_override` has been configured on the port.
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
 
@@ -3375,6 +4248,44 @@ Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/q
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ip--ipv6)
 
+
+## Kubernetes
+
+### Kubernetes show commands
+
+**show kubernetes server config**
+
+This command displays the kubernetes server configuration, if any, else would report as not configured.
+
+- Usage:
+  ```
+  show kubernetes server config
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kubernetes server config
+  ip           port    insecure    disable
+  -----------  ------  ----------  ---------
+  10.3.157.24  6443    True        False
+  ```
+
+**show kubernetes server status**
+
+This command displays the kubernetes server status.
+
+- Usage:
+  ```
+  show kubernetes server status
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kubernetes server status
+  ip           port    connected    update-time
+  -----------  ------  -----------  -------------------
+  10.3.157.24  6443    true         2020-11-15 18:25:05
+  ```
 
 ## LLDP
 
@@ -3909,6 +4820,306 @@ This command deletes the SNMP Trap server IP address to which SNMP agent is expe
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#management-vrf)
+
+## Muxcable
+
+### Muxcable Show commands
+
+**show muxcable status**
+
+This command displays all the status of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current status of muxcable on the port (auto/active) and also the health of the muxcable.
+
+- Usage:
+  ```
+  show muxcable status [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable status, users can configure the following fields  
+
+- PORT     optional - Port name should be a valid port  
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.  
+
+With no optional argument, all the ports muxcable status will be displayed in tabular form, or user can pass --json option to display in json format  
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable status  
+      PORT        STATUS    HEALTH  
+      ----------  --------  --------  
+      Ethernet32  active    HEALTHY  
+      Ethernet0   auto      HEALTHY  
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status --json  
+    ```
+    ```json
+           {  
+               "MUX_CABLE": {  
+                     "Ethernet32": {  
+                         "STATUS": "active",  
+                         "HEALTH": "HEALTHY"  
+                    },  
+                    "Ethernet0": {  
+                          "STATUS": "auto",  
+                          "HEALTH": "HEALTHY"  
+                     }   
+                }  
+           }  
+
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status Ethernet0  
+      PORT       STATUS    HEALTH  
+      ---------  --------  --------  
+      Ethernet0  auto      HEALTHY  
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status Ethernet0 --json  
+    ```
+    ```json
+           {  
+                "MUX_CABLE": {  
+                    "Ethernet0": {  
+                         "STATUS": "auto",  
+                         "HEALTH": "HEALTHY"  
+                     }  
+                }  
+          }  
+    ```
+
+**show muxcable config**
+
+This command displays all the configurations of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current configurations of muxcable on the port(active/standby) and also the ipv4 and ipv6 address of the port as well as peer TOR ip address with the hostname.
+
+- Usage:
+  ```
+  show muxcable config [OPTIONS] [PORT]
+  ```
+
+With no optional argument, all the ports muxcable configuration will be displayed in tabular form  
+While displaying the muxcable configuration, users can configure the following fields 
+ 
+- PORT   optional - Port name should be a valid port
+- --json optional -  option to display the result in json format. By default output will be in tabular format.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable config
+        SWITCH_NAME    PEER_TOR
+        -------------  ----------
+        sonic          10.1.1.1
+        port       state    ipv4      ipv6
+        ---------  -------  --------  --------
+        Ethernet0  active  10.1.1.1  fc00::75
+    ```
+    ```
+        admin@sonic:~$ show muxcable config --json
+    ```
+    ```json
+	{
+            "MUX_CABLE": {
+                "PEER_TOR": "10.1.1.1",
+                "PORTS": {
+                    "Ethernet0": {
+                        "STATE": "active",
+                        "SERVER": {
+                            "IPv4": "10.1.1.1",
+                            "IPv6": "fc00::75"
+                         }
+                     }
+                 }
+             }
+        }
+    ```
+    ```
+        admin@sonic:~$ show muxcable config Ethernet0
+        SWITCH_NAME    PEER_TOR
+        -------------  ----------
+        sonic          10.1.1.1
+        port       state    ipv4      ipv6
+        ---------  -------  --------  --------
+        Ethernet0  active  10.1.1.1  fc00::75
+    ```
+    ```
+        admin@sonic:~$ show muxcable config Ethernet0 --json
+    ```
+    ```json
+           {
+              "MUX_CABLE": {
+                  "PORTS": {
+                       "Ethernet0": {
+                           "STATE": "active",
+                           "SERVER": {
+                                "IPv4": "10.1.1.1",
+                                "IPv6": "fc00::75"
+                            }
+                        }
+                    }
+               }
+          }
+    ```
+
+**show muxcable ber-info**
+
+This command displays the ber(Bit error rate) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable ber-info [OPTIONS] PORT TARGET
+  ```
+
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the ber info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        0       0
+    ```
+
+**show muxcable ber-info**
+
+This command displays the eye info in mv(milli volts) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
+0 -> local
+1 -> tor 1
+2 -> tor 2
+3 -> nic
+
+- Usage:
+  ```
+  Usage: show muxcable eye-info [OPTIONS] PORT TARGET
+  ```
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the eye info of.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable ber-info 1 1
+        Lane1    Lane2
+        -------  -------
+        632      622
+    ```
+
+### Muxcable Config commands
+
+
+**config muxcable mode**
+
+This command is used for setting the configuration of a muxcable Port/all ports to be active or auto. The user has to enter a port number or else all to make the muxcable config operation on all the ports. Depending on the status of the muxcable port state the resultant output could be OK or INPROGRESS . OK would imply no change on the state, INPROGRESS would mean the toggle is happening in the background.
+
+- Usage:
+  ```
+  config muxcable mode [OPTIONS] <operation_status> <port_name>
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation  
+
+- <auto/active> operation_state, permitted operation to be configured which can only be auto or active  
+- PORT   optional - Port name should be a valid port
+-  --json optional -  option to display the result in json format. By default output will be in tabular format.
+  
+
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active Ethernet0  
+        port       state  
+        ---------  -------  
+        Ethernet0  OK
+    ```
+    ```
+        admin@sonic:~$ sudo config muxcable  mode --json active Ethernet0
+    ```
+    ```json
+           {  
+               "Ethernet0": "OK"  
+           }
+    ```    
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active all  
+        port        state  
+        ----------  ----------  
+        Ethernet0   OK  
+        Ethernet32  INPROGRESS    
+    ```
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active all --json  
+    ```
+    ```json
+           {  
+                "Ethernet32": "INPROGRESS",  
+                "Ethernet0": "OK"
+           }
+    ```
+**config muxcable prbs enable/disable**
+
+This command is used for setting the configuration and enable/diable of prbs on a port user provides. While enabling in addition to port the user also needs to provides the target, prbs mode and lane map on which the user intends to run prbs on. The target reflects where the enable/dsiable will happen.
+
+- Usage:
+  ```
+  config muxcable prbs enable [OPTIONS] PORT TARGET MODE_VALUE LANE_MAP
+  config muxcable prbs disable [OPTIONS] PORT TARGET
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the prbs on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- MODE_VALUE  required - the mode/type for configuring the PRBS mode.
+             0x00 = PRBS 9, 0x01 = PRBS 15, 0x02 = PRBS 23, 0x03 = PRBS 31
+- LANE_MAP  required - an integer representing the lane_map to be run PRBS on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable prbs enable 1 1 3 3
+        PRBS config sucessful
+        admin@sonic:~$  sudo config muxcable prbs disable 1 0
+        PRBS disable sucessful
+    ```
+
+**config muxcable loopback enable/disable**
+
+This command is used for setting the configuration and enable/disable of loopback on a port user provides. While enabling in addition to port the user also needs to provides the target and lane map on which the user intends to run loopback on. The target reflects where the enable/dsiable will happen.
+
+- Usage:
+  ```
+  config muxcable loopback enable [OPTIONS] PORT TARGET LANE_MAP
+  config muxcable loopback disable [OPTIONS] PORT TARGET
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the loopback on
+                         0 -> local side,
+                         1 -> TOR 1
+                         2 -> TOR 2
+                         3 -> NIC
+- LANE_MAP  required - an integer representing the lane_map to be run loopback on
+             0bit for lane 0, 1bit for lane1 and so on.
+             for example 3 -> 0b'0011 , means running on lane0 and lane1
+
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable loopback enable 1 1 3
+        loopback config sucessful
+        admin@sonic:~$  sudo config muxcable loopback disable 1 0
+        loopback disable sucessfull
+    ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 
 ## Mirroring
 
@@ -4838,6 +6049,8 @@ Command takes two optional arguements given below.
 1) min-links  - minimum number of links required to bring up the portchannel
 2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/Azure/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
 
+A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked. 
+
 - Usage:
   ```
   config portchannel (add | del) <portchannel_name> [min-links <num_min_links>] [fallback (true | false)]
@@ -5072,11 +6285,14 @@ This command displays the user watermark for the queues (Egress shared pool occu
 
 **show priority-group**
 
-This command displays the user watermark or persistent-watermark for the Ingress "headroom" or "shared pool occupancy" per priority-group for  all ports
+This command displays:
+1) The user watermark or persistent-watermark for the Ingress "headroom" or "shared pool occupancy" per priority-group for all ports.
+2) Dropped packets per priority-group for all ports
 
 - Usage:
   ```
   show priority-group (watermark | persistent-watermark) (headroom | shared)
+  show priority-group drop counters
   ```
 
 - Example:
@@ -5104,6 +6320,18 @@ This command displays the user watermark or persistent-watermark for the Ingress
 - Example (Ingress headroom per PG):
   ```
   admin@sonic:~$ show priority-group persistent-watermark headroom
+  ```
+
+- Example (Ingress dropped packets per PG):
+  ```
+  admin@sonic:~$ show priority-group drop counters
+  Ingress PG dropped packets:
+        Port    PG0    PG1    PG2    PG3    PG4    PG5    PG6    PG7
+  -----------  -----  -----  -----  -----  -----  -----  -----  -----
+    Ethernet0      0      0      0      0      0      0      0      0
+    Ethernet4      0      0      0      0      0      0      0      0
+    Ethernet8      0      0      0      0      0      0      0      0
+   Ethernet12      0      0      0      0      0      0      0      0
   ```
 
 In addition to user watermark("show queue|priority-group watermark ..."), a persistent watermark is available.
@@ -5135,7 +6363,7 @@ This command displays the user persistet-watermark for the queues (Egress shared
   admin@sonic:~$ show queue persistent-watermark multicast
   ```
 
-- NOTE: Both "user watermark" and "persistent watermark" can be cleared by user:
+- NOTE: "user watermark", "persistent watermark" and "ingress dropped packets" can be cleared by user:
 
   ```
   admin@sonic:~$ sonic-clear queue persistent-watermark unicast
@@ -5145,7 +6373,55 @@ This command displays the user persistet-watermark for the queues (Egress shared
   admin@sonic:~$ sonic-clear priority-group persistent-watermark shared
 
   admin@sonic:~$ sonic-clear priority-group persistent-watermark headroom
+
+  admin@sonic:~$ sonic-clear priority-group drop counters
   ```
+
+#### Buffer Pool
+
+This sub-section explains the following buffer pool parameters that can be displayed using "show buffer_pool" command.
+1) buffer pool watermark
+2) buffer pool persistent-watermark
+
+**show buffer_pool watermark**
+
+This command displays the user watermark for all the buffer pools
+
+- Usage:
+  ```
+  show buffer_pool watermark
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show buffer_pool watermark
+  Shared pool maximum occupancy:
+                   Pool    Bytes
+  ---------------------  -------
+  ingress_lossless_pool        0
+             lossy_pool     2464
+  ```
+
+
+**show buffer_pool persistent-watermark**
+
+This command displays the user persistent-watermark for all the buffer pools
+
+- Usage:
+  ```
+  show buffer_pool persistent-watermark
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show buffer_pool persistent-watermark
+  Shared pool maximum occupancy:
+                   Pool    Bytes
+  ---------------------  -------
+  ingress_lossless_pool        0
+             lossy_pool     2464
+  ```
+
 
 
 ### QoS config commands
@@ -5419,6 +6695,312 @@ This command is used to set the counter polling interval. Default is 20 seconds.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#sflow)
 
+## SNMP
+
+### SNMP Show commands
+
+**show runningconfiguration snmp**
+
+This command displays the global SNMP configuration that includes the location, contact, community, and user settings.
+
+- Usage:
+  ```
+  show runningconfiguration snmp
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp 
+  Location
+  ------------
+  Emerald City
+
+
+  SNMP_CONTACT    SNMP_CONTACT_EMAIL
+  --------------  --------------------
+  joe             joe@contoso.com
+
+
+  Community String    Community Type
+  ------------------  ----------------
+  Jack                RW
+
+
+  User    Permission Type    Type    Auth Type    Auth Password    Encryption Type    Encryption Password
+  ------  -----------------  ------  -----------  ---------------  -----------------  ---------------------
+  Travis  RO                 Priv    SHA          TravisAuthPass   AES                TravisEncryptPass
+  ```
+
+**show runningconfiguration snmp location**
+
+This command displays the SNMP location setting.
+
+- Usage:
+  ```
+  show runningconfiguration snmp location
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp location
+  Location
+  ------------
+  Emerald City
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp location --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp location --json
+  {'Location': 'Emerald City'}
+  ```
+
+**show runningconfiguration snmp contact**
+
+This command displays the SNMP contact setting.
+
+- Usage:
+  ```
+  show runningconfiguration snmp contact
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp contact
+  Contact    Contact Email
+  ---------  ---------------
+  joe        joe@contoso.com
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp contact --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp contact --json
+  {'joe': 'joe@contoso.com'}
+  ```
+
+**show runningconfiguration snmp community**
+
+This command display the SNMP community settings.
+
+- Usage:
+  ```
+  show runningconfiguration snmp community
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp community
+  Community String    Community Type
+  ------------------  ----------------
+  Jack                RW
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp community --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp community --json
+  {'Jack': {'TYPE': 'RW'}}
+  ```
+
+**show runningconfiguration snmp user**
+
+This command display the SNMP user settings.
+
+- Usage:
+  ```
+  show runningconfiguration snmp user
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp user
+  User    Permission Type    Type    Auth Type    Auth Password    Encryption Type    Encryption Password
+  ------  -----------------  ------  -----------  ---------------  -----------------  ---------------------
+  Travis  RO                 Priv    SHA          TravisAuthPass   AES                TravisEncryptPass
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp user --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp user --json
+  {'Travis': {'SNMP_USER_TYPE': 'Priv', 'SNMP_USER_PERMISSION': 'RO', 'SNMP_USER_AUTH_TYPE': 'SHA', 'SNMP_USER_AUTH_PASSWORD': 'TravisAuthPass', 'SNMP_USER_ENCRYPTION_TYPE': 'AES', 'SNMP_USER_ENCRYPTION_PASSWORD': 'TravisEncryptPass'}}
+  ```
+
+
+### SNMP Config commands
+
+This sub-section explains how to configure SNMP.
+
+**config snmp location add/del/modify**
+
+This command is used to add, delete, or modify the SNMP location.
+
+- Usage:
+  ```
+  config snmp location (add | del | modify) <location>
+  ```
+
+- Example (Add new SNMP location "Emerald City" if it does not already exist):
+  ```
+  admin@sonic:~$ sudo config snmp location add Emerald City
+  SNMP Location Emerald City has been added to configuration
+  Restarting SNMP service...
+  ```
+
+- Example (Delete SNMP location "Emerald City" if it already exists):
+  ```
+  admin@sonic:~$ sudo config snmp location del Emerald City
+  SNMP Location Emerald City removed from configuration
+  Restarting SNMP service...
+  ```
+
+- Example (Modify SNMP location "Emerald City" to "Redmond"):
+  ```
+  admin@sonic:~$ sudo config snmp location modify Redmond
+  SNMP location Redmond modified in configuration
+  Restarting SNMP service...
+  ```
+
+**config snmp contact add/del/modify**
+
+This command is used to add, delete, or modify the SNMP contact.
+
+- Usage:
+  ```
+  config snmp contact add <contact> <contact_email>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp contact add joe joe@contoso.com
+  Contact name joe and contact email joe@contoso.com have been added to configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp contact del <contact>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp contact del joe
+  SNMP contact joe removed from configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp contact modify <contact> <contact_email>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp contact modify test test@contoso.com
+  SNMP contact test and contact email test@contoso.com updated
+  Restarting SNMP service...
+  ```
+
+**config snmp community add/del/replace**
+
+This command is used to add, delete, or replace the SNMP community.
+
+- Usage:
+  ```
+  config snmp community add <community> (RO | RW)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp community add testcomm ro
+  SNMP community testcomm added to configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp community del <community>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp community del testcomm 
+  SNMP community testcomm removed from configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp community replace <community> <new_community>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp community replace testcomm newtestcomm
+  SNMP community newtestcomm added to configuration
+  SNMP community newtestcomm replace community testcomm
+  Restarting SNMP service...
+  ```
+
+**config snmp user add/del**
+
+This command is used to add or delete the SNMP user for SNMPv3.
+
+- Usage:
+  ```
+  config snmp user add <user> (noAuthNoPriv | AuthNoPriv | Priv) (RO | RW) [[(MD5 | SHA | MMAC-SHA-2) <auth_password>] [(DES |AES) <encrypt_password>]]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user add testuser1 noauthnopriv ro
+  SNMP user testuser1 added to configuration
+  Restarting SNMP service...
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user add testuser2 authnopriv ro sha testuser2_auth_pass
+  SNMP user testuser2 added to configuration
+  Restarting SNMP service...
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user add testuser3 priv rw md5 testuser3_auth_pass aes testuser3_encrypt_pass
+  SNMP user testuser3 added to configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp user del <user>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user del testuser1
+  SNMP user testuser1 removed from configuration
+  Restarting SNMP service...
+  ```
+
 ## Startup & Running Configuration
 
 ### Startup Configuration
@@ -5600,6 +7182,83 @@ This command displays the running configuration of the snmp module.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#Startup--Running-Configuration)
+
+
+## Static routing
+
+### Static routing Config Commands
+
+This sub-section explains of commands is used to add or remove the static route.
+
+**config route add**
+
+This command is used to add a static route. Note that prefix /nexthop vrf`s and interface name are optional. 
+
+- Usage:
+
+  ```
+  config route add prefix [vrf <vrf>] <A.B.C.D/M> nexthop [vrf <vrf>] <A.B.C.D> dev <interface name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ config route add prefix 2.2.3.4/32 nexthop 30.0.0.9
+  ```
+
+It also supports ECMP, and adding a new nexthop to the existing prefix will complement it and not overwrite them.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config route add prefix 2.2.3.4/32 nexthop vrf Vrf-RED 30.0.0.9
+  admin@sonic:~$ sudo config route add prefix 2.2.3.4/32 nexthop vrf Vrf-BLUE 30.0.0.10
+  ```
+
+**config route del**
+
+This command is used to remove a static route. Note that prefix /nexthop vrf`s and interface name are optional.
+
+- Usage:
+
+  ```
+  config route del prefix [vrf <vrf>] <A.B.C.D/M> nexthop [vrf <vrf>] <A.B.C.D> dev <interface name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config route del prefix 2.2.3.4/32 nexthop vrf Vrf-RED 30.0.0.9
+  admin@sonic:~$ sudo config route del prefix 2.2.3.4/32 nexthop vrf Vrf-BLUE 30.0.0.10
+  ```
+
+This sub-section explains of command is used to show current routes.
+
+**show ip route**
+
+- Usage:
+
+  ```
+  show ip route
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show ip route
+  Codes: K - kernel route, C - connected, S - static, R - RIP,
+         O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+         T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+         F - PBR, f - OpenFabric,
+         > - selected route, * - FIB route, q - queued, r - rejected, b - backup
+  
+  S>* 0.0.0.0/0 [200/0] via 192.168.111.3, eth0, weight 1, 3d03h58m
+  S>  1.2.3.4/32 [1/0] via 30.0.0.7, weight 1, 00:00:06
+  C>* 10.0.0.18/31 is directly connected, Ethernet36, 3d03h57m
+  C>* 10.0.0.20/31 is directly connected, Ethernet40, 3d03h57m
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
 
 
 ## Syslog
@@ -5919,25 +7578,192 @@ This command displays virtual address to the physical address translation status
   ----------  -----------------------------------
   ```
 
-**show line**
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
 
-This command displays serial port or a virtual network connection status.
-This command is used only when SONiC is used as console switch.
-This command is not applicable when SONiC used as regular switch.
-NOTE: This command is not working. It crashes as follows. A bug ticket is opened for this issue.
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
+
+### System-Health
+
+These commands are used to monitor the system current running services and hardware state.
+
+**show system-health summary**
+
+This command displays the current status of 'Services' and 'Hardware' under monitoring.
+If any of the elements under each of these two sections is 'Not OK' a proper message will appear under the relevant section.
 
 - Usage:
   ```
-  show line
+  show system-health summary
   ```
 
 - Example:
   ```
-  admin@sonic:~$ show line
+  admin@sonic:~$ show system-health summary
+  System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'sflowmgrd'
+  Hardware:
+    Status: OK
+  ```
+  ```
+  admin@sonic:~$ show system-health summary
+  System status summary
+
+  System status LED  green
+  Services:
+    Status: OK
+  Hardware:
+    Status: OK
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
+**show system-health monitor-list**
 
+This command displays a list of all current 'Services' and 'Hardware' being monitored, their status and type.
+
+- Usage:
+  ```
+  show system-health monitor-list
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show system-health monitor-list
+  System services and devices monitor list
+  
+  Name            Status    Type
+  --------------  --------  ----------
+  telemetry       Not OK    Process
+  orchagent       Not OK    Process
+  neighsyncd      OK        Process
+  vrfmgrd         OK        Process
+  dialout_client  OK        Process
+  zebra           OK        Process
+  rsyslog         OK        Process
+  snmpd           OK        Process
+  redis_server    OK        Process
+  intfmgrd        OK        Process
+  vxlanmgrd       OK        Process
+  lldpd_monitor   OK        Process
+  portsyncd       OK        Process
+  var-log         OK        Filesystem
+  lldpmgrd        OK        Process
+  syncd           OK        Process
+  sonic           OK        System
+  buffermgrd      OK        Process
+  portmgrd        OK        Process
+  staticd         OK        Process
+  bgpd            OK        Process
+  lldp_syncd      OK        Process
+  bgpcfgd         OK        Process
+  snmp_subagent   OK        Process
+  root-overlay    OK        Filesystem
+  fpmsyncd        OK        Process
+  sflowmgrd       OK        Process
+  vlanmgrd        OK        Process
+  nbrmgrd         OK        Process
+  PSU 2           OK        PSU
+  psu_1_fan_1     OK        Fan
+  psu_2_fan_1     OK        Fan
+  fan11           OK        Fan
+  fan10           OK        Fan
+  fan12           OK        Fan
+  ASIC            OK        ASIC
+  fan1            OK        Fan
+  PSU 1           OK        PSU
+  fan3            OK        Fan
+  fan2            OK        Fan
+  fan5            OK        Fan
+  fan4            OK        Fan
+  fan7            OK        Fan
+  fan6            OK        Fan
+  fan9            OK        Fan
+  fan8            OK        Fan
+  ```
+
+**show system-health detail**
+
+This command displays the current status of 'Services' and 'Hardware' under monitoring.
+If any of the elements under each of these two sections is 'Not OK' a proper message will appear under the relevant section.
+In addition, displays a list of all current 'Services' and 'Hardware' being monitored and a list of ignored elements.
+
+- Usage:
+  ```
+  show system-health detail
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show system-health detail
+  System status summary
+
+  System status LED  red
+  Services:
+    Status: Not OK
+    Not Running: 'telemetry', 'orchagent'
+  Hardware:
+    Status: OK
+  
+  System services and devices monitor list
+  
+  Name            Status    Type
+  --------------  --------  ----------
+  telemetry       Not OK    Process
+  orchagent       Not OK    Process
+  neighsyncd      OK        Process
+  vrfmgrd         OK        Process
+  dialout_client  OK        Process
+  zebra           OK        Process
+  rsyslog         OK        Process
+  snmpd           OK        Process
+  redis_server    OK        Process
+  intfmgrd        OK        Process
+  vxlanmgrd       OK        Process
+  lldpd_monitor   OK        Process
+  portsyncd       OK        Process
+  var-log         OK        Filesystem
+  lldpmgrd        OK        Process
+  syncd           OK        Process
+  sonic           OK        System
+  buffermgrd      OK        Process
+  portmgrd        OK        Process
+  staticd         OK        Process
+  bgpd            OK        Process
+  lldp_syncd      OK        Process
+  bgpcfgd         OK        Process
+  snmp_subagent   OK        Process
+  root-overlay    OK        Filesystem
+  fpmsyncd        OK        Process
+  sflowmgrd       OK        Process
+  vlanmgrd        OK        Process
+  nbrmgrd         OK        Process
+  PSU 2           OK        PSU
+  psu_1_fan_1     OK        Fan
+  psu_2_fan_1     OK        Fan
+  fan11           OK        Fan
+  fan10           OK        Fan
+  fan12           OK        Fan
+  ASIC            OK        ASIC
+  fan1            OK        Fan
+  PSU 1           OK        PSU
+  fan3            OK        Fan
+  fan2            OK        Fan
+  fan5            OK        Fan
+  fan4            OK        Fan
+  fan7            OK        Fan
+  fan6            OK        Fan
+  fan9            OK        Fan
+  fan8            OK        Fan
+  
+  System services and devices ignore list
+  
+  Name         Status    Type
+  -----------  --------  ------
+  psu.voltage  Ignored   Device
+  ```
+Go Back To [Beginning of the document](#) or [Beginning of this section](#System-Health)
 
 ## VLAN & FDB
 
@@ -5947,7 +7773,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#System
 
 **show vlan brief**
 
-This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode and the DHCP Helper Address.
+This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode, the DHCP Helper Address, and the proxy ARP status
 
 - Usage:
   ```
@@ -5958,13 +7784,13 @@ This command displays brief information about all the vlans configured in the de
   ```
   admin@sonic:~$ show vlan brief
 
-  +-----------+--------------+-----------+----------------+-----------------------+
-  |   VLAN ID | IP Address   | Ports     | Port Tagging   | DHCP Helper Address   |
-  +===========+==============+===========+================+=======================+
-  |       100 | 1.1.2.2/16   | Ethernet0 | tagged         | 192.0.0.1             |
-  |           |              | Ethernet4 | tagged         | 192.0.0.2             |
-  |           |              |           |                | 192.0.0.3             |
-  +-----------+--------------+-----------+----------------+-----------------------+
+  +-----------+--------------+-----------+----------------+-----------------------+-------------+
+  |   VLAN ID | IP Address   | Ports     | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
+  +===========+==============+===========+================+=======================+=============+
+  |       100 | 1.1.2.2/16   | Ethernet0 | tagged         | 192.0.0.1             | disabled    |
+  |           |              | Ethernet4 | tagged         | 192.0.0.2             |             |
+  |           |              |           |                | 192.0.0.3             |             |
+  +-----------+--------------+-----------+----------------+-----------------------+-------------+
   ```
 
 **show vlan config**
@@ -6023,6 +7849,21 @@ This command is to add or delete a member port into the already created vlan.
 
   admin@sonic:~$ sudo config vlan member add 100 Ethernet4
   This command will add Ethernet4 as member of the vlan 100.
+  ```
+
+**config proxy_arp enabled/disabled**
+
+This command is used to enable or disable proxy ARP for a VLAN interface
+
+- Usage:
+  ```
+  config vlan proxy_arp <vlan_id> enabled/disabled
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config vlan proxy_arp 1000 enabled
+  This command will enable proxy ARP for the interface 'Vlan1000'
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)
@@ -6635,8 +8476,316 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#waterm
 
 ## Software Installation and Management
 
-SONiC software can be installed in two methods, viz, "using sonic-installer tool", "ONIE Installer".
+SONiC images can be installed in one of two methods:
+1. From within a running SONiC image using the `sonic-installer` utility
+2. From the vendor's bootloader (E.g., ONIE,  Aboot, etc.)
 
+SONiC packages are available as prebuilt Docker images and meant to be installed with the *sonic-package-manager* utility.
+
+### SONiC Package Manager
+
+The *sonic-package-manager* is a command line tool to manage (e.g. install, upgrade or uninstall) SONiC Packages.
+
+**sonic-package-manager list**
+
+This command lists all available SONiC packages, their desription, installed version and installation status.
+SONiC package status can be *Installed*, *Not installed* or *Built-In*. "Built-In" status means that a feature is built-in to SONiC image and can't be upgraded or uninstalled.
+
+- Usage:
+  ```
+  sonic-package-manager list
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager list
+  Name            Repository                   Description                   Version    Status
+  --------------  ---------------------------  ----------------------------  ---------  --------------
+  cpu-report      azure/cpu-report             CPU report package            N/A        Not Installed
+  database        docker-database              SONiC database package        1.0.0      Built-In
+  dhcp-relay      azure/docker-dhcp-relay      SONiC dhcp-relay package      1.0.0      Installed
+  fpm-frr         docker-fpm-frr               SONiC fpm-frr package         1.0.0      Built-In
+  lldp            docker-lldp                  SONiC lldp package            1.0.0      Built-In
+  macsec          docker-macsec                SONiC macsec package          1.0.0      Built-In
+  mgmt-framework  docker-sonic-mgmt-framework  SONiC mgmt-framework package  1.0.0      Built-In
+  nat             docker-nat                   SONiC nat package             1.0.0      Built-In
+  pmon            docker-platform-monitor      SONiC pmon package            1.0.0      Built-In
+  radv            docker-router-advertiser     SONiC radv package            1.0.0      Built-In
+  sflow           docker-sflow                 SONiC sflow package           1.0.0      Built-In
+  snmp            docker-snmp                  SONiC snmp package            1.0.0      Built-In
+  swss            docker-orchagent             SONiC swss package            1.0.0      Built-In
+  syncd           docker-syncd-mlnx            SONiC syncd package           1.0.0      Built-In
+  teamd           docker-teamd                 SONiC teamd package           1.0.0      Built-In
+  telemetry       docker-sonic-telemetry       SONiC telemetry package       1.0.0      Built-In
+  ```
+
+**sonic-package-manager repository add**
+
+This command will add a new repository as source for SONiC packages to the database. *NOTE*: requires elevated (root) privileges to run
+
+- Usage:
+  ```
+  Usage: sonic-package-manager repository add [OPTIONS] NAME REPOSITORY
+
+    Add a new repository to database.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    --default-reference TEXT  Default installation reference. Can be a tag or
+                              sha256 digest in repository.
+    --description TEXT        Optional package entry description.
+    --help                    Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager repository add \
+    cpu-report azure/sonic-cpu-report --default-reference 1.0.0
+  ```
+
+**sonic-package-manager repository remove**
+
+This command will remove a repository as source for SONiC packages from the database . The package has to be *Not Installed* in order to be removed from package database. *NOTE*: requires elevated (root) privileges to run
+
+- Usage:
+  ```
+  Usage: sonic-package-manager repository remove [OPTIONS] NAME
+
+    Remove repository from database.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    --help  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager repository remove cpu-report
+  ```
+
+**sonic-package-manager install**
+
+This command pulls and installs a package on SONiC host. *NOTE*: this command requires elevated (root) privileges to run
+
+- Usage:
+  ```
+  Usage: sonic-package-manager install [OPTIONS] [PACKAGE_EXPR]
+
+    Install/Upgrade package using [PACKAGE_EXPR] in format
+    "<name>[=<version>|@<reference>]".
+
+      The repository to pull the package from is resolved by lookup in
+      package database,    thus the package has to be added via "sonic-
+      package-manager repository add" command.
+
+      In case when [PACKAGE_EXPR] is a package name "<name>" this command
+      will install or upgrade    to a version referenced by "default-
+      reference" in package database.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    --enable                  Set the default state of the feature to enabled
+                              and enable feature right after installation. NOTE:
+                              user needs to execute "config save -y" to make
+                              this setting persistent.
+    --set-owner [local|kube]  Default owner configuration setting for a feature.
+    --from-repository TEXT    Fetch package directly from image registry
+                              repository. NOTE: This argument is mutually
+                              exclusive with arguments: [package_expr,
+                              from_tarball].
+    --from-tarball FILE       Fetch package from saved image tarball. NOTE: This
+                              argument is mutually exclusive with arguments:
+                              [package_expr, from_repository].
+    -f, --force               Force operation by ignoring package dependency
+                              tree and package manifest validation failures.
+    -y, --yes                 Automatically answer yes on prompts.
+    -v, --verbosity LVL       Either CRITICAL, ERROR, WARNING, INFO or DEBUG.
+                              Default is INFO.
+    --skip-host-plugins       Do not install host OS plugins provided by the
+                              package (CLI, etc). NOTE: In case when package
+                              host OS plugins are set as mandatory in package
+                              manifest this option will fail the installation.
+    --allow-downgrade         Allow package downgrade. By default an attempt to
+                              downgrade the package will result in a failure
+                              since downgrade might not be supported by the
+                              package, thus requires explicit request from the
+                              user.
+    --help                    Show this message and exit..
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay=1.0.2
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay@latest
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install dhcp-relay@sha256:9780f6d83e45878749497a6297ed9906c19ee0cc48cc88dc63827564bb8768fd
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install --from-repository azure/sonic-cpu-report:latest
+  ```
+  ```
+  admin@sonic:~$ sudo sonic-package-manager install --from-tarball sonic-docker-image.gz
+  ```
+
+**sonic-package-manager uninstall**
+
+This command uninstalls package from SONiC host. User needs to stop the feature prior to uninstalling it.
+*NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager uninstall [OPTIONS] NAME
+
+    Uninstall package.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    -f, --force          Force operation by ignoring package dependency tree and
+                        package manifest validation failures.
+    -y, --yes            Automatically answer yes on prompts.
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG. Default
+                        is INFO.
+    --help               Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager uninstall dhcp-relay
+  ```
+
+**sonic-package-manager reset**
+
+This comamnd resets the package by reinstalling it to its default version. *NOTE*: this command requires elevated (root) privileges to run.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager reset [OPTIONS] NAME
+
+    Reset package to the default version.
+
+    NOTE: This command requires elevated (root) privileges to run.
+
+  Options:
+    -f, --force          Force operation by ignoring package dependency tree and
+                        package manifest validation failures.
+    -y, --yes            Automatically answer yes on prompts.
+    -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG. Default
+                        is INFO.
+    --skip-host-plugins  Do not install host OS plugins provided by the package
+                        (CLI, etc). NOTE: In case when package host OS plugins
+                        are set as mandatory in package manifest this option
+                        will fail the installation.
+    --help               Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-package-manager reset dhcp-relay
+  ```
+
+**sonic-package-manager show package versions**
+
+This command will retrieve a list of all available versions for the given package from the configured upstream repository
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package versions [OPTIONS] NAME
+
+    Show available versions.
+
+  Options:
+    --all    Show all available tags in repository.
+    --plain  Plain output.
+    --help   Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay
+  • 1.0.0
+  • 1.0.2
+  • 2.0.0
+  ```
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay --plain
+  1.0.0
+  1.0.2
+  2.0.0
+  ```
+  ```
+  admin@sonic:~$ sonic-package-manager show package versions dhcp-relay --all
+  • 1.0.0
+  • 1.0.2
+  • 2.0.0
+  • latest
+  ```
+
+**sonic-package-manager show package changelog**
+
+This command fetches the changelog from the package manifest and displays it. *NOTE*: package changelog can be retrieved from registry or read from image tarball without installing it.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package changelog [OPTIONS] [PACKAGE_EXPR]
+
+    Show package changelog.
+
+  Options:
+    --from-repository TEXT  Fetch package directly from image registry
+                            repository NOTE: This argument is mutually exclusive
+                            with arguments: [from_tarball, package_expr].
+    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                            argument is mutually exclusive with arguments:
+                            [package_expr, from_repository].
+    --help                  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package changelog dhcp-relay
+  1.0.0:
+
+    • Initial release
+
+        Author (author@email.com) Mon, 25 May 2020 12:25:00 +0300
+  ```
+
+**sonic-package-manager show package manifest**
+
+This command fetches the package manifest and displays it. *NOTE*: package manifest can be retrieved from registry or read from image tarball without installing it.
+
+- Usage:
+  ```
+  Usage: sonic-package-manager show package manifest [OPTIONS] [PACKAGE_EXPR]
+
+    Show package manifest.
+
+  Options:
+    --from-repository TEXT  Fetch package directly from image registry
+                            repository NOTE: This argument is mutually exclusive
+                            with arguments: [package_expr, from_tarball].
+    --from-tarball FILE     Fetch package from saved image tarball NOTE: This
+                            argument is mutually exclusive with arguments:
+                            [from_repository, package_expr].
+    -v, --verbosity LVL     Either CRITICAL, ERROR, WARNING, INFO or DEBUG
+    --help                  Show this message and exit.
+  ```
+- Example:
+  ```
+  admin@sonic:~$ sonic-package-manager show package manifest dhcp-relay=2.0.0
+  {
+    "version": "1.0.0",
+    "package": {
+      "version": "2.0.0",
+      "depends": [
+        "database>=1.0.0,<2.0.0"
+      ]
+    },
+    "service": {
+      "name": "dhcp_relay"
+    }
+  }
+  ```
 
 ### SONiC Installer
 This is a command line tool available as part of the SONiC software; If the device is already running the SONiC software, this tool can be used to install an alternate image in the partition.
@@ -6705,6 +8854,13 @@ This command is used to install a new image on the alternate image partition.  T
   Command: grub-set-default --boot-directory=/host 0
 
   Done
+  ```
+
+Installing a new image using the sonic-installer will keep using the packages installed on the currently running SONiC image and automatically migrate those. In order to perform clean SONiC installation use the *--skip-package-migration* option:
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-installer install https://sonic-jenkins.westus.cloudapp.azure.com/job/xxxx/job/buildimage-xxxx-all/xxx/artifact/target/sonic-xxxx.bin --skip-package-migration
   ```
 
 **sonic-installer set_default**

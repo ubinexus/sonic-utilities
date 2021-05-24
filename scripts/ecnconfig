@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 """
 ecnconfig is the utility to
 
@@ -46,13 +47,27 @@ $ecnconfig -q 3
 ECN status:
 queue 3: on
 """
-from __future__ import print_function
-
+import argparse
+import json
 import os
 import sys
-import argparse
-import swsssdk
+
 from tabulate import tabulate
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+
+except KeyError:
+    pass
+
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+
 
 WRED_PROFILE_TABLE_NAME = "WRED_PROFILE"
 WRED_CONFIG_FIELDS = {
@@ -76,17 +91,22 @@ OFF                        = "[]"
 
 lossless_queues         = ['3', '4']
 
+def chk_exec_privilege():
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        sys.exit("Root privileges required for this operation")
+
 class EcnConfig(object):
     """
-    Process aclstat
+    Process ecnconfig
     """
-    def __init__(self, verbose):
+    def __init__(self, filename, verbose):
         self.ports = []
         self.queues = []
+        self.filename = filename
         self.verbose = verbose
 
         # Set up db connections
-        self.db = swsssdk.ConfigDBConnector()
+        self.db = ConfigDBConnector()
         self.db.connect()
 
     def list(self):
@@ -109,8 +129,8 @@ class EcnConfig(object):
 
         for profile_name, profile_data in wred_profiles.items():
             if profile_name == profile:
-                return profile_data 
-    
+                return profile_data
+
         return None
 
     def validate_profile_data(self, profile_data):
@@ -125,7 +145,7 @@ class EcnConfig(object):
                 if 'threshold' in field:
                     if value.isdigit() == False:
                         print("Invalid %s (%s). %s should be an non-negative integer." % (key, value, key))
-                        result = False 
+                        result = False
 
                 elif 'probability' in field:
                     if value.isdigit() == False or int(value) < 0 or int(value) > 100:
@@ -133,9 +153,9 @@ class EcnConfig(object):
                         result = False
 
         if result == False:
-            return result 
+            return result
 
-        # check if min threshold is no larger than max threshold 
+        # check if min threshold is no larger than max threshold
         colors = ['g', 'y', 'r']
         for color in colors:
             if (WRED_CONFIG_FIELDS[color + 'min'] in profile_data and
@@ -145,29 +165,35 @@ class EcnConfig(object):
                 max_thresh = int(profile_data[WRED_CONFIG_FIELDS[color + 'max']])
 
                 if min_thresh > max_thresh:
-                    print("Invalid %s (%d) and %s (%d). %s should be no smaller than %s" % 
+                    print("Invalid %s (%d) and %s (%d). %s should be smaller than %s" %
                           (color + 'min', min_thresh, color + 'max', max_thresh, color + 'min', color + 'max'))
-                    result = False 
+                    result = False
 
-        return result 
+        return result
 
     def set_wred_threshold(self, profile, threshold, value):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
 
         field = WRED_CONFIG_FIELDS[threshold]
         if self.verbose:
             print("Setting %s value to %s" % (field, value))
         self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
+        if self.filename is not None:
+            prof_table = self.db.get_table(WRED_PROFILE_TABLE_NAME)
+            with open(self.filename, "w") as fd:
+                json.dump(prof_table, fd)
 
     def set_wred_prob(self, profile, drop_color, value):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
-        
+        chk_exec_privilege()
+
         field = WRED_CONFIG_FIELDS[drop_color]
         if self.verbose:
             print("Setting %s value to %s%%" % (field, value))
         self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
+        if self.filename is not None:
+            prof_table = self.db.get_table(WRED_PROFILE_TABLE_NAME)
+            with open(self.filename, "w") as fd:
+                json.dump(prof_table, fd)
 
 class EcnQ(object):
     """
@@ -180,10 +206,10 @@ class EcnQ(object):
         self.verbose = verbose
 
         # Set up db connections
-        self.config_db = swsssdk.ConfigDBConnector()
+        self.config_db = ConfigDBConnector()
         self.config_db.connect()
 
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.CONFIG_DB)
 
         self.gen_ports_key()
@@ -198,11 +224,15 @@ class EcnQ(object):
             port_table = self.config_db.get_table(DEVICE_NEIGHBOR_TABLE_NAME)
             self.ports_key = port_table.keys()
 
-            self.ports_key.sort(key = lambda k: int(k[8:]))
+            # In multi-ASIC platforms backend ethernet ports are identified as
+            # 'Ethernet-BPxy'. Add 1024 to sort backend ports to the end.
+            self.ports_key.sort(
+                key = lambda k: int(k[8:]) if "BP" not in k else int(k[11:]) + 1024
+            )
 
     def set(self, enable):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
+
         for queue in self.queues:
             if self.verbose:
                 print("%s ECN on %s queue %s" % ("Enable" if enable else "Disable", ','.join(self.ports_key), queue))
@@ -231,7 +261,6 @@ def main():
     parser = argparse.ArgumentParser(description='Show and change:\n'
                                                  '1) ECN WRED configuration\n'
                                                  '2) ECN on/off status on queues',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('-l', '--list', action='store_true', help='show ECN WRED configuration')
@@ -245,25 +274,40 @@ def main():
     parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set max drop/mark probability for packets marked \'green\'', default=None)
     parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set max drop/mark probability for packets marked \'yellow\'', default=None)
     parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set max drop/mark probability for packets marked \'red\'', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
 
     parser.add_argument('command', nargs='?', choices=['on', 'off'], type=str, help='turn on/off ecn', default=None)
     parser.add_argument('-q', '--queue', type=str, help='specify queue index list: 3,4', default=None)
+    parser.add_argument('-f', '--filename', help='file used by mock tests', type=str, default=None)
+
+    if os.environ.get("UTILITIES_UNIT_TESTING", "0") == "2":
+        sys.argv.extend(['-f', '/tmp/ecnconfig'])
 
     args = parser.parse_args()
 
     try:
         if args.list or args.profile:
-            prof_cfg = EcnConfig(args.verbose)
+            prof_cfg = EcnConfig(args.filename, args.verbose)
             if args.list:
-                if len(sys.argv) > (3 if args.verbose else 2):
+                arg_len_max = 2
+                if args.verbose:
+                    arg_len_max += 1
+                if args.filename:
+                    arg_len_max += 2
+                if len(sys.argv) > arg_len_max:
                     raise Exception("Input arguments error. No set options allowed when -l[ist] specified")
                 prof_cfg.list()
             elif args.profile:
-                if len(sys.argv) < (5 if args.verbose else 4):
+                arg_len_min = 4
+                if args.verbose:
+                    arg_len_min += 1
+                if args.filename:
+                    arg_len_min += 2
+                if len(sys.argv) < arg_len_min:
                     raise Exception("Input arguments error. Specify at least one threshold parameter to set")
 
-                # get current configuration data 
+                # get current configuration data
                 wred_profile_data = prof_cfg.get_profile_data(args.profile)
                 if wred_profile_data is None:
                     raise Exception("Input arguments error. Invalid WRED profile %s" % (args.profile))
@@ -326,7 +370,7 @@ def main():
             sys.exit(1)
 
     except Exception as e:
-        print("Exception caught: ", e.message, file=sys.stderr)
+        print("Exception caught: ", str(e), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

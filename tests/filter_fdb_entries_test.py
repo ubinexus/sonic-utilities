@@ -6,7 +6,8 @@ import shutil
 import subprocess
 
 from collections import defaultdict
-from filter_fdb_input.test_vectors import filterFdbEntriesTestVector
+from .filter_fdb_input.test_vectors import filterFdbEntriesTestVector
+from fdbutil.filter_fdb_entries import main as filterFdbMain
 
 class TestFilterFdbEntries(object):
     """
@@ -91,6 +92,7 @@ class TestFilterFdbEntries(object):
         process = subprocess.Popen(
             cmds,
             shell=False,
+            text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
@@ -162,16 +164,16 @@ class TestFilterFdbEntries(object):
         """
         try:
             self.__setUp(testData)
-    
-            stdout, stderr, rc = self.__runCommand([
-                "scripts/filter_fdb_entries.py",
+            argv = [
+                "filter_fdb_entries",
                 "-a",
                 self.ARP_FILENAME,
                 "-f",
                 self.FDB_FILENAME,
                 "-c",
                 self.CONFIG_DB_FILENAME,
-            ])
+            ]
+            rc = filterFdbMain(argv)
             assert rc == 0, "Filter_fdb_entries.py failed with '{0}'".format(stderr)
             assert self.__verifyOutput(), "Test failed for test data: {0}".format(testData)
         finally:

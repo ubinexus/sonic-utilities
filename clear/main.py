@@ -1,15 +1,13 @@
-#! /usr/bin/python -u
-
-import click
+import configparser
 import os
 import subprocess
+import sys
 
-try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import configparser
+import click
+
+from utilities_common import util_base
+
+from . import plugins
 
 
 # This is from the aliases example:
@@ -84,7 +82,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
@@ -99,11 +97,12 @@ def get_routing_stack():
 routing_stack = get_routing_stack()
 
 
-def run_command(command, pager=False, return_output=False):
+def run_command(command, pager=False, return_output=False, return_exitstatus=False):
     # Provide option for caller function to Process the output.
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     if return_output:
-        return proc.communicate()
+        output = proc.communicate()
+        return output if not return_exitstatus else output + (proc.returncode,)
     elif pager:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
         click.echo_via_pager(proc.stdout.read())
@@ -124,7 +123,6 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli():
     """SONiC command line - 'Clear' command"""
     pass
-
 
 #
 # 'ip' group ###
@@ -221,6 +219,20 @@ def clear_wm_pg_shared():
     command = 'watermarkstat -c -t pg_shared'
     run_command(command)
 
+@priority_group.group()
+def drop():
+    """Clear priority-group dropped packets stats"""
+    pass
+
+@drop.command('counters')
+def clear_pg_counters():
+    """Clear priority-group dropped packets counter """
+
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        exit("Root privileges are required for this operation")
+    command = 'pg-drop -c clear'
+    run_command(command)
+
 @priority_group.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
@@ -263,6 +275,12 @@ def clear_wm_q_multi():
     command = 'watermarkstat -c -t q_shared_multi'
     run_command(command)
 
+@watermark.command('all')
+def clear_wm_q_all():
+    """Clear user WM for all queues"""
+    command = 'watermarkstat -c -t q_shared_all'
+    run_command(command)
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
@@ -279,6 +297,35 @@ def clear_pwm_q_uni():
 def clear_pwm_q_multi():
     """Clear persistent WM for multicast queues"""
     command = 'watermarkstat -c -p -t q_shared_multi'
+    run_command(command)
+
+@persistent_watermark.command('all')
+def clear_pwm_q_all():
+    """Clear persistent WM for all queues"""
+    command = 'watermarkstat -c -p -t q_shared_all'
+    run_command(command)
+
+@cli.group(name='headroom-pool')
+def headroom_pool():
+    """Clear headroom pool WM"""
+    pass
+
+@headroom_pool.command('watermark')
+def watermark():
+    """Clear headroom pool user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -t headroom_pool'
+    run_command(command)
+
+@headroom_pool.command('persistent-watermark')
+def persistent_watermark():
+    """Clear headroom pool persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -p -t headroom_pool'
     run_command(command)
 
 #
@@ -368,11 +415,14 @@ def clear_vlan_fdb(vlanid):
 # 'line' command
 #
 @cli.command('line')
-@click.argument('linenum')
-def line(linenum):
+@click.argument('target')
+@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
+def line(target, devicename):
     """Clear preexisting connection to line"""
-    cmd = "consutil clear " + str(linenum)
-    run_command(cmd)
+    cmd = "consutil clear {}".format("--devicename " if devicename else "") + str(target)
+    (output, _, exitstatus) = run_command(cmd, return_output=True, return_exitstatus=True)
+    click.echo(output)
+    sys.exit(exitstatus)
 
 #
 # 'nat' group ("clear nat ...")
@@ -398,6 +448,13 @@ def translations():
 
     cmd = "natclear -t"
     run_command(cmd)
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
+
 
 if __name__ == '__main__':
     cli()

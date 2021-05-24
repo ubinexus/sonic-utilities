@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import zipfile
+from contextlib import contextmanager
 
 import click
 
@@ -19,6 +20,7 @@ from ..common import (
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
    run_command,
+   run_command_or_raise,
 )
 from .bootloader import Bootloader
 
@@ -34,7 +36,7 @@ def isSecureboot():
     global _secureboot
     if _secureboot is None:
         with open('/proc/cmdline') as f:
-           m  = re.search(r"secure_boot_enable=[y1]", f.read())
+            m = re.search(r"secure_boot_enable=[y1]", f.read())
         _secureboot = bool(m)
     return _secureboot
 
@@ -118,7 +120,7 @@ class AbootBootloader(Bootloader):
 
     def get_binary_image_version(self, image_path):
         try:
-            version = subprocess.check_output(['/usr/bin/unzip', '-qop', image_path, '.imagehash'])
+            version = subprocess.check_output(['/usr/bin/unzip', '-qop', image_path, '.imagehash'], text=True)
         except subprocess.CalledProcessError:
             return None
         return IMAGE_PREFIX + version.strip()
@@ -153,7 +155,7 @@ class AbootBootloader(Bootloader):
                 return None
             with swi.open(sigInfo, 'r') as sigFile:
                 for line in sigFile:
-                    data = line.split(':')
+                    data = line.decode('utf8').split(':')
                     if len(data) == 2:
                         if data[0] == ISSUERCERT:
                             try:
@@ -179,3 +181,25 @@ class AbootBootloader(Bootloader):
     def detect(cls):
         with open('/proc/cmdline') as f:
             return 'Aboot=' in f.read()
+
+    def _get_swi_file_offset(self, swipath, filename):
+        with zipfile.ZipFile(swipath) as swi:
+            with swi.open(filename) as f:
+                return f._fileobj.tell() # pylint: disable=protected-access
+
+    @contextmanager
+    def get_path_in_image(self, image_path, path):
+        path_in_image = os.path.join(image_path, path)
+        if os.path.exists(path_in_image) and not isSecureboot():
+            yield path_in_image
+            return
+
+        swipath = os.path.join(image_path, DEFAULT_SWI_IMAGE)
+        offset = self._get_swi_file_offset(swipath, path)
+        loopdev = subprocess.check_output(['losetup', '-f']).decode('utf8').rstrip()
+
+        try:
+            run_command_or_raise(['losetup', '-o', str(offset), loopdev, swipath])
+            yield loopdev
+        finally:
+            run_command_or_raise(['losetup', '-d', loopdev])
