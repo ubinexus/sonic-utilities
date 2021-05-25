@@ -37,12 +37,6 @@ from . import system_health
 from . import warm_restart
 from . import plugins
 
-# Support platform extensions
-try:
-    import sonic_platform.cli.show
-except ImportError:
-    pass
-
 # Global Variables
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
@@ -1475,33 +1469,10 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
-#
-# Install platform extensions for show commands
-# extends support for cli and platform
-#
-def install_extensions():
-    # Extend parsers as desired
-    try:
-        extensions = sonic_platform.cli.show.extensions() or {}
-    except:
-        extensions = {}
-
-    groups = {
-        'cli': cli,
-        'platform': platform.platform,
-    }
-
-    for key,root in groups.items():
-        for cmd in extensions.get(key, []):
-            root.add_command(cmd)
-
 # Load plugins and register them
 helper = util_base.UtilHelper()
 for plugin in helper.load_plugins(plugins):
     helper.register_plugin(plugin, cli)
-
-# invoke method for installing extensions
-install_extensions()
 
 if __name__ == '__main__':
     cli()
