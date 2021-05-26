@@ -303,7 +303,7 @@ class TestConsutilLib(object):
     def test_console_port_info_refresh_without_session(self):
         db = Db()
 
-        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1" })
         port.refresh()
         assert port.busy
         assert port.session_pid == "223"
@@ -313,7 +313,7 @@ class TestConsutilLib(object):
     def test_console_port_info_refresh_without_session_idle(self):
         db = Db()
 
-        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1" })
         port.refresh()
         assert port.busy == False
 
@@ -321,7 +321,7 @@ class TestConsutilLib(object):
     def test_console_port_info_refresh_with_session(self):
         db = Db()
 
-        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1" })
         port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
         print(port)
 
@@ -334,7 +334,7 @@ class TestConsutilLib(object):
     def test_console_port_info_refresh_with_session_line_mismatch(self):
         db = Db()
 
-        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1" })
         port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
         print(port)
 
@@ -347,7 +347,7 @@ class TestConsutilLib(object):
     def test_console_port_info_refresh_with_session_process_ended(self):
         db = Db()
 
-        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1" })
         port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
         print(port)
 
@@ -356,7 +356,7 @@ class TestConsutilLib(object):
 
     def test_console_port_info_connect_state_busy(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "CUR_STATE" : { "state" : "busy" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "CUR_STATE" : { "state" : "busy" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         with pytest.raises(LineBusyError):
@@ -364,7 +364,7 @@ class TestConsutilLib(object):
 
     def test_console_port_info_connect_invalid_config(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "CUR_STATE" : { "state" : "idle" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         with pytest.raises(InvalidConfigurationError):
@@ -372,7 +372,7 @@ class TestConsutilLib(object):
 
     def test_console_port_info_connect_device_busy(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         mock_proc = mock.MagicMock(spec=subprocess.Popen)
@@ -384,7 +384,7 @@ class TestConsutilLib(object):
 
     def test_console_port_info_connect_connection_fail(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         mock_proc = mock.MagicMock(spec=subprocess.Popen)
@@ -396,7 +396,7 @@ class TestConsutilLib(object):
 
     def test_console_port_info_connect_success(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         mock_proc = mock.MagicMock(spec=subprocess.Popen, pid="223")
@@ -409,7 +409,7 @@ class TestConsutilLib(object):
 
     def test_console_port_info_clear_session_line_not_busy(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         assert not port.clear_session()
@@ -417,14 +417,14 @@ class TestConsutilLib(object):
     @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=None))
     def test_console_port_info_clear_session_with_state_db(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy", "pid" : "223" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy", "pid" : "223" } })
 
         port.refresh = mock.MagicMock(return_value=None)
         assert port.clear_session()
 
     def test_console_port_info_clear_session_with_existing_session(self):
         db = Db()
-        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy" } })
+        port = ConsolePortInfo(DbUtils(db), { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy" } })
         port._session = ConsoleSession(port, None)
         port._session.close = mock.MagicMock(return_value=None)
         port.refresh = mock.MagicMock(return_value=None)
