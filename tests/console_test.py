@@ -538,12 +538,53 @@ class TestConsutilShow(object):
      3    9600         Enabled      -                         -
 """
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.lib.SysInfoProvider.list_active_console_processes', mock.MagicMock(return_value={ "2" : ("223", "Wed Mar  6 08:31:35 2019")}))
     def test_show(self):
         runner = CliRunner()
         db = Db()
         db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
         db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2", "baud_rate" : "9600" })
         db.cfgdb.set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600", "flow_control" : "1" })
+
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "state", "busy")
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "pid", "223")
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "start_time", "Wed Mar  6 08:31:35 2019")
+
+        # use '--brief' option to avoid access system
+        result = runner.invoke(consutil.consutil.commands["show"], ['--brief'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == TestConsutilShow.expect_show_output
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.lib.SysInfoProvider.list_active_console_processes', mock.MagicMock(return_value={ "2" : ("223", "Wed Mar  6 08:31:35 2019")}))
+    def test_show_stale_idle_to_busy(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2", "baud_rate" : "9600" })
+        db.cfgdb.set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600", "flow_control" : "1" })
+
+        # use '--brief' option to avoid access system
+        result = runner.invoke(consutil.consutil.commands["show"], ['--brief'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == TestConsutilShow.expect_show_output
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.lib.SysInfoProvider.list_active_console_processes', mock.MagicMock(return_value={ "2" : ("223", "Wed Mar  6 08:31:35 2019")}))
+    def test_show_stale_busy_to_idle(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2", "baud_rate" : "9600" })
+        db.cfgdb.set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600", "flow_control" : "1" })
+
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|1", "state", "busy")
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|1", "pid", "222")
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|1", "start_time", "Wed Mar  6 08:31:35 2019")
 
         db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "state", "busy")
         db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "pid", "223")
