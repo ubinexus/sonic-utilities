@@ -1,4 +1,5 @@
 import configparser
+import datetime
 import os
 import re
 import subprocess
@@ -351,6 +352,8 @@ def print_output_in_alias_mode(output, index):
     if output.startswith("---"):
         word = output.split()
         dword = word[index]
+        if(len(dword) > iface_alias_converter.alias_max_length):
+            dword = dword[:len(dword) - iface_alias_converter.alias_max_length]
         underline = dword.rjust(iface_alias_converter.alias_max_length,
                                 '-')
         word[index] = underline
@@ -465,6 +468,13 @@ def run_command_in_alias_mode(command):
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
+            elif command.startswith("sudo ipintutil"):
+                """show ip(v6) int"""
+                index = 0
+                if output.startswith("Interface"):
+                   output = output.replace("Interface", "Interface".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
 
             else:
                 """
@@ -537,13 +547,22 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         sys.exit(rc)
 
 
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default"""
+
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    raise TypeError("Type %s not serializable" % type(obj))
+
+
 def json_dump(data):
     """
     Dump data in JSON format
     """
     return json.dumps(
-        data, sort_keys=True, indent=2, ensure_ascii=False
+        data, sort_keys=True, indent=2, ensure_ascii=False, default=json_serial
     )
+
     
 def interface_is_untagged_member(db, interface_name):
     """ Check if interface is already untagged member"""    
