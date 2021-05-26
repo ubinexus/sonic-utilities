@@ -42,7 +42,7 @@ class TestConfigIP(object):
         # config int ip add Ethernet64 10000.10.10.1/24
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10000.10.10.1/24"], obj=obj)
         print(result.exit_code, result.output)
-        assert result.exit_code == 0
+        assert result.exit_code != 0
         assert "Error: ip address is not valid." in result.output
         
     def test_add_interface_ipv4_invalid_mask(self):
@@ -53,7 +53,7 @@ class TestConfigIP(object):
         # config int ip add Ethernet64 10.10.10.1/37
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10.10.10.1/37"], obj=obj)        
         print(result.exit_code, result.output)
-        assert result.exit_code == 0
+        assert result.exit_code != 0
         assert "Error: ip mask is not valid." in result.output
 
     def test_add_del_interface_ipv4_with_leading_zeros(self):
@@ -67,7 +67,7 @@ class TestConfigIP(object):
         assert result.exit_code == 0
         assert ('Ethernet68', '10.10.10.2/24') in db.cfgdb.get_table('INTERFACE')
         
-        # config int ip remove Ethernet68 10.10.10.001/24
+        # config int ip remove Ethernet68 10.10.10.002/24
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet68", "10.10.10.002/24"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code != 0
@@ -100,7 +100,7 @@ class TestConfigIP(object):
         # config int ip add Ethernet72 20001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/34
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "20001:0db8:11a3:19d7:1f34:8a2e:17a0:765d/34"], obj=obj)        
         print(result.exit_code, result.output)
-        assert result.exit_code == 0
+        assert result.exit_code != 0
         assert "Error: ip address is not valid." in result.output
         
     def test_add_interface_ipv6_invalid_mask(self):
