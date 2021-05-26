@@ -8,6 +8,9 @@ import config.main as config
 import show.main as show
 from utilities_common.db import Db
 
+ERROR_MSG = '''
+Error: ip address or mask is not valid.
+'''
 
 class TestConfigIP(object):
     @classmethod
@@ -43,7 +46,7 @@ class TestConfigIP(object):
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10000.10.10.1/24"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert "Error: ip address is not valid." in result.output
+        assert ERROR_MSG in result.output
         
     def test_add_interface_ipv4_invalid_mask(self):
         db = Db()
@@ -54,7 +57,7 @@ class TestConfigIP(object):
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet64", "10.10.10.1/37"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert "Error: ip mask is not valid." in result.output
+        assert ERROR_MSG in result.output
 
     def test_add_del_interface_ipv4_with_leading_zeros(self):
         db = Db()
@@ -72,7 +75,7 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ('Ethernet68', '10.10.10.2/24') not in db.cfgdb.get_table('INTERFACE')
-    
+
     '''  Tests for IPv6 '''
     
     def test_add_del_interface_valid_ipv6(self):
@@ -101,7 +104,7 @@ class TestConfigIP(object):
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "20001:0db8:11a3:19d7:1f34:8a2e:17a0:765d/34"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert "Error: ip address is not valid." in result.output
+        assert ERROR_MSG in result.output
         
     def test_add_interface_ipv6_invalid_mask(self):
         db = Db()
@@ -111,8 +114,8 @@ class TestConfigIP(object):
         # config int ip add Ethernet72 2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/200
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/200"], obj=obj)
         print(result.exit_code, result.output)
-        assert result.exit_code == 0
-        assert "Error: ip mask is not valid." in result.output
+        assert result.exit_code != 0
+        assert ERROR_MSG in result.output
 
     def test_add_del_interface_ipv6_with_leading_zeros(self):
         db = Db()

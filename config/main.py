@@ -778,26 +778,20 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     return True
 
 def validate_ip_mask(ctx, ip_addr):
-    try:
-        split_ip_mask = ip_addr.split("/")
-        # Checking if the IP address is correct.
-        ip_obj = ipaddress.ip_address(split_ip_mask[0])
+    split_ip_mask = ip_addr.split("/")
+    # Check if the IP address is correct or if there are leading zeros.
+    ip_obj = ipaddress.ip_address(split_ip_mask[0])
 
-        # Checking if the mask is correct
-        mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 129
-        # If mask is not specified, set to default value
-        if len(split_ip_mask) < 2:
-            split_ip_mask.append(32 if isinstance(ip_obj, ipaddress.IPv4Address) else 128)
+    # Check if the mask is correct
+    mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 129
+    # If mask is not specified
+    if len(split_ip_mask) < 2:
+        return 0
 
-        if not int(split_ip_mask[1]) in range(1, mask_range):
-            click.echo("Error: ip mask is not valid.")
-            return False
+    if not int(split_ip_mask[1]) in range(1, mask_range):
+        return 0
 
-        return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
-
-    except ValueError:
-        click.echo("Error: ip address is not valid.")
-        return False
+    return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
 
 def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     if len(command_str) < 2 or len(command_str) > 9:
@@ -3456,8 +3450,9 @@ def add(ctx, interface_name, ip_addr, gw):
         if '/' not in ip_addr:
             ip_addr = str(net)
 
-        if not validate_ip_mask(ctx, ip_addr):
-            return
+        ip_addr = validate_ip_mask(ctx, ip_addr)
+        if not ip_addr:
+            raise ValueError('')
 
         if interface_name == 'eth0':
 
@@ -3495,7 +3490,7 @@ def add(ctx, interface_name, ip_addr, gw):
                 config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
         config_db.set_entry(table_name, (interface_name, ip_addr), {"NULL": "NULL"})
     except ValueError:
-        ctx.fail("'ip_addr' is not valid.")
+        ctx.fail("ip address or mask is not valid.")
 
 #
 # 'del' subcommand
@@ -3519,9 +3514,10 @@ def remove(ctx, interface_name, ip_addr):
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
             ip_addr = str(net)
-            
-        if not validate_ip_mask(ctx, ip_addr):
-            return
+        
+        ip_addr = validate_ip_mask(ctx, ip_addr)
+        if not ip_addr:
+            raise ValueError('')
 
         if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
@@ -3561,7 +3557,7 @@ def remove(ctx, interface_name, ip_addr):
             command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
         clicommon.run_command(command)
     except ValueError:
-        ctx.fail("'ip_addr' is not valid.")
+        ctx.fail("ip address or mask is not valid.")
 
 
 #
