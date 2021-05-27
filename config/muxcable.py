@@ -110,11 +110,11 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
-@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto"]))
+@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto", "manual"]))
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL)
 def mode(state, port, json_output):
-    """Show muxcable summary information"""
+    """Config muxcable mode"""
 
     port_table_keys = {}
     y_cable_asic_table_keys = {}
