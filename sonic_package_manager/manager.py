@@ -995,7 +995,7 @@ class PackageManager:
         registry_resolver = RegistryResolver()
         metadata_resolver = MetadataResolver(docker_api, registry_resolver)
         cfg_mgmt = config_mgmt.ConfigMgmt()
-        cli_generator = CliGenerator()
+        cli_generator = CliGenerator(log)
         feature_registry = FeatureRegistry(SonicDB)
         service_creator = ServiceCreator(feature_registry,
                                          SonicDB,
