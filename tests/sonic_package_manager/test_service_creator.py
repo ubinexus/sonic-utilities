@@ -135,7 +135,7 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
     })
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_text=test_yang))
+    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
     service_creator.create(package)
 
     mock_config_mgmt.add_module.assert_called_with(test_yang)
@@ -149,7 +149,7 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
             },
         },
     }
-    package = Package(entry, Metadata(manifest, yang_module_text=test_yang))
+    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
 
     service_creator.create(package)
 
@@ -184,7 +184,7 @@ def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
     manifest['cli']['auto-generate-config'] = True
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_text=test_yang))
+    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
     mock_config_mgmt.get_module_name = Mock(return_value=test_yang_module)
     service_creator.create(package)
 

@@ -208,7 +208,6 @@ class ManifestSchema:
             ManifestField('clear', DefaultMarshaller(str), ''),
             ManifestField('auto-generate-show', DefaultMarshaller(bool), False),
             ManifestField('auto-generate-config', DefaultMarshaller(bool), False),
-            ManifestField('auto-generate-clear', DefaultMarshaller(bool), False),
         ])
     ])
 

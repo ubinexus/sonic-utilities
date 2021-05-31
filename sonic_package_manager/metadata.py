@@ -73,7 +73,7 @@ class Metadata:
 
     manifest: Manifest
     components: Dict[str, Version] = field(default_factory=dict)
-    yang_module_text: Optional[str] = None
+    yang_module_str: Optional[str] = None
 
 
 class MetadataResolver:
@@ -183,6 +183,6 @@ class MetadataResolver:
                 except ValueError as err:
                     raise MetadataError(f'Failed to parse component version: {err}')
 
-        yang_module_text = sonic_metadata.get('yang-module')
+        yang_module_str = sonic_metadata.get('yang-module')
 
-        return Metadata(Manifest.marshal(manifest_dict), components, yang_module_text)
+        return Metadata(Manifest.marshal(manifest_dict), components, yang_module_str)

@@ -220,23 +220,23 @@ class ConfigMgmt():
 
         return
 
-    def add_module(self, yang_module_text, replace_if_exists=False):
+    def add_module(self, yang_module_str, replace_if_exists=False):
         """
         Validate and add new YANG module to the system.
 
         Parameters:
-            yang_module_text (str): YANG module string.
+            yang_module_str (str): YANG module in string representation.
 
         Returns:
             None
         """
 
-        module_name = self.get_module_name(yang_module_text)
+        module_name = self.get_module_name(yang_module_str)
         module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
         if os.path.exists(module_path) and not replace_if_exists:
             raise Exception('{} already exists'.format(module_name))
         with open(module_path, 'w') as module_file:
-            module_file.write(yang_module_text)
+            module_file.write(yang_module_str)
         try:
             self.__init_sonic_yang()
         except Exception:
@@ -258,28 +258,29 @@ class ConfigMgmt():
         if not os.path.exists(module_path):
             return
         with open(module_path, 'r') as module_file:
-            yang_module_text = module_file.read()
+            yang_module_str = module_file.read()
         try:
             os.remove(module_path)
             self.__init_sonic_yang()
         except Exception:
-            self.add_module(yang_module_text)
+            self.add_module(yang_module_str)
             raise
 
     @staticmethod
-    def get_module_name(yang_module_text):
+    def get_module_name(yang_module_str):
         """
-        Read yangs module name from yang_module_text
+        Read yangs module name from yang_module_str
 
         Parameters:
-            yang_module_text(str): YANG module string.
+            yang_module_str(str): YANG module string.
 
         Returns:
             str: Module name
         """
 
+        # Instantiate new context since parse_module_mem() loads the module into context.
         sy = sonic_yang.SonicYang(YANG_DIR)
-        module = sy.ctx.parse_module_mem(yang_module_text, ly.LYS_IN_YANG)
+        module = sy.ctx.parse_module_mem(yang_module_str, ly.LYS_IN_YANG)
         return module.name()
 
 
