@@ -17,7 +17,9 @@ INIT_CFG_JSON = os.path.join(ETC_SONIC_PATH, 'init_cfg.json')
 
 
 class PersistentConfigDbConnector:
-    """ swsscommon.ConfigDBConnector adapter for persistent DBs. """
+    """ This class implements swsscommon.ConfigDBConnector methods for persistent DBs (JSON files).
+    For method description refer to swsscommon.ConfigDBConnector.
+    """
 
     def __init__(self, filepath):
         self._filepath = filepath
@@ -132,12 +134,10 @@ class SonicDB:
         if not os.path.exists(CONFIG_DB_JSON):
             return None
 
-        conn = PersistentConfigDbConnector(CONFIG_DB_JSON)
-        return conn
+        return PersistentConfigDbConnector(CONFIG_DB_JSON)
 
     @classmethod
     def get_initial_db_connector(cls):
         """ Returns initial DB connector. """
 
-        conn = PersistentConfigDbConnector(INIT_CFG_JSON)
-        return conn
+        return PersistentConfigDbConnector(INIT_CFG_JSON)

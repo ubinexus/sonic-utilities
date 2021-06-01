@@ -153,7 +153,7 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
 
     service_creator.create(package)
 
-    mock_config_mgmt.add_module.assert_called_with('TEST YANG')
+    mock_config_mgmt.add_module.assert_called_with(test_yang)
 
     mock_connector.mod_config.assert_called_with(
         {
