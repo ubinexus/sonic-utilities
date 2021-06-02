@@ -179,7 +179,6 @@ class DBMigrator():
         '''
         Combine CONTAINER_FEATURE and FEATURE tables into FEATURE table.
         '''
-
         feature_table = self.configDB.get_table('FEATURE')
         for feature, config in feature_table.items():
             state = config.pop('status', 'disabled')
