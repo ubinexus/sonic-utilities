@@ -286,7 +286,8 @@ class DBMigrator():
                 # Override init config with current config.
                 # This will leave new fields from init_config
                 # in new_config, but not override existing configuration.
-                new_cfg = {**init_cfg, **curr_cfg}
+                new_cfg = init_cfg.copy()
+                new_cfg.update(curr_cfg)
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
     def migrate(self):
