@@ -1226,15 +1226,15 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     """
     if not force and not no_service_restart:
         if not _system_running():
-            click.echo("System is not up")
+            click.echo("System is not up. Retry later or use -f to avoid system checks")
             return
 
         if not _delay_timers_elapsed():
-            click.echo("Services are not up")
+            click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
             return
 
         if not _swss_ready():
-            click.echo("SWSS is not ready")
+            click.echo("Orchagent container is not up. Retry later or use -f to avoid system checks")
             return
 
     if filename is None:
