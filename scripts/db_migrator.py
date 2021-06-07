@@ -9,18 +9,20 @@ import traceback
 from sonic_py_common import device_info, logger
 from swsssdk import ConfigDBConnector, SonicDBConfig, SonicV2Connector
 
+INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+
 # mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
-        tests_path = os.path.join(modules_path, "tests")
+        tests_path = os.path.join(modules_path, "sonic-utilities-tests")
         mocked_db_path = os.path.join(tests_path, "db_migrator_input")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
+        INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
 except KeyError:
     pass
 
-INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 SYSLOG_IDENTIFIER = 'db_migrator'
 
 # Global logger instance

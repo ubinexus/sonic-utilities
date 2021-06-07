@@ -119,15 +119,21 @@ class TestInitConfigMigrator(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        mock_tables.dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def mock_dedicated_config_db(self, filename):
+        jsonfile = os.path.join(mock_db_path, 'config_db', filename)
+        mock_tables.dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile
+        db = Db()
+        return db
 
     def test_init_config_feature_migration(self):
-        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'feature-input')
+        self.mock_dedicated_config_db('feature-input')
+
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
-        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'feature-expected')
-        expected_db = Db()
+        expected_db = self.mock_dedicated_config_db('feature-expected')
 
         resulting_table = dbmgtr.configDB.get_table('FEATURE')
         expected_table = expected_db.cfgdb.get_table('FEATURE')
