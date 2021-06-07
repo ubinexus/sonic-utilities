@@ -73,40 +73,11 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
-    if state in ["active", "standby", "unknown"] and configdb_state in ["active", "manual"]:
-        if state_cfg_val == configdb_state:
-            # status is already active or manual, so nothing to do
-            port_status_dict[port] = 'OK'
-        elif state_cfg_val in ["auto", "manual"]:
-            # display ok and write to cfgdb auto
-            port_status_dict[port] = 'OK'
-            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
-    elif state == "active" and configdb_state in ["auto", "manual"]:
-        if state_cfg_val == configdb_state:
-            # dont write anything to db, write OK to user
-            port_status_dict[port] = 'OK'
-        elif state_cfg_val in ["active", "manual"]:
-            # make the state active and write back OK
-            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
-            port_status_dict[port] = 'OK'
-
-    elif state in ["standby", "unknown"] and configdb_state in ["auto", "manual"]:
-        if state_cfg_val == "active":
-            # make the state active
-            config_db.set_entry("MUX_CABLE", port, {"state": "active",
-                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
-            port_status_dict[port] = 'INPROGRESS'
-        elif state_cfg_val == configdb_state:
-            # dont write anything to db
-            port_status_dict[port] = 'OK'
-        elif state_cfg_val in ["auto", "manual"]:
-            # make the state what is configured and write back OK
-            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
-            port_status_dict[port] = 'OK'
-
+    if state_cfg_val is not configdb_state:
+        config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val})
+        port_status_dict[port] = 'INPROGRESS' if state_cfg_val is 'active' and state is not 'active' else 'OK'
+    else:
+        port_status_dict[port] = 'OK'
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
