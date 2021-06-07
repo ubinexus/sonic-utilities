@@ -8,6 +8,7 @@
 import os
 import sys
 import natsort
+import ast
 
 import subprocess
 import click
@@ -628,28 +629,30 @@ def fetch_error_status_from_platform_api(port):
         A string consisting of the error status of each port.
     """
     if port is None:
-        logical_port_list = platform_sfputil.logical
-        physical_port_list = None
+        logical_port_list = natsort.natsorted(platform_sfputil.logical)
         # Create a list containing the logical port names of all ports we're interested in
         generate_sfp_list_code = \
-            "sfp_list = chassis.get_all_sfps();"
+            "sfp_list = chassis.get_all_sfps()\n"
     else:
         physical_port_list = logical_port_name_to_physical_port_list(port)
         logical_port_list = [port]
         # Create a list containing the logical port names of all ports we're interested in
         generate_sfp_list_code = \
-            "sfp_list = [chassis.get_sfp(x) for x in {}];".format(physical_port_list)
+            "sfp_list = [chassis.get_sfp(x) for x in {}]\n".format(physical_port_list)
 
     # Code to initialize chassis object
     init_chassis_code = \
-        "import sonic_platform.platform;" \
-        "platform = sonic_platform.platform.Platform();" \
-        "chassis = platform.get_chassis();"
+        "import sonic_platform.platform\n" \
+        "platform = sonic_platform.platform.Platform()\n" \
+        "chassis = platform.get_chassis()\n"
 
     # Code to fetch the error status
     get_error_status_code = \
-        "errors=['{}:{}'.format(sfp.index, sfp.get_error_description()) for sfp in sfp_list];" \
-        "print(errors)"
+        "try:\n"\
+        "    errors=['{}:{}'.format(sfp.index, sfp.get_error_description()) for sfp in sfp_list]\n" \
+        "except NotImplementedError as e:\n"\
+        "    errors=['{}:{}'.format(sfp.index, 'OK (Not implemented)') for sfp in sfp_list]\n" \
+        "print(errors)\n"
 
     get_error_status_command = "docker exec pmon python3 -c \"{}{}{}\"".format(
         init_chassis_code, generate_sfp_list_code, get_error_status_code)
@@ -657,7 +660,8 @@ def fetch_error_status_from_platform_api(port):
     try:
         output = subprocess.check_output(get_error_status_command, shell=True, universal_newlines=True)
     except subprocess.CalledProcessError as e:
-        click.abort("Error! Unable to fetch error status for SPF modules. Error code = {}, error messages: {}".format(e.returncode, e.output))
+        click.Abort("Error! Unable to fetch error status for SPF modules. Error code = {}, error messages: {}".format(e.returncode, e.output))
+        return None
 
     output_list = output.split('\n')
     for output_str in output_list:
@@ -665,7 +669,7 @@ def fetch_error_status_from_platform_api(port):
         # Besides, there can be some logs captured during the platform API executing
         # So, first of all, we need to skip all the logs until find the output list of SFP error status
         if output_str[0] == '[' and output_str[-1] == ']':
-            output_list = eval(output_str)
+            output_list = ast.literal_eval(output_str)
             break
 
     output_dict = {}
@@ -708,6 +712,7 @@ def fetch_error_status_from_state_db(port, state_db):
         elif statestring == '0':
             description = 'Unplugged'
         elif description == 'N/A':
+            log.log_error("Inconsistent state found for port {}: state is {} but error description is N/A".format(port, statestring))
             description = 'Unknown state: {}'.format(statestring)
 
         output.append([port, description])
@@ -715,12 +720,10 @@ def fetch_error_status_from_state_db(port, state_db):
     return output
 
 @show.command()
-@click.option('-p', '--port', metavar='<port_name>', help="Display SFP presence for port <port_name> only")
-@click.option('-h', '--fetch-from-hardware', 'fetch_from_hardware', is_flag=True, default=False, help="Fetch the error status from hardware directly")
-@click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
-def error_status(port, fetch_from_hardware, namespace):
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP error status for port <port_name> only")
+@click.option('-hw', '--fetch-from-hardware', 'fetch_from_hardware', is_flag=True, default=False, help="Fetch the error status from hardware directly")
+def error_status(port, fetch_from_hardware):
     """Display error status of SFP transceiver(s)"""
-    logical_port_list = []
     output_table = []
     table_header = ["Port", "Error Status"]
 
@@ -738,7 +741,8 @@ def error_status(port, fetch_from_hardware, namespace):
         if state_db is not None:
             state_db.connect(state_db.STATE_DB)
         else:
-            return None
+            click.echo("Failed to connect to STATE_DB")
+            return
 
         output_table = fetch_error_status_from_state_db(port, state_db)
 
