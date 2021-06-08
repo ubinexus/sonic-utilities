@@ -395,8 +395,6 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["active", "all", "--json"], obj=db)
-        f = open("newfile1", "w")
-        f.write(result.output)
 
         assert result.exit_code == 0
         assert result.output == json_data_config_output_active_expected
