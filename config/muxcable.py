@@ -73,12 +73,17 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
-    if state_cfg_val is not configdb_state:
+
+    if str(state_cfg_val) == str(configdb_state):
+        port_status_dict[port] = 'OK'
+    else:
         config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
                                                 "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
-        port_status_dict[port] = 'INPROGRESS' if state_cfg_val is 'active' and state is not 'active' else 'OK'
-    else:
-        port_status_dict[port] = 'OK'
+        if str(state_cfg_val) == 'active' and str(state) != 'active':
+            port_status_dict[port] = 'INPROGRESS'
+        else:
+            port_status_dict[port] = 'OK'
+
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
