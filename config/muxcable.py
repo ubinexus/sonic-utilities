@@ -77,9 +77,9 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
     if str(state_cfg_val) == str(configdb_state):
         port_status_dict[port] = 'OK'
     else:
-        config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
         if str(state_cfg_val) == 'active' and str(state) != 'active':
+            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
+                                                    "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
             port_status_dict[port] = 'INPROGRESS'
         else:
             port_status_dict[port] = 'OK'
