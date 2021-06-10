@@ -37,7 +37,7 @@ jobs:
       pipeline: 15
       artifact: sonic-swss-pytests
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/202012'
+      runBranch: 'refs/heads/master'
     displayName: "Download sonic swss pytests"
 
   - checkout: self

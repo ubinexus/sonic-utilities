@@ -27,7 +27,7 @@ jobs:
       pipeline: 15
       artifact: ${{ parameters.artifact_name }}
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/202012'
+      runBranch: 'refs/heads/master'
     displayName: "Download docker-sonic-vs artifact"
 
   - script: |
