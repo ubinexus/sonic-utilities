@@ -125,10 +125,6 @@ class InterfaceAliasConverter(object):
             self.port_dict = self.config_db.get_table('PORT')
         self.alias_max_length = 0
 
-        if self.port_dict is None:
-            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
-            self.port_dict = {}
-
         for port_name in self.port_dict:
             try:
                 if self.alias_max_length < len(
