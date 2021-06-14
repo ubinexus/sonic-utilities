@@ -181,9 +181,10 @@ class DBMigrator():
         '''
         feature_table = self.configDB.get_table('FEATURE')
         for feature, config in feature_table.items():
-            state = config.pop('status', 'disabled')
-            config['state'] = state
-            self.configDB.set_entry('FEATURE', feature, config)
+            if 'status' in config:
+                state = config.pop('status', 'disabled')
+                config['state'] = state
+                self.configDB.set_entry('FEATURE', feature, config)
 
         container_feature_table = self.configDB.get_table('CONTAINER_FEATURE')
         for feature, config in container_feature_table.items():
