@@ -99,7 +99,7 @@ function backup_database()
    # Dump redis EventDB content to file in case 'dump.rdb' in case of coldreboot
    sonic-db-cli EVENT_DB save
 
-   docker cp database:/var/lib/redis4/$REDIS_FILE $COLD_DIR
+   docker cp database:/var/lib/redis1/$REDIS_FILE $COLD_DIR
 
    # Cleanup all dump.rdb files, if any
    docker exec -i database find /var/lib/ | grep $REDIS_FILE | xargs docker exec -i database rm
