@@ -1234,7 +1234,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             return
 
         if not _swss_ready():
-            click.echo("Orchagent container is not up. Retry later or use -f to avoid system checks")
+            click.echo("SwSS container is not ready. Retry later or use -f to avoid system checks")
             return
 
     if filename is None:
