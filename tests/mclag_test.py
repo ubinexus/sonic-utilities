@@ -134,7 +134,6 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_INVALID_PEER_LINK5], obj=obj)
         assert result.exit_code != 0, "mclag invalid peer link test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
-    #
     def test_add_invalid_mclag_domain(self):
         runner = CliRunner()
         db = Db()
