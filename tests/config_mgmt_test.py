@@ -56,6 +56,7 @@ class TestConfigMgmt(TestCase):
             len(out['ACL_TABLE'][k]) == 1
         return
 
+    @pytest.mark.skip(reason="not stable")
     def test_break_out(self):
         # prepare default config
         self.writeJson(portBreakOutConfigDbJson,
@@ -78,6 +79,7 @@ class TestConfigMgmt(TestCase):
         self.dpb_port4_4x25G_2x50G_f_l(curConfig)
         return
 
+    @pytest.mark.skip(reason="not stable")
     def test_shutdownIntf_call(self):
         '''
         Verify that _shutdownIntf() is called with deleted ports while calling
