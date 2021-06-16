@@ -4,6 +4,7 @@ from json import dump
 from copy import deepcopy
 from unittest import mock, TestCase
 
+import pytest
 from utilities_common.general import load_module_from_source
 
 # Import file under test i.e., config_mgmt.py
