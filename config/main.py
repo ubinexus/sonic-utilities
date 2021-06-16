@@ -703,7 +703,7 @@ def _restart_services():
     clicommon.run_command("sudo monit reload")
 
 def _get_delay_timers():
-    out = clicommon.run_command("systemctl list-dependencies delay.target --plain |sed '1d'", return_cmd=True)
+    out = clicommon.run_command("systemctl list-dependencies sonic-delayed.target --plain |sed '1d'", return_cmd=True)
     return [timer.strip() for timer in out.splitlines()]
 
 def _delay_timers_elapsed():
