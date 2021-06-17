@@ -1,6 +1,9 @@
 import click
+import itertools
+from tabulate import tabulate
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import ConfigDBConnector
+
 
 #
 # 'kdump command ("show kdump ...")
@@ -10,68 +13,183 @@ def kdump():
     """Show kdump configuration, status and information """
     pass
 
-@kdump.command('enabled')
-def enabled():
-    """Show if kdump is enabled or disabled"""
-    kdump_is_enabled = False
+
+def get_kdump_admin_mode():
+    """Fetches the administrative mode of Kdump from `CONFIG_DB`.
+
+    Args:
+      None.
+
+    Returns:
+      admin_mode: If Kdump is enabled, returns "Enabled"; If Kdump is disabled,
+      returns "Disabled"; Otherwise, returns "Unknown".
+    """
+    admin_mode = "Unknown"
     config_db = ConfigDBConnector()
-    if config_db is not None:
+    if config_db:
         config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                if config_data.get('enabled').lower() == 'true':
-                    kdump_is_enabled = True
-    if kdump_is_enabled:
-        click.echo("kdump is enabled")
+        kdump_table = config_db.get_table("KDUMP")
+        if kdump_table and "config" in kdump_table and "enabled" in kdump_table["config"]:
+            if kdump_table["config"]["enabled"] == "true":
+                admin_mode = "Enabled"
+            else:
+                admin_mode = "Disabled"
+
+    return admin_mode
+
+
+def get_kdump_oper_mode():
+    """Fetches the operational mode of Kdump from the result of ommand
+    `/usr/sbin/kdump-config status`.
+
+    Args:
+      None.
+
+    Returns:
+      admin_mode: If Kdump is ready, returns "Ready"; If Kdump is not ready,
+      returns "Unready"; Otherwise, returns "Unknown".
+    """
+    oper_mode = "Unready"
+    command_stdout, command_stderr, exit_code = clicommon.run_command("/usr/sbin/kdump-config status",
+                                                                      return_cmd=True)
+    if exit_code != 0:
+        oper_mode = "Unknown"
+        return oper_mode
+
+    for line in command_stdout.splitlines():
+        if ": ready to kdump" in line:
+            oper_mode = "Ready"
+            break
+
+    return oper_mode
+
+
+def get_kdump_memory_config():
+    """Fetches the memory configuration of Kdump from `CONFIG_DB`.
+
+    Args:
+      None.
+
+    Returns:
+      mem_config: If memory was configured, returns the configuration information;
+      Otherwise, returns "Unknown".
+    """
+    mem_config = "Unknown"
+    config_db = ConfigDBConnector()
+
+    if config_db:
+        config_db.connect()
+        kdump_table = config_db.get_table("KDUMP")
+        if kdump_table and "config" in kdump_table and "memory" in kdump_table["config"]:
+            mem_config = kdump_table["config"]["memory"]
+
+    return mem_config
+
+
+def get_kdump_num_files():
+    """Fetches the maximum number of Kdump files configured in `CONFIG_DB`.
+
+    Args:
+      None.
+
+    Returns:
+      num_files_config: If the number of Kdump files was configured, returns the
+      configuration information; Otherwise, returns "Unknown".
+    """
+    num_files_config = "Unknown"
+    config_db = ConfigDBConnector()
+
+    if config_db:
+        config_db.connect()
+        kdump_table = config_db.get_table("KDUMP")
+        if kdump_table and "config" in kdump_table and "num_dumps" in kdump_table["config"]:
+            num_files_config = kdump_table["config"]["num_dumps"]
+
+    return num_files_config
+
+
+@kdump.command(name="config", short_help="Show the configuration of Linux kernel dump")
+def config():
+    admin_mode = get_kdump_admin_mode()
+    oper_mode = get_kdump_oper_mode()
+
+    click.echo("Kdump administrative mode: {}".format(admin_mode))
+    if admin_mode == "enabled" and oper_mode == "unready":
+        click.echo("Kdump operational mode: Ready after reboot")
     else:
-        click.echo("kdump is disabled")
+        click.echo("Kdump operational mode: {}".format(oper_mode))
 
-@kdump.command('status')
-def status():
-    """Show kdump status"""
-    clicommon.run_command("sonic-kdump-config --status")
-    clicommon.run_command("sonic-kdump-config --memory")
-    clicommon.run_command("sonic-kdump-config --num_dumps")
-    clicommon.run_command("sonic-kdump-config --files")
+    mem_config = get_kdump_memory_config()
+    click.echo("Kdump memory researvation: {}".format(mem_config))
 
-@kdump.command('memory')
-def memory():
-    """Show kdump memory information"""
-    kdump_memory = "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                kdump_memory_from_db = config_data.get('memory')
-                if kdump_memory_from_db is not None:
-                    kdump_memory = kdump_memory_from_db
-    click.echo("Memory Reserved: {}".format(kdump_memory))
+    num_files_config = get_kdump_num_files()
+    click.echo("Maximum number of Kdump files: {}".format(num_files_config))
 
-@kdump.command('num_dumps')
-def num_dumps():
-    """Show kdump max number of dump files"""
-    kdump_num_dumps = "3"
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                kdump_num_dumps_from_db = config_data.get('num_dumps')
-                if kdump_num_dumps_from_db is not None:
-                    kdump_num_dumps = kdump_num_dumps_from_db
-    click.echo("Maximum number of Kernel Core files Stored: {}".format(kdump_num_dumps))
 
-@kdump.command('files')
+def get_kdump_core_files():
+    """Retrieves the kernel core dump files from directory /var/crash/.
+
+    Args:
+      None.
+
+    Returns:
+      dump_file_list: A list contains kernel core dump files or error messages.
+    """
+    find_core_dump_files = "find /var/crash -name 'kdump.*'"
+    dump_file_list = []
+    command_stdout, command_stderr, exit_code = clicommon.run_command(find_core_dump_files,
+                                                                      return_cmd=True)
+    if exit_code != 0:
+        dump_file_list.append("Failed to retrieve kernel core dump files!")
+
+    if not command_stdout.splitlines():
+        dump_file_list.append("No kernel core dump file available!")
+    else:
+        dump_file_list = command_stdout.splitlines()
+
+    return dump_file_list
+
+
+def get_kdump_dmesg_files():
+    """Retrieves the kernel dmesg files from directory /var/crash/.
+
+    Args:
+      None.
+
+    Returns:
+      dmesg_file_list: A list contains kernel dmesg files or error messages.
+    """
+    find_dmesg_files = "find /var/crash -name 'dmesg.*'"
+    dmesg_file_list = []
+    command_stdout, command_stderr, exit_code = clicommon.run_command(find_dmesg_files,
+                                                                      return_cmd=True)
+    if exit_code != 0:
+        dmesg_file_list.append("Failed to retrieve kernel dmesg files!")
+
+    if not command_stdout.splitlines():
+        dmesg_file_list.append("No kernel dmesg file available!")
+    else:
+        dmesg_file_list = command_stdout.splitlines()
+
+    return dmesg_file_list
+
+
+@kdump.command(name="files", short_help="Show kernel core dump and dmesg files")
 def files():
-    """Show kdump kernel core dump files"""
-    clicommon.run_command("sonic-kdump-config --files")
+    core_file_list = []
+    dmesg_file_list = []
+    body = []
+
+    core_file_list = get_kdump_core_files()
+    dmesg_file_list = get_kdump_dmesg_files()
+
+    header = ["Kernel core dump files", "Kernel dmesg files"]
+
+    for (core_file, dmesg_file) in itertools.zip_longest(core_file_list, dmesg_file_list, fillvalue=""):
+        body.append([core_file, dmesg_file])
+
+    click.echo(tabulate(body, header))
+
 
 @kdump.command()
 @click.argument('record', required=True)
