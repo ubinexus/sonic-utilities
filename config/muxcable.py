@@ -9,6 +9,7 @@ from sonic_py_common import multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
+from .utils import cfglock
 
 platform_sfputil = None
 
@@ -278,6 +279,8 @@ def state(state, port):
 
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} state. Continue?'.format(port, state)), abort=True)
+        # Reacquire lock, if confirmation is needed for this command
+        cfglock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
         if port not in logical_port_list:
             click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
@@ -326,7 +329,7 @@ def state(state, port):
 
         logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
 
-        """ This check is required for checking whether or not this logical port is the one which is 
+        """ This check is required for checking whether or not this logical port is the one which is
         actually mapped to physical port and by convention it is always the first port.
         TODO: this should be removed with more logic to check which logical port maps to actual physical port
         being used"""
@@ -366,6 +369,8 @@ def state(state, port):
     elif port == "all" and port is not None:
 
         click.confirm(('Muxcables at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
+        # Reacquire lock, if confirmation is needed for this command
+        cfglock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
         rc = True
@@ -473,6 +478,8 @@ def setswitchmode(state, port):
 
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} switching mode. Continue?'.format(port, state)), abort=True)
+        # Reacquire lock, if confirmation is needed for this command
+        cfglock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
         if port not in logical_port_list:
             click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
@@ -545,6 +552,8 @@ def setswitchmode(state, port):
     elif port == "all" and port is not None:
 
         click.confirm(('Muxcable at port {} will be changed to {} switching mode. Continue?'.format(port, state)), abort=True)
+        # Reacquire lock, if confirmation is needed for this command
+        cfglock.acquireLock()
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
         rc = True

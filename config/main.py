@@ -27,7 +27,7 @@ from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
-from .utils import log
+from .utils import log, cfglock
 
 from . import aaa
 from . import chassis_modules
@@ -189,6 +189,8 @@ def breakout_warnUser_extraTables(cm, final_delPorts, confirm=True):
             click.secho("Below Config can not be verified, It may cause harm "\
                 "to the system\n {}".format(json.dumps(tables, indent=2)))
             click.confirm('Do you wish to Continue?', abort=True)
+            # Reacquire lock, if confirmation is needed for this command
+            cfglock.acquireLock()
     except Exception as e:
         raise Exception("Failed in breakout_warnUser_extraTables. Error: {}".format(str(e)))
     return
@@ -639,6 +641,8 @@ def _get_sonic_generated_services(num_asic):
 def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
+    # Reacquire lock, if confirmation is needed for this command
+    cfglock.acquireLock()
 
 
 def _get_disabled_services_list(config_db):
@@ -933,6 +937,11 @@ def config(ctx):
 
     ctx.obj = Db()
 
+    # Take lock only when config command is executed, to avoid taking lock for
+    # TABs and for -h. Note ? is treated as input python clicks
+    cfglock.acquireLock()
+
+
 
 # Add groups from other modules
 config.add_command(aaa.aaa)
@@ -1015,6 +1024,8 @@ def load(filename, yes):
 
     if not yes:
         click.confirm(message, abort=True)
+        # Reacquire lock, if confirmation is needed for this command
+        cfglock.acquireLock()
 
     num_asic = multi_asic.get_num_asics()
     cfg_files = []
@@ -1204,6 +1215,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
 
     if not yes:
         click.confirm(message, abort=True)
+        # Reacquire lock, if confirmation is needed for this command
+        cfglock.acquireLock()
 
     log.log_info("'reload' executing...")
 
