@@ -114,6 +114,7 @@ setup(
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
+        'scripts/soft-reboot',
         'scripts/storyteller',
         'scripts/syseeprom-to-json',
         'scripts/tempershow',
