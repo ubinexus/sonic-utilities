@@ -5,6 +5,7 @@
 
 trigger:
 - master
+- 202012
 
 resources:
   repositories:
