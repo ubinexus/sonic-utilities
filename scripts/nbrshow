@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 """
     Script to show Ipv4/Ipv6 neighbor entries
 
@@ -36,6 +37,7 @@ from swsssdk import port_util
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
+
 """
    Base class for v4 and v6 neighbor.
 """
@@ -48,7 +50,7 @@ class NbrBase(object):
 
     def __init__(self, cmd):
         super(NbrBase, self).__init__()
-        self.db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+        self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
@@ -80,7 +82,7 @@ class NbrBase(object):
                 continue
 
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
-            br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
             if br_port_id not in self.if_br_oid_map:
                 continue
             port_id = self.if_br_oid_map[br_port_id]
@@ -93,6 +95,10 @@ class NbrBase(object):
             elif 'bvid' in fdb:
                 try:
                     vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                    if vlan_id is None:
+                        # the case could be happened if the FDB entry has created with linking to
+                        # default VLAN 1, which is not present in the system
+                        continue
                 except Exception:
                     vlan_id = fdb["bvid"]
                     print("Failed to get Vlan id for bvid {}\n".format(fdb["bvid"]))
@@ -104,7 +110,7 @@ class NbrBase(object):
         """
             Fetch Neighbor data (ARP/IPv6 Neigh) from kernel.
         """
-        p = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(self.cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (output, err) = p.communicate()
         rc = p.wait()
 
@@ -129,7 +135,7 @@ class NbrBase(object):
             vlan = '-'
             if 'Vlan' in ent[2]:
                 vlanid = int(re.search(r'\d+', ent[2]).group())
-                mac = unicode(ent[1].upper())
+                mac = ent[1].upper()
                 fdb_ent = next((fdb for fdb in self.bridge_mac_list[:]
                                if fdb[0] == vlanid and fdb[1] == mac), None)
                 vlan = vlanid
@@ -259,7 +265,7 @@ def main():
             arp.display()
 
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 

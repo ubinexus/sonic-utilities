@@ -46,14 +46,22 @@ def del_vlan(db, vid):
     if clicommon.check_if_vlanid_exist(db.cfgdb, vlan) == False:
         ctx.fail("{} does not exist".format(vlan))
 
+    intf_table = db.cfgdb.get_table('VLAN_INTERFACE')
+    for intf_key in intf_table:
+        if ((type(intf_key) is str and intf_key == 'Vlan{}'.format(vid)) or
+            (type(intf_key) is tuple and intf_key[0] == 'Vlan{}'.format(vid))):
+            ctx.fail("{} can not be removed. First remove IP addresses assigned to this VLAN".format(vlan))
+
     keys = [ (k, v) for k, v in db.cfgdb.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
-    for k in keys:
-        db.cfgdb.set_entry('VLAN_MEMBER', k, None)
+    
+    if keys:
+        ctx.fail("VLAN ID {} can not be removed. First remove all members assigned to this VLAN.".format(vid))
+        
     db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
 def restart_ndppd():
     verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
-    docker_exec_cmd = "docker exec -it swss {}"
+    docker_exec_cmd = "docker exec -i swss {}"
     ndppd_config_gen_cmd = "sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf"
     ndppd_restart_cmd = "supervisorctl restart ndppd"
 
@@ -84,7 +92,7 @@ def config_proxy_arp(db, vid, mode):
     if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
         ctx.fail("Interface {} does not exist".format(vlan))
 
-    db.cfgdb.set_entry('VLAN_INTERFACE', vlan, {"proxy_arp": mode})
+    db.cfgdb.mod_entry('VLAN_INTERFACE', vlan, {"proxy_arp": mode})
     click.echo('Proxy ARP setting saved to ConfigDB')
     restart_ndppd()
 #
@@ -136,6 +144,14 @@ def add_vlan_member(db, vid, port, untagged):
     if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
        (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
         ctx.fail("{} is a router interface!".format(port))
+        
+    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+
+    if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
+        ctx.fail("{} is part of portchannel!".format(port))
+
+    if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged):
+        ctx.fail("{} is already untagged member!".format(port))
 
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
 
@@ -169,72 +185,3 @@ def del_vlan_member(db, vid, port):
 
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), None)
 
-@vlan.group(cls=clicommon.AbbreviationGroup, name='dhcp_relay')
-def vlan_dhcp_relay():
-    pass
-
-@vlan_dhcp_relay.command('add')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
-@clicommon.pass_db
-def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
-    """ Add a destination IP address to the VLAN's DHCP relay """
-
-    ctx = click.get_current_context()
-
-    if not clicommon.is_ipaddress(dhcp_relay_destination_ip):
-        ctx.fail('{} is invalid IP address'.format(dhcp_relay_destination_ip))
-
-    vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.cfgdb.get_entry('VLAN', vlan_name)
-    if len(vlan) == 0:
-        ctx.fail("{} doesn't exist".format(vlan_name))
-
-    dhcp_relay_dests = vlan.get('dhcp_servers', [])
-    if dhcp_relay_destination_ip in dhcp_relay_dests:
-        click.echo("{} is already a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
-        return
-
-    dhcp_relay_dests.append(dhcp_relay_destination_ip)
-    vlan['dhcp_servers'] = dhcp_relay_dests
-    db.cfgdb.set_entry('VLAN', vlan_name, vlan)
-    click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl restart dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
-
-@vlan_dhcp_relay.command('del')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
-@clicommon.pass_db
-def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
-    """ Remove a destination IP address from the VLAN's DHCP relay """
-
-    ctx = click.get_current_context()
-
-    if not clicommon.is_ipaddress(dhcp_relay_destination_ip):
-        ctx.fail('{} is invalid IP address'.format(dhcp_relay_destination_ip))
-
-    vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.cfgdb.get_entry('VLAN', vlan_name)
-    if len(vlan) == 0:
-        ctx.fail("{} doesn't exist".format(vlan_name))
-
-    dhcp_relay_dests = vlan.get('dhcp_servers', [])
-    if not dhcp_relay_destination_ip in dhcp_relay_dests:
-        ctx.fail("{} is not a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
-
-    dhcp_relay_dests.remove(dhcp_relay_destination_ip)
-    if len(dhcp_relay_dests) == 0:
-        del vlan['dhcp_servers']
-    else:
-        vlan['dhcp_servers'] = dhcp_relay_dests
-    db.cfgdb.set_entry('VLAN', vlan_name, vlan)
-    click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl restart dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))

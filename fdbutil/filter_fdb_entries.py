@@ -27,14 +27,14 @@ def get_vlan_cidr_map(filename):
         config_db_entries = json.load(fp)
 
     vlan_cidr = defaultdict()
-    if "VLAN_INTERFACE" in config_db_entries.keys() and "VLAN" in config_db_entries.keys():
-        for vlan_key in config_db_entries["VLAN_INTERFACE"].keys():
+    if "VLAN_INTERFACE" in config_db_entries and "VLAN" in config_db_entries:
+        for vlan_key in config_db_entries["VLAN_INTERFACE"]:
             if '|' not in vlan_key:
                 continue
             vlan, cidr = tuple(vlan_key.split('|'))
             if vlan in config_db_entries["VLAN"]:
                 if vlan not in vlan_cidr:
-                    vlan_cidr[vlan] = {4: ip_address("0.0.0.0".decode()), 6: ip_address("::".decode())}
+                    vlan_cidr[vlan] = {4: ip_address("0.0.0.0"), 6: ip_address("::")}
                 vlan_cidr[vlan][ip_interface(cidr).version] = ip_interface(cidr).network
 
     return vlan_cidr
@@ -63,10 +63,10 @@ def get_arp_entries_map(arp_filename, config_db_filename):
         for key, config in arp.items():
             if "NEIGH_TABLE" not in key:
                 continue
-            table, vlan, ip = tuple(key.split(':'))
-            if "NEIGH_TABLE" in table and vlan in vlan_cidr.keys() \
+            table, vlan, ip = tuple(key.split(':', 2)) # split with max of 2 is used here because IPv6 addresses contain ':' causing a creation of a non tuple object 
+            if "NEIGH_TABLE" in table and vlan in vlan_cidr \
                 and ip_address(ip) in ip_network(vlan_cidr[vlan][ip_interface(ip).version]) \
-                and "neigh" in config.keys():
+                and "neigh" in config:
                 arp_map[config["neigh"].replace(':', '-').upper()] = ""
 
     return arp_map

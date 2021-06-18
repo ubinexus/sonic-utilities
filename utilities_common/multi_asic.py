@@ -2,33 +2,39 @@ import argparse
 import functools
 
 import click
+import netifaces
+import pyroute2
+from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common import constants
 
 
 class MultiAsic(object):
 
-    def __init__(self, display_option=constants.DISPLAY_ALL,
-                 namespace_option=None):
+    def __init__(
+        self, display_option=constants.DISPLAY_ALL, namespace_option=None,
+        db=None
+    ):
         self.namespace_option = namespace_option
         self.display_option = display_option
         self.current_namespace = None
         self.is_multi_asic = multi_asic.is_multi_asic()
+        self.db = db
 
     def is_object_internal(self, object_type, cli_object):
         '''
         The function checks if a CLI object is internal and returns true or false.
-        Internal objects are port or portchannel which are connected to other 
+        Internal objects are port or portchannel which are connected to other
         ports or portchannels within a multi ASIC device.
 
         For single asic, this function is not applicable
         '''
         if object_type == constants.PORT_OBJ:
-            return multi_asic.is_port_internal(cli_object)
+            return multi_asic.is_port_internal(cli_object, self.current_namespace)
         elif object_type == constants.PORT_CHANNEL_OBJ:
-            return multi_asic.is_port_channel_internal(cli_object)
+            return multi_asic.is_port_channel_internal(cli_object, self.current_namespace)
         elif object_type == constants.BGP_NEIGH_OBJ:
-            return multi_asic.is_bgp_session_internal(cli_object)
+            return multi_asic.is_bgp_session_internal(cli_object, self.current_namespace)
 
     def skip_display(self, object_type, cli_object):
         '''
@@ -99,6 +105,11 @@ _multi_asic_click_options = [
                  help='Namespace name or all'),
 ]
 
+def multi_asic_namespace_validation_callback(ctx, param, value):
+    if not multi_asic.is_multi_asic:
+        click.echo("-n/--namespace is not available for single asic")
+        ctx.abort()
+    return value
 
 def multi_asic_click_options(func):
     for option in reversed(_multi_asic_click_options):
@@ -120,8 +131,17 @@ def run_on_multi_asic(func):
         ns_list = self.multi_asic.get_ns_list_based_on_options()
         for ns in ns_list:
             self.multi_asic.current_namespace = ns
-            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
-            self.config_db = multi_asic.connect_config_db_for_ns(ns)
+            # if object instance already has db connections, use them
+            if self.multi_asic.db and self.multi_asic.db.cfgdb_clients.get(ns):
+                self.config_db = self.multi_asic.db.cfgdb_clients[ns]
+            else:
+                self.config_db = multi_asic.connect_config_db_for_ns(ns)
+
+            if self.multi_asic.db and self.multi_asic.db.db_clients.get(ns):
+                self.db = self.multi_asic.db.db_clients[ns]
+            else:
+                self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+
             func(self,  *args, **kwargs)
     return wrapped_run_on_all_asics
 
@@ -136,3 +156,24 @@ def multi_asic_args(parser=None):
     parser.add_argument('-n', '--namespace', default=None,
                         help='Display interfaces for specific namespace')
     return parser
+
+def multi_asic_get_ip_intf_from_ns(namespace):
+    if namespace != constants.DEFAULT_NAMESPACE:
+        pyroute2.netns.pushns(namespace)
+    interfaces = natsorted(netifaces.interfaces())
+
+    if namespace != constants.DEFAULT_NAMESPACE:
+        pyroute2.netns.popns()
+
+    return interfaces
+
+
+def multi_asic_get_ip_intf_addr_from_ns(namespace, iface):
+    if namespace != constants.DEFAULT_NAMESPACE:
+        pyroute2.netns.pushns(namespace)
+    ipaddresses = netifaces.ifaddresses(iface)
+
+    if namespace != constants.DEFAULT_NAMESPACE:
+        pyroute2.netns.popns()
+
+    return ipaddresses

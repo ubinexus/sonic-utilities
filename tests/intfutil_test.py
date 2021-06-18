@@ -23,7 +23,7 @@ PortChannel0001              N/A      40G   9100    N/A        N/A           rou
 PortChannel0002              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
 PortChannel0003              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
 PortChannel0004              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
-PortChannel1001              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
+PortChannel1001              N/A      40G   9100    N/A        N/A            trunk     N/A      N/A              N/A         N/A
 """
 
 show_interface_status_Ethernet32_output="""\
@@ -62,6 +62,31 @@ show_interface_description_eth9_output="""\
  Ethernet32      up       up     etp9  Servers7:eth0
 """
 
+show_interface_auto_neg_status_output = """\
+  Interface    Auto-Neg Mode    Speed    Adv Speeds    Type    Adv Types    Oper    Admin
+-----------  ---------------  -------  ------------  ------  -----------  ------  -------
+  Ethernet0          enabled      25G       10G,50G     CR4      CR4,CR2    down       up
+ Ethernet32         disabled      40G           all     N/A          all      up       up
+Ethernet112              N/A      40G           N/A     N/A          N/A      up       up
+Ethernet116              N/A      40G           N/A     N/A          N/A      up       up
+Ethernet120              N/A      40G           N/A     N/A          N/A      up       up
+Ethernet124              N/A      40G           N/A     N/A          N/A      up       up
+"""
+
+show_interface_auto_neg_status_Ethernet0_output = """\
+  Interface    Auto-Neg Mode    Speed    Adv Speeds    Type    Adv Types    Oper    Admin
+-----------  ---------------  -------  ------------  ------  -----------  ------  -------
+  Ethernet0          enabled      25G       10G,50G     CR4      CR4,CR2    down       up
+"""
+
+show_interface_auto_neg_status_eth9_output = """\
+  Interface    Auto-Neg Mode    Speed    Adv Speeds    Type    Adv Types    Oper    Admin
+-----------  ---------------  -------  ------------  ------  -----------  ------  -------
+ Ethernet32         disabled      40G           all     N/A          all      up       up
+"""
+
+
+
 class TestIntfutil(TestCase):
     @classmethod
     def setup_class(cls):
@@ -83,7 +108,7 @@ class TestIntfutil(TestCase):
         assert result.output == show_interface_status_output
 
         # Test 'intfutil status'
-        output = subprocess.check_output('intfutil -c status', stderr=subprocess.STDOUT, shell=True)
+        output = subprocess.check_output('intfutil -c status', stderr=subprocess.STDOUT, shell=True, text=True)
         print(output)
         assert result.output == show_interface_status_output
 
@@ -155,7 +180,7 @@ class TestIntfutil(TestCase):
     def test_subintf_status(self):
         # Test 'show subinterfaces status'
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], [])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
@@ -164,14 +189,14 @@ class TestIntfutil(TestCase):
         self.assertEqual(result.output.strip(), expected_output)
 
         # Test 'intfutil status subport'
-        output = subprocess.check_output('intfutil -c status -i subport', stderr=subprocess.STDOUT, shell=True)
-        print >> sys.stderr, output
+        output = subprocess.check_output('intfutil -c status -i subport', stderr=subprocess.STDOUT, shell=True, text=True)
+        print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 
     # Test 'show subinterfaces status --verbose'
     def test_subintf_status_verbose(self):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["--verbose"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = "Command: intfutil -c status -i subport"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
@@ -180,7 +205,7 @@ class TestIntfutil(TestCase):
     def test_single_subintf_status(self):
         # Test 'show subinterfaces status Ethernet0.10'
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
@@ -189,14 +214,14 @@ class TestIntfutil(TestCase):
         self.assertEqual(result.output.strip(), expected_output)
 
         # Test 'intfutil status Ethernet0.10'
-        output = subprocess.check_output('intfutil -c status -i Ethernet0.10', stderr=subprocess.STDOUT, shell=True)
-        print >> sys.stderr, output
+        output = subprocess.check_output('intfutil -c status -i Ethernet0.10', stderr=subprocess.STDOUT, shell=True, text=True)
+        print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 
     # Test '--verbose' status of single sub interface
     def test_single_subintf_status_verbose(self):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10", "--verbose"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = "Command: intfutil -c status -i Ethernet0.10"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
@@ -206,7 +231,7 @@ class TestIntfutil(TestCase):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
 
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["etp1.10"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
@@ -221,11 +246,34 @@ class TestIntfutil(TestCase):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
 
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["etp1.10", "--verbose"])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = "Command: intfutil -c status -i Ethernet0.10"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
         os.environ["SONIC_CLI_IFACE_MODE"] = "default"
+
+    def test_show_interfaces_autoneg_status(self):
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg"].commands["status"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interface_auto_neg_status_output
+
+    def test_show_interfaces_autoneg_status_Ethernet0(self):
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg"].commands["status"], ["Ethernet0"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interface_auto_neg_status_Ethernet0_output
+  
+    def test_show_interfaces_autoneg_status_etp9_in_alias_mode(self):
+        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg"].commands["status"], ["etp9"])
+        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interface_auto_neg_status_eth9_output
 
     @classmethod
     def teardown_class(cls):

@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
 """
 using aclshow to display SONiC switch acl rules and counters
 
@@ -16,12 +17,10 @@ optional arguments:
   -t TABLES, --tables TABLES  action by specific tables list: Table_1,Table_2
 """
 
-from __future__ import print_function
-
 import argparse
 import json
 import os
-import swsssdk
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 import sys
 
 from tabulate import tabulate
@@ -61,10 +60,10 @@ class AclStat(object):
             self.table_list = tables.split(",")
 
         # Set up db connections
-        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.COUNTERS_DB)
 
-        self.configdb = swsssdk.ConfigDBConnector()
+        self.configdb = ConfigDBConnector()
         self.configdb.connect()
 
     def previous_counters(self):
@@ -93,7 +92,7 @@ class AclStat(object):
         """
 
         def lowercase_keys(dictionary):
-            return dict((k.lower(), v) for k,v in dictionary.iteritems()) if dictionary else None
+            return dict((k.lower(), v) for k, v in dictionary.items()) if dictionary else None
 
         def fetch_acl_tables():
             """
@@ -125,7 +124,7 @@ class AclStat(object):
             """
             Get ACL counters from the DB
             """
-            for table, rule in self.acl_rules.keys():
+            for table, rule in self.acl_rules:
                 cnt_props = lowercase_keys(self.db.get_all(self.db.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
                 self.acl_counters[table, rule] = cnt_props
 
@@ -164,7 +163,7 @@ class AclStat(object):
 
         header = ACL_HEADER
         aclstat = []
-        for rule_key in self.acl_rules.keys():
+        for rule_key in self.acl_rules:
             if not display_all and (self.get_counter_value(rule_key, 'packets') == '0' or \
                     self.get_counter_value(rule_key, 'packets') == 'N/A'):
                 continue
@@ -188,19 +187,19 @@ class AclStat(object):
         clear counters -- write current counters to file in /tmp
         """
         def remap_keys(dict):
-            return [{'key':k, 'value': v} for k, v in dict.iteritems()]
+            return [{'key': k, 'value': v} for k, v in dict.items()]
 
-        with open(COUNTER_POSITION, 'wb') as fp:
+        with open(COUNTER_POSITION, 'w') as fp:
             json.dump(remap_keys(self.acl_counters), fp)
 
 def main():
     parser = argparse.ArgumentParser(description='Display SONiC switch Acl Rules and Counters',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--all', action='store_true', help='Show all ACL counters')
     parser.add_argument('-c', '--clear', action='store_true', help='Clear ACL counters statistics')
     parser.add_argument('-r', '--rules', type=str, help='action by specific rules list: Rule1_Name,Rule2_Name', default=None)
     parser.add_argument('-t', '--tables', type=str, help='action by specific tables list: Table1_Name,Table2_Name', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     args = parser.parse_args()
 
@@ -213,7 +212,7 @@ def main():
         acls.previous_counters()
         acls.display_acl_stat(args.all)
     except Exception as e:
-        print(e.message, file=sys.stderr)
+        print(str(e), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

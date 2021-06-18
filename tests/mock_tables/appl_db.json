@@ -15,6 +15,15 @@
         "admin_state": "up",
         "sample_rate": "5000"
     },
+    "SFLOW_SESSION_TABLE:Ethernet8": {
+        "BAD": "BAD"
+    },
+    "SFLOW_SESSION_TABLE:Ethernet12": {
+        "sample_rate": "5000"
+    },
+    "SFLOW_SESSION_TABLE:Ethernet16": {
+        "admin_state": "up"
+    },
     "PORT_TABLE:Ethernet0": {
         "index": "0",
         "lanes": "0",
@@ -25,7 +34,11 @@
         "pfc_asym": "off",
         "mtu": "9100",
         "fec": "rs",
-        "admin_status": "up"
+        "admin_status": "up",
+        "adv_speeds": "50000,10000",
+        "interface_type": "CR4",
+        "adv_interface_types": "CR4,CR2",
+        "autoneg": "on"
     },
     "PORT_TABLE:Ethernet32": {
         "index": "8",
@@ -37,7 +50,10 @@
         "pfc_asym": "off",
         "mtu": "9100",
         "fec": "rs",
-        "admin_status": "up"
+        "admin_status": "up",
+        "autoneg": "off",
+        "adv_speeds": "all",
+        "adv_interface_types": "all"
     },
     "PORT_TABLE:Ethernet112": {
         "index": "28",
@@ -98,6 +114,18 @@
         "mtu": "9100",
         "pfc_asym": "off",
         "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet-IB0": {
+        "admin_status": "up",
+        "alias": "Ethernet-IB0",
+        "asic_port_name": "Rcy-ASIC0",
+        "description": "",
+        "index": "148",
+        "lanes": "109,0,0,0,0,0,0,0",
+        "mtu": "9100",
+        "oper_status": "up",
+        "role": "Int",
+        "speed": "100000"
     },
     "INTF_TABLE:Ethernet0.10": {
         "admin_status": "up"
@@ -160,5 +188,14 @@
     },
     "SWITCH_TABLE:switch": {
         "vxlan_port": "13550"
+    },
+    "VXLAN_REMOTE_VNI_TABLE:Vlan200:25.25.25.25": {
+        "vni": "200"
+    },
+    "VXLAN_REMOTE_VNI_TABLE:Vlan200:25.25.25.26": {
+        "vni": "200"
+    },
+    "VXLAN_REMOTE_VNI_TABLE:Vlan200:25.25.25.27": {
+        "vni": "200"
     }
 }

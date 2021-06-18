@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ JSON based configlet update
 
 A tool to update CONFIG-DB with JSON diffs that can update/delete redis-DB.
@@ -75,11 +75,10 @@ A sample for update:
 
 """
 
-from __future__ import print_function
 import argparse
 import json
-import time
-from swsssdk import ConfigDBConnector
+
+from swsscommon.swsscommon import ConfigDBConnector
 
 test_only = False
 
@@ -101,8 +100,8 @@ def db_update(t, k, lst):
     tuple_k = db.deserialize_key(k[0])
     if tuple_k in ct_keys:
         data = db.get_entry(t, k)
-        for i in lst.keys():
-            if not data.has_key(i) or data[i] != lst[i]:
+        for i in lst:
+            if i not in data or data[i] != lst[i]:
                 to_upd = True
                 break
     else:
@@ -115,8 +114,8 @@ def db_delete_fields(t, k, lst):
     init()
     to_set = False
     data = db.get_entry(t, k)
-    for i in lst.keys():
-        if data.has_key(i):
+    for i in lst:
+        if i in data:
             data.pop(i)
             to_set = True
 
@@ -141,21 +140,21 @@ def do_update(t, k, lst):
     if test_only == False:
         db_update(t, k, lst)
     else:
-        print ("TEST update")
-        print ("table: " + t)
-        print ("key: " + str(k))
-        print (lst)
-        print ("---------------------")
+        print("TEST update")
+        print("table: " + t)
+        print("key: " + str(k))
+        print(lst)
+        print("---------------------")
 
 def do_delete(t, k, lst):
     if test_only == False:
         db_delete(t, k, lst)
     else:
-        print ("TEST delete")
-        print ("table: " + t)
-        print ("key: " + str(k))
-        print (lst)
-        print ("---------------------")
+        print("TEST delete")
+        print("table: " + t)
+        print("key: " + str(k))
+        print(lst)
+        print("---------------------")
 
 
 def do_operate(op_upd, t, k, lst):
@@ -172,7 +171,7 @@ def do_operate(op_upd, t, k, lst):
 
 
 def process_entry(op_upd, data):
-    for t in data.keys():
+    for t in data:
         do_operate(op_upd, t, (), data[t])
 
 def main():
@@ -194,7 +193,7 @@ def main():
 
     do_act = test_only | parse_only | do_update | do_delete
     if not do_act:
-        print ("Expect an action update/delete or for debug parse/test\n")
+        print("Expect an action update/delete or for debug parse/test\n")
         parser.print_help()
         exit(-1)
 
@@ -204,11 +203,6 @@ def main():
             if parse_only == False:
                 for i in data:
                     process_entry (do_update, i)
-                    # Artificial sleep to give a pause between two entries
-                    # so as to ensure that all internal daemons have digested the 
-                    # previous update, before the next one arrives.
-                    #
-                    time.sleep(3)
             else:
                 print("Parsed:")
                 print(data)

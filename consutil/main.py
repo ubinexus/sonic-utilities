@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -12,13 +12,20 @@ try:
     import utilities_common.cli as clicommon
 
     from tabulate import tabulate
-    from lib import *
+    from .lib import *
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 @click.group()
-def consutil():
+@clicommon.pass_db
+def consutil(db):
     """consutil - Command-line utility for interacting with switches via console device"""
+    config_db = db.cfgdb
+    data = config_db.get_entry(CONSOLE_SWITCH_TABLE, FEATURE_KEY)
+    if FEATURE_ENABLED_KEY not in data or data[FEATURE_ENABLED_KEY] == "no":
+        click.echo("Console switch feature is disabled")
+        sys.exit(ERR_DISABLE)
+
     SysInfoProvider.init_device_prefix()
 
 # 'show' subcommand
@@ -34,7 +41,7 @@ def show(db, brief):
     ports.sort(key=lambda p: int(p.line_num))
 
     # set table header style
-    header = ["Line", "Baud", "PID", "Start Time", "Device"]
+    header = ["Line", "Baud", "Flow Control", "PID", "Start Time", "Device"]
     body = []
     for port in ports:
         # runtime information
@@ -42,7 +49,8 @@ def show(db, brief):
         pid = port.session_pid if port.session_pid else "-"
         date = port.session_start_date if port.session_start_date else "-"
         baud = port.baud
-        body.append([busy+port.line_num, baud if baud else "-", pid if pid else "-", date if date else "-", port.remote_device])
+        flow_control = "Enabled" if port.flow_control else "Disabled"
+        body.append([busy+port.line_num, baud if baud else "-", flow_control, pid if pid else "-", date if date else "-", port.remote_device])
     click.echo(tabulate(body, header, stralign='right'))
 
 # 'clear' subcommand
@@ -66,6 +74,8 @@ def clear(db, target, devicename):
 
     if not target_port.clear_session():
         click.echo("No process is connected to line " + target_port.line_num)
+    else:
+        click.echo("Cleared line")
 
 # 'connect' subcommand
 @consutil.command()

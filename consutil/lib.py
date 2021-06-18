@@ -1,20 +1,17 @@
-#!/usr/bin/env python
 #
 # lib.py
 #
 # Helper code for CLI for interacting with switches via console device
 #
 
-try:
-    import click
-    import re
-    import subprocess
-    import pexpect
-    import sys
-    import os
-    from sonic_py_common import device_info
-except ImportError as e:
-    raise ImportError("%s - required module not found" % str(e))
+import os
+import pexpect
+import re
+import subprocess
+import sys
+
+import click
+from sonic_py_common import device_info
 
 ERR_DISABLE = 1
 ERR_CMD = 2
@@ -23,6 +20,8 @@ ERR_CFG = 4
 ERR_BUSY = 5
 
 CONSOLE_PORT_TABLE = "CONSOLE_PORT"
+CONSOLE_SWITCH_TABLE = "CONSOLE_SWITCH"
+
 LINE_KEY = "LINE"
 CUR_STATE_KEY = "CUR_STATE"
 
@@ -30,6 +29,8 @@ CUR_STATE_KEY = "CUR_STATE"
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
+FEATURE_KEY = "console_mgmt"
+FEATURE_ENABLED_KEY = "enabled"
 
 # STATE_DB Keys
 STATE_KEY = "state"
@@ -43,7 +44,7 @@ IDLE_FLAG = "idle"
 PICOCOM_READY = "Terminal ready"
 PICOCOM_BUSY = "Resource temporarily unavailable"
 
-FILENAME = "udevprefix.conf"
+UDEV_PREFIX_CONF_FILENAME = "udevprefix.conf"
 
 TIMEOUT_SEC = 0.2
 
@@ -263,12 +264,12 @@ class SysInfoProvider(object):
     @staticmethod
     def init_device_prefix():
         platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
-        PLUGIN_PATH = "/".join([platform_path, "plugins", FILENAME])
+        UDEV_PREFIX_CONF_FILE_PATH = os.path.join(platform_path, UDEV_PREFIX_CONF_FILENAME)
 
-        if os.path.exists(PLUGIN_PATH):
-            fp = open(PLUGIN_PATH, 'r')
-            line = fp.readlines()
-            SysInfoProvider.DEVICE_PREFIX = "/dev/" + line[0]
+        if os.path.exists(UDEV_PREFIX_CONF_FILE_PATH):
+            fp = open(UDEV_PREFIX_CONF_FILE_PATH, 'r')
+            lines = fp.readlines()
+            SysInfoProvider.DEVICE_PREFIX = "/dev/" + lines[0].rstrip()
 
     @staticmethod
     def list_console_ttys():
@@ -276,7 +277,7 @@ class SysInfoProvider(object):
         cmd = "ls " + SysInfoProvider.DEVICE_PREFIX + "*"
         output, _ = SysInfoProvider.run_command(cmd, abort=False)
         ttys = output.split('\n')
-        ttys = list(filter(lambda dev: re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None, ttys))
+        ttys = list([dev for dev in ttys if re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None])
         return ttys
 
     @staticmethod
@@ -292,8 +293,8 @@ class SysInfoProvider(object):
         cmd = 'ps -p {} -o pid,lstart,cmd | grep -E "(mini|pico)com"'.format(pid)
         output = SysInfoProvider.run_command(cmd)
         processes = SysInfoProvider._parse_processes_info(output)
-        if len(processes.keys()) == 1:
-            return (processes.keys()[0],) + list(processes.values())[0]
+        if len(list(processes.keys())) == 1:
+            return (list(processes.keys())[0],) + list(processes.values())[0]
         else:
             return None
 
@@ -324,7 +325,7 @@ class SysInfoProvider(object):
     @staticmethod
     def run_command(cmd, abort=True):
         """runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise"""
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
         output = proc.stdout.read()
         error = proc.stderr.read()
         if abort and error != "":

@@ -1,22 +1,34 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
-# queuestat is a tool for summarizing queue statistics of all ports. 
+# queuestat is a tool for summarizing queue statistics of all ports.
 #
 #####################################################################
 
+import _pickle as pickle
 import argparse
-import cPickle as pickle
 import datetime
 import os.path
-import swsssdk
 import sys
 
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector # lgtm [py/unused-import]
+
+except KeyError:
+    pass
+
+from swsscommon.swsscommon import SonicV2Connector
 
 QueueStats = namedtuple("QueueStats", "queueindex, queuetype, totalpacket, totalbytes, droppacket, dropbytes")
 header = ['Port', 'TxQ', 'Counter/pkts', 'Counter/bytes', 'Drop/pkts', 'Drop/bytes']
@@ -28,6 +40,7 @@ counter_bucket_dict = {
     'SAI_QUEUE_STAT_DROPPED_BYTES': 5,
 }
 
+from utilities_common.cli import json_dump
 from utilities_common.netstat import ns_diff, STATUS_NA
 
 QUEUE_TYPE_MC = 'MC'
@@ -47,9 +60,27 @@ COUNTERS_QUEUE_PORT_MAP = "COUNTERS_QUEUE_PORT_MAP"
 cnstat_dir = 'N/A'
 cnstat_fqn_file = 'N/A'
 
+
+def build_json(port, cnstat):
+    def ports_stats(k):
+        p = {}
+        p[k[1]] = {
+            "totalpacket": k[2],
+            "totalbytes": k[3],
+            "droppacket": k[4],
+            "dropbytes": k[5]
+        }
+        return p
+
+    out = {}
+    for k in cnstat:
+        out.update(ports_stats(k))
+    return out
+
+
 class Queuestat(object):
     def __init__(self):
-        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.COUNTERS_DB)
 
         def get_queue_port(table_id):
@@ -118,7 +149,7 @@ class Queuestat(object):
             fields[0] = get_queue_index(table_id)
             fields[1] = get_queue_type(table_id)
 
-            for counter_name, pos in counter_bucket_dict.iteritems():
+            for counter_name, pos in counter_bucket_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
                 if counter_data is None:
@@ -134,33 +165,45 @@ class Queuestat(object):
         if queue_map is None:
             return cnstat_dict
         for queue in natsorted(queue_map):
-            cnstat_dict[queue] = get_counters(queue_map[queue]) 
+            cnstat_dict[queue] = get_counters(queue_map[queue])
         return cnstat_dict
 
-    def cnstat_print(self, port, cnstat_dict):
+    def cnstat_print(self, port, cnstat_dict, json_opt):
         """
-            Print the cnstat.
+        Print the cnstat. If JSON option is True, return data in
+        JSON format.
         """
         table = []
+        json_output = {port: {}}
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
+                if json_opt:
+                    json_output[port][key] = data
                 continue
             table.append((port, data.queuetype + str(data.queueindex),
                         data.totalpacket, data.totalbytes,
                         data.droppacket, data.dropbytes))
 
-        print(tabulate(table, header, tablefmt='simple', stralign='right'))
-        print()
+        if json_opt:
+            json_output[port].update(build_json(port, table))
+            return json_output
+        else:
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
+            print()
 
-    def cnstat_diff_print(self, port, cnstat_new_dict, cnstat_old_dict):
+    def cnstat_diff_print(self, port, cnstat_new_dict, cnstat_old_dict, json_opt):
         """
-            Print the difference between two cnstat results.
+        Print the difference between two cnstat results. If JSON
+        option is True, return data in JSON format.
         """
         table = []
+        json_output = {port: {}}
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
+                if json_opt:
+                    json_output[port][key] = cntr
                 continue
             old_cntr = None
             if key in cnstat_old_dict:
@@ -177,26 +220,50 @@ class Queuestat(object):
                         cntr.totalpacket, cntr.totalbytes,
                         cntr.droppacket, cntr.dropbytes))
 
-        print(tabulate(table, header, tablefmt='simple', stralign='right'))
-        print()
+        if json_opt:
+            json_output[port].update(build_json(port, table))
+            return json_output
+        else:
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
+            print()
 
-    def get_print_all_stat(self):
-        # Get stat for each port
+    def get_print_all_stat(self, json_opt):
+        """
+        Get stat for each port
+        If JSON option is True, collect data for each port and
+        print data in JSON format for all ports
+        """
+        json_output = {}
         for port in natsorted(self.counter_port_name_map):
+            json_output[port] = {}
             cnstat_dict = self.get_cnstat(self.port_queues_map[port])
 
             cnstat_fqn_file_name = cnstat_fqn_file + port
             if os.path.isfile(cnstat_fqn_file_name):
                 try:
-                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'r'))
-                    print(port + " Last cached time was " + str(cnstat_cached_dict.get('time')))
-                    self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict)
+                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'rb'))
+                    if json_opt:
+                        json_output[port].update({"cached_time":cnstat_cached_dict.get('time')})
+                        json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt))
+                    else:
+                        print(port + " Last cached time was " + str(cnstat_cached_dict.get('time')))
+                        self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt)
                 except IOError as e:
                     print(e.errno, e)
             else:
-                self.cnstat_print(port, cnstat_dict)
+                if json_opt:
+                    json_output.update(self.cnstat_print(port, cnstat_dict, json_opt))
+                else:
+                    self.cnstat_print(port, cnstat_dict, json_opt)
 
-    def get_print_port_stat(self, port):
+        if json_opt:
+            print(json_dump(json_output))
+
+    def get_print_port_stat(self, port, json_opt):
+        """
+        Get stat for the port
+        If JSON option is True  print data in JSON format
+        """
         if not port in self.port_queues_map:
             print("Port doesn't exist!", port)
             sys.exit(1)
@@ -204,15 +271,27 @@ class Queuestat(object):
         # Get stat for the port queried
         cnstat_dict = self.get_cnstat(self.port_queues_map[port])
         cnstat_fqn_file_name = cnstat_fqn_file + port
+        json_output = {}
+        json_output[port] = {}
         if os.path.isfile(cnstat_fqn_file_name):
             try:
-                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'r'))
-                print("Last cached time was " + str(cnstat_cached_dict.get('time')))
-                self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict)
+                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'rb'))
+                if json_opt:
+                    json_output[port].update({"cached_time":cnstat_cached_dict.get('time')})
+                    json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt))
+                else:
+                    print("Last cached time was " + str(cnstat_cached_dict.get('time')))
+                    self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt)
             except IOError as e:
                 print(e.errno, e)
         else:
-            self.cnstat_print(port, cnstat_dict)
+            if json_opt:
+                json_output.update(self.cnstat_print(port, cnstat_dict, json_opt))
+            else:
+                self.cnstat_print(port, cnstat_dict, json_opt)
+
+        if json_opt:
+            print(json_dump(json_output))
 
     def save_fresh_stats(self):
         if not os.path.exists(cnstat_dir):
@@ -226,7 +305,7 @@ class Queuestat(object):
         for port in natsorted(self.counter_port_name_map):
             cnstat_dict = self.get_cnstat(self.port_queues_map[port])
             try:
-                pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'w'))
+                pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'wb'))
             except IOError as e:
                 print(e.errno, e)
                 sys.exit(e.errno)
@@ -238,7 +317,6 @@ def main():
     global cnstat_fqn_file
 
     parser  = argparse.ArgumentParser(description='Display the queue state and counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -251,10 +329,13 @@ Examples:
     parser.add_argument('-p', '--port', type=str, help='Show the queue conters for just one port', default=None)
     parser.add_argument('-c', '--clear', action='store_true', help='Clear previous stats and save new ones')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('-j', '--json_opt', action='store_true', help='Print in JSON format')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
     delete_all_stats = args.delete
+    json_opt = args.json_opt
 
     port_to_show_stats = args.port
 
@@ -282,9 +363,9 @@ Examples:
         sys.exit(0)
 
     if port_to_show_stats!=None:
-        queuestat.get_print_port_stat(port_to_show_stats)
+        queuestat.get_print_port_stat(port_to_show_stats, json_opt)
     else:
-        queuestat.get_print_all_stat()
+        queuestat.get_print_all_stat(json_opt)
 
     sys.exit(0)
 
