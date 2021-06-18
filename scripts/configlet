@@ -77,14 +77,21 @@ A sample for update:
 
 import argparse
 import json
+import sonic_yang
+import syslog
 
 from swsscommon.swsscommon import ConfigDBConnector
+from sonic_py_common import logger
+from json import load
+
+YANG_DIR = "/usr/local/yang-models"
+SYSLOG_IDENTIFIER = "configlet"
 
 test_only = False
-
 connected = False
 
 db = ConfigDBConnector()
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 def init():
     global connected
@@ -92,6 +99,15 @@ def init():
     if connected == False:
         db.connect(False)
         connected = True
+
+def uniq(lst):
+    prv = object()
+    for item in lst:
+        if item == prv:
+            print(f"Duplicate found: {item}")
+            continue
+        yield item
+        prv = item
 
 def db_update(t, k, lst):
     init()
@@ -108,6 +124,10 @@ def db_update(t, k, lst):
         to_upd = True
 
     if to_upd:
+        for key, value in lst.items():
+            if type(value) == list:
+                # If value is list check its on dublicate
+                lst[key] = list(uniq(sorted(value)))
         db.mod_entry(t, k, lst)
 
 def db_delete_fields(t, k, lst):
@@ -159,7 +179,7 @@ def do_delete(t, k, lst):
 
 def do_operate(op_upd, t, k, lst):
     if lst:
-        if type(lst[lst.keys()[0]]) == dict:
+        if type(lst[list(lst.keys())[0]]) == dict:
             for i in lst:
                 do_operate(op_upd, t, k+(i,), lst[i])
             return
@@ -174,6 +194,27 @@ def process_entry(op_upd, data):
     for t in data:
         do_operate(op_upd, t, (), data[t])
 
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = load(f)
+    except Exception as e:
+        raise Exception(e)
+    return result
+
+def readConfigDBJson(source):
+    configdbJsonIn = readJsonFile(source)
+    if not configdbJsonIn:
+        raise Exception("Can not load config from config DB json file")
+    return configdbJsonIn
+
+def validateConfigData(sy):
+    try:
+        sy.validate_data_tree()
+    except Exception as e:
+        return False
+    return True
+
 def main():
     global test_only
 
@@ -183,6 +224,7 @@ def main():
     parser.add_argument("-p", "--parse", help="Parse JSON only", action='store_true', default=False)
     parser.add_argument("-u", "--update", help="Apply the JSON as update", action='store_true', default=False)
     parser.add_argument("-d", "--delete", help="Apply the JSON as delete", action='store_true', default=False)
+    parser.add_argument("-y", "--disable_yang", help="Disable YANG validation", action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -190,6 +232,7 @@ def main():
     parse_only = args.parse
     do_update = args.update
     do_delete = args.delete
+    disable_yang = args.disable_yang
 
     do_act = test_only | parse_only | do_update | do_delete
     if not do_act:
@@ -197,7 +240,27 @@ def main():
         parser.print_help()
         exit(-1)
 
+    if not disable_yang:
+        try:
+            sy = sonic_yang.SonicYang(YANG_DIR)
+            sy.loadYangModel()
+        except Exception as e:
+                print(f'Error: Cannot load YANG models.')
+                exit(-1)
+
     for json_file in args.json:
+
+        if not disable_yang:
+            try:
+                for entry in readConfigDBJson(json_file):
+                    sy.loadData(entry)
+                    if validateConfigData(sy) is False:
+                        print(f'Error: {json_file} is not valide by YANG models.')
+                        exit(-1)
+            except Exception as e:
+                print(f'Error: {e}')
+                exit(-1)
+
         with open(json_file, 'r') as stream:
             data = json.load(stream)
             if parse_only == False:
