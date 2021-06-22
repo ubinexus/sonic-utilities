@@ -4008,7 +4008,8 @@ def add_route(ctx, command_str):
 
     # If defined intf name, check if it belongs to interface
     if 'ifname' in route:
-        if (not route['ifname'] in config_db.get_keys('VLAN') and
+        if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
+            not route['ifname'] in config_db.get_keys('VLAN') and
             not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
             not route['ifname'] in config_db.get_keys('INTERFACE') and
             not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE') and
