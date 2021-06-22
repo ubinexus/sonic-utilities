@@ -20,7 +20,7 @@ class JsonChange:
     It provides a single function to apply the change to a given JSON object.
    """
     def __init__(self, patch):
-        self.patch=patch
+        self.patch = patch
 
     def apply(self, config):
         return self.patch.apply(config)
@@ -230,7 +230,7 @@ class PathAddressing:
         # src: https://tools.ietf.org/html/rfc6901
         mod_tokens = []
         for token in tokens:
-            mod_token = str(token)
+            mod_token = token
             mod_token = mod_token.replace("~0", "~")
             mod_token = mod_token.replace("~1", "/")
             mod_tokens.append(mod_token)
@@ -312,7 +312,7 @@ class PathAddressing:
             # libyang implements XPATH 1.0 which does not escape single quotes
             # libyang src: https://netopeer.liberouter.org/doc/libyang/master/html/howtoxpath.html
             # XPATH 1.0 src: https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Literal
-            idx=idx+1
+            idx = idx+1
 
         return idx
 
@@ -324,7 +324,7 @@ class PathAddressing:
             # libyang implements XPATH 1.0 which does not escape double quotes
             # libyang src: https://netopeer.liberouter.org/doc/libyang/master/html/howtoxpath.html
             # XPATH 1.0 src: https://www.w3.org/TR/1999/REC-xpath-19991116/#NT-Literal
-            idx=idx+1
+            idx = idx+1
 
         return idx
 
@@ -392,7 +392,7 @@ class PathAddressing:
 
         ref_xpaths = []
         for xpath in leaf_xpaths:
-            ref_xpaths.extend(self._find_leaf_dependencies(sy, xpath))
+            ref_xpaths.extend(sy.find_data_dependencies(xpath))
 
         ref_paths = []
         for ref_xpath in ref_xpaths:
@@ -402,7 +402,7 @@ class PathAddressing:
         return set(ref_paths)
 
     def _get_inner_leaf_xpaths(self, xpath, sy):
-        if xpath=="/": # Point to Root element which contains all xpaths
+        if xpath == "/": # Point to Root element which contains all xpaths
             nodes = sy.root.tree_for()
         else: # Otherwise get all nodes that match xpath
             nodes = sy.root.find_path(xpath).data()
@@ -415,37 +415,7 @@ class PathAddressing:
 
     def _is_leaf_node(self, node):
         schema = node.schema()
-        return ly.LYS_LEAF == schema.nodetype() # or ly.LYS_LEAFLIST == schema.nodetype()
-
-    # TODO: YANG SONiC lib has this function but with a bug in handling null backlinks.
-    #       It is OK to have null backlinks if there is no backlinks.
-    def _find_leaf_dependencies(self, sy, data_xpath):
-        ref_list = []
-        node = sy.root
-        try:
-            data_node = sy._find_data_node(data_xpath)
-        except Exception as e:
-            print("find_data_dependencies(): Failed to find data node from xpath: {}".format(data_xapth))
-            return ref_list
-
-        try:
-            value = str(sy._find_data_node_value(data_xpath))
-
-            schema_node = ly.Schema_Node_Leaf(data_node.schema())
-            backlinks = schema_node.backlinks()
-            if backlinks is not None and backlinks.number() > 0:
-                for link in backlinks.schema():
-                     node_set = node.find_path(link.path())
-                     for data_set in node_set.data():
-                          data_set.schema()
-                          casted = data_set.subtype()
-                          if value == casted.value_str():
-                              ref_list.append(data_set.path())
-        except Exception as e:
-            raise GenericConfigUpdaterError("Failed to find node or dependencies for \
-                {}\n{}".format(data_xpath, str(e)))
-
-        return ref_list
+        return ly.LYS_LEAF == schema.nodetype()
 
     def convert_path_to_xpath(self, path, config, sy):
         """
@@ -500,10 +470,10 @@ class PathAddressing:
     def _get_xpath_tokens_from_list(self, model, token_index, path_tokens, config):
         list_name = model['@name']
 
-        tableKey=path_tokens[token_index]
+        tableKey = path_tokens[token_index]
         listKeys = model['key']['@value']
         keyDict = self._extractKey(tableKey, listKeys)
-        keyTokens=[f"[{key}='{keyDict[key]}']" for key in keyDict]
+        keyTokens = [f"[{key}='{keyDict[key]}']" for key in keyDict]
         item_token = f"{list_name}{''.join(keyTokens)}"
 
         xpath_tokens = [item_token]
@@ -512,7 +482,7 @@ class PathAddressing:
         # Example:
         #   path: /VLAN/Vlan1000
         #   xpath: /sonic-vlan:sonic-vlan/VLAN/VLAN_LIST[name='Vlan1000']
-        if len(path_tokens)-1==token_index:
+        if len(path_tokens)-1 == token_index:
             return xpath_tokens
 
         new_xpath_tokens = self._get_xpath_tokens_from_leaf(model, token_index+1, path_tokens,config[path_tokens[token_index]])
@@ -544,10 +514,13 @@ class PathAddressing:
             # Example:
             #   path: /VLAN/Vlan1000/dhcp_servers
             #   xpath: /sonic-vlan:sonic-vlan/VLAN/VLAN_LIST[name='Vlan1000']/dhcp_servers
-            if len(path_tokens)-1==token_index:
+            if len(path_tokens)-1 == token_index:
                 return [token]
             list_config = config[token]
-            value=list_config[int(path_tokens[token_index+1])]
+            value = list_config[int(path_tokens[token_index+1])]
+            # To get a leaf-list instance with the value 'val'
+            #   /module-name:container/leaf-list[.='val']
+            # Source: Check examples in https://netopeer.liberouter.org/doc/libyang/master/html/howto_x_path.html
             return [f"{token}[.='{value}']"]
 
         raise ValueError("Token not found")
@@ -571,11 +544,11 @@ class PathAddressing:
         clist = model.get('list')
         # Container contains a single list, just return it 
         # TODO: check if matching also by name is necessary
-        if isinstance(clist, dict): # and clist['@name'] == token+"_LIST":
+        if isinstance(clist, dict):
             return clist
 
         if isinstance(clist, list):
-            configdb_values_str=path_tokens[token_index+1]
+            configdb_values_str = path_tokens[token_index+1]
             # Format: "value1|value2|value|..."
             configdb_values = configdb_values_str.split("|")
             for list_model in clist:
@@ -663,13 +636,13 @@ class PathAddressing:
         if len(xpath_tokens)-1 == token_index:
             return path_tokens
 
-        nxt_token = xpath_tokens[token_index+1]
+        next_token = xpath_tokens[token_index+1]
         # if the target node is a key, then it does not have a correspondene to path.
         # Just return the current 'key1|key2|..' token as it already refers to the keys
         # Example where the target node is 'name' which is a key in VLAN_MEMBER_LIST:
         #   xpath: /sonic-vlan:sonic-vlan/VLAN_MEMBER/VLAN_MEMBER_LIST[name='Vlan1000'][port='Ethernet8']/name
         #   path: /VLAN_MEMBER/Vlan1000|Ethernet8
-        if nxt_token in key_dict:
+        if next_token in key_dict:
             return path_tokens
 
         new_path_tokens = self._get_path_tokens_from_leaf(model, token_index+1, xpath_tokens, config[path_token])
@@ -730,7 +703,7 @@ class PathAddressing:
         # the findall groups would be ('name', 'Vlan1000'), ('port', 'Ethernet8')
         key_value_pattern = "\[([^=]+)='([^']*)'\]"
         matches = re.findall(key_value_pattern, all_key_value)
-        key_dict={}
+        key_dict = {}
         for item in matches:
             key = item[0]
             value = item[1]

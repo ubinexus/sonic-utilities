@@ -51,19 +51,19 @@ class JsonMove:
     """
     def __init__(self, diff, op_type, current_config_tokens, target_config_tokens=None):
         operation = JsonMove._to_jsonpatch_operation(diff, op_type, current_config_tokens, target_config_tokens)
-        self.patch=jsonpatch.JsonPatch([operation])
-        self.op_type=operation[OperationWrapper.OP_KEYWORD]
-        self.path=operation[OperationWrapper.PATH_KEYWORD]
-        self.value=operation.get(OperationWrapper.VALUE_KEYWORD, None)
+        self.patch = jsonpatch.JsonPatch([operation])
+        self.op_type = operation[OperationWrapper.OP_KEYWORD]
+        self.path = operation[OperationWrapper.PATH_KEYWORD]
+        self.value = operation.get(OperationWrapper.VALUE_KEYWORD, None)
 
-        self.op_type=op_type
-        self.current_config_tokens=current_config_tokens
-        self.target_config_tokens=target_config_tokens
+        self.op_type = op_type
+        self.current_config_tokens = current_config_tokens
+        self.target_config_tokens = target_config_tokens
 
     @staticmethod
     def _to_jsonpatch_operation(diff, op_type, current_config_tokens, target_config_tokens):
-        operation_wrapper=OperationWrapper()
-        path_addressing=PathAddressing()
+        operation_wrapper = OperationWrapper()
+        path_addressing = PathAddressing()
 
         if op_type == OperationType.REMOVE:
             path = path_addressing.create_path(current_config_tokens)
@@ -82,7 +82,7 @@ class JsonMove:
     @staticmethod
     def _get_value(config, tokens):
         for token in tokens:
-            config=config[token]
+            config = config[token]
 
         return copy.deepcopy(config)
 
@@ -113,8 +113,8 @@ class JsonMove:
           Instead we convert to:
             {"op":"add", "path":"/dict1", "value":{"key11": "value11"}}
         """
-        operation_wrapper=OperationWrapper()
-        path_addressing=PathAddressing()
+        operation_wrapper = OperationWrapper()
+        path_addressing = PathAddressing()
 
         # if path refers to whole config i.e. no tokens, then just create the operation
         if not current_config_tokens:
@@ -208,7 +208,7 @@ class JsonMove:
                 break
             if not(was_list) and token not in current_ptr:
                 break
-            current_ptr=current_ptr[token]
+            current_ptr = current_ptr[token]
 
         op_type = OperationType.ADD
         new_path = path_addressing.create_path(new_tokens)
@@ -227,7 +227,7 @@ class JsonMove:
 
     @staticmethod
     def from_operation(operation):
-        path_addressing=PathAddressing()
+        path_addressing = PathAddressing()
         op_type = OperationType[operation[OperationWrapper.OP_KEYWORD].upper()]
         path = operation[OperationWrapper.PATH_KEYWORD]
         if op_type in [OperationType.ADD, OperationType.REPLACE]:
@@ -242,10 +242,10 @@ class JsonMove:
         current_config = {}
         current_config_ptr = current_config
         for token in tokens[:-1]:
-            target_config_ptr[token]={}
-            current_config_ptr[token]={}
-            target_config_ptr=target_config_ptr[token]
-            current_config_ptr=current_config_ptr[token]
+            target_config_ptr[token] = {}
+            current_config_ptr[token] = {}
+            target_config_ptr = target_config_ptr[token]
+            current_config_ptr = current_config_ptr[token]
 
         if tokens:
             target_config_ptr[tokens[-1]] = value
@@ -253,7 +253,7 @@ class JsonMove:
             # whole-config, just use value
             target_config = value
 
-        current_config_tokens=tokens
+        current_config_tokens = tokens
         if op_type in [OperationType.ADD, OperationType.REPLACE]:
             target_config_tokens = tokens
         else:
@@ -279,7 +279,7 @@ class JsonMove:
         return False
 
     def __hash__(self):
-        return hash(self.op_type) ^ hash(self.path) ^ hash(json.dumps(self.value))
+        return hash((self.op_type, self.path, json.dumps(self.value)))
 
 class MoveWrapper:
     def __init__(self, move_generators, move_extenders, move_validators):
@@ -339,7 +339,7 @@ class FullConfigMoveValidator:
     A class to validate that full config is valid according to YANG models after applying the move.
     """
     def __init__(self, config_wrapper):
-        self.config_wrapper=config_wrapper
+        self.config_wrapper = config_wrapper
 
     def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
@@ -376,7 +376,7 @@ class CreateOnlyMoveValidator:
     a modified create-only field.
     """
     def __init__(self, path_addressing):
-        self.path_addressing=path_addressing
+        self.path_addressing = path_addressing
 
     def validate(self, move, diff):
         if move.op_type != OperationType.REPLACE:
@@ -416,10 +416,10 @@ class CreateOnlyMoveValidator:
             if mod_token not in simulated_config_ptr:
                 return False
 
-            current_config_ptr=current_config_ptr[mod_token]
-            simulated_config_ptr=simulated_config_ptr[mod_token]
+            current_config_ptr = current_config_ptr[mod_token]
+            simulated_config_ptr = simulated_config_ptr[mod_token]
 
-        return current_config_ptr!=simulated_config_ptr
+        return current_config_ptr != simulated_config_ptr
 
 class NoDependencyMoveValidator:
     """
@@ -428,8 +428,8 @@ class NoDependencyMoveValidator:
     way dependent configs are never updated together.
     """
     def __init__(self, path_addressing, config_wrapper):
-        self.path_addressing=path_addressing
-        self.config_wrapper=config_wrapper
+        self.path_addressing = path_addressing
+        self.config_wrapper = config_wrapper
 
     def validate(self, move, diff):
         operation_type = move.op_type
@@ -579,7 +579,7 @@ class LowLevelMoveGenerator:
     where the path of the move does not have children.
     """
     def __init__(self, path_addressing):
-        self.path_addressing=path_addressing
+        self.path_addressing = path_addressing
     def generate(self, diff):
         single_run_generator = SingleRunLowLevelMoveGenerator(diff, self.path_addressing)
         for move in single_run_generator.generate():
@@ -591,7 +591,7 @@ class SingleRunLowLevelMoveGenerator:
     """
     def __init__(self, diff, path_addressing):
         self.diff = diff
-        self.path_addressing=path_addressing
+        self.path_addressing = path_addressing
 
     def generate(self):
         current_ptr = self.diff.current_config
@@ -848,7 +848,7 @@ class DeleteRefsMoveExtender:
     A class to extend the given DELETE move by adding DELETE moves to configs referring to the path in the move.
     """
     def __init__(self, path_addressing):
-        self.path_addressing=path_addressing
+        self.path_addressing = path_addressing
 
     def extend(self, move, diff):
         operation_type = move.op_type
@@ -950,15 +950,15 @@ class MemoizationSorter:
         return bst_moves
 
 class Algorithm(Enum):
-    DFS=1
-    BFS=2
-    MEMOIZATION=3
+    DFS = 1
+    BFS = 2
+    MEMOIZATION = 3
 
 class SortAlgorithmFactory:
     def __init__(self, operation_wrapper, config_wrapper, path_addressing):
-        self.operation_wrapper=operation_wrapper
-        self.config_wrapper=config_wrapper
-        self.path_addressing=path_addressing
+        self.operation_wrapper = operation_wrapper
+        self.config_wrapper = config_wrapper
+        self.path_addressing = path_addressing
 
     def create(self, algorithm=Algorithm.DFS):
         move_generators = [LowLevelMoveGenerator(self.path_addressing)]
