@@ -116,8 +116,6 @@ def midplane_status(chassis_module_name):
 def system_ports(systemportname, namespace, display, verbose):
     """Show VOQ system ports information"""
 
-    ctx = click.get_current_context()
-
     cmd = "voqutil -c system_ports"
 
     if systemportname is not None:
@@ -136,8 +134,6 @@ def system_ports(systemportname, namespace, display, verbose):
 def system_neighbors(namespace, display, verbose):
     """Show VOQ system neighbors information"""
 
-    ctx = click.get_current_context()
-
     cmd = "voqutil -c system_neighbors"
 
     if namespace is not None:
@@ -153,8 +149,6 @@ def system_neighbors(namespace, display, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def system_lags(systemlagname, namespace, display, verbose):
     """Show VOQ system lags information"""
-
-    ctx = click.get_current_context()
 
     cmd = "voqutil -c system_lags"
 
