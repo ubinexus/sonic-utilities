@@ -75,7 +75,7 @@ def active_hops(nhg):
 
                 for nh_ip in vals:
                     if nexthop_alias[nh_ip.split("@")[0]] == nhg:
-                        output_list.append(nh_ip)
+                        output_list.append(nh_ip.split("@")[0])
 
                 output_list = sorted(output_list)
 
