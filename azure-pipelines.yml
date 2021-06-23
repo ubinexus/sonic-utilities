@@ -84,7 +84,7 @@ stages:
         sudo dpkg -i packages-microsoft-prod.deb
         sudo apt-get update
         sudo apt --fix-broken install -y
-		    sudo apt-get install -y dotnet-sdk-5.0
+        sudo apt-get install -y dotnet-sdk-5.0
       displayName: "Install .NET CORE"
 
     - script: |
