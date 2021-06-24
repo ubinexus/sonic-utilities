@@ -21,7 +21,7 @@ def get_kdump_config(field_name):
     """Fetches the configuration of Kdump from `CONFIG_DB`.
 
     Args:
-      field_name: A string represents the field name in the sub-table of 'config'.
+      field_name: A string contains the field name in the sub-table of 'config'.
 
     Returns:
       field_value: If field name was found, then returns the corresponding value.
@@ -39,7 +39,7 @@ def get_kdump_config(field_name):
 
 
 def get_kdump_oper_mode():
-    """Fetches the operational mode of Kdump from the result of ommand
+    """Fetches the operational mode of Kdump from the result of command
     `/usr/sbin/kdump-config status`.
 
     Args:
@@ -95,11 +95,14 @@ def get_kdump_core_files():
       None.
 
     Returns:
-      dump_file_list: A list contains kernel core dump files or error messages.
+      cmd_message: A string contains the information showing the execution result
+                   of command.
+      dump_file_list: A list contains kernel core dump files.
     """
     find_core_dump_files = "find /var/crash -name 'kdump.*'"
     dump_file_list = []
     cmd_message = None
+
     command_stdout, command_stderr, exit_code = clicommon.run_command(find_core_dump_files,
                                                                       return_cmd=True)
     if exit_code != 0:
@@ -121,13 +124,14 @@ def get_kdump_dmesg_files():
       None.
 
     Returns:
-      cmd_message: A string containers the information showing the execution result
+      cmd_message: A string contains the information showing the execution result
                    of command.
-      dmesg_file_list: A list contains kernel dmesg files or error messages.
+      dmesg_file_list: A list contains kernel dmesg files.
     """
     find_dmesg_files = "find /var/crash -name 'dmesg.*'"
     dmesg_file_list = []
     cmd_message = None
+
     command_stdout, command_stderr, exit_code = clicommon.run_command(find_dmesg_files,
                                                                       return_cmd=True)
     if exit_code != 0:
