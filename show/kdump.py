@@ -39,7 +39,7 @@ def get_kdump_config(field_name):
 
 
 def get_kdump_oper_mode():
-    """Fetches the operational mode of Kdump from the result of command
+    """Fetches the operational mode of Kdump from the execution result of command
     `/usr/sbin/kdump-config status`.
 
     Args:
@@ -76,7 +76,7 @@ def config():
     oper_mode = get_kdump_oper_mode()
 
     click.echo("Kdump administrative mode: {}".format(admin_mode))
-    if admin_mode == "Enabled" and oper_mode == "unready":
+    if admin_mode == "Enabled" and oper_mode == "Unready":
         click.echo("Kdump operational mode: Ready after reboot")
     else:
         click.echo("Kdump operational mode: {}".format(oper_mode))
