@@ -663,6 +663,17 @@ def _get_disabled_services_list(config_db):
 
     return disabled_services_list
 
+def _stop_all_services():
+    # stop all other services
+    for s in _get_sonic_services():
+        try:
+            clicommon.run_command("sudo systemctl stop {}".format(s))
+        except:
+            click.echo("Error encountered while stopping service {}. Continuing..".format(s))
+    try:
+        clicommon.run_command("sudo systemctl stop swss")
+    except:
+        click.echo("Error encountered while stopping swss.service. Continuing..")
 
 def _stop_services():
     try:
@@ -673,8 +684,11 @@ def _stop_services():
         pass
 
     click.echo("Stopping SONiC target ...")
-    clicommon.run_command("sudo systemctl stop sonic.target")
-
+    try:
+        clicommon.run_command("sudo systemctl stop sonic.target")
+    except:
+        click.echo("Failed to stop sonic.target. Stopping all services individually.")
+        _stop_all_services()
 
 def _get_sonic_services():
     out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
