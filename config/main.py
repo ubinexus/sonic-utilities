@@ -668,11 +668,11 @@ def _stop_all_services():
     for s in _get_sonic_services():
         try:
             clicommon.run_command("sudo systemctl stop {}".format(s))
-        except subprocess.CalledProcessError as err:
+        except SystemExit as err:
             click.echo("Error encountered while stopping service {}. Continuing..".format(s))
     try:
         clicommon.run_command("sudo systemctl stop swss")
-    except subprocess.CalledProcessError as err:
+    except SystemExit as err:
         click.echo("Error encountered while stopping swss.service. Continuing..")
 
 def _stop_services():
@@ -686,7 +686,7 @@ def _stop_services():
     click.echo("Stopping SONiC target ...")
     try:
         clicommon.run_command("sudo systemctl stop sonic.target")
-    except subprocess.CalledProcessError as err:
+    except SystemExit as err:
         click.echo("Failed to stop sonic.target. Stopping all services individually.")
         _stop_all_services()
 
