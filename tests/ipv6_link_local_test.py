@@ -133,14 +133,14 @@ class TestIPv6LinkLocal(object):
         obj = {'db':db.cfgdb}
 
         # Enable ipv6 link local on all interfaces
-        result = runner.invoke(config.config.commands["ipv6"].commands["enable"], obj=obj)
+        result = runner.invoke(config.config.commands["ipv6"].commands["enable"].commands["link-local"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == ''
 
         # Disable ipv6 link local on all interfaces
-        result = runner.invoke(config.config.commands["ipv6"].commands["disable"], obj=obj)
+        result = runner.invoke(config.config.commands["ipv6"].commands["disable"].commands["link-local"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0

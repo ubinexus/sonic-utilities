@@ -3112,8 +3112,7 @@ def enable_use_link_local_only(ctx, interface_name):
             ctx.fail("Interface name %s is invalid. Please enter a valid interface name!!" %(interface_name))
 
     if (interface_type == "VLAN_INTERFACE"):
-        vlan = db.get_entry('VLAN', interface_name)
-        if len(vlan) == 0:
+        if not clicommon.is_valid_vlan_interface(db, interface_name):
             ctx.fail("Interface name %s is invalid. Please enter a valid interface name!!" %(interface_name))
 
     portchannel_member_table = db.get_table('PORTCHANNEL_MEMBER')
@@ -3166,8 +3165,7 @@ def disable_use_link_local_only(ctx, interface_name):
             ctx.fail("Interface name %s is invalid. Please enter a valid interface name!!" %(interface_name))
 
     if (interface_type == "VLAN_INTERFACE"):
-        vlan = db.get_entry('VLAN', interface_name)
-        if len(vlan) == 0:
+        if not clicommon.is_valid_vlan_interface(db, interface_name):
             ctx.fail("Interface name %s is invalid. Please enter a valid interface name!!" %(interface_name))
 
     portchannel_member_table = db.get_table('PORTCHANNEL_MEMBER')
@@ -4599,10 +4597,18 @@ def ipv6(ctx):
 #
 # 'enable' command ('config ipv6 enable ...')
 #
-@ipv6.command()
+@ipv6.group()
 @click.pass_context
 def enable(ctx):
     """Enable IPv6 on all interfaces """
+
+#
+# 'link-local' command ('config ipv6 enable link-local')
+#
+@enable.command('link-local')
+@click.pass_context
+def enable_link_local(ctx):
+    """Enable IPv6 link-local on all interfaces """
     config_db = ConfigDBConnector()
     config_db.connect()
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
@@ -4631,10 +4637,18 @@ def enable(ctx):
 #
 # 'disable' command ('config ipv6 disable ...')
 #
-@ipv6.command()
+@ipv6.group()
 @click.pass_context
 def disable(ctx):
     """Disable IPv6 on all interfaces """
+
+#
+# 'link-local' command ('config ipv6 disable link-local')
+#
+@disable.command('link-local')
+@click.pass_context
+def disable_link_local(ctx):
+    """Disable IPv6 link local on all interfaces """
     config_db = ConfigDBConnector()
     config_db.connect()
 
