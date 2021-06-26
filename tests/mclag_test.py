@@ -370,8 +370,7 @@ class TestMclag(object):
         assert result.exit_code == 0, "mclag member add with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
         # add valid mclag member2
-        result =
-        runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO2], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO2], obj=obj)
         assert result.exit_code == 0, "mclag member add with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
 
