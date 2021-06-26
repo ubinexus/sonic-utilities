@@ -271,7 +271,7 @@ class TestMclag(object):
         assert result.exit_code != 0, "mclag session timeout invalid failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
         result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SESSION_TMOUT_UBOUND], obj=obj)
         assert result.exit_code != 0, "mclag session timeout invalid failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-    
+
     def test_mclag_session_timeout(self):
         runner = CliRunner()
         db = Db()
@@ -458,7 +458,7 @@ class TestMclag(object):
         runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], [MCLAG_UNIQUE_IP_INTF_INVALID2], obj=obj)
         assert result.exit_code != 0, "mclag invalid unique ip test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
-def test_add_mclag_with_invalid_domain_id(self):
+    def test_add_mclag_with_invalid_domain_id(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -470,7 +470,7 @@ def test_add_mclag_with_invalid_domain_id(self):
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_INVALID_DOMAIN_ID2, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code != 0, "mclag invalid src ip test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
-def test_del_mclag_with_invalid_domain_id(self):
+    def test_del_mclag_with_invalid_domain_id(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -486,7 +486,7 @@ def test_del_mclag_with_invalid_domain_id(self):
 
 
 
- def test_modify_mclag_domain(self):
+    def test_modify_mclag_domain(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -528,7 +528,7 @@ def test_del_mclag_with_invalid_domain_id(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
-       
+
         # configure keepalive timer for non-existing domain
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_KEEPALIVE_TIMER], obj=obj)
         assert result.exit_code != 0, "failed testing of keepalive timer for nonexisting domain {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
