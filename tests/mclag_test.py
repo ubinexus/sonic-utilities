@@ -436,8 +436,7 @@ class TestMclag(object):
         db.cfgdb.set_entry("VLAN_INTERFACE", "Vlan1001", {"vrf_name": "vrf-red"})
 
         # add mclag unique ip for non-default vrf
-        result =
-        runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], ["Vlan1001"], obj=obj)
+        result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], ["Vlan1001"], obj=obj)
         assert result.exit_code != 0, "mclag unique ip add with non default vlan interface{}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
         
     def test_mclag_not_present_domain(self):
