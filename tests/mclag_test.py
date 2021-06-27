@@ -425,7 +425,7 @@ class TestMclag(object):
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["del"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
         assert result.exit_code == 0, "mclag unique ip delete case failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
-    def test_mclag_add_unique_ip_non_default_vrf():
+    def test_mclag_add_unique_ip_non_default_vrf(self):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
