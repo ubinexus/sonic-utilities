@@ -22,7 +22,7 @@ VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
 # Helper functions
 
-def get_interface_alias(port, db)
+def get_interface_alias(port, db):
 
     if port is not "all" and port is not None:
         alias = port
