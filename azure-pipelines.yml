@@ -19,7 +19,7 @@ stages:
 
   jobs:
   - job:
-    displayName: "Python3"
+    displayName: "Python2"
     pool:
       vmImage: ubuntu-20.04
 
@@ -46,7 +46,7 @@ stages:
         sudo dpkg -i libhiredis0.14_*.deb
         sudo dpkg -i libyang_1.0.73_amd64.deb
         sudo dpkg -i libyang-cpp_1.0.73_amd64.deb
-        sudo dpkg -i python3-yang_1.0.73_amd64.deb
+        sudo dpkg -i python2-yang_1.0.73_amd64.deb
       workingDirectory: $(Pipeline.Workspace)/target/debs/stretch/
       displayName: 'Install Debian dependencies'
 
@@ -62,45 +62,45 @@ stages:
 
     - script: |
         set -xe
-        sudo dpkg -i libswsscommon_1.0.0_amd64.deb
-        sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
+        sudo dpkg -i -force-confask,confnew  libswsscommon_1.0.0_amd64.deb || sudo apt-get install -f -y
+        sudo dpkg -i python-swsscommon_1.0.0_amd64.deb
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install swss-common dependencies'
 
     - script: |
         set -xe
-        sudo pip3 install swsssdk-2.0.1-py3-none-any.whl
-        sudo pip3 install sonic_py_common-1.0-py3-none-any.whl
-        sudo pip3 install sonic_yang_mgmt-1.0-py3-none-any.whl
-        sudo pip3 install sonic_yang_models-1.0-py3-none-any.whl
-        sudo pip3 install sonic_config_engine-1.0-py3-none-any.whl
-        sudo pip3 install sonic_platform_common-1.0-py3-none-any.whl
+        sudo pip install swsssdk-2.0.1-py2-none-any.whl
+        sudo pip install sonic_py_common-1.0-py2-none-any.whl
+        sudo pip install sonic_yang_mgmt-1.0-py2-none-any.whl
+        sudo pip install sonic_yang_models-1.0-py2-none-any.whl
+        sudo pip install sonic_config_engine-1.0-py2-none-any.whl
+        sudo pip install sonic_platform_common-1.0-py2-none-any.whl
       workingDirectory: $(Pipeline.Workspace)/target/python-wheels/
       displayName: 'Install Python dependencies'
 
     - script: |
-        python3 setup.py test
-      displayName: 'Test Python 3'
+        python setup.py test
+      displayName: 'Test Python 2'
 
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: '$(System.DefaultWorkingDirectory)/test-results.xml'
-        testRunTitle: Python 3
+        testRunTitle: Python 2
         failTaskOnFailedTests: true
       condition: succeededOrFailed()
-      displayName: 'Publish Python 3 test results'
+      displayName: 'Publish Python 2 test results'
 
     - task: PublishCodeCoverageResults@1
       inputs:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
-      displayName: 'Publish Python 3 test coverage'
+      displayName: 'Publish Python 2 test coverage'
 
     - script: |
         set -e
-        python3 setup.py bdist_wheel
-      displayName: 'Build Python 3 wheel'
+        python setup.py bdist_wheel
+      displayName: 'Build Python 2 wheel'
 
     - publish: '$(System.DefaultWorkingDirectory)/dist/'
       artifact: wheels
