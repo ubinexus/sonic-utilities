@@ -27,7 +27,7 @@ jobs:
       pipeline: 9
       artifact: sonic-swss-common.amd64.ubuntu20_04
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/master'
+      runBranch: 'refs/heads/201911'
     displayName: "Download sonic swss common deb packages"
 
   - task: DownloadPipelineArtifact@2
@@ -37,7 +37,7 @@ jobs:
       pipeline: 15
       artifact: sonic-swss-pytests
       runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/master'
+      runBranch: 'refs/heads/201911'
     displayName: "Download sonic swss pytests"
 
   - checkout: self
