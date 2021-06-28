@@ -62,7 +62,7 @@ stages:
 
     - script: |
         set -xe
-        sudo dpkg -i -force-confask,confnew  libswsscommon_1.0.0_amd64.deb || sudo apt-get install -f -y
+        sudo dpkg -i --force-confask,confnew  libswsscommon_1.0.0_amd64.deb || sudo apt-get install -f -y
         sudo dpkg -i python-swsscommon_1.0.0_amd64.deb
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install swss-common dependencies'
