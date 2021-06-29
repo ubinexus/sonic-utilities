@@ -188,12 +188,12 @@ def logging(filename, lines):
             cmd += " {}".format(file_path)
         else:
             click.echo("Invalid filename: '{}'!".format(filename))
-            sys.exit(-1)
+            sys.exit(1)
     else:
         cmd_message, dmesg_file_result = get_kdump_dmesg_files()
         if len(dmesg_file_result) == 0:
             click.echo(cmd_message)
-            sys.exit(-2)
+            sys.exit(2)
         dmesg_file_result.sort(reverse=True)
         cmd += " {}".format(dmesg_file_result[0])
 
