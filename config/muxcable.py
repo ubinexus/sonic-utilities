@@ -22,18 +22,6 @@ VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
 # Helper functions
 
-def get_interface_alias(port, db):
-
-    if port is not "all" and port is not None:
-        alias = port
-        iface_alias_converter = clicommon.InterfaceAliasConverter(db)
-        port = iface_alias_converter.alias_to_name(alias)
-        if port is None:
-            click.echo("cannot find port name for alias {}".format(alias))
-            sys.exit(CONFIG_FAIL)
-
-    return port
-
 def get_value_for_key_in_dict(mdict, port, key, table_name):
     value = mdict.get(key, None)
     if value is None:
@@ -105,7 +93,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
 def mode(db, state, port, json_output):
     """Config muxcable mode"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_table_keys = {}
     y_cable_asic_table_keys = {}
@@ -276,7 +264,7 @@ def hwmode():
 def state(db, state, port):
     """Configure the muxcable mux state {active/standby}"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     transceiver_table_keys = {}
@@ -478,7 +466,7 @@ def state(db, state, port):
 def setswitchmode(db, state, port):
     """Configure the muxcable mux switching mode {auto/manual}"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     transceiver_dict = {}
@@ -725,7 +713,7 @@ def firmware():
 def download(db, fwfile, port):
     """Config muxcable firmware download"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     y_cable_asic_table_keys = {}
@@ -778,7 +766,7 @@ def download(db, fwfile, port):
 def activate(db, port):
     """Config muxcable firmware activate"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     y_cable_asic_table_keys = {}
@@ -830,7 +818,7 @@ def activate(db, port):
 def rollback(db, port):
     """Config muxcable firmware rollback"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_table_keys = {}
     y_cable_asic_table_keys = {}

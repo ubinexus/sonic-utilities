@@ -26,20 +26,6 @@ STATUS_SUCCESSFUL = 0
 VENDOR_NAME = "Credo"
 VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
-
-def get_interface_alias(port, db):
-
-    if port is not "all" and port is not None:
-        alias = port
-        iface_alias_converter = clicommon.InterfaceAliasConverter(db)
-        port = iface_alias_converter.alias_to_name(alias)
-        if port is None:
-            click.echo("cannot find port name for alias {}".format(alias))
-            sys.exit(STATUS_FAIL)
-
-    return port
-
-#
 # 'muxcable' command ("show muxcable")
 #
 
@@ -145,7 +131,7 @@ def create_json_dump_per_port_config(port_status_dict, per_npu_configdb, asic_id
 def status(db, port, json_output):
     """Show muxcable status information"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_table_keys = {}
     port_health_table_keys = {}
@@ -258,7 +244,7 @@ def status(db, port, json_output):
 def config(db, port, json_output):
     """Show muxcable config information"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_mux_tbl_keys = {}
     asic_start_idx = None
@@ -429,7 +415,7 @@ def eyeinfo(port, target):
 def cableinfo(db, port):
     """Show muxcable cable information"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     if platform_sfputil is not None:
         physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
@@ -469,7 +455,7 @@ def hwmode():
 def muxdirection(db, port):
     """Shows the current direction of the muxcable {active/standy}"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     transceiver_table_keys = {}
@@ -676,7 +662,7 @@ def muxdirection(db, port):
 def switchmode(db, port):
     """Shows the current switching mode of the muxcable {auto/manual}"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     transceiver_dict = {}
@@ -878,7 +864,7 @@ def firmware():
 def version(db, port, active):
     """Show muxcable firmware version"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_table_keys = {}
     y_cable_asic_table_keys = {}
@@ -977,7 +963,7 @@ def version(db, port, active):
 def metrics(db, port, json_output):
     """Show muxcable metrics <port>"""
 
-    port = get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     metrics_table_keys = {}
     per_npu_statedb = {}
