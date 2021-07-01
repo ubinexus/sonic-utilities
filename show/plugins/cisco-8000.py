@@ -11,21 +11,11 @@ try:
     import subprocess
     import yaml
     from show import platform
+    import utilities_common.cli as clicommon
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
-PYTHON3 = '/usr/bin/python3'
 PLATFORM_PY = '/opt/cisco/bin/platform.py'
-
-def invoke(args):
-    if 'run' in dir(subprocess):
-        e = subprocess.run(args, shell=False)
-        if e.returncode:
-            click.echo('{} failed'.format(e.args))
-    else:
-        e = subprocess.call(args, shell=False)
-        if e:
-            click.echo('{} failed'.format(' '.join(args)))
 
 # Platform specific version invoked by generic show.version
 def version(verbose):
@@ -36,20 +26,11 @@ def version(verbose):
         for k,v in d.items():
             click.echo('{}: {}'.format(k,v))
 
-@click.group()
-def npu():
-    """ Show NPU information """
-    pass
-
-@npu.command()
-def status():
-    """ Show NPU status information """
-    click.echo('npu status\n')
-
 @click.command()
 def inventory():
     """ Show platform inventory information """
-    invoke([PYTHON3, '-m', 'cisco.bin.inventory', 'show'])
+    cmd = 'inventory.py show'
+    clicommon.run_command(cmd)
 
 @click.command()
 @click.option('--raw/--no-raw', default=False, help='Hexdump raw IDPROMs')
@@ -79,7 +60,7 @@ def idprom(name, raw, all, list):
             args.append('--raw')
     for alias in name:
         args.append(alias)
-    invoke(args)
+    clicommon.run_command(args)
 
 
 def install_extensions(cli):
