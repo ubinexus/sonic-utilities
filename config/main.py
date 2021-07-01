@@ -5179,6 +5179,16 @@ def enable(ctx):
         ctx.fail("Unable to check sflow status {}".format(e))
 
     if out != "active":
+        # check if service is masked, if yes, unmask it
+        try:
+            proc = subprocess.Popen("systemctl is-enabled sflow", shell=True, text=True, stdout=subprocess.PIPE)
+            (out_mask, _) = proc.communicate()
+        except SystemExit as e:
+            ctx.fail("Unable to check sflow mask status {}".format(e))
+        if out_mask.strip() == "masked":
+            click.echo("Unmasking sflow service")
+            clicommon.run_command("sudo systemctl unmask sflow")
+
         log.log_info("sflow service is not enabled. Starting sflow docker...")
         clicommon.run_command("sudo systemctl enable sflow")
         clicommon.run_command("sudo systemctl start sflow")
