@@ -3,18 +3,19 @@
 """ Package version constraints module. """
 
 import re
-from abc import ABC
 from dataclasses import dataclass, field
 from typing import Dict, Union
 
-import semver
+import semantic_version
+
+from sonic_package_manager.version import Version
 
 
-class VersionConstraint(semver.VersionConstraint, ABC):
-    """ Extends VersionConstraint from semver package. """
+class VersionConstraint(semantic_version.SimpleSpec):
+    """ Extends SimpleSpec from semantic_version package. """
 
-    @staticmethod
-    def parse(constraint_expression: str) -> 'VersionConstraint':
+    @classmethod
+    def parse(cls, constraint_expression: str) -> 'VersionConstraint':
         """ Parse version constraint.
 
         Args:
@@ -23,7 +24,49 @@ class VersionConstraint(semver.VersionConstraint, ABC):
             The resulting VersionConstraint object.
         """
 
-        return semver.parse_constraint(constraint_expression)
+        return cls(constraint_expression)
+
+    def allows(self, version: Version) -> bool:
+        """ Checks if other version is allowed by this constraint
+
+        Args:
+            version: Version to check against this constraint.
+        Returns:
+            Boolean wether this constraint allows version.
+        """
+
+        return self.match(version)
+
+    def allows_all(self, other: 'VersionConstraint') -> bool:
+        """ Checks that a version range other overlaps with this range.
+
+        Args:
+            other: VersionConstraint object to check.
+        Returns:
+            Boolean whether this constraint is a superset of other constraint.
+        """
+
+        return other in self
+
+    def is_exact(self) -> bool:
+        """ Is the version constraint exact, meaning only one version is allowed.
+
+        Returns:
+            Boolean wether this constraint is exact.
+        """
+
+        return hasattr(self.clause, 'target') and self.clause.operator == '=='
+
+    def get_exact_version(self) -> Version:
+        """ Returns an exact version for this constraint if it is exact constraint.
+
+        Returns:
+            Exact version in case this constraint is exact.
+        Raises:
+            AttributeError: when constraint is not exact
+        """
+
+        return self.clause.target
 
 
 @dataclass

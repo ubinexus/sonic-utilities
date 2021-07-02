@@ -55,7 +55,6 @@ from sonic_package_manager.source import (
 from sonic_package_manager.utils import DockerReference
 from sonic_package_manager.version import (
     Version,
-    VersionRange,
     version_to_tag,
     tag_to_version
 )
@@ -122,13 +121,14 @@ def package_constraint_to_reference(constraint: PackageConstraint) -> PackageRef
     # Allow only specific version for now.
     # Later we can improve package manager to support
     # installing packages using expressions like 'package>1.0.0'
-    if version_constraint == VersionRange():  # empty range means any version
+    if version_constraint.expression == '*':  # empty range means any version
         return PackageReference(package_name, None)
-    if not isinstance(version_constraint, Version):
+    if not version_constraint.is_exact():
         raise PackageManagerError(f'Can only install specific version. '
                                   f'Use only following expression "{package_name}=<version>" '
                                   f'to install specific version')
-    return PackageReference(package_name, version_to_tag(version_constraint))
+    version = version_constraint.get_exact_version()
+    return PackageReference(package_name, version_to_tag(version))
 
 
 def parse_reference_expression(expression):

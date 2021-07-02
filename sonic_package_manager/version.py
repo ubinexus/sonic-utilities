@@ -2,10 +2,25 @@
 
 """ Version and helpers routines. """
 
-import semver
+import semantic_version
 
-Version = semver.Version
-VersionRange = semver.VersionRange
+
+class Version(semantic_version.Version):
+    """ Extends Version class from semantic_version package. """
+
+    @classmethod
+    def parse(cls, version_string: str) -> 'Version':
+        """ Construct Version from version_string.
+
+        Args:
+            version_string: SemVer compatible version string.
+        Returns:
+            Version object.
+        Raises:
+            ValueError: when version_string does not follow SemVer.
+        """
+
+        return semantic_version.Version(version_string)
 
 
 def version_to_tag(ver: Version) -> str:
