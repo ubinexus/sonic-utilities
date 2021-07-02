@@ -8,11 +8,12 @@ import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
-from sonic_py_common import device_info, multi_asic
+from sonic_py_common import device_info
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
+import utilities_common.constants as constants
 
 from . import acl
 from . import bgp_common
@@ -377,6 +378,7 @@ def snmptrap (ctx):
         body.append([ver, traptable[row]['DestIp'], traptable[row]['DestPort'], traptable[row]['vrf'], traptable[row]['Community']])
     click.echo(tabulate(body, header))
 
+
 #
 # 'subinterfaces' group ("show subinterfaces ...")
 #
@@ -724,7 +726,7 @@ def mac(vlan, port, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route_map(route_map_name, verbose):
     """show route-map"""
-    cmd = 'sudo vtysh -c "show route-map'
+    cmd = 'sudo {} -c "show route-map'.format(constants.RVTYSH_COMMAND)
     if route_map_name is not None:
         cmd += ' {}'.format(route_map_name)
     cmd += '"'
@@ -781,7 +783,7 @@ def route(args, namespace, display, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
-    cmd = 'sudo vtysh -c "show ip prefix-list'
+    cmd = 'sudo {} -c "show ip prefix-list'.format(constants.RVTYSH_COMMAND)
     if prefix_list_name is not None:
         cmd += ' {}'.format(prefix_list_name)
     cmd += '"'
@@ -793,7 +795,7 @@ def prefix_list(prefix_list_name, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv4 protocol information"""
-    cmd = 'sudo vtysh -c "show ip protocol"'
+    cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -816,7 +818,7 @@ def ipv6():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
-    cmd = 'sudo vtysh -c "show ipv6 prefix-list'
+    cmd = 'sudo {} -c "show ipv6 prefix-list'.format(constants.RVTYSH_COMMAND)
     if prefix_list_name is not None:
         cmd += ' {}'.format(prefix_list_name)
     cmd += '"'
@@ -864,7 +866,7 @@ def route(args, namespace, display, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv6 protocol information"""
-    cmd = 'sudo vtysh -c "show ipv6 protocol"'
+    cmd = 'sudo {} -c "show ipv6 protocol"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -954,15 +956,9 @@ def logging(process, lines, follow, verbose):
 def version(verbose):
     """Show version information"""
     version_info = device_info.get_sonic_version_info()
-
-    platform = device_info.get_platform()
-    hwsku = device_info.get_hwsku()
-    asic_type = version_info['asic_type']
-    asic_count = multi_asic.get_num_asics()
-
-    serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE)
-
+    platform_info = device_info.get_platform_info()
+    chassis_info = platform.get_chassis_info()
+    
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
 
@@ -972,11 +968,13 @@ def version(verbose):
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
-    click.echo("\nPlatform: {}".format(platform))
-    click.echo("HwSKU: {}".format(hwsku))
-    click.echo("ASIC: {}".format(asic_type))
-    click.echo("ASIC Count: {}".format(asic_count))
-    click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
+    click.echo("\nPlatform: {}".format(platform_info['platform']))
+    click.echo("HwSKU: {}".format(platform_info['hwsku']))
+    click.echo("ASIC: {}".format(platform_info['asic_type']))
+    click.echo("ASIC Count: {}".format(platform_info['asic_count']))
+    click.echo("Serial Number: {}".format(chassis_info['serial']))
+    click.echo("Model Number: {}".format(chassis_info['model']))
+    click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
@@ -1084,7 +1082,7 @@ def ports(portname, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def bgp(verbose):
     """Show BGP running configuration"""
-    cmd = 'sudo vtysh -c "show running-config"'
+    cmd = 'sudo {} -c "show running-config"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1098,20 +1096,6 @@ def interfaces(interfacename, verbose):
 
     if interfacename is not None:
         cmd += " {0} {1}".format("--key", interfacename)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'snmp' subcommand ("show runningconfiguration snmp")
-@runningconfiguration.command()
-@click.argument('server', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def snmp(server, verbose):
-    """Show SNMP information"""
-    cmd = "sudo docker exec snmp cat /etc/snmp/snmpd.conf"
-
-    if server is not None:
-        cmd += " | grep -i agentAddress"
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1131,6 +1115,170 @@ def ntp(verbose):
             ntp_servers.append(ntp_server)
     ntp_dict['NTP Servers'] = ntp_servers
     print(tabulate(ntp_dict, headers=list(ntp_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
+
+
+
+# 'snmp' subcommand ("show runningconfiguration snmp")
+@runningconfiguration.group("snmp", invoke_without_command=True)
+@clicommon.pass_db
+@click.pass_context
+def snmp(ctx, db):
+    """Show SNMP running configuration"""
+    if ctx.invoked_subcommand is None:
+       show_run_snmp(db.cfgdb)
+
+
+# ("show runningconfiguration snmp community")
+@snmp.command('community')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def community(db, json_output):
+    """show SNMP running configuration community"""
+    snmp_comm_header = ["Community String", "Community Type"]
+    snmp_comm_body = []
+    snmp_comm_keys = db.cfgdb.get_table('SNMP_COMMUNITY')
+    snmp_comm_strings = snmp_comm_keys.keys()
+    if json_output:
+        click.echo(snmp_comm_keys)
+    else:
+        for line in snmp_comm_strings:
+            comm_string = line
+            comm_string_type = snmp_comm_keys[line]['TYPE']
+            snmp_comm_body.append([comm_string, comm_string_type])
+        click.echo(tabulate(natsorted(snmp_comm_body), snmp_comm_header))
+
+
+# ("show runningconfiguration snmp contact")
+@snmp.command('contact')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def contact(db, json_output):
+    """show SNMP running configuration contact"""
+    snmp = db.cfgdb.get_table('SNMP')
+    snmp_header = ["Contact", "Contact Email"]
+    snmp_body = []
+    if json_output:
+        try:
+            if snmp['CONTACT']:
+                click.echo(snmp['CONTACT'])
+        except KeyError:
+            snmp['CONTACT'] = {}
+            click.echo(snmp['CONTACT'])
+    else:
+        try:
+            if snmp['CONTACT']:
+                snmp_contact = list(snmp['CONTACT'].keys())
+                snmp_contact_email = [snmp['CONTACT'][snmp_contact[0]]]
+                snmp_body.append([snmp_contact[0], snmp_contact_email[0]])
+        except KeyError:
+            snmp['CONTACT'] = ''
+        click.echo(tabulate(snmp_body, snmp_header))
+
+
+# ("show runningconfiguration snmp location")
+@snmp.command('location')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def location(db, json_output):
+    """show SNMP running configuration location"""
+    snmp = db.cfgdb.get_table('SNMP')
+    snmp_header = ["Location"]
+    snmp_body = []
+    if json_output:
+        try:
+            if snmp['LOCATION']:
+                click.echo(snmp['LOCATION'])
+        except KeyError:
+            snmp['LOCATION'] = {}
+            click.echo(snmp['LOCATION'])
+    else:
+        try:
+            if snmp['LOCATION']:
+                snmp_location = [snmp['LOCATION']['Location']]
+                snmp_body.append(snmp_location)
+        except KeyError:
+            snmp['LOCATION'] = ''
+        click.echo(tabulate(snmp_body, snmp_header))
+
+
+# ("show runningconfiguration snmp user")
+@snmp.command('user')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def users(db, json_output):
+    """show SNMP running configuration user"""
+    snmp_users = db.cfgdb.get_table('SNMP_USER')
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+                        "Encryption Password"]
+    snmp_user_body = []
+    if json_output:
+        click.echo(snmp_users)
+    else:
+        for snmp_user, snmp_user_value in snmp_users.items():
+            snmp_user_permissions_type = snmp_users[snmp_user].get('SNMP_USER_PERMISSION', 'Null')
+            snmp_user_auth_type = snmp_users[snmp_user].get('SNMP_USER_AUTH_TYPE', 'Null')
+            snmp_user_auth_password = snmp_users[snmp_user].get('SNMP_USER_AUTH_PASSWORD', 'Null')
+            snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
+            snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
+            snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
+            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+                                   snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
+        click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
+
+
+# ("show runningconfiguration snmp")
+@clicommon.pass_db
+def show_run_snmp(db, ctx):
+    snmp_contact_location_table = db.cfgdb.get_table('SNMP')
+    snmp_comm_table = db.cfgdb.get_table('SNMP_COMMUNITY')
+    snmp_users = db.cfgdb.get_table('SNMP_USER')
+    snmp_location_header = ["Location"]
+    snmp_location_body = []
+    snmp_contact_header = ["SNMP_CONTACT", "SNMP_CONTACT_EMAIL"]
+    snmp_contact_body = []
+    snmp_comm_header = ["Community String", "Community Type"]
+    snmp_comm_body = []
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+                        "Encryption Password"]
+    snmp_user_body = []
+    try:
+        if snmp_contact_location_table['LOCATION']:
+            snmp_location = [snmp_contact_location_table['LOCATION']['Location']]
+            snmp_location_body.append(snmp_location)
+    except KeyError:
+        snmp_contact_location_table['LOCATION'] = ''
+    click.echo(tabulate(snmp_location_body, snmp_location_header))
+    click.echo("\n")
+    try:
+        if snmp_contact_location_table['CONTACT']:
+            snmp_contact = list(snmp_contact_location_table['CONTACT'].keys())
+            snmp_contact_email = [snmp_contact_location_table['CONTACT'][snmp_contact[0]]]
+            snmp_contact_body.append([snmp_contact[0], snmp_contact_email[0]])
+    except KeyError:
+        snmp_contact_location_table['CONTACT'] = ''
+    click.echo(tabulate(snmp_contact_body, snmp_contact_header))
+    click.echo("\n")
+    snmp_comm_strings = snmp_comm_table.keys()
+    for line in snmp_comm_strings:
+        comm_string = line
+        comm_string_type = snmp_comm_table[line]['TYPE']
+        snmp_comm_body.append([comm_string, comm_string_type])
+    click.echo(tabulate(natsorted(snmp_comm_body), snmp_comm_header))
+    click.echo("\n")
+    for snmp_user, snmp_user_value in snmp_users.items():
+        snmp_user_permissions_type = snmp_users[snmp_user].get('SNMP_USER_PERMISSION', 'Null')
+        snmp_user_auth_type = snmp_users[snmp_user].get('SNMP_USER_AUTH_TYPE', 'Null')
+        snmp_user_auth_password = snmp_users[snmp_user].get('SNMP_USER_AUTH_PASSWORD', 'Null')
+        snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
+        snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
+        snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
+        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+                               snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
+    click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
 
 # 'syslog' subcommand ("show runningconfiguration syslog")
@@ -1248,10 +1396,10 @@ def services():
                 break
 
 @cli.command()
-def aaa():
+@clicommon.pass_db
+def aaa(db):
     """Show AAA configuration"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = db.cfgdb
     data = config_db.get_table('AAA')
     output = ''
 
@@ -1297,6 +1445,58 @@ def tacacs():
             output += ('\nTACPLUS_SERVER address %s\n' % row)
             for key in entry:
                 output += ('               %s %s\n' % (key, str(entry[key])))
+    click.echo(output)
+
+@cli.command()
+@clicommon.pass_db
+def radius(db):
+    """Show RADIUS configuration"""
+    output = ''
+    config_db = db.cfgdb
+    data = config_db.get_table('RADIUS')
+
+    radius = {
+        'global': {
+            'auth_type': 'pap (default)',
+            'retransmit': '3 (default)',
+            'timeout': '5 (default)',
+            'passkey': '<EMPTY_STRING> (default)'
+        }
+    }
+    if 'global' in data:
+        radius['global'].update(data['global'])
+    for key in radius['global']:
+        output += ('RADIUS global %s %s\n' % (str(key), str(radius['global'][key])))
+
+    data = config_db.get_table('RADIUS_SERVER')
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            output += ('\nRADIUS_SERVER address %s\n' % row)
+            for key in entry:
+                output += ('               %s %s\n' % (key, str(entry[key])))
+
+    counters_db = SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB, retry_on=False)
+
+    if radius['global'].get('statistics', False) and (data != {}):
+        for row in data:
+            exists = counters_db.exists(counters_db.COUNTERS_DB,
+                                     'RADIUS_SERVER_STATS:{}'.format(row))
+            if not exists:
+                continue
+
+            counter_entry = counters_db.get_all(counters_db.COUNTERS_DB,
+                    'RADIUS_SERVER_STATS:{}'.format(row))
+            output += ('\nStatistics for RADIUS_SERVER address %s\n' % row)
+            for key in counter_entry:
+                if counter_entry[key] != "0":
+                    output += ('               %s %s\n' % (key, str(counter_entry[key])))
+    try:
+        counters_db.close(counters_db.COUNTERS_DB)
+    except Exception as e:
+        pass
+
     click.echo(output)
 
 #

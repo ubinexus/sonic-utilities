@@ -34,7 +34,7 @@ def consutil(db):
 @click.option('--brief', '-b', metavar='<brief_mode>', required=False, is_flag=True)
 def show(db, brief):
     """Show all ports and their info include available ttyUSB devices unless specified brief mode"""
-    port_provider = ConsolePortProvider(db, brief)
+    port_provider = ConsolePortProvider(db, brief, refresh=True)
     ports = list(port_provider.get_all())
 
     # sort ports for table rendering
@@ -74,6 +74,8 @@ def clear(db, target, devicename):
 
     if not target_port.clear_session():
         click.echo("No process is connected to line " + target_port.line_num)
+    else:
+        click.echo("Cleared line")
 
 # 'connect' subcommand
 @consutil.command()

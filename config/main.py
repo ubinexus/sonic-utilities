@@ -3,6 +3,7 @@
 import click
 import ipaddress
 import json
+import jsonpatch
 import netaddr
 import netifaces
 import os
@@ -10,16 +11,21 @@ import re
 import subprocess
 import sys
 import time
+import itertools
 
-from socket import AF_INET, AF_INET6
+from collections import OrderedDict
+from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from minigraph import parse_device_desc_xml
+from natsort import natsorted
 from portconfig import get_child_ports
+from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from utilities_common import util_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from .utils import log
 
@@ -78,15 +84,30 @@ CFG_PORTCHANNEL_NO="<0-9999>"
 
 PORT_MTU = "mtu"
 PORT_SPEED = "speed"
+PORT_TPID = "tpid"
+DEFAULT_TPID = "0x8100"
 
 asic_type = None
 
 #
-# Breakout Mode Helper functions
+# Helper functions
 #
 
+# Sort nested dict
+def sort_dict(data):
+    """ Sort of 1st level and 2nd level dict of data naturally by its key
+        data: data to be sorted
+    """
+    if type(data) is not dict:
+        return data
+
+    for table in data:
+        if type(data[table]) is dict:
+            data[table] = OrderedDict(natsorted(data[table].items()))
+    return OrderedDict(natsorted(data.items()))
+
 # Read given JSON file
-def readJsonFile(fileName):
+def read_json_file(fileName):
     try:
         with open(fileName) as f:
             result = json.load(f)
@@ -104,42 +125,16 @@ def _get_breakout_options(ctx, args, incomplete):
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         return []
     else:
-        breakout_file_input = readJsonFile(breakout_cfg_file)
+        breakout_file_input = read_json_file(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
             breakout_mode_options = [mode for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name \
                                           for mode in v["breakout_modes"].keys()]
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
         return all_mode_options
 
-def shutdown_interfaces(ctx, del_intf_dict):
-    """ shut down all the interfaces before deletion """
-    for intf in del_intf_dict:
-        config_db = ctx.obj['config_db']
-        if clicommon.get_interface_naming_mode() == "alias":
-            interface_name = interface_alias_to_name(config_db, intf)
-            if interface_name is None:
-                click.echo("[ERROR] interface name is None!")
-                return False
-
-        if interface_name_is_valid(config_db, intf) is False:
-            click.echo("[ERROR] Interface name is invalid. Please enter a valid interface name!!")
-            return False
-
-        port_dict = config_db.get_table('PORT')
-        if not port_dict:
-            click.echo("port_dict is None!")
-            return False
-
-        if intf in port_dict:
-            config_db.mod_entry("PORT", intf, {"admin_status": "down"})
-        else:
-            click.secho("[ERROR] Could not get the correct interface name, exiting", fg='red')
-            return False
-    return True
-
 def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
     """ Validate Parent interface and user selected mode before starting deletion or addition process """
-    breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
+    breakout_file_input = read_json_file(breakout_cfg_file)["interfaces"]
 
     if interface_name not in breakout_file_input:
         click.secho("[ERROR] {} is not a Parent port. So, Breakout Mode is not available on this port".format(interface_name), fg='red')
@@ -688,7 +683,6 @@ def _get_sonic_services():
 
 def _reset_failed_services():
     for service in _get_sonic_services():
-        click.echo("Resetting failed status on {}".format(service))
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -707,6 +701,32 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
+def _get_delay_timers():
+    out = clicommon.run_command("systemctl list-dependencies sonic-delayed.target --plain |sed '1d'", return_cmd=True)
+    return [timer.strip() for timer in out.splitlines()]
+
+def _delay_timers_elapsed():
+    for timer in _get_delay_timers():
+        out = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
+        if out.strip() == "0":
+            return False
+    return True
+
+def _swss_ready():
+    out = clicommon.run_command("systemctl show swss.service --property ActiveState --value", return_cmd=True)
+    if out.strip() != "active":
+        return False
+    out = clicommon.run_command("systemctl show swss.service --property ActiveEnterTimestampMonotonic --value", return_cmd=True)
+    swss_up_time = float(out.strip())/1000000
+    now =  time.monotonic()
+    if (now - swss_up_time > 120):
+        return True
+    else:
+        return False
+
+def _system_running():
+    out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
+    return out.strip() == "running"
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface is in a vlan """
@@ -784,6 +804,82 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
+def validate_ip_mask(ctx, ip_addr):
+    split_ip_mask = ip_addr.split("/")
+    # Check if the IP address is correct or if there are leading zeros.
+    ip_obj = ipaddress.ip_address(split_ip_mask[0])
+
+    # Check if the mask is correct
+    mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 129
+    # If mask is not specified
+    if len(split_ip_mask) < 2:
+        return 0
+
+    if not int(split_ip_mask[1]) in range(1, mask_range):
+        return 0
+
+    return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
+
+def cli_sroute_to_config(ctx, command_str, strict_nh = True):
+    if len(command_str) < 2 or len(command_str) > 9:
+        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
+    if "prefix" not in command_str:
+        ctx.fail("argument is incomplete, prefix not found!")
+    if "nexthop" not in command_str and strict_nh:
+        ctx.fail("argument is incomplete, nexthop not found!")
+
+    nexthop_str = None
+    config_entry = {}
+    vrf_name = ""
+
+    if "nexthop" in command_str:
+        idx = command_str.index("nexthop")
+        prefix_str = command_str[:idx]
+        nexthop_str = command_str[idx:]
+    else:
+        prefix_str = command_str[:]
+
+    if prefix_str:
+        if 'prefix' in prefix_str and 'vrf' in prefix_str:
+            # prefix_str: ['prefix', 'vrf', Vrf-name, ip]
+            vrf_name = prefix_str[2]
+            ip_prefix = prefix_str[3]
+        elif 'prefix' in prefix_str:
+            # prefix_str: ['prefix', ip]
+            ip_prefix = prefix_str[1]
+        else:
+            ctx.fail("prefix is not in pattern!")
+
+    if nexthop_str:
+        if 'nexthop' in nexthop_str and 'vrf' in nexthop_str:
+            # nexthop_str: ['nexthop', 'vrf', Vrf-name, ip]
+            config_entry["nexthop"] = nexthop_str[3]
+            config_entry["nexthop-vrf"] = nexthop_str[2]
+        elif 'nexthop' in nexthop_str and 'dev' in nexthop_str:
+            # nexthop_str: ['nexthop', 'dev', ifname]
+            config_entry["ifname"] = nexthop_str[2]
+        elif 'nexthop' in nexthop_str:
+            # nexthop_str: ['nexthop', ip]
+            config_entry["nexthop"] = nexthop_str[1]
+        else:
+            ctx.fail("nexthop is not in pattern!")
+
+    try:
+        ipaddress.ip_network(ip_prefix)
+        if 'nexthop' in config_entry:
+            nh = config_entry['nexthop'].split(',')
+            for ip in nh:
+                ipaddress.ip_address(ip)
+    except ValueError:
+        ctx.fail("ip address is not valid.")
+
+    if not vrf_name == "":
+        key = vrf_name + "|" + ip_prefix
+    else:
+        key = ip_prefix
+
+    return key, config_entry
+
 def update_sonic_environment():
     """Prepare sonic environment variable using SONiC environment template file.
     """
@@ -826,7 +922,7 @@ def cache_arp_entries():
         if filter_err:
             click.echo("Could not filter FDB entries prior to reloading")
             success = False
-    
+
     # If we are able to successfully cache ARP table info, signal SWSS to restore from our cache
     # by creating /host/config-reload/needs-restore
     if success:
@@ -866,6 +962,7 @@ def config(ctx):
 # Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(aaa.radius)
 config.add_command(chassis_modules.chassis_modules)
 config.add_command(console.console)
 config.add_command(feature.feature)
@@ -924,6 +1021,10 @@ def save(filename):
 
         log.log_info("'save' executing...")
         clicommon.run_command(command, display_cmd=True)
+
+        config_db = sort_dict(read_json_file(file))
+        with open(file, 'w') as config_db_file:
+            json.dump(config_db, config_db_file, indent=4)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
@@ -986,18 +1087,155 @@ def load(filename, yes):
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
 
+@config.command('apply-patch')
+@click.argument('patch-file-path', type=str, required=True)
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
+               help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
+    """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
+       This command can be used do partial updates to the config with minimum disruption to running processes.
+       It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
+       format or SonicYang format.
+
+       <patch-file-path>: Path to the patch file on the file-system."""
+    try:
+        with open(patch_file_path, 'r') as fh:
+            text = fh.read()
+            patch_as_json = json.loads(text)
+            patch = jsonpatch.JsonPatch(patch_as_json)
+
+        config_format = ConfigFormat[format.upper()]
+
+        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run)
+
+        click.secho("Patch applied successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to apply patch", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('target-file-path', type=str, required=True)
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
+               help='format of target config is either ConfigDb(ABNF) or SonicYang')
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def replace(ctx, target_file_path, format, dry_run, verbose):
+    """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
+       if ACL config is different between current and target config only ACL config is updated, and other config/services
+       such as DHCP will not be affected.
+
+       **WARNING** The target config file should be the whole config, not just the part intended to be updated.
+
+       <target-file-path>: Path to the target file on the file-system."""
+    try:
+        with open(target_file_path, 'r') as fh:
+            target_config_as_text = fh.read()
+            target_config = json.loads(target_config_as_text)
+
+        config_format = ConfigFormat[format.upper()]
+
+        GenericUpdater().replace(target_config, config_format, verbose, dry_run)
+
+        click.secho("Config replaced successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to replace config", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def rollback(ctx, checkpoint_name, dry_run, verbose):
+    """Rollback the whole config to the specified checkpoint. The config is rolled back with minimum disruption e.g.
+       if ACL config is different between current and checkpoint config only ACL config is updated, and other config/services
+       such as DHCP will not be affected.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().rollback(checkpoint_name, verbose, dry_run)
+
+        click.secho("Config rolled back successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to rollback config", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def checkpoint(ctx, checkpoint_name, verbose):
+    """Take a checkpoint of the whole current config with the specified checkpoint name.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().checkpoint(checkpoint_name, verbose)
+
+        click.secho("Checkpoint created successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to create a config checkpoint", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command('delete-checkpoint')
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def delete_checkpoint(ctx, checkpoint_name, verbose):
+    """Delete a checkpoint with the specified checkpoint name.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().delete_checkpoint(checkpoint_name, verbose)
+
+        click.secho("Checkpoint deleted successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to delete config checkpoint", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command('list-checkpoints')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def list_checkpoints(ctx, verbose):
+    """List the config checkpoints available."""
+    try:
+        checkpoints_list = GenericUpdater().list_checkpoints(verbose)
+        formatted_output = json.dumps(checkpoints_list, indent=4)
+        click.echo(formatted_output)
+    except Exception as ex:
+        click.secho("Failed to list config checkpoints", fg="red", underline=True, err=True)
+        ctx.fail(ex)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
+@click.option('-f', '--force', default=False, is_flag=True, help='Force config reload without system checks')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
+    if not force and not no_service_restart:
+        if not _system_running():
+            click.echo("System is not up. Retry later or use -f to avoid system checks")
+            return
+
+        if not _delay_timers_elapsed():
+            click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
+            return
+
+        if not _swss_ready():
+            click.echo("SwSS container is not ready. Retry later or use -f to avoid system checks")
+            return
+
     if filename is None:
         message = 'Clear current config and reload config from the default config file(s) ?'
     else:
@@ -1014,6 +1252,11 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     num_cfg_file = 1
     if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
+
+    # Remove cached PG drop counters data
+    dropstat_dir_prefix = '/tmp/dropstat'
+    command = "rm -rf {}-*".format(dropstat_dir_prefix)
+    clicommon.run_command(command, display_cmd=True)
 
     # If the user give the filename[s], extract the file names.
     if filename is not None:
@@ -1110,6 +1353,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             else:
                 command = "{} -o migrate -n {}".format(db_migrator, namespace)
             clicommon.run_command(command, display_cmd=True)
+
+    # Re-generate the environment variable in case config_db.json was edited
+    update_sonic_environment()
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
@@ -1286,7 +1532,7 @@ def portchannel(ctx, namespace):
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
-@click.option('--min-links', default=0, type=int)
+@click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
@@ -1301,7 +1547,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         ctx.fail("{} already exists!".format(portchannel_name))
 
     fvs = {'admin_status': 'up',
-           'mtu': '9100'}
+           'mtu': '9100',
+           'lacp_key': 'auto'}
     if min_links != 0:
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
@@ -1401,6 +1648,15 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
             if portchannel_mtu != port_mtu:
                 ctx.fail("Port MTU of {} is different than the {} MTU size"
                          .format(port_name, portchannel_name))
+
+    # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
+    # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
+    # new member by SAI.
+    port_entry = db.get_entry('PORT', port_name)
+    if port_entry and port_entry.get(PORT_TPID) is not None:
+       port_tpid = port_entry.get(PORT_TPID)
+       if port_tpid != DEFAULT_TPID:
+           ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -1831,20 +2087,28 @@ def warm_restart(ctx, redis_unix_socket_path):
     ctx.obj = {'db': config_db, 'state_db': state_db, 'prefix': prefix}
 
 @warm_restart.command('enable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
+@click.argument('module', metavar='<module>', default='system', required=False)
 @click.pass_context
 def warm_restart_enable(ctx, module):
     state_db = ctx.obj['state_db']
+    config_db = ctx.obj['db']
+    feature_table = config_db.get_table('FEATURE')
+    if module != 'system' and module not in feature_table:
+        exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'true')
     state_db.close(state_db.STATE_DB)
 
 @warm_restart.command('disable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
+@click.argument('module', metavar='<module>', default='system', required=False)
 @click.pass_context
 def warm_restart_enable(ctx, module):
     state_db = ctx.obj['state_db']
+    config_db = ctx.obj['db']
+    feature_table = config_db.get_table('FEATURE')
+    if module != 'system' and module not in feature_table:
+        exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'false')
@@ -2063,6 +2327,546 @@ def delete_snmptrap_server(ctx, ver):
         config_db.mod_entry('SNMP_TRAP_CONFIG', "v3TrapDest", None)
     cmd="systemctl restart snmp"
     os.system (cmd)
+
+
+
+#
+# 'snmp' group ('config snmp ...')
+#
+@config.group(cls=clicommon.AbbreviationGroup, name='snmp')
+@clicommon.pass_db
+def snmp(db):
+    """SNMP configuration tasks"""
+
+
+@snmp.group(cls=clicommon.AbbreviationGroup)
+@clicommon.pass_db
+def community(db):
+    pass
+
+
+def is_valid_community_type(commstr_type):
+    commstr_types = ['RO', 'RW']
+    if commstr_type not in commstr_types:
+        click.echo("Invalid community type.  Must be either RO or RW")
+        return False
+    return True
+
+
+def is_valid_user_type(user_type):
+    convert_user_type = {'noauthnopriv': 'noAuthNoPriv', 'authnopriv': 'AuthNoPriv', 'priv': 'Priv'}
+    if user_type not in convert_user_type:
+        message = ("Invalid user type.  Must be one of these one of these three "
+                   "'noauthnopriv' or 'authnopriv' or 'priv'")
+        click.echo(message)
+        return False, message
+    return True, convert_user_type[user_type]
+
+
+def is_valid_auth_type(user_auth_type):
+    user_auth_types = ['MD5', 'SHA', 'HMAC-SHA-2']
+    if user_auth_type not in user_auth_types:
+        click.echo("Invalid user authentication type. Must be one of these 'MD5', 'SHA', or 'HMAC-SHA-2'")
+        return False
+    return True
+
+
+def is_valid_encrypt_type(encrypt_type):
+    encrypt_types = ['DES', 'AES']
+    if encrypt_type not in encrypt_types:
+        click.echo("Invalid user encryption type.  Must be one of these two 'DES' or 'AES'")
+        return False
+    return True
+
+
+def snmp_community_secret_check(snmp_secret):
+    excluded_special_symbols = ['@', ":"]
+    if len(snmp_secret) > 32:
+        click.echo("SNMP community string length should be not be greater than 32")
+        click.echo("SNMP community string should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        click.echo("FAILED: SNMP community string length should be not be greater than 32")
+        return False
+    if any(char in excluded_special_symbols for char in snmp_secret):
+        click.echo("SNMP community string length should be not be greater than 32")
+        click.echo("SNMP community string should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        click.echo("FAILED: SNMP community string should not have any of these "
+                   "special symbols {}".format(excluded_special_symbols))
+        return False
+    return True
+
+
+def snmp_username_check(snmp_username):
+    excluded_special_symbols = ['@', ":"]
+    if len(snmp_username) > 32:
+        click.echo("SNMP user {} length should be not be greater than 32 characters".format(snmp_username))
+        click.echo("SNMP community string should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        click.echo("FAILED: SNMP user {} length should not be greater than 32 characters".format(snmp_username))
+        return False
+    if any(char in excluded_special_symbols for char in snmp_username):
+        click.echo("SNMP user {} length should be not be greater than 32 characters".format(snmp_username))
+        click.echo("SNMP community string should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        click.echo("FAILED: SNMP user {} should not have any of these special "
+                   "symbols {}".format(snmp_username, excluded_special_symbols))
+        return False
+    return True
+
+
+def snmp_user_secret_check(snmp_secret):
+    excluded_special_symbols = ['@', ":"]
+    if len(snmp_secret) < 8:
+        click.echo("SNMP user password length should be at least 8 characters")
+        click.echo("SNMP user password length should be not be greater than 64")
+        click.echo("SNMP user password should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        click.echo("FAILED: SNMP user password length should be at least 8 characters")
+        return False
+    if len(snmp_secret) > 64:
+        click.echo("SNMP user password length should be at least 8 characters")
+        click.echo("SNMP user password length should be not be greater than 64")
+        click.echo("SNMP user password should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        click.echo("FAILED: SNMP user password length should be not be greater than 64")
+        return False
+    if any(char in excluded_special_symbols for char in snmp_secret):
+        click.echo("SNMP user password length should be at least 8 characters")
+        click.echo("SNMP user password length should be not be greater than 64")
+        click.echo("SNMP user password should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        click.echo("FAILED: SNMP user password should not have any of these special "
+                   "symbols {}".format(excluded_special_symbols))
+        return False
+    return True
+
+
+@community.command('add')
+@click.argument('community', metavar='<snmp_community>', required=True)
+@click.argument('string_type', metavar='<RO|RW>', required=True)
+@clicommon.pass_db
+def add_community(db, community, string_type):
+    """ Add snmp community string"""
+    string_type = string_type.upper()
+    if not is_valid_community_type(string_type):
+        sys.exit(1)
+    if not snmp_community_secret_check(community):
+        sys.exit(2)
+    snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
+    if community in snmp_communities:
+        click.echo("SNMP community {} is already configured".format(community))
+        sys.exit(3)
+    db.cfgdb.set_entry('SNMP_COMMUNITY', community, {'TYPE': string_type})
+    click.echo("SNMP community {} added to configuration".format(community))
+    try:
+        click.echo("Restarting SNMP service...")
+        clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+        clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+    except SystemExit as e:
+        click.echo("Restart service snmp failed with error {}".format(e))
+        raise click.Abort()
+
+
+@community.command('del')
+@click.argument('community', metavar='<snmp_community>', required=True)
+@clicommon.pass_db
+def del_community(db, community):
+    """ Delete snmp community string"""
+    snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
+    if community not in snmp_communities:
+        click.echo("SNMP community {} is not configured".format(community))
+        sys.exit(1)
+    else:
+        db.cfgdb.set_entry('SNMP_COMMUNITY', community, None)
+        click.echo("SNMP community {} removed from configuration".format(community))
+        try:
+            click.echo("Restarting SNMP service...")
+            clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+            clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+        except SystemExit as e:
+            click.echo("Restart service snmp failed with error {}".format(e))
+            raise click.Abort()
+
+
+@community.command('replace')
+@click.argument('current_community', metavar='<current_community_string>', required=True)
+@click.argument('new_community', metavar='<new_community_string>', required=True)
+@clicommon.pass_db
+def replace_community(db, current_community, new_community):
+    """ Replace snmp community string"""
+    snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
+    if not current_community in snmp_communities:
+        click.echo("Current SNMP community {} is not configured".format(current_community))
+        sys.exit(1)
+    if not snmp_community_secret_check(new_community):
+        sys.exit(2)
+    elif new_community in snmp_communities:
+        click.echo("New SNMP community {} to replace current SNMP community {} already "
+                   "configured".format(new_community, current_community))
+        sys.exit(3)
+    else:
+        string_type = snmp_communities[current_community]['TYPE']
+        db.cfgdb.set_entry('SNMP_COMMUNITY', new_community, {'TYPE': string_type})
+        click.echo("SNMP community {} added to configuration".format(new_community))
+        db.cfgdb.set_entry('SNMP_COMMUNITY', current_community, None)
+        click.echo('SNMP community {} replace community {}'.format(new_community, current_community))
+        try:
+            click.echo("Restarting SNMP service...")
+            clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+            clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+        except SystemExit as e:
+            click.echo("Restart service snmp failed with error {}".format(e))
+            raise click.Abort()
+
+
+@snmp.group(cls=clicommon.AbbreviationGroup)
+@clicommon.pass_db
+def contact(db):
+    pass
+
+
+def is_valid_email(email):
+    return bool(re.search(r"^[\w\.\+\-]+\@[\w]+\.[a-z]{2,3}$", email))
+
+
+@contact.command('add')
+@click.argument('contact', metavar='<contact_name>', required=True)
+@click.argument('contact_email', metavar='<contact_email>', required=True)
+@clicommon.pass_db
+def add_contact(db, contact, contact_email):
+    """ Add snmp contact name and email """
+    snmp = db.cfgdb.get_table("SNMP")
+    try:
+        if snmp['CONTACT']:
+            click.echo("Contact already exists.  Use sudo config snmp contact modify instead")
+            sys.exit(1)
+        else:
+            db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email})
+            click.echo("Contact name {} and contact email {} have been added to "
+                       "configuration".format(contact, contact_email))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+    except KeyError:
+        if "CONTACT" not in snmp.keys():
+            if not is_valid_email(contact_email):
+                click.echo("Contact email {} is not valid".format(contact_email))
+                sys.exit(2)
+            db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email})
+            click.echo("Contact name {} and contact email {} have been added to "
+                       "configuration".format(contact, contact_email))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+
+
+@contact.command('del')
+@click.argument('contact', metavar='<contact_name>', required=True)
+@clicommon.pass_db
+def del_contact(db, contact):
+    """ Delete snmp contact name and email """
+    snmp = db.cfgdb.get_table("SNMP")
+    try:
+        if not contact in (list(snmp['CONTACT'].keys()))[0]:
+            click.echo("SNMP contact {} is not configured".format(contact))
+            sys.exit(1)
+        else:
+            db.cfgdb.set_entry('SNMP', 'CONTACT', None)
+            click.echo("SNMP contact {} removed from configuration".format(contact))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+    except KeyError:
+        if "CONTACT" not in snmp.keys():
+            click.echo("Contact name {} is not configured".format(contact))
+            sys.exit(2)
+
+
+@contact.command('modify')
+@click.argument('contact', metavar='<contact>', required=True)
+@click.argument('contact_email', metavar='<contact email>', required=True)
+@clicommon.pass_db
+def modify_contact(db, contact, contact_email):
+    """ Modify snmp contact"""
+    snmp = db.cfgdb.get_table("SNMP")
+    try:
+        current_snmp_contact_name = (list(snmp['CONTACT'].keys()))[0]
+        if current_snmp_contact_name == contact:
+            current_snmp_contact_email = snmp['CONTACT'][contact]
+        else:
+            current_snmp_contact_email = ''
+        if contact == current_snmp_contact_name and contact_email == current_snmp_contact_email:
+            click.echo("SNMP contact {} {} already exists".format(contact, contact_email))
+            sys.exit(1)
+        elif contact == current_snmp_contact_name and contact_email != current_snmp_contact_email:
+            if not is_valid_email(contact_email):
+                click.echo("Contact email {} is not valid".format(contact_email))
+                sys.exit(2)
+            db.cfgdb.mod_entry('SNMP', 'CONTACT', {contact: contact_email})
+            click.echo("SNMP contact {} email updated to {}".format(contact, contact_email))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+        else:
+            if not is_valid_email(contact_email):
+                click.echo("Contact email {} is not valid".format(contact_email))
+                sys.exit(2)
+            db.cfgdb.set_entry('SNMP', 'CONTACT', None)
+            db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email})
+            click.echo("SNMP contact {} and contact email {} updated".format(contact, contact_email))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+    except KeyError:
+        if "CONTACT" not in snmp.keys():
+            click.echo("Contact name {} is not configured".format(contact))
+            sys.exit(3)
+
+
+@snmp.group(cls=clicommon.AbbreviationGroup)
+@clicommon.pass_db
+def location(db):
+    pass
+
+
+@location.command('add')
+@click.argument('location', metavar='<location>', required=True, nargs=-1)
+@clicommon.pass_db
+def add_location(db, location):
+    """ Add snmp location"""
+    if isinstance(location, tuple):
+        location = " ".join(location)
+    elif isinstance(location, list):
+        location = " ".join(location)
+    snmp = db.cfgdb.get_table("SNMP")
+    try:
+        if snmp['LOCATION']:
+            click.echo("Location already exists")
+            sys.exit(1)
+    except KeyError:
+        if "LOCATION" not in snmp.keys():
+            db.cfgdb.set_entry('SNMP', 'LOCATION', {'Location': location})
+            click.echo("SNMP Location {} has been added to configuration".format(location))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+
+
+@location.command('del')
+@click.argument('location', metavar='<location>', required=True, nargs=-1)
+@clicommon.pass_db
+def delete_location(db, location):
+    """ Delete snmp location"""
+    if isinstance(location, tuple):
+        location = " ".join(location)
+    elif isinstance(location, list):
+        location = " ".join(location)
+    snmp = db.cfgdb.get_table("SNMP")
+    try:
+        if location == snmp['LOCATION']['Location']:
+            db.cfgdb.set_entry('SNMP', 'LOCATION', None)
+            click.echo("SNMP Location {} removed from configuration".format(location))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+        else:
+            click.echo("SNMP Location {} does not exist.  The location is {}".format(location, snmp['LOCATION']['Location']))
+            sys.exit(1)
+    except KeyError:
+        if "LOCATION" not in snmp.keys():
+            click.echo("SNMP Location {} is not configured".format(location))
+            sys.exit(2)
+
+
+@location.command('modify')
+@click.argument('location', metavar='<location>', required=True, nargs=-1)
+@clicommon.pass_db
+def modify_location(db, location):
+    """ Modify snmp location"""
+    if isinstance(location, tuple):
+        location = " ".join(location)
+    elif isinstance(location, list):
+        location = " ".join(location)
+    snmp = db.cfgdb.get_table("SNMP")
+    try:
+        snmp_location = snmp['LOCATION']['Location']
+        if location in snmp_location:
+            click.echo("SNMP location {} already exists".format(location))
+            sys.exit(1)
+        else:
+            db.cfgdb.mod_entry('SNMP', 'LOCATION', {'Location': location})
+            click.echo("SNMP location {} modified in configuration".format(location))
+            try:
+                click.echo("Restarting SNMP service...")
+                clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+                clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+            except SystemExit as e:
+                click.echo("Restart service snmp failed with error {}".format(e))
+                raise click.Abort()
+    except KeyError:
+        click.echo("Cannot modify SNMP Location.  You must use 'config snmp location add command <snmp_location>'")
+        sys.exit(2)
+
+
+from enum import IntEnum
+class SnmpUserError(IntEnum):
+    NameCheckFailure = 1
+    TypeNoAuthNoPrivOrAuthNoPrivOrPrivCheckFailure = 2
+    RoRwCheckFailure = 3
+    NoAuthNoPrivHasAuthType = 4
+    AuthTypeMd5OrShaOrHmacsha2IsMissing = 5
+    AuthTypeMd5OrShaOrHmacsha2Failure = 6
+    AuthPasswordMissing = 7
+    AuthPasswordFailsComplexityRequirements = 8
+    EncryptPasswordNotAllowedWithAuthNoPriv = 9
+    EncryptTypeDesOrAesIsMissing = 10
+    EncryptTypeFailsComplexityRequirements = 11
+    EncryptPasswordMissingFailure = 12
+    EncryptPasswordFailsComplexityRequirements = 13
+    UserAlreadyConfigured = 14
+
+
+@snmp.group(cls=clicommon.AbbreviationGroup)
+@clicommon.pass_db
+def user(db):
+    pass
+
+
+@user.command('add')
+@click.argument('user', metavar='<snmp_user>', required=True)
+@click.argument('user_type', metavar='<noAuthNoPriv|AuthNoPriv|Priv>', required=True)
+@click.argument('user_permission_type', metavar='<RO|RW>', required=True)
+@click.argument('user_auth_type', metavar='<MD5|SHA|HMAC-SHA-2>', required=False)
+@click.argument('user_auth_password', metavar='<auth_password>', required=False)
+@click.argument('user_encrypt_type', metavar='<DES|AES>', required=False)
+@click.argument('user_encrypt_password', metavar='<encrypt_password>', required=False)
+@clicommon.pass_db
+def add_user(db, user, user_type, user_permission_type, user_auth_type, user_auth_password, user_encrypt_type,
+             user_encrypt_password):
+    """ Add snmp user"""
+    if not snmp_username_check(user):
+        sys.exit(SnmpUserError.NameCheckFailure)
+    user_type = user_type.lower()
+    user_type_info = is_valid_user_type(user_type)
+    if not user_type_info[0]:
+        sys.exit(SnmpUserError.TypeNoAuthNoPrivOrAuthNoPrivOrPrivCheckFailure)
+    user_type = user_type_info[1]
+    user_permission_type = user_permission_type.upper()
+    if not is_valid_community_type(user_permission_type):
+        sys.exit(SnmpUserError.RoRwCheckFailure)
+    if user_type == "noAuthNoPriv":
+        if user_auth_type:
+            click.echo("User auth type not used with 'noAuthNoPriv'.  Please use 'AuthNoPriv' or 'Priv' instead")
+            sys.exit(SnmpUserError.NoAuthNoPrivHasAuthType)
+    else:
+        if not user_auth_type:
+            click.echo("User auth type is missing.  Must be MD5, SHA, or HMAC-SHA-2")
+            sys.exit(SnmpUserError.AuthTypeMd5OrShaOrHmacsha2IsMissing)
+        if user_auth_type:
+            user_auth_type = user_auth_type.upper()
+            if not is_valid_auth_type(user_auth_type):
+                sys.exit(SnmpUserError.AuthTypeMd5OrShaOrHmacsha2Failure)
+            elif not user_auth_password:
+                click.echo("User auth password is missing")
+                sys.exit(SnmpUserError.AuthPasswordMissing)
+            elif user_auth_password:
+                if not snmp_user_secret_check(user_auth_password):
+                    sys.exit(SnmpUserError.AuthPasswordFailsComplexityRequirements)
+        if user_type == "AuthNoPriv":
+            if user_encrypt_type:
+                click.echo("User encrypt type not used with 'AuthNoPriv'.  Please use 'Priv' instead")
+                sys.exit(SnmpUserError.EncryptPasswordNotAllowedWithAuthNoPriv)
+        elif user_type == "Priv":
+            if not user_encrypt_type:
+                click.echo("User encrypt type is missing.  Must be DES or AES")
+                sys.exit(SnmpUserError.EncryptTypeDesOrAesIsMissing)
+            if user_encrypt_type:
+                user_encrypt_type = user_encrypt_type.upper()
+                if not is_valid_encrypt_type(user_encrypt_type):
+                    sys.exit(SnmpUserError.EncryptTypeFailsComplexityRequirements)
+                elif not user_encrypt_password:
+                    click.echo("User encrypt password is missing")
+                    sys.exit(SnmpUserError.EncryptPasswordMissingFailure)
+                elif user_encrypt_password:
+                    if not snmp_user_secret_check(user_encrypt_password):
+                        sys.exit(SnmpUserError.EncryptPasswordFailsComplexityRequirements)
+    snmp_users = db.cfgdb.get_table("SNMP_USER")
+    if user in snmp_users.keys():
+        click.echo("SNMP user {} is already configured".format(user))
+        sys.exit(SnmpUserError.UserAlreadyConfigured)
+    else:
+        if not user_auth_type:
+            user_auth_type = ''
+        if not user_auth_password:
+            user_auth_password = ''
+        if not user_encrypt_type:
+            user_encrypt_type = ''
+        if not user_encrypt_password:
+            user_encrypt_password = ''
+        db.cfgdb.set_entry('SNMP_USER', user, {'SNMP_USER_TYPE': user_type,
+                                               'SNMP_USER_PERMISSION': user_permission_type,
+                                               'SNMP_USER_AUTH_TYPE': user_auth_type,
+                                               'SNMP_USER_AUTH_PASSWORD': user_auth_password,
+                                               'SNMP_USER_ENCRYPTION_TYPE': user_encrypt_type,
+                                               'SNMP_USER_ENCRYPTION_PASSWORD': user_encrypt_password})
+        click.echo("SNMP user {} added to configuration".format(user))
+        try:
+            click.echo("Restarting SNMP service...")
+            clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+            clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+        except SystemExit as e:
+            click.echo("Restart service snmp failed with error {}".format(e))
+            raise click.Abort()
+
+
+@user.command('del')
+@click.argument('user', metavar='<snmp_user>', required=True)
+@clicommon.pass_db
+def del_user(db, user):
+    """ Del snmp user"""
+    snmp_users = db.cfgdb.get_table("SNMP_USER")
+    if user not in snmp_users:
+        click.echo("SNMP user {} is not configured".format(user))
+        sys.exit(1)
+    else:
+        db.cfgdb.set_entry('SNMP_USER', user, None)
+        click.echo("SNMP user {} removed from configuration".format(user))
+        try:
+            click.echo("Restarting SNMP service...")
+            clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+            clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+        except SystemExit as e:
+            click.echo("Restart service snmp failed with error {}".format(e))
+            raise click.Abort()
 
 #
 # 'bgp' group ('config bgp ...')
@@ -2348,6 +3152,126 @@ def speed(ctx, interface_name, interface_speed, verbose):
     clicommon.run_command(command, display_cmd=verbose)
 
 #
+# 'autoneg' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enabled", "disabled"]))
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def autoneg(ctx, interface_name, mode, verbose):
+    """Set interface auto negotiation mode"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface autoneg {} {}' executing...".format(interface_name, mode))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -an {}".format(interface_name, mode)
+    else:
+        command = "portconfig -p {} -an {} -n {}".format(interface_name, mode, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
+# 'adv-speeds' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('speed_list', metavar='<speed_list>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def advertised_speeds(ctx, interface_name, speed_list, verbose):
+    """Set interface advertised speeds"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface advertised_speeds {} {}' executing...".format(interface_name, speed_list))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -S {}".format(interface_name, speed_list)
+    else:
+        command = "portconfig -p {} -S {} -n {}".format(interface_name, speed_list, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
+# 'interface-type' subcommand
+#
+
+@interface.command(name='type')
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_type_value', metavar='<interface_type_value>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def interface_type(ctx, interface_name, interface_type_value, verbose):
+    """Set interface type"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface interface_type {} {}' executing...".format(interface_name, interface_type_value))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -t {}".format(interface_name, interface_type_value)
+    else:
+        command = "portconfig -p {} -t {} -n {}".format(interface_name, interface_type_value, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
+# 'advertised-interface-types' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_type_list', metavar='<interface_type_list>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def advertised_types(ctx, interface_name, interface_type_list, verbose):
+    """Set interface advertised types"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface advertised_interface_types {} {}' executing...".format(interface_name, interface_type_list))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -T {}".format(interface_name, interface_type_list)
+    else:
+        command = "portconfig -p {} -T {} -n {}".format(interface_name, interface_type_list, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
 # 'breakout' subcommand
 #
 
@@ -2394,12 +3318,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     del_intf_dict = {intf: del_ports[intf]["speed"] for intf in del_ports}
 
     if del_intf_dict:
-        """ shut down all the interface before deletion """
-        ret = shutdown_interfaces(ctx, del_intf_dict)
-        if not ret:
-            raise click.Abort()
         click.echo("\nPorts to be deleted : \n {}".format(json.dumps(del_intf_dict, indent=4)))
-
     else:
         click.secho("[ERROR] del_intf_dict is None! No interfaces are there to be deleted", fg='red')
         raise click.Abort()
@@ -2425,6 +3344,12 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     for item in matched_items:
         del_intf_dict.pop(item)
         add_intf_dict.pop(item)
+
+    # validate all del_ports before calling breakOutPort
+    for intf in del_intf_dict.keys():
+        if not interface_name_is_valid(config_db, intf):
+            click.secho("[ERROR] Interface name {} is invalid".format(intf))
+            raise click.Abort()
 
     click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
     if not add_intf_dict:
@@ -2525,6 +3450,34 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
 
+#
+# 'tpid' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_tpid', metavar='<interface_tpid>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def tpid(ctx, interface_name, interface_tpid, verbose):
+    """Set interface tpid"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -tp {}".format(interface_name, interface_tpid)
+    else:
+        command = "portconfig -p {} -tp {} -n {}".format(interface_name, interface_tpid, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+
 @interface.command()
 @click.pass_context
 @click.argument('interface_name', metavar='<interface_name>', required=True)
@@ -2580,8 +3533,8 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before 
-    # changing it to a router port 
+    # Add a validation to check this interface is not a member in vlan before
+    # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
             click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
@@ -2591,6 +3544,10 @@ def add(ctx, interface_name, ip_addr, gw):
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
             ip_addr = str(net)
+
+        ip_addr = validate_ip_mask(ctx, ip_addr)
+        if not ip_addr:
+            raise ValueError('')
 
         if interface_name == 'eth0':
 
@@ -2628,7 +3585,7 @@ def add(ctx, interface_name, ip_addr, gw):
                 config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
         config_db.set_entry(table_name, (interface_name, ip_addr), {"NULL": "NULL"})
     except ValueError:
-        ctx.fail("'ip_addr' is not valid.")
+        ctx.fail("ip address or mask is not valid.")
 
 #
 # 'del' subcommand
@@ -2652,6 +3609,10 @@ def remove(ctx, interface_name, ip_addr):
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
             ip_addr = str(net)
+        
+        ip_addr = validate_ip_mask(ctx, ip_addr)
+        if not ip_addr:
+            raise ValueError('')
 
         if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
@@ -2661,6 +3622,25 @@ def remove(ctx, interface_name, ip_addr):
         table_name = get_interface_table_name(interface_name)
         if table_name == "":
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+        # If we deleting the last IP entry of the interface, check whether a static route present for the RIF
+        # before deleting the entry and also the RIF.
+        if len(interface_dependent) == 1 and interface_dependent[0][1] == ip_addr:
+            # Check both IPv4 and IPv6 routes.
+            ip_versions = [ "ip", "ipv6"]
+            for ip_ver in ip_versions:
+                # Compete the command and ask Zebra to return the routes.
+                # Scopes of all VRFs will be checked.
+                cmd = "show {} route vrf all static".format(ip_ver)
+                if multi_asic.is_multi_asic():
+                    output = bgp_util.run_bgp_command(cmd, ctx.obj['namespace'])
+                else:
+                    output = bgp_util.run_bgp_command(cmd)
+                # If there is output data, check is there a static route,
+                # bound to the interface.
+                if output != "":
+                    if any(interface_name in output_line for output_line in output.splitlines()):
+                        ctx.fail("Cannot remove the last IP entry of interface {}. A static {} route is still bound to the RIF.".format(interface_name, ip_ver))
         config_db.set_entry(table_name, (interface_name, ip_addr), None)
         interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
         if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
@@ -2672,7 +3652,7 @@ def remove(ctx, interface_name, ip_addr):
             command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
         clicommon.run_command(command)
     except ValueError:
-        ctx.fail("'ip_addr' is not valid.")
+        ctx.fail("ip address or mask is not valid.")
 
 
 #
@@ -3151,111 +4131,160 @@ def del_vrf_vni_map(ctx, vrfname):
 @click.pass_context
 def route(ctx):
     """route-related configuration tasks"""
-    pass
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
 
 @route.command('add', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
     """Add route command"""
-    if len(command_str) < 4 or len(command_str) > 9:
-        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
-    if "prefix" not in command_str:
-        ctx.fail("argument is incomplete, prefix not found!")
-    if "nexthop" not in command_str:
-        ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0, len(command_str)):
-        if "nexthop" == command_str[i]:
-            prefix_str = command_str[:i]
-            nexthop_str = command_str[i:]
-    vrf_name = ""
-    cmd = 'sudo vtysh -c "configure terminal" -c "ip route'
-    if prefix_str:
-        if len(prefix_str) == 2:
-            prefix_mask = prefix_str[1]
-            cmd += ' {}'.format(prefix_mask)
-        elif len(prefix_str) == 4:
-            vrf_name = prefix_str[2]
-            prefix_mask = prefix_str[3]
-            cmd += ' {}'.format(prefix_mask)
+    config_db = ctx.obj['config_db']
+    key, route = cli_sroute_to_config(ctx, command_str)
+
+    # If defined intf name, check if it belongs to interface
+    if 'ifname' in route:
+        if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
+            not route['ifname'] in config_db.get_keys('INTERFACE') and
+            not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+            not route['ifname'] == 'null'):
+            ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
+
+    entry_counter = 1
+    if 'nexthop' in route:
+        entry_counter = len(route['nexthop'].split(','))
+
+    # Alignment in case the command contains several nexthop ip
+    for i in range(entry_counter):
+        if 'nexthop-vrf' in route:
+            if i > 0:
+                vrf = route['nexthop-vrf'].split(',')[0]
+                route['nexthop-vrf'] += ',' + vrf
         else:
-            ctx.fail("prefix is not in pattern!")
-    if nexthop_str:
-        if len(nexthop_str) == 2:
-            ip = nexthop_str[1]
-            if vrf_name == "":
-                cmd += ' {}'.format(ip)
-            else:
-                cmd += ' {} vrf {}'.format(ip, vrf_name)
-        elif len(nexthop_str) == 3:
-            dev_name = nexthop_str[2]
-            if vrf_name == "":
-                cmd += ' {}'.format(dev_name)
-            else:
-                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
-        elif len(nexthop_str) == 4:
-            vrf_name_dst = nexthop_str[2]
-            ip = nexthop_str[3]
-            if vrf_name == "":
-                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
-            else:
-                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
+            route['nexthop-vrf'] = ''
+
+        if not 'nexthop' in route:
+            route['nexthop'] = ''
+
+        if 'ifname' in route:
+            if i > 0:
+                route['ifname'] += ','
         else:
-            ctx.fail("nexthop is not in pattern!")
-    cmd += '"'
-    clicommon.run_command(cmd)
+            route['ifname'] = ''
+
+        # Set default values for distance and blackhole because the command doesn't have such an option
+        if 'distance' in route:
+            route['distance'] += ',0'
+        else:
+            route['distance'] = '0'
+
+        if 'blackhole' in route:
+            route['blackhole'] += ',false'
+        else:
+            # If the user configure with "ifname" as "null", set 'blackhole' attribute as true.
+            if 'ifname' in route and route['ifname'] == 'null':
+                route['blackhole'] = 'true'
+            else:
+                route['blackhole'] = 'false'
+
+    # Check if exist entry with key
+    keys = config_db.get_keys('STATIC_ROUTE')
+    if key in keys:
+        # If exist update current entry
+        current_entry = config_db.get_entry('STATIC_ROUTE', key)
+
+        for entry in ['nexthop', 'nexthop-vrf', 'ifname', 'distance', 'blackhole']:
+            if not entry in current_entry:
+                current_entry[entry] = ''
+            if entry in route:
+                current_entry[entry] += ',' + route[entry]
+            else:
+                current_entry[entry] += ','
+
+        config_db.set_entry("STATIC_ROUTE", key, current_entry)
+    else:
+        config_db.set_entry("STATIC_ROUTE", key, route)
 
 @route.command('del', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
     """Del route command"""
-    if len(command_str) < 4 or len(command_str) > 9:
-        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
-    if "prefix" not in command_str:
-        ctx.fail("argument is incomplete, prefix not found!")
-    if "nexthop" not in command_str:
-        ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0, len(command_str)):
-        if "nexthop" == command_str[i]:
-            prefix_str = command_str[:i]
-            nexthop_str = command_str[i:]
-    vrf_name = ""
-    cmd = 'sudo vtysh -c "configure terminal" -c "no ip route'
-    if prefix_str:
-        if len(prefix_str) == 2:
-            prefix_mask = prefix_str[1]
-            cmd += ' {}'.format(prefix_mask)
-        elif len(prefix_str) == 4:
-            vrf_name = prefix_str[2]
-            prefix_mask = prefix_str[3]
-            cmd += ' {}'.format(prefix_mask)
+    config_db = ctx.obj['config_db']
+    key, route = cli_sroute_to_config(ctx, command_str, strict_nh=False)
+    keys = config_db.get_keys('STATIC_ROUTE')
+    prefix_tuple = tuple(key.split('|'))
+    if not key in keys and not prefix_tuple in keys:
+        ctx.fail('Route {} doesnt exist'.format(key))
+    else:
+        # If not defined nexthop or intf name remove entire route
+        if not 'nexthop' in route and not 'ifname' in route:
+            config_db.set_entry("STATIC_ROUTE", key, None)
+            return
+
+        current_entry = config_db.get_entry('STATIC_ROUTE', key)
+
+        nh = ['']
+        nh_vrf = ['']
+        ifname = ['']
+        distance = ['']
+        blackhole = ['']
+        if 'nexthop' in current_entry:
+            nh = current_entry['nexthop'].split(',')
+        if 'nexthop-vrf' in current_entry:
+            nh_vrf = current_entry['nexthop-vrf'].split(',')
+        if 'ifname' in current_entry:
+            ifname = current_entry['ifname'].split(',')
+        if 'distance' in current_entry:
+            distance = current_entry['distance'].split(',')
+        if 'blackhole' in current_entry:
+            blackhole = current_entry['blackhole'].split(',')
+
+        # Zip data from config_db into tuples
+        # {'nexthop': '10.0.0.2,20.0.0.2', 'vrf-nexthop': ',Vrf-RED', 'ifname': ','}
+        # [('10.0.0.2', '', ''), ('20.0.0.2', 'Vrf-RED', '')]
+        nh_zip = list(itertools.zip_longest(nh, nh_vrf, ifname, fillvalue=''))
+        cli_tuple = ()
+
+        # Create tuple from CLI argument
+        # config route add prefix 1.4.3.4/32 nexthop vrf Vrf-RED 20.0.0.2
+        # ('20.0.0.2', 'Vrf-RED', '')
+        for entry in ['nexthop', 'nexthop-vrf', 'ifname']:
+            if entry in route:
+                cli_tuple += (route[entry],)
+            else:
+                cli_tuple += ('',)
+
+        if cli_tuple in nh_zip:
+            # If cli tuple is in config_db find its index and delete from lists
+            idx = nh_zip.index(cli_tuple)
+            if len(nh) - 1 >= idx:
+                del nh[idx]
+            if len(nh_vrf) - 1 >= idx:
+                del nh_vrf[idx]
+            if len(ifname) - 1 >= idx:
+                del ifname[idx]
+            if len(distance) - 1 >= idx:
+                del distance[idx]
+            if len(blackhole) - 1 >= idx:
+                del blackhole[idx]
         else:
-            ctx.fail("prefix is not in pattern!")
-    if nexthop_str:
-        if len(nexthop_str) == 2:
-            ip = nexthop_str[1]
-            if vrf_name == "":
-                cmd += ' {}'.format(ip)
-            else:
-                cmd += ' {} vrf {}'.format(ip, vrf_name)
-        elif len(nexthop_str) == 3:
-            dev_name = nexthop_str[2]
-            if vrf_name == "":
-                cmd += ' {}'.format(dev_name)
-            else:
-                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
-        elif len(nexthop_str) == 4:
-            vrf_name_dst = nexthop_str[2]
-            ip = nexthop_str[3]
-            if vrf_name == "":
-                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
-            else:
-                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
+            ctx.fail('Not found {} in {}'.format(cli_tuple, key))
+
+        if (len(nh) == 0 or (len(nh) == 1 and nh[0] == '')) and \
+            (len(ifname) == 0 or (len(ifname) == 1 and ifname[0] == '')):
+            # If there are no nexthop and ifname fields in the current record, delete it
+            config_db.set_entry("STATIC_ROUTE", key, None)
         else:
-            ctx.fail("nexthop is not in pattern!")
-    cmd += '"'
-    clicommon.run_command(cmd)
+            # Otherwise it still has ECMP nexthop or ifname fields, so compose it from the lists into db
+            current_entry['nexthop'] = ','.join((str(e)) for e in nh)
+            current_entry['nexthop-vrf'] = ','.join((str(e)) for e in nh_vrf)
+            current_entry['ifname'] = ','.join((str(e)) for e in ifname)
+            current_entry['distance'] = ','.join((str(e)) for e in distance)
+            current_entry['blackhole'] = ','.join((str(e)) for e in blackhole)
+            config_db.set_entry("STATIC_ROUTE", key, current_entry)
 
 #
 # 'acl' group ('config acl ...')
@@ -4206,7 +5235,7 @@ def polling_int(ctx, interval):
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 def is_valid_sample_rate(rate):
-    return rate in range(256, 8388608 + 1)
+    return rate.isdigit() and int(rate) in range(256, 8388608 + 1)
 
 
 #
@@ -4264,24 +5293,31 @@ def disable(ctx, ifname):
 #
 @interface.command('sample-rate')
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
-@click.argument('rate', metavar='<sample_rate>', required=True, type=int)
+@click.argument('rate', metavar='<sample_rate>', required=True, type=str)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
     config_db = ctx.obj['db']
     if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
-    if not is_valid_sample_rate(rate):
-        click.echo('Error: Sample rate must be between 256 and 8388608')
+    if not is_valid_sample_rate(rate) and rate != 'default':
+        click.echo('Error: Sample rate must be between 256 and 8388608 or default')
         return
 
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
-    if sess_dict and ifname in sess_dict:
+    if sess_dict and ifname in sess_dict.keys():
+        if rate == 'default':
+            if 'sample_rate' not in sess_dict[ifname]:
+                return
+            del sess_dict[ifname]['sample_rate']
+            config_db.set_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
+            return
         sess_dict[ifname]['sample_rate'] = rate
         config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
     else:
-        config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
+        if rate != 'default':
+            config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
 
 
 #
