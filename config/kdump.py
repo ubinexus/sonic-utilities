@@ -1,4 +1,5 @@
 import os
+import sys
 
 import click
 import utilities_common.cli as clicommon
@@ -18,13 +19,9 @@ def disable():
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
-        if not kdump_table:
-            click.echo("Unable to retrieve kdump table from CONFIG_DB.")
-            return
-
         if "config" not in kdump_table:
-            click.echo("Unable retrieve key `config` from kdump table.")
-            return
+            click.echo("Unable to retrieve key `config` from kdump table.")
+            sys.exit(1)
 
         config_db.mod_entry("KDUMP", "config", {"enabled": "false"})
 
@@ -36,13 +33,9 @@ def enable():
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
-        if not kdump_table:
-            click.echo("Unable to retrieve kdump table from CONFIG_DB.")
-            return
-
         if "config" not in kdump_table:
-            click.echo("Unable retrieve key `config` from kdump table.")
-            return
+            click.echo("Unable to retrieve key `config` from kdump table.")
+            sys.exit(2)
 
         config_db.mod_entry("KDUMP", "config", {"enabled": "true"})
 
@@ -55,13 +48,9 @@ def memory(kdump_memory):
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
-        if not kdump_table:
-            click.echo("Unable to retrieve kdump table from CONFIG_DB.")
-            return
-
         if "config" not in kdump_table:
-            click.echo("Unable retrieve key `config` from kdump table.")
-            return
+            click.echo("Unable to retrieve key `config` from kdump table.")
+            sys.exit(3)
 
         config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
 
@@ -74,12 +63,8 @@ def num_dumps(kdump_num_dumps):
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
-        if not kdump_table:
-            click.echo("Unable to retrieve kdump table from CONFIG_DB.")
-            return
-
         if "config" not in kdump_table:
-            click.echo("Unable retrieve key `config` from kdump table.")
-            return
+            click.echo("Unable to retrieve key `config` from kdump table.")
+            sys.exit(4)
 
         config_db.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
