@@ -8,7 +8,6 @@
 
 try:
     import click
-    import subprocess
     import yaml
     from show import platform
     import utilities_common.cli as clicommon
