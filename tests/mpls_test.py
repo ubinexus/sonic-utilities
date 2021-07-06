@@ -51,6 +51,7 @@ class TestMpls(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet4") == {"mpls": "enable"}
 
     def test_config_mpls_remove(self):
         runner = CliRunner()
@@ -61,6 +62,7 @@ class TestMpls(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet4") == {"mpls": "disable"}
 
     def test_show_interfaces_mpls(self):
         jsonfile = os.path.join(mock_db_path, 'appl_db')

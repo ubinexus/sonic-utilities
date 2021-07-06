@@ -553,15 +553,6 @@ def nexthop(ctx):
     elif ctx.obj["crm"].cli_mode == 'resources':
         ctx.obj["crm"].show_resources('{0}_nexthop'.format(ctx.obj["crm"].addr_family))
 
-@mpls.command()
-@click.pass_context
-def inseg(ctx):
-    """Show CRM information for in-segment resource"""
-    if ctx.obj["crm"].cli_mode == 'thresholds':
-        ctx.obj["crm"].show_thresholds('{0}_inseg'.format(ctx.obj["crm"].addr_family))
-    elif ctx.obj["crm"].cli_mode == 'resources':
-        ctx.obj["crm"].show_resources('{0}_inseg'.format(ctx.obj["crm"].addr_family))
-
 ipv6.add_command(route)
 ipv6.add_command(neighbor)
 ipv6.add_command(nexthop)
