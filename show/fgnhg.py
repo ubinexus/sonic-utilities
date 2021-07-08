@@ -33,7 +33,7 @@ def active_hops(nhg):
     table_keys = []
     table_keys = state_db.keys(state_db.STATE_DB, _hash)
     t_dict = {}
-    header = ["FG_NHG_PREFIX", "Active Next Hops"]
+    header = ["FG NHG Prefix", "Active Next Hops"]
     table = []
     output_dict = {}
 
@@ -105,7 +105,7 @@ def hash_view(nhg):
     table_keys = []
     table_keys = state_db.keys(state_db.STATE_DB, _hash)
     t_dict = {}
-    header = ["FG_NHG_PREFIX", "Next Hop", "Hash buckets"]
+    header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
     table = []
     output_dict = {}
     bank_dict = {}
