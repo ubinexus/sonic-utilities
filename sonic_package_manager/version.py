@@ -20,7 +20,7 @@ class Version(semantic_version.Version):
             ValueError: when version_string does not follow SemVer.
         """
 
-        return semantic_version.Version(version_string)
+        return cls(version_string)
 
 
 def version_to_tag(ver: Version) -> str:

@@ -121,7 +121,7 @@ def package_constraint_to_reference(constraint: PackageConstraint) -> PackageRef
     # Allow only specific version for now.
     # Later we can improve package manager to support
     # installing packages using expressions like 'package>1.0.0'
-    if version_constraint.expression == '*':  # empty range means any version
+    if version_constraint.expression == '*':
         return PackageReference(package_name, None)
     if not version_constraint.is_exact():
         raise PackageManagerError(f'Can only install specific version. '
