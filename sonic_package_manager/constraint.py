@@ -11,8 +11,15 @@ import semantic_version
 from sonic_package_manager.version import Version
 
 
-class VersionConstraint(semantic_version.SimpleSpec):
-    """ Extends SimpleSpec from semantic_version package. """
+class VersionConstraint:
+    """ Version constraint representation. """
+
+    def __init__(self, *args, **kwargs):
+        self._constraint = semantic_version.SimpleSpec(*args, **kwargs)
+
+    @property
+    def expression(self):
+        return self._constraint.expression
 
     @classmethod
     def parse(cls, constraint_expression: str) -> 'VersionConstraint':
@@ -35,18 +42,7 @@ class VersionConstraint(semantic_version.SimpleSpec):
             Boolean wether this constraint allows version.
         """
 
-        return self.match(version)
-
-    def allows_all(self, other: 'VersionConstraint') -> bool:
-        """ Checks that a version range other overlaps with this range.
-
-        Args:
-            other: VersionConstraint object to check.
-        Returns:
-            Boolean whether this constraint is a superset of other constraint.
-        """
-
-        return other in self
+        return self._constraint.match(version._version)
 
     def is_exact(self) -> bool:
         """ Is the version constraint exact, meaning only one version is allowed.
@@ -55,7 +51,8 @@ class VersionConstraint(semantic_version.SimpleSpec):
             Boolean wether this constraint is exact.
         """
 
-        return hasattr(self.clause, 'target') and self.clause.operator == '=='
+        clause = self._constraint.clause
+        return hasattr(clause, 'target') and clause.operator == '=='
 
     def get_exact_version(self) -> Version:
         """ Returns an exact version for this constraint if it is exact constraint.
@@ -66,7 +63,16 @@ class VersionConstraint(semantic_version.SimpleSpec):
             AttributeError: when constraint is not exact
         """
 
-        return self.clause.target
+        return self._constraint.clause.target
+
+    def __str__(self):
+        return self._constraint.__str__()
+
+    def __repr__(self):
+        return self._constraint.__repr__()
+
+    def __eq__(self, other):
+        return self._constraint.__eq__(other._constraint)
 
 
 @dataclass

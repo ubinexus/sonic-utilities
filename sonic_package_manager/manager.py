@@ -156,7 +156,7 @@ def validate_package_base_os_constraints(package: Package, sonic_version_info: D
 
         version = Version.parse(sonic_version_info[component])
 
-        if not constraint.allows_all(version):
+        if not constraint.allows(version):
             raise PackageSonicRequirementError(package.name, component, constraint, version)
 
 
@@ -178,7 +178,7 @@ def validate_package_tree(packages: Dict[str, Package]):
 
             installed_version = dependency_package.version
             log.debug(f'dependency package is installed {dependency.name}: {installed_version}')
-            if not dependency.constraint.allows_all(installed_version):
+            if not dependency.constraint.allows(installed_version):
                 raise PackageDependencyError(package.name, dependency, installed_version)
 
             dependency_components = dependency.components
@@ -197,7 +197,7 @@ def validate_package_tree(packages: Dict[str, Package]):
                 log.debug(f'dependency package {dependency.name}: '
                           f'component {component} version is {component_version}')
 
-                if not constraint.allows_all(component_version):
+                if not constraint.allows(component_version):
                     raise PackageComponentDependencyError(package.name, dependency, component,
                                                           constraint, component_version)
 
@@ -209,7 +209,7 @@ def validate_package_tree(packages: Dict[str, Package]):
 
             installed_version = conflicting_package.version
             log.debug(f'conflicting package is installed {conflict.name}: {installed_version}')
-            if conflict.constraint.allows_all(installed_version):
+            if conflict.constraint.allows(installed_version):
                 raise PackageConflictError(package.name, conflict, installed_version)
 
             for component, constraint in conflicting_package.components.items():
@@ -220,7 +220,7 @@ def validate_package_tree(packages: Dict[str, Package]):
                 log.debug(f'conflicting package {dependency.name}: '
                           f'component {component} version is {component_version}')
 
-                if constraint.allows_all(component_version):
+                if constraint.allows(component_version):
                     raise PackageComponentConflictError(package.name, dependency, component,
                                                         constraint, component_version)
 
