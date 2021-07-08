@@ -1,6 +1,7 @@
 import json
 import os
 
+import subprocess
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
@@ -8,8 +9,9 @@ from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
 from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 from portconfig import get_child_ports
+import sonic_platform_base.sonic_sfp.sfputilhelper
 
 from . import portchannel
 from collections import OrderedDict
@@ -134,6 +136,29 @@ def status(interfacename, namespace, display, verbose):
     ctx = click.get_current_context()
 
     cmd = "intfutil -c status"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+@interfaces.command()
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def tpid(interfacename, namespace, display, verbose):
+    """Show Interface tpid information"""
+
+    ctx = click.get_current_context()
+
+    cmd = "intfutil -c tpid"
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
@@ -369,6 +394,31 @@ def presence(db, interfacename, namespace, verbose):
 
     if namespace is not None:
         cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+
+@transceiver.command()
+@click.argument('interfacename', required=False)
+@click.option('--fetch-from-hardware', '-hw', 'fetch_from_hardware', is_flag=True, default=False)
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@clicommon.pass_db
+def error_status(db, interfacename, fetch_from_hardware, namespace, verbose):
+    """ Show transceiver error-status """
+
+    ctx = click.get_current_context()
+
+    cmd = "sudo sfputil show error-status"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -p {}".format(interfacename)
+
+    if fetch_from_hardware:
+        cmd += " -hw"
 
     clicommon.run_command(cmd, display_cmd=verbose)
 

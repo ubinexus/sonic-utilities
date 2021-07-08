@@ -131,6 +131,7 @@ class ServiceCreator:
         Args:
             feature_registry: FeatureRegistry object.
             sonic_db: SonicDB interface.
+            cli_gen: CliGenerator instance.
             cfg_mgmt: ConfigMgmt instance.
          """
 
@@ -321,9 +322,9 @@ class ServiceCreator:
     def update_dependent_list_file(self, package: Package, remove=False):
         """ This function updates dependent list file for packages listed in "dependent-of"
             (path: /etc/sonic/<service>_dependent file).
-
         Args:
             package: Package to update packages dependent of it.
+            remove: True if update for removal process.
         Returns:
             None.
         """
@@ -361,7 +362,6 @@ class ServiceCreator:
 
     def generate_dump_script(self, package):
         """ Generates dump plugin script for package.
-
         Args:
             package: Package object to generate dump plugin script for.
         Returns:
