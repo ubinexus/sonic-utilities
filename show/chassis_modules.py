@@ -111,9 +111,9 @@ def midplane_status(chassis_module_name):
 
 @chassis.command()
 @click.argument('systemportname', required=False)
-@multi_asic_util.multi_asic_click_options
+@click.option('--namespace', '-n', 'namespace', required=True, default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def system_ports(systemportname, namespace, display, verbose):
+def system_ports(systemportname, namespace, verbose):
     """Show VOQ system ports information"""
 
     cmd = "voqutil -c system_ports"
@@ -124,37 +124,38 @@ def system_ports(systemportname, namespace, display, verbose):
     if namespace is not None:
         cmd += " -n {}".format(namespace)
 
-    cmd += " -d {}".format('all')
-
     clicommon.run_command(cmd, display_cmd=verbose)
 
 @chassis.command()
-@multi_asic_util.multi_asic_click_options
+@click.argument('ipaddress', required=False)
+@click.option('--asicname', '-x', 'asicname', default=None, type=str, show_default=False, help='Asic name')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def system_neighbors(namespace, display, verbose):
+def system_neighbors(asicname, ipaddress, verbose):
     """Show VOQ system neighbors information"""
 
     cmd = "voqutil -c system_neighbors"
 
-    if namespace is not None:
-        cmd += " -n {}".format(namespace)
+    if ipaddress is not None:
+        cmd += " -a {}".format(ipaddress)
 
-    cmd += " -d {}".format('all')
+    if asicname is not None:
+        cmd += " -x {}".format(asicname)
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
 @chassis.command()
 @click.argument('systemlagname', required=False)
-@multi_asic_util.multi_asic_click_options
+@click.option('--asicname', '-x', 'asicname', default=None, type=str, show_default=False, help='Asic name')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def system_lags(systemlagname, namespace, display, verbose):
+def system_lags(systemlagname, asicname, verbose):
     """Show VOQ system lags information"""
 
     cmd = "voqutil -c system_lags"
 
     if systemlagname is not None:
-        cmd += " -s \"{}\"".format(systemlagname)
+        cmd += " -l \"{}\"".format(systemlagname)
 
-    cmd += " -d {}".format('all')
+    if asicname is not None:
+        cmd += " -x {}".format(asicname)
 
     clicommon.run_command(cmd, display_cmd=verbose)

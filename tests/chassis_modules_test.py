@@ -40,21 +40,6 @@ show_chassis_midplane_output="""\
 SUPERVISOR0  192.168.1.100            True
 """
 
-show_chassis_system_ports_output_all="""\
-            System Port Name    Port Id    Switch Id    Core    Core Port    Speed
-----------------------------  ---------  -----------  ------  -----------  -------
-   Linecard1|Asic0|Ethernet0          1            0       0            1     100G
-   Linecard1|Asic0|Ethernet0          1            0       0            1     100G
-Linecard1|Asic0|Ethernet-IB0         13            0       1            6      10G
-Linecard1|Asic0|Ethernet-IB0         13            0       1            6      10G
-  Linecard1|Asic1|Ethernet12         65            2       0            1     100G
-  Linecard1|Asic1|Ethernet12         65            2       0            1     100G
-  Linecard1|Asic2|Ethernet24        129            4       0            1     100G
-  Linecard1|Asic2|Ethernet24        129            4       0            1     100G
-   Linecard2|Asic0|Ethernet0        193            6       0            1     100G
-   Linecard2|Asic0|Ethernet0        193            6       0            1     100G
-"""
-
 show_chassis_system_ports_output_asic0="""\
             System Port Name    Port Id    Switch Id    Core    Core Port    Speed
 ----------------------------  ---------  -----------  ------  -----------  -------
@@ -65,20 +50,13 @@ Linecard1|Asic0|Ethernet-IB0         13            0       1            6      1
    Linecard2|Asic0|Ethernet0        193            6       0            1     100G
 """
 
-show_chassis_system_ports_output_1_all="""\
-         System Port Name    Port Id    Switch Id    Core    Core Port    Speed
--------------------------  ---------  -----------  ------  -----------  -------
-Linecard1|Asic0|Ethernet0          1            0       0            1     100G
-Linecard1|Asic0|Ethernet0          1            0       0            1     100G
-"""
-
 show_chassis_system_ports_output_1_asic0="""\
          System Port Name    Port Id    Switch Id    Core    Core Port    Speed
 -------------------------  ---------  -----------  ------  -----------  -------
 Linecard1|Asic0|Ethernet0          1            0       0            1     100G
 """
 
-show_chassis_system_neighbors_output="""\
+show_chassis_system_neighbors_output_all="""\
           System Port Interface    Neighbor                MAC    Encap Index
 -------------------------------  ----------  -----------------  -------------
       Linecard2|Asic0|Ethernet4    10.0.0.5  b6:8c:4f:18:67:ff     1074790406
@@ -89,6 +67,29 @@ Linecard2|Asic1|PortChannel0002    10.0.0.1  26:8b:37:fa:8e:67     1074790406
 Linecard2|Asic1|PortChannel0002     fc00::2  26:8b:37:fa:8e:67     1074790407
       Linecard4|Asic0|Ethernet5   10.0.0.11  46:c3:71:8c:dd:2d     1074790406
       Linecard4|Asic0|Ethernet5    fc00::16  46:c3:71:8c:dd:2d     1074790407
+"""
+
+show_chassis_system_neighbors_output_ipv4="""\
+    System Port Interface    Neighbor                MAC    Encap Index
+-------------------------  ----------  -----------------  -------------
+Linecard2|Asic0|Ethernet4    10.0.0.5  b6:8c:4f:18:67:ff     1074790406
+"""
+
+show_chassis_system_neighbors_output_ipv6="""\
+    System Port Interface    Neighbor                MAC    Encap Index
+-------------------------  ----------  -----------------  -------------
+Linecard4|Asic0|Ethernet5    fc00::16  46:c3:71:8c:dd:2d     1074790407
+"""
+
+show_chassis_system_neighbors_output_asic0="""\
+       System Port Interface    Neighbor                MAC    Encap Index
+----------------------------  ----------  -----------------  -------------
+   Linecard2|Asic0|Ethernet4    10.0.0.5  b6:8c:4f:18:67:ff     1074790406
+   Linecard2|Asic0|Ethernet4     fc00::a  b6:8c:4f:18:67:ff     1074790407
+Linecard2|Asic0|Ethernet-IB0     3.3.3.4  24:21:24:05:81:f7     1074790404
+Linecard2|Asic0|Ethernet-IB0   3333::3:4  24:21:24:05:81:f7     1074790405
+   Linecard4|Asic0|Ethernet5   10.0.0.11  46:c3:71:8c:dd:2d     1074790406
+   Linecard4|Asic0|Ethernet5    fc00::16  46:c3:71:8c:dd:2d     1074790407
 """
 
 show_chassis_system_lags_output="""\
@@ -102,6 +103,12 @@ show_chassis_system_lags_output_1="""\
                 System Lag Name    Lag Id    Switch Id                                     Member System Ports
 -------------------------------  --------  -----------  ------------------------------------------------------
 Linecard4|Asic2|PortChannel0001         2           22  Linecard4|Asic2|Ethernet29, Linecard4|Asic2|Ethernet30
+"""
+
+show_chassis_system_lags_output_asic1="""\
+                System Lag Name    Lag Id    Switch Id                                     Member System Ports
+-------------------------------  --------  -----------  ------------------------------------------------------
+Linecard2|Asic1|PortChannel0002         1            8  Linecard2|Asic1|Ethernet16, Linecard2|Asic1|Ethernet17
 """
 
 class TestChassisModules(object):
@@ -244,25 +251,13 @@ class TestChassisModules(object):
         print(result.exit_code)
         assert result.exit_code == 0
 
-    def test_show_and_verify_system_ports_output_all(self):
-        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["chassis"].commands["system-ports"], [])
-        print(result.output)
-        assert(result.output == show_chassis_system_ports_output_all)
-
     def test_show_and_verify_system_ports_output_asic0(self):
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         return_code, result = get_result_and_return_code('voqutil -c system_ports -n asic0')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == show_chassis_system_ports_output_asic0
-
-    def test_show_and_verify_system_ports_output_1_all(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["chassis"].commands["system-ports"], ["""Linecard1|Asic0|Ethernet0"""])
-        print(result.output)
-        assert(result.output == show_chassis_system_ports_output_1_all)
 
     def test_show_and_verify_system_ports_output_1_asic0(self):
         return_code, result = get_result_and_return_code('voqutil -c system_ports -i "Linecard1|Asic0|Ethernet0" -n asic0')
@@ -272,11 +267,32 @@ class TestChassisModules(object):
         assert result == show_chassis_system_ports_output_1_asic0
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
 
-    def test_show_and_verify_system_neighbors_output(self):
+    def test_show_and_verify_system_neighbors_output_all(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["chassis"].commands["system-neighbors"], [])
         print(result.output)
-        assert(result.output == show_chassis_system_neighbors_output)
+        assert(result.output == show_chassis_system_neighbors_output_all)
+
+    def test_show_and_verify_system_neighbors_output_ipv4(self):
+        return_code, result = get_result_and_return_code('voqutil -c system_neighbors -a 10.0.0.5')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == show_chassis_system_neighbors_output_ipv4
+
+    def test_show_and_verify_system_neighbors_output_ipv6(self):
+        return_code, result = get_result_and_return_code('voqutil -c system_neighbors -a fc00::16')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == show_chassis_system_neighbors_output_ipv6
+
+    def test_show_and_verify_system_neighbors_output_asic0(self):
+        return_code, result = get_result_and_return_code('voqutil -c system_neighbors -x Asic0')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == show_chassis_system_neighbors_output_asic0
 
     def test_show_and_verify_system_lags_output(self):
         runner = CliRunner()
@@ -289,6 +305,13 @@ class TestChassisModules(object):
         result = runner.invoke(show.cli.commands["chassis"].commands["system-lags"], ["""Linecard4|Asic2|PortChannel0001"""])
         print(result.output)
         assert(result.output == show_chassis_system_lags_output_1)
+
+    def test_show_and_verify_system_lags_output_asic1(self):
+        return_code, result = get_result_and_return_code('voqutil -c system_lags -x Asic1')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == show_chassis_system_lags_output_asic1
 
     @classmethod
     def teardown_class(cls):
