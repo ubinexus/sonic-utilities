@@ -4,7 +4,7 @@ from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
 
 import utilities_common.cli as clicommon
-import utilities_common.multi_asic as multi_asic_util
+from sonic_py_common import multi_asic
 
 CHASSIS_MODULE_INFO_TABLE = 'CHASSIS_MODULE_TABLE'
 CHASSIS_MODULE_INFO_KEY_TEMPLATE = 'CHASSIS_MODULE {}'
@@ -111,7 +111,8 @@ def midplane_status(chassis_module_name):
 
 @chassis.command()
 @click.argument('systemportname', required=False)
-@click.option('--namespace', '-n', 'namespace', required=True, default=None, type=str, show_default=False, help='Namespace name or all')
+@click.option('--namespace', '-n', 'namespace', required=True if multi_asic.is_multi_asic() else False, 
+                default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def system_ports(systemportname, namespace, verbose):
     """Show VOQ system ports information"""
