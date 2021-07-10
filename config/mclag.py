@@ -1,7 +1,7 @@
 #!/usr/sbin/env python
 
 import click
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector
 import ipaddress
 
 
