@@ -4,7 +4,6 @@ import click
 from swsscommon.swsscommon import ConfigDBConnector
 import ipaddress
 
-
 CFG_PORTCHANNEL_PREFIX = "PortChannel"
 CFG_PORTCHANNEL_PREFIX_LEN = 11
 CFG_PORTCHANNEL_MAX_VAL = 9999
