@@ -262,7 +262,7 @@ def main():
     else:
         sys.exit("Invalid argument -a {}".format(args.address_family))
 
-    multi_asic.multi_asic_load_global_db()
+    multi_asic.load_db_config()
     ip_intfs = get_ip_intfs(af, namespace, display)
     display_ip_intfs(ip_intfs)
 
