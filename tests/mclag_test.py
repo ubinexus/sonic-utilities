@@ -392,7 +392,7 @@ class TestMclag(object):
         # add valid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert self.verify_mclag_domain_cfg(db, MCLAG_DOMAIN_ID) == True, "mclag domain not present"
+        assert self.verify_mclag_domain_cfg(db, MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK) == True, "mclag config not found"
 
         # add valid mclag member
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
