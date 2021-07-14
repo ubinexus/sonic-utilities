@@ -70,15 +70,15 @@ class TestMclag(object):
 
         mclag_entry = db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID)
         if src_ip is not None:
-            temp = mclag_entry.has_key("source_ip")
+            temp = mclag_entry["source_ip"]
             if temp is not None and temp != src_ip:
                 return False
         if peer_ip is not None:
-            temp = mclag_entry.has_key("peer_ip")
+            temp = mclag_entry["peer_ip"]
             if temp is not None and temp != peer_ip:
                 return False
         if peer_link is not None:
-            temp = mclag_entry.has_key("peer_link")
+            temp = mclag_entry["peer_link"]
             if temp is not None and temp != peer_link:
                 return False
         return True
