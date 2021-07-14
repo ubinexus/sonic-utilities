@@ -87,8 +87,8 @@ class TestMclag(object):
                 nkeys = nkeys + 1;
             if k == domain_id:
                 nkeys = nkeys + 1;
-                if nkeys == 2
-                return True
+                if nkeys == 2:
+                    return True
             return False
 
     def test_add_mclag_with_invalid_src_ip(self):
