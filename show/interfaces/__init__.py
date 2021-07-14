@@ -324,33 +324,41 @@ def expected(db, interfacename):
 # 'mpls' subcommand ("show interfaces mpls")
 @interfaces.command()
 @click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+#@multi_asic_util.run_on_multi_asic
 @click.pass_context
-def mpls(ctx, interfacename):
+def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
 
-    appl_db = SonicV2Connector()
-    appl_db.connect(appl_db.APPL_DB)
-
-    if interfacename is not None:
-        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
-
-    # Fetching data from appl_db for intfs
-    keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+    #appl_db = SonicV2Connector()
+    #appl_db.connect(appl_db.APPL_DB)  
+    masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
+    ns_list = masic.get_ns_list_based_on_options()
     intfs_data = {}
-    for key in keys if keys else []:
-        tokens = key.split(":")
-        # Skip INTF_TABLE entries with address information
-        if len(tokens) != 2:
-            continue
 
-        if (interfacename is not None) and (interfacename != tokens[1]):
-            continue
+    for ns in ns_list:
 
-        mpls = appl_db.get(appl_db.APPL_DB, key, 'mpls')
-        if mpls is None or mpls == '':
-            intfs_data.update({tokens[1]: 'disable'})
-        else:
-            intfs_data.update({tokens[1]: mpls})
+        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns)
+
+        if interfacename is not None:
+            interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        # Fetching data from appl_db for intfs
+        keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+        for key in keys if keys else []:
+            tokens = key.split(":")
+            # Skip INTF_TABLE entries with address information
+            if len(tokens) != 2:
+                continue
+
+            if (interfacename is not None) and (interfacename != tokens[1]):
+                continue
+
+            mpls = appl_db.get(appl_db.APPL_DB, key, 'mpls')
+            if mpls == '':
+                intfs_data.update({tokens[1]: 'disable'})
+            else:
+                intfs_data.update({tokens[1]: mpls})
 
     header = ['Interface', 'MPLS State']
     body = []
