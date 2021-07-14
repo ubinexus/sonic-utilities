@@ -59,7 +59,7 @@ class TestMclag(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
 
-    def verify_mclag_domain_cfg(db, domain_id, src_ip="", peer_ip="", peer_link=""):
+    def verify_mclag_domain_cfg(self, db, domain_id, src_ip="", peer_ip="", peer_link=""):
         mclag_cfg = db.cfgdb.get_table('MCLAG_DOMAIN')
         keys = [ (k, v) for k, v in mclag_cfg if k == domain_id]
         if len(keys) == 0:
@@ -79,7 +79,7 @@ class TestMclag(object):
                 return False
         return True
 
-    def verify_mclag_interface(db, domain_id, intf_str):
+    def verify_mclag_interface(self, db, domain_id, intf_str):
         mclag_intf = db.cfgdb.get_table('MCLAG_INTERFACE')
         nkeys = 0
         for k, v in mclag_intf:
@@ -239,9 +239,7 @@ class TestMclag(object):
         # add valid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"source_ip": MCLAG_SRC_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_ip": MCLAG_PEER_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_link": MCLAG_PEER_LINK}
+        assert verify_mclag_domain_cfg(db, MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK) == True, "mclag config not found"
 
         # configure non multiple keepalive timer
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_KEEPALIVE_TIMER], obj=obj)
