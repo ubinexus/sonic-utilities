@@ -60,15 +60,10 @@ class TestMclag(object):
         print("SETUP")
 
     def verify_mclag_domain_cfg(self, db, domain_id, src_ip="", peer_ip="", peer_link=""):
-        keys = db.cfgdb.get_keys('MCLAG_DOMAIN')
-        key_found = False 
-        for k in keys:
-            if k == domain_id:
-                key_found = True
-        if key_found is False: 
-            return False 
-
         mclag_entry = db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID)
+        if len(mclag_entry) == 0:
+            return False
+
         if src_ip is not None:
             temp = mclag_entry.get("source_ip")
             if temp is not None and temp != src_ip:
