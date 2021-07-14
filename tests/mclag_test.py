@@ -230,8 +230,8 @@ class TestMclag(object):
         #verify config db for the mclag domain config
         assert verify_mclag_domain_cfg(db, MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK) == True, "mclag config not found"
 
-       def test_mclag_invalid_keepalive_timer(self):
-           runner = CliRunner()
+    def test_mclag_invalid_keepalive_timer(self):
+        runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
 
