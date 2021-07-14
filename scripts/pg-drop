@@ -220,7 +220,8 @@ class PgDropStat(object):
         if pg_drop_info:
             status = pg_drop_info.get("FLEX_COUNTER_STATUS", 'disable')
             if status == "disable":
-                print("Warning: PG counters are disabled. Current stats may be outdated. Use 'counterpoll pg-drop enable' to enable polling")
+                print("Warning: PG counters are disabled. Use 'counterpoll pg-drop enable' to enable polling")
+                sys.exit(0)
 
 def main():
     parser = argparse.ArgumentParser(description='Display PG drop counter',
