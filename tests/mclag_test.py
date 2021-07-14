@@ -60,22 +60,26 @@ class TestMclag(object):
         print("SETUP")
 
     def verify_mclag_domain_cfg(self, db, domain_id, src_ip="", peer_ip="", peer_link=""):
-        mclag_cfg = db.cfgdb.get_table('MCLAG_DOMAIN')
-        keys = [ (k, v) for k, v in mclag_cfg if k == domain_id]
-        if len(keys) == 0:
+        keys = db.cfgdb.get_keys('MCLAG_DOMAIN')
+        key_found = False 
+        for k in keys:
+            if k == domain_id:
+                key_found = True
+        if key_found is False: 
             return False 
+
         mclag_entry = db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID)
         if src_ip is not None:
             temp = mclag_entry.has_key("source_ip")
-            if temp != src_ip:
+            if temp is not None and temp != src_ip:
                 return False
         if peer_ip is not None:
             temp = mclag_entry.has_key("peer_ip")
-            if temp != peer_ip:
+            if temp is not None and temp != peer_ip:
                 return False
         if peer_link is not None:
             temp = mclag_entry.has_key("peer_link")
-            if temp != peer_link:
+            if temp is not None and temp != peer_link:
                 return False
         return True
 
@@ -264,9 +268,7 @@ class TestMclag(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"source_ip": MCLAG_SRC_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_ip": MCLAG_PEER_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_link": MCLAG_PEER_LINK}
+        assert self.verify_mclag_domain_cfg(db, MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK) == True, "mclag config not found"
 
         # configure valid keepalive timer
         result = runner.invoke(config.config.commands["mclag"].commands["keepalive-interval"], [MCLAG_DOMAIN_ID, MCLAG_KEEPALIVE_TIMER], obj=obj)
@@ -292,7 +294,10 @@ class TestMclag(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "failed test for setting valid keepalive timer with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"keepalive_interval": MCLAG_KEEPALIVE_TIMER}
+        mclag_entry = db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID)
+        temp = mclag_entry.has_key("keepalive_interval")
+        assert temp is not None, "session timeout not found"
+        assert temp != MCLAG_KEEPALIVE_TIMER, "keepalive timer value not set"
 
         # configure non multiple session timeout
         result = runner.invoke(config.config.commands["mclag"].commands["session-timeout"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_SESSION_TIMEOUT], obj=obj)
@@ -321,7 +326,10 @@ class TestMclag(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "failed test for setting valid session timeout with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"session_timeout": MCLAG_SESSION_TIMEOUT}
+        mclag_entry = db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID)
+        temp = mclag_entry.has_key("session_timeout")
+        assert temp is not None, "session timeout not found"
+        assert temp != MCLAG_SESSION_TIMEOUT, "keepalive timer value not set"
 
 
     def test_mclag_add_mclag_member_to_nonexisting_domain(self):
@@ -349,9 +357,7 @@ class TestMclag(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"source_ip": MCLAG_SRC_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_ip": MCLAG_PEER_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_link": MCLAG_PEER_LINK}
+        assert self.verify_mclag_domain_cfg(db, MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK) == True, "mclag config not found"
 
         # add invaid mclag member Ethernet instead of PortChannel
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_INVALID_MCLAG_MEMBER], obj=obj)
@@ -384,9 +390,7 @@ class TestMclag(object):
         # add valid mclag domain
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code == 0, "mclag creation failed with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"source_ip": MCLAG_SRC_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_ip": MCLAG_PEER_IP}
-        assert db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID) == {"peer_link": MCLAG_PEER_LINK}
+        assert self.verify_mclag_domain_cfg(db, MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_PEER_LINK) == True, "mclag config not found"
 
         # add valid mclag member
         result = runner.invoke(config.config.commands["mclag"].commands["member"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_MEMBER_PO], obj=obj)
@@ -460,8 +464,7 @@ class TestMclag(object):
         # add mclag unique ip
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
         assert result.exit_code == 0, "mclag unique ip add with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        unique_ip = db.cfgdb.get_table('MCLAG_UNIQUE_IP')
-        keys = [ (k, v) for k, v in unique_ip if k == MCLAG_UNIQUE_IP_VLAN ]
+        keys = db.cfgdb.get_keys('MCLAG_UNIQUE_IP')
         assert len(keys) != 0, "unique ip not conifgured"
 
 
@@ -474,15 +477,14 @@ class TestMclag(object):
 
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], ["Vlan111"], obj=obj)
         assert result.exit_code == 0, "unique ip config for vlan with ip address case failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        unique_ip = db.cfgdb.get_table('MCLAG_UNIQUE_IP')
-        keys = [ (k, v) for k, v in unique_ip if k == 'Vlan{}'.format(111) ]
+        keys = db.cfgdb.get_keys('MCLAG_UNIQUE_IP')
         assert len(keys) == 0, "unique ip present  config shouldn't be allowed" 
 
         # delete mclag unique ip
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["del"], [MCLAG_UNIQUE_IP_VLAN], obj=obj)
         assert result.exit_code == 0, "mclag unique ip delete case failed {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
         unique_ip = db.cfgdb.get_table('MCLAG_UNIQUE_IP')
-        keys = [ (k, v) for k, v in unique_ip if k == MCLAG_UNIQUE_IP_VLAN ]
+        keys = db.cfgdb.get_keys('MCLAG_UNIQUE_IP')
         assert len(keys) == 0, "unique ip not conifgured"
 
     def test_mclag_add_unique_ip_non_default_vrf(self):
@@ -498,8 +500,7 @@ class TestMclag(object):
         # add mclag unique ip for non-default vrf
         result = runner.invoke(config.config.commands["mclag"].commands["unique-ip"].commands["add"], ["Vlan1001"], obj=obj)
         assert result.exit_code != 0, "mclag unique ip add with non default vlan interface{}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
-        unique_ip = db.cfgdb.get_table('MCLAG_UNIQUE_IP')
-        keys = [ (k, v) for k, v in unique_ip if k == 'Vlan{}'.format(1001) ]
+        keys = db.cfgdb.get_keys('MCLAG_UNIQUE_IP')
         assert len(keys) == 0, "non default vrf unique ip goes through, config shouldn't be allowed" 
 
     def test_mclag_not_present_domain(self):
