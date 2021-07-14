@@ -8,7 +8,6 @@ import show.main as show
 from utilities_common.db import Db
 
 
-
 MCLAG_DOMAIN_ID = "123"
 MCLAG_INVALID_DOMAIN_ID1 = "-1"
 MCLAG_INVALID_DOMAIN_ID2 = "5000"
