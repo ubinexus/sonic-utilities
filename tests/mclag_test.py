@@ -79,7 +79,7 @@ class TestMclag(object):
                 return False
         return True
 
-    def verify_mclag_interface(db, domain_id, intf_str)
+    def verify_mclag_interface(db, domain_id, intf_str):
         mclag_intf = db.cfgdb.get_table('MCLAG_INTERFACE')
         nkeys = 0
         for k, v in mclag_intf:
