@@ -73,7 +73,7 @@ class TestMclag(object):
             temp = mclag_entry.get("source_ip")
             if temp is not None and temp != src_ip:
                 return False
-        if peer_ip is not None
+        if peer_ip is not None:
             temp = mclag_entry.get("peer_ip")
             if temp is not None and temp != peer_ip:
                 return False
