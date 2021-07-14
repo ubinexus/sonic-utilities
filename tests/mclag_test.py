@@ -284,7 +284,7 @@ class TestMclag(object):
         print(result.output)
         assert result.exit_code == 0, "failed test for setting valid keepalive timer with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
         mclag_entry = db.cfgdb.get_entry("MCLAG_DOMAIN", MCLAG_DOMAIN_ID)
-            temp = mclag_entry.get("keepalive_interval")
+        temp = mclag_entry.get("keepalive_interval")
         assert temp is not None, "session timeout not found"
         assert temp != MCLAG_KEEPALIVE_TIMER, "keepalive timer value not set"
 
