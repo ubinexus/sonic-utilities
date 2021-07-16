@@ -1,4 +1,3 @@
-#!/usr/sbin/env python
 
 import click
 from swsscommon.swsscommon import ConfigDBConnector
