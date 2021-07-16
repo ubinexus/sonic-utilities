@@ -79,7 +79,7 @@ def format_prate(rate):
     if rate == STATUS_NA:
         return STATUS_NA
     else:
-        return "{:.2f}".format(float(rate))+'/s'
+        return "{:.2f}".format(float(rate))
 
 def table_as_json(table, header):
     """

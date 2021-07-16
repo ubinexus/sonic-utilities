@@ -28,11 +28,11 @@ except KeyError:
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
-from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA, format_brate, format_prate, format_util
+from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA, format_brate, format_prate
 from swsscommon.swsscommon import SonicV2Connector
 
 
-nstat_fields = ("rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok")
+nstat_fields = ("rx_b_ok", "rx_p_ok", "tx_b_ok", "tx_p_ok")
 NStats = namedtuple("NStats", nstat_fields)
 
 header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS','TX_OK', 'TX_BPS', 'TX_PPS']
@@ -132,7 +132,7 @@ class Tunnelstat(object):
         if tunnel:
             if tun_type and counter_types[tun_type] != counter_tunnel_type_map[counter_tunnel_name_map[tunnel]]:
                 print("Mismtch in tunnel type. Requested type %s actual type %s" % (
-                      counter_types[tun_type], counter_tunnel_type_map[counter_tunnel_name_map[tunnel]))
+                      counter_types[tun_type], counter_tunnel_type_map[counter_tunnel_name_map[tunnel]]))
                 sys.exit(2)
             cnstat_dict[tunnel] = get_counters(counter_tunnel_name_map[tunnel])
             ratestat_dict[tunnel] = get_rates(counter_tunnel_name_map[tunnel])
