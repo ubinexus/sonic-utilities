@@ -56,6 +56,31 @@ def ns_util(newstr, oldstr, delta, port_rate=PORT_RATE):
         util = rate/(port_rate*1000*1000*1000/8.0)*100
         return "{:.2f}%".format(util)
 
+def format_brate(rate):
+    """
+    Show the byte rate.
+    """
+    if rate == STATUS_NA:
+        return STATUS_NA
+    else:
+        rate = float(rate)
+        if rate > 1024*1024*10:
+            rate = "{:.2f}".format(rate/1024/1024.0)+' MB'
+        elif rate > 1024*10:
+            rate = "{:.2f}".format(rate/1024.0)+' KB'
+        else:
+            rate = "{:.2f}".format(rate)+' B'
+        return rate+'/s'
+
+def format_prate(rate):
+    """
+    Show the packet rate.
+    """
+    if rate == STATUS_NA:
+        return STATUS_NA
+    else:
+        return "{:.2f}".format(float(rate))+'/s'
+
 def table_as_json(table, header):
     """
         Print table as json format.

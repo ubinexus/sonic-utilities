@@ -28,13 +28,19 @@ except KeyError:
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
-from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA
+from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA, format_brate, format_prate, format_util
 from swsscommon.swsscommon import SonicV2Connector
 
 
-NStats = namedtuple("NStats", "rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok")
+nstat_fields = ("rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok")
+NStats = namedtuple("NStats", nstat_fields)
 
 header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS','TX_OK', 'TX_BPS', 'TX_PPS']
+
+rates_key_list = [ 'RX_BPS', 'RX_PPS', 'TX_BPS', 'TX_PPS']
+ratestat_fields = ("rx_bps", "rx_pps", "tx_bps", "tx_pps")
+RateStats = namedtuple("RateStats", ratestat_fields)
+
 
 counter_names = (
     'SAI_TUNNEL_STAT_IN_OCTETS',
@@ -48,6 +54,7 @@ counter_types = {
 }
 
 COUNTER_TABLE_PREFIX = "COUNTERS:"
+RATES_TABLE_PREFIX = "RATES:"
 COUNTERS_TUNNEL_NAME_MAP = "COUNTERS_TUNNEL_NAME_MAP"
 COUNTERS_TUNNEL_TYPE_MAP = "COUNTERS_TUNNEL_TYPE_MAP"
 
@@ -73,7 +80,7 @@ class Tunnelstat(object):
             """
                 Get the counters from specific table.
             """
-            fields = [STATUS_NA] * (len(header) - 1)
+            fields = [STATUS_NA] * (len(nstat_fields))
             for pos, counter_name in enumerate(counter_names):
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
@@ -82,8 +89,24 @@ class Tunnelstat(object):
             cntr = NStats._make(fields)
             return cntr
 
+        def get_rates(table_id):
+            """
+                Get the rates from specific table.
+            """
+            fields = ["0","0","0","0"]
+            for pos, name in enumerate(rates_key_list):
+                full_table_id = RATES_TABLE_PREFIX + table_id
+                counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, name)
+                if counter_data is None:
+                    fields[pos] = STATUS_NA
+                elif fields[pos] != STATUS_NA:
+                    fields[pos] = float(counter_data)
+            cntr = RateStats._make(fields)
+            return cntr
+
         # Build a dictionary of the stats
         cnstat_dict = OrderedDict()
+        ratestat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
 
         # Get the info from database
@@ -112,14 +135,16 @@ class Tunnelstat(object):
                       counter_types[tun_type], counter_tunnel_type_map[counter_tunnel_name_map[tunnel]))
                 sys.exit(2)
             cnstat_dict[tunnel] = get_counters(counter_tunnel_name_map[tunnel])
-            return cnstat_dict
+            ratestat_dict[tunnel] = get_rates(counter_tunnel_name_map[tunnel])
+            return cnstat_dict, ratestat_dict
 
         for tunnel in natsorted(counter_tunnel_name_map):
             if not tun_type or counter_types[tun_type] == counter_tunnel_type_map[counter_tunnel_name_map[tunnel]]:
                 cnstat_dict[tunnel] = get_counters(counter_tunnel_name_map[tunnel])
-        return cnstat_dict
+                ratestat_dict[tunnel] = get_rates(counter_tunnel_name_map[tunnel])
+        return cnstat_dict, ratestat_dict
 
-    def cnstat_print(self, cnstat_dict, use_json):
+    def cnstat_print(self, cnstat_dict, ratestat_dict, use_json):
         """
             Print the cnstat.
         """
@@ -129,8 +154,9 @@ class Tunnelstat(object):
             if key == 'time':
                 continue
 
-            table.append((key, data.rx_p_ok, STATUS_NA, STATUS_NA, 
-                               data.tx_p_ok, STATUS_NA, STATUS_NA))
+            rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
+            table.append((key, data.rx_p_ok, format_brate(rates.rx_bps), format_prate(rates.rx_pps),
+                               data.tx_p_ok, format_brate(rates.tx_bps), format_prate(rates.tx_pps)))
 
         if use_json:
             print(table_as_json(table, header))
@@ -138,7 +164,7 @@ class Tunnelstat(object):
         else:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
-    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json):
+    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, ratestat_dict, use_json):
         """
             Print the difference between two cnstat results.
         """
@@ -154,22 +180,23 @@ class Tunnelstat(object):
             if key in cnstat_old_dict:
                 old_cntr = cnstat_old_dict.get(key)
 
+            rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
             if old_cntr is not None:
                 table.append((key,
                             ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                            ns_brate(cntr.rx_b_ok, old_cntr.rx_b_ok, time_gap),
-                            ns_prate(cntr.rx_p_ok, old_cntr.rx_p_ok, time_gap),
+                            format_brate(rates.rx_bps),
+                            format_prate(rates.rx_pps),
                             ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                            ns_brate(cntr.tx_b_ok, old_cntr.tx_b_ok, time_gap),
-                            ns_prate(cntr.tx_p_ok, old_cntr.tx_p_ok, time_gap)))
+                            format_brate(rates.tx_bps),
+                            format_prate(rates.tx_pps)))
             else:
                 table.append((key,
                             cntr.rx_p_ok,
-                            STATUS_NA,
-                            STATUS_NA,
+                            format_brate(rates.rx_bps),
+                            format_prate(rates.rx_pps),
                             cntr.tx_p_ok,
-                            STATUS_NA,
-                            STATUS_NA))
+                            format_brate(rates.tx_bps),
+                            format_prate(rates.tx_pps)))
         if use_json:
             print(table_as_json(table, header))
         else:
@@ -272,7 +299,7 @@ def main():
             sys.exit(0)
 
     tunnelstat = Tunnelstat()
-    cnstat_dict = tunnelstat.get_cnstat(tunnel=tunnel_name, tun_type=tunnel_type)
+    cnstat_dict,ratestat_dict = tunnelstat.get_cnstat(tunnel=tunnel_name, tun_type=tunnel_type)
 
     # At this point, either we'll create a file or open an existing one.
     if not os.path.exists(cnstat_dir):
@@ -299,7 +326,7 @@ def main():
                 if tunnel_name:
                     tunnelstat.cnstat_single_tunnel(tunnel_name, cnstat_dict, cnstat_cached_dict)
                 else:
-                    tunnelstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, use_json)
+                    tunnelstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, ratestat_dict, use_json)
             except IOError as e:
                 print(e.errno, e)
         else:
@@ -310,16 +337,15 @@ def main():
                 if tunnel_name:
                     tunnelstat.cnstat_single_tunnel(tunnel_name, cnstat_dict, None)
                 else:
-                    tunnelstat.cnstat_print(cnstat_dict, use_json)
+                    tunnelstat.cnstat_print(cnstat_dict, ratestat_dict, use_json)
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
-        print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
-        cnstat_new_dict = tunnelstat.get_cnstat(tunnel=tunnel_name, tun_type=tunnel_type)
+        cnstat_new_dict, ratestat_dict = tunnelstat.get_cnstat(tunnel=tunnel_name, tun_type=tunnel_type)
         if tunnel_name:
             tunnelstat.cnstat_single_tunnel(tunnel_name, cnstat_new_dict, cnstat_dict)
         else:
-            tunnelstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json)
+            tunnelstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, ratestat_dict, use_json)
 
 if __name__ == "__main__":
     main()
