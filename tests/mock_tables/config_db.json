@@ -39,6 +39,7 @@
         "index": "1",
         "lanes": "29,30,31,32",
         "mtu": "9100",
+	"role": "Int",
         "tpid": "0x8100",
         "pfc_asym": "off",
         "speed": "40000"

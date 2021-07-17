@@ -325,13 +325,10 @@ def expected(db, interfacename):
 @interfaces.command()
 @click.argument('interfacename', required=False)
 @multi_asic_util.multi_asic_click_options
-#@multi_asic_util.run_on_multi_asic
 @click.pass_context
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
 
-    #appl_db = SonicV2Connector()
-    #appl_db.connect(appl_db.APPL_DB)  
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
     ns_list = masic.get_ns_list_based_on_options()
     intfs_data = {}
@@ -347,18 +344,31 @@ def mpls(ctx, interfacename, namespace, display):
         keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
         for key in keys if keys else []:
             tokens = key.split(":")
+            ifname = tokens[1]
             # Skip INTF_TABLE entries with address information
             if len(tokens) != 2:
                 continue
 
             if (interfacename is not None) and (interfacename != tokens[1]):
                 continue
+            
+            if (display != "all"):
+                if ("Loopback" in tokens[1]):
+                    continue
+                
+                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
+                    continue
 
-            mpls = appl_db.get(appl_db.APPL_DB, key, 'mpls')
-            if mpls == '':
+                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns):
+                    continue
+
+
+            mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
+
+            if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
                 intfs_data.update({tokens[1]: 'disable'})
             else:
-                intfs_data.update({tokens[1]: mpls})
+                intfs_data.update({tokens[1]: mpls_intf['mpls']}) 
 
     header = ['Interface', 'MPLS State']
     body = []

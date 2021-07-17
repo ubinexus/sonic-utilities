@@ -5,12 +5,6 @@
     "INTF_TABLE:Ethernet16:192.168.16.1/24": {
         "NULL": "NULL"
     },
-    "INTF_TABLE:Ethernet2": {
-        "mpls": "enable"
-    },
-    "INTF_TABLE:Ethernet2:192.168.2.1/24": {
-        "NULL": "NULL"
-    },
     "INTF_TABLE:Ethernet4": {
         "NULL": "NULL"
     },
