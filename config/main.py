@@ -3980,7 +3980,7 @@ def add(ctx, interface_name):
     config_db.set_entry(table_name, interface_name, {"mpls": "enable"})
 
 #
-# 'del' subcommand
+# 'remove' subcommand
 #
 
 @mpls.command()
