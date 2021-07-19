@@ -41,6 +41,7 @@ from . import vlan
 from . import vxlan
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB
+from . import mclag 
 
 # mock masic APIs for unit test
 try:
@@ -683,7 +684,6 @@ def _get_sonic_services():
 
 def _reset_failed_services():
     for service in _get_sonic_services():
-        click.echo("Resetting failed status on {}".format(service))
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -702,6 +702,32 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
+def _get_delay_timers():
+    out = clicommon.run_command("systemctl list-dependencies sonic-delayed.target --plain |sed '1d'", return_cmd=True)
+    return [timer.strip() for timer in out.splitlines()]
+
+def _delay_timers_elapsed():
+    for timer in _get_delay_timers():
+        out = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
+        if out.strip() == "0":
+            return False
+    return True
+
+def _swss_ready():
+    out = clicommon.run_command("systemctl show swss.service --property ActiveState --value", return_cmd=True)
+    if out.strip() != "active":
+        return False
+    out = clicommon.run_command("systemctl show swss.service --property ActiveEnterTimestampMonotonic --value", return_cmd=True)
+    swss_up_time = float(out.strip())/1000000
+    now =  time.monotonic()
+    if (now - swss_up_time > 120):
+        return True
+    else:
+        return False
+
+def _system_running():
+    out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
+    return out.strip() == "running"
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface is in a vlan """
@@ -779,21 +805,26 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
-def validate_ip_mask(ctx, ip_addr):
+def is_valid_ip_interface(ctx, ip_addr):
     split_ip_mask = ip_addr.split("/")
+    if len(split_ip_mask) < 2:
+        return False
+
     # Check if the IP address is correct or if there are leading zeros.
     ip_obj = ipaddress.ip_address(split_ip_mask[0])
 
+    if isinstance(ip_obj, ipaddress.IPv4Address):
+        # Since the IP address is used as a part of a key in Redis DB,
+        # do not tolerate extra zeros in IPv4.
+        if str(ip_obj) != split_ip_mask[0]:
+            return False
+
     # Check if the mask is correct
-    mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 129
-    # If mask is not specified
-    if len(split_ip_mask) < 2:
-        return 0
+    net = ipaddress.ip_network(ip_addr, strict=False)
+    if str(net.prefixlen) != split_ip_mask[1] or net.prefixlen == 0:
+        return False
 
-    if not int(split_ip_mask[1]) in range(1, mask_range):
-        return 0
-
-    return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
+    return True
 
 def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     if len(command_str) < 2 or len(command_str) > 9:
@@ -947,6 +978,11 @@ config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
+
+#add mclag commands
+config.add_command(mclag.mclag)
+config.add_command(mclag.mclag_member)
+config.add_command(mclag.mclag_unique_ip)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1191,12 +1227,26 @@ def list_checkpoints(ctx, verbose):
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
+@click.option('-f', '--force', default=False, is_flag=True, help='Force config reload without system checks')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
+    if not force and not no_service_restart:
+        if not _system_running():
+            click.echo("System is not up. Retry later or use -f to avoid system checks")
+            return
+
+        if not _delay_timers_elapsed():
+            click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
+            return
+
+        if not _swss_ready():
+            click.echo("SwSS container is not ready. Retry later or use -f to avoid system checks")
+            return
+
     if filename is None:
         message = 'Clear current config and reload config from the default config file(s) ?'
     else:
@@ -1213,6 +1263,11 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     num_cfg_file = 1
     if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
+
+    # Remove cached PG drop counters data
+    dropstat_dir_prefix = '/tmp/dropstat'
+    command = "rm -rf {}-*".format(dropstat_dir_prefix)
+    clicommon.run_command(command, display_cmd=True)
 
     # If the user give the filename[s], extract the file names.
     if filename is not None:
@@ -1397,6 +1452,12 @@ def load_minigraph(db, no_service_restart):
     if os.path.isfile('/etc/sonic/acl.json'):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
+    # Load port_config.json
+    try:
+        load_port_config(db.cfgdb, '/etc/sonic/port_config.json')
+    except Exception as e:
+        click.secho("Failed to load port_config.json, Error: {}".format(str(e)), fg='magenta')
+
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
 
@@ -1419,6 +1480,44 @@ def load_minigraph(db, no_service_restart):
         _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
+def load_port_config(config_db, port_config_path):
+    if not os.path.isfile(port_config_path):
+        return
+
+    try:
+        # Load port_config.json
+        port_config_input = read_json_file(port_config_path)
+    except Exception:
+        raise Exception("Bad format: json file broken")
+
+    # Validate if the input is an array
+    if not isinstance(port_config_input, list):
+        raise Exception("Bad format: port_config is not an array")
+    
+    if len(port_config_input) == 0 or 'PORT' not in port_config_input[0]:
+        raise Exception("Bad format: PORT table not exists")
+        
+    port_config = port_config_input[0]['PORT']
+
+    # Ensure all ports are exist
+    port_table = {}
+    for port_name in port_config.keys():
+        port_entry = config_db.get_entry('PORT', port_name)
+        if not port_entry:
+            raise Exception("Port {} is not defined in current device".format(port_name))
+        port_table[port_name] = port_entry
+
+    # Update port state
+    for port_name in port_config.keys():
+        if 'admin_status' not in port_config[port_name]:
+            continue
+        if 'admin_status' in port_table[port_name]:
+            if port_table[port_name]['admin_status'] == port_config[port_name]['admin_status']:
+                continue
+            clicommon.run_command('config interface {} {}'.format(
+                'startup' if port_config[port_name]['admin_status'] == 'up' else 'shutdown',
+                port_name), display_cmd=True)
+    return
 
 #
 # 'hostname' command
@@ -1488,7 +1587,7 @@ def portchannel(ctx, namespace):
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
-@click.option('--min-links', default=0, type=int)
+@click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
@@ -1503,7 +1602,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         ctx.fail("{} already exists!".format(portchannel_name))
 
     fvs = {'admin_status': 'up',
-           'mtu': '9100'}
+           'mtu': '9100',
+           'lacp_key': 'auto'}
     if min_links != 0:
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
@@ -2042,20 +2142,28 @@ def warm_restart(ctx, redis_unix_socket_path):
     ctx.obj = {'db': config_db, 'state_db': state_db, 'prefix': prefix}
 
 @warm_restart.command('enable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
+@click.argument('module', metavar='<module>', default='system', required=False)
 @click.pass_context
 def warm_restart_enable(ctx, module):
     state_db = ctx.obj['state_db']
+    config_db = ctx.obj['db']
+    feature_table = config_db.get_table('FEATURE')
+    if module != 'system' and module not in feature_table:
+        exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'true')
     state_db.close(state_db.STATE_DB)
 
 @warm_restart.command('disable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
+@click.argument('module', metavar='<module>', default='system', required=False)
 @click.pass_context
 def warm_restart_enable(ctx, module):
     state_db = ctx.obj['state_db']
+    config_db = ctx.obj['db']
+    feature_table = config_db.get_table('FEATURE')
+    if module != 'system' and module not in feature_table:
+        exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'false')
@@ -3490,10 +3598,9 @@ def add(ctx, interface_name, ip_addr, gw):
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
-            ip_addr = str(net)
+            ip_addr += '/' + str(net.prefixlen)
 
-        ip_addr = validate_ip_mask(ctx, ip_addr)
-        if not ip_addr:
+        if not is_valid_ip_interface(ctx, ip_addr):
             raise ValueError('')
 
         if interface_name == 'eth0':
@@ -3555,10 +3662,9 @@ def remove(ctx, interface_name, ip_addr):
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
-            ip_addr = str(net)
-        
-        ip_addr = validate_ip_mask(ctx, ip_addr)
-        if not ip_addr:
+            ip_addr += '/' + str(net.prefixlen)
+
+        if not is_valid_ip_interface(ctx, ip_addr):
             raise ValueError('')
 
         if interface_name == 'eth0':
@@ -3895,6 +4001,56 @@ def reset(ctx, interface_name):
 
     cmd = "sudo sfputil reset {}".format(interface_name)
     clicommon.run_command(cmd)
+
+#
+# 'mpls' subgroup ('config interface mpls ...')
+#
+
+@interface.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def mpls(ctx):
+    """Add or remove MPLS"""
+    pass
+
+#
+# 'add' subcommand
+#
+
+@mpls.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def add(ctx, interface_name):
+    """Add MPLS operation on the interface"""
+    config_db = ctx.obj["config_db"]
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
+    config_db.set_entry(table_name, interface_name, {"mpls": "enable"})
+
+#
+# 'del' subcommand
+#
+
+@mpls.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def remove(ctx, interface_name):
+    """Remove MPLS operation from the interface"""
+    config_db = ctx.obj["config_db"]
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
+    config_db.set_entry(table_name, interface_name, {"mpls": "disable"})
 
 #
 # 'vrf' subgroup ('config interface vrf ...')
