@@ -48,7 +48,10 @@ from sonic_package_manager.service_creator.creator import (
     run_command
 )
 from sonic_package_manager.service_creator.feature import FeatureRegistry
-from sonic_package_manager.service_creator.sonic_db import SonicDB
+from sonic_package_manager.service_creator.sonic_db import (
+    INIT_CFG_JSON,
+    SonicDB
+)
 from sonic_package_manager.service_creator.utils import in_chroot
 from sonic_package_manager.source import (
     PackageSource,
@@ -993,7 +996,7 @@ class PackageManager:
         docker_api = DockerApi(docker.from_env(), ProgressManager())
         registry_resolver = RegistryResolver()
         metadata_resolver = MetadataResolver(docker_api, registry_resolver)
-        cfg_mgmt = config_mgmt.ConfigMgmt()
+        cfg_mgmt = config_mgmt.ConfigMgmt(source=INIT_CFG_JSON)
         cli_generator = CliGenerator(log)
         feature_registry = FeatureRegistry(SonicDB)
         service_creator = ServiceCreator(feature_registry,
