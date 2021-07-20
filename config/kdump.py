@@ -2,7 +2,7 @@ import sys
 
 import click
 import utilities_common.cli as clicommon
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 
 @click.group(cls=clicommon.AbbreviationGroup, name="kdump")
@@ -18,11 +18,18 @@ def disable():
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
-        if "config" not in kdump_table:
-            click.echo("Unable to retrieve key `config` from kdump table.")
+        if not kdump_table:
+            click.echo("Unable to retrieve KDUMP table from CONFIG DB.")
             sys.exit(1)
 
+        if "config" not in kdump_table:
+            click.echo("Unable to retrieve key 'config' from KDUMP table.")
+            sys.exit(2)
+
         config_db.mod_entry("KDUMP", "config", {"enabled": "false"})
+    else:
+        click.echo("Unable to get an instance of 'ConfigDBConnector'.")
+        sys.exit(3)
 
 
 @kdump.command()
@@ -32,11 +39,18 @@ def enable():
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
+        if not kdump_table:
+            click.echo("Unable to retrieve KDUMP table from CONFIG DB.")
+            sys.exit(4)
+
         if "config" not in kdump_table:
-            click.echo("Unable to retrieve key `config` from kdump table.")
-            sys.exit(2)
+            click.echo("Unable to retrieve key 'config' from KDUMP table.")
+            sys.exit(5)
 
         config_db.mod_entry("KDUMP", "config", {"enabled": "true"})
+    else:
+        click.echo("Unable to get an instance of 'ConfigDBConnector'.")
+        sys.exit(6)
 
 
 @kdump.command()
@@ -47,11 +61,18 @@ def memory(kdump_memory):
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
+        if not kdump_table:
+            click.echo("Unable to retrieve KDUMP table from CONFIG DB.")
+            sys.exit(7)
+
         if "config" not in kdump_table:
-            click.echo("Unable to retrieve key `config` from kdump table.")
-            sys.exit(3)
+            click.echo("Unable to retrieve key 'config' from KDUMP table.")
+            sys.exit(8)
 
         config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
+    else:
+        click.echo("Unable to get an instance of 'ConfigDBConnector'.")
+        sys.exit(9)
 
 
 @kdump.command('num-dumps')
@@ -62,8 +83,15 @@ def num_dumps(kdump_num_dumps):
     if config_db:
         config_db.connect()
         kdump_table = config_db.get_table("KDUMP")
+        if not kdump_table:
+            click.echo("Unable to retrieve KDUMP table from CONFIG DB.")
+            sys.exit(10)
+
         if "config" not in kdump_table:
-            click.echo("Unable to retrieve key `config` from kdump table.")
-            sys.exit(4)
+            click.echo("Unable to retrieve key 'config' from KDUMP table.")
+            sys.exit(11)
 
         config_db.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
+    else:
+        click.echo("Unable to get an instance of 'ConfigDBConnector'.")
+        sys.exit(12)
