@@ -495,7 +495,7 @@ def run_command_in_alias_mode(command):
         sys.exit(rc)
 
 
-def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False):
+def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False, return_err=False):
     """
     Run bash command. Default behavior is to print output to stdout. If the command returns a non-zero
     return code, the function will exit with that return code.
@@ -506,6 +506,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         return_cmd: Boolean; If true, the function will return the output, ignoring any non-zero return code
         interactive_mode: Boolean; If true, it will treat the process as a long-running process which may generate
                           multiple lines of output over time
+        return_err: Boolean; If true, the function will return the stdout, stderr and non-zero return code of the command
     """
 
     if display_cmd == True:
@@ -517,7 +518,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         run_command_in_alias_mode(command)
         sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE if return_err else None)
 
     if return_cmd:
         output = proc.communicate()[0]
@@ -528,6 +529,9 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
 
         if len(out) > 0:
             click.echo(out.rstrip('\n'))
+
+        if return_err:
+            return (out, err, proc.returncode)
 
         if proc.returncode != 0 and not ignore_error:
             sys.exit(proc.returncode)

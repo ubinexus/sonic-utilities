@@ -666,14 +666,15 @@ def _get_disabled_services_list(config_db):
 def _stop_all_services():
     # stop all other services
     for s in _get_sonic_services():
-        try:
-            clicommon.run_command("sudo systemctl stop {}".format(s))
-        except SystemExit as err:
-            click.echo("Error encountered while stopping service {}. Continuing..".format(s))
-    try:
-        clicommon.run_command("sudo systemctl stop swss")
-    except SystemExit as err:
-        click.echo("Error encountered while stopping swss.service. Continuing..")
+        (out, err, rv) = clicommon.run_command("sudo systemctl stop {}".format(s), return_err=True)
+        if rv != 0:
+            click.echo("Ignoring an error encountered while stopping service {}.".format(s))
+            log.log_notice("Ignoring an error encountered while stopping service {}. rv={} out={} err={}.".format(s, rv, out.rstrip('\n'), err.rstrip('\n')))
+
+    (out, err, rv) = clicommon.run_command("sudo systemctl stop swss", return_err=True)
+    if rv != 0:
+        click.echo("Error encountered while stopping swss.service.")
+        log.log_notice("Error encountered while stopping swss.service. rv={} out={} err={}.".format(rv, out.rstrip('\n'), err.rstrip('\n')))
 
 def _stop_services():
     try:
@@ -684,10 +685,11 @@ def _stop_services():
         pass
 
     click.echo("Stopping SONiC target ...")
-    try:
-        clicommon.run_command("sudo systemctl stop sonic.target")
-    except SystemExit as err:
-        click.echo("Failed to stop sonic.target. Stopping all services individually.")
+    (out, err, rv) = clicommon.run_command("sudo systemctl stop sonic.target", return_err=True)
+    if rv != 0:
+        click.echo("Failed to stop sonic.target rv={}.".format(rv))
+        log.log_notice("Failed to stop sonic.target rv={} stdout='{}' stderr='{}'.".format(rv, out.rstrip('\n'), err.rstrip('\n')))
+        click.echo("Stopping all services individually.")
         _stop_all_services()
 
 def _get_sonic_services():
