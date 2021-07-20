@@ -14,6 +14,7 @@ from utilities_common.db import Db
 show_interfaces_mpls_output="""\
 Interface     MPLS State
 ------------  ------------
+Ethernet2     enable
 Ethernet4     disable
 Ethernet8     disable
 Ethernet16    disable
@@ -45,9 +46,7 @@ Ethernet4    disable
 show_interfaces_mpls_output_frontend="""\
 Interface     MPLS State
 ------------  ------------
-Ethernet8     disable
-Ethernet16    disable
-PortChannel2  disable
+Ethernet0.10  disable
 """
 
 modules_path = os.path.join(os.path.dirname(__file__), "..")

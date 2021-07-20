@@ -135,14 +135,8 @@
         "role": "Int",
         "speed": "100000"
     },
-    "INTF_TABLE:Ethernet8": {
+    "INTF_TABLE:Ethernet0.10": {
         "admin_status": "up"
-    },
-    "INTF_TABLE:Ethernet16": {
-	"admin_status": "up"	
-    },
-    "INTF_TABLE:PortChannel2": {
-	"admin_status": "up"
     },
     "_GEARBOX_TABLE:phy:1": {
         "name": "sesto-1",
