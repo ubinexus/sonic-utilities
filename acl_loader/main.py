@@ -10,7 +10,7 @@ import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
 from natsort import natsorted
 from sonic_py_common import multi_asic
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.general import load_db_config
 
 def info(msg):

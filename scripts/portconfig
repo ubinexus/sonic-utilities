@@ -37,7 +37,7 @@ try:
 except KeyError:
     pass
 
-from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig, SonicV2Connector
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
 from utilities_common.general import load_db_config
 
 # APPL_DB constants

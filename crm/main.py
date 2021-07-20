@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import click
-from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
 
 from sonic_py_common import multi_asic
