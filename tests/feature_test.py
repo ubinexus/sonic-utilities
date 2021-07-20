@@ -15,7 +15,7 @@ nat         enabled         enabled         local
 pmon        enabled         enabled         kube
 radv        enabled         enabled         kube
 restapi     disabled        enabled         local
-sflow       disabled        enabled         local
+sflow       enabled         enabled         local
 snmp        enabled         enabled         kube
 swss        enabled         enabled         local
 syncd       enabled         enabled         local
@@ -34,7 +34,7 @@ nat         enabled         enabled                                             
 pmon        enabled         enabled                                                                          kube
 radv        enabled         enabled                                                                          kube
 restapi     disabled        enabled                                                                          local
-sflow       disabled        enabled                                                                          local
+sflow       enabled         enabled                                                                          local
 snmp        enabled         enabled         up             2020-11-12 23:32:56  aaaabbbbcccc   20201230.100  kube        kube            kube
 swss        enabled         enabled                                                                          local
 syncd       enabled         enabled                                                                          local
@@ -53,7 +53,7 @@ nat         enabled   enabled
 pmon        enabled   enabled
 radv        enabled   enabled
 restapi     disabled  enabled
-sflow       disabled  enabled
+sflow       enabled   enabled
 snmp        enabled   enabled
 swss        enabled   enabled
 syncd       enabled   enabled
@@ -72,7 +72,7 @@ nat         enabled         enabled         local
 pmon        enabled         enabled         kube
 radv        enabled         enabled         kube
 restapi     disabled        enabled         local
-sflow       disabled        enabled         local
+sflow       enabled         enabled         local
 snmp        enabled         enabled         kube
 swss        enabled         enabled         local
 syncd       enabled         enabled         local
