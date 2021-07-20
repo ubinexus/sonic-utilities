@@ -1,0 +1,23 @@
+{
+    "INTF_TABLE:Ethernet12": {
+        "NULL": "NULL"
+    },
+    "INTF_TABLE:Ethernet16": {
+        "mpls": "enable"
+    },
+    "INTF_TABLE:Ethernet28": {
+        "mpls": "enable"
+    },
+    "INTF_TABLE:Ethernet40": {
+        "NULL": "NULL"
+    },
+    "INTF_TABLE:Loopback0": {
+        "NULL": "NULL"
+    },
+    "INTF_TABLE:PortChannel2": {
+        "NULL": "NULL"
+    },
+    "INTF_TABLE:Vlan2": {
+        "mpls": "enable"
+    }
+}

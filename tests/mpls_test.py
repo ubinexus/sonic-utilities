@@ -24,17 +24,15 @@ Vlan2         enable
 """
 
 show_interfaces_mpls_output_1="""\
-Interface      MPLS State
--------------  ------------
-Ethernet2      enable
-Ethernet4      enable
-Ethernet8      disable
-Ethernet16     disable
-Ethernet64     enable
-Ethernet-BP01  enable
-Loopback0      disable
-PortChannel2   disable
-Vlan2          enable
+Interface     MPLS State
+------------  ------------
+Ethernet2     enable
+Ethernet4     enable
+Ethernet8     disable
+Ethernet16    disable
+Loopback0     disable
+PortChannel2  disable
+Vlan2         enable
 """
 
 show_interfaces_mpls_specific_output="""\
@@ -46,7 +44,18 @@ Ethernet4    disable
 show_interfaces_mpls_output_frontend="""\
 Interface     MPLS State
 ------------  ------------
-Ethernet0.10  disable
+Ethernet12    disable
+Ethernet16    enable
+Ethernet28    enable
+Ethernet40    disable
+Loopback0     disable
+PortChannel2  disable
+Vlan2         enable
+"""
+
+show_interfaces_mpls_output_all="""\
+Interface    MPLS State
+-----------  ------------
 """
 
 modules_path = os.path.join(os.path.dirname(__file__), "..")
@@ -74,8 +83,8 @@ class TestMpls(object):
         assert db.cfgdb.get_entry("INTERFACE", "Ethernet4") == {"mpls": "enable"}
 
     def test_show_interfaces_mpls_frontend(self):
-        jsonfile = os.path.join(mock_db_path, 'config_db')
-        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile
+        jsonfile = os.path.join(mock_db_path, 'appl_f_db')
+        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
         
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
@@ -94,8 +103,18 @@ class TestMpls(object):
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_output
 
+    def test_show_interfaces_mpls_frontend_all(self):
+        jsonfile = os.path.join(mock_db_path, 'appl_f_db')
+        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
+
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["all"])
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_mpls_output_all
+
     def test_show_interfaces_mpls_dynamic(self):
-        jsonfile = os.path.join(mock_db_path, 'appl_db1')
+        jsonfile = os.path.join(mock_db_path, 'appl1_db')
         dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
 
         runner = CliRunner()

@@ -21,7 +21,7 @@
         "NULL": "NULL"
     },
     "INTF_TABLE:Ethernet8": {
-        "mpls": "disable"
+        "NULL": "NULL"
     },
     "INTF_TABLE:Ethernet8:192.168.8.1/24": {
         "NULL": "NULL"
@@ -43,11 +43,5 @@
     },
     "INTF_TABLE:Vlan2:192.168.1.1/21": {
         "NULL": "NULL"
-    },
-    "INTF_TABLE:Ethernet64": {
-	"mpls": "enable"
-    },
-    "INTF_TABLE:Ethernet-BP01": {
-	"mpls": "enable"
     }
 }
