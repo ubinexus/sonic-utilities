@@ -7,6 +7,7 @@ import re
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
+from importlib import reload
 from natsort import natsorted
 from sonic_py_common import device_info
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
@@ -14,6 +15,25 @@ from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
 import utilities_common.constants as constants
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+        print(" here ")
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        print(" here in masic")
+        import mock_tables.mock_multi_asic
+        reload(mock_tables.mock_multi_asic)
+        reload(mock_tables.dbconnector)
+        mock_tables.dbconnector.load_namespace_config()
+
+except KeyError:
+    pass
 
 from . import acl
 from . import bgp_common

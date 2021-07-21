@@ -27,6 +27,7 @@ def load_namespace_config():
     # To support multi asic testing
     # SonicDBConfig load_sonic_global_db_config
     # is invoked to load multiple namespaces
+    print("LOADED NAMESPACE")
     clean_up_config()
     SonicDBConfig.load_sonic_global_db_config(
         global_db_file_path=os.path.join(
