@@ -370,6 +370,16 @@
         "pfc_asym": "off",
         "speed": "40000"
     },
+    "PORT|Ethernet128": {
+        "admin_status": "up",
+        "alias": "etp33",
+        "description": "ARISTA01T2:Ethernet3/1/1",
+        "lanes": "33,34,35,36",
+        "mtu": "9100",
+        "pfc_asym": "off",
+        "role": "Int",
+        "speed": "40000"
+    },
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },

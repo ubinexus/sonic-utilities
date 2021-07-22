@@ -324,7 +324,16 @@ def expected(db, interfacename):
 # 'mpls' subcommand ("show interfaces mpls")
 @interfaces.command()
 @click.argument('interfacename', required=False)
-@multi_asic_util.multi_asic_click_options
+#@multi_asic_util.multi_asic_click_options
+@click.option('--namespace',
+'-n',
+'namespace',
+default=None,
+type=str,
+show_default=True,
+help='Namespace name or all',
+callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
 @click.pass_context
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""

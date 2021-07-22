@@ -1,5 +1,6 @@
 import os
-from importlib import reload
+import importlib
+#from importlib import reload
 import sys
 import traceback
 from unittest import mock
@@ -43,21 +44,51 @@ Ethernet4    disable
 """
 
 show_interfaces_mpls_output_frontend="""\
-Interface     MPLS State
-------------  ------------
-Ethernet12    disable
-Ethernet16    enable
-Ethernet28    enable
-Ethernet40    disable
-Loopback0     disable
-PortChannel2  disable
-Vlan2         enable
+Interface    MPLS State
+-----------  ------------
+Ethernet16   enable
+Ethernet20   enable
+Ethernet28   disable
 """
 
 show_interfaces_mpls_output_all="""\
 Interface    MPLS State
 -----------  ------------
+Ethernet16   enable
+Ethernet20   enable
+Ethernet28   disable
+Ethernet128  disable
 """
+
+show_interfaces_mpls_masic_output_frontend="""\
+Interface    MPLS State
+-----------  ------------
+Ethernet0    enable
+Ethernet4    disable
+"""
+
+show_interfaces_mpls_masic_output_all="""\
+Interface       MPLS State
+--------------  ------------
+Ethernet0       enable
+Ethernet4       disable
+Ethernet64      enable
+Ethernet-BP0    enable
+Ethernet-BP4    disable
+Ethernet-BP256  disable
+Ethernet-BP260  enable
+"""
+show_interfaces_mpls_masic_output_asic_all="""\
+Interface     MPLS State
+------------  ------------
+Ethernet0     enable
+Ethernet4     disable
+Ethernet-BP0  enable
+Ethernet-BP4  disable
+"""
+
+
+
 
 modules_path = os.path.join(os.path.dirname(__file__), "..")
 test_path = os.path.join(modules_path, "tests")
@@ -73,161 +104,124 @@ class TestMpls(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config
 
     def test_config_mpls_add(self):
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["add"], ["Ethernet4"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["add"], ["Ethernet8"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert db.cfgdb.get_entry("INTERFACE", "Ethernet4") == {"mpls": "enable"}
-
-    def test_config_mpls_masic(self):
-        runner = CliRunner()
-        db = Db()
-        obj = {'config_db':db.cfgdb}
-
-        result = runner.invoke(config.config.commands["interface"].commands["-n"].commands["mpls"].commands["add"], ["Ethernet8"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert 1 == 0
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "enable"}
 
     def test_show_interfaces_mpls_frontend(self):
-        jsonfile = os.path.join(mock_db_path, 'appl_f_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-        
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-dfrontend"])
+        print(result.exit_code)
         print(result.output) 
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_output_frontend
 
     def test_show_interfaces_mpls(self):
-        jsonfile = os.path.join(mock_db_path, 'appl_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_interfaces_mpls_output
+        assert result.output == show_interfaces_mpls_output_frontend
 
-    def test_show_interfaces_mpls_frontend_all(self):
-        jsonfile = os.path.join(mock_db_path, 'appl_f_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-
+    def test_show_interfaces_mpls_dall(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["all"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-dall"])
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_output_all
 
-    def test_show_interfaces_mpls_dynamic(self):
-        jsonfile = os.path.join(mock_db_path, 'appl1_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_interfaces_mpls_output_1 
-    
-    def test_show_interfaces_mpls_specific(self):
-        jsonfile = os.path.join(mock_db_path, 'appl_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["Ethernet4"])
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_interfaces_mpls_specific_output
-    
     def test_config_mpls_remove(self):
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["remove"], ["Ethernet4"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["remove"], ["Ethernet8"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert db.cfgdb.get_entry("INTERFACE", "Ethernet4") == {"mpls": "disable"}
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "disable"}
 
 
 class TestMplsMasic(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        os.environ["PATH"] += os.pathsep + scripts_path
-        os.environ['UTILITIES_UNIT_TESTING'] = "2"
-        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
-        dbconnector.load_namespace_config()
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_namespace_config() 
 
-    def test_config_mpls_masic(self):
+    def test_config_mpls_masic_add(self):
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
 
-        #result = runner.invoke(config.config.commands["interface"].commands["-n"].commands["mpls"].commands["add"], ["Ethernet8"], obj=obj)
-        #print(result.exit_code)
-        #print(result.output)
-        assert 1 == 0
-
-    def test_show_interfaces_mpls_frontend(self):
-        #import pdb; pdb.set_trace()
-        #jsonfile = os.path.join(masic_mock_db_path, 'appl_db')
-        #dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
+        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["add"], ["Ethernet8"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "enable"}
 
 
+    def test_show_interfaces_mpls_masic_frontend(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_mpls_masic_output_frontend
+
+    def test_show_interfaces_mpls_masic_all(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-dall"])
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == show_interfaces_mpls_output_frontend
-
-    def test_show_interfaces_mpls(self):
-        jsonfile = os.path.join(mock_db_path, 'appl_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_interfaces_mpls_output
+        assert result.output == show_interfaces_mpls_masic_output_all
 
-    def test_show_interfaces_mpls_frontend_all(self):
-        jsonfile = os.path.join(mock_db_path, 'appl_f_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-
+    def test_show_interfaces_mpls_masic_asic(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["all"])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-nasic0"])
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_interfaces_mpls_output_all
+        assert result.output == show_interfaces_mpls_masic_output_frontend
 
-    def test_show_interfaces_mpls_dynamic(self):
-        jsonfile = os.path.join(mock_db_path, 'appl1_db')
-        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
-
+    def test_show_interfaces_mpls_masic_asic_all(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
+        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-nasic0", "-dall"])
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_mpls_masic_output_asic_all
+    
+    def test_config_mpls_masic_remove(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["remove"], ["Ethernet8"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_interfaces_mpls_output_1
-
-
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "disable"}
 
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        dbconnector.dedicated_dbs['APPL_DB'] = None
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config

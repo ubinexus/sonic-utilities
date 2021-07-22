@@ -135,8 +135,17 @@
         "role": "Int",
         "speed": "100000"
     },
-    "INTF_TABLE:Ethernet0.10": {
-        "admin_status": "up"
+    "INTF_TABLE:Ethernet16": {
+        "mpls": "enable"
+    },
+    "INTF_TABLE:Ethernet20": {
+        "mpls": "enable"
+    },
+    "INTF_TABLE:Ethernet28": {
+        "mpls": "disable"
+    },
+    "INTF_TABLE:Ethernet128": {
+        "mpls": "disable"
     },
     "_GEARBOX_TABLE:phy:1": {
         "name": "sesto-1",
