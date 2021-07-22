@@ -167,7 +167,7 @@ class TestMplsMasic(object):
     def test_config_mpls_masic_add(self):
         runner = CliRunner()
         db = Db()
-        obj = {'config_db':db.cfgdb}
+        obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
 
         result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["add"], ["Ethernet8"], obj=obj)
         print(result.exit_code)
@@ -209,7 +209,7 @@ class TestMplsMasic(object):
     def test_config_mpls_masic_remove(self):
         runner = CliRunner()
         db = Db()
-        obj = {'config_db':db.cfgdb}
+        obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
 
         result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["remove"], ["Ethernet8"], obj=obj)
         print(result.exit_code)
