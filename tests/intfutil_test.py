@@ -160,14 +160,14 @@ class TestIntfutil(TestCase):
         assert result.exit_code == 0
         assert result.output == show_interface_description_eth9_output
 
-    def test_show_interfaces_description_etp33_in_alias_mode(self):
+    def test_show_interfaces_description_etp34_in_alias_mode(self):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
-        result = self.runner.invoke(show.cli.commands["interfaces"].commands["description"], ["etp33"])
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["description"], ["etp34"])
         os.environ["SONIC_CLI_IFACE_MODE"] = "default"
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error: cannot find interface name for alias etp33" in result.output
+        assert "Error: cannot find interface name for alias etp34" in result.output
 
     def test_show_interfaces_description_Ethernet0_verbose(self):
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["description"], ["Ethernet0", "--verbose"])
@@ -182,9 +182,8 @@ class TestIntfutil(TestCase):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], [])
         print(result.output, file=sys.stderr)
         expected_output = (
-            "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-          "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+            "Sub port interface    Speed    MTU    Vlan    Admin  Type\n"
+          "--------------------  -------  -----  ------  -------  ------"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
@@ -200,46 +199,12 @@ class TestIntfutil(TestCase):
         expected_output = "Command: intfutil -c status -i subport"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
-
-    # Test single sub interface status
-    def test_single_subintf_status(self):
-        # Test 'show subinterfaces status Ethernet0.10'
-        result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10"])
-        print(result.output, file=sys.stderr)
-        expected_output = (
-            "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-          "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
-        )
-        self.assertEqual(result.output.strip(), expected_output)
-
-        # Test 'intfutil status Ethernet0.10'
-        output = subprocess.check_output('intfutil -c status -i Ethernet0.10', stderr=subprocess.STDOUT, shell=True, text=True)
-        print(output, file=sys.stderr)
-        self.assertEqual(output.strip(), expected_output)
-
     # Test '--verbose' status of single sub interface
     def test_single_subintf_status_verbose(self):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10", "--verbose"])
         print(result.output, file=sys.stderr)
         expected_output = "Command: intfutil -c status -i Ethernet0.10"
         self.assertEqual(result.output.split('\n')[0], expected_output)
-
-
-    # Test status of single sub interface in alias naming mode
-    def test_single_subintf_status_alias_mode(self):
-        os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
-
-        result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["etp1.10"])
-        print(result.output, file=sys.stderr)
-        expected_output = (
-            "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-          "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
-        )
-        self.assertEqual(result.output.strip(), expected_output)
-
-        os.environ["SONIC_CLI_IFACE_MODE"] = "default"
 
     # Test '--verbose' status of single sub interface in alias naming mode
     def test_single_subintf_status_alias_mode_verbose(self):

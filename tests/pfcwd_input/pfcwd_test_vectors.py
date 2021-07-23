@@ -44,11 +44,11 @@ Ethernet8      drop               600                 600
 """
 
 pfcwd_show_start_default = """\
-Changed polling interval to 200ms
+Changed polling interval to 400ms
      PORT    ACTION    DETECTION TIME    RESTORATION TIME
 ---------  --------  ----------------  ------------------
-Ethernet0      drop               200                 200
-Ethernet4      drop               200                 200
+Ethernet0      drop               400                 400
+Ethernet4      drop               400                 400
 Ethernet8      drop               600                 600
 """
 
