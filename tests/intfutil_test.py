@@ -182,8 +182,8 @@ class TestIntfutil(TestCase):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], [])
         print(result.output, file=sys.stderr)
         expected_output = (
-            "Sub port interface    Speed    MTU    Vlan    Admin  Type\n"
-          "--------------------  -------  -----  ------  -------  ------"
+            "Sub port interface    Speed    MTU    Vlan    Admin    Type\n"
+            "--------------------  -------  -----  ------  -------  ------"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
