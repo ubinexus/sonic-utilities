@@ -321,10 +321,8 @@ def expected(db, interfacename):
 
     click.echo(tabulate(body, header))
 
-# 'mpls' subcommand ("show interfaces mpls")
 @interfaces.command()
 @click.argument('interfacename', required=False)
-#@multi_asic_util.multi_asic_click_options
 @click.option('--namespace',
 '-n',
 'namespace',

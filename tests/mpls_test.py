@@ -1,6 +1,5 @@
 import os
 import importlib
-#from importlib import reload
 import sys
 import traceback
 from unittest import mock
@@ -95,19 +94,17 @@ test_path = os.path.join(modules_path, "tests")
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, modules_path)
 sys.path.insert(0, test_path)
-mock_db_path = os.path.join(test_path, "mpls_input")
-masic_mock_db_path = os.path.join(test_path, "mock_tables")
-masic0_mock_db_path = os.path.join(masic_mock_db_path, "asic0")
 
 
 class TestMpls(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
         from .mock_tables import mock_single_asic
         importlib.reload(mock_single_asic)
         from .mock_tables import dbconnector
-        dbconnector.load_database_config
+        dbconnector.load_database_config()
 
     def test_config_mpls_add(self):
         runner = CliRunner()
@@ -224,4 +221,4 @@ class TestMplsMasic(object):
         from .mock_tables import mock_single_asic
         importlib.reload(mock_single_asic)
         from .mock_tables import dbconnector
-        dbconnector.load_database_config
+        dbconnector.load_database_config()
