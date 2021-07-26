@@ -22,6 +22,15 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 
+# Read given JSON file
+def read_json_file(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except Exception as e:
+        raise Exception(str(e))
+    return result
+
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -40,6 +49,10 @@ def log_warning(msg):
     syslog.openlog(SYSLOG_IDENTIFIER)
     syslog.syslog(syslog.LOG_WARNING, msg)
     syslog.closelog()
+
+class AbbreviationGroup(click.Group):
+    """This subclass of click.Group supports abbreviated subgroup/subcommand names
+    """
 
 
 def log_error(msg):
@@ -486,7 +499,7 @@ def load_minigraph():
 
     # Load port_config.json
     try:
-        load_port_config(db.cfgdb, '/etc/sonic/port_config.json')
+        load_port_config(config_db, '/etc/sonic/port_config.json')
     except Exception as e:
         click.secho("Failed to load port_config.json, Error: {}".format(str(e)), fg='magenta')
 
@@ -539,7 +552,7 @@ def load_port_config(config_db, port_config_path):
         if 'admin_status' in port_table[port_name]:
             if port_table[port_name]['admin_status'] == port_config[port_name]['admin_status']:
                 continue
-            clicommon.run_command('config interface {} {}'.format(
+            run_command('config interface {} {}'.format(
                 'startup' if port_config[port_name]['admin_status'] == 'up' else 'shutdown',
                 port_name), display_cmd=True)
     return
