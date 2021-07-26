@@ -50,10 +50,6 @@ def log_warning(msg):
     syslog.syslog(syslog.LOG_WARNING, msg)
     syslog.closelog()
 
-class AbbreviationGroup(click.Group):
-    """This subclass of click.Group supports abbreviated subgroup/subcommand names
-    """
-
 
 def log_error(msg):
     syslog.openlog(SYSLOG_IDENTIFIER)
