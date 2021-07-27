@@ -40,7 +40,6 @@ Ethernet112  etp29
 Ethernet116  etp30
 Ethernet120  etp31
 Ethernet124  etp32
-Ethernet128  etp33
 """
 
 show_interfaces_alias_Ethernet0_output="""\

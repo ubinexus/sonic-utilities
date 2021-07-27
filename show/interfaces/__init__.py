@@ -323,19 +323,19 @@ def expected(db, interfacename):
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
-@click.option('--namespace',
-'-n',
-'namespace',
-default=None,
-type=str,
-show_default=True,
-help='Namespace name or all',
-callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=True, help='Namespace name or all', callback=multi_asic_util.multi_asic_namespace_validation_callback)
 @click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
 @click.pass_context
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
-
+    
+    if not (multi_asic.is_multi_asic()):
+       if (display == 'frontend' or display == 'all' or display == None):
+           display = None
+       else:
+           print("Error: Invalid display option command for single asic")
+           return
+    
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
     ns_list = masic.get_ns_list_based_on_options()
     intfs_data = {}

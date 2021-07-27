@@ -24,9 +24,7 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         import mock_tables.dbconnector
-        print(" here ")
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
-        print(" here in masic")
         import mock_tables.mock_multi_asic
         reload(mock_tables.mock_multi_asic)
         reload(mock_tables.dbconnector)
