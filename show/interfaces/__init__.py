@@ -334,7 +334,7 @@ def mpls(ctx, interfacename, namespace, display):
     
     #Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
-       if (display == 'frontend' or display == 'all' or display == None):
+       if (display == 'frontend' or display == 'all' or display is None):
            display = None
        else:
            print("Error: Invalid display option command for single asic")
