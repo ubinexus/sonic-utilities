@@ -200,7 +200,8 @@ class TestIntfutil(TestCase):
         expected_output = "Command: intfutil -c status -i subport"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
- # Test single sub interface status
+ 
+    # Test single sub interface status
     def test_single_subintf_status(self):
         # Test 'show subinterfaces status Ethernet0.10'
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10"])
@@ -224,7 +225,8 @@ class TestIntfutil(TestCase):
         expected_output = "Command: intfutil -c status -i Ethernet0.10"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
-# Test status of single sub interface in alias naming mode
+
+    # Test status of single sub interface in alias naming mode
     def test_single_subintf_status_alias_mode(self):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
 

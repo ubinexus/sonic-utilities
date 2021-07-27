@@ -62,10 +62,6 @@ class TestMpls(object):
     def setup_class(cls):
         print("SETUP")
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
-        from .mock_tables import mock_single_asic
-        importlib.reload(mock_single_asic)
-        from .mock_tables import dbconnector
-        dbconnector.load_database_config()
         jsonfile = os.path.join(mock_db_path, 'appl_db')
         dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
 
@@ -74,7 +70,10 @@ class TestMpls(object):
         db = Db()
         obj = {'config_db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["add"], ["Ethernet8"], obj=obj)
+        result = runner.invoke(
+                 config.config.commands["interface"].commands["mpls"].commands["add"],
+                 ["Ethernet8"], obj=obj
+                 )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -83,7 +82,10 @@ class TestMpls(object):
     def test_show_interfaces_mpls_frontend(self):
 
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-dfrontend"])
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["-dfrontend"]
+                 )
         print(result.exit_code)
         print(result.output) 
         assert result.exit_code == 0
@@ -91,7 +93,9 @@ class TestMpls(object):
 
     def test_show_interfaces_mpls(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], [])
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"], []
+                 )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -99,7 +103,10 @@ class TestMpls(object):
 
     def test_show_interfaces_mpls_dall(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-dall"])
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["-dall"]
+                 )
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_output_frontend
@@ -109,7 +116,10 @@ class TestMpls(object):
         db = Db()
         obj = {'config_db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["remove"], ["Ethernet8"], obj=obj)
+        result = runner.invoke(
+                 config.config.commands["interface"].commands["mpls"].commands["remove"],
+                 ["Ethernet8"], obj=obj
+                 )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -140,7 +150,10 @@ class TestMplsMasic(object):
         db = Db()
         obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
 
-        result = runner.invoke(config.config.commands["interface"].commands["mpls"].commands["add"], ["Ethernet8"], obj=obj)
+        result = runner.invoke(
+                 config.config.commands["interface"].commands["mpls"].commands["add"],
+                 ["Ethernet8"], obj=obj
+                 )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -149,7 +162,10 @@ class TestMplsMasic(object):
 
     def test_show_interfaces_mpls_masic_frontend(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-dfrontend"])
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["-dfrontend"]
+                 )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -157,7 +173,10 @@ class TestMplsMasic(object):
 
     def test_show_interfaces_mpls_masic_all(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-dall"])
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["-dall"]
+                 )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -165,14 +184,20 @@ class TestMplsMasic(object):
 
     def test_show_interfaces_mpls_masic_asic(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-nasic0"])
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["-nasic0"]
+                 )
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_masic_output_frontend
 
     def test_show_interfaces_mpls_masic_asic_all(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["interfaces"].commands["mpls"], ["-nasic0", "-dall"])
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["-nasic0", "-dall"]
+                 )
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_masic_output_asic_all
@@ -183,7 +208,7 @@ class TestMplsMasic(object):
         obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
 
         result = runner.invoke(
-                 config.config.commands["interface"].commands["mpls"].commands["remove"], 
+                 config.config.commands["interface"].commands["mpls"].commands["remove"],
                  ["Ethernet8"], obj=obj
                  )
         print(result.exit_code)
