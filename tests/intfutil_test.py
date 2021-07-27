@@ -200,7 +200,7 @@ class TestIntfutil(TestCase):
         expected_output = "Command: intfutil -c status -i subport"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
- 
+
     # Test single sub interface status
     def test_single_subintf_status(self):
         # Test 'show subinterfaces status Ethernet0.10'
