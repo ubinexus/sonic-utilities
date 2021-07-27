@@ -111,6 +111,12 @@ show_chassis_system_lags_output_asic1="""\
 Linecard2|Asic1|PortChannel0002         1            8  Linecard2|Asic1|Ethernet16, Linecard2|Asic1|Ethernet17
 """
 
+show_chassis_system_lags_output_lc4="""\
+                System Lag Name    Lag Id    Switch Id                                     Member System Ports
+-------------------------------  --------  -----------  ------------------------------------------------------
+Linecard4|Asic2|PortChannel0001         2           22  Linecard4|Asic2|Ethernet29, Linecard4|Asic2|Ethernet30
+"""
+
 class TestChassisModules(object):
     @classmethod
     def setup_class(cls):
@@ -312,6 +318,13 @@ class TestChassisModules(object):
         print("result = {}".format(result))
         assert return_code == 0
         assert result == show_chassis_system_lags_output_asic1
+
+    def test_show_and_verify_system_lags_output_lc4(self):
+        return_code, result = get_result_and_return_code('voqutil -c system_lags -t Linecard4')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == show_chassis_system_lags_output_lc4
 
     @classmethod
     def teardown_class(cls):

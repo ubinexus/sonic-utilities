@@ -147,8 +147,9 @@ def system_neighbors(asicname, ipaddress, verbose):
 @chassis.command()
 @click.argument('systemlagname', required=False)
 @click.option('--asicname', '-x', 'asicname', default=None, type=str, show_default=False, help='Asic name')
+@click.option('--hostname', '-t', 'hostname', default=None, type=str, show_default=False, help='Host or Linecard name')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def system_lags(systemlagname, asicname, verbose):
+def system_lags(systemlagname, asicname, hostname, verbose):
     """Show VOQ system lags information"""
 
     cmd = "voqutil -c system_lags"
@@ -158,5 +159,8 @@ def system_lags(systemlagname, asicname, verbose):
 
     if asicname is not None:
         cmd += " -x {}".format(asicname)
+
+    if hostname is not None:
+        cmd += " -t \"{}\"".format(hostname)
 
     clicommon.run_command(cmd, display_cmd=verbose)

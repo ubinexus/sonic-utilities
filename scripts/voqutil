@@ -31,19 +31,19 @@ except KeyError:
 
 # ========================== Common VOQ util logic ==========================
 
-SYSTEM_PORT_TABLE_PREFIX = "SYSTEM_PORT_TABLE:"
+SYSTEM_PORT_TABLE_PREFIX = swsscommon.APP_SYSTEM_PORT_TABLE_NAME + ":"
 SYSTEM_PORT_ID = "system_port_id"
 SYSTEM_PORT_CORE = "core_index"
 SYSTEM_PORT_CORE_PORT = "core_port_index"
 SYSTEM_PORT_SPEED = "speed"
 SYSTEM_PORT_SWITCH_ID = "switch_id"
 
-SYSTEM_NEIGH_TABLE_PREFIX = "SYSTEM_NEIGH|"
+SYSTEM_NEIGH_TABLE_PREFIX = swsscommon.CHASSIS_APP_SYSTEM_NEIGH_TABLE_NAME + "|"
 SYSTEM_NEIGH_MAC = "neigh"
 SYSTEM_NEIGH_ENCAP_INDEX = "encap_index"
 
-SYSTEM_LAG_TABLE_PREFIX = "SYSTEM_LAG_TABLE|"
-SYSTEM_LAG_MEMBER_TABLE_PREFIX = "SYSTEM_LAG_MEMBER_TABLE|"
+SYSTEM_LAG_TABLE_PREFIX = swsscommon.CHASSIS_APP_LAG_TABLE_NAME + "|"
+SYSTEM_LAG_MEMBER_TABLE_PREFIX = swsscommon.CHASSIS_APP_LAG_MEMBER_TABLE_NAME + "|"
 SYSTEM_LAG_ID = "lag_id"
 SYSTEM_LAG_SWITCH_ID = "switch_id"
 
@@ -262,7 +262,8 @@ class SystemNeighStatus(object):
             nbr = key_tokens[-1].strip()
             intf = '|'.join(key_tokens[1:-1])
             key = '|'.join(key_tokens[1:])
-            if (self.ipaddress is None or nbr in self.ipaddress) and (self.asicname is None or self.asicname in intf):
+            if ((self.ipaddress is None or nbr in self.ipaddress) and 
+                (self.asicname is None or self.asicname in intf)):
                 table.append((intf, nbr,
                                 chassis_app_db_system_neigh_status_get(self.db, key, SYSTEM_NEIGH_MAC),
                                 chassis_app_db_system_neigh_status_get(self.db, key, SYSTEM_NEIGH_ENCAP_INDEX)))
@@ -281,7 +282,7 @@ header_system_lag = ['System Lag Name', 'Lag Id', 'Switch Id', 'Member System Po
 
 class SystemLagStatus(object):
 
-    def __init__(self, system_lag_name, asicname):
+    def __init__(self, system_lag_name, asicname, hostname):
         """
         Class constructor method
         :param self:
@@ -292,6 +293,7 @@ class SystemLagStatus(object):
         self.config_db = None
         self.system_lag_name = system_lag_name
         self.asicname = asicname
+        self.hostname = hostname
         self.table = []
 
     def display_systemlag_status(self):
@@ -320,7 +322,9 @@ class SystemLagStatus(object):
         for i in self.chassis_app_db_keys_system_lag:
             key_tokens = re.split('\|', i)
             key = '|'.join(key_tokens[1:])
-            if (self.system_lag_name is None or key in intf_fs) and (self.asicname is None or self.asicname in key):
+            if ((self.system_lag_name is None or key in intf_fs) and 
+                (self.asicname is None or self.asicname in key) and 
+                (self.hostname is None or self.hostname in key)):
                 mkeys = chassis_app_db_keys_get_system_lag_member(self.db, key, '')
                 members.clear()
                 for mk in mkeys:
@@ -351,6 +355,7 @@ def main():
     parser.add_argument('-l', '--systemlag', type=str, help='information for specific system lag', default=None)
     parser.add_argument('-n', '--namespace', type=str, help='information from specific namespace', default=None)
     parser.add_argument('-x', '--asicname', type=str, help='information for specific asic', default=None)
+    parser.add_argument('-t', '--hostname', type=str, help='information for specific host or linecard', default=None)
     args = parser.parse_args()
 
     if args.command == "system_ports":
@@ -360,7 +365,7 @@ def main():
         system_neigh_status = SystemNeighStatus(args.ipaddress, args.asicname)
         system_neigh_status.display_systemneigh_status()
     elif args.command == "system_lags":
-        system_lag_status = SystemLagStatus(args.systemlag, args.asicname)
+        system_lag_status = SystemLagStatus(args.systemlag, args.asicname, args.hostname)
         system_lag_status.display_systemlag_status()
 
     sys.exit(0)
