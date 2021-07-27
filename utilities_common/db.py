@@ -14,7 +14,7 @@ class Db(object):
 
         # Skip connecting to chassis databases in line cards
         db_list = list(self.db.get_db_list())
-        if not device_info.is_voq_supervisor():
+        if not device_info.is_supervisor():
             try:
                 db_list.remove('CHASSIS_APP_DB')
                 db_list.remove('CHASSIS_STATE_DB')
