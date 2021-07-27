@@ -367,12 +367,12 @@ def mpls(ctx, interfacename, namespace, display):
                 if ("Loopback" in tokens[1]):
                     continue
                 
-                if ifname.startswith("Ethernet") and
-                   multi_asic.is_port_internal(ifname, ns):
+                if ifname.startswith("Ethernet") and 
+                multi_asic.is_port_internal(ifname, ns):
                     continue
 
-                if ifname.startswith("PortChannel") and
-                   multi_asic.is_port_channel_internal(ifname, ns):
+                if ifname.startswith("PortChannel") and 
+                multi_asic.is_port_channel_internal(ifname, ns):
                     continue
 
 
