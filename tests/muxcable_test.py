@@ -217,9 +217,9 @@ Ethernet0  linkmgrd_switch_standby_end   2021-May-13 10:01:15.696728
 show_muxcable_metrics_expected_output_json = """\
 {
     "linkmgrd_switch_active_start": "2021-May-13 10:00:21.420898",
-    "xcvrd_switch_standby_start": "2021-May-13 10:01:15.690835"
+    "xcvrd_switch_standby_start": "2021-May-13 10:01:15.690835",
     "xcvrd_switch_standby_end": "2021-May-13 10:01:15.696051",
-    "linkmgrd_switch_standby_end": "2021-May-13 10:01:15.696728",
+    "linkmgrd_switch_standby_end": "2021-May-13 10:01:15.696728"
 }
 """
 
