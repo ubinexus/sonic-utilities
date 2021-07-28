@@ -6,6 +6,8 @@ import click
 import re
 import utilities_common.cli as clicommon
 from natsort import natsorted
+from collections import OrderedDict
+from operator import itemgetter
 from sonic_py_common import multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from swsscommon import swsscommon
@@ -1007,7 +1009,8 @@ def metrics(db, port, json_output):
             click.echo("{}".format(json.dumps(metrics_dict[asic_index], indent=4)))
         else:
             print_data = []
-            for key, val in metrics_dict[asic_index].items():
+            ordered_dict = OrderedDict(sorted(metrics_dict[asic_index].items(), key=itemgetter(1)))
+            for key, val in ordered_dict.items():
                 print_port_data = []
                 print_port_data.append(port)
                 print_port_data.append(key)
