@@ -25,6 +25,8 @@ modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
+sys.path.insert(0, scripts_path)
+os.environ["PATH"] += os.pathsep + scripts_path
 
 # Config Reload input Path
 mock_db_path = os.path.join(test_path, "config_reload_input")
@@ -69,9 +71,7 @@ Reloading Monit configuration ...
 
 reload_config_with_sys_info_command_output="""\
 Running command: rm -rf /tmp/dropstat-*
-Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db
-Running command: /usr/local/bin/sonic-cfggen -j /sonic/src/sonic-utilities/tests/config_reload_input/init_cfg.json -j /sonic/src/sonic-utilities/tests/config_reload_input/config_db.json --write-to-db
-"""
+Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
@@ -127,7 +127,8 @@ class TestConfigReload(object):
             traceback.print_tb(result.exc_info[2])
 
             assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == reload_config_with_sys_info_command_output
+
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_sys_info_command_output
 
     @classmethod
     def teardown_class(cls):

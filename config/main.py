@@ -1401,6 +1401,26 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
+        if load_sysinfo:
+            try:
+                command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
+                #output = clicommon.run_command(command, display_cmd= True, return_cmd=True)
+                proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+                output, err = proc.communicate()
+
+            except FileNotFoundError as e:
+                click.echo("{}".format(str(e)), err=True)
+                raise click.Abort()
+            except Exception as e:
+                click.echo("{}\n{}".format(type(e), str(e)), err=True)
+                raise click.Abort()
+
+            if not output:
+                click.secho("Could not get the HWSKU from config file,  Exiting!!!", fg='magenta')
+                sys.exit(1)
+
+            cfg_hwsku = output.strip()
+
         if namespace is None:
             config_db = ConfigDBConnector()
         else:
@@ -1411,15 +1431,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         client.flushdb()
 
         if load_sysinfo:
-            command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
-            proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
-            cfg_hwsku, err = proc.communicate()
-            if err:
-                click.echo("Could not get the HWSKU from config file, exiting")
-                sys.exit(1)
-            else:
-                cfg_hwsku = cfg_hwsku.strip()
-
             if namespace is None:
                 command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
             else:
