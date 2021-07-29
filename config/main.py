@@ -1404,7 +1404,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         if load_sysinfo:
             try:
                 command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
-                #output = clicommon.run_command(command, display_cmd= True, return_cmd=True)
                 proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
                 output, err = proc.communicate()
 
