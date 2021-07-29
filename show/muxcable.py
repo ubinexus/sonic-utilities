@@ -32,8 +32,10 @@ STATUS_SUCCESSFUL = 0
 VENDOR_NAME = "Credo"
 VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
+
 def db_connect(db_name, namespace=EMPTY_NAMESPACE):
     return swsscommon.DBConnector(db_name, REDIS_TIMEOUT_MSECS, True, namespace)
+
 
 def delete_all_keys_in_db_table(db_type, table_name):
 
@@ -50,6 +52,7 @@ def delete_all_keys_in_db_table(db_type, table_name):
         for key in table_keys[asic_id]:
             table[asic_id]._del(key)
 
+
 def get_response_for_version(port, mux_info_dict):
     state_db = {}
     xcvrd_show_fw_res_tbl = {}
@@ -59,7 +62,6 @@ def get_response_for_version(port, mux_info_dict):
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
         state_db[asic_id] = db_connect("STATE_DB", namespace)
         xcvrd_show_fw_res_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "XCVRD_SHOW_FW_RES")
-
 
     logical_port_list = platform_sfputil_helper.get_logical_list()
     if port not in logical_port_list:
@@ -82,7 +84,6 @@ def get_response_for_version(port, mux_info_dict):
             res_dict[1] = rc
             return mux_info_dict
 
-
     (status, fvp) = xcvrd_show_fw_res_tbl[asic_index].get(port)
     res_dir = dict(fvp)
     mux_info_dict["version_nic_active"] = res_dir.get("version_nic_active", None)
@@ -97,7 +98,8 @@ def get_response_for_version(port, mux_info_dict):
 
     return mux_info_dict
 
-def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, rsp_table_name, port, arg=None):
+
+def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, rsp_table_name, port, cmd_timeout_secs, arg=None):
 
     res_dict = {}
     state_db, appl_db = {}, {}
@@ -105,6 +107,10 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
     firmware_rsp_sub_tbl = {}
     firmware_cmd_tbl = {}
     firmware_res_tbl = {}
+
+    CMD_TIMEOUT_SECS = cmd_timeout_secs
+
+    time_start = time.time()
 
     sel = swsscommon.Select()
     namespaces = multi_asic.get_front_end_namespaces()
@@ -159,6 +165,11 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
         # in signal_handler() (e.g. SIGTERM for graceful shutdown)
 
         (state, selectableObj) = sel.select(SELECT_TIMEOUT)
+
+        time_now = time.time()
+        time_diff = time_now - time_start
+        if time_diff >= CMD_TIMEOUT_SECS:
+            return res_dict
 
         if state == swsscommon.Select.TIMEOUT:
             # Do not flood log when select times out
@@ -217,6 +228,7 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
 
 # 'muxcable' command ("show muxcable")
 #
+
 
 @click.group(name='muxcable', cls=clicommon.AliasedGroup)
 def muxcable():
@@ -643,7 +655,7 @@ def hwmode():
 def muxdirection(db, port):
     """Shows the current direction of the muxcable {active/standy}"""
 
-    #port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_DIR_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RSP")
@@ -651,9 +663,10 @@ def muxdirection(db, port):
     if port is not None:
 
         res_dict = {}
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RSP", port, "probe")
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RSP", port, 1, "probe")
 
         body = []
         temp_list = []
@@ -698,9 +711,10 @@ def muxdirection(db, port):
 
             temp_list = []
             res_dict = {}
-            res_dict [0] = CONFIG_FAIL
-            res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RSP", port, "probe")
+            res_dict[0] = CONFIG_FAIL
+            res_dict[1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd(
+                "state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RSP", port, 1, "probe")
             temp_list.append(port)
             temp_list.append(res_dict[1])
             body.append(temp_list)
@@ -714,22 +728,24 @@ def muxdirection(db, port):
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
 
+
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
 @clicommon.pass_db
 def switchmode(db, port):
     """Shows the current switching mode of the muxcable {auto/manual}"""
 
-    #port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_SWMODE_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_SWMODE_RSP")
 
     if port is not None:
 
         res_dict = {}
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("state","state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", "XCVRD_SHOW_HWMODE_SWMODE_RSP", port, "probe")
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "state", "state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", "XCVRD_SHOW_HWMODE_SWMODE_RSP", port, 1, "probe")
 
         body = []
         temp_list = []
@@ -774,9 +790,10 @@ def switchmode(db, port):
 
             temp_list = []
             res_dict = {}
-            res_dict [0] = CONFIG_FAIL
-            res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("state","state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", "XCVRD_SHOW_HWMODE_SWMODE_RSP", port, "probe")
+            res_dict[0] = CONFIG_FAIL
+            res_dict[1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd(
+                "state", "state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", "XCVRD_SHOW_HWMODE_SWMODE_RSP", port, 1, "probe")
             temp_list.append(port)
             temp_list.append(res_dict[1])
             rc = res_dict[1]
@@ -955,19 +972,20 @@ def firmware():
 def version(db, port, active):
     """Show muxcable firmware version"""
 
-    #port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_FW_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_FW_RSP")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_FW_RES")
 
     if port is not None:
 
         res_dict = {}
         mux_info_dict, mux_info_active_dict = {}, {}
 
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
         mux_info_dict["version_nic_active"] = "N/A"
         mux_info_dict["version_nic_inactive"] = "N/A"
         mux_info_dict["version_nic_next"] = "N/A"
@@ -978,7 +996,8 @@ def version(db, port, active):
         mux_info_dict["version_self_inactive"] = "N/A"
         mux_info_dict["version_self_next"] = "N/A"
 
-        res_dict = update_and_get_response_for_xcvr_cmd("firmware_version","status", "True", "XCVRD_SHOW_FW_CMD", "XCVRD_SHOW_FW_RSP", port, "probe")
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "firmware_version", "status", "True", "XCVRD_SHOW_FW_CMD", "XCVRD_SHOW_FW_RSP", port, 20, "probe")
 
         if res_dict[1] == "True":
             mux_info_dict = get_response_for_version(port, mux_info_dict)

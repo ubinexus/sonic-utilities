@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 
 import click
 import re
@@ -54,13 +55,17 @@ def delete_all_keys_in_db_table(db_type, table_name):
             table[asic_id]._del(key)
 
 
-def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, rsp_table_name, port, arg=None):
+def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, rsp_table_name, port, cmd_timeout_secs, arg=None):
 
     res_dict = {}
     state_db, appl_db = {}, {}
     firmware_rsp_tbl, firmware_rsp_tbl_keys = {}, {}
     firmware_rsp_sub_tbl = {}
     firmware_cmd_tbl = {}
+
+    CMD_TIMEOUT_SECS = cmd_timeout_secs
+
+    time_start = time.time()
 
     sel = swsscommon.Select()
     namespaces = multi_asic.get_front_end_namespaces()
@@ -116,6 +121,11 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
 
         (state, selectableObj) = sel.select(SELECT_TIMEOUT)
 
+        time_now = time.time()
+        time_diff = time_now - time_start
+        if time_diff >= CMD_TIMEOUT_SECS:
+            return res_dict
+
         if state == swsscommon.Select.TIMEOUT:
             # Do not flood log when select times out
             continue
@@ -153,6 +163,7 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
             if rsp_name in fvp_dict:
                 # check if xcvrd got a probe command
                 result = fvp_dict[rsp_name]
+
 
                 if result == exp_rsp:
                     res_dict[1] = result
@@ -422,7 +433,7 @@ def state(db, state, port):
         res_dict = {}
         res_dict [0] = CONFIG_FAIL
         res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, res_dict, state)
+        res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, state)
 
         rc = res_dict[0]
         if rc == 0:
@@ -465,7 +476,7 @@ def state(db, state, port):
             res_dict [0] = CONFIG_FAIL
             res_dict [1] = 'unknown'
 
-            res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, res_dict, state)
+            res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, state)
 
             rc = res_dict[0]
 
@@ -497,7 +508,7 @@ def setswitchmode(db, state, port):
         res_dict = {}
         res_dict [0] = CONFIG_FAIL
         res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, res_dicti, state)
+        res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, state)
 
 
         rc = res_dict[0]
@@ -540,7 +551,7 @@ def setswitchmode(db, state, port):
             res_dict = {}
             res_dict [0] = CONFIG_FAIL
             res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, res_dicti, state)
+            res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, state)
 
             rc = res_dict[0]
 
@@ -566,7 +577,7 @@ def firmware():
 def download(db, fwfile, port):
     """Config muxcable firmware download"""
 
-    #port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
@@ -576,7 +587,7 @@ def download(db, fwfile, port):
         res_dict = {}
         res_dict [0] = CONFIG_FAIL
         res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, fwfile)
+        res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
 
         rc = res_dict[0]
         if rc == 0:
@@ -619,7 +630,7 @@ def download(db, fwfile, port):
 
             res_dict [0] = CONFIG_FAIL
             res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, fwfile)
+            res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
 
             rc = res_dict[0]
 
@@ -639,7 +650,7 @@ def download(db, fwfile, port):
 def activate(db, port, fwfile):
     """Config muxcable firmware activate"""
 
-    #port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
@@ -649,13 +660,13 @@ def activate(db, port, fwfile):
         res_dict = {}
         res_dict [0] = CONFIG_FAIL
         res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, fwfile)
+        res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
 
         rc = res_dict[0]
         if rc == 0:
-            click.echo("Success in activating firmware port {} {}".format(port, fwfile))
+            click.echo("Success in activate firmware port {} fwfile {}".format(port, fwfile))
         else:
-            click.echo("ERR: Unable to activating firmware port {} {}".format(port, fwfile))
+            click.echo("ERR: Unable to activate firmware port {} fwfile {}".format(port, fwfile))
             sys.exit(CONFIG_FAIL)
 
     elif port == "all":
@@ -691,14 +702,14 @@ def activate(db, port, fwfile):
 
             res_dict [0] = CONFIG_FAIL
             res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, fwfile)
+            res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
 
-            rc = res_dict[1]
+            rc = res_dict[0]
 
             if rc == 0:
-                click.echo("Success in activate firmware port {} {}".format(port, fwfile))
+                click.echo("Success in activate firmware port {} fwfile {}".format(port, fwfile))
             else:
-                click.echo("ERR: Unable to activate firmware port {} {}".format(port, fwfile))
+                click.echo("ERR: Unable to activate firmware port {} fwfile {}".format(port, fwfile))
                 rc_exit = CONFIG_FAIL
 
         sys.exit(rc_exit)
@@ -711,6 +722,8 @@ def activate(db, port, fwfile):
 def rollback(db, port, fwfile):
     """Config muxcable firmware rollback"""
 
+    port = platform_sfputil_helper.get_interface_alias(port, db)
+
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
 
@@ -719,13 +732,13 @@ def rollback(db, port, fwfile):
         res_dict = {}
         res_dict [0] = CONFIG_FAIL
         res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, fwfile)
+        res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
 
         rc = res_dict[0]
         if rc == 0:
-            click.echo("Success in rollback firmware port {} {}".format(port, fwfile))
+            click.echo("Success in rollback firmware port {} fwfile {}".format(port, fwfile))
         else:
-            click.echo("ERR: Unable to rollback firmware port {} {}".format(port, fwfile))
+            click.echo("ERR: Unable to rollback firmware port {} fwfile {}".format(port, fwfile))
             sys.exit(CONFIG_FAIL)
 
     elif port == "all":
@@ -761,14 +774,14 @@ def rollback(db, port, fwfile):
 
             res_dict [0] = CONFIG_FAIL
             res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, fwfile)
+            res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
 
             rc = res_dict[0]
 
             if rc == 0:
-                click.echo("Success in rollback firmware port {} {}".format(port, fwfile))
+                click.echo("Success in rollback firmware port {} fwfile {}".format(port, fwfile))
             else:
-                click.echo("ERR: Unable to rollback firmware port {} {}".format(port, fwfile))
+                click.echo("ERR: Unable to rollback firmware port {} fwfile {}".format(port, fwfile))
                 rc_exit = CONFIG_FAIL
 
         sys.exit(rc_exit)
