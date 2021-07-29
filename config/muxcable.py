@@ -88,7 +88,6 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
     logical_port_list = platform_sfputil_helper.get_logical_list()
     if port not in logical_port_list:
         click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
-        rc = CONFIG_FAIL
         res_dict[0] = rc
         return res_dict
 
@@ -102,11 +101,10 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
         asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant perform firmware cmd".format(port))
-            rc = CONFIG_FAIL
             res_dict[0] = rc
             return res_dict
 
-    if arg == None:
+    if arg is None:
         cmd_arg = "null"
     else:
         cmd_arg = str(arg)

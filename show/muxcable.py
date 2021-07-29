@@ -8,7 +8,6 @@ import re
 import utilities_common.cli as clicommon
 from natsort import natsorted
 from sonic_py_common import multi_asic
-from sonic_py_common import daemon_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from swsscommon import swsscommon
 from tabulate import tabulate
@@ -106,7 +105,6 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
     firmware_rsp_tbl, firmware_rsp_tbl_keys = {}, {}
     firmware_rsp_sub_tbl = {}
     firmware_cmd_tbl = {}
-    firmware_res_tbl = {}
 
     CMD_TIMEOUT_SECS = cmd_timeout_secs
 
@@ -133,7 +131,6 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
     logical_port_list = platform_sfputil_helper.get_logical_list()
     if port not in logical_port_list:
         click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
-        rc = CONFIG_FAIL
         res_dict[0] = rc
         return res_dict
 
@@ -147,11 +144,10 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
         asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
         if asic_index is None:
             click.echo("Got invalid asic index for port {}, cant perform firmware cmd".format(port))
-            rc = CONFIG_FAIL
             res_dict[0] = rc
             return res_dict
 
-    if arg == None:
+    if arg is None:
         cmd_arg = "null"
     else:
         cmd_arg = str(arg)
@@ -1002,7 +998,6 @@ def version(db, port, active):
         if res_dict[1] == "True":
             mux_info_dict = get_response_for_version(port, mux_info_dict)
 
-        rc = res_dict[0]
 
         if active is True:
             for key in mux_info_dict:
