@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Utility for blocking and unblocking traffic from given source ip_prefix on ACL tables.
+Utility for blocking and unblocking traffic from given source ip address on ACL tables.
 
 The block operation will insert a DENY rule at the top of the table. The unblock operation
 will remove an existing DENY rule that has been created by the block operation (i.e. it does
@@ -13,10 +13,13 @@ use the highest priority(9999).
 Example:
 
 Block traffic from 10.2.3.4/32:
-./null_route_helper acl_table_name block 10.2.3.4/32
+./null_route_helper block acl_table_name 10.2.3.4/32
 
 Unblock all traffic from 10.2.3.4/32:
-./null_route_helper acl_table_name unblock 10.2.3.4/32
+./null_route_helper unblock acl_table_name 10.2.3.4/32
+
+List all acl rules added by this script
+./null_route_helper list acl_table_name
 """
 
 
