@@ -26,8 +26,9 @@ import syslog
 import sys
 import click
 import ipaddress
+import tabulate
 
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 
 CONFIG_DB_ACL_TABLE_TABLE = "ACL_TABLE"
@@ -36,11 +37,15 @@ CONFIG_DB_VLAN_TABLE = "VLAN"
 
 ACTION_ALLOW = "FORWARD"
 ACTION_DENY = "DROP"
+ACTION_LIST = "LIST"
 
 # Since SONiC supports multi ACL rules share the same priority, we use 9999 (the highest) for all rules
 ACL_RULE_PRIORITY = 9999
 # The key of rule will be overridden with BLOCK_RULE_ + ip
 ACL_RULE_PREFIX = 'BLOCK_RULE_'
+
+# Internet Protocol version 4 EtherType
+ETHER_TYPE_IPV4 = 0x0800
 
 def notice(msg):
     """
@@ -63,16 +68,16 @@ def ip_ver(ip_prefix):
     return ipaddress.ip_network(ip_prefix, False).version
 
 
-def check_table_existence(configdb, table_name):
+def confirm_required_table_existence(configdb, sub_table_name):
     """
-    Check the existence of pre-created ACL tables
+    Check the existence of required ACL table, and exit if absent 
     """
-    target_table = configdb.get_entry(CONFIG_DB_ACL_TABLE_TABLE, table_name)
+    target_table = configdb.get_entry(CONFIG_DB_ACL_TABLE_TABLE, sub_table_name)
 
     if not target_table:
-        error("Table {} not found, exiting...".format(table_name))
-
-    return target_table
+        error("Table {} not found, exiting...".format(sub_table_name))
+    
+    return True
 
 
 def get_acl_rule_key(ip_prefix):
@@ -121,7 +126,7 @@ def build_acl_rule(priority, src_ip):
         "PACKET_ACTION": "DROP"
     }
     if ip_ver(src_ip) == 4:
-        rule['ETHER_TYPE'] = str(0x0800)
+        rule['ETHER_TYPE'] = str(ETHER_TYPE_IPV4)
         rule['SRC_IP'] = src_ip
     else:
         rule['IP_TYPE'] = 'IPV6ANY'
@@ -137,8 +142,9 @@ def get_rule(configdb, table_name, ip_prefix):
     key_name = 'SRC_IP' if ip_ver(ip_prefix) == 4 else 'SRC_IPV6'
     all_rules = get_all_acl_rules(configdb, table_name)
     for key, rule in all_rules.items():
-        if ip_prefix == rule[key_name]:
-            return {key: rule}
+        if ip_prefix == rule.get(key_name, None):
+            if ip_prefix:
+                return {key: rule}
 
     return None
 
@@ -149,13 +155,15 @@ def update_acl_table(configdb, acl_table_name, ip_prefix, action):
     For 'DENY', an 'DROP' rule for given ip_prefix will be added if not existed
     For 'ALLOW', we will try to remove the existing 'DENY' rule, and nothing is changed if not existed
     """
-    check_table_existence(configdb, acl_table_name)
+    confirm_required_table_existence(configdb, acl_table_name)
     rule = get_rule(configdb, acl_table_name, ip_prefix)
     rule_key = list(rule.keys())[0] if rule else None
     rule_value = list(rule.values())[0] if rule else None
     if action == ACTION_ALLOW:
         if not rule:
             return
+        # Delete existing BLOCK rule for given ip_prefix
+        # Pass None as data will delete the entry
         configdb.mod_entry(CONFIG_DB_ACL_RULE_TABLE, rule_key, None)
     else:
         if rule:
@@ -172,16 +180,42 @@ def update_acl_table(configdb, acl_table_name, ip_prefix, action):
             configdb.set_entry(CONFIG_DB_ACL_RULE_TABLE, new_rule_key, new_rule_value)
 
 
-def helper(table_name, ip_prefix, action):
+def list_all_null_route_rules(configdb, table_name):
+    """
+    List all rules added by this script
+    """
+    
+    confirm_required_table_existence(configdb, table_name)
+    header = ("Table", "Rule", "Priority", "Action", "Match")
+    all_rules = get_all_acl_rules(configdb, table_name)
+
+    match_keys = ["SRC_IP", "SRC_IPV6"]
+    data = []
+    for (_, rule_id), rule in all_rules.items():
+        priority = rule.get("PRIORITY", "N/A")
+        action = rule.get("PACKET_ACTION", "N/A")
+        match = "N/A"
+        for k in match_keys:
+            if k in rule:
+                match = rule[k]
+                break
+
+        data.append([table_name, rule_id, priority, action, match])
+
+    print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
+
+
+def null_route_helper(table_name, action, ip_prefix=None):
     """
     Helper function called by 'click'.
     """
-    ip_prefix = validate_input(ip_prefix)
-
     configdb = ConfigDBConnector()
     configdb.connect()
-
-    update_acl_table(configdb, table_name, ip_prefix, action)
+    if action == ACTION_LIST:
+        list_all_null_route_rules(configdb, table_name)
+    else:
+        ip_prefix = validate_input(ip_prefix)
+        update_acl_table(configdb, table_name, ip_prefix, action)
 
 
 @click.group()
@@ -197,7 +231,7 @@ def block(table_name, ip_prefix):
     """
     Block traffic from given src ip prefix
     """
-    helper(table_name, ip_prefix, ACTION_DENY)
+    null_route_helper(table_name, ACTION_DENY, ip_prefix)
 
 
 # ./null_route_helper unblock table_name 1.2.3.4/21
@@ -208,7 +242,17 @@ def unblock(table_name, ip_prefix):
     """
     Unblock traffic from given src ip prefix
     """
-    helper(table_name, ip_prefix, ACTION_ALLOW)
+    null_route_helper(table_name, ACTION_ALLOW, ip_prefix)
+
+
+# ./null_route_helper list table_name
+@cli.command('list')
+@click.argument("table_name", type=click.STRING, required=True)
+def list_rules(table_name):
+    """
+    List all rules *added by this script*
+    """
+    null_route_helper(table_name, ACTION_LIST)
 
 
 if __name__ == "__main__":
