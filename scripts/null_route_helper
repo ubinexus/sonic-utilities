@@ -92,7 +92,7 @@ def get_acl_rule_key(ip_prefix):
 def get_all_acl_rules(configdb, table_name):
     """
     Return a dict of existed acl rules
-    {(u'NULL_ROUTE_TABLE', u'BLOCK_RULE_0.0.0.0/0'): {'PRIORITY': '9999', 'PACKET_ACTION': 'FORWARD', 'SRC_IP': '0.0.0.0/0', 'DST_IP': '0.0.0.0/0'},...}
+    {(u'NULL_ROUTE_TABLE', u'BLOCK_RULE_1.1.1.1/32'): {'PRIORITY': '9999', 'PACKET_ACTION': 'FORWARD', 'SRC_IP': '1.1.1.1/32'},...}
     """
     key = CONFIG_DB_ACL_RULE_TABLE + '|' + table_name
     all_rules = configdb.get_table(key)
@@ -109,10 +109,14 @@ def validate_input(ip_address):
     Validate the format of input
     """
     try:
-        ver = ip_ver(ip_address)
-        if len(ip_address.split('/')) == 1:
-            ip_address += '/32' if ver == 4 else '/128'
-        return ip_address
+        ip_n = ipaddress.ip_network(ip_address, False)
+        ver = ip_n.version
+        prefix_len = ip_n.prefixlen
+        # Prefix len must be 32 for IPV4 and 128 for IPV6 
+        if ver == 4 and prefix_len == 32 or ver == 6 and prefix_len == 128:
+            return ip_n.with_prefixlen
+        
+        error("Prefix length must be 32 (IPv4) or 128 (IPv6)")
     except ValueError as e:
         error("Could not parse {} as a valid IP address; exception={}".format(ip_address, e))
 
@@ -223,7 +227,7 @@ def cli():
     pass
 
 
-# ./null_route_helper block table_name 1.2.3.4/21
+# ./null_route_helper block table_name 1.2.3.4/32
 @cli.command('block')
 @click.argument("table_name", type=click.STRING, required=True)
 @click.argument("ip_prefix", type=click.STRING, required=True)
@@ -234,7 +238,7 @@ def block(table_name, ip_prefix):
     null_route_helper(table_name, ACTION_DENY, ip_prefix)
 
 
-# ./null_route_helper unblock table_name 1.2.3.4/21
+# ./null_route_helper unblock table_name 1.2.3.4/32
 @cli.command('unblock')
 @click.argument("table_name", type=click.STRING, required=True)
 @click.argument("ip_prefix", type=click.STRING, required=True)

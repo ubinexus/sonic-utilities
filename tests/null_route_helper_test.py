@@ -27,9 +27,9 @@ def test_ip_validation():
     assert(null_route_helper.validate_input("1.2.3.4") == "1.2.3.4/32")
     assert(null_route_helper.validate_input("::1") == "::1/128")
 
-    assert(null_route_helper.validate_input("1.2.3.4/21") == "1.2.3.4/21")
+    assert(null_route_helper.validate_input("1.2.3.4/32") == "1.2.3.4/32")
 
-    assert(null_route_helper.validate_input("1000:1000:1000:1000::1/120") == "1000:1000:1000:1000::1/120")
+    assert(null_route_helper.validate_input("1000:1000:1000:1000::1/128") == "1000:1000:1000:1000::1/128")
 
     with pytest.raises(SystemExit) as e:
         null_route_helper.validate_input("a.b.c.d")
@@ -39,16 +39,15 @@ def test_ip_validation():
         null_route_helper.validate_input("1.2.3.4/21/32")
     assert(e.value.code != 0)
 
+    # Verify only 32 prefix len is accepted for IPv4
     with pytest.raises(SystemExit) as e:
-        null_route_helper.validate_input("1000:1000:1000:1000::1/120/128")
+        null_route_helper.validate_input("1.2.3.4/21")
     assert(e.value.code != 0)
 
-
-def test_ip_ver():
-    assert(null_route_helper.ip_ver("1.2.3.4") == 4)
-    assert(null_route_helper.ip_ver("1.2.3.4/21") == 4)
-    assert(null_route_helper.ip_ver("1000:1000:1000:1000::1") == 6)
-    assert(null_route_helper.ip_ver("1000:1000:1000:1000::1/128") == 6)
+    # Verify only 128 prefix len is accepted for IPv6
+    with pytest.raises(SystemExit) as e:
+        null_route_helper.validate_input("1000:1000:1000:1000::1/120")
+    assert(e.value.code != 0)
 
 
 def test_confirm_required_table_existence():
@@ -125,6 +124,14 @@ def test_run_with_invalid_ip():
     assert(result.exit_code != 0)
     assert("as a valid IP address" in result.output)
 
+    result = runner.invoke(null_route_helper.cli.commands['block'], ['NULL_ROUTE_V4', '1.2.3.4/21'])
+    assert(result.exit_code != 0)
+    assert("Prefix length must be" in result.output)
+
+    result = runner.invoke(null_route_helper.cli.commands['block'], ['NULL_ROUTE_V6', '::1/120'])
+    assert(result.exit_code != 0)
+    assert("Prefix length must be" in result.output)
+    
 
 def test_block():
     runner = CliRunner()
