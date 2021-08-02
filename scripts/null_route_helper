@@ -12,11 +12,11 @@ use the highest priority(9999).
 
 Example:
 
-Block traffic from 10.2.3.4/32:
-./null_route_helper block acl_table_name 10.2.3.4/32
+Block traffic from 10.2.3.4:
+./null_route_helper block acl_table_name 10.2.3.4
 
-Unblock all traffic from 10.2.3.4/32:
-./null_route_helper unblock acl_table_name 10.2.3.4/32
+Unblock all traffic from 10.2.3.4:
+./null_route_helper unblock acl_table_name 10.2.3.4
 
 List all acl rules added by this script
 ./null_route_helper list acl_table_name
@@ -230,7 +230,7 @@ def cli():
     pass
 
 
-# ./null_route_helper block table_name 1.2.3.4/32
+# ./null_route_helper block table_name 1.2.3.4
 @cli.command('block')
 @click.argument("table_name", type=click.STRING, required=True)
 @click.argument("ip_prefix", type=click.STRING, required=True)
@@ -241,7 +241,7 @@ def block(table_name, ip_prefix):
     null_route_helper(table_name, ACTION_DENY, ip_prefix)
 
 
-# ./null_route_helper unblock table_name 1.2.3.4/32
+# ./null_route_helper unblock table_name 1.2.3.4
 @cli.command('unblock')
 @click.argument("table_name", type=click.STRING, required=True)
 @click.argument("ip_prefix", type=click.STRING, required=True)
