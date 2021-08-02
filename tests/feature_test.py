@@ -383,6 +383,24 @@ class TestFeature(object):
         print(result.exit_code)
         assert result.exit_code == 1
 
+    def test_config_lldp_feature_high_mem_restart(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["feature"].commands["high_mem_restart"], ["lldp", "enabled"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+    def test_config_lldp_feature_mem_threshold(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["feature"].commands["mem_threshold"], ["lldp", "2048"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

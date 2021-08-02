@@ -639,85 +639,99 @@
     "FEATURE|bgp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1011,
         "set_owner": "local"
     },
     "FEATURE|database": {
         "state": "always_enabled",
         "auto_restart": "always_enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1012,
         "set_owner": "local"
     },
     "FEATURE|dhcp_relay": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1013,
         "set_owner": "kube"
     },
     "FEATURE|lldp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1014,
         "set_owner": "kube"
     },
     "FEATURE|nat": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1015,
         "set_owner": "local"
     },
     "FEATURE|pmon": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1016,
         "set_owner": "kube"
     },
     "FEATURE|radv": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1017,
         "set_owner": "kube"
     },
     "FEATURE|restapi": {
         "state": "disabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1018,
         "set_owner": "local"
     },
     "FEATURE|sflow": {
         "state": "disabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1019,
         "set_owner": "local"
     },
     "FEATURE|snmp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1020,
         "set_owner": "kube"
     },
     "FEATURE|swss": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1019,
         "set_owner": "local"
     },
     "FEATURE|syncd": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1020,
         "set_owner": "local"
     },
     "FEATURE|teamd": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1021,
         "set_owner": "local"
     },
     "FEATURE|telemetry": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled",
+        "high_mem_restart": "disabled",
+        "mem_threshold": 1022,
         "set_owner": "kube"
     },
     "DEVICE_METADATA|localhost": {

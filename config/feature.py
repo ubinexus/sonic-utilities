@@ -100,3 +100,71 @@ def feature_autorestart(db, name, autorestart):
 
     for ns, cfgdb in db.cfgdb_clients.items():
         cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
+
+
+#
+# 'hign_mem_restart' command ('config feature high_mem_restart ...')
+#
+@feature.command(name='high_mem_restart', short_help="Enable/disable high memory restart of a feature")
+@click.argument('feature_name', metavar='<feature_name>', required=True)
+@click.argument('high_mem_restart_status', metavar='<high_mem_restart_status>', required=True, type=click.Choice(["enabled", "disabled"]))
+@pass_db
+def feature_high_mem_restart(db, feature_name, high_mem_restart_status):
+    """Enable/disable the high memory restart of a feature"""
+    feature_high_mem_restart_status = set()
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        feature_table = config_db.get_table('FEATURE')
+        if not feature_table:
+            click.echo("Unable to retrieve 'FEATURE' table from Config DB.")
+            sys.exit(2)
+
+        feature_config = config_db.get_entry('FEATURE', feature_name)
+        if not feature_config:
+            click.echo("Unable to retrieve configuration of feature '{}' from 'FEATURE' table.".format(feature_name))
+            sys.exit(3)
+
+        feature_high_mem_restart_status.add(feature_config['high_mem_restart'])
+
+    if len(feature_high_mem_restart_status) > 1:
+        click.echo("High memory restart status of feature '{}' is not consistent across namespaces.".format(name))
+        sys.exit(4)
+
+    if feature_config['high_mem_restart'] == "always_enabled":
+        click.echo("High memory restart of feature '{}' is always enabled and can not be modified".format(name))
+        return
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        config_db.mod_entry('FEATURE', feature_name, {'high_mem_restart': high_mem_restart_status})
+
+
+#
+# 'mem_threshold' command ('config feature mem_threshold ...')
+#
+@feature.command(name='mem_threshold', short_help="Configure the memory threshold (in Bytes) of a feature")
+@click.argument('feature_name', metavar='<feature_name>', required=True)
+@click.argument('mem_threshold', metavar='<mem_threshold_in_bytes>', required=True)
+@pass_db
+def feature_mem_threshold(db, feature_name, mem_threshold):
+    """Configure the memory threshold of a feature"""
+    feature_mem_thresholds = set()
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        feature_table = config_db.get_table('FEATURE')
+        if not feature_table:
+            click.echo("Unable to retrieve 'FEATURE' table from Config DB.")
+            sys.exit(5)
+
+        feature_config = config_db.get_entry('FEATURE', feature_name)
+        if not feature_config:
+            click.echo("Unable to retrieve configuration of feature '{}' from 'FEATURE' table.".format(feature_name))
+            sys.exit(6)
+
+        feature_mem_thresholds.add(feature_config['mem_threshold'])
+
+    if len(feature_mem_thresholds) > 1:
+        click.echo("Memory threshold of feature '{}' is not consistent across namespaces.".format(name))
+        sys.exit(7)
+
+    for namespace, config_db in db.cfgdb_clients.items():
+        config_db.mod_entry('FEATURE', feature_name, {'mem_threshold': mem_threshold})
