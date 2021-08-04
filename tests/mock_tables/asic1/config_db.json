@@ -170,7 +170,7 @@
     "FEATURE|bgp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_restart": "disabled"
+        "high_mem_restart": "disabled",
         "mem_threshold": "314572800"
     },
     "BGP_INTERNAL_NEIGHBOR|10.1.0.1": {
