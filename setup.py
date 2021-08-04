@@ -126,7 +126,8 @@ setup(
         'scripts/update_json.py',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
-        'scripts/watermarkcfg'
+        'scripts/watermarkcfg',
+        'scripts/null_route_helper'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
