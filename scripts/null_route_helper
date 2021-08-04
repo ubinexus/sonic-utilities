@@ -68,7 +68,7 @@ def error(msg):
 
 
 def ip_ver(ip_prefix):
-    return ipaddress.ip_network(unicode(ip_prefix), False).version
+    return ipaddress.ip_network(ip_prefix, False).version
 
 
 def confirm_required_table_existence(configdb, sub_table_name):
@@ -112,7 +112,7 @@ def validate_input(ip_address):
     Validate the format of input
     """
     try:
-        ip_n = ipaddress.ip_network(unicode(ip_address), False)
+        ip_n = ipaddress.ip_network(ip_address, False)
         ver = ip_n.version
         prefix_len = ip_n.prefixlen
         # Prefix len must be 32 for IPV4 and 128 for IPV6

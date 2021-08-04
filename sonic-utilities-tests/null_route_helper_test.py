@@ -24,29 +24,29 @@ NULL_ROUTE_V6  BLOCK_RULE_1000:1000:1000:1000::2/128        9999  DROP      1000
 
 def test_ip_validation():
     # Verify prefix len will be appended if not set
-    assert(null_route_helper.validate_input("1.2.3.4") == "1.2.3.4/32")
-    assert(null_route_helper.validate_input("::1") == "::1/128")
+    assert(null_route_helper.validate_input(unicode("1.2.3.4")) == "1.2.3.4/32")
+    assert(null_route_helper.validate_input(unicode("::1")) == "::1/128")
 
-    assert(null_route_helper.validate_input("1.2.3.4/32") == "1.2.3.4/32")
+    assert(null_route_helper.validate_input(unicode("1.2.3.4/32")) == "1.2.3.4/32")
 
-    assert(null_route_helper.validate_input("1000:1000:1000:1000::1/128") == "1000:1000:1000:1000::1/128")
+    assert(null_route_helper.validate_input(unicode("1000:1000:1000:1000::1/128")) == "1000:1000:1000:1000::1/128")
 
     with pytest.raises(SystemExit) as e:
-        null_route_helper.validate_input("a.b.c.d")
+        null_route_helper.validate_input(unicode("a.b.c.d"))
     assert(e.value.code != 0)
 
     with pytest.raises(SystemExit) as e:
-        null_route_helper.validate_input("1.2.3.4/21/32")
+        null_route_helper.validate_input(unicode("1.2.3.4/21/32"))
     assert(e.value.code != 0)
 
     # Verify only 32 prefix len is accepted for IPv4
     with pytest.raises(SystemExit) as e:
-        null_route_helper.validate_input("1.2.3.4/21")
+        null_route_helper.validate_input(unicode("1.2.3.4/21"))
     assert(e.value.code != 0)
 
     # Verify only 128 prefix len is accepted for IPv6
     with pytest.raises(SystemExit) as e:
-        null_route_helper.validate_input("1000:1000:1000:1000::1/120")
+        null_route_helper.validate_input(unicode("1000:1000:1000:1000::1/120"))
     assert(e.value.code != 0)
 
 
@@ -76,21 +76,21 @@ def test_build_rule():
         "SRC_IPV6": "1000:1000:1000:1000::1/128"
     }
 
-    assert(null_route_helper.build_acl_rule(9999, "1.2.3.4/32") == expected_rule_v4)
-    assert(null_route_helper.build_acl_rule(9999, "1000:1000:1000:1000::1/128") == expected_rule_v6)
+    assert(null_route_helper.build_acl_rule(9999, unicode("1.2.3.4/32")) == expected_rule_v4)
+    assert(null_route_helper.build_acl_rule(9999, unicode("1000:1000:1000:1000::1/128")) == expected_rule_v6)
 
 
 def test_get_rule():
     configdb = ConfigDBConnector()
     configdb.connect()
 
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_ABSENT", "10.0.0.1/32") == None)
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_ABSENT", unicode("10.0.0.1/32")) == None)
 
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V4", "10.0.0.1/32") == None)
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V4", "10.0.0.2/32"))
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V4", unicode("10.0.0.1/32")) == None)
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V4", unicode("10.0.0.2/32")))
 
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V6", "1000:1000:1000:1000::1/128") == None)
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V6", "1000:1000:1000:1000::2/128"))
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V6", unicode("1000:1000:1000:1000::1/128")) == None)
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V6", unicode("1000:1000:1000:1000::2/128")))
 
 
 def test_run_when_table_absent():
