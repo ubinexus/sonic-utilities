@@ -127,11 +127,11 @@ def feature_high_mem_restart(db, feature_name, high_mem_restart_status):
         feature_high_mem_restart_status.add(feature_config['high_mem_restart'])
 
     if len(feature_high_mem_restart_status) > 1:
-        click.echo("High memory restart status of feature '{}' is not consistent across namespaces.".format(name))
+        click.echo("High memory restart status of feature '{}' is not consistent across namespaces.".format(feature_name))
         sys.exit(4)
 
     if feature_config['high_mem_restart'] == "always_enabled":
-        click.echo("High memory restart of feature '{}' is always enabled and can not be modified".format(name))
+        click.echo("High memory restart of feature '{}' is always enabled and can not be modified".format(feature_name))
         return
 
     for namespace, config_db in db.cfgdb_clients.items():
@@ -163,7 +163,7 @@ def feature_mem_threshold(db, feature_name, mem_threshold):
         feature_mem_thresholds.add(feature_config['mem_threshold'])
 
     if len(feature_mem_thresholds) > 1:
-        click.echo("Memory threshold of feature '{}' is not consistent across namespaces.".format(name))
+        click.echo("Memory threshold of feature '{}' is not consistent across namespaces.".format(feature_name))
         sys.exit(7)
 
     for namespace, config_db in db.cfgdb_clients.items():
