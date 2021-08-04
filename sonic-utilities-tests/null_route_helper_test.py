@@ -84,12 +84,12 @@ def test_get_rule():
     configdb = ConfigDBConnector()
     configdb.connect()
 
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_ABSENT", unicode("10.0.0.1/32")) == None)
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_ABSENT", unicode("10.0.0.1/32")) is None)
 
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V4", unicode("10.0.0.1/32")) == None)
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V4", unicode("10.0.0.1/32")) is None)
     assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V4", unicode("10.0.0.2/32")))
 
-    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V6", unicode("1000:1000:1000:1000::1/128")) == None)
+    assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V6", unicode("1000:1000:1000:1000::1/128")) is None)
     assert(null_route_helper.get_rule(configdb, "NULL_ROUTE_V6", unicode("1000:1000:1000:1000::2/128")))
 
 
