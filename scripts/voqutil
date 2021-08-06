@@ -352,20 +352,19 @@ def main():
     parser.add_argument('-c', '--command', type=str, help='get system ports or system neighbors or system lags', default=None)
     parser.add_argument('-a', '--ipaddress', type=str, help='information for specific neighbor', default=None)
     parser.add_argument('-i', '--interface', type=str, help='information for specific system port', default=None)
-    parser.add_argument('-l', '--systemlag', type=str, help='information for specific system lag', default=None)
-    parser.add_argument('-n', '--namespace', type=str, help='information from specific namespace', default=None)
-    parser.add_argument('-x', '--asicname', type=str, help='information for specific asic', default=None)
-    parser.add_argument('-t', '--hostname', type=str, help='information for specific host or linecard', default=None)
+    parser.add_argument('-s', '--systemlag', type=str, help='information for specific system lag', default=None)
+    parser.add_argument('-n', '--namespace', type=str, help='information from specific namespace or asicname', default=None)
+    parser.add_argument('-l', '--linecardname', type=str, help='information for specific linecard or host', default=None)
     args = parser.parse_args()
 
     if args.command == "system_ports":
         system_port_status = SystemPortStatus(args.interface, args.namespace)
         system_port_status.display_systemport_status()
     elif args.command == "system_neighbors":
-        system_neigh_status = SystemNeighStatus(args.ipaddress, args.asicname)
+        system_neigh_status = SystemNeighStatus(args.ipaddress, args.namespace)
         system_neigh_status.display_systemneigh_status()
     elif args.command == "system_lags":
-        system_lag_status = SystemLagStatus(args.systemlag, args.asicname, args.hostname)
+        system_lag_status = SystemLagStatus(args.systemlag, args.namespace, args.linecardname)
         system_lag_status.display_systemlag_status()
 
     sys.exit(0)

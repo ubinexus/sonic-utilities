@@ -129,7 +129,7 @@ def system_ports(systemportname, namespace, verbose):
 
 @chassis.command()
 @click.argument('ipaddress', required=False)
-@click.option('--asicname', '-x', 'asicname', default=None, type=str, show_default=False, help='Asic name')
+@click.option('--asicname', '-n', 'asicname', default=None, type=str, show_default=False, help='Asic name')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def system_neighbors(asicname, ipaddress, verbose):
     """Show VOQ system neighbors information"""
@@ -140,27 +140,27 @@ def system_neighbors(asicname, ipaddress, verbose):
         cmd += " -a {}".format(ipaddress)
 
     if asicname is not None:
-        cmd += " -x {}".format(asicname)
+        cmd += " -n {}".format(asicname)
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
 @chassis.command()
 @click.argument('systemlagname', required=False)
-@click.option('--asicname', '-x', 'asicname', default=None, type=str, show_default=False, help='Asic name')
-@click.option('--hostname', '-t', 'hostname', default=None, type=str, show_default=False, help='Host or Linecard name')
+@click.option('--asicname', '-n', 'asicname', default=None, type=str, show_default=False, help='Asic name')
+@click.option('--linecardname', '-l', 'linecardname', default=None, type=str, show_default=False, help='Linecard or Host name')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def system_lags(systemlagname, asicname, hostname, verbose):
+def system_lags(systemlagname, asicname, linecardname, verbose):
     """Show VOQ system lags information"""
 
     cmd = "voqutil -c system_lags"
 
     if systemlagname is not None:
-        cmd += " -l \"{}\"".format(systemlagname)
+        cmd += " -s \"{}\"".format(systemlagname)
 
     if asicname is not None:
-        cmd += " -x {}".format(asicname)
+        cmd += " -n {}".format(asicname)
 
-    if hostname is not None:
-        cmd += " -t \"{}\"".format(hostname)
+    if linecardname is not None:
+        cmd += " -l \"{}\"".format(linecardname)
 
     clicommon.run_command(cmd, display_cmd=verbose)

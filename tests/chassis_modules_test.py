@@ -294,7 +294,7 @@ class TestChassisModules(object):
         assert result == show_chassis_system_neighbors_output_ipv6
 
     def test_show_and_verify_system_neighbors_output_asic0(self):
-        return_code, result = get_result_and_return_code('voqutil -c system_neighbors -x Asic0')
+        return_code, result = get_result_and_return_code('voqutil -c system_neighbors -n Asic0')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -313,14 +313,14 @@ class TestChassisModules(object):
         assert(result.output == show_chassis_system_lags_output_1)
 
     def test_show_and_verify_system_lags_output_asic1(self):
-        return_code, result = get_result_and_return_code('voqutil -c system_lags -x Asic1')
+        return_code, result = get_result_and_return_code('voqutil -c system_lags -n Asic1')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == show_chassis_system_lags_output_asic1
 
     def test_show_and_verify_system_lags_output_lc4(self):
-        return_code, result = get_result_and_return_code('voqutil -c system_lags -t Linecard4')
+        return_code, result = get_result_and_return_code('voqutil -c system_lags -l Linecard4')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
