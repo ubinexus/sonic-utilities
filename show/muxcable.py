@@ -192,11 +192,10 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
 
         if port_m != port:
 
-            click.echo("receive a wrong port response {}".format(port))
             res_dict[1] = 'unknown'
             res_dict[0] = CONFIG_FAIL
             firmware_rsp_tbl[asic_index]._del(port)
-            break
+            continue
 
         if fvp_m:
 
@@ -673,6 +672,10 @@ def muxdirection(db, port):
 
         rc = res_dict[0]
         click.echo(tabulate(body, headers=headers))
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_DIR_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RSP")
+
         return rc
 
     else:
@@ -721,6 +724,9 @@ def muxdirection(db, port):
         headers = ['Port', 'Direction']
 
         click.echo(tabulate(body, headers=headers))
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_DIR_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_DIR_RSP")
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
 
@@ -752,6 +758,10 @@ def switchmode(db, port):
 
         rc = res_dict[0]
         click.echo(tabulate(body, headers=headers))
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_SWMODE_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_SWMODE_RSP")
+
         return rc
 
     else:
@@ -797,30 +807,15 @@ def switchmode(db, port):
                 rc_exit = False
             body.append(temp_list)
 
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_SWMODE_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_SWMODE_RSP")
+
         headers = ['Port', 'Switching']
 
         click.echo(tabulate(body, headers=headers))
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
 
-
-@hwmode.command()
-@click.argument('port', metavar='<port_name>', required=False, default=None)
-@clicommon.pass_db
-def get_firmware_dict(physical_port, target, side, mux_info_dict):
-
-    import sonic_y_cable.y_cable
-    result = sonic_y_cable.y_cable.get_firmware_version(physical_port, target)
-
-    if result is not None and isinstance(result, dict):
-        mux_info_dict[("version_{}_active".format(side))] = result.get("version_active", None)
-        mux_info_dict[("version_{}_inactive".format(side))] = result.get("version_inactive", None)
-        mux_info_dict[("version_{}_next".format(side))] = result.get("version_next", None)
-
-    else:
-        mux_info_dict[("version_{}_active".format(side))] = "N/A"
-        mux_info_dict[("version_{}_inactive".format(side))] = "N/A"
-        mux_info_dict[("version_{}_next".format(side))] = "N/A"
 
 
 def get_single_port_firmware_version(port, res_dict, mux_info_dict):
@@ -905,11 +900,10 @@ def get_single_port_firmware_version(port, res_dict, mux_info_dict):
 
         if port_m != port:
 
-            click.echo("receive a wrong port response {}".format(port))
             res_dict[0] = 'False'
             res_dict[1] = EXIT_FAIL
             xcvrd_show_fw_rsp_sts_tbl[asic_index]._del(port)
-            break
+            continue
 
         if fvp_m:
 
@@ -944,13 +938,9 @@ def get_single_port_firmware_version(port, res_dict, mux_info_dict):
             xcvrd_show_fw_rsp_sts_tbl[asic_index]._del(port)
             break
 
-    for namespace in namespaces:
-        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        state_db[asic_id] = db_connect("STATE_DB", namespace)
-        xcvrd_show_fw_rsp_sts_tbl[asic_id] = swsscommon.Table(state_db[asic_id], "XCVRD_SHOW_FW_RSP")
-        xcvrd_show_fw_rsp_sts_tbl_keys[asic_id] = xcvrd_show_fw_rsp_sts_tbl[asic_id].getKeys()
-        for key in xcvrd_show_fw_rsp_sts_tbl_keys[asic_id]:
-            xcvrd_show_fw_rsp_sts_tbl[asic_id]._del(key)
+
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_FW_RSP")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_FW_RES")
 
     return
 
@@ -998,6 +988,8 @@ def version(db, port, active):
         if res_dict[1] == "True":
             mux_info_dict = get_response_for_version(port, mux_info_dict)
 
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_FW_RSP")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_FW_RES")
 
         if active is True:
             for key in mux_info_dict:

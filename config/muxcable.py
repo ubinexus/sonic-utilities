@@ -149,11 +149,10 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
 
         if port_m != port:
 
-            click.echo("receive a wrong port response {}".format(port))
             res_dict[1] = 'unknown'
             res_dict[0] = CONFIG_FAIL
             firmware_rsp_tbl[asic_index]._del(port)
-            break
+            continue
 
         if fvp_m:
 
@@ -434,6 +433,10 @@ def state(db, state, port):
         res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, state)
 
         rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
+
         if rc == 0:
             click.echo("Success in toggling port {} to {}".format(port, state))
         else:
@@ -478,6 +481,9 @@ def state(db, state, port):
 
             rc = res_dict[0]
 
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
+
             if rc == 0:
                 click.echo("Success in toggling port {} to {}".format(port, state))
             else:
@@ -510,6 +516,10 @@ def setswitchmode(db, state, port):
 
 
         rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
+
         if rc == 0:
             click.echo("Success in switch muxcable mode port {} to {}".format(port, state))
         else:
@@ -553,6 +563,9 @@ def setswitchmode(db, state, port):
 
             rc = res_dict[0]
 
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
+
             if rc == 0:
                 click.echo("Success in toggling port {} to {}".format(port, state))
             else:
@@ -588,6 +601,10 @@ def download(db, fwfile, port):
         res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
 
         rc = res_dict[0]
+
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
+
         if rc == 0:
             click.echo("Success in downloading firmware port {} {}".format(port, fwfile))
         else:
@@ -632,6 +649,9 @@ def download(db, fwfile, port):
 
             rc = res_dict[0]
 
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
+
             if rc == 0:
                 click.echo("Success in downloading firmware port {} {}".format(port, fwfile))
             else:
@@ -661,6 +681,10 @@ def activate(db, port, fwfile):
         res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
 
         rc = res_dict[0]
+
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
+
         if rc == 0:
             click.echo("Success in activate firmware port {} fwfile {}".format(port, fwfile))
         else:
@@ -702,6 +726,9 @@ def activate(db, port, fwfile):
             res_dict [1] = "unknown"
             res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
 
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
+
             rc = res_dict[0]
 
             if rc == 0:
@@ -731,6 +758,9 @@ def rollback(db, port, fwfile):
         res_dict [0] = CONFIG_FAIL
         res_dict [1] = "unknown"
         res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
+
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
 
         rc = res_dict[0]
         if rc == 0:
@@ -773,6 +803,9 @@ def rollback(db, port, fwfile):
             res_dict [0] = CONFIG_FAIL
             res_dict [1] = "unknown"
             res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
+
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
 
             rc = res_dict[0]
 
