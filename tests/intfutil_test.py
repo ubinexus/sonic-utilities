@@ -182,9 +182,10 @@ class TestIntfutil(TestCase):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], [])
         print(result.output, file=sys.stderr)
         expected_output = (
-            "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-          "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+            "Sub port interface    Speed    MTU    Vlan    Admin    Parent admin                  Type\n"
+          "--------------------  -------  -----  ------  -------  --------------  --------------------\n"
+          "        Ethernet0.10      25G   9100      10       up              up  802.1q-encapsulation"
+
         )
         self.assertEqual(result.output.strip(), expected_output)
 
@@ -207,9 +208,9 @@ class TestIntfutil(TestCase):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Ethernet0.10"])
         print(result.output, file=sys.stderr)
         expected_output = (
-            "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-          "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+            "Sub port interface    Speed    MTU    Vlan    Admin    Parent admin                  Type\n"
+          "--------------------  -------  -----  ------  -------  --------------  --------------------\n"
+          "        Ethernet0.10      25G   9100      10       up              up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
@@ -233,9 +234,9 @@ class TestIntfutil(TestCase):
         result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["etp1.10"])
         print(result.output, file=sys.stderr)
         expected_output = (
-            "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
-          "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+            "Sub port interface    Speed    MTU    Vlan    Admin    Parent admin                  Type\n"
+          "--------------------  -------  -----  ------  -------  --------------  --------------------\n"
+          "        Ethernet0.10      25G   9100      10       up              up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
