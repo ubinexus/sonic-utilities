@@ -21,14 +21,13 @@ try:
         test_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
-        import mock_tables.dbconnector
 except KeyError:
     pass
 
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
-from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA, format_brate, format_prate
+from utilities_common.netstat import ns_diff, table_as_json, STATUS_NA, format_brate, format_prate
 from swsscommon.swsscommon import SonicV2Connector
 
 
@@ -173,8 +172,6 @@ class Tunnelstat(object):
 
         for key, cntr in cnstat_new_dict.items():
             if key == 'time':
-                time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
-                time_gap = time_gap.total_seconds()
                 continue
             old_cntr = None
             if key in cnstat_old_dict:
@@ -331,7 +328,7 @@ def main():
                 print(e.errno, e)
         else:
             if tag_name:
-                print("\nFile '%s' does not exist" % cnstat_fqn_file)
+                print("\nFile belonging to tag %s does not exist" % tag_name)
                 print("Did you run 'tunnelstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name))
             else:
                 if tunnel_name:
