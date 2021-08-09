@@ -261,6 +261,21 @@ class TestShowSflow(object):
 
         return
 
+    def verify_all_ports(self, config_db, status):
+        port_table = config_db.get_table('PORT')
+        sflow_table = config_db.get_table('SFLOW_SESSION')
+
+        for port in port_table.keys():
+            if port not in sflow_table.keys():
+                return False
+
+            admin_state = 'up' if status == 'enable' else 'down'
+
+            if sflow_table[port].get('admin_state') != admin_state:
+                return False
+
+        return True
+
     def test_config_disable_all_intf(self):
         db = Db()
         runner = CliRunner()
@@ -273,8 +288,7 @@ class TestShowSflow(object):
         assert result.exit_code == 0
 
         # verify in configDb
-        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
-        assert sflowSession["all"]["admin_state"] == "down"
+        assert self.verify_all_ports(db.cfgdb, 'disable') == True
 
     def test_config_enable_all_intf(self):
         db = Db()
@@ -287,8 +301,7 @@ class TestShowSflow(object):
         assert result.exit_code == 0
         
         # verify in configDb
-        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
-        assert sflowSession["all"]["admin_state"] == "up"
+        assert self.verify_all_ports(db.cfgdb, 'enable') == True
 
     @classmethod
     def teardown_class(cls):
