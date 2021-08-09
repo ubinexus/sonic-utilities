@@ -4436,16 +4436,20 @@ def interface(ctx):
 def enable(ctx, ifname):
     config_db = ctx.obj['db']
     if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-        click.echo("Invalid interface name")
-        return
+        ctx.fail("Invalid interface name")
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
-    if intf_dict and ifname in intf_dict:
-        intf_dict[ifname]['admin_state'] = 'up'
-        config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
+    if ifname == 'all':
+        port_dict = config_db.get_table('PORT')
+        for port in port_dict.keys():
+            config_db.mod_entry('SFLOW_SESSION', port, {'admin_state': 'up'})
     else:
-        config_db.mod_entry('SFLOW_SESSION', ifname, {'admin_state': 'up'})
+        if intf_dict and ifname in intf_dict:
+            intf_dict[ifname]['admin_state'] = 'up'
+            config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
+        else:
+            config_db.mod_entry('SFLOW_SESSION', ifname, {'admin_state': 'up'})
 
 #
 # 'sflow' command ('config sflow interface disable  ...')
@@ -4456,17 +4460,21 @@ def enable(ctx, ifname):
 def disable(ctx, ifname):
     config_db = ctx.obj['db']
     if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
-        click.echo("Invalid interface name")
-        return
+        ctx.fail("Invalid interface name")
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
-    if intf_dict and ifname in intf_dict:
-        intf_dict[ifname]['admin_state'] = 'down'
-        config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
+    if ifname == 'all':
+        port_dict = config_db.get_table('PORT')
+        for port in port_dict.keys():
+            config_db.mod_entry('SFLOW_SESSION', port, {'admin_state': 'down'})
     else:
-        config_db.mod_entry('SFLOW_SESSION', ifname,
-                            {'admin_state': 'down'})
+        if intf_dict and ifname in intf_dict:
+            intf_dict[ifname]['admin_state'] = 'down'
+            config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
+        else:
+            config_db.mod_entry('SFLOW_SESSION', ifname,
+                                {'admin_state': 'down'})
 
 #
 # 'sflow' command ('config sflow interface sample-rate  ...')
