@@ -21,6 +21,11 @@ How:
     Monit may be used to invoke it periodically, to help scan & fix and
     report via syslog.
 
+Tidbit:
+    If you would like to test this script, you could simulate a RO disk
+    with the following command. Reboot will revert the effect.
+        sudo bash -c "echo u > /proc/sysrq-trigger"
+
 """
 
 import argparse
