@@ -352,8 +352,6 @@ class TestPathAddressing(unittest.TestCase):
         check("/~1/this/is/forward-slash", ["/", "this", "is", "forward-slash"])
         check("/\\\\/no-escaping", ["\\\\", "no-escaping"])
         check("////empty/tokens/are/ok", ["", "", "", "empty", "tokens", "are", "ok"])
-        # Not validating ~
-        check("/~token/telda-not-followed-by-0-or-1", ["~token", "telda-not-followed-by-0-or-1"])
 
     def test_create_path(self):
         def check(tokens, path):

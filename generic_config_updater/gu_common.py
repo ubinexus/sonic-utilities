@@ -1,5 +1,6 @@
 import json
 import jsonpatch
+from jsonpointer import JsonPointer
 import sonic_yang
 import subprocess
 import yang as ly
@@ -220,40 +221,10 @@ class PathAddressing:
     PATH_SEPARATOR = "/"
     XPATH_SEPARATOR = "/"
     def get_path_tokens(self, path):
-        # TODO: convert int tokens to int
-        tokens = path.split(PathAddressing.PATH_SEPARATOR)[1:]
-
-        # Because the characters '~' (%x7E) and '/' (%x2F) have special
-        # meanings in JSON Pointer, '~' needs to be encoded as '~0' and '/'
-        # needs to be encoded as '~1' when these characters appear in a
-        # reference token.
-        # src: https://tools.ietf.org/html/rfc6901
-        mod_tokens = []
-        for token in tokens:
-            mod_token = token
-            mod_token = mod_token.replace("~0", "~")
-            mod_token = mod_token.replace("~1", "/")
-            mod_tokens.append(mod_token)
-
-        return mod_tokens
+        return JsonPointer(path).parts
 
     def create_path(self, tokens):
-        if len(tokens) == 0:
-            return ""
-
-        # Because the characters '~' (%x7E) and '/' (%x2F) have special
-        # meanings in JSON Pointer, '~' needs to be encoded as '~0' and '/'
-        # needs to be encoded as '~1' when these characters appear in a
-        # reference token.
-        # src: https://tools.ietf.org/html/rfc6901
-        mod_tokens = []
-        for token in tokens:
-            mod_token = str(token)
-            mod_token = mod_token.replace("~", "~0")
-            mod_token = mod_token.replace("/", "~1")
-            mod_tokens.append(mod_token)
-
-        return f"{PathAddressing.PATH_SEPARATOR}{PathAddressing.PATH_SEPARATOR.join(mod_tokens)}"
+        return JsonPointer.from_parts(tokens).path
 
     def get_xpath_tokens(self, xpath):
         """
