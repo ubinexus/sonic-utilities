@@ -1,0 +1,29 @@
+{
+	"VLAN|Vlan2": {
+		"vlanid" : "2"
+		},
+    "VLAN|Vlan3": {
+        "vlanid" : "3"
+        },
+    "VLAN_MEMBER|Vlan3|Ethernet0": {
+        "tagging_mode": "tagged"
+        },
+    "VLAN_MEMBER|Vlan3|Ethernet8": {
+        "tagging_mode": "tagged"
+        },
+    "VLAN|Vlan4": {
+        "vlanid" : "4"
+        },
+    "VLAN_MEMBER|Vlan4|Ethernet16": {
+        "tagging_mode": "tagged"
+        },
+    "VLAN_MEMBER|Vlan4|Ethernet24": {
+        "tagging_mode": "tagged"
+        },
+    "VLAN_INTERFACE|Vlan4|192.168.1.2/24": {
+        "NULL": "NULL"
+        },
+    "VLAN_INTERFACE|Vlan4": {
+        "NULL": "NULL"
+        }
+}
