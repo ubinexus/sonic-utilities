@@ -55,7 +55,7 @@ class TestLoadMinigraph(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-            assert mock_run_command.call_count == 7
+            assert mock_run_command.call_count == 8
 
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
