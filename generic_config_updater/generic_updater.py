@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 from enum import Enum
 from jsonpatch import PatchOperation, AddOperation, RemoveOperation, ReplaceOperation
 from swsscommon.swsscommon import ConfigDBConnector
@@ -20,9 +21,46 @@ class ConfigLock:
         pass
 
 class ChangeApplier:
-    def __init__(self):
+    def __init__(self, service_metadata_file: str=None):
         self.config_db = ConfigDBConnector()
         self.config_db.connect()
+        service_metadata = {}
+        if service_metadata_file:
+            with open(service_metadata_file, 'r') as f:
+                service_metadata = json.load(f)
+        self.table_service = service_metadata.get('tables', {})
+        self.service_commands = service_metadata.get('services', {})
+        self.valiate_metadata()
+        self.previous_table_name = None
+
+    def valiate_metadata(self):
+        # TODO: check metadata file syntax
+        pass
+
+    def exec_command(self, cmd) -> int:
+        p = subprocess.Popen(cmd)
+        p.communicate()
+        return p.returncode
+
+    def on_table_operation(self, table_name):
+        services = self.table_service.get(table_name, {})
+        for service in services:
+            commands = self.service_commands.get(service, {})
+            restart_comand = commands.get('restart-command')
+            validate_command = commands.get('validate-commands')
+            if restart_comand:
+                rc = self.exec_command(restart_comand)
+                if rc != 0:
+                    raise GenericConfigUpdaterError(f"Restart command failed: {restart_comand}, rc={rc}")
+                rc = self.exec_command(validate_command)
+                if rc != 0:
+                    raise GenericConfigUpdaterError(f"Validate command failed: {validate_command}, rc={rc}")
+
+    def on_table_operation_lazy(self, table_name):
+        # Optimze: reduce the duplicated restarting in a batch
+        if table_name != self.previous_table_name:
+            self.on_table_operation(self.previous_table_name)
+            self.previous_table_name = table_name
 
     def _apply_entry(self, op: PatchOperation):
         parts = op.pointer.parts
@@ -36,6 +74,7 @@ class ChangeApplier:
     def apply(self, change: JsonChange):
         patch = change.patch
 
+        self.previous_table_name = None
         # JsonChange is a list of PatchOperation
         for op in patch._ops:
             parts = op.pointer.parts
@@ -48,13 +87,18 @@ class ChangeApplier:
                 tree = { part: tree }
             if isinstance(op, AddOperation):
                 self.config_db.mod_config(tree)
+                if nparts == 2:
+                    # Added a key in a table
+                    self.on_table_operation_lazy(parts[0])
             elif isinstance(op, RemoveOperation):
                 if nparts == 1:
                     # Delete a table
                     self.config_db.delete_table(parts[0])
+                    self.on_table_operation_lazy(parts[0])
                 elif nparts == 2:
                     # Delete a key in a table
                     self.config_db.set_entry(parts[0], parts[1], None)
+                    self.on_table_operation_lazy(parts[0])
                 else:
                     self._apply_entry(op)
             elif isinstance(op, ReplaceOperation):
