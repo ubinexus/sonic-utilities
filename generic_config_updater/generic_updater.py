@@ -1,8 +1,10 @@
 import json
 import os
 from enum import Enum
+from jsonpatch import PatchOperation, AddOperation, RemoveOperation, ReplaceOperation
+from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper
+                       DryRunConfigWrapper, PatchWrapper, JsonChange
 from .patch_sorter import PatchSorter
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
@@ -18,9 +20,51 @@ class ConfigLock:
         pass
 
 class ChangeApplier:
-    def apply(self, change):
-        # TODO: Implement change applier
-        raise NotImplementedError("ChangeApplier.apply(change) is not implemented yet")
+    def __init__(self):
+        self.config_db = ConfigDBConnector()
+        self.config_db.connect()
+
+    def _apply_entry(self, op: PatchOperation):
+        parts = op.pointer.parts
+        entry = self.config_db.get_entry(parts[0], parts[1])
+        oldtree = entry
+        for part in parts[1::-1]:
+            oldtree = { part: oldtree }
+        op.apply(oldtree)
+        self.config_db.set_entry(parts[0], parts[1], entry)
+
+    def apply(self, change: JsonChange):
+        patch = change.patch
+
+        # JsonChange is a list of PatchOperation
+        for op in patch._ops:
+            parts = op.pointer.parts
+            nparts = len(parts)
+            value = op.operation.get('value', None)
+
+
+            tree = value
+            for part in parts[::-1]:
+                tree = { part: tree }
+            if isinstance(op, AddOperation):
+                self.config_db.mod_config(tree)
+            elif isinstance(op, RemoveOperation):
+                if nparts == 1:
+                    # Delete a table
+                    self.config_db.delete_table(parts[0])
+                elif nparts == 2:
+                    # Delete a key in a table
+                    self.config_db.set_entry(parts[0], parts[1], None)
+                else:
+                    self._apply_entry(op)
+            elif isinstance(op, ReplaceOperation):
+                if nparts <= 2:
+                    raise NotImplementedError("ConfigDb does not support replace a table name or key name")
+                else:
+                    self._apply_entry(op)
+            else:
+                raise NotImplementedError("Not supported PatchOperation type")
+
 
 class ConfigFormat(Enum):
     CONFIGDB = 1
