@@ -37,7 +37,7 @@ class TestKdump(object):
 
         result = runner.invoke(config.config.commands["kdump"].commands["enable"], obj=db)
         print(result.exit_code)
-        assert result.exit_code == 3
+        assert result.exit_code == 1
 
     def test_config_kdump_memory(self, get_cmd_module):
         (config, show) = get_cmd_module
@@ -52,7 +52,7 @@ class TestKdump(object):
 
         result = runner.invoke(config.config.commands["kdump"].commands["memory"], ["256MB"], obj=db)
         print(result.exit_code)
-        assert result.exit_code == 5
+        assert result.exit_code == 1
 
     def test_config_kdump_num_dumps(self, get_cmd_module):
         (config, show) = get_cmd_module
@@ -67,7 +67,7 @@ class TestKdump(object):
 
         result = runner.invoke(config.config.commands["kdump"].commands["num_dumps"], ["10"], obj=db)
         print(result.exit_code)
-        assert result.exit_code == 7
+        assert result.exit_code == 1
 
     @classmethod
     def teardown_class(cls):

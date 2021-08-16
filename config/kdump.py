@@ -12,6 +12,26 @@ def kdump():
     """Configure the KDUMP mechanism"""
     pass
 
+
+def check_kdump_table_existence(kdump_table):
+    """Checks whether the 'KDUMP' table is configured in Config DB.
+
+    Args:
+      kdump_table: A dictionary represents the key-value pair in sub-table
+      of 'KDUMP'.
+
+    Returns:
+      None.
+    """
+    if not kdump_table:
+        click.echo("Unable to retrieve 'KDUMP' table from Config DB.")
+        sys.exit(1)
+
+    if "config" not in kdump_table:
+        click.echo("Unable to retrieve key 'config' from KDUMP table.")
+        sys.exit(2)
+
+
 #
 # 'disable' command ('sudo config kdump disable')
 #
@@ -20,13 +40,7 @@ def kdump():
 def kdump_disable(db):
     """Disable the KDUMP mechanism"""
     kdump_table = db.cfgdb.get_table("KDUMP")
-    if not kdump_table:
-        click.echo("Unable to retrieve 'KDUMP' table from Config DB.")
-        sys.exit(1)
-
-    if "config" not in kdump_table:
-        click.echo("Unable to retrieve key 'config' from KDUMP table.")
-        sys.exit(2)
+    check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "false"})
 
@@ -39,13 +53,7 @@ def kdump_disable(db):
 def kdump_enable(db):
     """Enable the KDUMP mechanism"""
     kdump_table = db.cfgdb.get_table("KDUMP")
-    if not kdump_table:
-        click.echo("Unable to retrieve KDUMP table from CONFIG DB.")
-        sys.exit(3)
-
-    if "config" not in kdump_table:
-        click.echo("Unable to retrieve key 'config' from KDUMP table.")
-        sys.exit(4)
+    check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "true"})
 
@@ -59,13 +67,7 @@ def kdump_enable(db):
 def kdump_memory(db, kdump_memory):
     """Reserve memory for kdump capture kernel"""
     kdump_table = db.cfgdb.get_table("KDUMP")
-    if not kdump_table:
-        click.echo("Unable to retrieve KDUMP table from CONFIG DB.")
-        sys.exit(5)
-
-    if "config" not in kdump_table:
-        click.echo("Unable to retrieve key 'config' from KDUMP table.")
-        sys.exit(6)
+    check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"memory": kdump_memory})
 
@@ -79,12 +81,6 @@ def kdump_memory(db, kdump_memory):
 def kdump_num_dumps(db, kdump_num_dumps):
     """Set maximum number of dump files for kdump"""
     kdump_table = db.cfgdb.get_table("KDUMP")
-    if not kdump_table:
-        click.echo("Unable to retrieve KDUMP table from CONFIG DB.")
-        sys.exit(7)
-
-    if "config" not in kdump_table:
-        click.echo("Unable to retrieve key 'config' from KDUMP table.")
-        sys.exit(8)
+    check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
