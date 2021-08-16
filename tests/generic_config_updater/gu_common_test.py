@@ -501,6 +501,26 @@ class TestPathAddressing(unittest.TestCase):
         # Assert
         self.assertCountEqual(expected, actual)
 
+    def test_find_ref_paths__path_is_table__returns_ref_paths_copy_dummy(self):
+        # Arrange
+        path = "/PORT"
+        expected = [
+            "/ACL_TABLE/DATAACL/ports/0",
+            "/ACL_TABLE/EVERFLOW/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/1",
+            "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
+            "/VLAN_MEMBER/Vlan1000|Ethernet0",
+            "/VLAN_MEMBER/Vlan1000|Ethernet4",
+            "/VLAN_MEMBER/Vlan1000|Ethernet8",
+        ]
+
+        # Act
+        actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
+
+        # Assert
+        self.assertCountEqual(expected, actual)
+
     def test_find_ref_paths__whole_config_path__returns_all_refs(self):
         # Arrange
         path = ""
