@@ -29,11 +29,10 @@ def get_kdump_config(field_name):
     """
     field_value = "Unknown"
     config_db = ConfigDBConnector()
-    if config_db:
-        config_db.connect()
-        kdump_table = config_db.get_table("KDUMP")
-        if kdump_table and "config" in kdump_table and field_name in kdump_table["config"]:
-            field_value = kdump_table["config"][field_name]
+    config_db.connect()
+    kdump_table = config_db.get_table("KDUMP")
+    if kdump_table and "config" in kdump_table and field_name in kdump_table["config"]:
+        field_value = kdump_table["config"][field_name]
 
     return field_value
 
@@ -47,14 +46,10 @@ def get_kdump_oper_mode():
 
     Returns:
       admin_mode: If Kdump is ready, returns "Ready"; If Kdump is not ready,
-                  returns "Unready"; Otherwise, returns "Unknown".
+                  returns "Not Ready";
     """
-    oper_mode = "Unready"
-    command_stdout, command_stderr, exit_code = clicommon.run_command("/usr/sbin/kdump-config status",
-                                                                      return_cmd=True)
-    if exit_code != 0:
-        oper_mode = "Unknown"
-        return oper_mode
+    oper_mode = "Not Ready"
+    command_stdout = clicommon.run_command("/usr/sbin/kdump-config status", return_cmd=True)
 
     for line in command_stdout.splitlines():
         if ": ready to kdump" in line:
@@ -62,6 +57,7 @@ def get_kdump_oper_mode():
             break
 
     return oper_mode
+
 
 #
 # 'config' subcommand (show kdump config)
@@ -76,7 +72,7 @@ def config():
     oper_mode = get_kdump_oper_mode()
 
     click.echo("Kdump administrative mode: {}".format(admin_mode))
-    if admin_mode == "Enabled" and oper_mode == "Unready":
+    if admin_mode == "Enabled" and oper_mode == "Not Ready":
         click.echo("Kdump operational mode: Ready after reboot")
     else:
         click.echo("Kdump operational mode: {}".format(oper_mode))
@@ -89,61 +85,52 @@ def config():
 
 
 def get_kdump_core_files():
-    """Retrieves the kernel core dump files from directory /var/crash/.
+    """Retrieves the kernel core dump files from directory '/var/crash/'.
 
     Args:
       None.
 
     Returns:
       cmd_message: A string contains the information showing the execution result
-                   of command.
+                   of 'find' command.
       dump_file_list: A list contains kernel core dump files.
     """
     find_core_dump_files = "find /var/crash -name 'kdump.*'"
     dump_file_list = []
     cmd_message = None
 
-    command_stdout, command_stderr, exit_code = clicommon.run_command(find_core_dump_files,
-                                                                      return_cmd=True)
-    if exit_code != 0:
-        cmd_message = "Failed to retrieve kernel core dump files!"
-        return cmd_message, dump_file_list
+    command_stdout = clicommon.run_command(find_core_dump_files, return_cmd=True)
 
-    if not command_stdout.splitlines():
+    dump_file_list = command_stdout.splitlines()
+    if not dump_file_list:
         cmd_message = "No kernel core dump file available!"
-    else:
-        dump_file_list = command_stdout.splitlines()
 
     return cmd_message, dump_file_list
 
 
 def get_kdump_dmesg_files():
-    """Retrieves the kernel dmesg files from directory /var/crash/.
+    """Retrieves the kernel dmesg files from directory '/var/crash/'.
 
     Args:
       None.
 
     Returns:
       cmd_message: A string contains the information showing the execution result
-                   of command.
+                   of 'find' command.
       dmesg_file_list: A list contains kernel dmesg files.
     """
     find_dmesg_files = "find /var/crash -name 'dmesg.*'"
     dmesg_file_list = []
     cmd_message = None
 
-    command_stdout, command_stderr, exit_code = clicommon.run_command(find_dmesg_files,
-                                                                      return_cmd=True)
-    if exit_code != 0:
-        cmd_message = "Failed to retrieve kernel dmesg files!"
-        return cmd_message, dmesg_file_list
+    command_stdout = clicommon.run_command(find_dmesg_files, return_cmd=True)
 
-    if not command_stdout.splitlines():
+    dmesg_file_list = command_stdout.splitlines()
+    if not dmesg_file_list:
         cmd_message = "No kernel dmesg file available!"
-    else:
-        dmesg_file_list = command_stdout.splitlines()
 
     return cmd_message, dmesg_file_list
+
 
 #
 # 'files' subcommand (show kdump files)
@@ -172,10 +159,11 @@ def files():
 
     click.echo(tabulate(body, header, stralign="center"))
 
+
 #
 # 'logging' subcommand (show kdump logging)
 #
-@kdump.command(name="logging", short_help="Show last 10 lines of kernel dmesg file")
+@kdump.command(name="logging", short_help="Show last 10 lines of lastest kernel dmesg file")
 @click.argument('filename', required=False)
 @click.option('-l', '--lines', default=10, show_default=True)
 def logging(filename, lines):
@@ -194,6 +182,7 @@ def logging(filename, lines):
         if len(dmesg_file_result) == 0:
             click.echo(cmd_message)
             sys.exit(2)
+
         dmesg_file_result.sort(reverse=True)
         cmd += " {}".format(dmesg_file_result[0])
 
