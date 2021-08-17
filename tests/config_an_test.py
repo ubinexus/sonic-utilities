@@ -29,6 +29,7 @@ class TestConfigInterface(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
     def test_config_autoneg(self, ctx):
+        assert 0
         self.basic_check("autoneg", ["Ethernet0", "enabled"], ctx)
         self.basic_check("autoneg", ["Ethernet0", "disabled"], ctx)
         self.basic_check("autoneg", ["Invalid", "enabled"], ctx, operator.ne)
