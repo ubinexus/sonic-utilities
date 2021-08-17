@@ -331,7 +331,7 @@ def expected(db, interfacename):
 @click.pass_context
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
-    
+       
     #Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
        if (display == 'frontend' or display == 'all' or display is None):
@@ -340,16 +340,36 @@ def mpls(ctx, interfacename, namespace, display):
            print("Error: Invalid display option command for single asic")
            return
     
-    masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
+    if interfacename is None:
+        masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
+    else:
+        masic = multi_asic_util.MultiAsic(display_option="all", namespace_option=namespace)
+    
     ns_list = masic.get_ns_list_based_on_options()
     intfs_data = {}
 
-    for ns in ns_list:
+    for ns in range(len(ns_list)):
 
-        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns)
+        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns_list[ns])
 
         if interfacename is not None:
             interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+            key = "INTF_TABLE:" + str(interfacename)
+            mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
+            # Check if interface exists on any asic
+            if mpls_intf is None and ns == len(ns_list) - 1:
+                print("Error: Invalid interface. Interface not found!")
+                return
+            elif mpls_intf is None:
+                continue
+
+            # Add to interface output table since interface is found, and break
+            if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
+                intfs_data.update({interfacename: 'disable'})
+            else:
+                intfs_data.update({interfacename: mpls_intf['mpls']})
+
+            break
 
         # Fetching data from appl_db for intfs
         keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
@@ -367,10 +387,10 @@ def mpls(ctx, interfacename, namespace, display):
                 if ("Loopback" in tokens[1]):
                     continue
                 
-                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
+                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns_list[ns]):
                     continue
 
-                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns):
+                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns_list[ns]):
                     continue
 
 
