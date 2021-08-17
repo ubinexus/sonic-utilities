@@ -323,7 +323,8 @@ def set_flex_counters_delay_indicator(filename):
     with open(filename) as config_db_file:
         config_db = json.load(config_db_file)
         if "FLEX_COUNTER_TABLE" in config_db:
-            config_db["FLEX_COUNTER_TABLE"]["FLEX_COUNTER_DELAY"] = {"FLEX_COUNTER_DELAY_STATUS": "true"}
+            for key in config_db["FLEX_COUNTER_TABLE"].keys():
+                config_db["FLEX_COUNTER_TABLE"][key].update({"FLEX_COUNTER_DELAY_STATUS":"true"})
 
             with open(filename, 'w') as config_db_file:
                 json.dump(config_db, config_db_file, indent=4)
