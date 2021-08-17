@@ -319,6 +319,14 @@ def generate_default_route_entries(filename):
     with open(filename, 'w') as fp:
         json.dump(default_routes_output, fp, indent=2, separators=(',', ': '))
 
+def flex_counters_delay_indicator(filename):
+    with open(filename) as config_db_file:
+        config_db = json.load(config_db_file)
+        if "FLEX_COUNTER_TABLE" in config_db:
+            config_db["FLEX_COUNTER_TABLE"]["FLEX_COUNTER_DELAY"] = {"FLEX_COUNTER_DELAY_STATUS": "true"}
+
+            with open(filename, 'w') as config_db_file:
+                json.dump(config_db, config_db_file, indent=4)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -332,6 +340,7 @@ def main():
     neighbor_entries = generate_neighbor_entries(root_dir + '/arp.json', all_available_macs)
     generate_default_route_entries(root_dir + '/default_routes.json')
     send_garp_nd(neighbor_entries, map_mac_ip_per_vlan)
+    flex_counters_delay_indicator('/etc/sonic/config_db.json')
     return 0
 
 if __name__ == '__main__':
