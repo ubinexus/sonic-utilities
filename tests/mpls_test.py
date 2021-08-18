@@ -154,8 +154,8 @@ class TestMpls(object):
                  ["Ethernet100"]
                  )
         print(result.output)
-        assert result.exit_code == 0
-        assert result.output == "Error: Invalid interface. Interface not found!\n"
+        assert result.exit_code == 2
+        assert result.output == """Usage: mpls [OPTIONS] [INTERFACENAME]\nTry "mpls --help" for help.\n\nError: interface Ethernet100 doesn`t exist\n""" 
     
     def test_config_mpls_remove(self):
         runner = CliRunner()
@@ -295,8 +295,8 @@ class TestMplsMasic(object):
                  ["Ethernet100"]
                  )
         print(result.output)
-        assert result.exit_code == 0
-        assert result.output == "Error: Invalid interface. Interface not found!\n"
+        assert result.exit_code == 2
+        assert result.output == """Usage: mpls [OPTIONS] [INTERFACENAME]\nTry "mpls --help" for help.\n\nError: interface Ethernet100 doesn`t exist\n""" 
     
     def test_config_mpls_masic_remove(self):
         runner = CliRunner()

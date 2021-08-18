@@ -354,16 +354,12 @@ def mpls(ctx, interfacename, namespace, display):
 
         if interfacename is not None:
             interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
-            key = "INTF_TABLE:" + str(interfacename)
-            mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
-            # Check if interface exists on any asic
-            if mpls_intf is None and ns == len(ns_list) - 1:
-                print("Error: Invalid interface. Interface not found!")
-                return
-            elif mpls_intf is None:
+            if not clicommon.is_interface_in_appl_db(appl_db, interfacename) and ns == len(ns_list) - 1:
+                ctx.fail('interface {} doesn`t exist'.format(interfacename))
+            elif not clicommon.is_interface_in_appl_db(appl_db, interfacename):
                 continue
 
-            # Add to interface output table since interface is found, and break
+            mpls_intf = clicommon.get_all_interfaces_with_key(appl_db, "INTF_TABLE:" + str(interfacename))
             if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
                 intfs_data.update({interfacename: 'disable'})
             else:
@@ -372,7 +368,7 @@ def mpls(ctx, interfacename, namespace, display):
             break
 
         # Fetching data from appl_db for intfs
-        keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+        keys = clicommon.get_all_interfaces(appl_db)
         for key in keys if keys else []:
             tokens = key.split(":")
             ifname = tokens[1]
