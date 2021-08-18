@@ -283,11 +283,17 @@ def _update_config_db(status, filename):
 
     write_config_db = False
     if "FLEX_COUNTER_TABLE" in config_db:
-        for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
-            if "FLEX_COUNTER_STATUS" in counter_config and \
-                counter_config["FLEX_COUNTER_STATUS"] is not status:
-                counter_config["FLEX_COUNTER_STATUS"] = status
-                write_config_db = True
+        if status != "delay":
+            for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
+                if "FLEX_COUNTER_STATUS" in counter_config and \
+                    counter_config["FLEX_COUNTER_STATUS"] is not status:
+                    counter_config["FLEX_COUNTER_STATUS"] = status
+                    write_config_db = True
+
+        elif status == "delay":
+            write_config_db = True
+            for key in config_db["FLEX_COUNTER_TABLE"].keys():
+                config_db["FLEX_COUNTER_TABLE"][key].update({"FLEX_COUNTER_DELAY_STATUS":"true"})
 
     if write_config_db:
         with open(filename, 'w') as config_db_file:
@@ -310,3 +316,8 @@ def disable(filename):
     """ Disable counter configuration in config_db file """
     _update_config_db("disable", filename)
 
+@config_db.command()
+@click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
+def delay(filename):
+    """ Delay counters in config_db file """
+    _update_config_db("delay", filename)
