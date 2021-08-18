@@ -21,16 +21,18 @@ def get_chassis_info():
 
     def try_get(platform, attr, fallback):
         try:
-            return getattr(platform, "get_{}".format(attr))()
+            if platform["chassis"] is None:
+                import sonic_platform
+                platform["chassis"] = sonic_platform.platform.Platform().get_chassis()
+            return getattr(platform["chassis"], "get_{}".format(attr))()
         except Exception:
             return 'N/A'
 
     chassis_info = device_info.get_chassis_info()
 
     if all(v is None for k, v in chassis_info.items()):
-        import sonic_platform
-        platform_chassis = sonic_platform.platform.Platform().get_chassis()
-        chassis_info = {k:try_get(platform_chassis, k, "N/A") for k in keys}
+        platform_cache = {"chassis": None}
+        chassis_info = {k:try_get(platform_cache, k, "N/A") for k in keys}
 
     return chassis_info
 
