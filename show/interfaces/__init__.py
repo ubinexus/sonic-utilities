@@ -346,9 +346,9 @@ def mpls(ctx, interfacename, namespace, display):
     intfs_data = {}
     intf_found = False
 
-    for ns in range(len(ns_list)):
+    for ns in ns_list:
 
-        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns_list[ns])
+        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns)
 
         if interfacename is not None:
             interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
@@ -365,26 +365,26 @@ def mpls(ctx, interfacename, namespace, display):
             if (interfacename is not None):
                 if (interfacename != ifname):
                     continue
-                else:
-                    intf_found = True
+                
+                intf_found = True
             
             if (display != "all"):
                 if ("Loopback" in ifname):
                     continue
                 
-                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns_list[ns]):
+                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
                     continue
 
-                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns_list[ns]):
+                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns):
                     continue
 
 
             mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
 
             if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
-                intfs_data.update({tokens[1]: 'disable'})
+                intfs_data.update({ifname: 'disable'})
             else:
-                intfs_data.update({tokens[1]: mpls_intf['mpls']}) 
+                intfs_data.update({ifname: mpls_intf['mpls']}) 
     
     # Check if interface is valid
     if (interfacename is not None and not intf_found):
