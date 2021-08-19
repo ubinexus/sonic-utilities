@@ -587,21 +587,3 @@ def is_interface_in_config_db(config_db, interface_name):
 
     return True
 
-def is_interface_in_appl_db(appl_db, interface_name):
-    """ Check if an interface is in APPL DB """
-    key = "INTF_TABLE:" + str(interface_name)
-    interfaces = appl_db.get_all(appl_db.APPL_DB, key)
-
-    if interfaces is None:
-        return False
-
-    return True
-
-def get_all_interfaces(appl_db):
-    """ Return a list of all interfaces, present in APP DB """
-    return appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
-
-def get_all_interfaces_with_key(appl_db, key):
-    """ Return a list of interfaces given a key """
-    return appl_db.get_all(appl_db.APPL_DB, key)
-
