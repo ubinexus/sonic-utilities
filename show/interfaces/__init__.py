@@ -331,7 +331,7 @@ def expected(db, interfacename):
 @click.pass_context
 def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
-       
+     
     #Edge case: Force show frontend interfaces on single asic
     if not (multi_asic.is_multi_asic()):
        if (display == 'frontend' or display == 'all' or display is None):
