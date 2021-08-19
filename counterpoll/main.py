@@ -276,7 +276,7 @@ def show():
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
-def _update_config_db(status, filename):
+def _update_config_db_flex_counter_table(status, filename):
     """ Update counter configuration in config_db file """
     with open(filename) as config_db_file:
         config_db = json.load(config_db_file)
@@ -308,16 +308,16 @@ def config_db():
 @click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
 def enable(filename):
     """ Enable counter configuration in config_db file """
-    _update_config_db("enable", filename)
+    _update_config_db_flex_counter_table("enable", filename)
 
 @config_db.command()
 @click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
 def disable(filename):
     """ Disable counter configuration in config_db file """
-    _update_config_db("disable", filename)
+    _update_config_db_flex_counter_table("disable", filename)
 
 @config_db.command()
 @click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
 def delay(filename):
     """ Delay counters in config_db file """
-    _update_config_db("delay", filename)
+    _update_config_db_flex_counter_table("delay", filename)
