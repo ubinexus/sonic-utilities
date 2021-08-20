@@ -3,44 +3,32 @@ import pytest
 import config.main as config
 
 from click.testing import CliRunner
-from config.main import expand_vlan_ports, parse_acl_table_info
-
+from config.main import parse_acl_table_info
 
 class TestConfigAcl(object):
-    def test_expand_vlan(self):
-        assert set(expand_vlan_ports("Vlan1000")) == {"Ethernet4", "Ethernet8", "Ethernet12", "Ethernet16"}
-
-    def test_expand_lag(self):
-        assert set(expand_vlan_ports("PortChannel1001")) == {"PortChannel1001"}
-
-    def test_expand_physical_interface(self):
-        assert set(expand_vlan_ports("Ethernet4")) == {"Ethernet4"}
-
-    def test_expand_empty_vlan(self):
-        with pytest.raises(ValueError):
-            expand_vlan_ports("Vlan3000")
-
-    def test_parse_table_with_vlan_expansion(self):
+    def test_parse_table_with_vlan(self):
         table_info = parse_acl_table_info("TEST", "L3", None, "Vlan1000", "egress")
         assert table_info["type"] == "L3"
         assert table_info["policy_desc"] == "TEST"
         assert table_info["stage"] == "egress"
-        assert set(table_info["ports"]) == {"Ethernet4", "Ethernet8", "Ethernet12", "Ethernet16"}
 
+        port_list = table_info["ports@"].split(",")
+        assert set(port_list) == {"Vlan1000"}
+
+    @pytest.mark.skip('TODO')
     def test_parse_table_with_vlan_and_duplicates(self):
-        table_info = parse_acl_table_info("TEST", "L3", None, "Ethernet4,Vlan1000", "egress")
+        # Shall not bind Ethernet/PortChannel port and VLAN to the same ACL table
+        with pytest.raises(ValueError):
+            parse_acl_table_info("TEST", "L3", None, "Ethernet4,Vlan1000", "egress")
+
+    def test_parse_table_with_empty_vlan(self):
+        table_info = parse_acl_table_info("TEST", "L3", None, "Ethernet4,Vlan3000", "egress")
         assert table_info["type"] == "L3"
         assert table_info["policy_desc"] == "TEST"
         assert table_info["stage"] == "egress"
 
-        # Since Ethernet4 is a member of Vlan1000 we should not include it twice in the output
-        port_set = set(table_info["ports"])
-        assert len(port_set) == 4
-        assert set(port_set) == {"Ethernet4", "Ethernet8", "Ethernet12", "Ethernet16"}
-
-    def test_parse_table_with_empty_vlan(self):
-        with pytest.raises(ValueError):
-            parse_acl_table_info("TEST", "L3", None, "Ethernet4,Vlan3000", "egress")
+        port_list = table_info["ports@"].split(",")
+        assert set(port_list) == {"Ethernet4", "Vlan3000"}
 
     def test_parse_table_with_invalid_ports(self):
         with pytest.raises(ValueError):
@@ -77,5 +65,4 @@ class TestConfigAcl(object):
             config.config.commands["acl"].commands["add"].commands["table"],
             ["TEST", "L3", "-p", "Vlan3000"])
 
-        assert result.exit_code != 0
-        assert "Cannot bind empty VLAN Vlan3000" in result.output
+        assert result.exit_code == 0

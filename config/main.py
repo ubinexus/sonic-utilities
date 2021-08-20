@@ -4569,31 +4569,14 @@ def get_acl_bound_ports():
 
     return list(ports)
 
-
-def expand_vlan_ports(port_name):
-    """
-    Expands a given VLAN interface into its member ports.
-
-    If the provided interface is a VLAN, then this method will return its member ports.
-
-    If the provided interface is not a VLAN, then this method will return a list with only
-    the provided interface in it.
-    """
+def get_acl_valid_vlans():
     config_db = ConfigDBConnector()
     config_db.connect()
-
-    if port_name not in config_db.get_keys("VLAN"):
-        return [port_name]
-
-    vlan_members = config_db.get_keys("VLAN_MEMBER")
-
-    members = [member for vlan, member in vlan_members if port_name == vlan]
-
-    if not members:
-        raise ValueError("Cannot bind empty VLAN {}".format(port_name))
-
-    return members
-
+    vlans = set()
+    vlan_dict = config_db.get_table("VLAN")
+    for key in vlan_dict:
+        vlans.add(key)
+    return list(vlans)
 
 def parse_acl_table_info(table_name, table_type, description, ports, stage):
     table_info = {"type": table_type}
@@ -4608,18 +4591,20 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage):
 
     port_list = []
     valid_acl_ports = get_acl_bound_ports()
+    valid_acl_vlans = get_acl_valid_vlans()
+
     if ports:
         for port in ports.split(","):
-            port_list += expand_vlan_ports(port)
-        port_list = list(set(port_list))  # convert to set first to remove duplicate ifaces
+            port_list.append(port)
+        port_list = set(port_list)
     else:
         port_list = valid_acl_ports
 
     for port in port_list:
-        if port not in valid_acl_ports:
+        if port not in valid_acl_ports and port not in valid_acl_vlans:
             raise ValueError("Cannot bind ACL to specified port {}".format(port))
 
-    table_info["ports"] = port_list
+    table_info["ports@"] = ",".join(port_list)
 
     table_info["stage"] = stage
 
