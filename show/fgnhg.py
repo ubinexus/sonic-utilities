@@ -1,6 +1,7 @@
 import ipaddress
 from collections import OrderedDict
 
+import sys
 import click
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
@@ -18,11 +19,6 @@ def fgnhg():
 def active_hops(nhg):
     config_db = ConfigDBConnector()
     config_db.connect()
-
-    fg_nhg_alias_dict = config_db.get_table('FG_NHG')
-    fg_nhg_alias_list = []
-    for alias, value in fg_nhg_alias_dict.items():
-        fg_nhg_alias_list.append(alias)
 
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)  # Make one attempt only STATE_DB
@@ -48,12 +44,13 @@ def active_hops(nhg):
                     output_dict[nhg_prefix] = [nh_ip.split("@")[0]]
 
             nhg_prefix_report = (nhg_prefix.split("|")[1])
-            formatted_nhps = ','.replace(',', ', ').join(output_dict[nhg_prefix])
+            formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
             table.append([nhg_prefix_report, formatted_nhps])
 
         click.echo(tabulate(table, header))
 
     else:
+        nhip_prefix_map = {}
         header = ["Alias", "Active Next Hops"]
         fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
         alias_list = []
@@ -74,13 +71,19 @@ def active_hops(nhg):
                 vals = sorted(set([val for val in t_dict.values()]))
 
                 for nh_ip in vals:
-                    if nexthop_alias[nh_ip.split("@")[0]] == nhg:
-                        output_list.append(nh_ip.split("@")[0])
+                    nhip_prefix_map[nh_ip] = nhg_prefix
+                   
+                    if nh_ip.split("@")[0] in nexthop_alias:
+                        if nexthop_alias[nh_ip.split("@")[0]] == nhg:
+                            output_list.append(nh_ip.split("@")[0])
+                    else:
+                        print ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
+                        sys.exit(1)                        
 
                 output_list = sorted(output_list)
-
-
-            formatted_output_list = ','.replace(',', ', ').join(output_list)
+            
+            nhg_prefix_report = nhip_prefix_map[output_list[0]].split("|")[1]
+            formatted_output_list = ','.replace(',', '\n').join(output_list)
             table.append([nhg_prefix_report, formatted_output_list])
 
             click.echo(tabulate(table, header))
@@ -90,11 +93,6 @@ def active_hops(nhg):
 def hash_view(nhg):
     config_db = ConfigDBConnector()
     config_db.connect()
-
-    fg_nhg_alias_dict = config_db.get_table('FG_NHG')
-    fg_nhg_alias_list = []
-    for alias, value in fg_nhg_alias_dict.items():
-        fg_nhg_alias_list.append(alias)
 
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)  # Make one attempt only STATE_DB
@@ -131,13 +129,29 @@ def hash_view(nhg):
             nhg_prefix_report = (nhg_prefix.split("|")[1])
 
             for nhip, val in bank_dict.items():
-                formatted_banks = ','.replace(',', ', ').join(bank_dict[nhip])
-                table.append([nhg_prefix_report, nhip, formatted_banks])
+                displayed_banks = []
+                bank_output = ""
+                formatted_banks = (bank_dict[nhip])
+                for bankid in formatted_banks:
+                    if (len(str(bankid)) == 1):
+                        displayed_banks.append(str(bankid) + "  ")
+
+                    if (len(str(bankid)) == 2):
+                        displayed_banks.append(str(bankid) + " ")
+
+                    if (len(str(bankid)) == 3):
+                        displayed_banks.append(str(bankid))
+
+                for i in range (0, len(displayed_banks), 8):
+                    bank_output = bank_output + " ".join(displayed_banks[i:i+8]) + "\n" 
+
+                bank_output = bank_output + "\n"
+                table.append([nhg_prefix_report, nhip, bank_output])
 
         click.echo(tabulate(table, header))
 
     else:
-        header = ["Alias", "Next Hop", "Hash buckets"]
+        header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
         fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
         alias_list = []
         nexthop_alias = {}
@@ -150,14 +164,14 @@ def hash_view(nhg):
             print ("Please provide a valid NHG alias")
 
         else:
+            nhip_prefix_map = {}
             for nhg_prefix in table_keys:
                 bank_dict = {}
                 t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
                 vals = sorted(set([val for val in t_dict.values()]))
-
                 for nh_ip in vals:
                     bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])
-
+                    nhip_prefix_map[nh_ip] = nhg_prefix
                     bank_ids = [str(x) for x in bank_ids]
 
                     if nhg_prefix in output_dict:
@@ -169,13 +183,36 @@ def hash_view(nhg):
                 bank_dict = OrderedDict(sorted(bank_dict.items()))
                 output_bank_dict = {}
                 for nexthop, banks  in bank_dict.items():
-                    if nexthop_alias[nexthop] == nhg:
-                        output_bank_dict[nexthop] = banks
+                    if nexthop in nexthop_alias:
+                        if nexthop_alias[nexthop] == nhg:
+                            output_bank_dict[nexthop] = banks
+                    else:
+                        print ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
+                        sys.exit(1)
 
-                nhg_prefix_report = nhg
+                nhg_prefix_report = nhip_prefix_map[list(bank_dict.keys())[0]].split("|")[1]
+
+                
 
                 for nhip, val in output_bank_dict.items():
+                    bank_output = ""
+                    displayed_banks = []
                     formatted_banks = ','.replace(',', ', ').join(bank_dict[nhip])
-                    table.append([nhg_prefix_report, nhip, formatted_banks])
+                    formatted_banks = (bank_dict[nhip])
+                    for bankid in formatted_banks:
+                        if (len(str(bankid)) == 1):
+                            displayed_banks.append(str(bankid) + "  ")
+
+                        if (len(str(bankid)) == 2):
+                            displayed_banks.append(str(bankid) + " ")
+
+                        if (len(str(bankid)) == 3):
+                            displayed_banks.append(str(bankid))
+
+                    for i in range (0, len(displayed_banks), 8):
+                        bank_output = bank_output + " ".join(displayed_banks[i:i+8]) + "\n" 
+
+                    table.append([nhg_prefix_report, nhip, bank_output])
 
             click.echo(tabulate(table, header))
+
