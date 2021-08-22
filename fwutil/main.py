@@ -90,7 +90,7 @@ def update(ctx):
 
 
 # 'auto_update' group
-@cli.group()
+@click.group()
 @click.pass_context
 def auto_update(ctx):
     """Auto-update platform firmware"""
@@ -462,14 +462,15 @@ def status(ctx):
 
 
 # 'updates' subcommand
-@cli.group()
+@click.group()
 @click.pass_context
 def show_update(ctx):
+    """status : Show platform components auto_update status"""
     pass
 
 
 # 'status' subcommand
-@show_update.command()
+@show_update.command(name='status')
 @click.pass_context
 def update_status(ctx):
     """Show platform components auto_update status"""
@@ -487,7 +488,6 @@ def version():
     click.echo("fwutil version {0}".format(VERSION))
 
 show.add_command(show_update, name='update')
-show_update.add_command(update_status, name='status')
 
 install.add_command(chassis_install, name='chassis')
 install.add_command(module_install, name='module')
@@ -495,7 +495,6 @@ install.add_command(module_install, name='module')
 update.add_command(chassis_update, name='chassis')
 update.add_command(module_update, name='module')
 update.add_command(auto_update, name='all')
-update.add_command(update_status, name='status')
 
 chassis_install.add_command(component_install, name='component')
 module_install.add_command(component_install, name='component')
