@@ -222,7 +222,7 @@ class EcnQ(object):
     def gen_ports_key(self):
         if self.ports_key is not None:
             port_table = self.config_db.get_table(DEVICE_NEIGHBOR_TABLE_NAME)
-            self.ports_key = port_table.keys()
+            self.ports_key = list(port_table.keys())
 
             # In multi-ASIC platforms backend ethernet ports are identified as
             # 'Ethernet-BPxy'. Add 1024 to sort backend ports to the end.
