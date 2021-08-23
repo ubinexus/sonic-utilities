@@ -10,6 +10,7 @@ try:
     import click
     import yaml
     from show import platform
+    from sonic_py_common import device_info
     import utilities_common.cli as clicommon
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -64,4 +65,6 @@ def install_extensions(cli):
             root.add_command(cmd)
 
 def register(cli):
-    install_extensions(cli)
+    version_info = device_info.get_sonic_version_info() 
+    if (version_info and version_info.get('asic_type') == 'cisco'):
+        install_extensions(cli)
