@@ -7,6 +7,7 @@ import pyroute2
 from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common import constants
+from utilities_common.general import load_db_config
 
 
 class MultiAsic(object):
@@ -15,6 +16,8 @@ class MultiAsic(object):
         self, display_option=constants.DISPLAY_ALL, namespace_option=None,
         db=None
     ):
+        # Load database config files
+        load_db_config()
         self.namespace_option = namespace_option
         self.display_option = display_option
         self.current_namespace = None
@@ -105,6 +108,11 @@ _multi_asic_click_options = [
                  help='Namespace name or all'),
 ]
 
+def multi_asic_namespace_validation_callback(ctx, param, value):
+    if not multi_asic.is_multi_asic:
+        click.echo("-n/--namespace is not available for single asic")
+        ctx.abort()
+    return value
 
 def multi_asic_click_options(func):
     for option in reversed(_multi_asic_click_options):

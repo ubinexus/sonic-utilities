@@ -2,6 +2,8 @@ import os
 import pytest
 import sys
 
+from deepdiff import DeepDiff
+
 from swsssdk import SonicV2Connector
 from sonic_py_common import device_info
 
@@ -24,15 +26,26 @@ def get_sonic_version_info_mlnx():
     return {'asic_type': 'mellanox'}
 
 
+def advance_version_for_expected_database(migrated_db, expected_db, last_interested_version):
+    # In case there are new db versions greater than the latest one that mellanox buffer migrator is interested,
+    # we just advance the database version in the expected database to make the test pass
+    expected_dbversion = expected_db.get_entry('VERSIONS', 'DATABASE')
+    dbmgtr_dbversion = migrated_db.get_entry('VERSIONS', 'DATABASE')
+    if expected_dbversion and dbmgtr_dbversion:
+        if expected_dbversion['VERSION'] == last_interested_version and dbmgtr_dbversion['VERSION'] > expected_dbversion['VERSION']:
+            expected_dbversion['VERSION'] = dbmgtr_dbversion['VERSION']
+            expected_db.set_entry('VERSIONS', 'DATABASE', expected_dbversion)
+
+
 class TestMellanoxBufferMigrator(object):
     @classmethod
     def setup_class(cls):
         cls.config_db_tables_to_verify = ['BUFFER_POOL', 'BUFFER_PROFILE', 'BUFFER_PG', 'DEFAULT_LOSSLESS_BUFFER_PARAMETER', 'LOSSLESS_TRAFFIC_PATTERN', 'VERSIONS', 'DEVICE_METADATA']
         cls.appl_db_tables_to_verify = ['BUFFER_POOL_TABLE:*', 'BUFFER_PROFILE_TABLE:*', 'BUFFER_PG_TABLE:*', 'BUFFER_QUEUE:*', 'BUFFER_PORT_INGRESS_PROFILE_LIST:*', 'BUFFER_PORT_EGRESS_PROFILE_LIST:*']
-        cls.warm_reboot_from_version = 'version_1_0_5'
+        cls.warm_reboot_from_version = 'version_1_0_6'
         cls.warm_reboot_to_version = 'version_2_0_0'
 
-        cls.version_list = ['version_1_0_1', 'version_1_0_2', 'version_1_0_3', 'version_1_0_4', 'version_1_0_5', 'version_2_0_0']
+        cls.version_list = ['version_1_0_1', 'version_1_0_2', 'version_1_0_3', 'version_1_0_4', 'version_1_0_5', 'version_1_0_6', 'version_2_0_0']
 
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
 
@@ -93,6 +106,7 @@ class TestMellanoxBufferMigrator(object):
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, self.version_list[-1])
         self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         assert not dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
 
@@ -119,8 +133,6 @@ class TestMellanoxBufferMigrator(object):
         sku, start_version = sku_version
         version = start_version
         start_index = self.version_list.index(start_version)
-        # Eventually, the config db should be migrated to the latest version
-        expected_db = self.mock_dedicated_config_db(self.make_db_name_by_sku_topo_version(sku, topo, self.version_list[-1]))
 
         # start_version represents the database version from which the SKU is supported
         # For each SKU,
@@ -130,6 +142,10 @@ class TestMellanoxBufferMigrator(object):
             import db_migrator
             dbmgtr = db_migrator.DBMigrator(None)
             dbmgtr.migrate()
+
+            # Eventually, the config db should be migrated to the latest version
+            expected_db = self.mock_dedicated_config_db(self.make_db_name_by_sku_topo_version(sku, topo, self.version_list[-1]))
+            advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, self.version_list[-1])
             self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
             assert dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
 
@@ -145,6 +161,7 @@ class TestMellanoxBufferMigrator(object):
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_config_db.cfgdb, self.version_list[-1])
         assert dbmgtr.mellanox_buffer_migrator.is_buffer_config_default == is_buffer_config_default_expected
         self.check_config_db(dbmgtr.configDB, expected_config_db.cfgdb)
         self.check_appl_db(dbmgtr.appDB, expected_appl_db)
@@ -173,8 +190,83 @@ class TestMellanoxBufferMigrator(object):
         self.mellanox_buffer_migrator_warm_reboot_runner(input_db_name, input_db_name, expected_db_name, expected_db_name, True)
 
     def test_mellanox_buffer_migrator_negative_nondefault_for_warm_reboot(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
         expected_config_db = 'non-default-config-expected'
         expected_appl_db = 'non-default-expected'
         input_config_db = 'non-default-config-input'
         input_appl_db = 'non-default-input'
         self.mellanox_buffer_migrator_warm_reboot_runner(input_config_db, input_appl_db, expected_config_db, expected_appl_db, False)
+
+
+class TestAutoNegMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_port_autoneg_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'port-an-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'port-an-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_2_0_1')
+
+        assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
+        assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
+
+
+class TestInitConfigMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_init_config_feature_migration(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'feature-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'feature-expected')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('FEATURE')
+        expected_table = expected_db.cfgdb.get_table('FEATURE')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+        assert not expected_db.cfgdb.get_table('CONTAINER_FEATURE')
+
+
+class TestLacpKeyMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        
+    def test_lacp_key_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'portchannel-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'portchannel-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_2_0_2')
+
+        assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
+        assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')

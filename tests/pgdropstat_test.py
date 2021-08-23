@@ -1,10 +1,13 @@
 import os
 import sys
+import pytest
 
 import show.main as show
 import clear.main as clear
+import config.main as config
 
 from click.testing import CliRunner
+from shutil import copyfile
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -38,6 +41,29 @@ class TestPgDropstat(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
         print("SETUP")
 
+    @pytest.fixture(scope='function')
+    def replace_config_db_file(self):
+        sample_config_db_file = os.path.join(test_path, "pgdrop_input", "config_db.json")
+        mock_config_db_file = os.path.join(test_path, "mock_tables", "config_db.json")
+
+        #Backup origin config_db and replace it with config_db file with disabled PG_DROP counters 
+        copyfile(mock_config_db_file, "/tmp/config_db.json")
+        copyfile(sample_config_db_file, mock_config_db_file)
+
+        yield
+
+        copyfile("/tmp/config_db.json", mock_config_db_file)
+
+    def test_show_pg_drop_disabled(self, replace_config_db_file):
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["priority-group"].commands["drop"].commands["counters"])
+        assert result.exit_code == 0
+        print(result.exit_code)
+
+        assert result.output == "Warning: PG counters are disabled. Use 'counterpoll pg-drop enable' to enable polling\n"
+        print(result.output)
+
     def test_show_pg_drop_show(self):
         self.executor(clear_before_show = False)
 
@@ -61,6 +87,20 @@ class TestPgDropstat(object):
 
         assert result.exit_code == 0
         assert result.output == show_output
+
+    def test_show_pg_drop_config_reload(self):
+        runner = CliRunner()
+        self.test_show_pg_drop_clear()
+
+        # simulate 'config reload' to provoke counters recalculation (remove  backup from /tmp folder)
+        result = runner.invoke(config.config.commands["reload"], [ "--no_service_restart",  "-y"])
+
+        print(result.exit_code)
+        print(result.output)
+
+        assert result.exit_code == 0
+
+        self.test_show_pg_drop_show()
 
     @classmethod
     def teardown_class(cls):
