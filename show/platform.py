@@ -134,6 +134,12 @@ def temperature():
     cmd = 'tempershow'
     clicommon.run_command(cmd)
 
+# 'inventory' subcommand ("show platform inventory")
+@platform.command()
+def inventory():
+    """Show Inventory information"""
+    cmd = 'inventoryshow'
+    clicommon.run_command(cmd)
 
 # 'firmware' subcommand ("show platform firmware")
 @platform.command(

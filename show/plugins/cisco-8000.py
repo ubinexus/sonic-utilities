@@ -16,21 +16,6 @@ except ImportError as e:
 
 PLATFORM_PY = '/opt/cisco/bin/platform.py'
 
-# Platform specific version invoked by generic show.version
-def version(verbose):
-    filespec = '/opt/cisco/etc/build_info.yaml'
-    with open(filespec) as f:
-        build_info = yaml.safe_load(f)
-    for d in build_info.get('sdk_versions', []):
-        for k,v in d.items():
-            click.echo('{}: {}'.format(k,v))
-
-@click.command()
-def inventory():
-    """ Show platform inventory information """
-    cmd = 'inventory.py show'
-    clicommon.run_command(cmd)
-
 @click.command()
 @click.option('--raw/--no-raw', default=False, help='Hexdump raw IDPROMs')
 @click.option('--all/--no-all', default=False, help='Dump all known IDPROMs')
@@ -65,7 +50,6 @@ def idprom(name, raw, all, list):
 def install_extensions(cli):
     extensions = {
         'platform': [
-            inventory,
             idprom,
         ],
     }
