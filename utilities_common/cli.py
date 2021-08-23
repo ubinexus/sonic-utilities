@@ -7,10 +7,12 @@ import sys
 
 import click
 import json
+import netaddr
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common.db import Db
+from utilities_common.general import load_db_config
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -118,6 +120,8 @@ class InterfaceAliasConverter(object):
 
     def __init__(self, db=None):
 
+        # Load database config files
+        load_db_config()
         if db is None:
             self.port_dict = multi_asic.get_port_table()
         else:
@@ -200,6 +204,17 @@ def is_ipaddress(val):
         return False
     return True
 
+def ipaddress_type(val):
+    """ Return the IP address type """
+    if not val:
+        return None
+
+    try:
+        ip_version = netaddr.IPAddress(str(val))
+    except netaddr.core.AddrFormatError:
+        return None
+
+    return ip_version.version
 
 def is_ip_prefix_in_key(key):
     '''
@@ -573,3 +588,14 @@ def interface_is_untagged_member(db, interface_name):
             if (val['tagging_mode'] == 'untagged'):
                 return True
     return False
+
+def is_interface_in_config_db(config_db, interface_name):
+    """ Check if an interface is in CONFIG DB """
+    if (not interface_name in config_db.get_keys('VLAN_INTERFACE') and
+        not interface_name in config_db.get_keys('INTERFACE') and
+        not interface_name in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+        not interface_name == 'null'):
+            return False
+
+    return True
+

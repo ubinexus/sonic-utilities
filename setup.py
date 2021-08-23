@@ -130,7 +130,8 @@ setup(
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
-        'scripts/centralize_database'
+        'scripts/centralize_database',
+        'scripts/null_route_helper'
     ],
     entry_points={
         'console_scripts': [
@@ -179,7 +180,7 @@ setup(
         'netaddr>=0.8.0',
         'netifaces>=0.10.7',
         'pexpect>=4.8.0',
-        'poetry-semver>=0.1.0',
+        'semantic-version>=2.8.5',
         'prettyprinter>=0.18.0',
         'pyroute2>=0.5.14, <0.6.1',
         'requests>=2.25.0',

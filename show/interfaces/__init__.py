@@ -9,7 +9,7 @@ from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
 from sonic_py_common import device_info
-from swsscommon.swsscommon import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
 from portconfig import get_child_ports
 import sonic_platform_base.sonic_sfp.sfputilhelper
 
@@ -318,6 +318,88 @@ def expected(db, interfacename):
                              neighbor_metadata_dict[device]['type']])
             except KeyError:
                 pass
+
+    click.echo(tabulate(body, header))
+
+@interfaces.command()
+@click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None,
+              type=str, show_default=True, help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--display', '-d', 'display', default=None, show_default=False,
+              type=str, help='all|frontend')
+@click.pass_context
+def mpls(ctx, interfacename, namespace, display):
+    """Show Interface MPLS status"""
+    
+    #Edge case: Force show frontend interfaces on single asic
+    if not (multi_asic.is_multi_asic()):
+       if (display == 'frontend' or display == 'all' or display is None):
+           display = None
+       else:
+           print("Error: Invalid display option command for single asic")
+           return
+    
+    display = "all" if interfacename else display
+    masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
+    ns_list = masic.get_ns_list_based_on_options()
+    intfs_data = {}
+    intf_found = False
+
+    for ns in ns_list:
+
+        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns)
+
+        if interfacename is not None:
+            interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        # Fetching data from appl_db for intfs
+        keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+        for key in keys if keys else []:
+            tokens = key.split(":")
+            ifname = tokens[1]
+            # Skip INTF_TABLE entries with address information
+            if len(tokens) != 2:
+                continue
+
+            if (interfacename is not None):
+                if (interfacename != ifname):
+                    continue
+                
+                intf_found = True
+            
+            if (display != "all"):
+                if ("Loopback" in ifname):
+                    continue
+                
+                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
+                    continue
+
+                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns):
+                    continue
+
+
+            mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
+
+            if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
+                intfs_data.update({ifname: 'disable'})
+            else:
+                intfs_data.update({ifname: mpls_intf['mpls']}) 
+    
+    # Check if interface is valid
+    if (interfacename is not None and not intf_found):
+        ctx.fail('interface {} doesn`t exist'.format(interfacename))    
+
+    header = ['Interface', 'MPLS State']
+    body = []
+
+    # Output name and alias for all interfaces
+    for intf_name in natsorted(list(intfs_data.keys())):
+        if clicommon.get_interface_naming_mode() == "alias":
+            alias = clicommon.InterfaceAliasConverter().name_to_alias(intf_name)
+            body.append([alias, intfs_data[intf_name]])
+        else:
+            body.append([intf_name, intfs_data[intf_name]])
 
     click.echo(tabulate(body, header))
 
