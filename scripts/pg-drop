@@ -26,7 +26,8 @@ try:
 except KeyError:
     pass
 
-from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
+from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector
 
 STATUS_NA = 'N/A'
 
