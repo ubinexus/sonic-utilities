@@ -197,6 +197,21 @@ class TestMellanoxBufferMigrator(object):
         input_appl_db = 'non-default-input'
         self.mellanox_buffer_migrator_warm_reboot_runner(input_config_db, input_appl_db, expected_config_db, expected_appl_db, False)
 
+    @pytest.mark.parametrize('buffer_model', ['traditional', 'dynamic'])
+    @pytest.mark.parametrize('ingress_pools', ['double-pools', 'single-pool'])
+    def test_mellanox_buffer_reclaiming(self, buffer_model, ingress_pools):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        db_before_migrate = 'reclaiming-buffer-' + buffer_model + '-' + ingress_pools + '-input'
+        db_after_migrate = 'reclaiming-buffer-' + buffer_model + '-' + ingress_pools + '-expected'
+
+        db = self.mock_dedicated_config_db(db_before_migrate)
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_2_0_3')
+        self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
+
 
 class TestAutoNegMigrator(object):
     @classmethod
