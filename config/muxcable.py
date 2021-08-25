@@ -514,7 +514,6 @@ def setswitchmode(db, state, port):
         res_dict [1] = "unknown"
         res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, state)
 
-
         rc = res_dict[0]
 
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")

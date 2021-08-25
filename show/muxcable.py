@@ -740,7 +740,6 @@ def switchmode(db, port):
     """Shows the current switching mode of the muxcable {auto/manual}"""
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
-
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_SHOW_HWMODE_SWMODE_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_SHOW_HWMODE_SWMODE_RSP")
 
