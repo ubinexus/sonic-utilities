@@ -492,6 +492,7 @@ class DBMigrator():
                     self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', abandon_method, append_method)) \
                and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration() \
                and self.prepare_dynamic_buffer_for_warm_reboot(buffer_pools, buffer_profiles, buffer_pgs):
+                self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
                 self.set_version('version_2_0_0')
         else:
             self.prepare_dynamic_buffer_for_warm_reboot()

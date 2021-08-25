@@ -79,6 +79,7 @@ Mellanox buffer migrator:
        Not providing it means no buffer profile migration required.
 """
 from sonic_py_common import logger
+import re
 
 SYSLOG_IDENTIFIER = 'mellanox_buffer_migrator'
 
@@ -834,3 +835,195 @@ class MellanoxBufferMigrator():
 
     def mlnx_is_buffer_model_dynamic(self):
         return self.is_buffer_config_default and not self.is_msft_sku
+
+    def mlnx_sort_buffer_tables(self, buffer_table, name):
+        result = {}
+        for key, item in buffer_table.items():
+            if len(key) != 2:
+                log.log_error('Table {} contains invalid key {}, skip this item'.format(name, key))
+                continue
+            port, ids = key
+            if not port in result:
+                result[port] = {}
+            result[port][ids] = item
+
+        return result
+
+    def mlnx_reclaiming_unused_buffer(self):
+        cable_length_key = self.configDB.get_keys('CABLE_LENGTH')
+        if not cable_length_key:
+            log.log_notice("No cable length table defined, do not migrate buffer objects for reclaiming buffer")
+            return True;
+
+        log.log_info("Migrate buffer objects for reclaiming buffer based on 'CABLE_LENGTH|{}'".format(cable_length_key[0]))
+
+        device_metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        is_dynamic = (device_metadata.get('buffer_model') == 'dynamic')
+
+        port_table = self.configDB.get_table('PORT')
+        buffer_pool_table = self.configDB.get_table('BUFFER_POOL')
+        buffer_profile_table = self.configDB.get_table('BUFFER_PROFILE')
+        buffer_pg_table = self.configDB.get_table('BUFFER_PG')
+        buffer_queue_table = self.configDB.get_table('BUFFER_QUEUE')
+        buffer_ingress_profile_list_table = self.configDB.get_table('BUFFER_PORT_INGRESS_PROFILE_LIST')
+        buffer_egress_profile_list_table = self.configDB.get_table('BUFFER_PORT_EGRESS_PROFILE_LIST')
+        cable_length_entries = self.configDB.get_entry('CABLE_LENGTH', cable_length_key[0])
+
+        buffer_pg_items = self.mlnx_sort_buffer_tables(buffer_pg_table, 'BUFFER_PG')
+        buffer_queue_items = self.mlnx_sort_buffer_tables(buffer_queue_table, 'BUFFER_QUEUE')
+
+        new_items = {}
+
+        single_pool = not 'ingress_lossy_pool' in buffer_pool_table
+
+        # Construct buffer items to be applied to admin down ports
+        if is_dynamic:
+            # For dynamic model, we just need to add the default buffer objects to admin down ports
+            # Buffer manager will apply zero profiles automatically when a port is shutdown
+            lossy_pg_item = {'profile': '[BUFFER_PROFILE|ingress_lossy_profile]'} if 'ingress_lossy_profile' in buffer_profile_table else None
+            lossy_queue_item = {'profile': '[BUFFER_PROFILE|q_lossy_profile]'} if 'q_lossy_profile' in buffer_profile_table else None
+            lossless_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossless_profile]'} if 'egress_lossless_profile' in buffer_profile_table else None
+
+            queue_items_to_apply = {'0-2': {'profile': '[BUFFER_PROFILE|q_lossy_profile]'},
+                                    '3-4': {'profile': '[BUFFER_PROFILE|egress_lossless_profile]'},
+                                    '5-6': {'profile': '[BUFFER_PROFILE|q_lossy_profile]'}}
+
+            if single_pool:
+                if 'ingress_lossless_profile' in buffer_profile_table:
+                    ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_profile]'}
+                else:
+                    ingress_profile_list_item = None
+            else:
+                if 'ingress_lossless_profile' in buffer_profile_table and 'ingress_lossy_profile' in buffer_profile_table:
+                    ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]'}
+                else:
+                    ingress_profile_list_item = None
+
+            if 'egress_lossless_profile' in buffer_profile_table and 'egress_lossy_profile' in buffer_profile_table:
+                egress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]'}
+            else:
+                egress_profile_list_item = None
+
+            pools_to_insert = None
+            profiles_to_insert = None
+
+        else:
+            # For static model, we need more.
+            # Define zero buffer pools and profiles
+            ingress_zero_pool = {'size': '0', 'mode': 'static', 'type': 'ingress'}
+            ingress_lossy_pg_zero_profile = {
+                "pool":"[BUFFER_POOL|ingress_zero_pool]",
+                "size":"0",
+                "static_th":"0"
+            }
+            lossy_pg_item = {'profile': '[BUFFER_PROFILE|ingress_lossy_pg_zero_profile]'}
+
+            ingress_lossless_zero_profile = {
+                "pool":"[BUFFER_POOL|ingress_lossless_pool]",
+                "size":"0",
+                "dynamic_th":"-8"
+            }
+
+            if single_pool:
+                ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_zero_profile]'}
+            else:
+                ingress_lossy_zero_profile = {
+                    "pool":"[BUFFER_POOL|ingress_lossy_pool]",
+                    "size":"0",
+                    "dynamic_th":"-8"
+                }
+                ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_zero_profile],[BUFFER_PROFILE|ingress_lossy_zero_profile]'}
+
+            egress_lossless_zero_profile = {
+                "pool":"[BUFFER_POOL|egress_lossless_pool]",
+                "size":"0",
+                "dynamic_th":"-8"
+            }
+            lossless_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossless_zero_profile]'}
+
+            egress_lossy_zero_profile = {
+                "pool":"[BUFFER_POOL|egress_lossy_pool]",
+                "size":"0",
+                "dynamic_th":"-8"
+            }
+            lossy_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}
+            egress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|egress_lossless_zero_profile],[BUFFER_PROFILE|egress_lossy_zero_profile]'}
+
+            queue_items_to_apply = {'0-2': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'},
+                                    '3-4': {'profile': '[BUFFER_PROFILE|egress_lossless_zero_profile]'},
+                                    '5-6': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}}
+
+            pools_to_insert = {'ingress_zero_pool': ingress_zero_pool}
+            profiles_to_insert = {'ingress_lossy_pg_zero_profile': ingress_lossy_pg_zero_profile,
+                                  'ingress_lossless_zero_profile': ingress_lossless_zero_profile,
+                                  'egress_lossless_zero_profile': egress_lossless_zero_profile,
+                                  'egress_lossy_zero_profile': egress_lossy_zero_profile}
+            if not single_pool:
+                profiles_to_insert['ingress_lossy_zero_profile'] = ingress_lossy_zero_profile
+
+        lossless_profile_pattern = '\[BUFFER_PROFILE\|pg_lossless_([1-9][0-9]*000)_([1-9][0-9]*m)_profile\]'
+        zero_item_count = 0
+        for port_name, port_info in port_table.items():
+            if port_info.get('admin_status') == 'up':
+                # Handles admin down ports only
+                continue
+
+            if lossy_pg_item:
+                port_pgs = buffer_pg_items.get(port_name)
+                is_default = False
+                does_default_lossless_exist = False
+                if not port_pgs:
+                    is_default = True
+                else:
+                    if set(port_pgs.keys()) == set(['3-4']):
+                        if is_dynamic:
+                            if port_pgs['3-4']['profile'] == 'NULL':
+                                is_default = True
+                        else:
+                            match = re.search(lossless_profile_pattern, port_pgs['3-4']['profile'])
+                            if match:
+                                speed = match.group(1)
+                                cable_length = match.group(2)
+                                if speed == port_info.get('speed') and cable_length == cable_length_entries.get(port_name):
+                                    is_default = True
+                                    does_default_lossless_exist = True
+
+                if is_default:
+                    lossy_pg_key = '{}|0'.format(port_name)
+                    lossless_pg_key = '{}|3-4'.format(port_name)
+                    self.configDB.set_entry('BUFFER_PG', lossy_pg_key, lossy_pg_item)
+                    if does_default_lossless_exist:
+                        self.configDB.set_entry('BUFFER_PG', lossless_pg_key, None)
+                    elif is_dynamic:
+                        self.configDB.set_entry('BUFFER_PG', lossless_pg_key, {'profile': 'NULL'})
+                    zero_item_count += 1
+
+            if lossy_queue_item and lossless_queue_item:
+                port_queues = buffer_queue_items.get(port_name)
+                if not port_queues:
+                    for ids, item in queue_items_to_apply.items():
+                        self.configDB.set_entry('BUFFER_QUEUE', port_name + '|' + ids, item)
+                    zero_item_count += 1
+
+            if ingress_profile_list_item:
+                port_ingress_profile_list = buffer_ingress_profile_list_table.get(port_name)
+                if not port_ingress_profile_list:
+                    self.configDB.set_entry('BUFFER_PORT_INGRESS_PROFILE_LIST', port_name, ingress_profile_list_item)
+                    zero_item_count += 1
+
+            if egress_profile_list_item:
+                port_egress_profile_list = buffer_egress_profile_list_table.get(port_name)
+                if not port_egress_profile_list:
+                    self.configDB.set_entry('BUFFER_PORT_EGRESS_PROFILE_LIST', port_name, egress_profile_list_item)
+                    zero_item_count += 1
+
+        if zero_item_count > 0:
+            if pools_to_insert:
+                for name, pool in pools_to_insert.items():
+                    self.configDB.set_entry('BUFFER_POOL', name, pool)
+
+            if profiles_to_insert:
+                for name, profile in profiles_to_insert.items():
+                    self.configDB.set_entry('BUFFER_PROFILE', name, profile)
+
+        return True
