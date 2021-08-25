@@ -33,12 +33,12 @@ Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -Y /tmp/cfg.json -j /etc/sonic/init_cfg.json --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
-Please note setting loaded from minigraph will be lost after system reboot.To preserve setting, run `config save`.
+Please note setting loaded from config file will be lost after system reboot.To preserve setting, run `config save`.
 """
 
 load_yang_cfg_cmd_without_restart_output = """\
 Running command: /usr/local/bin/sonic-cfggen -H -Y /tmp/cfg.json -j /etc/sonic/init_cfg.json --write-to-db
-Please note setting loaded from minigraph will be lost after system reboot.To preserve setting, run `config save`.
+Please note setting loaded from config file will be lost after system reboot.To preserve setting, run `config save`.
 """
 
 load_cfg_output = """\

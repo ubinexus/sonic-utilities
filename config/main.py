@@ -1131,7 +1131,7 @@ def load_cfg_from_yang_config_file(filename, restart_service):
     update_sonic_environment()
     
     click.echo(
-        "Please note setting loaded from minigraph will be lost after system reboot."
+        "Please note setting loaded from config file will be lost after system reboot."
         "To preserve setting, run `config save`."
     )
 
