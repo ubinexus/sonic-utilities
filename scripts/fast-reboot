@@ -21,6 +21,7 @@ PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 SSD_FW_UPDATE="ssd-fw-upgrade"
+CONFIG_DB_FILE="/etc/sonic/config_db.json"
 TAG_LATEST=yes
 
 # Require 100M available on the hard drive for warm reboot temp files,
@@ -36,6 +37,7 @@ EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
 EXIT_FILTER_FDB_ENTRIES_FAILURE=13
+EXIT_DB_INTEGRITY_FAILURE=15
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 
@@ -335,6 +337,13 @@ function reboot_pre_check()
     fi
     rm ${filename}
 
+    CHECK_DB_INTEGRITY=0
+    /usr/local/bin/check_db_integrity.py -c ${CONFIG_DB_FILE} || CHECK_DB_INTEGRITY=$?
+    if [[ CHECK_DB_INTEGRITY -ne 0 ]]; then
+        error "Failed to validate DB's integrity. Exit code: ${CHECK_DB_INTEGRITY}"
+        exit ${EXIT_DB_INTEGRITY_FAILURE}
+    fi
+
     # Make sure /host has enough space for warm reboot temp files
     avail=$(df -k /host | tail -1 | awk '{ print $4 }')
     if [[ ${avail} -lt ${MIN_HD_SPACE_NEEDED} ]]; then
@@ -513,7 +522,6 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     DUMP_DIR=/host/fast-reboot
-    CONFIG_DB_FILE=/etc/sonic/config_db.json
     mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
     /usr/local/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
@@ -525,7 +533,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/local/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
+    /usr/local/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c ${CONFIG_DB_FILE} || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
