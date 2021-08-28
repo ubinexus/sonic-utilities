@@ -1,5 +1,4 @@
 import configparser
-import contextlib
 import os
 import re
 import subprocess
