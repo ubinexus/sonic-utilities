@@ -6,8 +6,8 @@ from deepdiff import DeepDiff
 from mock import patch
 from dump.helper import create_template_dict, sort_lists
 from dump.plugins.vlan import Vlan
-
-from .mock_sonicv2connector import MockSonicV2Connector
+from dump.match_infra import MatchEngine, ConnectionPool
+from swsscommon.swsscommon import SonicV2Connector
 
 module_tests_path = os.path.dirname(__file__)
 dump_tests_path = os.path.join(module_tests_path, "../")
@@ -24,10 +24,6 @@ dedicated_dbs['APPL_DB'] = os.path.join(vlan_files_path, "appl_db.json")
 dedicated_dbs['ASIC_DB'] = os.path.join(vlan_files_path, "asic_db.json")
 dedicated_dbs['STATE_DB'] = os.path.join(vlan_files_path, "state_db.json")
 
-def mock_connector(namespace, use_unix_socket_path=True):
-    return MockSonicV2Connector(dedicated_dbs, namespace=namespace, use_unix_socket_path=use_unix_socket_path)
-
-@pytest.fixture(scope="module", autouse=True)
 def verbosity_setup():
     print("SETUP")
     os.environ["VERBOSE"] = "1"
@@ -35,23 +31,54 @@ def verbosity_setup():
     print("TEARDOWN")
     os.environ["VERBOSE"] = "0"
 
+def populate_mock(db, db_names):
+    for db_name in db_names:
+        db.connect(db_name)
+        # Delete any default data
+        db.delete_all_by_pattern(db_name, "*")
+        with open(dedicated_dbs[db_name]) as f:
+            mock_json = json.load(f)
+        for key in mock_json:
+            for field, value in mock_json[key].items():
+                db.set(db_name, key, field, value)
 
-@patch("dump.match_infra.SonicV2Connector", mock_connector)
-class TestVlanModule(unittest.TestCase):
+@pytest.fixture(scope="class", autouse=True)
+def match_engine():
+
+    # Monkey Patch the SonicV2Connector Object
+    from ...mock_tables import dbconnector
+    db = SonicV2Connector()
+
+    # popualate the db with mock data
+    db_names = list(dedicated_dbs.keys())
+    try:
+        populate_mock(db, db_names)
+    except Exception as e:
+        assert False, "Mock initialization failed: " + str(e)
+
+    # Initialize connection pool
+    conn_pool = ConnectionPool()
+    DEF_NS = ''  # Default Namespace
+    conn_pool.cache = {DEF_NS: {'conn': db,
+                                'connected_to': set(db_names)}}
+
+    # Initialize match_engine
+    match_engine = MatchEngine(conn_pool)
+    yield match_engine
+
+@pytest.mark.usefixtures("match_engine")
+class TestVlanModule:
     
-    def test_working_state(self):
+    def test_working_state(self, match_engine):
         params = {}
         params[Vlan.ARG_NAME] = "Vlan4"
         params["namespace"] = ""
-        m_vlan = Vlan()
+        m_vlan = Vlan(match_engine)
         returned = m_vlan.execute(params)
         expect = create_template_dict(dbs=["CONFIG_DB", "APPL_DB", "ASIC_DB", "STATE_DB"])
         expect["CONFIG_DB"]["keys"].append("VLAN|Vlan4")
         expect["CONFIG_DB"]["keys"].append("VLAN_MEMBER|Vlan4|Ethernet16")
         expect["CONFIG_DB"]["keys"].append("VLAN_MEMBER|Vlan4|Ethernet24")
-        expect["CONFIG_DB"]["keys"].append("VLAN_INTERFACE|Vlan4|192.168.1.2/24")
-        expect["CONFIG_DB"]["keys"].append("VLAN_INTERFACE|Vlan4")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_SUB_INTERFACE")
         expect["APPL_DB"]["keys"].append("VLAN_TABLE:Vlan4")
         expect["APPL_DB"]["keys"].append("VLAN_MEMBER_TABLE:Vlan4:Ethernet16")
         expect["APPL_DB"]["keys"].append("VLAN_MEMBER_TABLE:Vlan4:Ethernet24")
@@ -64,18 +91,16 @@ class TestVlanModule(unittest.TestCase):
         ddiff = DeepDiff(sort_lists(returned), sort_lists(expect), ignore_order=True)
         assert not ddiff, ddiff
         
-    def test_missing_interface(self):
+    def test_missing_interface(self, match_engine):
         params = {}
         params[Vlan.ARG_NAME] = "Vlan3"
         params["namespace"] = ""
-        m_vlan = Vlan()
+        m_vlan = Vlan(match_engine)
         returned = m_vlan.execute(params)
         expect = create_template_dict(dbs=["CONFIG_DB", "APPL_DB", "ASIC_DB", "STATE_DB"])
         expect["CONFIG_DB"]["keys"].append("VLAN|Vlan3")
         expect["CONFIG_DB"]["keys"].append("VLAN_MEMBER|Vlan3|Ethernet0")
         expect["CONFIG_DB"]["keys"].append("VLAN_MEMBER|Vlan3|Ethernet8")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_INTERFACE")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_SUB_INTERFACE")
         expect["APPL_DB"]["keys"].append("VLAN_TABLE:Vlan3")
         expect["APPL_DB"]["keys"].append("VLAN_MEMBER_TABLE:Vlan3:Ethernet0")
         expect["APPL_DB"]["keys"].append("VLAN_MEMBER_TABLE:Vlan3:Ethernet8")
@@ -88,17 +113,15 @@ class TestVlanModule(unittest.TestCase):
         ddiff = DeepDiff(sort_lists(returned), sort_lists(expect), ignore_order=True)
         assert not ddiff, ddiff
     
-    def test_missing_memebers_and_interface(self):
+    def test_missing_memebers_and_interface(self, match_engine):
         params = {}
         params[Vlan.ARG_NAME] = "Vlan2"
         params["namespace"] = ""
-        m_vlan = Vlan()
+        m_vlan = Vlan(match_engine)
         returned = m_vlan.execute(params)
         expect = create_template_dict(dbs=["CONFIG_DB", "APPL_DB", "ASIC_DB", "STATE_DB"])
         expect["CONFIG_DB"]["keys"].append("VLAN|Vlan2")
         expect["CONFIG_DB"]["tables_not_found"].append("VLAN_MEMBER")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_INTERFACE")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_SUB_INTERFACE")
         expect["APPL_DB"]["keys"].append("VLAN_TABLE:Vlan2")
         expect["APPL_DB"]["tables_not_found"].append("VLAN_MEMBER_TABLE")
         expect["STATE_DB"]["keys"].append("VLAN_TABLE|Vlan2")
@@ -108,17 +131,15 @@ class TestVlanModule(unittest.TestCase):
         ddiff = DeepDiff(returned, expect, ignore_order=True)
         assert not ddiff, ddiff
     
-    def test_wrong_case_vlan(self):
+    def test_wrong_case_vlan(self, match_engine):
         params = {}
         params[Vlan.ARG_NAME] = "VLAN4"
         params["namespace"] = ""
-        m_vlan = Vlan()
+        m_vlan = Vlan(match_engine)
         returned = m_vlan.execute(params)
         expect = create_template_dict(dbs=["CONFIG_DB", "APPL_DB", "ASIC_DB", "STATE_DB"])
         expect["CONFIG_DB"]["tables_not_found"].append("VLAN")
         expect["CONFIG_DB"]["tables_not_found"].append("VLAN_MEMBER")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_INTERFACE")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_SUB_INTERFACE")
         expect["APPL_DB"]["tables_not_found"].append("VLAN_TABLE")
         expect["APPL_DB"]["tables_not_found"].append("VLAN_MEMBER_TABLE")
         expect["STATE_DB"]["tables_not_found"].append("VLAN_TABLE")
@@ -128,17 +149,15 @@ class TestVlanModule(unittest.TestCase):
         ddiff = DeepDiff(returned, expect, ignore_order=True)
         assert not ddiff, ddiff
     
-    def test_unconfigured_vlan(self):
+    def test_unconfigured_vlan(self, match_engine):
         params = {}
         params[Vlan.ARG_NAME] = "Vlan5"
         params["namespace"] = ""
-        m_vlan = Vlan()
+        m_vlan = Vlan(match_engine)
         returned = m_vlan.execute(params)
         expect = create_template_dict(dbs=["CONFIG_DB", "APPL_DB", "ASIC_DB", "STATE_DB"])
         expect["CONFIG_DB"]["tables_not_found"].append("VLAN")
         expect["CONFIG_DB"]["tables_not_found"].append("VLAN_MEMBER")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_INTERFACE")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_SUB_INTERFACE")
         expect["APPL_DB"]["tables_not_found"].append("VLAN_TABLE")
         expect["APPL_DB"]["tables_not_found"].append("VLAN_MEMBER_TABLE")
         expect["STATE_DB"]["tables_not_found"].append("VLAN_TABLE")
@@ -148,17 +167,15 @@ class TestVlanModule(unittest.TestCase):
         ddiff = DeepDiff(returned, expect, ignore_order=True)
         assert not ddiff, ddiff
     
-    def test_garbage_vlan(self):
+    def test_garbage_vlan(self, match_engine):
         params = {}
         params[Vlan.ARG_NAME] = "garbage"
         params["namespace"] = ""
-        m_vlan = Vlan()
+        m_vlan = Vlan(match_engine)
         returned = m_vlan.execute(params)
         expect = create_template_dict(dbs=["CONFIG_DB", "APPL_DB", "ASIC_DB", "STATE_DB"])
         expect["CONFIG_DB"]["tables_not_found"].append("VLAN")
         expect["CONFIG_DB"]["tables_not_found"].append("VLAN_MEMBER")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_INTERFACE")
-        expect["CONFIG_DB"]["tables_not_found"].append("VLAN_SUB_INTERFACE")
         expect["APPL_DB"]["tables_not_found"].append("VLAN_TABLE")
         expect["APPL_DB"]["tables_not_found"].append("VLAN_MEMBER_TABLE")
         expect["STATE_DB"]["tables_not_found"].append("VLAN_TABLE")
@@ -168,9 +185,9 @@ class TestVlanModule(unittest.TestCase):
         ddiff = DeepDiff(returned, expect, ignore_order=True)
         assert not ddiff, ddiff
     
-    def test_all_args(self):
+    def test_all_args(self, match_engine):
         params = {}
-        m_vlan = Vlan()
+        m_vlan = Vlan(match_engine)
         returned = m_vlan.get_all_args("")
         expect = ["Vlan2", "Vlan3", "Vlan4"]
         ddiff = DeepDiff(expect, returned, ignore_order=True)

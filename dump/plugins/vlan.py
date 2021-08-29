@@ -1,14 +1,13 @@
 from .executor import Executor
 from dump.match_infra import MatchEngine, MatchRequest
 from dump.helper import create_template_dict
-from _ast import Or
 
 class Vlan(Executor):
     
     ARG_NAME = "vlan_name"
     
-    def __init__(self):
-        self.match_engine = MatchEngine()
+    def __init__(self, match_engine=None):
+        super().__init__(match_engine)
         self.ret_temp = {}
         self.ns = ''
           
@@ -24,8 +23,6 @@ class Vlan(Executor):
         self.ns = params_dict["namespace"]
         self.init_vlan_config_info(vlan_name)
         self.init_vlan_member_config_info(vlan_name)
-        self.init_vlan_interface_config_info(vlan_name)
-        self.init_vlan_sub_interface_config_info(vlan_name)
         self.init_vlan_appl_info(vlan_name)
         self.init_vlan_member_appl_info(vlan_name)
         self.init_state_vlan_info(vlan_name)
@@ -44,24 +41,6 @@ class Vlan(Executor):
     
     def init_vlan_member_config_info(self, vlan_name):
         req = MatchRequest(db="CONFIG_DB", table="VLAN_MEMBER", key_pattern=vlan_name+"*", ns=self.ns)
-        ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            for mem in ret["keys"]:
-                self.ret_temp[req.db]["keys"].append(mem)
-        else:
-            self.ret_temp[req.db]["tables_not_found"].append(req.table)
-    
-    def init_vlan_interface_config_info(self, vlan_name):
-        req = MatchRequest(db="CONFIG_DB", table="VLAN_INTERFACE", key_pattern=vlan_name+"*", ns=self.ns)
-        ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            for mem in ret["keys"]:
-                self.ret_temp[req.db]["keys"].append(mem)
-        else:
-            self.ret_temp[req.db]["tables_not_found"].append(req.table)
-    
-    def init_vlan_sub_interface_config_info(self, vlan_name):
-        req = MatchRequest(db="CONFIG_DB", table="VLAN_SUB_INTERFACE", key_pattern=vlan_name+"*", ns=self.ns)
         ret = self.match_engine.fetch(req)
         if not ret["error"] and len(ret["keys"]) != 0:
             for mem in ret["keys"]:
