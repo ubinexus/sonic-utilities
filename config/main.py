@@ -692,11 +692,16 @@ def _stop_services():
 
 def _get_sonic_services():
     out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
-    return [unit.strip() for unit in out.splitlines()]
+    return (unit.strip() for unit in out.splitlines())
+
+
+def _get_delayed_sonic_services():
+    out = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
+    return (unit.strip().rstrip('.timer') for unit in out.splitlines())
 
 
 def _reset_failed_services():
-    for service in _get_sonic_services():
+    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_services()):
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -982,7 +987,7 @@ def config(ctx):
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
 config.add_command(aaa.radius)
-config.add_command(chassis_modules.chassis_modules)
+config.add_command(chassis_modules.chassis)
 config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kdump.kdump)
