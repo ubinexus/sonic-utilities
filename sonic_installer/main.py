@@ -497,7 +497,7 @@ def sonic_installer():
 @click.option('--available-mem-threshold', default=1200, type=int, show_default='1200 MiB',
               help='If system available memory is lower than threhold, setup SWAP memory',
               cls=clicommon.SubOrdinateOption, depends_on=['setup_swap_if_necessary'],
-              callback=validate_positive_int,)
+              callback=validate_positive_int)
 @click.argument('url')
 def install(url, force, skip_migration=False, skip_package_migration=False,
             setup_swap_if_necessary=False, swap_mem_size=None, total_mem_threshold=None, available_mem_threshold=None):
