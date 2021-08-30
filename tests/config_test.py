@@ -157,7 +157,7 @@ class TestLoadConfig(object):
 
             result = runner.invoke(
                 config.config.commands["load"],
-                [self.dummy_cfg_file, "-y", "-c", "yang", "-r"])
+                [self.dummy_cfg_file, "-y", "-t", "config_yang", "-r"])
 
             print(result.exit_code)
             print(result.output)
@@ -177,7 +177,7 @@ class TestLoadConfig(object):
             runner = CliRunner()
 
             result = runner.invoke(config.config.commands["load"],
-                                    [self.dummy_cfg_file, "-y", "-c", "yang"])
+                                    [self.dummy_cfg_file, "-y", "-t", "config_yang"])
 
             print(result.exit_code)
             print(result.output)

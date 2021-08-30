@@ -67,7 +67,7 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
-DEFAULT_YANG_CFG_FILE = '/etc/sonic/yang_cfg.json'
+DEFAULT_CONFIG_YANG_FILE  = '/etc/sonic/yang_cfg.json'
 NAMESPACE_PREFIX = 'asic'
 INTF_KEY = "interfaces"
 
@@ -1094,8 +1094,7 @@ def load_cfg_from_config_db_file(filename):
         if namespace is None:
             command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
         else:
-            command = "{} -n {} -j {} --write-to-db".format(
-                SONIC_CFGGEN_PATH, namespace, file)
+            command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, file)
 
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
@@ -1104,7 +1103,7 @@ def load_cfg_from_config_db_file(filename):
 def load_cfg_from_yang_config_file(filename, restart_service):
 
     if not filename:
-        file = DEFAULT_YANG_CFG_FILE
+        file = DEFAULT_CONFIG_YANG_FILE 
     else:
         file = filename
 
@@ -1116,8 +1115,7 @@ def load_cfg_from_yang_config_file(filename, restart_service):
         log.log_info("'load config' stopping services...")
         _stop_services()
 
-    command = "{} -H -Y {} -j /etc/sonic/init_cfg.json --write-to-db".format(
-        SONIC_CFGGEN_PATH, file)
+    command = "{} -H -Y {} -j /etc/sonic/init_cfg.json --write-to-db".format( SONIC_CFGGEN_PATH, file)
 
     log.log_info("'load' executing...")
     clicommon.run_command(command, display_cmd=True)
@@ -1130,23 +1128,13 @@ def load_cfg_from_yang_config_file(filename, restart_service):
         # Update SONiC environmnet file
     update_sonic_environment()
     
-    click.echo(
-        "Please note setting loaded from config file will be lost after system reboot."
-        "To preserve setting, run `config save`."
-    )
+    click.echo("Please note setting loaded from config file will be lost after system reboot.To preserve setting, run `config save`.")
 
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
-@click.option('-c', '--file_format', default='config_db',
-                type=click.Choice(['yang', 'config_db']),
-                show_default=True,
-                help='specify the file format')
-@click.option('-r',
-            '--restart_service',
-            default=False,
-            is_flag=True,
-            help='Restart the services after config load')
+@click.option('-t', '--file_format', default='config_db',type=click.Choice(['config_yang', 'config_db']),show_default=True,help='specify the file format')
+@click.option('-r', '--restart_service',default=False,is_flag=True,help='Restart the services after config load')
 @click.argument('filename', required=False)
 def load(filename, yes, file_format, restart_service):
     """Import a previous saved config DB dump file.
