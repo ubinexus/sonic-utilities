@@ -165,7 +165,7 @@ class TestLoadConfig(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == load_yang_cfg_command_output
-            assert mock_run_command.call_count == 5
+            assert mock_run_command.call_count == 8
 
     def test_load_yang_config_no_restart(self, get_cmd_module,
                                         setup_single_broadcom_asic):

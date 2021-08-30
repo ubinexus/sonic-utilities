@@ -1064,8 +1064,7 @@ def load_cfg_from_config_db_file(filename):
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
-            click.echo("Input {} config file(s) separated by comma for multiple files ".format(
-                num_cfg_file))
+            click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
     # In case of multi-asic mode we have additional config_db{NS}.json files for
@@ -1125,9 +1124,9 @@ def load_cfg_from_yang_config_file(filename, restart_service):
         log.log_info("'load config' restarting services...")
         _restart_services()
 
-        # Update SONiC environmnet file
+    # Update SONiC env file
     update_sonic_environment()
-    
+
     click.echo("Please note setting loaded from config file will be lost after system reboot.To preserve setting, run `config save`.")
 
 
@@ -1749,9 +1748,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # Dont allow a port to be member of port channel if its MTU does not match with portchannel
     portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
     if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
-        port_entry = db.get_entry('PORT', port_name)
+       port_entry = db.get_entry('PORT', port_name)
 
-        if port_entry and port_entry.get(PORT_MTU) is not None:
+       if port_entry and port_entry.get(PORT_MTU) is not None:
             port_mtu = port_entry.get(PORT_MTU)
 
             portchannel_mtu = portchannel_entry.get(PORT_MTU)
@@ -1764,9 +1763,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # new member by SAI.
     port_entry = db.get_entry('PORT', port_name)
     if port_entry and port_entry.get(PORT_TPID) is not None:
-        port_tpid = port_entry.get(PORT_TPID)
-        if port_tpid != DEFAULT_TPID:
-            ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
+       port_tpid = port_entry.get(PORT_TPID)
+       if port_tpid != DEFAULT_TPID:
+           ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -3170,10 +3169,10 @@ def startup(ctx, interface_name):
 
     intf_fs = parse_interface_in_filter(interface_name)
     if len(intf_fs) > 1 and multi_asic.is_multi_asic():
-        ctx.fail("Interface range not supported in multi-asic platforms !!")
+         ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     log.log_info("'interface startup {}' executing...".format(interface_name))
     port_dict = config_db.get_table('PORT')
@@ -3211,7 +3210,7 @@ def shutdown(ctx, interface_name):
 
     intf_fs = parse_interface_in_filter(interface_name)
     if len(intf_fs) > 1 and multi_asic.is_multi_asic():
-        ctx.fail("Interface range not supported in multi-asic platforms !!")
+         ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
@@ -3647,8 +3646,8 @@ def add(ctx, interface_name, ip_addr, gw):
     # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
-        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
-        return
+            click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+            return
 
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
@@ -4082,7 +4081,7 @@ def add(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name)
+    table_name = get_interface_table_name(interface_name)  
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
@@ -4104,7 +4103,7 @@ def remove(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name)
+    table_name = get_interface_table_name(interface_name) 
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
@@ -4422,7 +4421,7 @@ def route(ctx):
     ctx.obj = {}
     ctx.obj['config_db'] = config_db
 
-@route.command('add', context_settings={"ignore_unknown_options": True})
+@route.command('add', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
@@ -4493,7 +4492,7 @@ def add_route(ctx, command_str):
     else:
         config_db.set_entry("STATIC_ROUTE", key, route)
 
-@route.command('del', context_settings={"ignore_unknown_options": True})
+@route.command('del', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
