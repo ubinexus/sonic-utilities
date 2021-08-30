@@ -40,13 +40,13 @@
         "mode": "dynamic"
     },
     "BUFFER_PORT_EGRESS_PROFILE_LIST|Ethernet16": {
-        "profile_list": "[BUFFER_PROFILE|egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]"
+        "profile_list": "[BUFFER_PROFILE|customized_egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]"
     },
     "BUFFER_PORT_EGRESS_PROFILE_LIST|Ethernet20": {
         "profile_list": "[BUFFER_PROFILE|egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet16": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|customized_ingress_lossless_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet24": {
         "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"

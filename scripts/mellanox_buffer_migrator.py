@@ -884,6 +884,10 @@ class MellanoxBufferMigrator():
             lossy_queue_item = {'profile': '[BUFFER_PROFILE|q_lossy_profile]'} if 'q_lossy_profile' in buffer_profile_table else None
             lossless_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossless_profile]'} if 'egress_lossless_profile' in buffer_profile_table else None
 
+            queue_items_to_apply = {'0-2': {'profile': '[BUFFER_PROFILE|q_lossy_profile]'},
+                                    '3-4': {'profile': '[BUFFER_PROFILE|egress_lossless_profile]'},
+                                    '5-6': {'profile': '[BUFFER_PROFILE|q_lossy_profile]'}}
+
             if single_pool:
                 if 'ingress_lossless_profile' in buffer_profile_table:
                     ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_profile]'}
@@ -945,6 +949,8 @@ class MellanoxBufferMigrator():
             lossy_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}
             egress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|egress_lossless_zero_profile],[BUFFER_PROFILE|egress_lossy_zero_profile]'}
 
+            queue_items_to_apply = {'0-7': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}}
+
             pools_to_insert = {'ingress_zero_pool': ingress_zero_pool}
             profiles_to_insert = {'ingress_lossy_pg_zero_profile': ingress_lossy_pg_zero_profile,
                                   'ingress_lossless_zero_profile': ingress_lossless_zero_profile,
@@ -993,7 +999,8 @@ class MellanoxBufferMigrator():
             if lossy_queue_item and lossless_queue_item:
                 port_queues = buffer_queue_items.get(port_name)
                 if not port_queues:
-                    self.configDB.set_entry('BUFFER_QUEUE', port_name + '|' + '0-7', lossy_queue_item)
+                    for ids, item in queue_items_to_apply.items():
+                        self.configDB.set_entry('BUFFER_QUEUE', port_name + '|' + ids, item)
                     zero_item_count += 1
 
             if ingress_profile_list_item:

@@ -77,8 +77,10 @@ class TestMellanoxBufferMigrator(object):
         dbconnector.dedicated_dbs['STATE_DB'] = None
         dbconnector.dedicated_dbs['APPL_DB'] = None
 
-    def check_config_db(self, result, expected):
-        for table in self.config_db_tables_to_verify:
+    def check_config_db(self, result, expected, tables_to_verify=None):
+        if not tables_to_verify:
+            tables_to_verify = self.config_db_tables_to_verify
+        for table in tables_to_verify:
             assert result.get_table(table) == expected.get_table(table)
 
     def check_appl_db(self, result, expected):
@@ -210,7 +212,9 @@ class TestMellanoxBufferMigrator(object):
         dbmgtr.migrate()
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
         advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_2_0_3')
-        self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
+        tables_to_verify = self.config_db_tables_to_verify
+        tables_to_verify.extend(['BUFFER_QUEUE', 'BUFFER_PORT_INGRESS_PROFILE_LIST', 'BUFFER_PORT_EGRESS_PROFILE_LIST'])
+        self.check_config_db(dbmgtr.configDB, expected_db.cfgdb, tables_to_verify)
 
 
 class TestAutoNegMigrator(object):
