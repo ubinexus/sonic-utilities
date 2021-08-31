@@ -67,8 +67,3 @@ COUNTERS_DB_SCHEMA = {
         "COUNTERS_PORT_NAME_MAP": {"$id": "#/properties/COUNTERS_PORT_NAME_MAP", "type": "object"}
     }
 }
-
-
-# Validate on  brcm, mlnx, slim, arm(?)
-# branches - 202012 +?
-# result of the change - pass/fail
