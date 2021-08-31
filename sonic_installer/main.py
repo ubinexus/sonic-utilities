@@ -412,7 +412,8 @@ class SWAPAllocator(object):
             for line in fd.readlines():
                 if line:
                     fields = line.split()
-                    meminfo[fields[0].rstrip(":")] = int(fields[1])
+                    if len(fields) >= 2 and fields[1].isdigit():
+                        meminfo[fields[0].rstrip(":")] = int(fields[1])
         return meminfo
 
     def setup_swapmem(self):
@@ -434,7 +435,7 @@ class SWAPAllocator(object):
         if self.allocate:
             if self.get_disk_freespace('/host') < max(SWAPAllocator.DISK_FREESPACE_THRESHOLD, self.swap_mem_size) * SWAPAllocator.MiB_TO_BYTES_FACTOR:
                 echo_and_log("Failed to setup SWAP memory due to insufficient disk free space.\nAborting...", LOG_ERR)
-                raise click.Abort()
+                return
             meminfo = self.read_from_meminfo()
             mem_total_in_bytes = meminfo["MemTotal"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
             mem_avail_in_bytes = meminfo["MemAvailable"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
@@ -485,22 +486,22 @@ def sonic_installer():
               help="Do not migrate current configuration to the newly installed image")
 @click.option('--skip-package-migration', is_flag=True,
               help="Do not migrate current packages to the newly installed image")
-@click.option('--setup-swap-if-necessary', is_flag=True,
-              help='Create temporary SWAP memory used for installation if necessary')
+@click.option('--skip-setup-swap', is_flag=True,
+              help='Skip setup temporary SWAP memory used for installation if necessary')
 @click.option('--swap-mem-size', default=1024, type=int, show_default='1024 MiB',
               help='SWAP memory space size', callback=validate_positive_int,
-              cls=clicommon.SubOrdinateOption, depends_on=['setup_swap_if_necessary'])
+              cls=clicommon.MutuallyExclusiveOption, mutually_exclusive=['skip_setup_swap'])
 @click.option('--total-mem-threshold', default=2048, type=int, show_default='2048 MiB',
               help='If system total memory is lower than threshold, setup SWAP memory',
-              cls=clicommon.SubOrdinateOption, depends_on=['setup_swap_if_necessary'],
+              cls=clicommon.MutuallyExclusiveOption, mutually_exclusive=['skip_setup_swap'],
               callback=validate_positive_int)
 @click.option('--available-mem-threshold', default=1200, type=int, show_default='1200 MiB',
               help='If system available memory is lower than threhold, setup SWAP memory',
-              cls=clicommon.SubOrdinateOption, depends_on=['setup_swap_if_necessary'],
+              cls=clicommon.MutuallyExclusiveOption, mutually_exclusive=['skip_setup_swap'],
               callback=validate_positive_int)
 @click.argument('url')
 def install(url, force, skip_migration=False, skip_package_migration=False,
-            setup_swap_if_necessary=False, swap_mem_size=None, total_mem_threshold=None, available_mem_threshold=None):
+            skip_setup_swap=False, swap_mem_size=None, total_mem_threshold=None, available_mem_threshold=None):
     """ Install image from local binary or URL"""
     bootloader = get_bootloader()
 
@@ -537,7 +538,7 @@ def install(url, force, skip_migration=False, skip_package_migration=False,
             raise click.Abort()
 
         echo_and_log("Installing image {} and setting it as default...".format(binary_image_version))
-        with SWAPAllocator(setup_swap_if_necessary, swap_mem_size, total_mem_threshold, available_mem_threshold):
+        with SWAPAllocator(not skip_setup_swap, swap_mem_size, total_mem_threshold, available_mem_threshold):
             bootloader.install_image(image_path)
         # Take a backup of current configuration
         if skip_migration:
