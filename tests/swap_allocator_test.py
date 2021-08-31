@@ -87,7 +87,7 @@ class TestSWAPAllocator(object):
         assert swap_allocator.is_allocated is False
 
     def test_swap_allocator_initialization_custom_args(self):
-        expected_allocate = False
+        expected_allocate = True
         expected_swap_mem_size = 2048
         expected_total_mem_threshold = 4096
         expected_available_mem_threshold = 1024
@@ -164,8 +164,7 @@ class TestSWAPAllocator(object):
             try:
                 swap_allocator.__enter__()
             except Exception as detail:
-                if not isinstance(detail, click.Abort):
-                    pytest.fail("SWAPAllocator context manager should not raise exception %s" % repr(detail))
+                pytest.fail("SWAPAllocator context manager should not raise exception %s" % repr(detail))
             mock_setup.assert_not_called()
             mock_remove.assert_not_called()
             assert swap_allocator.is_allocated is False
@@ -187,8 +186,7 @@ class TestSWAPAllocator(object):
             try:
                 swap_allocator.__enter__()
             except Exception as detail:
-                if not isinstance(detail, click.Abort):
-                    pytest.fail("SWAPAllocator context manager should not raise exception %s" % repr(detail))
+                pytest.fail("SWAPAllocator context manager should not raise exception %s" % repr(detail))
             mock_setup.assert_called_once()
             mock_remove.assert_called_once()
             assert swap_allocator.is_allocated is True
@@ -226,11 +224,11 @@ class TestSWAPAllocator(object):
             mock_disk_free.return_value = 10 * 1024 * 1024 * 1024
             mock_meminfo.return_value = {
                 "MemTotal": 32859496,
-                "MemAvailable": 16275512,
+                "MemAvailable": 1000000,
             }
             mock_exists.return_value = False
 
-            swap_allocator = SWAPAllocator(allocate=True)
+            swap_allocator = SWAPAllocator(allocate=False)
             try:
                 swap_allocator.__enter__()
             except Exception as detail:
