@@ -387,7 +387,7 @@ class SWAPAllocator(object):
             - disk has enough space(> DISK_MEM_THRESHOLD)
             - either system total memory < total_mem_threshold or system available memory < available_mem_threshold
 
-        @param allocate: True to allocate SWAP memory if neccesarry
+        @param allocate: True to allocate SWAP memory if necessarry
         @param swap_mem_size: the size of SWAP memory to allocate(in MiB)
         @param total_mem_threshold: the system totla memory threshold(in MiB)
         @param available_mem_threshold: the system available memory threshold(in MiB)
@@ -434,7 +434,7 @@ class SWAPAllocator(object):
     def __enter__(self):
         if self.allocate:
             if self.get_disk_freespace('/host') < max(SWAPAllocator.DISK_FREESPACE_THRESHOLD, self.swap_mem_size) * SWAPAllocator.MiB_TO_BYTES_FACTOR:
-                echo_and_log("Failed to setup SWAP memory due to insufficient disk free space.\nAborting...", LOG_ERR)
+                echo_and_log("Failed to setup SWAP memory due to insufficient disk free space...", LOG_ERR)
                 return
             meminfo = self.read_from_meminfo()
             mem_total_in_bytes = meminfo["MemTotal"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
@@ -487,7 +487,7 @@ def sonic_installer():
 @click.option('--skip-package-migration', is_flag=True,
               help="Do not migrate current packages to the newly installed image")
 @click.option('--skip-setup-swap', is_flag=True,
-              help='Skip setup temporary SWAP memory used for installation if necessary')
+              help='Skip setup temporary SWAP memory used for installation')
 @click.option('--swap-mem-size', default=1024, type=int, show_default='1024 MiB',
               help='SWAP memory space size', callback=validate_positive_int,
               cls=clicommon.MutuallyExclusiveOption, mutually_exclusive=['skip_setup_swap'])

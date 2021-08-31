@@ -626,6 +626,6 @@ class MutuallyExclusiveOption(click.Option):
             for opt_name in self.mutually_exclusive:
                 if opt_name in opts and opts[opt_name] is not None:
                     raise click.UsageError(
-                        "Illegal usage: %s is mutually exclusive with arguments %s" % (self.name, ', '.join(self.depends_on))
+                        "Illegal usage: %s is mutually exclusive with arguments %s" % (self.name, ', '.join(self.mutually_exclusive))
                         )
         return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
