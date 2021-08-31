@@ -33,7 +33,7 @@ EMPTY = ""
 NA = "N/A"
 NEWLINE = "\n"
 PLATFORM_COMPONENTS_FILE = "platform_components.json"
-FIRMWARE_UPDATE_DIR = "/tmp/firmwareupdate/"
+FIRMWARE_UPDATE_DIR = "/var/platform/"
 FWUPDATE_FWPACKAGE_DIR = os.path.join(FIRMWARE_UPDATE_DIR, "fwpackage/")
 FW_AU_TASK_FILE_REGEX = "*_fw_au_task"
 FW_AU_STATUS_FILE = "fw_au_status"
@@ -843,27 +843,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
         self.update_au_status_file(data, FW_AU_STATUS_FILE_PATH)
         return (status, info)
 
-    def get_au_status(self):
-        au_status = []
-        auto_updated_status_table = []
-        data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
-
-        if data is None:
-            return None
-
-        boot_type = list(data.keys())[0]
-        click.echo("Firmware auto-update performed for {} reboot".format(boot_type))
-
-        au_status = data[boot_type]
-        for comp_au_status in au_status:
-            r = []
-            r.append(comp_au_status['comp'] if 'comp' in comp_au_status else "")
-            r.append(comp_au_status['status'] if 'status' in comp_au_status else "")
-            r.append(comp_au_status['info'] if 'info' in comp_au_status else "")
-            auto_updated_status_table.append(r)
-
-        return tabulate(auto_updated_status_table, self.AU_STATUS_HEADER, tablefmt=self.FORMAT)
-
     def auto_update_firmware(self, component_au_info, boot):
         is_chassis_component = component_au_info[0]
         chassis_name = component_au_info[1]
@@ -972,11 +951,18 @@ class ComponentStatusProvider(PlatformDataProvider):
     ComponentStatusProvider
     """
     HEADER = [ "Chassis", "Module", "Component", "Version", "Description" ]
-    AU_STATUS_HEADER = [ "Component", "Status", "Info", "Boot" ]
+    AU_STATUS_HEADER = [ "Component", "Version", "Status", "Info" ]
     FORMAT = "simple"
+    INFO_KEY = "info"
 
     def __init__(self):
         PlatformDataProvider.__init__(self)
+
+    def __is_dict(self, obj):
+        return isinstance(obj, dict)
+
+    def __parser_fail_fw_au_status(self, msg):
+        raise RuntimeError("Failed to parse \"{}\": {}".format(FW_AU_STATUS_FILE_PATH, msg))
 
     def get_status(self):
         status_table = [ ]
@@ -1050,13 +1036,22 @@ class ComponentStatusProvider(PlatformDataProvider):
         if data is None:
             return None
 
-        boot_type = list(data.keys())[0]
-        click.echo("Firmware auto-update performed for {} reboot".format(boot_type))
+        for comp_path, comp_au_status in data.items():
+            if not self.__is_dict(comp_au_status):
+                self.__parser_fail_fw_au_status("dictionary is expected: key={}".format(comp_path))
 
-        au_status = data[boot_type]
-        for comp_au_status in au_status:
+            if comp_au_status:
+                if len(comp_au_status) is not 4:
+                    self.__parser_fail_fw_au_status("unexpected number of records: key={}".format(comp_path))
+
+
+            #for key, value in comp_au_status.items():
+            #    if not self.__is_str(value):
+            #        self.__parser_fail_fw_au_status("string is expected: key={}".format(key))
+
             r = []
-            r.append(comp_au_status['comp'] if 'comp' in comp_au_status else "")
+            r.append(comp_path)
+            r.append("{}/{}".format(comp_au_status['from'], comp_au_status['to']))
             r.append(comp_au_status['status'] if 'status' in comp_au_status else "")
             r.append(comp_au_status['info'] if 'info' in comp_au_status else "")
             auto_updated_status_table.append(r)
