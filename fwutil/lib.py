@@ -1029,7 +1029,6 @@ class ComponentStatusProvider(PlatformDataProvider):
         return data
 
     def get_au_status(self):
-        au_status = []
         auto_updated_status_table = []
         data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
 
