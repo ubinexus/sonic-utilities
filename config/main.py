@@ -67,7 +67,7 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
-DEFAULT_CONFIG_YANG_FILE  = '/etc/sonic/yang_cfg.json'
+DEFAULT_CONFIG_YANG_FILE  = '/etc/sonic/config_yang.json'
 NAMESPACE_PREFIX = 'asic'
 INTF_KEY = "interfaces"
 
@@ -1018,7 +1018,7 @@ def save(filename):
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
-    if filename is not None:
+    if filename:
         cfg_files = filename.split(',')
 
         if len(cfg_files) != num_cfg_file:
