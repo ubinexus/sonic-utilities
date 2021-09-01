@@ -9,6 +9,8 @@ try:
     import os
     import click
 
+    from sonic_py_common import device_info
+
     from .lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
     from .lib import URL, SquashFs
     from .log import LogHelper
@@ -348,6 +350,10 @@ def show():
 def updates(ctx, image):
     """Show available updates"""
     try:
+        # Barefoot
+        if str(device_info.get_platform_info().get('asic_type')) == "barefoot":
+            raise NotImplementedError("Firmware updates are not supported by barefoot devices")
+
         squashfs = None
 
         try:
