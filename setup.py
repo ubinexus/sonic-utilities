@@ -130,11 +130,13 @@ setup(
         'scripts/syseeprom-to-json',
         'scripts/tempershow',
         'scripts/update_json.py',
+        'scripts/voqutil',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
-        'scripts/centralize_database'
+        'scripts/centralize_database',
+        'scripts/null_route_helper'
     ],
     entry_points={
         'console_scripts': [
@@ -179,12 +181,13 @@ setup(
         'jinja2>=2.11.3',
         'jsondiff>=1.2.0',
         'jsonpatch>=1.32.0',
+        'jsonpointer>=1.9',
         'm2crypto>=0.31.0',
         'natsort>=6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr>=0.8.0',
         'netifaces>=0.10.7',
         'pexpect>=4.8.0',
-        'poetry-semver>=0.1.0',
+        'semantic-version>=2.8.5',
         'prettyprinter>=0.18.0',
         'pyroute2>=0.5.14, <0.6.1',
         'requests>=2.25.0',

@@ -7,6 +7,7 @@ import re
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
+from importlib import reload
 from natsort import natsorted
 from sonic_py_common import device_info
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
@@ -14,6 +15,24 @@ from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
 import utilities_common.constants as constants
+from utilities_common.general import load_db_config
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        reload(mock_tables.mock_multi_asic)
+        reload(mock_tables.dbconnector)
+        mock_tables.dbconnector.load_namespace_config()
+
+except KeyError:
+    pass
 
 from . import acl
 from . import bgp_common
@@ -149,12 +168,14 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli(ctx):
     """SONiC command line - 'show' command"""
 
+    # Load database config files
+    load_db_config()
     ctx.obj = Db()
 
 
 # Add groups from other modules
 cli.add_command(acl.acl)
-cli.add_command(chassis_modules.chassis_modules)
+cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
@@ -883,6 +904,35 @@ elif routing_stack == "frr":
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
+
+#
+# 'link-local-mode' subcommand ("show ipv6 link-local-mode")
+#
+
+@ipv6.command('link-local-mode')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def link_local_mode(verbose):
+    """show ipv6 link-local-mode"""
+    header = ['Interface Name', 'Mode']
+    body = []
+    interfaces = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE']
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    for i in interfaces:
+        interface_dict = config_db.get_table(i)
+        link_local_data = {}
+
+        if interface_dict:
+          for interface,value in interface_dict.items():
+             if 'ipv6_use_link_local_only' in value:
+                 link_local_data[interface] = interface_dict[interface]['ipv6_use_link_local_only']
+                 if link_local_data[interface] == 'enable':
+                     body.append([interface, 'Enabled'])
+                 else:
+                     body.append([interface, 'Disabled'])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 #
 # 'lldp' group ("show lldp ...")
