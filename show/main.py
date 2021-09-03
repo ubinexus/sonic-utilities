@@ -943,6 +943,8 @@ def link_local_mode(verbose):
                         body.append([port, 'Enabled'])
                     else:
                         body.append([port, 'Disabled'])
+                else:
+                    body.append([port, 'Disabled'])
 
     click.echo(tabulate(body, header, tablefmt="grid"))
 
