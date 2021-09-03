@@ -71,7 +71,7 @@ def active_hops(nhg):
                 vals = sorted(set([val for val in t_dict.values()]))
 
                 for nh_ip in vals:
-                    nhip_prefix_map[nh_ip] = nhg_prefix
+                    nhip_prefix_map[nh_ip.split("@")[0]] = nhg_prefix
                    
                     if nh_ip.split("@")[0] in nexthop_alias:
                         if nexthop_alias[nh_ip.split("@")[0]] == nhg:
@@ -171,7 +171,7 @@ def hash_view(nhg):
                 vals = sorted(set([val for val in t_dict.values()]))
                 for nh_ip in vals:
                     bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])
-                    nhip_prefix_map[nh_ip] = nhg_prefix
+                    nhip_prefix_map[nh_ip.split("@")[0]] = nhg_prefix
                     bank_ids = [str(x) for x in bank_ids]
 
                     if nhg_prefix in output_dict:
