@@ -219,7 +219,7 @@ def hash_view(nhg):
 
                 nhg_prefix_report = nhip_prefix_map[list(bank_dict.keys())[0]].split("|")[1]
 
-                
+                output_bank_dict = collections.OrderedDict(sorted(output_bank_dict.items())) 
 
                 for nhip, val in output_bank_dict.items():
                     bank_output = ""
