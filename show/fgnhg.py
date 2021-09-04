@@ -27,11 +27,20 @@ def active_hops(nhg):
     prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = []
-    table_keys = state_db.keys(state_db.STATE_DB, _hash)
     t_dict = {}
     header = ["FG NHG Prefix", "Active Next Hops"]
     table = []
     output_dict = {}
+
+    try:
+        table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
+    except:
+        click.echo("FG_ROUTE_TABLE does not exist!")
+        exit()
+
+    if table_keys == None:
+        click.echo("FG_ROUTE_TABLE does not exist!")
+        exit()
 
     if nhg is None:
         for nhg_prefix in table_keys:
@@ -52,7 +61,11 @@ def active_hops(nhg):
     else:
         nhip_prefix_map = {}
         header = ["Alias", "Active Next Hops"]
-        fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
+        try:
+            fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
+        except:
+            click.echo("FG_NHG_MEMBER entries not present in config_db")
+            exit()
         alias_list = []
         nexthop_alias = {}
         nhg_prefix_report = nhg
@@ -101,12 +114,21 @@ def hash_view(nhg):
     prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = []
-    table_keys = state_db.keys(state_db.STATE_DB, _hash)
     t_dict = {}
     header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
     table = []
     output_dict = {}
     bank_dict = {}
+
+    try:
+        table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
+    except:
+        click.echo("FG_ROUTE_TABLE does not exist!")
+        exit()
+
+    if table_keys == None:
+        click.echo("FG_ROUTE_TABLE does not exist!")
+        exit()
 
     if nhg is None:
         for nhg_prefix in table_keys:
@@ -152,7 +174,12 @@ def hash_view(nhg):
 
     else:
         header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
-        fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
+        try:
+            fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
+        except:
+            click.echo("FG_NHG_MEMBER entries not present in config_db")
+            exit()
+
         alias_list = []
         nexthop_alias = {}
 
