@@ -949,7 +949,9 @@ class MellanoxBufferMigrator():
             lossy_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}
             egress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|egress_lossless_zero_profile],[BUFFER_PROFILE|egress_lossy_zero_profile]'}
 
-            queue_items_to_apply = {'0-7': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}}
+            queue_items_to_apply = {'0-2': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'},
+                                    '3-4': {'profile': '[BUFFER_PROFILE|egress_lossless_zero_profile]'},
+                                    '5-6': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}}
 
             pools_to_insert = {'ingress_zero_pool': ingress_zero_pool}
             profiles_to_insert = {'ingress_lossy_pg_zero_profile': ingress_lossy_pg_zero_profile,
