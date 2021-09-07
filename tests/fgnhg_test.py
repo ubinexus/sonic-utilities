@@ -41,17 +41,17 @@ fc:5::/128       200:200:200:200::4
 """
 
 show_fgnhgv4_active_hops_output="""\
-Alias            Active Next Hops
+FG NHG Prefix    Active Next Hops
 ---------------  ------------------
 100.50.25.12/32  200.200.200.4
                  200.200.200.5
 """
 
 show_fgnhgv6_active_hops_output="""\
-Alias       Active Next Hops
-----------  ------------------
-fc:5::/128  200:200:200:200::4
-            200:200:200:200::5
+FG NHG Prefix    Active Next Hops
+---------------  ------------------
+fc:5::/128       200:200:200:200::4
+                 200:200:200:200::5
 """
 
 

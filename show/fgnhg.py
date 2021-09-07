@@ -60,7 +60,7 @@ def active_hops(nhg):
 
     else:
         nhip_prefix_map = {}
-        header = ["Alias", "Active Next Hops"]
+        header = ["FG NHG Prefix", "Active Next Hops"]
         try:
             fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
         except:
