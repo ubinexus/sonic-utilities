@@ -836,7 +836,31 @@ class MellanoxBufferMigrator():
     def mlnx_is_buffer_model_dynamic(self):
         return self.is_buffer_config_default and not self.is_msft_sku
 
-    def mlnx_sort_buffer_tables(self, buffer_table, name):
+    def mlnx_reorganize_buffer_tables(self, buffer_table, name):
+        """
+        This is to reorganize the BUFFER_PG and BUFFER_QUEUE tables from single tier index to double tiers index.
+        Originally, the index is like <port>|<ids>. However, we need to check all the items with respect to a port,
+        which requires two tiers index, <port> and then <ids>
+        Eg.
+        Before reorganize:
+        {
+          "Ethernet0|0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
+          "Ethernet0|3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_100000_5m_profile]"},
+          "Ethernet4|0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
+          "Ethernet4|3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_50000_5m_profile]"}
+        }
+        After reorganize:
+        {
+          "Ethernet0": {
+             "0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
+             "3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_100000_5m_profile]"}
+          },
+          "Ethernet4": {
+             "0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
+             "3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_50000_5m_profile]"}
+          }
+        }
+        """
         result = {}
         for key, item in buffer_table.items():
             if len(key) != 2:
@@ -869,8 +893,8 @@ class MellanoxBufferMigrator():
         buffer_egress_profile_list_table = self.configDB.get_table('BUFFER_PORT_EGRESS_PROFILE_LIST')
         cable_length_entries = self.configDB.get_entry('CABLE_LENGTH', cable_length_key[0])
 
-        buffer_pg_items = self.mlnx_sort_buffer_tables(buffer_pg_table, 'BUFFER_PG')
-        buffer_queue_items = self.mlnx_sort_buffer_tables(buffer_queue_table, 'BUFFER_QUEUE')
+        buffer_pg_items = self.mlnx_reorganize_buffer_tables(buffer_pg_table, 'BUFFER_PG')
+        buffer_queue_items = self.mlnx_reorganize_buffer_tables(buffer_queue_table, 'BUFFER_QUEUE')
 
         new_items = {}
 
@@ -884,9 +908,9 @@ class MellanoxBufferMigrator():
             lossy_queue_item = {'profile': '[BUFFER_PROFILE|q_lossy_profile]'} if 'q_lossy_profile' in buffer_profile_table else None
             lossless_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossless_profile]'} if 'egress_lossless_profile' in buffer_profile_table else None
 
-            queue_items_to_apply = {'0-2': {'profile': '[BUFFER_PROFILE|q_lossy_profile]'},
-                                    '3-4': {'profile': '[BUFFER_PROFILE|egress_lossless_profile]'},
-                                    '5-6': {'profile': '[BUFFER_PROFILE|q_lossy_profile]'}}
+            queue_items_to_apply = {'0-2': lossy_queue_item,
+                                    '3-4': lossless_queue_item,
+                                    '5-6': lossy_queue_item}
 
             if single_pool:
                 if 'ingress_lossless_profile' in buffer_profile_table:
@@ -949,9 +973,9 @@ class MellanoxBufferMigrator():
             lossy_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}
             egress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|egress_lossless_zero_profile],[BUFFER_PROFILE|egress_lossy_zero_profile]'}
 
-            queue_items_to_apply = {'0-2': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'},
-                                    '3-4': {'profile': '[BUFFER_PROFILE|egress_lossless_zero_profile]'},
-                                    '5-6': {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}}
+            queue_items_to_apply = {'0-2': lossy_queue_item,
+                                    '3-4': lossless_queue_item,
+                                    '5-6': lossy_queue_item}
 
             pools_to_insert = {'ingress_zero_pool': ingress_zero_pool}
             profiles_to_insert = {'ingress_lossy_pg_zero_profile': ingress_lossy_pg_zero_profile,
@@ -968,6 +992,10 @@ class MellanoxBufferMigrator():
                 # Handles admin down ports only
                 continue
 
+            # If items to be applied to admin down port of BUFFER_PG table have been generated,
+            # Check whether the BUFFER_PG items with respect to the port align with the default one,
+            # and insert the items to BUFFER_PG
+            # The same logic for BUFFER_QUEUE, BUFFER_PORT_INGRESS_PROFILE_LIST and BUFFER_PORT_EGRESS_PROFILE_LIST
             if lossy_pg_item:
                 port_pgs = buffer_pg_items.get(port_name)
                 is_default = False
@@ -992,10 +1020,10 @@ class MellanoxBufferMigrator():
                     lossy_pg_key = '{}|0'.format(port_name)
                     lossless_pg_key = '{}|3-4'.format(port_name)
                     self.configDB.set_entry('BUFFER_PG', lossy_pg_key, lossy_pg_item)
-                    if does_default_lossless_exist:
-                        self.configDB.set_entry('BUFFER_PG', lossless_pg_key, None)
-                    elif is_dynamic:
+                    if is_dynamic:
                         self.configDB.set_entry('BUFFER_PG', lossless_pg_key, {'profile': 'NULL'})
+                    elif does_default_lossless_exist:
+                        self.configDB.set_entry('BUFFER_PG', lossless_pg_key, None)
                     zero_item_count += 1
 
             if lossy_queue_item and lossless_queue_item:
