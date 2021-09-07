@@ -18,6 +18,7 @@ DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 SSD_FW_UPDATE="ssd-fw-upgrade"
+CONFIG_DB_FILE=/etc/sonic/config_db.json
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -415,7 +416,6 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     DUMP_DIR=/host/fast-reboot
-    CONFIG_DB_FILE=/etc/sonic/config_db.json
     mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
     /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
@@ -427,7 +427,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
+    /usr/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c ${CONFIG_DB_FILE} || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
@@ -574,6 +574,14 @@ systemctl stop docker.service || debug "Ignore stopping docker service error $?"
 if [[ "$sonic_asic_type" = 'nephos' ]];
 then
   systemctl stop nps-modules-`uname -r`.service || debug "Ignore stopping nps service error $?"
+fi
+
+if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+    # Remove FLEX_COUNTER_TABLE from config_db.json
+    # This is done so that in fast-reboot recovery path, FLEX_COUNTER polling is delayed.
+    # Delayed FLEX_COUNTER polling is an attempt to keep dataplane downtime below 30s threshold
+    jq --indent 4  'del(.FLEX_COUNTER_TABLE)' ${CONFIG_DB_FILE} > ${CONFIG_DB_FILE}.new
+    mv ${CONFIG_DB_FILE}.new ${CONFIG_DB_FILE}
 fi
 
 # Update the reboot cause file to reflect that user issued this script
