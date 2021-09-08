@@ -47,11 +47,12 @@ class ChangeApplier:
         for service in services:
             commands = self.service_commands.get(service, {})
             restart_comand = commands.get('restart-command')
-            validate_command = commands.get('validate-commands')
             if restart_comand:
                 rc = self.exec_command(restart_comand)
                 if rc != 0:
                     raise GenericConfigUpdaterError(f"Restart command failed: {restart_comand}, rc={rc}")
+            validate_command = commands.get('validate-commands')
+            if validate_command:
                 rc = self.exec_command(validate_command)
                 if rc != 0:
                     raise GenericConfigUpdaterError(f"Validate command failed: {validate_command}, rc={rc}")
