@@ -1,6 +1,4 @@
-import ipaddress
 from collections import OrderedDict
-
 import sys
 import click
 import utilities_common.cli as clicommon
@@ -34,11 +32,12 @@ def active_hops(nhg):
 
     try:
         table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
-    except:
+    except BaseException as e:
         click.echo("FG_ROUTE_TABLE does not exist!")
+        click.echo(e)
         exit()
 
-    if table_keys == None:
+    if table_keys is None:
         click.echo("FG_ROUTE_TABLE does not exist!")
         exit()
 
@@ -63,12 +62,12 @@ def active_hops(nhg):
         header = ["FG NHG Prefix", "Active Next Hops"]
         try:
             fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
-        except:
+        except BaseException as e: 
             click.echo("FG_NHG_MEMBER entries not present in config_db")
+            click.echo(e)
             exit()
         alias_list = []
         nexthop_alias = {}
-        nhg_prefix_report = nhg
         output_list = []
 
         for nexthop, nexthop_metadata in fg_nhg_member_table.items():
@@ -76,7 +75,7 @@ def active_hops(nhg):
             nexthop_alias[nexthop] = nexthop_metadata['FG_NHG']
 
         if nhg not in alias_list:
-            print ("Please provide a valid NHG alias")
+            click.echo ("Please provide a valid NHG alias")
 
         else:
             for nhg_prefix in table_keys:
@@ -90,7 +89,7 @@ def active_hops(nhg):
                         if nexthop_alias[nh_ip.split("@")[0]] == nhg:
                             output_list.append(nh_ip.split("@")[0])
                     else:
-                        print ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
+                        click.echo ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
                         sys.exit(1)                        
 
                 output_list = sorted(output_list)
@@ -122,11 +121,12 @@ def hash_view(nhg):
 
     try:
         table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
-    except:
+    except BaseException as e: 
         click.echo("FG_ROUTE_TABLE does not exist!")
+        click.echo(e)
         exit()
 
-    if table_keys == None:
+    if table_keys is None:
         click.echo("FG_ROUTE_TABLE does not exist!")
         exit()
 
@@ -176,8 +176,9 @@ def hash_view(nhg):
         header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
         try:
             fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
-        except:
+        except BaseException as e: 
             click.echo("FG_NHG_MEMBER entries not present in config_db")
+            click.echo(e)
             exit()
 
         alias_list = []
@@ -188,7 +189,7 @@ def hash_view(nhg):
             nexthop_alias[nexthop] = nexthop_metadata['FG_NHG']
 
         if nhg not in alias_list:
-            print ("Please provide a valid NHG alias")
+            click.echo ("Please provide a valid NHG alias")
 
         else:
             nhip_prefix_map = {}
@@ -214,7 +215,7 @@ def hash_view(nhg):
                         if nexthop_alias[nexthop] == nhg:
                             output_bank_dict[nexthop] = banks
                     else:
-                        print ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
+                        click.echo ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
                         sys.exit(1)
 
                 nhg_prefix_report = nhip_prefix_map[list(bank_dict.keys())[0]].split("|")[1]
@@ -224,7 +225,6 @@ def hash_view(nhg):
                 for nhip, val in output_bank_dict.items():
                     bank_output = ""
                     displayed_banks = []
-                    formatted_banks = ','.replace(',', ', ').join(bank_dict[nhip])
                     formatted_banks = (bank_dict[nhip])
                     for bankid in formatted_banks:
                         if (len(str(bankid)) == 1):
