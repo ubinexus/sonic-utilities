@@ -3786,8 +3786,7 @@ def update_pg(ctx, interface_name, pg_map, override_profile, add = True):
             ctx.fail("Profile {} doesn't exist".format(override_profile))
         if not 'xoff' in profile_dict.keys() and 'size' in profile_dict.keys():
             ctx.fail("Profile {} doesn't exist or isn't a lossless profile".format(override_profile))
-        profile_full_name = "[BUFFER_PROFILE|{}]".format(override_profile)
-        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": profile_full_name})
+        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": override_profile})
     else:
         config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": "NULL"})
     adjust_pfc_enable(ctx, interface_name, pg_map, True)
@@ -3809,7 +3808,7 @@ def remove_pg_on_port(ctx, interface_name, pg_map):
         if port == interface_name and (not pg_map or pg_map == existing_pg):
             need_to_remove = False
             referenced_profile = v.get('profile')
-            if referenced_profile and referenced_profile == '[BUFFER_PROFILE|ingress_lossy_profile]':
+            if referenced_profile and referenced_profile == 'ingress_lossy_profile':
                 if pg_map:
                     ctx.fail("Lossy PG {} can't be removed".format(pg_map))
                 else:
@@ -4963,7 +4962,7 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
 
     if not pool:
         pool = 'ingress_lossless_pool'
-    params['pool'] = '[BUFFER_POOL|' + pool + ']'
+    params['pool'] = pool
     if not config_db.get_entry('BUFFER_POOL', pool):
         ctx.fail("Pool {} doesn't exist".format(pool))
 
@@ -5036,12 +5035,11 @@ def remove_profile(db, profile):
     config_db = db.cfgdb
     ctx = click.get_current_context()
 
-    full_profile_name = '[BUFFER_PROFILE|{}]'.format(profile)
     existing_pgs = config_db.get_table("BUFFER_PG")
     for k, v in existing_pgs.items():
         port, pg = k
         referenced_profile = v.get('profile')
-        if referenced_profile and referenced_profile == full_profile_name:
+        if referenced_profile and referenced_profile == profile:
             ctx.fail("Profile {} is referenced by {}|{} and can't be removed".format(profile, port, pg))
 
     entry = config_db.get_entry("BUFFER_PROFILE", profile)
@@ -5813,6 +5811,34 @@ def disable_link_local(ctx):
                 if isinstance(key, str) is False:
                     continue
                 set_ipv6_link_local_only_on_interface(config_db, table_dict, table_type, key, mode)
+
+
+#
+# 'rate' group ('config rate ...')
+#
+
+@config.group()
+def rate():
+    """Set port rates configuration."""
+    pass
+
+
+@rate.command()
+@click.argument('interval', metavar='<interval>', type=click.IntRange(min=1, max=1000), required=True)
+@click.argument('rates_type', type=click.Choice(['all', 'port', 'rif']), default='all')
+def smoothing_interval(interval, rates_type):
+    """Set rates smoothing interval """
+    counters_db = swsssdk.SonicV2Connector()
+    counters_db.connect('COUNTERS_DB')
+
+    alpha = 2.0/(interval + 1)
+
+    if rates_type in ['port', 'all']:
+        counters_db.set('COUNTERS_DB', 'RATES:PORT', 'PORT_SMOOTH_INTERVAL', interval)
+        counters_db.set('COUNTERS_DB', 'RATES:PORT', 'PORT_ALPHA', alpha)
+    if rates_type in ['rif', 'all']:
+        counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_SMOOTH_INTERVAL', interval)
+        counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_ALPHA', alpha)
 
 
 # Load plugins and register them
