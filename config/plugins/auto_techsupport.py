@@ -343,3 +343,4 @@ def register(cli):
     cli_node = AUTO_TECHSUPPORT_FEATURE
     if cli_node.name in cli.commands:
         raise Exception(f"{cli_node.name} already exists in CLI")
+    cli.add_command(AUTO_TECHSUPPORT_FEATURE)
