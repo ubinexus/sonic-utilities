@@ -6,8 +6,8 @@ If warmboot is allowed with missing critical tables, it can lead to issues in go
 down path or during the recovery path. This test detects such issues before proceeding.
 The verification procedure here uses JSON schemas to verify the DB entities.
 
-In future, to verify new tables or their content, just the schema modification
-in db_integrity_schema is needed. No modification may be needed to this generic script.
+In future, to verify new tables or their content, just the schema modification is needed.
+No modification may be needed to the integrity check logic.
 """
 
 import os, sys
@@ -15,7 +15,19 @@ import json, jsonschema
 import syslog
 import subprocess
 import traceback
-from db_integrity_schemas import DB_SCHEMA
+
+DB_SCHEMA = {
+    "COUNTERS_DB":
+    {
+        "$schema": "http://json-schema.org/draft-06/schema",
+        "type": "object",
+        "title": "Schema for COUNTERS DB's entities",
+        "required": ["COUNTERS_PORT_NAME_MAP"],
+        "properties": {
+            "COUNTERS_PORT_NAME_MAP": {"$id": "#/properties/COUNTERS_PORT_NAME_MAP", "type": "object"}
+        }
+    }
+}
 
 
 def main():
