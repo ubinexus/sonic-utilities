@@ -15,7 +15,7 @@ import json, jsonschema
 import syslog
 import subprocess
 import traceback
-from db_integrity_schemas import DB_ID_MAP, DB_SCHEMA
+from db_integrity_schemas import DB_SCHEMA
 
 
 def main():
@@ -23,9 +23,8 @@ def main():
         return 0
 
     for db_name, schema in DB_SCHEMA.items():
-        db_id = DB_ID_MAP.get(db_name)
         db_dump_file = "/tmp/{}.json".format(db_name)
-        dump_db_cmd = "redis-dump -d {} > {}".format(db_id, db_dump_file)
+        dump_db_cmd = "sonic-db-dump -n 'COUNTERS_DB' -y > {}".format(db_dump_file)
         p = subprocess.Popen(dump_db_cmd, shell=True, text=True,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (_, err) = p.communicate()

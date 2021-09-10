@@ -5,15 +5,6 @@ Every schema is defined in dictionary format, and details can be found at:
 http://json-schema.org/draft-06/schema
 """
 
-DB_ID_MAP = {
-    "APPL_DB":	0,
-    "ASIC_DB":	1,
-    "COUNTERS_DB":	2,
-    "LOGLEVEL_DB":	3,
-    "CONFIG_DB":	4,
-    "FLEX_COUNTER_DB":	5,
-    "STATE_DB":	6
-}
 
 DB_SCHEMA = {
     "COUNTERS_DB":
