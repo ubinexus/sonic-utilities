@@ -7,8 +7,7 @@ down path or during the recovery path. This test detects such issues before proc
 The verification procedure here uses JSON schemas to verify the DB entities.
 
 In future, to verify new tables or their content, just the schema modification
-defined in db_integrity_schema is needed. No modification may be needed to this script,
-if new schemas or modified schemas are added to db_intergrity_schemas script.
+in db_integrity_schema is needed. No modification may be needed to this generic script.
 """
 
 import os, sys
@@ -43,7 +42,7 @@ def main():
             return 1
 
         # What: Validate if critical tables and entries are present in DB.
-        # Why: This is needed to avoid rebooting with a bad DB; which can
+        # Why: This is needed to avoid warmbooting with a bad DB; which can
         #   potentially trigger failures in the reboot recovery path.
         # How: Validate DB against a schema which defines required tables.
         try:

@@ -23,7 +23,6 @@ PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 SSD_FW_UPDATE="ssd-fw-upgrade"
-CONFIG_DB_FILE="/etc/sonic/config_db.json"
 TAG_LATEST=yes
 
 # Require 100M available on the hard drive for warm reboot temp files,
@@ -552,7 +551,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/local/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c ${CONFIG_DB_FILE} || FILTER_FDB_ENTRIES_RC=$?
+    /usr/local/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
