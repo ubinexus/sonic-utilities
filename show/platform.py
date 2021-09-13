@@ -4,24 +4,37 @@ import sys
 
 import click
 import utilities_common.cli as clicommon
-from sonic_py_common import device_info, multi_asic
+from sonic_py_common import device_info
 
+#
+# Helper functions
+#
 
-def get_hw_info_dict():
+def get_chassis_info():
     """
-    This function is used to get the HW info helper function
+    Attempts to retrieve chassis information from CHASSIS_INFO table in STATE_DB if this table does
+    not exist then we assume pmon has crashed and will attempt to call the platform API directly. If this
+    call fails we simply return N/A.
     """
-    hw_info_dict = {}
 
-    version_info = device_info.get_sonic_version_info()
+    keys = ["serial", "model", "revision"]
 
-    hw_info_dict['platform'] = device_info.get_platform()
-    hw_info_dict['hwsku'] = device_info.get_hwsku()
-    hw_info_dict['asic_type'] = version_info['asic_type']
-    hw_info_dict['asic_count'] = multi_asic.get_num_asics()
+    def try_get(platform, attr, fallback):
+        try:
+            if platform["chassis"] is None:
+                import sonic_platform
+                platform["chassis"] = sonic_platform.platform.Platform().get_chassis()
+            return getattr(platform["chassis"], "get_{}".format(attr))()
+        except Exception:
+            return 'N/A'
 
-    return hw_info_dict
+    chassis_info = device_info.get_chassis_info()
 
+    if all(v is None for k, v in chassis_info.items()):
+        platform_cache = {"chassis": None}
+        chassis_info = {k:try_get(platform_cache, k, "N/A") for k in keys}
+
+    return chassis_info
 
 #
 # 'platform' group ("show platform ...")
@@ -33,28 +46,24 @@ def platform():
     pass
 
 
-version_info = device_info.get_sonic_version_info()
-if (version_info and version_info.get('asic_type') == 'mellanox'):
-    from . import mlnx
-    platform.add_command(mlnx.mlnx)
-
-
 # 'summary' subcommand ("show platform summary")
 @platform.command()
-@click.option('--json', is_flag=True, help="JSON output")
+@click.option('--json', is_flag=True, help="Output in JSON format")
 def summary(json):
     """Show hardware platform information"""
-
-    hw_info_dict = {}
-    hw_info_dict = get_hw_info_dict()
+    platform_info = device_info.get_platform_info()
+    chassis_info = get_chassis_info()
 
     if json:
-        click.echo(clicommon.json_dump(hw_info_dict))
+        click.echo(clicommon.json_dump({**platform_info, **chassis_info}))
     else:
-        click.echo("Platform: {}".format(hw_info_dict['platform']))
-        click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-        click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
-        click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
+        click.echo("Platform: {}".format(platform_info['platform']))
+        click.echo("HwSKU: {}".format(platform_info['hwsku']))
+        click.echo("ASIC: {}".format(platform_info['asic_type']))
+        click.echo("ASIC Count: {}".format(platform_info['asic_count']))
+        click.echo("Serial Number: {}".format(chassis_info['serial']))
+        click.echo("Model Number: {}".format(chassis_info['model']))
+        click.echo("Hardware Revision: {}".format(chassis_info['revision']))
 
 
 # 'syseeprom' subcommand ("show platform syseeprom")
@@ -69,13 +78,17 @@ def syseeprom(verbose):
 # 'psustatus' subcommand ("show platform psustatus")
 @platform.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
+@click.option('--json', is_flag=True, help="Output in JSON format")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def psustatus(index, verbose):
+def psustatus(index, json, verbose):
     """Show PSU status information"""
     cmd = "psushow -s"
 
     if index >= 0:
         cmd += " -i {}".format(index)
+
+    if json:
+        cmd += " -j"
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -100,9 +113,9 @@ def ssdhealth(device, verbose, vendor):
 @click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
 def pcieinfo(check, verbose):
     """Show Device PCIe Info"""
-    cmd = "sudo pcieutil pcie-show"
+    cmd = "sudo pcieutil show"
     if check:
-        cmd = "sudo pcieutil pcie-check"
+        cmd = "sudo pcieutil check"
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -133,7 +146,7 @@ def temperature():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def firmware(args):
     """Show firmware information"""
-    cmd = "fwutil show {}".format(" ".join(args))
+    cmd = "sudo fwutil show {}".format(" ".join(args))
 
     try:
         subprocess.check_call(cmd, shell=True)

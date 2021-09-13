@@ -1,16 +1,30 @@
 #!/usr/bin/env python3
 
+import os
 import argparse
 import json
 import sys
 import traceback
+import re
 
 from sonic_py_common import device_info, logger
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from portconfig import get_port_config_file_name, get_breakout_mode
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        mocked_db_path = os.path.join(tests_path, "db_migrator_input")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
+except KeyError:
+    pass
+
 SYSLOG_IDENTIFIER = 'db_migrator'
 
 BRK_CFG_TABLE = 'BREAKOUT_CFG'
@@ -32,7 +46,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_1_0_4'
+        self.CURRENT_VERSION = 'version_2_0_3'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -48,9 +62,15 @@ class DBMigrator():
             self.configDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
 
-        self.appDB = SonicV2Connector(host='127.0.0.1')
-        if self.appDB is not None:
-            self.appDB.connect(self.appDB.APPL_DB)
+        if namespace is None:
+            self.appDB = ConfigDBConnector(**db_kwargs)
+        else:
+            self.appDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
+        self.appDB.db_connect('APPL_DB')
+
+        self.stateDB = SonicV2Connector(host='127.0.0.1')
+        if self.stateDB is not None:
+            self.stateDB.connect(self.stateDB.STATE_DB)
 
         version_info = device_info.get_sonic_version_info()
         asic_type = version_info.get('asic_type')
@@ -114,7 +134,6 @@ class DBMigrator():
         "Vlan1000:192.168.0.1/21": {}", this function shall add an entry without
         IP prefix as ""Vlan1000": {}". This also migrates 'lo' to 'Loopback0' interface
         '''
-
         if self.appDB is None:
             return
 
@@ -159,6 +178,277 @@ class DBMigrator():
         for copp_key in keys:
             self.appDB.delete(self.appDB.APPL_DB, copp_key)
 
+    def migrate_feature_table(self):
+        '''
+        Combine CONTAINER_FEATURE and FEATURE tables into FEATURE table.
+        '''
+        feature_table = self.configDB.get_table('FEATURE')
+        for feature, config in feature_table.items():
+            state = config.get('status')
+            if state is not None:
+                config['state'] = state
+                config.pop('status')
+                self.configDB.set_entry('FEATURE', feature, config)
+
+        container_feature_table = self.configDB.get_table('CONTAINER_FEATURE')
+        for feature, config in container_feature_table.items():
+            self.configDB.mod_entry('FEATURE', feature, config)
+            self.configDB.set_entry('CONTAINER_FEATURE', feature, None)
+
+    def migrate_config_db_buffer_tables_for_dynamic_calculation(self, speed_list, cable_len_list, default_dynamic_th, abandon_method, append_item_method):
+        '''
+        Migrate buffer tables to dynamic calculation mode
+        parameters
+        @speed_list - list of speed supported
+        @cable_len_list - list of cable length supported
+        @default_dynamic_th - default dynamic th
+        @abandon_method - a function which is called to abandon the migration and keep the current configuration
+                          if the current one doesn't match the default one
+        @append_item_method - a function which is called to append an item to the list of pending commit items
+                              any update to buffer configuration will be pended and won't be applied until
+                              all configuration is checked and aligns with the default one
+
+        1. Buffer profiles for lossless PGs in BUFFER_PROFILE table will be removed
+           if their names have the convention of pg_lossless_<speed>_<cable_length>_profile
+           where the speed and cable_length belongs speed_list and cable_len_list respectively
+           and the dynamic_th is equal to default_dynamic_th
+        2. Insert tables required for dynamic buffer calculation
+           - DEFAULT_LOSSLESS_BUFFER_PARAMETER|AZURE: {'default_dynamic_th': default_dynamic_th}
+           - LOSSLESS_TRAFFIC_PATTERN|AZURE: {'mtu': '1024', 'small_packet_percentage': '100'}
+        3. For lossless dynamic PGs, remove the explicit referencing buffer profiles
+           Before: BUFFER_PG|<port>|3-4: {'profile': 'BUFFER_PROFILE|pg_lossless_<speed>_<cable_length>_profile'}
+           After:  BUFFER_PG|<port>|3-4: {'profile': 'NULL'}
+        '''
+        # Migrate BUFFER_PROFILEs, removing dynamically generated profiles
+        dynamic_profile = self.configDB.get_table('BUFFER_PROFILE')
+        profile_pattern = 'pg_lossless_([1-9][0-9]*000)_([1-9][0-9]*m)_profile'
+        for name, info in dynamic_profile.items():
+            m = re.search(profile_pattern, name)
+            if not m:
+                continue
+            speed = m.group(1)
+            cable_length = m.group(2)
+            if speed in speed_list and cable_length in cable_len_list:
+                append_item_method(('BUFFER_PROFILE', name, None))
+                log.log_info("Lossless profile {} has been removed".format(name))
+
+        # Migrate BUFFER_PGs, removing the explicit designated profiles
+        buffer_pgs = self.configDB.get_table('BUFFER_PG')
+        ports = self.configDB.get_table('PORT')
+        all_cable_lengths = self.configDB.get_table('CABLE_LENGTH')
+        if not buffer_pgs or not ports or not all_cable_lengths:
+            log.log_notice("At lease one of tables BUFFER_PG, PORT and CABLE_LENGTH hasn't been defined, skip following migration")
+            abandon_method()
+            return True
+
+        cable_lengths = all_cable_lengths[list(all_cable_lengths.keys())[0]]
+        for name, profile in buffer_pgs.items():
+            # do the db migration
+            try:
+                port, pg = name
+                profile_name = profile['profile'][1:-1].split('|')[1]
+                if pg == '0':
+                    if profile_name != 'ingress_lossy_profile':
+                        log.log_notice("BUFFER_PG table entry {} has non default profile {} configured".format(name, profile_name))
+                        abandon_method()
+                        return True
+                    else:
+                        continue
+                elif pg != '3-4':
+                    log.log_notice("BUFFER_PG table entry {} isn't default PG(0 or 3-4)".format(name))
+                    abandon_method()
+                    return True
+                m = re.search(profile_pattern, profile_name)
+                if not m:
+                    log.log_notice("BUFFER_PG table entry {} has non-default profile name {}".format(name, profile_name))
+                    abandon_method()
+                    return True
+                speed = m.group(1)
+                cable_length = m.group(2)
+
+                if speed == ports[port]['speed'] and cable_length == cable_lengths[port]:
+                    append_item_method(('BUFFER_PG', name, {'profile': 'NULL'}))
+                else:
+                    log.log_notice("Lossless PG profile {} for port {} doesn't match its speed {} or cable length {}, keep using traditional buffer calculation mode".format(
+                        profile_name, port, speed, cable_length))
+                    abandon_method()
+                    return True
+            except Exception:
+                log.log_notice("Exception occured during parsing the profiles")
+                abandon_method()
+                return True
+
+        # Insert other tables required for dynamic buffer calculation
+        metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        metadata['buffer_model'] = 'dynamic'
+        append_item_method(('DEVICE_METADATA', 'localhost', metadata))
+        append_item_method(('DEFAULT_LOSSLESS_BUFFER_PARAMETER', 'AZURE', {'default_dynamic_th': default_dynamic_th}))
+        append_item_method(('LOSSLESS_TRAFFIC_PATTERN', 'AZURE', {'mtu': '1024', 'small_packet_percentage': '100'}))
+
+        return True
+
+    def prepare_dynamic_buffer_for_warm_reboot(self, buffer_pools=None, buffer_profiles=None, buffer_pgs=None):
+        '''
+        This is the very first warm reboot of buffermgrd (dynamic) if the system reboot from old image by warm-reboot
+        In this case steps need to be taken to get buffermgrd prepared (for warm reboot)
+
+        During warm reboot, buffer tables should be installed in the first place.
+        However, it isn't able to achieve that when system is warm-rebooted from an old image
+        without dynamic buffer supported, because the buffer info wasn't in the APPL_DB in the old image.
+        The solution is to copy that info from CONFIG_DB into APPL_DB in db_migrator.
+        During warm-reboot, db_migrator adjusts buffer info in CONFIG_DB by removing some fields
+        according to requirement from dynamic buffer calculation.
+        The buffer info before that adjustment needs to be copied to APPL_DB.
+
+        1. set WARM_RESTART_TABLE|buffermgrd as {restore_count: 0}
+        2. Copy the following tables from CONFIG_DB into APPL_DB in case of warm reboot
+           The separator in fields that reference objects in other table needs to be updated from '|' to ':'
+           - BUFFER_POOL
+           - BUFFER_PROFILE, separator updated for field 'pool'
+           - BUFFER_PG, separator updated for field 'profile'
+           - BUFFER_QUEUE, separator updated for field 'profile
+           - BUFFER_PORT_INGRESS_PROFILE_LIST, separator updated for field 'profile_list'
+           - BUFFER_PORT_EGRESS_PROFILE_LIST, separator updated for field 'profile_list'
+
+        '''
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+        mmu_size = self.stateDB.get(self.stateDB.STATE_DB, 'BUFFER_MAX_PARAM_TABLE|global', 'mmu_size')
+        if warmreboot_state == 'true' and not mmu_size:
+            log.log_notice("This is the very first run of buffermgrd (dynamic), prepare info required from warm reboot")
+        else:
+            return True
+
+        buffer_table_list = [
+            ('BUFFER_POOL', buffer_pools, None),
+            ('BUFFER_PROFILE', buffer_profiles, 'pool'),
+            ('BUFFER_PG', buffer_pgs, 'profile'),
+            ('BUFFER_QUEUE', None, 'profile'),
+            ('BUFFER_PORT_INGRESS_PROFILE_LIST', None, 'profile_list'),
+            ('BUFFER_PORT_EGRESS_PROFILE_LIST', None, 'profile_list')
+        ]
+
+        for pair in buffer_table_list:
+            keys_copied = []
+            keys_ignored = []
+            table_name, entries, reference_field_name = pair
+            app_table_name = table_name + "_TABLE"
+            if not entries:
+                entries = self.configDB.get_table(table_name)
+            for key, items in entries.items():
+                # copy items to appl db
+                if reference_field_name:
+                    confdb_ref = items.get(reference_field_name)
+                    if not confdb_ref or confdb_ref == "NULL":
+                        keys_ignored.append(key)
+                        continue
+                    items_referenced = confdb_ref.split(',')
+                    appdb_ref = ""
+                    first_item = True
+                    for item in items_referenced:
+                        if first_item:
+                            first_item = False
+                        else:
+                            appdb_ref += ','
+                        subitems = item.split('|')
+                        first_key = True
+                        for subitem in subitems:
+                            if first_key:
+                                appdb_ref += subitem + '_TABLE'
+                                first_key = False
+                            else:
+                                appdb_ref += ':' + subitem
+
+                    items[reference_field_name] = appdb_ref
+                keys_copied.append(key)
+                if type(key) is tuple:
+                    appl_db_key = app_table_name + ':' + ':'.join(key)
+                else:
+                    appl_db_key = app_table_name + ':' + key
+                for field, data in items.items():
+                    self.appDB.set(self.appDB.APPL_DB, appl_db_key, field, data)
+
+            if keys_copied:
+                log.log_info("The following items in table {} in CONFIG_DB have been copied to APPL_DB: {}".format(table_name, keys_copied))
+            if keys_ignored:
+                log.log_info("The following items in table {} in CONFIG_DB have been ignored: {}".format(table_name, keys_copied))
+
+        return True
+
+    def migrate_config_db_port_table_for_auto_neg(self):
+        table_name = 'PORT'
+        port_table = self.configDB.get_table(table_name)
+        for key, value in port_table.items():
+            if 'autoneg' in value:
+                if value['autoneg'] == '1':
+                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'on')
+                    if 'speed' in value and 'adv_speeds' not in value:
+                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'adv_speeds', value['speed'])
+                elif value['autoneg'] == '0':
+                    self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
+
+    def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
+        for pair in table_list:
+            table_name, fields_list = pair
+            qos_table = db.get_table(table_name)
+            for key, value in qos_table.items():
+                if type(key) is tuple:
+                    db_key = table_name + db_delimeter + db_delimeter.join(key)
+                else:
+                    db_key = table_name + db_delimeter + key
+
+                for field in fields_list:
+                    if field in value:
+                        fieldVal = value.get(field)
+                        if not fieldVal or fieldVal == "NULL":
+                            continue
+                        newFiledVal = ""
+                        # Check for ABNF format presence and convert ABNF to string
+                        if "[" in fieldVal and db_delimeter in fieldVal and "]" in fieldVal:
+                            log.log_info("Found ABNF format field value in table {} key {} field {} val {}".format(table_name, db_key, field, fieldVal))
+                            value_list = fieldVal.split(",")
+                            for item in value_list:
+                                if "[" != item[0] or db_delimeter not in item or "]" != item[-1]:
+                                    continue
+                                newFiledVal = newFiledVal + item[1:-1].split(db_delimeter)[1] + ','
+                            newFiledVal = newFiledVal[:-1]
+                            db.set(db_num, db_key, field, newFiledVal)
+                            log.log_info("Modified ABNF format field value to string in table {} key {} field {} val {}".format(table_name, db_key, field, newFiledVal))
+        return True
+
+    def migrate_qos_fieldval_reference_format(self):
+        '''
+        This is to change for first time to remove field refernces of ABNF format
+        in APPL DB for warm boot.
+        i.e "[Tabale_name:name]" to string in APPL_DB. Reasons for doing this
+         - To consistent with all other SoNIC CONFIG_DB/APPL_DB tables and fields
+         - References in DB is not required, this will be taken care by YANG model leafref.
+        '''
+        qos_app_table_list = [
+            ('BUFFER_PG_TABLE', ['profile']),
+            ('BUFFER_QUEUE_TABLE', ['profile']),
+            ('BUFFER_PROFILE_TABLE', ['pool']),
+            ('BUFFER_PORT_INGRESS_PROFILE_LIST_TABLE', ['profile_list']),
+            ('BUFFER_PORT_EGRESS_PROFILE_LIST_TABLE', ['profile_list'])
+        ]
+
+        log.log_info("Remove APPL_DB QOS tables field reference ABNF format")
+        self.migrate_qos_db_fieldval_reference_remove(qos_app_table_list, self.appDB, self.appDB.APPL_DB, ':')
+
+        qos_table_list = [
+            ('QUEUE', ['scheduler', 'wred_profile']),
+            ('PORT_QOS_MAP', ['dscp_to_tc_map', 'dot1p_to_tc_map',
+                              'pfc_to_queue_map', 'tc_to_pg_map',
+                              'tc_to_queue_map', 'pfc_to_pg_map']),
+            ('BUFFER_PG', ['profile']),
+            ('BUFFER_QUEUE', ['profile']),
+            ('BUFFER_PROFILE', ['pool']),
+            ('BUFFER_PORT_INGRESS_PROFILE_LIST', ['profile_list']),
+            ('BUFFER_PORT_EGRESS_PROFILE_LIST', ['profile_list'])
+        ]
+        log.log_info("Remove CONFIG_DB QOS tables field reference ABNF format")
+        self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
+        return True
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -200,7 +490,8 @@ class DBMigrator():
         log.log_info('Handling version_1_0_2')
         # Check ASIC type, if Mellanox platform then need DB migration
         if self.asic_type == "mellanox":
-            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_2', 'version_1_0_3'):
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_2', 'version_1_0_3') \
+               and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration():
                 self.set_version('version_1_0_3')
         else:
             self.set_version('version_1_0_3')
@@ -212,9 +503,13 @@ class DBMigrator():
         """
         log.log_info('Handling version_1_0_3')
 
+        self.migrate_feature_table()
+
         # Check ASIC type, if Mellanox platform then need DB migration
         if self.asic_type == "mellanox":
-            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_3', 'version_1_0_4'):
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_3', 'version_1_0_4') \
+               and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration():
                 self.set_version('version_1_0_4')
         else:
             self.set_version('version_1_0_4')
@@ -223,10 +518,110 @@ class DBMigrator():
 
     def version_1_0_4(self):
         """
-        Current latest version. Nothing to do here.
+        Version 1_0_4.
         """
         log.log_info('Handling version_1_0_4')
 
+        # Check ASIC type, if Mellanox platform then need DB migration
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_4', 'version_1_0_5') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_4', 'version_1_0_5') \
+               and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration():
+                self.set_version('version_1_0_5')
+        else:
+            self.set_version('version_1_0_5')
+
+        return 'version_1_0_5'
+
+    def version_1_0_5(self):
+        """
+        Version 1_0_5.
+        """
+        log.log_info('Handling version_1_0_5')
+
+        # Check ASIC type, if Mellanox platform then need DB migration
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_5', 'version_1_0_6') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_5', 'version_1_0_6') \
+               and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration():
+                self.set_version('version_1_0_6')
+        else:
+            self.set_version('version_1_0_6')
+
+        return 'version_1_0_6'
+
+    def version_1_0_6(self):
+        """
+        Version 1_0_6.
+        """
+        log.log_info('Handling version_1_0_6')
+        if self.asic_type == "mellanox":
+            speed_list = self.mellanox_buffer_migrator.default_speed_list
+            cable_len_list = self.mellanox_buffer_migrator.default_cable_len_list
+            buffer_pools = self.configDB.get_table('BUFFER_POOL')
+            buffer_profiles = self.configDB.get_table('BUFFER_PROFILE')
+            buffer_pgs = self.configDB.get_table('BUFFER_PG')
+            abandon_method = self.mellanox_buffer_migrator.mlnx_abandon_pending_buffer_configuration
+            append_method = self.mellanox_buffer_migrator.mlnx_append_item_on_pending_configuration_list
+
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_6', 'version_2_0_0') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_6', 'version_2_0_0') \
+               and (not self.mellanox_buffer_migrator.mlnx_is_buffer_model_dynamic() or \
+                    self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', abandon_method, append_method)) \
+               and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration() \
+               and self.prepare_dynamic_buffer_for_warm_reboot(buffer_pools, buffer_profiles, buffer_pgs):
+                self.set_version('version_2_0_0')
+        else:
+            self.prepare_dynamic_buffer_for_warm_reboot()
+
+            metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+            metadata['buffer_model'] = 'traditional'
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
+            log.log_notice('Setting buffer_model to traditional')
+
+            self.set_version('version_2_0_0')
+
+        return 'version_2_0_0'
+
+    def version_2_0_0(self):
+        """
+        Version 2_0_0.
+        """
+        log.log_info('Handling version_2_0_0')
+        self.migrate_config_db_port_table_for_auto_neg()
+        self.set_version('version_2_0_1')
+        return 'version_2_0_1'
+
+    def version_2_0_1(self):
+        """
+        Version 2_0_1.
+        """
+        log.log_info('Handling version_2_0_1')
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+
+        if warmreboot_state != 'true':
+            portchannel_table = self.configDB.get_table('PORTCHANNEL')
+            for name, data in portchannel_table.items():
+                data['lacp_key'] = 'auto'
+                self.configDB.set_entry('PORTCHANNEL', name, data)
+        self.set_version('version_2_0_2')
+        return 'version_2_0_2'
+
+    def version_2_0_2(self):
+        """
+        Version 2_0_2.
+        """
+        log.log_info('Handling version_2_0_2')
+        self.migrate_qos_fieldval_reference_format()
+        self.set_version('version_2_0_3')
+        return 'version_2_0_3'
+
+
+    def version_2_0_3(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_3')
         return None
 
     def get_version(self):
@@ -236,14 +631,12 @@ class DBMigrator():
 
         return 'version_unknown'
 
-
     def set_version(self, version=None):
         if not version:
             version = self.CURRENT_VERSION
         log.log_info('Setting version to ' + version)
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
-
 
     def migrate_platform_json(self):
         device_data = self.configDB.get_table('DEVICE_METADATA')
@@ -264,7 +657,6 @@ class DBMigrator():
                     entry = {'brkout_mode': brkout_table[key]['brkout_mode']}
                     self.configDB.set_entry(BRK_CFG_TABLE, key, entry)
 
-
     def common_migration_ops(self):
         try:
             with open(INIT_CFG_FILE) as f:
@@ -273,14 +665,16 @@ class DBMigrator():
             raise Exception(str(e))
 
         for init_cfg_table, table_val in init_db.items():
-            data = self.configDB.get_table(init_cfg_table)
-            if data:
-                # Ignore overriding the values that pre-exist in configDB
-                continue
             log.log_info("Migrating table {} from INIT_CFG to config_db".format(init_cfg_table))
-            # Update all tables that do not exist in configDB but are present in INIT_CFG
-            for init_table_key, init_table_val in table_val.items():
-                self.configDB.set_entry(init_cfg_table, init_table_key, init_table_val)
+            for key in table_val:
+                curr_cfg = self.configDB.get_entry(init_cfg_table, key)
+                init_cfg = table_val[key]
+
+                # Override init config with current config.
+                # This will leave new fields from init_config
+                # in new_config, but not override existing configuration.
+                new_cfg = {**init_cfg, **curr_cfg}
+                self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
         self.migrate_copp_table()
         self.migrate_platform_json()
@@ -329,6 +723,8 @@ def main():
 
         if args.namespace is not None:
             SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+        else:
+            SonicDBConfig.initialize()
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)

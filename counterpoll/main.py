@@ -1,10 +1,11 @@
 import click
 import json
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
 
 BUFFER_POOL_WATERMARK = "BUFFER_POOL_WATERMARK"
 PORT_BUFFER_DROP = "PORT_BUFFER_DROP"
+PG_DROP = "PG_DROP"
 DISABLE = "disable"
 ENABLE = "enable"
 DEFLT_60_SEC= "default (60000)"
@@ -24,7 +25,7 @@ def queue():
 @click.argument('poll_interval', type=click.IntRange(100, 30000))
 def interval(poll_interval):
     """ Set queue counter query interval """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     queue_info = {}
     if poll_interval is not None:
@@ -34,7 +35,7 @@ def interval(poll_interval):
 @queue.command()
 def enable():
     """ Enable queue counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     queue_info = {}
     queue_info['FLEX_COUNTER_STATUS'] = 'enable'
@@ -43,7 +44,7 @@ def enable():
 @queue.command()
 def disable():
     """ Disable queue counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     queue_info = {}
     queue_info['FLEX_COUNTER_STATUS'] = 'disable'
@@ -58,7 +59,7 @@ def port():
 @click.argument('poll_interval', type=click.IntRange(100, 30000))
 def interval(poll_interval):
     """ Set queue counter query interval """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     port_info = {}
     if poll_interval is not None:
@@ -68,7 +69,7 @@ def interval(poll_interval):
 @port.command()
 def enable():
     """ Enable port counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     port_info = {}
     port_info['FLEX_COUNTER_STATUS'] = 'enable'
@@ -77,7 +78,7 @@ def enable():
 @port.command()
 def disable():
     """ Disable port counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     port_info = {}
     port_info['FLEX_COUNTER_STATUS'] = 'disable'
@@ -98,7 +99,7 @@ def interval(poll_interval):
     This is a short term solution and
     should be changed once the performance is enhanced
     """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     port_info = {}
     if poll_interval:
@@ -108,7 +109,7 @@ def interval(poll_interval):
 @port_buffer_drop.command()
 def enable():
     """ Enable port counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     port_info = {}
     port_info['FLEX_COUNTER_STATUS'] = ENABLE
@@ -117,11 +118,50 @@ def enable():
 @port_buffer_drop.command()
 def disable():
     """ Disable port counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     port_info = {}
     port_info['FLEX_COUNTER_STATUS'] = DISABLE
     configdb.mod_entry("FLEX_COUNTER_TABLE", PORT_BUFFER_DROP, port_info)
+
+# Ingress PG drop packet stat
+@cli.group()
+@click.pass_context
+def pg_drop(ctx):
+    """  Ingress PG drop counter commands """
+    ctx.obj = ConfigDBConnector()
+    ctx.obj.connect()
+
+@pg_drop.command()
+@click.argument('poll_interval', type=click.IntRange(1000, 30000))
+@click.pass_context
+def interval(ctx, poll_interval):
+    """
+    Set pg_drop packets counter query interval
+    interval is between 1s and 30s.
+    """
+
+    port_info = {}
+    port_info['POLL_INTERVAL'] = poll_interval
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", PG_DROP, port_info)
+
+@pg_drop.command()
+@click.pass_context
+def enable(ctx):
+    """ Enable pg_drop counter query """
+
+    port_info = {}
+    port_info['FLEX_COUNTER_STATUS'] = ENABLE
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", PG_DROP, port_info)
+
+@pg_drop.command()
+@click.pass_context
+def disable(ctx):
+    """ Disable pg_drop counter query """
+
+    port_info = {}
+    port_info['FLEX_COUNTER_STATUS'] = DISABLE
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", PG_DROP, port_info)
 
 # RIF counter commands
 @cli.group()
@@ -132,7 +172,7 @@ def rif():
 @click.argument('poll_interval')
 def interval(poll_interval):
     """ Set rif counter query interval """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     rif_info = {}
     if poll_interval is not None:
@@ -142,7 +182,7 @@ def interval(poll_interval):
 @rif.command()
 def enable():
     """ Enable rif counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     rif_info = {}
     rif_info['FLEX_COUNTER_STATUS'] = 'enable'
@@ -151,7 +191,7 @@ def enable():
 @rif.command()
 def disable():
     """ Disable rif counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     rif_info = {}
     rif_info['FLEX_COUNTER_STATUS'] = 'disable'
@@ -166,7 +206,7 @@ def watermark():
 @click.argument('poll_interval', type=click.IntRange(1000, 30000))
 def interval(poll_interval):
     """ Set watermark counter query interval for both queue and PG watermarks """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     queue_wm_info = {}
     pg_wm_info = {}
@@ -182,7 +222,7 @@ def interval(poll_interval):
 @watermark.command()
 def enable():
     """ Enable watermark counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     fc_info = {}
     fc_info['FLEX_COUNTER_STATUS'] = 'enable'
@@ -193,7 +233,7 @@ def enable():
 @watermark.command()
 def disable():
     """ Disable watermark counter query """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     fc_info = {}
     fc_info['FLEX_COUNTER_STATUS'] = 'disable'
@@ -204,7 +244,7 @@ def disable():
 @cli.command()
 def show():
     """ Show the counter configuration """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     queue_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'QUEUE')
     port_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PORT')
@@ -212,6 +252,7 @@ def show():
     rif_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'RIF')
     queue_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'QUEUE_WATERMARK')
     pg_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PG_WATERMARK')
+    pg_drop_info = configdb.get_entry('FLEX_COUNTER_TABLE', PG_DROP)
     buffer_pool_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', BUFFER_POOL_WATERMARK)
     
     header = ("Type", "Interval (in ms)", "Status")
@@ -228,23 +269,31 @@ def show():
         data.append(["QUEUE_WATERMARK_STAT", queue_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), queue_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if pg_wm_info:
         data.append(["PG_WATERMARK_STAT", pg_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), pg_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+    if pg_drop_info:
+        data.append(['PG_DROP_STAT', pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), pg_drop_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if buffer_pool_wm_info:
         data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
-def _update_config_db(status, filename):
+def _update_config_db_flex_counter_table(status, filename):
     """ Update counter configuration in config_db file """
     with open(filename) as config_db_file:
         config_db = json.load(config_db_file)
 
     write_config_db = False
     if "FLEX_COUNTER_TABLE" in config_db:
-        for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
-            if "FLEX_COUNTER_STATUS" in counter_config and \
-                counter_config["FLEX_COUNTER_STATUS"] is not status:
-                counter_config["FLEX_COUNTER_STATUS"] = status
-                write_config_db = True
+        if status != "delay":
+            for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
+                if "FLEX_COUNTER_STATUS" in counter_config and \
+                    counter_config["FLEX_COUNTER_STATUS"] is not status:
+                    counter_config["FLEX_COUNTER_STATUS"] = status
+                    write_config_db = True
+
+        elif status == "delay":
+            write_config_db = True
+            for key in config_db["FLEX_COUNTER_TABLE"].keys():
+                config_db["FLEX_COUNTER_TABLE"][key].update({"FLEX_COUNTER_DELAY_STATUS":"true"})
 
     if write_config_db:
         with open(filename, 'w') as config_db_file:
@@ -259,11 +308,16 @@ def config_db():
 @click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
 def enable(filename):
     """ Enable counter configuration in config_db file """
-    _update_config_db("enable", filename)
+    _update_config_db_flex_counter_table("enable", filename)
 
 @config_db.command()
 @click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
 def disable(filename):
     """ Disable counter configuration in config_db file """
-    _update_config_db("disable", filename)
+    _update_config_db_flex_counter_table("disable", filename)
 
+@config_db.command()
+@click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
+def delay(filename):
+    """ Delay counters in config_db file """
+    _update_config_db_flex_counter_table("delay", filename)
