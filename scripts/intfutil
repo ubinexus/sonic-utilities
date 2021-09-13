@@ -5,7 +5,6 @@ import os
 import re
 import sys
 
-import sonic_platform
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common import constants
@@ -155,10 +154,15 @@ def state_db_port_optics_get(state_db, config_db, intf_name, type):
     full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + intf_name
     optics_type = state_db.get(state_db.STATE_DB, full_table_id, type)
     if optics_type is None:
-        ports_dict = config_db.get_table('PORT')
-        index = int(ports_dict[intf_name]['index'])
-        platform_chassis = sonic_platform.platform.Platform().get_chassis()
-        parent_port = platform_chassis.get_sfp(index).get_name()
+        try:
+            import sonic_platform
+            ports_dict = config_db.get_table('PORT')
+            index = int(ports_dict[intf_name]['index'])
+            platform_chassis = sonic_platform.platform.Platform().get_chassis()
+            parent_port = platform_chassis.get_sfp(index).get_name()
+        except:
+            parent_port = intf_name
+
         if parent_port != intf_name:
             parent_full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + parent_port
             optics_type = state_db.get(state_db.STATE_DB, parent_full_table_id, type)
