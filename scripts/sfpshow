@@ -12,6 +12,7 @@ import re
 import sys
 
 import click
+import sonic_platform
 from natsort import natsorted
 from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix
 from sonic_py_common import multi_asic
@@ -387,21 +388,36 @@ class SFPShow(object):
         return output_dom
 
     # Convert sfp info and dom sensor info in DB to cli output string
-    def convert_interface_sfp_info_to_cli_output_string(self, state_db, interface_name, dump_dom):
+    def convert_interface_sfp_info_to_cli_output_string(self, state_db, interface_name, parent_name, dump_dom):
         output = ''
 
-        sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
+        sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(parent_name))
         output = interface_name + ': ' + 'SFP EEPROM detected' + '\n'
         sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
         output += sfp_info_output
 
         if dump_dom:
             sfp_type = sfp_info_dict['type']
-            dom_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name))
+            dom_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(parent_name))
             dom_output = self.convert_dom_to_output_string(sfp_type, dom_info_dict)
             output += dom_output
 
         return output
+
+    def get_presence_from_parent_port(self, intf_name):
+        intf_port_table = self.db.get_all(self.db.APPL_DB, 'PORT_TABLE:{}'.format(intf_name))
+        index = int(intf_port_table['index'])
+        platform_chassis = sonic_platform.platform.Platform().get_chassis()
+        parent_port = platform_chassis.get_sfp(index).get_name()
+
+        if parent_port == intf_name:
+            return(False, None)
+        else:
+            presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(parent_port))
+            if presence:
+                return(True, parent_port)
+            else:
+                return(False, None)
 
     @multi_asic_util.run_on_multi_asic
     def get_eeprom(self):
@@ -409,9 +425,14 @@ class SFPShow(object):
             presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(self.intf_name))
             if presence:
                 self.output = self.convert_interface_sfp_info_to_cli_output_string(
-                    self.db, self.intf_name, self.dump_dom)
+                    self.db, self.intf_name, self.intf_name, self.dump_dom)
             else:
-                self.output += (self.intf_name + ': ' + 'SFP EEPROM Not detected' + '\n')
+                (presence, parent_port) = self.get_presence_from_parent_port(self.intf_name)
+                if presence:
+                    self.output = self.convert_interface_sfp_info_to_cli_output_string(
+                        self.db, self.intf_name, parent_port, self.dump_dom)
+                else:
+                    self.output += (self.intf_name + ': ' + 'SFP EEPROM Not detected' + '\n')
         else:
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             sorted_table_keys = natsorted(port_table_keys)
@@ -421,9 +442,14 @@ class SFPShow(object):
                     presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
                     if presence:
                         self.output += self.convert_interface_sfp_info_to_cli_output_string(
-                            self.db, interface, self.dump_dom)
+                            self.db, interface, interface, self.dump_dom)
                     else:
-                        self.output += (interface + ': ' + 'SFP EEPROM Not detected' + '\n')
+                        (presence, parent_port) = self.get_presence_from_parent_port(interface)
+                        if presence:
+                            self.output += self.convert_interface_sfp_info_to_cli_output_string(
+                                self.db, interface, parent_port, self.dump_dom)
+                        else:
+                            self.output += (interface + ': ' + 'SFP EEPROM Not detected' + '\n')
 
                     self.output += '\n'
 
@@ -436,7 +462,11 @@ class SFPShow(object):
             if presence:
                 port_table.append((self.intf_name, 'Present'))
             else:
-                port_table.append((self.intf_name, 'Not present'))
+                (presence, parent_port) = self.get_presence_from_parent_port(self.intf_name)
+                if presence:
+                    port_table.append((self.intf_name, 'Present'))
+                else:
+                    port_table.append((self.intf_name, 'Not present'))
         else:
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             for i in port_table_keys:
@@ -446,7 +476,11 @@ class SFPShow(object):
                     if presence:
                         port_table.append((key, 'Present'))
                     else:
-                        port_table.append((key, 'Not present'))
+                        (presence, parent_port) = self.get_presence_from_parent_port(key)
+                        if presence:
+                            port_table.append((key, 'Present'))
+                        else:
+                            port_table.append((key, 'Not present'))
 
         self.table += port_table
 

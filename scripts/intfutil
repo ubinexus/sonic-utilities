@@ -5,6 +5,7 @@ import os
 import re
 import sys
 
+import sonic_platform
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common import constants
@@ -147,13 +148,22 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         status = ','.join(new_speed_list)
     return status
 
-def state_db_port_optics_get(state_db, intf_name, type):
+def state_db_port_optics_get(state_db, config_db, intf_name, type):
     """
     Get optic type info for port
     """
     full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + intf_name
     optics_type = state_db.get(state_db.STATE_DB, full_table_id, type)
     if optics_type is None:
+        ports_dict = config_db.get_table('PORT')
+        index = int(ports_dict[intf_name]['index'])
+        platform_chassis = sonic_platform.platform.Platform().get_chassis()
+        parent_port = platform_chassis.get_sfp(index).get_name()
+        if parent_port != intf_name:
+            parent_full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + parent_port
+            optics_type = state_db.get(state_db.STATE_DB, parent_full_table_id, type)
+            if optics_type is not None:
+                return optics_type
         return "N/A"
     return optics_type
 
@@ -411,7 +421,7 @@ class IntfStatus(object):
                                 config_db_vlan_port_keys_get(self.combined_int_to_vlan_po_dict, self.front_panel_ports_list, key),
                                 appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
                                 appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
-                                state_db_port_optics_get(self.db, key, PORT_OPTICS_TYPE),
+                                state_db_port_optics_get(self.db, self.config_db, key, PORT_OPTICS_TYPE),
                                 appl_db_port_status_get(self.db, key, PORT_PFC_ASYM_STATUS)))
 
             for po, value in self.portchannel_speed_dict.items():
