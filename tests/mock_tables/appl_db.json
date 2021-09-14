@@ -35,7 +35,7 @@
         "mtu": "9100",
         "fec": "rs",
         "admin_status": "up",
-        "autoneg": "on"
+        "autoneg": "1"
     },
     "PORT_TABLE:Ethernet32": {
         "index": "8",
@@ -48,7 +48,7 @@
         "mtu": "9100",
         "fec": "rs",
         "admin_status": "up",
-        "autoneg": "off"
+        "autoneg": "0"
     },
     "PORT_TABLE:Ethernet112": {
         "index": "28",
