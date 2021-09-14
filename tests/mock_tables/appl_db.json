@@ -35,9 +35,6 @@
         "mtu": "9100",
         "fec": "rs",
         "admin_status": "up",
-        "adv_speeds": "50000,10000",
-        "interface_type": "CR4",
-        "adv_interface_types": "CR4,CR2",
         "autoneg": "on"
     },
     "PORT_TABLE:Ethernet32": {
@@ -51,9 +48,7 @@
         "mtu": "9100",
         "fec": "rs",
         "admin_status": "up",
-        "autoneg": "off",
-        "adv_speeds": "all",
-        "adv_interface_types": "all"
+        "autoneg": "off"
     },
     "PORT_TABLE:Ethernet112": {
         "index": "28",

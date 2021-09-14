@@ -8,8 +8,7 @@
         "pfc_asym": "off",
         "speed": "10000",
         "fec": "none",
-        "autoneg": "on",
-        "adv_speeds": "10000"
+        "autoneg": "on"
     },
     "PORT|Ethernet2": {
         "index": "0",

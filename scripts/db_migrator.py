@@ -378,8 +378,6 @@ class DBMigrator():
             if 'autoneg' in value:
                 if value['autoneg'] == '1':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'on')
-                    if 'speed' in value and 'adv_speeds' not in value:
-                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'adv_speeds', value['speed'])
                 elif value['autoneg'] == '0':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
 
