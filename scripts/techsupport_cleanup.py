@@ -4,14 +4,8 @@ techsupport_cleanup script.
     For more info, refer to the Event Driven TechSupport & CoreDump Mgmt HLD
 """
 import os
-import sys
-import glob
-import time
 import argparse
-import subprocess
 import syslog
-import shutil
-from os.path import basename, splitext
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.auto_techsupport_helper import *
 
@@ -28,7 +22,6 @@ def handle_techsupport_creation_event(dump_name, db):
     file_path = os.path.join(TS_DIR, dump_name)
     if not verify_recent_file_creation(file_path):
         return
-    curr_list = get_ts_dumps()
     _ , num_bytes = get_stats(os.path.join(TS_DIR, TS_PTRN))
 
     if db.get(CFG_DB, AUTO_TS, CFG_STATE) != "enabled":
@@ -39,7 +32,7 @@ def handle_techsupport_creation_event(dump_name, db):
     max_ts = db.get(CFG_DB, AUTO_TS, CFG_MAX_TS)
     try:
         max_ts = float(max_ts)
-    except:
+    except ValueError:
         max_ts = 0.0
 
     if not max_ts:

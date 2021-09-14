@@ -17,11 +17,11 @@ def set_auto_ts_cfg(redis_mock, auto_ts_state="disabled", max_ts="0"):
     redis_mock.set(ts_mod.CFG_DB, ts_mod.AUTO_TS, ts_mod.CFG_MAX_TS, max_ts)
 
 
-def set_auto_ts_dump_info(redis_mock, ts_dump, core_dump, timestamp, crit_proc):
+def set_auto_ts_dump_info(redis_mock, ts_dump, core_dump, timestamp, container_name):
     key = ts_mod.TS_MAP + "|" + ts_dump
     redis_mock.set(ts_mod.STATE_DB, key, ts_mod.CORE_DUMP, core_dump)
     redis_mock.set(ts_mod.STATE_DB, key, ts_mod.TIMESTAMP, timestamp)
-    redis_mock.set(ts_mod.STATE_DB, key, ts_mod.CRIT_PROC, crit_proc)
+    redis_mock.set(ts_mod.STATE_DB, key, ts_mod.CONTAINER, container_name)
 
 
 class TestTechsupportCreationEvent(unittest.TestCase):

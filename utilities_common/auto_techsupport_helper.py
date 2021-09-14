@@ -1,14 +1,27 @@
 import os
-import re
-import sys
 import glob
 import time
-import argparse
 import subprocess
 import shutil
 import math
 import syslog
 from os.path import basename, splitext
+
+__all__ = [  # Contants
+            "CORE_DUMP_DIR", "CORE_DUMP_PTRN", "TS_DIR", "TS_PTRN",
+            "CFG_DB", "AUTO_TS", "CFG_STATE", "CFG_MAX_TS", "COOLOFF",
+            "CFG_CORE_USAGE", "CFG_SINCE", "FEATURE", "STATE_DB",
+            "TS_MAP", "CORE_DUMP", "TIMESTAMP", "CONTAINER",
+            "TIME_BUF", "SINCE_DEFAULT"
+        ] + [  # Methods
+            "verify_recent_file_creation",
+            "get_ts_dumps",
+            "strip_ts_ext",
+            "get_stats",
+            "pretty_size",
+            "cleanup_process"
+        ]
+
 
 # MISC
 CORE_DUMP_DIR = "/var/core"
@@ -38,25 +51,10 @@ STATE_DB = "STATE_DB"
 TS_MAP = "AUTO_TECHSUPPORT_DUMP_INFO"
 CORE_DUMP = "core_dump"
 TIMESTAMP = "timestamp"
-CRIT_PROC = "critical_process"
-
-# AUTO_TECHSUPPORT|FEATURE_PROC_INFO table
-CRITICAL_PROC = "AUTO_TECHSUPPORT|FEATURE_PROC_INFO"
-"""
-key = "AUTO_TECHSUPPORT|FEATURE_PROC_INFO"
-<feature_name;supervisor_proc_name> = <executable_name:pid>
-Eg:
-<swss;orchagent> = <orchagent;20>
-<snmp;snmp-subagent> = <python3;22>
-<lldp;lldp_syncd> = <python2;33>
-"""
+CONTAINER = "container_name"
 
 TIME_BUF = 20
 SINCE_DEFAULT = "2 days ago"
-NO_COMM = "<unknown>"
-WAIT_BUFFER = 40
-INIT_SLEEP = 2
-EXP_FACTOR = 2
 
 
 # Helper methods
@@ -91,7 +89,7 @@ def verify_recent_file_creation(file_path, in_last_sec=TIME_BUF):
     curr = time.time()
     try:
         was_created_on = os.path.getmtime(file_path)
-    except BaseException:
+    except Exception:
         return False
     if curr - was_created_on < in_last_sec:
         return True
@@ -149,7 +147,6 @@ def cleanup_process(limit, file_ptrn, dir):
         return
 
     fs_stats, curr_size = get_stats(os.path.join(dir, file_ptrn))
-    orig_dumps = len(fs_stats)
     disk_stats = shutil.disk_usage(dir)
     max_limit_bytes = math.floor((limit * disk_stats.total / 100))
 

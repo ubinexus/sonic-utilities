@@ -5,12 +5,8 @@ coredump_gen_handler script.
     For more info, refer to the Event Driven TechSupport & CoreDump Mgmt HLD
 """
 import os
-import re
-import sys
-import glob
 import time
 import argparse
-import subprocess
 import syslog
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.auto_techsupport_helper import *
@@ -31,7 +27,7 @@ def handle_coredump_cleanup(dump_name, db):
     core_usage = db.get(CFG_DB, AUTO_TS, CFG_CORE_USAGE)
     try:
         core_usage = float(core_usage)
-    except Exception as e:
+    except ValueError:
         core_usage = 0.0
 
     if not core_usage:
@@ -47,8 +43,9 @@ class CriticalProcCoreDumpHandle():
     Class to handle coredump creation event for critical processes
     """
 
-    def __init__(self, core_name, db):
+    def __init__(self, core_name, container_name, db):
         self.core_name = core_name
+        self.container = container_name
         self.db = db
         self.proc_mp = {}
         self.core_ts_map = {}
@@ -64,44 +61,38 @@ class CriticalProcCoreDumpHandle():
             syslog.syslog(syslog.LOG_NOTICE, "auto_invoke_ts is disabled. No cleanup is performed: core {}".format(self.core_name))
             return
 
-        container_name, process_name = self.fetch_exit_event()
-        if not (process_name and container_name):
-            msg = "No Corresponding Exit Event was found for {}. Techsupport Invocation is skipped".format(self.core_name)
-            syslog.syslog(syslog.LOG_INFO, msg)
-            return
-
-        FEATURE_KEY = FEATURE.format(container_name)
+        FEATURE_KEY = FEATURE.format(self.container)
         if self.db.get(CFG_DB, FEATURE_KEY, CFG_STATE) != "enabled":
             msg = "auto-techsupport feature for {} is not enabled. Techsupport Invocation is skipped. core: {}"
-            syslog.syslog(syslog.LOG_NOTICE, msg.format(container_name, self.core_name))
+            syslog.syslog(syslog.LOG_NOTICE, msg.format(self.container, self.core_name))
             return
 
-        global_cooloff = self.db.get(CFG_DB, AUTO_TS, COOLOFF)
-        proc_cooloff = self.db.get(CFG_DB, FEATURE_KEY, COOLOFF)
+        global_cooloff = self.db.get(CFG_DB, AUTO_TS, COOLOFF)  
+        container_cooloff = self.db.get(CFG_DB, FEATURE_KEY, COOLOFF)
 
         try:
             global_cooloff = float(global_cooloff)
-        except BaseException:
+        except ValueError:
             global_cooloff = 0.0
 
         try:
-            proc_cooloff = float(proc_cooloff)
-        except BaseException:
-            proc_cooloff = 0.0
+            container_cooloff = float(container_cooloff)
+        except ValueError:
+            container_cooloff = 0.0
 
-        cooloff_passed = self.verify_rate_limit_intervals(global_cooloff, proc_cooloff, process_name)
+        cooloff_passed = self.verify_rate_limit_intervals(global_cooloff, container_cooloff)
         if cooloff_passed:
             since_cfg = self.get_since_arg()
             new_file = self.invoke_ts_cmd(since_cfg)
             if new_file:
-                self.write_to_state_db(int(time.time()), process_name, new_file[0])
+                self.write_to_state_db(int(time.time()), new_file[0])
 
-    def write_to_state_db(self, timestamp, crit_proc_name, ts_dump):
+    def write_to_state_db(self, timestamp, ts_dump):
         name = strip_ts_ext(ts_dump)
         key = TS_MAP + "|" + name
         self.db.set(STATE_DB, key, CORE_DUMP, self.core_name)
         self.db.set(STATE_DB, key, TIMESTAMP, str(timestamp))
-        self.db.set(STATE_DB, key, CRIT_PROC, crit_proc_name)
+        self.db.set(STATE_DB, key, CONTAINER, self.container)
 
     def get_since_arg(self):
         since_cfg = self.db.get(CFG_DB, AUTO_TS, CFG_SINCE)
@@ -125,7 +116,7 @@ class CriticalProcCoreDumpHandle():
             syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, diff))
         return diff
 
-    def verify_rate_limit_intervals(self, global_cooloff, proc_cooloff, proc):
+    def verify_rate_limit_intervals(self, global_cooloff, container_cooloff):
         """Verify both the global and per-proc rate_limit_intervals have passed"""
         self.curr_ts_list = get_ts_dumps(True)
         if global_cooloff and self.curr_ts_list:
@@ -136,11 +127,11 @@ class CriticalProcCoreDumpHandle():
                 return False
 
         self.parse_ts_map()
-        if proc_cooloff and proc in self.core_ts_map:
-            last_creation_time = self.core_ts_map[proc][0][0]
-            if time.time() - last_creation_time < proc_cooloff:
-                msg = "Process rate_limit_interval period for {} has not passed. Techsupport Invocation is skipped. Core: {}"
-                syslog.syslog(syslog.LOG_INFO, msg.format(proc, self.core_name))
+        if container_cooloff and self.container in self.core_ts_map:
+            last_creation_time = self.core_ts_map[self.container][0][0]
+            if time.time() - last_creation_time < container_cooloff:
+                msg = "Per Container rate_limit_interval for {} has not passed. Techsupport Invocation is skipped. Core: {}"
+                syslog.syslog(syslog.LOG_INFO, msg.format(self.container, self.core_name))
                 return False
         return True
 
@@ -153,18 +144,18 @@ class CriticalProcCoreDumpHandle():
             data = self.db.get_all(STATE_DB, ts_key)
             if not data:
                 continue
-            proc_name = data.get(CRIT_PROC, "")
+            container_name = data.get(CONTAINER, "")
             creation_time = data.get(TIMESTAMP, "")
             try:
                 creation_time = int(creation_time)
             except:
                 continue  # if the creation time is invalid, skip the entry
             ts_dump = ts_key.split("|")[-1]
-            if proc_name and proc_name not in self.core_ts_map:
-                self.core_ts_map[proc_name] = []
-            self.core_ts_map[proc_name].append((int(creation_time), ts_dump))
-        for proc_name in self.core_ts_map:
-            self.core_ts_map[proc_name].sort()
+            if container_name and container_name not in self.core_ts_map:
+                self.core_ts_map[container_name] = []
+            self.core_ts_map[container_name].append((int(creation_time), ts_dump))
+        for container_name in self.core_ts_map:
+            self.core_ts_map[container_name].sort()
 
     def fetch_exit_event(self):
         """Fetch the relevant entry in the AUTO_TECHSUPPORT|PROC_EXIT_EVENTS table"""
@@ -199,12 +190,13 @@ class CriticalProcCoreDumpHandle():
 def main():
     parser = argparse.ArgumentParser(description='Auto Techsupport Invocation and CoreDump Mgmt Script')
     parser.add_argument('name', type=str, help='Core Dump Name')
+    parser.add_argument('container', type=str, help='Container Name')
     args = parser.parse_args()
     syslog.openlog(logoption=syslog.LOG_PID)
     db = SonicV2Connector(use_unix_socket_path=True)
     db.connect(CFG_DB)
     db.connect(STATE_DB)
-    cls = CriticalProcCoreDumpHandle(args.name, db)
+    cls = CriticalProcCoreDumpHandle(args.name, args.container, args.db)
     cls.handle_core_dump_creation_event()
     handle_coredump_cleanup(args.name, db)
 

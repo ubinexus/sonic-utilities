@@ -28,34 +28,32 @@ def set_feature_table_cfg(redis_mock, state="disabled", rate_limit_interval="0",
     redis_mock.set(cdump_mod.CFG_DB, cdump_mod.FEATURE.format(container_name), cdump_mod.COOLOFF, rate_limit_interval)
 
 
-def set_auto_ts_dump_info(redis_mock, ts_dump, core_dump, timestamp, crit_proc):
+def set_auto_ts_dump_info(redis_mock, ts_dump, core_dump, timestamp, container):
     key = cdump_mod.TS_MAP + "|" + ts_dump
     redis_mock.set(cdump_mod.STATE_DB, key, cdump_mod.CORE_DUMP, core_dump)
     redis_mock.set(cdump_mod.STATE_DB, key, cdump_mod.TIMESTAMP, timestamp)
-    redis_mock.set(cdump_mod.STATE_DB, key, cdump_mod.CRIT_PROC, crit_proc)
+    redis_mock.set(cdump_mod.STATE_DB, key, cdump_mod.CONTAINER, container)
 
 
-def populate_state_db(redis_mock,
-                      ts_map={"sonic_dump_random1": "orchagent;1575985;orchagent",
-                              "sonic_dump_random2": "syncd;1575988;syncd"},
-                      crit_proc_mp={"swss;orchagent": "123;orchagent"}):
-    for dump, value in ts_map.items():
-        core_dump, timestamp, crit_proc = value.split(";")
-        set_auto_ts_dump_info(redis_mock, dump, core_dump, timestamp, crit_proc)
-    for field, value in crit_proc_mp.items():
-        redis_mock.set(cdump_mod.STATE_DB, cdump_mod.CRITICAL_PROC, field, value)
-    print(redis_mock.keys(cdump_mod.STATE_DB, cdump_mod.TS_MAP+"*"))
-
-
-def verify_post_exec_state(redis_mock, cdump_expect=[], cdumps_not_expect=[], crit_proc_mp={}):
+def verify_post_exec_state(redis_mock, cdump_expect=[], cdumps_not_expect=[], container_mp={}):
     final_state = redis_mock.keys(cdump_mod.STATE_DB, cdump_mod.TS_MAP+"*")
+    print(final_state)
     for dump in cdump_expect:
         assert cdump_mod.TS_MAP+"|"+dump in final_state
     for dump in cdumps_not_expect:
         assert cdump_mod.TS_MAP+"|"+dump not in final_state
-    for dump, crit_proc in crit_proc_mp.items():
+    for dump, container in container_mp.items():
         key = cdump_mod.TS_MAP+"|"+dump
-        assert crit_proc in redis_mock.get(cdump_mod.STATE_DB, key, cdump_mod.CRIT_PROC)
+        assert container in redis_mock.get(cdump_mod.STATE_DB, key, cdump_mod.CONTAINER)
+
+
+def populate_state_db(redis_mock,
+                      ts_map={"sonic_dump_random1": "orchagent;1575985;swss",
+                              "sonic_dump_random2": "syncd;1575988;syncd"}):
+    for dump, value in ts_map.items():
+        core_dump, timestamp, container_name = value.split(";")
+        set_auto_ts_dump_info(redis_mock, dump, core_dump, timestamp, container_name)
+    print(redis_mock.keys(cdump_mod.STATE_DB, cdump_mod.TS_MAP+"*"))
 
 
 class TestCoreDumpCreationEvent(unittest.TestCase):
@@ -63,8 +61,6 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
     def setUp(self):
         cdump_mod.TIME_BUF = 1
         cdump_mod.WAIT_BUFFER = 1
-        cdump_mod.INIT_SLEEP = 0.25
-        cdump_mod.EXP_FACTOR = 1
 
     def test_invoc_ts_state_db_update(self):
         """
@@ -88,7 +84,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
             cls.handle_core_dump_creation_event()
             cdump_mod.handle_coredump_cleanup("orchagent.12345.123.core.gz", redis_mock)
             assert "sonic_dump_random1.tar.gz" in os.listdir(cdump_mod.TS_DIR)
@@ -96,7 +92,6 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             assert "sonic_dump_random3.tar.gz" in os.listdir(cdump_mod.TS_DIR)
         cdump_expect = ["sonic_dump_random1", "sonic_dump_random2", "sonic_dump_random3"]
         verify_post_exec_state(redis_mock, cdump_expect)
-
 
     def test_global_rate_limit_interval(self):
         """
@@ -120,7 +115,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
             cls.handle_core_dump_creation_event()
             cdump_mod.handle_coredump_cleanup("orchagent.12345.123.core.gz", redis_mock)
             assert "sonic_dump_random1.tar.gz" in os.listdir(cdump_mod.TS_DIR)
@@ -130,17 +125,17 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         cdump_not_expect = ["sonic_dump_random3"]
         verify_post_exec_state(redis_mock, cdump_expect, cdump_not_expect)
 
-    def test_per_proc_rate_limit_interval(self):
+    def test_per_container_rate_limit_interval(self):
         """
         Scenario: CFG_STATE is enabled. Global rate_limit_interval is passed
-                  But Per Proc rate_limit_interval is not passed yet. Check if techsupport isn't invoked
+                  But Per container rate_limit_interval is not passed yet. Check if techsupport isn't invoked
         """
         db_wrap = Db()
         redis_mock = db_wrap.db
         set_auto_ts_cfg(redis_mock, state="enabled", rate_limit_interval="0.25")
         set_feature_table_cfg(redis_mock, state="enabled", rate_limit_interval="10")
         populate_state_db(redis_mock, ts_map={"sonic_dump_random1":
-                                              "orchagent;{};orchagent".format(int(time.time()))})
+                                              "orchagent;{};swss".format(int(time.time()))})
         with Patcher() as patcher:
             def mock_cmd(cmd):
                 cmd_str = " ".join(cmd)
@@ -152,7 +147,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             cdump_mod.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
             time.sleep(0.25)  # wait for global rate_limit_interval to pass
             cls.handle_core_dump_creation_event()
             assert "sonic_dump_random1.tar.gz" in os.listdir(cdump_mod.TS_DIR)
@@ -169,7 +164,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_auto_ts_cfg(redis_mock, state="enabled", rate_limit_interval="0.1")
         set_feature_table_cfg(redis_mock, state="enabled", rate_limit_interval="0.25")
         populate_state_db(redis_mock, ts_map={"sonic_dump_random1":
-                                              "orchagent;{};orchagent".format(int(time.time()))})
+                                              "orchagent;{};swss".format(int(time.time()))})
         with Patcher() as patcher:
             def mock_cmd(cmd):
                 cmd_str = " ".join(cmd)
@@ -182,15 +177,15 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
             time.sleep(0.25)  # wait for all the rate_limit_interval's to pass
             cls.handle_core_dump_creation_event()
             assert "sonic_dump_random1.tar.gz" in os.listdir(cdump_mod.TS_DIR)
             assert "sonic_dump_random3.tar.gz" in os.listdir(cdump_mod.TS_DIR)
-        crit_proc_mp = {"sonic_dump_random3": "orchagent"}
-        verify_post_exec_state(redis_mock, ["sonic_dump_random1", "sonic_dump_random3"], [], crit_proc_mp)
+        ts_mp = {"sonic_dump_random3": "swss"}
+        verify_post_exec_state(redis_mock, ["sonic_dump_random1", "sonic_dump_random3"], [], ts_mp)
 
-    def test_core_dump_with_no_exit_event(self):
+    def test_core_dump_with_invalid_container_name(self):
         """
         Scenario: CFG_STATE is enabled.
                   Core Dump is found but no relevant exit_event entry is found in STATE_DB.
@@ -199,7 +194,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         redis_mock = db_wrap.db
         set_auto_ts_cfg(redis_mock, state="enabled")
         set_feature_table_cfg(redis_mock, state="enabled", container_name="snmp")
-        populate_state_db(redis_mock, {}, {})
+        populate_state_db(redis_mock, {})
         with Patcher() as patcher:
             def mock_cmd(cmd):
                 cmd_str = " ".join(cmd)
@@ -211,43 +206,15 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             cdump_mod.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/snmpd.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("snmpd.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("snmpd.12345.123.core.gz", "whatevver", redis_mock)
             cls.handle_core_dump_creation_event()
             assert "sonic_dump_random3.tar.gz" not in os.listdir(cdump_mod.TS_DIR)
         final_state = redis_mock.keys(cdump_mod.STATE_DB, cdump_mod.TS_MAP+"*")
         assert not final_state
 
-    def test_core_dump_with_exit_event_unknown_cmd(self):
-        """
-        Scenario: CFG_STATE is enabled.
-                  Core Dump is found but the comm in exit_event entry is <unknown>
-        """
-        db_wrap = Db()
-        redis_mock = db_wrap.db
-        set_auto_ts_cfg(redis_mock, state="enabled")
-        set_feature_table_cfg(redis_mock, state="enabled", container_name="snmp")
-        populate_state_db(redis_mock, {}, {"snmp;snmp-subagent": "123;<unknown>"})
-        with Patcher() as patcher:
-            def mock_cmd(cmd):
-                cmd_str = " ".join(cmd)
-                if "show techsupport" in cmd_str:
-                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
-                else:
-                    return 1, "", "Command Not Found"
-                return 0, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
-            patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
-            patcher.fs.create_file("/var/core/python3.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("python3.12345.123.core.gz", redis_mock)
-            cls.handle_core_dump_creation_event()
-            assert "sonic_dump_random3.tar.gz" in os.listdir(cdump_mod.TS_DIR)
-        crit_proc_mp = {"sonic_dump_random3": "snmp-subagent"}
-        verify_post_exec_state(redis_mock, [], [], crit_proc_mp)
-
-
     def test_feature_table_not_set(self):
         """
-        Scenario: CFG_STATE is enabled. 
+        Scenario: CFG_STATE is enabled.
                   The auto-techsupport in Feature table is not enabled for the core-dump generated
                   Check if techsupport is not invoked
         """
@@ -255,7 +222,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         redis_mock = db_wrap.db
         set_auto_ts_cfg(redis_mock, state="enabled")
         set_feature_table_cfg(redis_mock, state="disabled", container_name="snmp")
-        populate_state_db(redis_mock, {}, {"snmp:snmp-subagent": "123;python3"})
+        populate_state_db(redis_mock, {})
         with Patcher() as patcher:
             def mock_cmd(cmd):
                 cmd_str = " ".join(cmd)
@@ -267,7 +234,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             cdump_mod.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/python3.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("python3.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("python3.12345.123.core.gz", "snmp", redis_mock)
             cls.handle_core_dump_creation_event()
             cdump_mod.handle_coredump_cleanup("python3.12345.123.core.gz", redis_mock)
             assert "sonic_dump_random3.tar.gz" not in os.listdir(cdump_mod.TS_DIR)
@@ -296,16 +263,15 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
             cls.handle_core_dump_creation_event()
             cdump_mod.handle_coredump_cleanup("orchagent.12345.123.core.gz", redis_mock)
             assert "sonic_dump_random1.tar.gz" in os.listdir(cdump_mod.TS_DIR)
             assert "sonic_dump_random2.tar.gz" in os.listdir(cdump_mod.TS_DIR)
             assert "sonic_dump_random3.tar.gz" in os.listdir(cdump_mod.TS_DIR)
         expect = ["sonic_dump_random1", "sonic_dump_random2", "sonic_dump_random3"]
-        crit_proc_mp = {"sonic_dump_random3": "orchagent"}
-        verify_post_exec_state(redis_mock, expect, [], crit_proc_mp)
-
+        ts_mp = {"sonic_dump_random3": "swss"}
+        verify_post_exec_state(redis_mock, expect, [], ts_mp)
 
     def test_invalid_since_argument(self):
         """
@@ -331,15 +297,15 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
-            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", redis_mock)
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
             cls.handle_core_dump_creation_event()
             cdump_mod.handle_coredump_cleanup("orchagent.12345.123.core.gz", redis_mock)
             assert "sonic_dump_random1.tar.gz" in os.listdir(cdump_mod.TS_DIR)
             assert "sonic_dump_random2.tar.gz" in os.listdir(cdump_mod.TS_DIR)
             assert "sonic_dump_random3.tar.gz" in os.listdir(cdump_mod.TS_DIR)
         expect = ["sonic_dump_random1", "sonic_dump_random2", "sonic_dump_random3"]
-        crit_proc_mp = {"sonic_dump_random3": "orchagent"}
-        verify_post_exec_state(redis_mock, expect, [], crit_proc_mp)
+        ts_mp = {"sonic_dump_random3": "swss"}
+        verify_post_exec_state(redis_mock, expect, [], ts_mp)
 
     def test_core_dump_cleanup(self):
         """
