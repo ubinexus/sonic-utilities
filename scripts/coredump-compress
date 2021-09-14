@@ -19,7 +19,7 @@ fi
 /bin/gzip -1 - > /var/core/${PREFIX}core.gz
 
 if [[ ! -z $CONTAINER_ID ]]; then
-   CONTAINER_NAME=$(docker inspect --format='{{.Name}}' ${CONTAINER_ID})
+   CONTAINER_NAME=$(docker inspect --format='{{.Name}}' ${CONTAINER_ID} | cut -c2-)
    if [[ ! -z ${CONTAINER_NAME} ]]; then
         # coredump_gen_handler invokes techsupport if all the other required conditions  are met
         # explicitly passing in the env vars because coredump-compress's namespace doesn't have these set by default
