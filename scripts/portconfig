@@ -86,7 +86,7 @@ class portconfig(object):
     def set_autoneg(self, port, mode):
         if self.verbose:
             print("Setting autoneg %s on port %s" % (mode, port))
-        mode = 'on' if mode == 'enabled' else 'off'
+        mode = 1 if mode == 'enabled' else 0
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_AUTONEG_CONFIG_FIELD_NAME: mode})
 
 
