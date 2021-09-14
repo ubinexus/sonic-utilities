@@ -59,8 +59,8 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
     header = [
         "STATE",
         "RATE LIMIT INTERVAL",
-        "MAX TECHSUPPORT SIZE",
-        "MAX CORE SIZE",
+        "MAX TECHSUPPORT LIMIT",
+        "MAX CORE LIMIT",
         "SINCE",
     ]
 

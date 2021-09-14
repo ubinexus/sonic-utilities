@@ -19,7 +19,8 @@ __all__ = [  # Contants
             "strip_ts_ext",
             "get_stats",
             "pretty_size",
-            "cleanup_process"
+            "cleanup_process",
+            "subprocess_exec"
         ]
 
 

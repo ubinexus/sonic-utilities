@@ -30,4 +30,3 @@ if [[ ! -z $CONTAINER_ID ]]; then
    fi
 fi
 
-

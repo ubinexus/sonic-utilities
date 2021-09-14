@@ -196,7 +196,7 @@ def main():
     db = SonicV2Connector(use_unix_socket_path=True)
     db.connect(CFG_DB)
     db.connect(STATE_DB)
-    cls = CriticalProcCoreDumpHandle(args.name, args.container, args.db)
+    cls = CriticalProcCoreDumpHandle(args.name, args.container, db)
     cls.handle_core_dump_creation_event()
     handle_coredump_cleanup(args.name, db)
 
