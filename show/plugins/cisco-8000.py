@@ -18,53 +18,19 @@ except ImportError as e:
 PLATFORM_PY = '/opt/cisco/bin/platform.py'
 
 @click.command()
-@click.option('--raw/--no-raw', default=False, help='Hexdump raw IDPROMs')
-@click.option('--all/--no-all', default=False, help='Dump all known IDPROMs')
-@click.option('--list/--no-list', default=False, help='List known IDPROMs')
-@click.argument('name', nargs=-1)
-def idprom(name, raw, all, list):
-    """ Show platform IDPROM information """
-    args = [ PLATFORM_PY, 'idprom' ]
-
-    if all:
-        if len(name) > 0:
-            click.echo('?Option --all ignored when given a list of IDPROM names\n')
-        elif list:
-            click.echo('?Option --all ignored when combined with --list\n')
-        else:
-            args.append('--all')
-    if list:
-        if len(name) > 0:
-            click.echo('?Option --list ignored when given a list of IDPROM names\n')
-        else:
-            args.append('--list')
-    if raw:
-        if list:
-            click.echo('?Option --raw ignored when combined with --list\n')
-        else:
-            args.append('--raw')
-    for alias in name:
-        args.append(alias)
+def inventory():
+    """Show Platform Inventory"""
+    args = [ PLATFORM_PY, 'inventoryshow' ]
     clicommon.run_command(args)
 
-
-def install_extensions(cli):
-    extensions = {
-        'platform': [
-            idprom,
-        ],
-    }
-
-    groups = {
-        'cli': cli,
-        'platform': platform.platform,
-    }
-
-    for key,root in groups.items():
-        for cmd in extensions.get(key, []):
-            root.add_command(cmd)
+@click.command()
+def idprom():
+    """Show Platform Idprom Inventory"""
+    args = [ PLATFORM_PY, 'idprom' ]
+    clicommon.run_command(args)
 
 def register(cli):
     version_info = device_info.get_sonic_version_info() 
-    if (version_info and version_info.get('asic_type') == 'cisco'):
-        install_extensions(cli)
+    if (version_info and version_info.get('asic_type') == 'cisco-8000'):
+        cli.commands['platform'].add_command(inventory)
+        cli.commands['platform'].add_command(idprom)
