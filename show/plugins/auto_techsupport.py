@@ -57,17 +57,14 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
     """  """
 
     header = [
-
         "STATE",
         "RATE LIMIT INTERVAL",
         "MAX TECHSUPPORT SIZE",
         "MAX CORE SIZE",
         "SINCE",
-
     ]
 
     body = []
-
     table = db.cfgdb.get_table("AUTO_TECHSUPPORT")
     entry = table.get("GLOBAL", {})
     row = [
@@ -81,11 +78,11 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
         ),
         format_attr_value(
             entry,
-            {'name': 'max_techsupport_size', 'description': 'Max Size to which the dumps in /var/dump dir can be grown until. No cleanup is performed if the value is not congiured or set to 0.0', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
+            {'name': 'max_techsupport_limit', 'description': 'Max Limit in percentage for the cummulative size of ts dumps. No cleanup is performed if the value isn\'t configured or is 0.0', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
         ),
         format_attr_value(
             entry,
-            {'name': 'max_core_size', 'description': 'Max Size to which the coredumps in /var/core directory can be grown until. No cleanup is performed if the value is not congiured or set to 0.0', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
+            {'name': 'max_core_limit', 'description': 'Max Limit in percentage for the cummulative size of core dumps. No cleanup is performed if the value isn\'t congiured or is 0.0', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
         ),
         format_attr_value(
             entry,
@@ -94,7 +91,7 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
     ]
 
     body.append(row)
-    click.echo(tabulate.tabulate(body, header))
+    click.echo(tabulate.tabulate(body, header, numalign="left"))
 
 
 @AUTO_TECHSUPPORT.command(name="history")
@@ -107,9 +104,9 @@ def AUTO_TECHSUPPORT_history(db):
         dump = key.split("|")[-1]
         fv_pairs = db.db.get_all("STATE_DB", key)
         core_dump = fv_pairs.get("core_dump", "")
-        supervisor_crit_proc = fv_pairs.get("critical_process", "")
-        body.append([dump, supervisor_crit_proc, core_dump])
-    click.echo(tabulate.tabulate(body, header))
+        container = fv_pairs.get("container_name", "")
+        body.append([dump, container, core_dump])
+    click.echo(tabulate.tabulate(body, header, numalign="left"))
 
 
 @click.group(name="auto-techsupport-feature",
@@ -121,10 +118,8 @@ def AUTO_TECHSUPPORT_FEATURE(db):
 
     header = [
         "FEATURE NAME",
-
         "STATE",
         "RATE LIMIT INTERVAL",
-
     ]
 
     body = []
@@ -138,17 +133,15 @@ def AUTO_TECHSUPPORT_FEATURE(db):
         row = [*key] + [
             format_attr_value(
                 entry,
-                {'name': 'state', 'description': 'Enable auto techsupport invocation on the critical processes running inside this feature', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
+                {'name': 'state', 'description': 'Enable auto techsupport invocation on the processes running inside this feature', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
             ),
             format_attr_value(
                 entry,
                 {'name': 'rate_limit_interval', 'description': 'Rate limit interval for the corresponding feature. Configure 0 to explicitly disable', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
             ),
         ]
-
         body.append(row)
-
-    click.echo(tabulate.tabulate(body, header))
+    click.echo(tabulate.tabulate(body, header, numalign="left"))
 
 
 def register(cli):
@@ -160,3 +153,7 @@ def register(cli):
     if cli_node.name in cli.commands:
         raise Exception(f"{cli_node.name} already exists in CLI")
     cli.add_command(AUTO_TECHSUPPORT_FEATURE)
+    cli_node = AUTO_TECHSUPPORT_history
+    if cli_node.name in cli.commands:
+        raise Exception(f"{cli_node.name} already exists in CLI")
+    cli.add_command(AUTO_TECHSUPPORT_history)

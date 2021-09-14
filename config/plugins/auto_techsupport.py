@@ -182,20 +182,22 @@ def AUTO_TECHSUPPORT_GLOBAL_rate_limit_interval(db, rate_limit_interval):
         exit_with_error(f"Error: {err}", fg="red")
 
 
-@AUTO_TECHSUPPORT_GLOBAL.command(name="max-techsupport-size")
+@AUTO_TECHSUPPORT_GLOBAL.command(name="max-techsupport-limit")
 @click.argument(
-    "max-techsupport-size",
+    "max-techsupport-limit",
     nargs=1,
     required=True,
 )
 @clicommon.pass_db
-def AUTO_TECHSUPPORT_GLOBAL_max_techsupport_size(db, max_techsupport_size):
-    """ Max Size to which the dumps in /var/dump dir can be grown until. No cleanup is performed if the value is not congiured or set to 0.0 """
+def AUTO_TECHSUPPORT_GLOBAL_max_techsupport_limit(db, max_techsupport_limit):
+    """ Max Limit in percentage for the cummulative size of ts dumps.
+        No cleanup is performed if the value isn't configured or is 0.0
+    """
 
     table = "AUTO_TECHSUPPORT"
     key = "GLOBAL"
     data = {
-        "max_techsupport_size": max_techsupport_size,
+        "max_techsupport_limit": max_techsupport_limit,
     }
     try:
         update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
@@ -203,20 +205,22 @@ def AUTO_TECHSUPPORT_GLOBAL_max_techsupport_size(db, max_techsupport_size):
         exit_with_error(f"Error: {err}", fg="red")
 
 
-@AUTO_TECHSUPPORT_GLOBAL.command(name="max-core-size")
+@AUTO_TECHSUPPORT_GLOBAL.command(name="max-core-limit")
 @click.argument(
-    "max-core-size",
+    "max-core-limit",
     nargs=1,
     required=True,
 )
 @clicommon.pass_db
-def AUTO_TECHSUPPORT_GLOBAL_max_core_size(db, max_core_size):
-    """ Max Size to which the coredumps in /var/core directory can be grown until. No cleanup is performed if the value is not congiured or set to 0.0 """
+def AUTO_TECHSUPPORT_GLOBAL_max_core_limit(db, max_core_limit):
+    """ Max Limit in percentage for the cummulative size of core dumps.
+        No cleanup is performed if the value isn't congiured or is 0.0
+    """
 
     table = "AUTO_TECHSUPPORT"
     key = "GLOBAL"
     data = {
-        "max_core_size": max_core_size,
+        "max_core_limit": max_core_limit,
     }
     try:
         update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
@@ -232,7 +236,8 @@ def AUTO_TECHSUPPORT_GLOBAL_max_core_size(db, max_core_size):
 )
 @clicommon.pass_db
 def AUTO_TECHSUPPORT_GLOBAL_since(db, since):
-    """ Only collect the logs & core-dumps generated since the time provided. A default value of '2 days ago' is used if this value is not set explicitly or a non-valid string is provided """
+    """ Only collect the logs & core-dumps generated since the time provided.
+        A default value of '2 days ago' is used if this value is not set explicitly or a non-valid string is provided """
 
     table = "AUTO_TECHSUPPORT"
     key = "GLOBAL"
@@ -249,7 +254,6 @@ def AUTO_TECHSUPPORT_GLOBAL_since(db, since):
              cls=clicommon.AliasedGroup)
 def AUTO_TECHSUPPORT_FEATURE():
     """ AUTO_TECHSUPPORT_FEATURE part of config_db.json """
-
     pass
 
 
@@ -261,7 +265,7 @@ def AUTO_TECHSUPPORT_FEATURE():
 )
 @click.option(
     "--state",
-    help="Enable auto techsupport invocation on the critical processes running inside this feature",
+    help="Enable auto techsupport invocation on the processes running inside this feature",
 )
 @click.option(
     "--rate-limit-interval",
@@ -293,7 +297,7 @@ def AUTO_TECHSUPPORT_FEATURE_add(db, feature_name, state, rate_limit_interval):
 )
 @click.option(
     "--state",
-    help="Enable auto techsupport invocation on the critical processes running inside this feature",
+    help="Enable auto techsupport invocation on the processes running inside this feature",
 )
 @click.option(
     "--rate-limit-interval",
