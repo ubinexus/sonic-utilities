@@ -20,7 +20,8 @@ __all__ = [  # Contants
             "get_stats",
             "pretty_size",
             "cleanup_process",
-            "subprocess_exec"
+            "subprocess_exec",
+            "trim_masic_suffix"
         ]
 
 
@@ -168,3 +169,17 @@ def cleanup_process(limit, file_ptrn, dir):
         num_deleted += stat[1]
     syslog.syslog(syslog.LOG_INFO, "{} deleted from {}".format(pretty_size(num_deleted), dir))
     return removed_files
+
+
+def trim_masic_suffix(container_name):
+    """ Trim any masic suffix i.e swss0 -> swss """
+    arr = list(container_name)
+    index = len(arr) - 1
+    while index >= 0:
+        if arr[-1].isdigit():
+            arr.pop()
+        else:
+            break
+        index = index - 1
+    print(arr)
+    return "".join(arr)

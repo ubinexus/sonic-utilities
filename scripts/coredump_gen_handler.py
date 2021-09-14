@@ -61,6 +61,9 @@ class CriticalProcCoreDumpHandle():
             syslog.syslog(syslog.LOG_NOTICE, "auto_invoke_ts is disabled. No cleanup is performed: core {}".format(self.core_name))
             return
 
+        # Config made for the defaul instance applies to all the masic instances
+        self.container = trim_masic_suffix(self.container)
+
         FEATURE_KEY = FEATURE.format(self.container)
         if self.db.get(CFG_DB, FEATURE_KEY, CFG_STATE) != "enabled":
             msg = "auto-techsupport feature for {} is not enabled. Techsupport Invocation is skipped. core: {}"

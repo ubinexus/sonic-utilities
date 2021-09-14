@@ -273,6 +273,36 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         ts_mp = {"sonic_dump_random3": "swss"}
         verify_post_exec_state(redis_mock, expect, [], ts_mp)
 
+    def test_masic_core_dump(self):
+        """
+        Scenario: Dump is generated from swss12 container. Config specified for swss shoudl be applied
+        """
+        db_wrap = Db()
+        redis_mock = db_wrap.db
+        set_auto_ts_cfg(redis_mock, state="enabled")
+        set_feature_table_cfg(redis_mock, state="enabled")
+        populate_state_db(redis_mock)
+        with Patcher() as patcher:
+            def mock_cmd(cmd):
+                cmd_str = " ".join(cmd)
+                if "show techsupport" in cmd_str:
+                    patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
+                else:
+                    return 1, "", "Command Not Found"
+                return 0, "", ""
+            cdump_mod.subprocess_exec = mock_cmd
+            patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
+            patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
+            patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss12", redis_mock)
+            cls.handle_core_dump_creation_event()
+            cdump_mod.handle_coredump_cleanup("orchagent.12345.123.core.gz", redis_mock)
+            assert "sonic_dump_random1.tar.gz" in os.listdir(cdump_mod.TS_DIR)
+            assert "sonic_dump_random2.tar.gz" in os.listdir(cdump_mod.TS_DIR)
+            assert "sonic_dump_random3.tar.gz" in os.listdir(cdump_mod.TS_DIR)
+        cdump_expect = ["sonic_dump_random1", "sonic_dump_random2", "sonic_dump_random3"]
+        verify_post_exec_state(redis_mock, cdump_expect)
+
     def test_invalid_since_argument(self):
         """
         Scenario: CFG_STATE is enabled.
