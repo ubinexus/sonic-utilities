@@ -28,5 +28,29 @@
         },
     "VLAN_MEMBER_TABLE:Vlan4:Ethernet24": {
         "tagging_mode": "tagged"
+        },
+    "VLAN_TABLE:Vlan7": {
+        "admin_status": "up",
+        "host_ifname": "",
+        "mac": "7c:fe:90:f5:36:40",
+        "mtu": "9100"
+        },
+    "VLAN_MEMBER_TABLE:Vlan7:Ethernet48": {
+        "tagging_mode": "tagged"
+        },
+    "VLAN_MEMBER_TABLE:Vlan7:Ethernet56": {
+        "tagging_mode": "tagged"
+        },
+    "VLAN_TABLE:Vlan8": {
+        "admin_status": "up",
+        "host_ifname": "",
+        "mac": "7c:fe:90:f5:36:40",
+        "mtu": "9100"
+        },
+    "VLAN_MEMBER_TABLE:Vlan8:Ethernet64": {
+        "tagging_mode": "tagged"
+        },
+    "VLAN_MEMBER_TABLE:Vlan8:Ethernet72": {
+        "tagging_mode": "tagged"
         }
 }
