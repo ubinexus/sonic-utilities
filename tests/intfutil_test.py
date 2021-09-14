@@ -63,14 +63,14 @@ show_interface_description_eth9_output="""\
 """
 
 show_interface_auto_neg_status_output = """\
-  Interface    Auto-Neg Mode      Oper    Admin
------------  ---------------    ------  -------
-  Ethernet0          enabled      down       up
- Ethernet32         disabled        up       up
-Ethernet112              N/A        up       up
-Ethernet116              N/A        up       up
-Ethernet120              N/A        up       up
-Ethernet124              N/A        up       up
+  Interface    Auto-Neg Mode    Speed    Oper    Admin
+-----------  ---------------  -------  ------  -------
+  Ethernet0          enabled      25G    down       up
+ Ethernet32         disabled      40G      up       up
+Ethernet112              N/A      40G      up       up
+Ethernet116              N/A      40G      up       up
+Ethernet120              N/A      40G      up       up
+Ethernet124              N/A      40G      up       up
 """
 
 show_interface_auto_neg_status_Ethernet0_output = """\
