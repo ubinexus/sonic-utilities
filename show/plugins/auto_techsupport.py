@@ -58,9 +58,9 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
 
     header = [
         "STATE",
-        "RATE LIMIT INTERVAL",
-        "MAX TECHSUPPORT LIMIT",
-        "MAX CORE LIMIT",
+        "RATE LIMIT INTERVAL (sec)",
+        "MAX TECHSUPPORT LIMIT (%)",
+        "MAX CORE LIMIT (%)",
         "SINCE",
     ]
 
@@ -119,7 +119,7 @@ def AUTO_TECHSUPPORT_FEATURE(db):
     header = [
         "FEATURE NAME",
         "STATE",
-        "RATE LIMIT INTERVAL",
+        "RATE LIMIT INTERVAL (sec)",
     ]
 
     body = []
