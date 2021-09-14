@@ -151,7 +151,7 @@ class CriticalProcCoreDumpHandle():
             creation_time = data.get(TIMESTAMP, "")
             try:
                 creation_time = int(creation_time)
-            except:
+            except Exception:
                 continue  # if the creation time is invalid, skip the entry
             ts_dump = ts_key.split("|")[-1]
             if container_name and container_name not in self.core_ts_map:
