@@ -103,6 +103,9 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [PBH](#pbh)
+  * [PBH show commands](#pbh-show-commands)
+  * [PBH config commands](#pbh-config-commands)
 * [PFC Watchdog Commands](#pfc-watchdog-commands)
 * [Platform Component Firmware](#platform-component-firmware)
   * [Platform Component Firmware show commands](#platform-component-firmware-show-commands)
@@ -156,6 +159,7 @@
   * [SONiC Package Manager](#sonic-package-manager)
   * [SONiC Installer](#sonic-installer)
 * [Troubleshooting Commands](#troubleshooting-commands)
+  * [Debug Dumps](#debug-dumps)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
 * [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
@@ -6531,6 +6535,303 @@ This command adds or deletes a member port to/from the already created portchann
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#portchannels)
 
+## PBH
+
+This section explains the various show commands and configuration commands available for users.
+
+### PBH show commands
+
+This subsection explains how to display PBH configuration and statistics.
+
+**show pbh table**
+
+This command displays PBH table configuration.
+
+- Usage:
+```bash
+show pbh table
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh table
+NAME       INTERFACE        DESCRIPTION
+---------  ---------------  ---------------
+pbh_table  Ethernet0        NVGRE and VxLAN
+           Ethernet4
+           PortChannel0001
+           PortChannel0002
+```
+
+**show pbh rule**
+
+This command displays PBH rule configuration.
+
+- Usage:
+```bash
+show pbh rule
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh rule
+TABLE      RULE    PRIORITY    MATCH                                 HASH           ACTION         COUNTER
+---------  ------  ----------  ------------------------------------  -------------  -------------  ---------
+pbh_table  nvgre   2           ether_type:        0x0800             inner_v6_hash  SET_ECMP_HASH  DISABLED
+                               ip_protocol:       0x2f
+                               gre_key:           0x2500/0xffffff00
+                               inner_ether_type:  0x86dd
+pbh_table  vxlan   1           ether_type:        0x0800             inner_v4_hash  SET_LAG_HASH   ENABLED
+                               ip_protocol:       0x11
+                               l4_dst_port:       0x12b5
+                               inner_ether_type:  0x0800
+```
+
+**show pbh hash**
+
+This command displays PBH hash configuration.
+
+- Usage:
+```bash
+show pbh hash
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh hash
+NAME           HASH FIELD
+-------------  -----------------
+inner_v4_hash  inner_ip_proto
+               inner_l4_dst_port
+               inner_l4_src_port
+               inner_dst_ipv4
+               inner_src_ipv4
+inner_v6_hash  inner_ip_proto
+               inner_l4_dst_port
+               inner_l4_src_port
+               inner_dst_ipv6
+               inner_src_ipv6
+```
+
+**show pbh hash-field**
+
+This command displays PBH hash field configuration.
+
+- Usage:
+```bash
+show pbh hash-field
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh hash-field
+NAME               FIELD              MASK       SEQUENCE    SYMMETRIC
+-----------------  -----------------  ---------  ----------  -----------
+inner_ip_proto     INNER_IP_PROTOCOL  N/A        1           No
+inner_l4_dst_port  INNER_L4_DST_PORT  N/A        2           Yes
+inner_l4_src_port  INNER_L4_SRC_PORT  N/A        2           Yes
+inner_dst_ipv4     INNER_DST_IPV4     255.0.0.0  3           Yes
+inner_src_ipv4     INNER_SRC_IPV4     0.0.0.255  3           Yes
+inner_dst_ipv6     INNER_DST_IPV6     ffff::     4           Yes
+inner_src_ipv6     INNER_SRC_IPV6     ::ffff     4           Yes
+```
+
+- Note:
+  - _SYMMETRIC_ is an artificial column and is only used to indicate fields symmetry
+
+**show pbh statistics**
+
+This command displays PBH statistics.
+
+- Usage:
+```bash
+show pbh statistics
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh statistics
+TABLE      RULE    RX PACKETS COUNT    RX BYTES COUNT
+---------  ------  ------------------  ----------------
+pbh_table  nvgre   0                   0
+pbh_table  vxlan   0                   0
+```
+
+- Note:
+  - _RX PACKETS COUNT_ and _RX BYTES COUNT_ can be cleared by user:
+  ```bash
+  admin@sonic:~$ sonic-clear pbh statistics
+  ```
+
+### PBH config commands
+
+This subsection explains how to configure PBH.
+
+**config pbh table**
+
+This command is used to manage PBH table objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh table add <table_name> --interface-list <interface_list> --description <description>
+config pbh table update <table_name> [ --interface-list <interface_list> ] [ --description <description> ]
+config pbh table delete <table_name>
+```
+
+- Parameters:
+  - _table_name_: the name of the PBH table
+  - _interface_list_: interfaces to which PBH table is applied
+  - _description_: the description of the PBH table
+
+- Examples:
+```bash
+config pbh table add 'pbh_table' \
+--interface-list 'Ethernet0,Ethernet4,PortChannel0001,PortChannel0002' \
+--description 'NVGRE and VxLAN'
+config pbh table update 'pbh_table' \
+--interface-list 'Ethernet0'
+config pbh table delete 'pbh_table'
+```
+
+**config pbh rule**
+
+This command is used to manage PBH rule objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh rule add <table_name> <rule_name> --priority <priority> \
+[ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
+[ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
+--hash <hash> [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
+config pbh rule update <table_name> <rule_name> [ --priority <priority> ] \
+[ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
+[ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
+[ --hash <hash> ] [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
+config pbh rule delete <table_name> <rule_name>
+```
+
+- Parameters:
+  - _table_name_: the name of the PBH table
+  - _rule_name_: the name of the PBH rule
+  - _priority_: the priority of the PBH rule
+  - _gre_key_: packet match for the PBH rule: GRE key (value/mask)
+  - _ether_type_: packet match for the PBH rule: EtherType (IANA Ethertypes)
+  - _ip_protocol_: packet match for the PBH rule: IP protocol (IANA Protocol Numbers)
+  - _ipv6_next_header_: packet match for the PBH rule: IPv6 Next header (IANA Protocol Numbers)
+  - _l4_dst_port_: packet match for the PBH rule: L4 destination port
+  - _inner_ether_type_: packet match for the PBH rule: inner EtherType (IANA Ethertypes)
+  - _hash_: _hash_ object to apply with the PBH rule
+  - _packet_action_: packet action for the PBH rule
+
+    Valid values:
+    - SET_ECMP_HASH
+    - SET_LAG_HASH
+
+    Default:
+    - SET_ECMP_HASH
+
+  - _flow_counter_: packet/byte counter for the PBH rule
+
+    Valid values:
+    - DISABLED
+    - ENABLED
+
+    Default:
+    - DISABLED
+
+- Examples:
+```bash
+config pbh rule add 'pbh_table' 'nvgre' \
+--priority '2' \
+--ether-type '0x0800' \
+--ip-protocol '0x2f' \
+--gre-key '0x2500/0xffffff00' \
+--inner-ether-type '0x86dd' \
+--hash 'inner_v6_hash' \
+--packet-action 'SET_ECMP_HASH' \
+--flow-counter 'DISABLED'
+config pbh rule update 'pbh_table' 'nvgre' \
+--flow-counter 'ENABLED'
+config pbh rule delete 'pbh_table' 'nvgre'
+```
+
+**config pbh hash**
+
+This command is used to manage PBH hash objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh hash add <hash_name> --hash-field-list <hash_field_list>
+config pbh hash update <hash_name> [ --hash-field-list <hash_field_list> ]
+config pbh hash delete <hash_name>
+```
+
+- Parameters:
+  - _hash_name_: the name of the PBH hash
+  - _hash_field_list_: list of _hash-field_ objects to apply with the PBH hash
+
+- Examples:
+```bash
+config pbh hash add 'inner_v6_hash' \
+--hash-field-list 'inner_ip_proto,inner_l4_dst_port,inner_l4_src_port,inner_dst_ipv6,inner_src_ipv6'
+config pbh hash update 'inner_v6_hash' \
+--hash-field-list 'inner_ip_proto'
+config pbh hash delete 'inner_v6_hash'
+```
+
+**config pbh hash-field**
+
+This command is used to manage PBH hash field objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh hash-field add <hash_field_name> \
+--hash-field <hash_field> [ --ip-mask <ip_mask> ] --sequence-id <sequence_id>
+config pbh hash-field update <hash_field_name> \
+[ --hash-field <hash_field> ] [ --ip-mask <ip_mask> ] [ --sequence-id <sequence_id> ]
+config pbh hash-field delete <hash_field_name>
+```
+
+- Parameters:
+  - _hash_field_name_: the name of the PBH hash field
+  - _hash_field_: native hash field for the PBH hash field
+
+    Valid values:
+    - INNER_IP_PROTOCOL
+    - INNER_L4_DST_PORT
+    - INNER_L4_SRC_PORT
+    - INNER_DST_IPV4
+    - INNER_SRC_IPV4
+    - INNER_DST_IPV6
+    - INNER_SRC_IPV6
+
+  - _ip_mask_: IPv4/IPv6 address mask for the PBH hash field
+
+    Valid only: _hash_field_ is:
+    - INNER_DST_IPV4
+    - INNER_SRC_IPV4
+    - INNER_DST_IPV6
+    - INNER_SRC_IPV6
+
+  - _sequence_id_: the order in which fields are hashed
+
+- Examples:
+```bash
+config pbh hash-field add 'inner_dst_ipv6' \
+--hash-field 'INNER_DST_IPV6' \
+--ip-mask 'ffff::' \
+--sequence-id '4'
+config pbh hash-field update 'inner_dst_ipv6' \
+--ip-mask 'ffff:ffff::'
+config pbh hash-field delete 'inner_dst_ipv6'
+```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#pbh)
+
 ## QoS
 
 ### QoS Show commands
@@ -9412,6 +9713,60 @@ If the SONiC system was running for quite some time `show techsupport` will prod
   admin@sonic:~$ show techsupport --since='hour ago' # Will collect syslog and core files for the last one hour
   ```
 
+### Debug Dumps
+
+In SONiC, there usually exists a set of tables related/relevant to a particular module. All of these might have to be looked at to confirm whether any configuration update is properly applied and propagated. This utility comes in handy because it prints a unified view of the redis-state for a given module
+		
+- Usage:
+  ```
+  Usage: dump state [OPTIONS] MODULE IDENTIFIER	 
+  Dump the redis-state of the identifier for the module specified
+  
+  Options:
+	  -s, --show            Display Modules Available
+	  -d, --db TEXT         Only dump from these Databases
+	  -t, --table           Print in tabular format  [default: False]
+	  -k, --key-map         Only fetch the keys matched, don't extract field-value dumps  [default: False]
+	  -v, --verbose         Prints any intermediate output to stdout useful for dev & troubleshooting  [default: False]
+	  -n, --namespace TEXT  Dump the redis-state for this namespace.  [default: DEFAULT_NAMESPACE]
+	  --help                Show this message and exit.
+  ```
+
+  
+- Examples:
+  ```
+  root@sonic# dump state --show
+  Module    Identifier
+  --------  ------------
+  port      port_name
+  copp      trap_id		
+  ```
+		
+  ```
+  admin@sonic:~$ dump state copp arp_req --key-map --db ASIC_DB
+  {
+	    "arp_req": {
+		"ASIC_DB": {
+		    "keys": [
+			"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF_TRAP:oid:0x22000000000c5b",
+			"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF_TRAP_GROUP:oid:0x11000000000c59",
+			"ASIC_STATE:SAI_OBJECT_TYPE_POLICER:oid:0x12000000000c5a",
+			"ASIC_STATE:SAI_OBJECT_TYPE_QUEUE:oid:0x15000000000626"
+		    ],
+		    "tables_not_found": [],
+		    "vidtorid": {
+			"oid:0x22000000000c5b": "oid:0x200000000022",
+			"oid:0x11000000000c59": "oid:0x300000011",
+			"oid:0x12000000000c5a": "oid:0x200000012",
+			"oid:0x15000000000626": "oid:0x12e0000040015"
+		    }
+		}
+	    }
+	}	
+  ```
+  
+		
+		
 Go Back To [Beginning of the document](#) or [Beginning of this section](#troubleshooting-commands)
 
 ## Routing Stack
