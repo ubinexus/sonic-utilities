@@ -3379,9 +3379,6 @@ This sub-section explains the following list of configuration on the interfaces.
 5) startup - to bring up the administratively shutdown interface
 6) breakout - to set interface breakout mode
 7) autoneg - to set interface auto negotiation mode
-8) advertised-speeds - to set interface advertised speeds
-9) advertised-types - to set interface advertised types
-10) type - to set interface type
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -3716,7 +3713,7 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
-**config interface autoneg <interface_name> (Versions >= 202106)**
+**config interface autoneg <interface_name> (Versions >= 202012)**
 
 This command is used to set port auto negotiation mode.
 
@@ -3737,79 +3734,6 @@ This command is used to set port auto negotiation mode.
   admin@sonic:~$ sudo config interface autoneg Ethernet0 enabled
 
   admin@sonic:~$ sudo config interface autoneg Ethernet0 disabled
-  ```
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
-**config interface advertised-speeds <interface_name> (Versions >= 202106)**
-
-This command is used to set port advertised speed.
-
-- Usage:
-  ```
-  sudo config interface advertised-speeds --help
-  Usage: config interface advertised-speeds [OPTIONS] <interface_name> <speed_list>
-
-    Set interface advertised speeds
-
-  Options:
-    -v, --verbose   Enable verbose output
-    -h, -?, --help  Show this message and exit.
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config interface advertised-speeds Ethernet0 all
-
-  admin@sonic:~$ sudo config interface advertised-speeds Ethernet0 50000,100000
-  ```
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
-**config interface advertised-types <interface_name> (Versions >= 202106)**
-
-This command is used to set port advertised interface types.
-
-- Usage:
-  ```
-  sudo config interface advertised-types --help
-  Usage: config interface advertised-types [OPTIONS] <interface_name> <interface_type_list>
-
-    Set interface advertised types
-
-  Options:
-    -v, --verbose   Enable verbose output
-    -h, -?, --help  Show this message and exit.
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config interface advertised-types Ethernet0 all
-
-  admin@sonic:~$ sudo config interface advertised-types Ethernet0 CR,CR4
-  ```
-
-Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
-
-**config interface type <interface_name> (Versions >= 202106)**
-
-This command is used to set port interface type.
-
-- Usage:
-  ```
-  sudo config interface type --help
-  Usage: config interface type [OPTIONS] <interface_name> <interface_type_value>
-
-    Set interface type
-
-  Options:
-    -v, --verbose   Enable verbose output
-    -h, -?, --help  Show this message and exit.
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config interface type Ethernet0 CR4
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
