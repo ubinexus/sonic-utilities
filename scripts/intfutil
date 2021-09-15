@@ -384,6 +384,7 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
 
         full_intf_table_name = "INTF_TABLE" + ":" + sub_intf_name
 
+
         if status_type == "vlan":
             vlan_id = appl_db.get(appl_db.APPL_DB, full_intf_table_name, status_type)
             return vlan_id
