@@ -315,7 +315,6 @@ def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, port
     sub_intf_sep_idx = sub_intf_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
     if sub_intf_sep_idx != -1:
         parent_port_name = intf_get_longname(sub_intf_name[:sub_intf_sep_idx])
-        vlan_id = sub_intf_name[sub_intf_sep_idx + 1:]
 
         full_intf_table_name = "INTF_TABLE" + ":" + sub_intf_name
 

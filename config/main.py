@@ -5860,7 +5860,6 @@ def subinterface(ctx, redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     ctx.obj = {'db': config_db}
-    pass
 
 def subintf_vlan_check(config_db, parent_intf, vlan):
     subintf_db = config_db.get_table('VLAN_SUB_INTERFACE')
@@ -5889,7 +5888,6 @@ def add_subinterface(ctx, subinterface_name, vid):
         ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
     interface_alias = subinterface_name[:sub_intf_sep_idx]
-    vlan_id = subinterface_name[sub_intf_sep_idx + 1:]
     if interface_alias is None:
         ctx.fail("{} invalid subinterface".format(interface_alias))
 
