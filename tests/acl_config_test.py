@@ -82,7 +82,7 @@ class TestConfigAcl(object):
         assert result.exit_code != 0
         assert "Cannot bind empty VLAN Vlan3000" in result.output
 
-     @pytest.fixture(scope="function")
+    @pytest.fixture(scope="function")
     def mock_configDBConnector(self):
         db = {
             "ACL_RULE": {},
