@@ -1,11 +1,8 @@
 import json
 import os
-import subprocess
 from enum import Enum
-from jsonpatch import PatchOperation, AddOperation, RemoveOperation, ReplaceOperation
-from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper, JsonChange
+                       DryRunConfigWrapper, PatchWrapper
 from .patch_sorter import PatchSorter
 from .change_applier import ChangeApplier
 
