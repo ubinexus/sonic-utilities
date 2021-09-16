@@ -15,7 +15,6 @@ from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
-from utilities_common.routing_stack import get_routing_stack
 
 def add_commands(cli):
     @cli.command('route-map')
@@ -346,13 +345,10 @@ def add_commands(cli):
     @click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
     def techsupport(args, since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent):
         """Gather information for troubleshooting"""
-        # When running on framewave also decode the the current ipstrace before packaging
-        # the log files
-        if routing_stack == "framewave":
-            # Run the sigtrace command and redirect its status output to /dev/null
-            # to not modify the show techsupport output
-            cmd = "docker exec -i bgp /opt/framewave/bin/sigtrace /var/log/bgp/ipstrc.log > /dev/null"
-            run_command(cmd)
+        # Run the sigtrace command and redirect its status output to /dev/null
+        # to not modify the show techsupport output
+        cmd = "docker exec -i bgp /opt/framewave/bin/sigtrace /var/log/bgp/ipstrc.log > /dev/null"
+        run_command(cmd)
 
         cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
 
