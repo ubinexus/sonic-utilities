@@ -507,16 +507,9 @@ class DBMigrator():
 
     def version_2_0_0(self):
         """
-        Version 2_0_0.
-        """
-        log.log_info('Handling version_2_0_0')
-        return 'version_2_0_1'
-
-    def version_2_0_1(self):
-        """
         Current latest version. Nothing to do here.
         """
-        log.log_info('Handling version_2_0_1')
+        log.log_info('Handling version_2_0_0')
         return None
 
     def get_version(self):
