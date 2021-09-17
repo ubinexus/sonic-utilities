@@ -29,7 +29,7 @@ class TestShowRebootCause(object):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
 
-    # Test 'show reboot-cause' without previous-reboot-cause.json 
+    # Test 'show reboot-cause' without reboot-cause.txt
     def test_reboot_cause_no_history_file(self):
         expected_output = "Unknown\n"
         runner = CliRunner()

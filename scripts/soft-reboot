@@ -16,7 +16,7 @@ EXIT_NEXT_IMAGE_NOT_EXISTS=4
 VMCORE_FILE=/proc/vmcore
 if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
         echo "We have a /proc/vmcore, then we just kdump'ed"
-        echo "User issued 'kdump' command [User: kdump, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+        echo "{\"cause\":\"kdump\",\"user\":\"kdump\",\"time\":\"${REBOOT_TIME}\"}" > ${REBOOT_CAUSE_FILE}
         sync
         PLATFORM=$(grep -oP 'sonic_platform=\K\S+' /proc/cmdline)
         if [ ! -z "${PLATFORM}" -a -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
@@ -201,7 +201,7 @@ load_kernel
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
-echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+echo "{\"cause\":\"${REBOOT_SCRIPT_NAME}\",\"user\":\"${REBOOT_USER}\",\"time\":\"${REBOOT_TIME}\"}" > ${REBOOT_CAUSE_FILE}
 
 sync
 sleep 3

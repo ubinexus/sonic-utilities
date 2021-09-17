@@ -10,7 +10,7 @@ REBOOT_TIME=$(date)
 VMCORE_FILE=/proc/vmcore
 if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
         echo "We have a /proc/vmcore, then we just kdump'ed"
-        echo "Kernel Panic [Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+        echo "{\"cause\":\"Kernel Panic\",\"time\": \"${REBOOT_TIME}\"}" > ${REBOOT_CAUSE_FILE}
         sync
         PLATFORM=$(grep -oP 'sonic_platform=\K\S+' /proc/cmdline)
         if [ ! -z "${PLATFORM}" -a -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
@@ -176,7 +176,7 @@ clear_warm_boot
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
-echo "User issued 'reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+echo "{\"cause\":\"reboot\",\"user\":\"${REBOOT_USER}\",\"time\": \"${REBOOT_TIME}\"}" > ${REBOOT_CAUSE_FILE}
 sync
 /sbin/fstrim -av
 sleep 3

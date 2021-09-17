@@ -8,7 +8,7 @@ from swsscommon.swsscommon import SonicV2Connector
 import utilities_common.cli as clicommon
 
 
-PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
+PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/reboot-cause.txt"
 
 
 def read_reboot_cause_file():

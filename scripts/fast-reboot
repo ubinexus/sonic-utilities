@@ -710,7 +710,8 @@ fi
 # Update the reboot cause file to reflect that user issued this script
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
-echo "User issued '${REBOOT_SCRIPT_NAME}' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+echo "{\"cause\":\"${REBOOT_SCRIPT_NAME}\",\"user\":\"${REBOOT_USER}\",\"time\":\"${REBOOT_TIME}\"}" > ${REBOOT_CAUSE_FILE}
+
 
 # Wait until all buffers synced with disk
 sync
