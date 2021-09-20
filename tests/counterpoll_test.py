@@ -26,6 +26,7 @@ PORT_BUFFER_DROP                   60000  enable
 QUEUE_WATERMARK_STAT               10000  enable
 PG_WATERMARK_STAT                  10000  enable
 PG_DROP_STAT                       10000  enable
+ACL                                10000  enable
 """
 
 class TestCounterpoll(object):
@@ -63,6 +64,15 @@ class TestCounterpoll(object):
         assert result.exit_code == 2
         assert expected in result.output
 
+    @pytest.mark.parametrize("interval", [100, 50000])
+    def test_acl_interval_range(self, interval):
+        runner = CliRunner()
+        result = runner.invoke(counterpoll.cli.commands["acl"].commands["interval"], [str(interval)])
+        print(result.output)
+        expected = "Invalid value for \"POLL_INTERVAL\": {} is not in the valid range of 1000 to 30000.".format(interval)
+        assert result.exit_code == 2
+        assert expected in result.output
+
     @pytest.fixture(scope='class')
     def _get_config_db_file(self):
         sample_config_db_file = os.path.join(test_path, "counterpoll_input", "config_db.json")
@@ -97,17 +107,29 @@ class TestCounterpoll(object):
         table = db.cfgdb.get_table('FLEX_COUNTER_TABLE')
         assert status == table["PG_DROP"]["FLEX_COUNTER_STATUS"]
 
-    def test_update_pg_drop_interval(self):
+    @pytest.mark.parametrize("status", ["disable", "enable"])
+    def test_update_acl_status(self, status):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(counterpoll.cli.commands["acl"].commands[status], [], obj=db.cfgdb)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        table = db.cfgdb.get_table("FLEX_COUNTER_TABLE")
+        assert status == table["ACL"]["FLEX_COUNTER_STATUS"]
+
+    def test_update_acl_interval(self):
         runner = CliRunner()
         db = Db()
         test_interval = "20000"
 
-        result = runner.invoke(counterpoll.cli.commands["pg-drop"].commands["interval"], [test_interval], obj=db.cfgdb)
+        result = runner.invoke(counterpoll.cli.commands["acl"].commands["interval"], [test_interval], obj=db.cfgdb)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
-        table = db.cfgdb.get_table('FLEX_COUNTER_TABLE')
-        assert test_interval == table["PG_DROP"]["POLL_INTERVAL"]
+        table = db.cfgdb.get_table("FLEX_COUNTER_TABLE")
+        assert test_interval == table["ACL"]["POLL_INTERVAL"]
 
     @classmethod
     def teardown_class(cls):

@@ -16,6 +16,9 @@ from swsscommon.swsscommon import SonicV2Connector
 
 PBH_COUNTERS_LOCATION = '/tmp/.pbh_counters.txt'
 
+COUNTER_PACKETS_ATTR = "SAI_ACL_COUNTER_ATTR_PACKETS"
+COUNTER_BYTES_ATTR = "SAI_ACL_COUNTER_ATTR_BYTES"
+
 pbh_hash_field_tbl_name = 'PBH_HASH_FIELD'
 pbh_hash_tbl_name = 'PBH_HASH'
 pbh_table_tbl_name = 'PBH_TABLE'
@@ -377,8 +380,8 @@ def PBH_STATISTICS(db):
             row = [
                 key[0],
                 key[1],
-                get_counter_value(pbh_counters, saved_pbh_counters, key, 'packets'),
-                get_counter_value(pbh_counters, saved_pbh_counters, key, 'bytes'),
+                get_counter_value(pbh_counters, saved_pbh_counters, key, COUNTER_PACKETS_ATTR),
+                get_counter_value(pbh_counters, saved_pbh_counters, key, COUNTER_BYTES_ATTR),
             ]
             body.append(row)
 
@@ -420,9 +423,18 @@ def read_pbh_counters(pbh_rules) -> dict:
 
     db_connector = SonicV2Connector(use_unix_socket_path=False)
     db_connector.connect(db_connector.COUNTERS_DB)
+    counters_db_separator = db_connector.get_db_separator(db_connector.COUNTERS_DB)
 
     for table, rule in natsort.natsorted(pbh_rules):
-        counter_props = lowercase_keys(db_connector.get_all(db_connector.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
+        rule_identifier = table + counters_db_separator + rule
+        rule_to_counter_map = db_connector.get_all(db_connector.COUNTERS_DB, "ACL_COUNTER_RULE_MAP")
+        if not rule_to_counter_map:
+            pbh_counters[table, rule] = {}
+        counter_oid = rule_to_counter_map.get(rule_identifier)
+        if not counter_oid:
+            pbh_counters[table, rule] = {}
+        counters_db_key = "COUNTERS" + counters_db_separator + counter_oid
+        counter_props = db_connector.get_all(db_connector.COUNTERS_DB, counters_db_key)
         if counter_props:
             pbh_counters[table, rule] = counter_props
 
@@ -455,10 +467,6 @@ def inject_symmetric_field(obj_list):
             obj_list[i].append('No')
 
         counter = 0
-
-
-def lowercase_keys(dictionary):
-    return dict((k.lower(), v) for k, v in dictionary.items()) if dictionary else None
 
 
 def register(cli):
