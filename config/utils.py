@@ -4,3 +4,8 @@ SYSLOG_IDENTIFIER = "config"
 
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
+
+log = logger.Logger(SYSLOG_IDENTIFIER)
+
+def not_covered():
+    print('not covered')
