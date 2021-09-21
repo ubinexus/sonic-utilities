@@ -19,6 +19,10 @@ stages:
   jobs:
   - job:
     displayName: "Python3"
+    variables:
+      DIFF_COVER_CHECK_THRESHOLD: 0
+      ${{ if ne(parameters.run_unit_test, false) }}:
+        DIFF_COVER_DISABLE: 'false'
     pool:
       vmImage: ubuntu-20.04
 
