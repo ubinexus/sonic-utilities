@@ -174,7 +174,7 @@ json_data_config_output_active_expected = """\
     "Ethernet0": "OK",
     "Ethernet4": "INPROGRESS",
     "Ethernet8": "OK",
-    "Ethernet16": "INPROGRESS",
+    "Ethernet16": "OK",
     "Ethernet12": "OK"
 }
 """
