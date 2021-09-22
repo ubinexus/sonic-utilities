@@ -563,6 +563,9 @@
     "MUX_LINKMGR_TABLE|Ethernet8": {
         "state": "unhealthy"
     },
+    "MUX_LINKMGR_TABLE|Ethernet16": {
+        "state": "healthy"
+    },
     "MUX_LINKMGR_TABLE|Ethernet12": {
         "state": "unhealthy"
     },

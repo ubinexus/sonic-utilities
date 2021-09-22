@@ -31,6 +31,7 @@ Ethernet0   active    healthy
 Ethernet4   standby   healthy
 Ethernet8   standby   unhealthy
 Ethernet12  unknown   unhealthy
+Ethernet16  standby   healthy
 Ethernet32  active    healthy
 """
 
@@ -52,6 +53,10 @@ json_data_status_output_expected = """\
         "Ethernet12": {
             "STATUS": "unknown",
             "HEALTH": "unhealthy"
+        },
+        "Ethernet16": {
+            "STATUS": "standby",
+            "HEALTH": "healthy"
         },
         "Ethernet32": {
             "STATUS": "active",
@@ -169,6 +174,7 @@ json_data_config_output_active_expected = """\
     "Ethernet0": "OK",
     "Ethernet4": "INPROGRESS",
     "Ethernet8": "OK",
+    "Ethernet16": "INPROGRESS",
     "Ethernet12": "OK"
 }
 """
