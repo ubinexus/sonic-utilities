@@ -401,9 +401,6 @@ class TestMuxcable(object):
 
     def test_config_muxcable_mode_auto_json(self):
         runner = CliRunner()
-
-    def test_config_muxcable_mode_auto_json(self):
-        runner = CliRunner()
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["auto", "all", "--json"], obj=db)
