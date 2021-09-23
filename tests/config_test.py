@@ -108,6 +108,30 @@ class TestLoadMinigraph(object):
             db.cfgdb.set_entry("PORT", "Ethernet0", {"admin_status": "down"})
             port_config = [{"PORT": {"Ethernet0": {"admin_status": "up"}}}]
             self.check_port_config(db, config, port_config, "config interface startup Ethernet0")
+    
+    def test_load_minigraph_with_mirror_dscp(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+            "utilities_common.cli.run_command",
+            mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            db = Db()
+            # Insert ACL_TABLE with type MIRROR_DSCP
+            db.cfgdb.set_entry("ACL_TABLE", "EVERFLOW_DSCP", {"type": config.TYPE_MIRROR_DSCP})
+            # Verify load_minigraph is completed without error if config files are not present
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            assert mock_run_command.call_count == 10
+
+            config.DSCP_ACL_RULE_CONFIG_PATH = "./everflow_dscp_input/acl_rule.json"
+            config.DSCP_POLICER_CONFIG_PATH = "./everflow_dscp_input/policer.json"
+            config.DSCP_MIRROR_SESSION_CONFIG_PATH = "./everflow_dscp_input/mirror_session.json"
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            assert mock_run_command.call_count == 13
+
 
     def check_port_config(self, db, config, port_config, expected_output):
         def read_json_file_side_effect(filename):
