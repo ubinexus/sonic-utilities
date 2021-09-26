@@ -5,6 +5,9 @@
     "BUFFER_PG|Ethernet4|0": {
         "profile": "ingress_lossy_pg_zero_profile"
     },
+    "BUFFER_PG|Ethernet4|3-4": {
+        "profile": "pg_lossless_10000_5m_profile"
+    },
     "BUFFER_PG|Ethernet8|3-4": {
         "profile": "pg_lossless_10000_5m_profile"
     },
@@ -25,6 +28,9 @@
     },
     "BUFFER_PG|Ethernet20|0": {
         "profile": "ingress_lossy_pg_zero_profile"
+    },
+    "BUFFER_PG|Ethernet20|3-4": {
+        "profile": "pg_lossless_100000_5m_profile"
     },
     "BUFFER_PG|Ethernet24|0": {
         "profile": "ingress_lossy_pg_zero_profile"
