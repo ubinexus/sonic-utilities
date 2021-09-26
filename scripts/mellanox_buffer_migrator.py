@@ -971,7 +971,6 @@ class MellanoxBufferMigrator():
             if lossy_pg_item:
                 port_pgs = buffer_pg_items.get(port_name)
                 is_default = False
-                does_default_lossless_exist = False
                 if not port_pgs:
                     is_default = True
                 else:
@@ -986,16 +985,18 @@ class MellanoxBufferMigrator():
                                 cable_length = match.group(2)
                                 if speed == port_info.get('speed') and cable_length == cable_length_entries.get(port_name):
                                     is_default = True
-                                    does_default_lossless_exist = True
 
                 if is_default:
                     lossy_pg_key = '{}|0'.format(port_name)
                     lossless_pg_key = '{}|3-4'.format(port_name)
                     self.configDB.set_entry('BUFFER_PG', lossy_pg_key, lossy_pg_item)
-                    if does_default_lossless_exist:
-                        self.configDB.set_entry('BUFFER_PG', lossless_pg_key, None)
-                    elif is_dynamic:
+                    if is_dynamic:
                         self.configDB.set_entry('BUFFER_PG', lossless_pg_key, {'profile': 'NULL'})
+                        # For traditional model, we must NOT remove the default lossless PG
+                        # because it has been popagated to APPL_DB during db_migrator
+                        # Leaving it untouched in CONFIG_DB enables traditional buffer manager to
+                        # remove it from CONFIG_DB as well as APPL_DB
+                        # However, removing it from CONFIG_DB causes it left in APPL_DB
                     zero_item_count += 1
 
             if lossy_queue_item and lossless_queue_item:
