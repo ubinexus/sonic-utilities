@@ -844,20 +844,20 @@ class MellanoxBufferMigrator():
         Eg.
         Before reorganize:
         {
-          "Ethernet0|0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
-          "Ethernet0|3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_100000_5m_profile]"},
-          "Ethernet4|0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
-          "Ethernet4|3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_50000_5m_profile]"}
+          "Ethernet0|0": {"profile" : "ingress_lossy_profile"},
+          "Ethernet0|3-4": {"profile": "pg_lossless_100000_5m_profile"},
+          "Ethernet4|0": {"profile" : "ingress_lossy_profile"},
+          "Ethernet4|3-4": {"profile": "pg_lossless_50000_5m_profile"}
         }
         After reorganize:
         {
           "Ethernet0": {
-             "0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
-             "3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_100000_5m_profile]"}
+             "0": {"profile" : "ingress_lossy_profile"},
+             "3-4": {"profile": "pg_lossless_100000_5m_profile"}
           },
           "Ethernet4": {
-             "0": {"profile" : "[BUFFER_PROFILE|ingress_lossy_profile]"},
-             "3-4": {"profile": "[BUFFER_PROFILE|pg_lossless_50000_5m_profile]"}
+             "0": {"profile" : "ingress_lossy_profile"},
+             "3-4": {"profile": "pg_lossless_50000_5m_profile"}
           }
         }
         """
@@ -904,9 +904,9 @@ class MellanoxBufferMigrator():
         if is_dynamic:
             # For dynamic model, we just need to add the default buffer objects to admin down ports
             # Buffer manager will apply zero profiles automatically when a port is shutdown
-            lossy_pg_item = {'profile': '[BUFFER_PROFILE|ingress_lossy_profile]'} if 'ingress_lossy_profile' in buffer_profile_table else None
-            lossy_queue_item = {'profile': '[BUFFER_PROFILE|q_lossy_profile]'} if 'q_lossy_profile' in buffer_profile_table else None
-            lossless_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossless_profile]'} if 'egress_lossless_profile' in buffer_profile_table else None
+            lossy_pg_item = {'profile': 'ingress_lossy_profile'} if 'ingress_lossy_profile' in buffer_profile_table else None
+            lossy_queue_item = {'profile': 'q_lossy_profile'} if 'q_lossy_profile' in buffer_profile_table else None
+            lossless_queue_item = {'profile': 'egress_lossless_profile'} if 'egress_lossless_profile' in buffer_profile_table else None
 
             queue_items_to_apply = {'0-2': lossy_queue_item,
                                     '3-4': lossless_queue_item,
@@ -914,17 +914,17 @@ class MellanoxBufferMigrator():
 
             if single_pool:
                 if 'ingress_lossless_profile' in buffer_profile_table:
-                    ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_profile]'}
+                    ingress_profile_list_item = {'profile_list': 'ingress_lossless_profile'}
                 else:
                     ingress_profile_list_item = None
             else:
                 if 'ingress_lossless_profile' in buffer_profile_table and 'ingress_lossy_profile' in buffer_profile_table:
-                    ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]'}
+                    ingress_profile_list_item = {'profile_list': 'ingress_lossless_profile,ingress_lossy_profile'}
                 else:
                     ingress_profile_list_item = None
 
             if 'egress_lossless_profile' in buffer_profile_table and 'egress_lossy_profile' in buffer_profile_table:
-                egress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]'}
+                egress_profile_list_item = {'profile_list': 'egress_lossless_profile,egress_lossy_profile'}
             else:
                 egress_profile_list_item = None
 
@@ -936,42 +936,42 @@ class MellanoxBufferMigrator():
             # Define zero buffer pools and profiles
             ingress_zero_pool = {'size': '0', 'mode': 'static', 'type': 'ingress'}
             ingress_lossy_pg_zero_profile = {
-                "pool":"[BUFFER_POOL|ingress_zero_pool]",
+                "pool":"ingress_zero_pool",
                 "size":"0",
                 "static_th":"0"
             }
-            lossy_pg_item = {'profile': '[BUFFER_PROFILE|ingress_lossy_pg_zero_profile]'}
+            lossy_pg_item = {'profile': 'ingress_lossy_pg_zero_profile'}
 
             ingress_lossless_zero_profile = {
-                "pool":"[BUFFER_POOL|ingress_lossless_pool]",
+                "pool":"ingress_lossless_pool",
                 "size":"0",
                 "dynamic_th":"-8"
             }
 
             if single_pool:
-                ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_zero_profile]'}
+                ingress_profile_list_item = {'profile_list': 'ingress_lossless_zero_profile'}
             else:
                 ingress_lossy_zero_profile = {
-                    "pool":"[BUFFER_POOL|ingress_lossy_pool]",
+                    "pool":"ingress_lossy_pool",
                     "size":"0",
                     "dynamic_th":"-8"
                 }
-                ingress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|ingress_lossless_zero_profile],[BUFFER_PROFILE|ingress_lossy_zero_profile]'}
+                ingress_profile_list_item = {'profile_list': 'ingress_lossless_zero_profile,ingress_lossy_zero_profile'}
 
             egress_lossless_zero_profile = {
-                "pool":"[BUFFER_POOL|egress_lossless_pool]",
+                "pool":"egress_lossless_pool",
                 "size":"0",
                 "dynamic_th":"-8"
             }
-            lossless_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossless_zero_profile]'}
+            lossless_queue_item = {'profile': 'egress_lossless_zero_profile'}
 
             egress_lossy_zero_profile = {
-                "pool":"[BUFFER_POOL|egress_lossy_pool]",
+                "pool":"egress_lossy_pool",
                 "size":"0",
                 "dynamic_th":"-8"
             }
-            lossy_queue_item = {'profile': '[BUFFER_PROFILE|egress_lossy_zero_profile]'}
-            egress_profile_list_item = {'profile_list': '[BUFFER_PROFILE|egress_lossless_zero_profile],[BUFFER_PROFILE|egress_lossy_zero_profile]'}
+            lossy_queue_item = {'profile': 'egress_lossy_zero_profile'}
+            egress_profile_list_item = {'profile_list': 'egress_lossless_zero_profile,egress_lossy_zero_profile'}
 
             queue_items_to_apply = {'0-2': lossy_queue_item,
                                     '3-4': lossless_queue_item,
@@ -985,7 +985,7 @@ class MellanoxBufferMigrator():
             if not single_pool:
                 profiles_to_insert['ingress_lossy_zero_profile'] = ingress_lossy_zero_profile
 
-        lossless_profile_pattern = '\[BUFFER_PROFILE\|pg_lossless_([1-9][0-9]*000)_([1-9][0-9]*m)_profile\]'
+        lossless_profile_pattern = 'pg_lossless_([1-9][0-9]*000)_([1-9][0-9]*m)_profile'
         zero_item_count = 0
         for port_name, port_info in port_table.items():
             if port_info.get('admin_status') == 'up':

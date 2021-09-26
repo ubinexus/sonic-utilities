@@ -57,7 +57,6 @@ from . import system_health
 from . import warm_restart
 from . import plugins
 
-
 # Global Variables
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
@@ -175,7 +174,7 @@ def cli(ctx):
 
 # Add groups from other modules
 cli.add_command(acl.acl)
-cli.add_command(chassis_modules.chassis_modules)
+cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
@@ -1066,7 +1065,9 @@ def users(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
 @click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
-def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent):
+@click.option('--debug-dump', is_flag=True, help="Collect Debug Dump Output")
+@click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
+def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
     cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
 
@@ -1081,7 +1082,13 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
 
     if since:
         cmd += " -s '{}'".format(since)
+    
+    if debug_dump:
+        cmd += " -d "
+
     cmd += " -t {}".format(cmd_timeout)
+    if redirect_stderr:
+        cmd += " -r"
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1668,12 +1675,10 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
-
 # Load plugins and register them
 helper = util_base.UtilHelper()
 for plugin in helper.load_plugins(plugins):
     helper.register_plugin(plugin, cli)
-
 
 if __name__ == '__main__':
     cli()
