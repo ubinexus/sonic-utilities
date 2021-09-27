@@ -16,8 +16,7 @@
     <Interface Index="13" PortName="24" InterfaceName="Ethernet7/1" Speed="100000" />
     <Interface Index="14" PortName="28" InterfaceName="Ethernet8/1" Speed="100000" />
     <Interface Index="15" PortName="32" InterfaceName="Ethernet9/1" Speed="100000" />
-    <Interface Index="16" PortName="36" InterfaceName="Ethernet10/1" Speed="50000" />
-    <Interface Index="16" PortName="36" InterfaceName="Ethernet10/3" Speed="50000" />
+    <Interface Index="16" PortName="36" InterfaceName="Ethernet10/1" Speed="100000" />
     <Interface Index="17" PortName="40" InterfaceName="Ethernet11/1" Speed="50000" />
     <Interface Index="18" PortName="42" InterfaceName="Ethernet11/3" Speed="50000" />
     <Interface Index="19" PortName="44" InterfaceName="Ethernet12/1" Speed="50000" />
