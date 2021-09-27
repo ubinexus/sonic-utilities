@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_3'
+        self.CURRENT_VERSION = 'version_2_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -537,24 +537,16 @@ class DBMigrator():
             for name, data in portchannel_table.items():
                 data['lacp_key'] = 'auto'
                 self.configDB.set_entry('PORTCHANNEL', name, data)
+        if self.asic_type == "mellanox":
+            self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
         self.set_version('version_2_0_2')
         return 'version_2_0_2'
 
     def version_2_0_2(self):
         """
-        Version 2_0_2
-        """
-        log.log_info('Handling version_2_0_2')
-        if self.asic_type == "mellanox":
-            self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
-        self.set_version('version_2_0_3')
-        return 'version_2_0_3'
-
-    def version_2_0_3(self):
-        """
         Current latest version. Nothing to do here.
         """
-        log.log_info('Handling version_2_0_3')
+        log.log_info('Handling version_2_0_2')
         return None
 
     def get_version(self):
