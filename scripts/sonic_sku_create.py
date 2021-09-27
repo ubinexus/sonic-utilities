@@ -76,7 +76,7 @@ class SkuCreate(object):
 
     PORT_ALIAS_PATTERNS = (
         re.compile(r"^etp(?P<port_index>\d+)(?P<lane>[a-d]?)"),
-        re.compile(r"^Ethernet(?P<port_index>\d+)(/)?(?(2)(?P<lane>[1-4]+)|$)")
+        re.compile(r"^Ethernet(?P<port_index>\d+)(/)?(?(2)(?P<lane>[1-4]+))")
     )
 
     def __init__(self):
