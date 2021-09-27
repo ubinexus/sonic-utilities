@@ -872,8 +872,6 @@ class MellanoxBufferMigrator():
         buffer_pg_items = self.mlnx_sort_buffer_tables(buffer_pg_table, 'BUFFER_PG')
         buffer_queue_items = self.mlnx_sort_buffer_tables(buffer_queue_table, 'BUFFER_QUEUE')
 
-        new_items = {}
-
         single_pool = not 'ingress_lossy_pool' in buffer_pool_table
 
         # Construct buffer items to be applied to admin down ports
