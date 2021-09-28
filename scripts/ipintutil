@@ -193,8 +193,13 @@ def get_ip_intfs_in_namespace(af, namespace, display):
     return ip_intfs
 
 
-def display_ip_intfs(ip_intfs):
-    header = ['Interface', 'Master', 'IPv4 address/mask',
+def display_ip_intfs(ip_intfs, af):
+    if af == netifaces.AF_INET:
+        IP_version = 'IPv4 address/mask'
+    elif af == netifaces.AF_INET6:
+        IP_version = 'IPv6 address/mask'
+
+    header = ['Interface', 'Master', IP_version,
               'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     for ip_intf, v in natsorted(ip_intfs.items()):
@@ -265,7 +270,7 @@ def main():
 
     load_db_config()
     ip_intfs = get_ip_intfs(af, namespace, display)
-    display_ip_intfs(ip_intfs)
+    display_ip_intfs(ip_intfs, af)
 
     sys.exit(0)
 
