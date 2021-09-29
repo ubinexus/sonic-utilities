@@ -160,36 +160,6 @@ class CriticalProcCoreDumpHandle():
         for container_name in self.core_ts_map:
             self.core_ts_map[container_name].sort()
 
-    def fetch_exit_event(self):
-        """Fetch the relevant entry in the AUTO_TECHSUPPORT|PROC_EXIT_EVENTS table"""
-        comm, _, pid, _, _ = self.core_name.split(".")
-        feature_name, supervisor_proc_name = "", ""
-        start = time.time()
-        sleep_time = INIT_SLEEP
-        while time.time() - start <= WAIT_BUFFER:
-            # It is seen in the experiments that the data almost always arrives late
-            time.sleep(sleep_time)  # Wait for the data to arrive
-            data = self.db.get_all(STATE_DB, CRITICAL_PROC)
-            if data:
-                for field in data:
-                    try:
-                        pid_, comm_ = data[field].split(";")
-                        if pid_ == pid and comm in comm_:
-                            feature_name, supervisor_proc_name = field.split(";")
-                            break
-                        elif comm_ == NO_COMM and pid_ == pid:
-                            feature_name, supervisor_proc_name = field.split(";")
-                            continue
-                    except Exception as e:
-                        continue
-            if feature_name and supervisor_proc_name:
-                break
-            # Increase the time to sleep as the likelihood of seeing
-            # the notification decreases as we wait longer
-            sleep_time = sleep_time * EXP_FACTOR
-        return feature_name, supervisor_proc_name
-
-
 def main():
     parser = argparse.ArgumentParser(description='Auto Techsupport Invocation and CoreDump Mgmt Script')
     parser.add_argument('name', type=str, help='Core Dump Name')
