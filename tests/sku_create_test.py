@@ -12,11 +12,23 @@ modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
 # xml file input related test resources
-xml_input_paths = ["tests/sku_create_input/2700_files", "tests/sku_create_input/7050_files"]
-output_xml_dir_paths = ["tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/", "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8_NEW"]
-sku_def_files = ["Mellanox-SN2700-D48C8.xml", "Arista-7050CX3-32S-D48C8.xml"]
-output_xml_file_paths = ["tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/port_config.ini", "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8_NEW/port_config.ini"]
-model_xml_file_paths = ["tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8/port_config.ini", "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8/port_config.ini"]
+xml_input_paths = ["tests/sku_create_input/2700_files", "tests/sku_create_input/7050_files", "tests/sku_create_input/7260_files"]
+output_xml_dir_paths = [
+    "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/",
+    "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8_NEW",
+    "tests/sku_create_input/7260_files/Arista-7260CX3-D108C8_NEW"
+]
+sku_def_files = ["Mellanox-SN2700-D48C8.xml", "Arista-7050CX3-32S-D48C8.xml", "Arista-7260CX3-D108C8.xml"]
+output_xml_file_paths = [
+    "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/port_config.ini",
+    "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8_NEW/port_config.ini",
+    "tests/sku_create_input/7260_files/Arista-7260CX3-D108C8_NEW/port_config.ini"
+]
+model_xml_file_paths = [
+    "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8/port_config.ini",
+    "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8/port_config.ini",
+    "tests/sku_create_input/7260_files/Arista-7260CX3-D108C8/port_config.ini"
+]
 
 minigraph_input_path = os.path.join(modules_path, "tests/sku_create_input/3800_files")
 output_minigraph_dir_path = os.path.join(modules_path, "tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50_NEW/")
