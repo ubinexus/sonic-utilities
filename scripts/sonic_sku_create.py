@@ -23,6 +23,7 @@ optional arguments:
 """
 
 import argparse
+import itertools
 import json
 import os
 import re
@@ -585,19 +586,26 @@ class SkuCreate(object):
             idx_arr = sorted(values[1])
 
             splt = len(splt_arr)
-            pattern = '(\d+),(\d+),(\d+),(\d+)'      #Currently the assumption is that the default(base) is 4 lanes
+            lanes = [_.strip() for _ in self.default_lanes_per_port[fp - 1].split(",")]
+            lanes_count = len(lanes)
+            if lanes_count % splt != 0:
+                print("Lanes(%s) could not be evenly splitted by %d." % (self.default_lanes_per_port[fp - 1], splt))
+                exit(1)
 
-            m = re.match(pattern,self.default_lanes_per_port[fp-1])
+            # split the lanes
+            it = iter(lanes)
+            lanes_splitted = list(iter(lambda: tuple(itertools.islice(it, lanes_count // splt)), ()))
+
             if (splt == 1):
-                self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2)+","+m.group(3)+","+m.group(4) 
+                self.portconfig_dict[idx_arr[0]][lanes_index] = ",".join(lanes_splitted[0])
                 self.portconfig_dict[idx_arr[0]][index_index] = str(fp)
                 self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((fp-1)*4)
                 if (self.verbose):
                     print("set_lanes -> FP: ",fp, "Split: ",splt)
                     print("PortConfig_dict ",idx_arr[0],":", self.portconfig_dict[idx_arr[0]])
             elif (splt == 2):
-                self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2) 
-                self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(3)+","+m.group(4)
+                self.portconfig_dict[idx_arr[0]][lanes_index] = ",".join(lanes_splitted[0])
+                self.portconfig_dict[idx_arr[1]][lanes_index] = ",".join(lanes_splitted[1])
                 self.portconfig_dict[idx_arr[0]][index_index] = str(fp) 
                 self.portconfig_dict[idx_arr[1]][index_index] = str(fp)
                 self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((fp-1)*4) 
@@ -607,10 +615,10 @@ class SkuCreate(object):
                     print("PortConfig_dict ",idx_arr[0],":", self.portconfig_dict[idx_arr[0]])
                     print("PortConfig_dict ",idx_arr[1],":", self.portconfig_dict[idx_arr[1]])
             elif (splt == 4):
-                self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1) 
-                self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(2) 
-                self.portconfig_dict[idx_arr[2]][lanes_index] = m.group(3) 
-                self.portconfig_dict[idx_arr[3]][lanes_index] = m.group(4)
+                self.portconfig_dict[idx_arr[0]][lanes_index] = ",".join(lanes_splitted[0])
+                self.portconfig_dict[idx_arr[1]][lanes_index] = ",".join(lanes_splitted[1])
+                self.portconfig_dict[idx_arr[2]][lanes_index] = ",".join(lanes_splitted[2])
+                self.portconfig_dict[idx_arr[3]][lanes_index] = ",".join(lanes_splitted[3])
                 self.portconfig_dict[idx_arr[0]][index_index] = str(fp) 
                 self.portconfig_dict[idx_arr[1]][index_index] = str(fp) 
                 self.portconfig_dict[idx_arr[2]][index_index] = str(fp) 
