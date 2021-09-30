@@ -107,6 +107,18 @@ class TestCounterpoll(object):
         table = db.cfgdb.get_table('FLEX_COUNTER_TABLE')
         assert status == table["PG_DROP"]["FLEX_COUNTER_STATUS"]
 
+    def test_update_pg_drop_interval(self):
+        runner = CliRunner()
+        db = Db()
+        test_interval = "20000"
+
+        result = runner.invoke(counterpoll.cli.commands["pg-drop"].commands["interval"], [test_interval], obj=db.cfgdb)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        table = db.cfgdb.get_table('FLEX_COUNTER_TABLE')
+        assert test_interval == table["PG_DROP"]["POLL_INTERVAL"]
+
     @pytest.mark.parametrize("status", ["disable", "enable"])
     def test_update_acl_status(self, status):
         runner = CliRunner()

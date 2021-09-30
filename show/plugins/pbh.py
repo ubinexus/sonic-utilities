@@ -430,9 +430,11 @@ def read_pbh_counters(pbh_rules) -> dict:
         rule_to_counter_map = db_connector.get_all(db_connector.COUNTERS_DB, "ACL_COUNTER_RULE_MAP")
         if not rule_to_counter_map:
             pbh_counters[table, rule] = {}
+            continue
         counter_oid = rule_to_counter_map.get(rule_identifier)
         if not counter_oid:
             pbh_counters[table, rule] = {}
+            continue
         counters_db_key = "COUNTERS" + counters_db_separator + counter_oid
         counter_props = db_connector.get_all(db_connector.COUNTERS_DB, counters_db_key)
         if counter_props:
