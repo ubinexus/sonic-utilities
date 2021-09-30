@@ -5,8 +5,7 @@
 			"dst_ip": "2.2.2.2",
 			"policer": "everflow_static_policer",
 			"src_ip": "1.1.1.1",
-			"ttl": "64",
-			"type": "ERSPAN"
+			"ttl": "64"
 		}
 	}
 }
