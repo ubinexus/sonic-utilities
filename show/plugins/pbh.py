@@ -19,6 +19,9 @@ PBH_COUNTERS_LOCATION = '/tmp/.pbh_counters.txt'
 COUNTER_PACKETS_ATTR = "SAI_ACL_COUNTER_ATTR_PACKETS"
 COUNTER_BYTES_ATTR = "SAI_ACL_COUNTER_ATTR_BYTES"
 
+COUNTERS = "COUNTERS"
+ACL_COUNTER_RULE_MAP = "ACL_COUNTER_RULE_MAP"
+
 pbh_hash_field_tbl_name = 'PBH_HASH_FIELD'
 pbh_hash_tbl_name = 'PBH_HASH'
 pbh_table_tbl_name = 'PBH_TABLE'
@@ -424,10 +427,10 @@ def read_pbh_counters(pbh_rules) -> dict:
     db_connector = SonicV2Connector(use_unix_socket_path=False)
     db_connector.connect(db_connector.COUNTERS_DB)
     counters_db_separator = db_connector.get_db_separator(db_connector.COUNTERS_DB)
+    rule_to_counter_map = db_connector.get_all(db_connector.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
 
     for table, rule in natsort.natsorted(pbh_rules):
         rule_identifier = table + counters_db_separator + rule
-        rule_to_counter_map = db_connector.get_all(db_connector.COUNTERS_DB, "ACL_COUNTER_RULE_MAP")
         if not rule_to_counter_map:
             pbh_counters[table, rule] = {}
             continue
@@ -435,7 +438,7 @@ def read_pbh_counters(pbh_rules) -> dict:
         if not counter_oid:
             pbh_counters[table, rule] = {}
             continue
-        counters_db_key = "COUNTERS" + counters_db_separator + counter_oid
+        counters_db_key = COUNTERS + counters_db_separator + counter_oid
         counter_props = db_connector.get_all(db_connector.COUNTERS_DB, counters_db_key)
         if counter_props:
             pbh_counters[table, rule] = counter_props

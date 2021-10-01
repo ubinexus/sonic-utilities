@@ -29,6 +29,8 @@ from tabulate import tabulate
 ### if we could have a SAI command to clear counters will be better, so no need to maintain
 ### counters in temp loaction for clear conter action
 COUNTER_POSITION = '/tmp/.counters_acl.p'
+COUNTERS = "COUNTERS"
+ACL_COUNTER_RULE_MAP = "ACL_COUNTER_RULE_MAP"
 
 ### acl display header
 ACL_HEADER = ["RULE NAME", "TABLE NAME", "PRIO", "PACKETS COUNT", "BYTES COUNT"]
@@ -122,9 +124,9 @@ class AclStat(object):
             Get ACL counters from the DB
             """
             counters_db_separator = self.db.get_db_separator(self.db.COUNTERS_DB)
+            rule_to_counter_map = self.db.get_all(self.db.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
             for table, rule in self.acl_rules:
                 rule_identifier = table + counters_db_separator + rule
-                rule_to_counter_map = self.db.get_all(self.db.COUNTERS_DB, "ACL_COUNTER_RULE_MAP")
                 if not rule_to_counter_map:
                     self.acl_counters[table, rule] = {}
                     continue
@@ -132,7 +134,7 @@ class AclStat(object):
                 if not counter_oid:
                     self.acl_counters[table, rule] = {}
                     continue
-                counters_db_key = "COUNTERS" + counters_db_separator + counter_oid
+                counters_db_key = COUNTERS + counters_db_separator + counter_oid
                 cnt_props = self.db.get_all(self.db.COUNTERS_DB, counters_db_key)
                 self.acl_counters[table, rule] = cnt_props
 
