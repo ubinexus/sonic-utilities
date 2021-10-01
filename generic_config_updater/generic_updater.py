@@ -4,6 +4,8 @@ from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
                        DryRunConfigWrapper, PatchWrapper
 from .patch_sorter import PatchSorter
+from .change_applier import ChangeApplier
+
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
@@ -17,14 +19,11 @@ class ConfigLock:
         # TODO: Implement ConfigLock
         pass
 
-class ChangeApplier:
-    def apply(self, change):
-        # TODO: Implement change applier
-        raise NotImplementedError("ChangeApplier.apply(change) is not implemented yet")
 
 class ConfigFormat(Enum):
     CONFIGDB = 1
     SONICYANG = 2
+
 
 class PatchApplier:
     def __init__(self,
