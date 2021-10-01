@@ -126,13 +126,12 @@ class AclStat(object):
             counters_db_separator = self.db.get_db_separator(self.db.COUNTERS_DB)
             rule_to_counter_map = self.db.get_all(self.db.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
             for table, rule in self.acl_rules:
+                self.acl_counters[table, rule] = {}
                 rule_identifier = table + counters_db_separator + rule
                 if not rule_to_counter_map:
-                    self.acl_counters[table, rule] = {}
                     continue
                 counter_oid = rule_to_counter_map.get(rule_identifier)
                 if not counter_oid:
-                    self.acl_counters[table, rule] = {}
                     continue
                 counters_db_key = COUNTERS + counters_db_separator + counter_oid
                 cnt_props = self.db.get_all(self.db.COUNTERS_DB, counters_db_key)

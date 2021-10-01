@@ -430,13 +430,12 @@ def read_pbh_counters(pbh_rules) -> dict:
     rule_to_counter_map = db_connector.get_all(db_connector.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
 
     for table, rule in natsort.natsorted(pbh_rules):
+        pbh_counters[table, rule] = {}
         rule_identifier = table + counters_db_separator + rule
         if not rule_to_counter_map:
-            pbh_counters[table, rule] = {}
             continue
         counter_oid = rule_to_counter_map.get(rule_identifier)
         if not counter_oid:
-            pbh_counters[table, rule] = {}
             continue
         counters_db_key = COUNTERS + counters_db_separator + counter_oid
         counter_props = db_connector.get_all(db_connector.COUNTERS_DB, counters_db_key)
