@@ -3,7 +3,6 @@ import json
 import os
 import tempfile
 from swsscommon.swsscommon import ConfigDBConnector
-from .gu_common import JsonChange
 
 
 def get_config_db():
