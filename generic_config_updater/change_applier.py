@@ -6,17 +6,6 @@ from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import JsonChange
 
 
-def get_running_config():
-    (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
-    os.system("sonic-cfggen -d --print-data > {}".format(fname))
-    run_data = {}
-    with open(fname, "r") as s:
-        run_data = json.load(s)
-    if os.path.isfile(fname):
-        os.remove(fname)
-    return run_data
-
-
 def get_config_db():
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -41,11 +30,23 @@ class ChangeApplier:
 
 
     def apply(self, change):
-        run_data = get_running_config()
+        run_data = self._get_running_config()
         upd_data = change.apply(copy.deepcopy(run_data))
 
         for tbl in set(run_data.keys()).union(set(upd_data.keys())):
             self._upd_data(tbl, run_data.get(tbl, {}), upd_data.get(tbl, {}))
+
+
+    def _get_running_config(self):
+        (_, fname) = tempfile.mkstemp(suffix="_changeApplier")
+        os.system("sonic-cfggen -d --print-data > {}".format(fname))
+        run_data = {}
+        with open(fname, "r") as s:
+            run_data = json.load(s)
+        if os.path.isfile(fname):
+            os.remove(fname)
+        return run_data
+
 
             
 
