@@ -129,6 +129,46 @@ class TestLoadMinigraph(object):
         print("TEARDOWN")
 
 
+class TestConfigCbf(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        import config.main
+        importlib.reload(config.main)
+
+    def test_cbf_reload_single(
+            self, get_cmd_module, setup_cbf_mock_apis,
+            setup_single_broadcom_asic
+        ):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "cbf_config_output.json")
+        print("Saving output in {}".format(output_file))
+        try:
+            os.remove(output_file)
+        except OSError:
+            pass
+        result = runner.invoke(
+            config.config.commands["cbf"],
+            ["reload", "--dry_run", output_file]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        expected_result = os.path.join(
+            cwd, "cbf_config_input", "config_cbf.json"
+        )
+        assert filecmp.cmp(output_file, expected_result, shallow=False)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+
 class TestConfigQos(object):
     @classmethod
     def setup_class(cls):
