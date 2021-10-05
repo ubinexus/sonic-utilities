@@ -802,7 +802,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 data = json.load(au_status_file)
         return data
 
-    def set_firmware_auto_update_status(self, component_path, boot, rt_code):
+    def set_firmware_auto_update_status(self, component_path, fw_version, boot, rt_code):
         data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
         if data is None:
             data = {}
@@ -836,6 +836,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
         comp_au_status['comp'] = component_path
         comp_au_status['status'] = status
+        comp_au_status['version'] = fw_version
         comp_au_status['info'] = info
 
         au_status.append(comp_au_status)
@@ -848,6 +849,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
         chassis_name = component_au_info[1]
         module_name = component_au_info[2]
         component_name = component_au_info[3]
+        fw_version = component_au_info[5]
         utility = component_au_info[6]
 
         if is_chassis_component:
@@ -885,7 +887,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
             else:
                 rt_code = component.auto_update_firmware(firmware_path, boot)
             click.echo("{} firmware auto-update status return_code: {}".format(component_path, int(rt_code)))
-            (status, info) = self.set_firmware_auto_update_status(component_path, boot, rt_code)
+            (status, info) = self.set_firmware_auto_update_status(component_path, fw_version, boot, rt_code)
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, status, info)
         except KeyboardInterrupt:
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, False, "Keyboard interrupt")
@@ -1029,30 +1031,24 @@ class ComponentStatusProvider(PlatformDataProvider):
         return data
 
     def get_au_status(self):
-        auto_updated_status_table = []
-        data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
+       au_status = []
+       auto_updated_status_table = []
+       data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
 
-        if data is None:
-            return None
+       if data is None:
+           return None
 
-        for comp_path, comp_au_status in data.items():
-            if not self.__is_dict(comp_au_status):
-                self.__parser_fail_fw_au_status("dictionary is expected: key={}".format(comp_path))
+       boot_type = list(data.keys())[0]
+       click.echo("Firmware auto-update performed for {} reboot".format(boot_type))
 
-            if comp_au_status:
-                if len(comp_au_status) is not 4:
-                    self.__parser_fail_fw_au_status("unexpected number of records: key={}".format(comp_path))
+       au_status = data[boot_type]
+       for comp_au_status in au_status:
+           r = []
+           r.append(comp_au_status['comp'] if 'comp' in comp_au_status else "")
+           r.append(comp_au_status['version'] if 'version' in comp_au_status else "")
+           r.append(comp_au_status['status'] if 'status' in comp_au_status else "")
+           r.append(comp_au_status['info'] if 'info' in comp_au_status else "")
+           auto_updated_status_table.append(r)
 
+       return tabulate(auto_updated_status_table, self.AU_STATUS_HEADER, tablefmt=self.FORMAT)
 
-            #for key, value in comp_au_status.items():
-            #    if not self.__is_str(value):
-            #        self.__parser_fail_fw_au_status("string is expected: key={}".format(key))
-
-            r = []
-            r.append(comp_path)
-            r.append("{}/{}".format(comp_au_status['from'], comp_au_status['to']))
-            r.append(comp_au_status['status'] if 'status' in comp_au_status else "")
-            r.append(comp_au_status['info'] if 'info' in comp_au_status else "")
-            auto_updated_status_table.append(r)
-
-        return tabulate(auto_updated_status_table, self.AU_STATUS_HEADER, tablefmt=self.FORMAT)
