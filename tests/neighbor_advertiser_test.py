@@ -66,3 +66,15 @@ class TestNeighborAdvertiser(object):
         for key in expected_mapping.keys():
             assert(key in tunnel_mapping.keys())
             assert(expected_mapping[key] == tunnel_mapping[key])
+
+
+    def test_CPA_Capability_skip(self, set_up):
+        neighbor_advertiser.get_switch_hwsku = mock.MagicMock(return_value='DellEMC-Z9332f-M-O16C64')
+        output = neighbor_advertiser.check_hwsku_not_capable_handle_CPA()
+        assert output == True
+
+
+    def test_CPA_Capability_not_skip(self, set_up):
+        neighbor_advertiser.get_switch_hwsku = mock.MagicMock(return_value='Mellanox-SN3800-D112C8')
+        output = neighbor_advertiser.check_hwsku_not_capable_handle_CPA()
+        assert output == False
