@@ -890,11 +890,13 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     try:
         ipaddress.ip_network(ip_prefix)
         if 'nexthop' in config_entry:
-            nh = config_entry['nexthop'].split(',')
-            for ip in nh:
-                ipaddress.ip_address(ip)
+            nh_list = config_entry['nexthop'].split(',')
+            for nh in nh_list:
+                # Nexthop to portchannel
+                if not nh.startswith('PortChannel'):
+                    ipaddress.ip_address(nh)
     except ValueError:
-        ctx.fail("ip address is not valid.")
+            ctx.fail("ip address is not valid.")
 
     if not vrf_name == "":
         key = vrf_name + "|" + ip_prefix
