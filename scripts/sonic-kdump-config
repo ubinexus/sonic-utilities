@@ -432,9 +432,10 @@ def kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file)
 
     if changed:
         rewrite_cfg(lines, cmdline_file)
-        save_config(kdump_enabled, memory, num_dumps)
-    else:
-        save_config(kdump_enabled, memory, num_dumps)
+    # Removed save_config to avoid race condition when a different user is trying to save the config
+        #save_config(kdump_enabled, memory, num_dumps)
+    #else:
+        #save_config(kdump_enabled, memory, num_dumps)
 
     write_use_kdump(1)
     if crash_kernel_in_cmdline is not None:
@@ -545,7 +546,8 @@ def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file
 
     if changed:
         rewrite_grub_cfg(lines, grub_cfg)
-        save_config(kdump_enabled, memory, num_dumps)
+        # Removed save_config to avoid race condition when a different user is trying to save the config
+        # save_config(kdump_enabled, memory, num_dumps)
 
     return changed
 
@@ -590,7 +592,8 @@ def cmd_kdump_memory(verbose, memory):
                 print("Kdump updated memory will be only operational after the system reboots")
         else:
             num_dumps = get_kdump_num_dumps()
-            save_config(False, memory, num_dumps)
+            # Removed save_config to avoid race condition when a different user is trying to save the config
+            # save_config(False, memory, num_dumps)
 
 ## Command: Set / Get num_dumps
 #
@@ -605,7 +608,8 @@ def cmd_kdump_num_dumps(verbose, num_dumps):
         write_num_dumps(num_dumps)
         kdump_enabled = get_kdump_administrative_mode()
         kdump_memory = get_kdump_memory()
-        save_config(kdump_enabled, kdump_memory, num_dumps)
+        # Removed save_config to avoid race condition when a different user is trying to save the config
+        # save_config(kdump_enabled, kdump_memory, num_dumps)
 
 
 def main():
