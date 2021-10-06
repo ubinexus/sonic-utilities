@@ -893,7 +893,11 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
             nh_list = config_entry['nexthop'].split(',')
             for nh in nh_list:
                 # Nexthop to portchannel
-                if not nh.startswith('PortChannel'):
+                if nh.startswith('PortChannel'):
+                    config_db = ctx.obj['config_db']
+                    if not nh in config_db.get_keys('PORTCHANNEL'):
+                        ctx.fail("portchannel doest not exist.")
+                else:
                     ipaddress.ip_address(nh)
     except ValueError:
             ctx.fail("ip address is not valid.")
