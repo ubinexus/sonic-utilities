@@ -896,7 +896,7 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
                 if nh.startswith('PortChannel'):
                     config_db = ctx.obj['config_db']
                     if not nh in config_db.get_keys('PORTCHANNEL'):
-                        ctx.fail("portchannel doest not exist.")
+                        ctx.fail("portchannel does not exist.")
                 else:
                     ipaddress.ip_address(nh)
     except ValueError:

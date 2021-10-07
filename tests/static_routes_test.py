@@ -25,6 +25,9 @@ Error: Not found {} in {}
 ERROR_INVALID_IP = '''
 Error: ip address is not valid.
 '''
+ERROR_INVALID_PORTCHANNEL = '''
+Error: portchannel doest not exist.
+'''
 
 
 class TestStaticRoutes(object):
@@ -51,31 +54,16 @@ class TestStaticRoutes(object):
         print(result.exit_code, result.output)
         assert not '1.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
 
-    def test_portchannel_static_route(self):
+    def test_invalid_portchannel_static_route(self):
         db = Db()
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
-
-        # config portchannel add PortChannel0101
-        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0101"], obj=obj)
-        print(result.exit_code, result.output)
 
         # config route add prefix 1.2.3.4/32 nexthop PortChannel0101
         result = runner.invoke(config.config.commands["route"].commands["add"], \
         ["prefix", "1.2.3.4/32", "nexthop", "PortChannel0101"], obj=obj)
         print(result.exit_code, result.output)
-        assert ('1.2.3.4/32') in db.cfgdb.get_table('STATIC_ROUTE')
-        assert db.cfgdb.get_entry('STATIC_ROUTE', '1.2.3.4/32') == {'nexthop': 'PortChannel0101', 'blackhole': 'false', 'distance': '0', 'ifname': '', 'nexthop-vrf': ''}
-
-        # config route del prefix 1.2.3.4/32 nexthop PortChannel0101
-        result = runner.invoke(config.config.commands["route"].commands["del"], \
-        ["prefix", "1.2.3.4/32", "nexthop", "PortChannel0101"], obj=obj)
-        print(result.exit_code, result.output)
-        assert not '1.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
-
-        # config portchannel del PortChannel0101
-        result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChannel0101"], obj=obj)
-        print(result.exit_code, result.output)
+        assert ERROR_INVALID_PORTCHANNEL in result.output
 
     def test_static_route_invalid_prefix_ip(self):
         db = Db()
