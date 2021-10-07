@@ -561,20 +561,6 @@ def reset_vxlan_tunnel():
 
 
 #
-# Helper function to determine of HWSKU is capable of handling CPA
-#
-CPA_skip_hwsku = ['DellEMC-Z9332f-M-O16C64', 'DellEMC-Z9332f-M-O16C64-lab']
-
-def check_hwsku_not_capable_handle_CPA():
-    hwsku = get_switch_hwsku()
-    if hwsku in CPA_skip_hwsku:
-        log.log_warning('HWSKU {} not able to handle CPA programming. Skipping it gracefully.'.format(hwsku))
-        return True
-    else:
-        return False
-
-
-#
 # Main function
 #
 
@@ -593,11 +579,6 @@ def main():
 
     connect_config_db()
     connect_app_db()
-
-    # Some HWSKU not able to support CPA and should be skipped gracefully
-    if check_hwsku_not_capable_handle_CPA():
-        sys.exit(0)
-
     if operation_mode == 'set':
         set_success = False
 
