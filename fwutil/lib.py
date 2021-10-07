@@ -35,9 +35,10 @@ NEWLINE = "\n"
 PLATFORM_COMPONENTS_FILE = "platform_components.json"
 FIRMWARE_UPDATE_DIR = "/var/platform/"
 FWUPDATE_FWPACKAGE_DIR = os.path.join(FIRMWARE_UPDATE_DIR, "fwpackage/")
+FIRMWARE_AU_STATUS_DIR = "/tmp/firmwareupdate/"
 FW_AU_TASK_FILE_REGEX = "*_fw_au_task"
 FW_AU_STATUS_FILE = "fw_au_status"
-FW_AU_STATUS_FILE_PATH = os.path.join(FIRMWARE_UPDATE_DIR, FW_AU_STATUS_FILE)
+FW_AU_STATUS_FILE_PATH = os.path.join(FIRMWARE_AU_STATUS_DIR, FW_AU_STATUS_FILE)
 
 # ========================= Variables ==========================================
 
@@ -539,6 +540,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
         PlatformDataProvider.__init__(self)
         if not os.path.isdir(FIRMWARE_UPDATE_DIR):
             os.mkdir(FIRMWARE_UPDATE_DIR)
+        if not os.path.isdir(FIRMWARE_AU_STATUS_DIR):
+            os.mkdir(FIRMWARE_AU_STATUS_DIR)
 
         self.__root_path = root_path
 
@@ -900,11 +903,11 @@ class ComponentUpdateProvider(PlatformDataProvider):
     def is_first_auto_update(self, boot):
         task_file = None
         status_file = None
-        for task_file in glob.glob(os.path.join(FIRMWARE_UPDATE_DIR, FW_AU_TASK_FILE_REGEX)):
+        for task_file in glob.glob(os.path.join(FIRMWARE_AU_STATUS_DIR, FW_AU_TASK_FILE_REGEX)):
             if task_file is not None:
                 click.echo("{} firmware auto-update is already performed, {} firmware auto update is not allowed any more".format(task_file, boot))
                 return False
-        for status_file in glob.glob(os.path.join(FIRMWARE_UPDATE_DIR, FW_AU_STATUS_FILE)):
+        for status_file in glob.glob(os.path.join(FIRMWARE_AU_STATUS_DIR, FW_AU_STATUS_FILE)):
             if status_file is not None:
                 click.echo("{} firmware auto-update is already performed, {} firmware auto update is not allowed any more".format(status_file, boot))
                 return False
