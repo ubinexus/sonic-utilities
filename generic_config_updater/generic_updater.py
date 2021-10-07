@@ -2,7 +2,7 @@ import json
 import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper
+                       DryRunConfigWrapper, PatchWrapper, logger
 from .patch_sorter import PatchSorter
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
@@ -32,37 +32,56 @@ class PatchApplier:
                  changeapplier=None,
                  config_wrapper=None,
                  patch_wrapper=None):
+        self.LOGTITLE="Patch Applier"
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
         self.patchsorter = patchsorter if patchsorter is not None else PatchSorter(self.config_wrapper, self.patch_wrapper)
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
 
     def apply(self, patch):
+        logger.log_info(self.LOGTITLE, "Patch application starting.")
+        logger.log_info(self.LOGTITLE, f"Patch: {patch}")
+
         # validate patch is only updating tables with yang models
+        logger.log_info(self.LOGTITLE, "Validating patch is not making changes to tables without YANG models.")
         if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(patch)):
             raise ValueError(f"Given patch is not valid because it has changes to tables without YANG models")
 
         # Get old config
+        logger.log_info(self.LOGTITLE, "Getting current config db.")
         old_config = self.config_wrapper.get_config_db_as_json()
 
         # Generate target config
+        logger.log_info(self.LOGTITLE, "Simulating the target full config after applying the patch.")
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
         # Validate target config
+        logger.log_info(self.LOGTITLE, "Validating target config according to YANG models.")
         if not(self.config_wrapper.validate_config_db_config(target_config)):
             raise ValueError(f"Given patch is not valid because it will result in an invalid config")
 
         # Generate list of changes to apply
+        logger.log_info(self.LOGTITLE, "Sorting patch updates.")
         changes = self.patchsorter.sort(patch)
+        changes_len = len(changes)
+        logger.log_info(self.LOGTITLE,
+                        f"The patch was sorted into {changes_len} " \
+                        f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
+        for change in changes:
+            logger.log_info(self.LOGTITLE, f"  * {change}")
 
         # Apply changes in order
+        logger.log_info(self.LOGTITLE, "Applying changes in order.")
         for change in changes:
             self.changeapplier.apply(change)
 
         # Validate config updated successfully
+        logger.log_info(self.LOGTITLE, "Verifying patch updates are reflected on ConfigDB.")
         new_config = self.config_wrapper.get_config_db_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise GenericConfigUpdaterError(f"After applying patch to config, there are still some parts not updated")
+
+        logger.log_info(self.LOGTITLE, "Patch application completed.")
 
 class ConfigReplacer:
     def __init__(self, patch_applier=None, config_wrapper=None, patch_wrapper=None):
@@ -293,11 +312,7 @@ class GenericUpdateFactory:
         return config_rollbacker
 
     def init_verbose_logging(self, verbose):
-        # TODO: implement verbose logging
-        # Usually logs have levels such as: error, warning, info, debug.
-        # By default all log levels should show up to the user, except debug.
-        # By allowing verbose logging, debug msgs will also be shown to the user.
-        pass
+        logger.init_verbose_logging(verbose)
 
     def get_config_wrapper(self, dry_run):
         if dry_run:
