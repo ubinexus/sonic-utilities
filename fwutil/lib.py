@@ -421,7 +421,7 @@ class PlatformComponentsParser(object):
                 else:
                     self.__module_component_map[section][key1] = value1
 
-        if missing_key is not None and missing_key is not self.UTILITY_KEY:
+        if missing_key is not None and missing_key is not self.UTILITY_KEY and missing_key is not self.VERSION_KEY:
             self.__parser_component_fail("\"{}\" key hasn't been found".format(missing_key))
 
     def __parse_chassis_section(self, chassis):
