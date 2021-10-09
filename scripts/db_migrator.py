@@ -492,7 +492,6 @@ class DBMigrator():
                     self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', abandon_method, append_method)) \
                and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration() \
                and self.prepare_dynamic_buffer_for_warm_reboot(buffer_pools, buffer_profiles, buffer_pgs):
-                self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
                 self.set_version('version_2_0_0')
         else:
             self.prepare_dynamic_buffer_for_warm_reboot()
@@ -547,6 +546,16 @@ class DBMigrator():
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
         self.migrate_copp_table()
+
+        # To migrate buffer on Mellanox platforms
+        # For legacy branches, this is the only place it can be called because
+        #  - Putting it in version 1_0_6 causes db_migrator not able to run
+        #    when the switch is migrated from 202012-no-reclaiming-buffer whose db version is 2_0_0
+        #    to 202012-reclaiming-buffer, which causes reclaiming buffer not take effect
+        #  - Putting it in version 2_0_0 is not a solution either because
+        #    version 2_0_1 has been occupied by 202106
+        if self.asic_type == "mellanox":
+            self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
 
     def migrate(self):
         version = self.get_version()
