@@ -537,8 +537,6 @@ class DBMigrator():
             for name, data in portchannel_table.items():
                 data['lacp_key'] = 'auto'
                 self.configDB.set_entry('PORTCHANNEL', name, data)
-        if self.asic_type == "mellanox":
-            self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
         self.set_version('version_2_0_2')
         return 'version_2_0_2'
 
@@ -583,6 +581,16 @@ class DBMigrator():
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
         self.migrate_copp_table()
+
+        # To migrate buffer on Mellanox platforms
+        # For legacy branches, this is the only place it can be called because
+        #  - Putting it in version 2_0_1 causes db_migrator not able to run
+        #    when the switch is migrated from 202106-no-reclaiming-buffer whose db version is 2_0_2
+        #    to 202106-reclaiming-buffer, which causes reclaiming buffer not take effect
+        #  - Putting it in version 2_0_2 is not a solution either because
+        #    version 2_0_3 has been occupied by 202111
+        if self.asic_type == "mellanox":
+            self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
 
     def migrate(self):
         version = self.get_version()
