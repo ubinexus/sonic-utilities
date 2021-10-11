@@ -1,0 +1,24 @@
+{
+    "tables": {
+        "": {
+            "services_to_validate": [ "system_health" ]
+        },
+        "PORT": {
+            "services_to_validate": [ "port_service" ]
+        },
+        "VLAN_INTERFACE": {
+            "services_to_validate": [ "port_service", "vlan_service" ]
+        }
+    },
+    "services": {
+        "system_health": {
+            "validate_commands": [ "..tests.generic_config_updater.change_applier_test.system_health" ]
+        }
+        "ACL_TABLE": {
+            "validate_commands": [ "..tests.generic_config_updater.change_applier_test.acl_validate" ]
+        },
+        "VLAN_INTERFACE": {
+            "validate_commands": [ "..tests.generic_config_updater.change_applier_test.vlan_validate" ]
+        }
+    }
+}

@@ -2,7 +2,9 @@ import json
 import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper
+                       DryRunConfigWrapper, PatchWrapper, \
+                       set_log_level
+
 from .patch_sorter import PatchSorter
 from .change_applier import ChangeApplier
 
@@ -296,7 +298,7 @@ class GenericUpdateFactory:
         # Usually logs have levels such as: error, warning, info, debug.
         # By default all log levels should show up to the user, except debug.
         # By allowing verbose logging, debug msgs will also be shown to the user.
-        pass
+        set_log_level(syslog.LOG_ERR if not verbose else syslog.LOG_DEBUG)
 
     def get_config_wrapper(self, dry_run):
         if dry_run:

@@ -239,6 +239,11 @@
     },
     "json_changes": [
         {
+            "name": "change_0",
+            "update": {},
+            "remove": {}
+        },
+        {
             "name": "change_1",
             "update": {
                 "VLAN_INTERFACE": { "Vlan2000": {}, "Vlan2000|192.168.0.2/21": {} },
