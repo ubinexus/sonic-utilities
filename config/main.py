@@ -599,8 +599,8 @@ def _change_hostname(hostname):
 
 def _clear_cbf():
     CBF_TABLE_NAMES = [
-            'DSCP_TO_FC_MAP_TABLE',
-            'EXP_TO_FC_MAP_TABLE']
+            'DSCP_TO_FC_MAP',
+            'EXP_TO_FC_MAP']
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
