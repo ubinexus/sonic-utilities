@@ -860,7 +860,20 @@ configDbJson =  {
             "speed": "25000",
             "admin_status": "up"
         }
-    }
+    },
+    "VLAN_INTERFACE": {
+        "Vlan100": {},
+        "Vlan100|100.0.0.1/20": {}
+    },
+    "MCLAG_DOMAIN": {
+		"1": {
+			"source_ip": "100.0.0.1",
+			"keepalive_interval": "1",
+			"session_timeout": "30",
+			"peer_ip": "100.0.0.2",
+			"peer_link": "Ethernet0"
+			}
+	}  
 }
 
 portBreakOutConfigDbJson = {
