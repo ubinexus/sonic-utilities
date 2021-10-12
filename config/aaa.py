@@ -137,6 +137,51 @@ def login(auth_protocol):
         add_table_kv('AAA', 'authentication', 'login', val)
 authentication.add_command(login)
 
+# cmd: aaa authorization
+@click.group()
+def authorization():
+    """User authorization"""
+    pass
+aaa.add_command(authorization)
+
+# cmd: aaa authorization configration
+@click.command()
+@click.argument('option', type=click.Choice(["tacacs+", "local"]))
+def authorization_config(option):
+    """Allow AAA authorization [tacacs+ | local | tacacs+ local]"""
+    if option == 'tacacs+':
+        add_table_kv('AAA', 'authorization', 'tacacs+')
+    elif option == 'local':
+        add_table_kv('AAA', 'authorization', 'local')
+    elif option == 'tacacs+ local':
+        add_table_kv('AAA', 'authorization')
+    else:
+        click.echo('Argument "option" is required')
+authorization.add_command(authorization_config)
+
+# cmd: aaa accounting
+@click.group()
+def accounting():
+    """User accounting"""
+    pass
+aaa.add_command(accounting)
+
+# cmd: aaa accounting configration
+@click.command()
+@click.argument('option', type=click.Choice(["tacacs+", "local"]))
+def accounting_config(option):
+    """Allow AAA accounting [disable | tacacs+ | local | tacacs+ local]"""
+    if option == 'tacacs+':
+        add_table_kv('AAA', 'accounting', 'tacacs+')
+    elif option == 'local':
+        add_table_kv('AAA', 'accounting', 'local')
+    elif option == 'tacacs+ local':
+        add_table_kv('AAA', 'accounting', 'tacacs+ local')
+    elif option == 'disable':
+        del_table_key('AAA', 'accounting')
+    else:
+        click.echo('Argument "option" is required')
+accounting.add_command(accounting_config)
 
 @click.group()
 def tacacs():
