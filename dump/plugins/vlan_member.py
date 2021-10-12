@@ -15,7 +15,7 @@ class Vlan_Member(Executor):
         req = MatchRequest(db="CONFIG_DB", table="VLAN_MEMBER", key_pattern="*", ns=ns)
         ret = self.match_engine.fetch(req)
         all_vlans = ret["keys"]
-        return [(key.split("|")[-2]+'|'+key.split("|")[-1]) for key in all_vlans]
+        return [key.split("|",1)[-1] for key in all_vlans]
             
     def execute(self, params_dict):
         self.ret_temp = create_template_dict(dbs=["CONFIG_DB", "APPL_DB", "ASIC_DB", "STATE_DB"])
@@ -102,7 +102,7 @@ class Vlan_Member(Executor):
             if sai_hostif_obj_key in hostif_ret["return_values"] and "SAI_HOSTIF_ATTR_OBJ_ID" in hostif_ret["return_values"][sai_hostif_obj_key]:
                 member_oid = hostif_ret["return_values"][sai_hostif_obj_key]["SAI_HOSTIF_ATTR_OBJ_ID"]
 
-        # Find the table named "ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT:oid:*" in which field SAI_BRIDGE_PORT_ATTR_PORT_ID = vlan OID
+        # Find the table named "ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT:oid:*" in which field SAI_BRIDGE_PORT_ATTR_PORT_ID = vlan member OID
         if member_oid:
             req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT", key_pattern="*", 
                                field="SAI_BRIDGE_PORT_ATTR_PORT_ID", value=member_oid, ns=self.ns)

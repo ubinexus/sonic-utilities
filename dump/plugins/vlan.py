@@ -24,7 +24,7 @@ class Vlan(Executor):
         self.init_vlan_config_info(vlan_name)
         self.init_vlan_appl_info(vlan_name)
         self.init_state_vlan_info(vlan_name)
-        req, vlan_table = self.init_asic_vlan_info(vlan_name)
+        self.init_asic_vlan_info(vlan_name)
         return self.ret_temp
     
     def init_vlan_config_info(self, vlan_name):
@@ -66,7 +66,4 @@ class Vlan(Executor):
             self.ret_temp[req.db]["keys"] = ret["keys"]
         else:
             self.ret_temp[req.db]["tables_not_found"] = [req.table]
-            
-        # Return request and table to caller in case its next call is to init_asic_vlan_member_info which also needs it
-        return req, ret
     
