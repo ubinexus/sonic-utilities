@@ -1,9 +1,7 @@
-#!/usr/sbin/env python
 
 import click
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector
 import ipaddress
-
 
 CFG_PORTCHANNEL_PREFIX = "PortChannel"
 CFG_PORTCHANNEL_PREFIX_LEN = 11
@@ -109,7 +107,7 @@ def get_intf_vrf_bind_unique_ip(db, interface_name, interface_type):
 @click.group()
 @click.pass_context
 def mclag(ctx):
-    config_db = swsssdk.ConfigDBConnector()
+    config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
 
