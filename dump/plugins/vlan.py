@@ -1,5 +1,5 @@
 from .executor import Executor
-from dump.match_infra import MatchEngine, MatchRequest
+from dump.match_infra import MatchRequest
 from dump.helper import create_template_dict
 
 class Vlan(Executor):
