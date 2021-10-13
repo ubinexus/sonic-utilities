@@ -1,7 +1,6 @@
 import click
 from show.main import *
 
-
 ###############################################################################
 #
 # 'show ip bgp' cli stanza
@@ -19,8 +18,7 @@ def bgp():
 @bgp.command()
 def summary():
     """Show summarized information of IPv4 BGP state"""
-    run_command('sudo vtysh -c "show ip bgp summary"')
-
+    run_command('sudo rvtysh -c "show ip bgp summary"')
 
 # 'neighbors' subcommand ("show ip bgp neighbors")
 @bgp.command()
@@ -29,7 +27,7 @@ def summary():
 def neighbors(ipaddress, info_type):
     """Show IP (IPv4) BGP neighbors"""
 
-    command = 'sudo vtysh -c "show ip bgp neighbor'
+    command = 'sudo rvtysh -c "show ip bgp neighbor'
 
     if ipaddress is not None:
         command += ' {}'.format(ipaddress)

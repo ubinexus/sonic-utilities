@@ -22,6 +22,15 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 
+# Read given JSON file
+def read_json_file(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except Exception as e:
+        raise Exception(str(e))
+    return result
+
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -479,10 +488,18 @@ def load_minigraph():
         command = "{} -H -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
-    if device_type != 'MgmtToRRouter':
+    if device_type != 'MgmtToRRouter' and device_type != 'EPMS':
         run_command('pfcwd start_default', display_cmd=True)
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
+
+    # Load port_config.json
+    try:
+        load_port_config(config_db, '/etc/sonic/port_config.json')
+    except Exception as e:
+        click.secho("Failed to load port_config.json, Error: {}".format(str(e)), fg='magenta')
+
+    # generate QoS and Buffer configs
     run_command("config qos reload", display_cmd=True)
 
     # Write latest db version string into db
@@ -497,6 +514,44 @@ def load_minigraph():
     _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
+def load_port_config(config_db, port_config_path):
+    if not os.path.isfile(port_config_path):
+        return
+
+    try:
+        # Load port_config.json
+        port_config_input = read_json_file(port_config_path)
+    except Exception:
+        raise Exception("Bad format: json file broken")
+
+    # Validate if the input is an array
+    if not isinstance(port_config_input, list):
+        raise Exception("Bad format: port_config is not an array")
+    
+    if len(port_config_input) == 0 or 'PORT' not in port_config_input[0]:
+        raise Exception("Bad format: PORT table not exists")
+        
+    port_config = port_config_input[0]['PORT']
+
+    # Ensure all ports are exist
+    port_table = {}
+    for port_name in port_config.keys():
+        port_entry = config_db.get_entry('PORT', port_name)
+        if not port_entry:
+            raise Exception("Port {} is not defined in current device".format(port_name))
+        port_table[port_name] = port_entry
+
+    # Update port state
+    for port_name in port_config.keys():
+        if 'admin_status' not in port_config[port_name]:
+            continue
+        if 'admin_status' in port_table[port_name]:
+            if port_table[port_name]['admin_status'] == port_config[port_name]['admin_status']:
+                continue
+            run_command('config interface {} {}'.format(
+                'startup' if port_config[port_name]['admin_status'] == 'up' else 'shutdown',
+                port_name), display_cmd=True)
+    return
 
 #
 # 'portchannel' group ('config portchannel ...')

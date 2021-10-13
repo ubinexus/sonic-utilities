@@ -83,6 +83,7 @@ setup(
         'scripts/pfcstat',
         'scripts/queuestat',
         'scripts/reboot',
+        'scripts/soft-reboot',
         'scripts/teamshow',
         'scripts/update_json.py',
         'scripts/warm-reboot',

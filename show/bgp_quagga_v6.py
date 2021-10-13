@@ -1,7 +1,6 @@
 import click
 from show.main import *
 
-
 ###############################################################################
 #
 # 'show ipv6 bgp' cli stanza
@@ -19,8 +18,7 @@ def bgp():
 @bgp.command()
 def summary():
     """Show summarized information of IPv6 BGP state"""
-    run_command('sudo vtysh -c "show ipv6 bgp summary"')
-
+    run_command('sudo rvtysh -c "show ipv6 bgp summary"')
 
 # 'neighbors' subcommand ("show ipv6 bgp neighbors")
 @bgp.command()
@@ -28,5 +26,5 @@ def summary():
 @click.argument('info_type', type=click.Choice(['routes', 'advertised-routes', 'received-routes']), required=True)
 def neighbors(ipaddress, info_type):
     """Show IPv6 BGP neighbors"""
-    command = 'sudo vtysh -c "show ipv6 bgp neighbor {} {}"'.format(ipaddress, info_type)
+    command = 'sudo rvtysh -c "show ipv6 bgp neighbor {} {}"'.format(ipaddress, info_type)
     run_command(command)

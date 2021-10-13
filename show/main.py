@@ -143,7 +143,6 @@ class AliasedGroup(DefaultGroup):
             return DefaultGroup.get_command(self, ctx, matches[0])
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
-
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
@@ -832,7 +831,7 @@ def mac(vlan, port, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route_map(route_map_name, verbose):
     """show route-map"""
-    cmd = 'sudo vtysh -c "show route-map'
+    cmd = 'sudo rvtysh -c "show route-map'
     if route_map_name is not None:
         cmd += ' {}'.format(route_map_name)
     cmd += '"'
@@ -944,7 +943,7 @@ def interfaces():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route(ipaddress, verbose):
     """Show IP (IPv4) routing table"""
-    cmd = 'sudo vtysh -c "show ip route'
+    cmd = 'sudo rvtysh -c "show ip route'
 
     if ipaddress is not None:
         cmd += ' {}'.format(ipaddress)
@@ -962,7 +961,7 @@ def route(ipaddress, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
-    cmd = 'sudo vtysh -c "show ip prefix-list'
+    cmd = 'sudo rvtysh -c "show ip prefix-list'
     if prefix_list_name is not None:
         cmd += ' {}'.format(prefix_list_name)
     cmd += '"'
@@ -974,7 +973,7 @@ def prefix_list(prefix_list_name, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv4 protocol information"""
-    cmd = 'sudo vtysh -c "show ip protocol"'
+    cmd = 'sudo rvtysh -c "show ip protocol"'
     run_command(cmd, display_cmd=verbose)
 
 
@@ -987,7 +986,6 @@ def protocol(verbose):
 def ipv6():
     """Show IPv6 commands"""
     pass
-
 
 #
 # 'show ipv6 interfaces' command
@@ -1037,7 +1035,7 @@ def interfaces():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route(ipaddress, verbose):
     """Show IPv6 routing table"""
-    cmd = 'sudo vtysh -c "show ipv6 route'
+    cmd = 'sudo rvtysh -c "show ipv6 route'
 
     if ipaddress is not None:
         cmd += ' {}'.format(ipaddress)
@@ -1052,7 +1050,7 @@ def route(ipaddress, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv6 protocol information"""
-    cmd = 'sudo vtysh -c "show ipv6 protocol"'
+    cmd = 'sudo rvtysh -c "show ipv6 protocol"'
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1074,7 +1072,7 @@ elif routing_stack == "frr":
         bgp_cmd = "show bgp"
         for arg in bgp_args:
             bgp_cmd += " " + str(arg)
-        cmd = 'sudo vtysh -c "{}"'.format(bgp_cmd)
+        cmd = 'sudo rvtysh -c "{}"'.format(bgp_cmd)
         run_command(cmd, display_cmd=verbose)
 
 
@@ -1356,7 +1354,7 @@ def interface(interfacename, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def bgp(verbose):
     """Show BGP running configuration"""
-    cmd = 'sudo vtysh -c "show running-config"'
+    cmd = 'sudo rvtysh -c "show running-config"'
     run_command(cmd, display_cmd=verbose)
 
 
