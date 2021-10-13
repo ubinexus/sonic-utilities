@@ -2,11 +2,11 @@ import json
 import jsonpatch
 from jsonpointer import JsonPointer
 import sonic_yang
-import syslog
 import subprocess
 import yang as ly
 import copy
 import re
+from sonic_py_common import logger
 from enum import Enum
 
 YANG_DIR = "/usr/local/yang-models"
@@ -694,43 +694,25 @@ class PathAddressing:
 
         return None
 
-class GenericUpdaterLogger:
-    """
-        Logs are printed to console and added to syslog.
-        Console settings: log levels [error, warning, info] always printed, [debug] only printed if verbose logging
-        Syslog settings: log all levels [error, warning, info, debug]
-    """
-    def init_verbose_logging(self, verbose):
-        # Usually logs have levels such as: error, warning, info, debug.
-        # By default all log levels should show up to the user, except debug.
-        # By allowing verbose logging, debug msgs will also be shown to the user.
-        self.enable_verbose_logging = verbose
+class GenericUpdaterLogger(logger.Logger):
+    def __init__(self, title, verbose):
+        super().__init__(SYSLOG_IDENTIFIER)
+        self._title = title
+        if verbose:
+            self.set_min_log_priority_debug()
 
-    def log_error(self, title,  msg):
-        self.log(title, msg, syslog.LOG_ERR)
+    def log(self, priority, msg, also_print_to_console=False):
+        combined_msg = f"{self._title}: {msg}"
+        super().log(priority, combined_msg, also_print_to_console)
 
-    def log_warning(self, title, msg):
-        self.log(title, msg, syslog.LOG_WARNING)
+class LoggingSettings:
+    def __init__(self):
+        self.set_verbose(False)
 
-    def log_info(self, title, msg):
-        self.log(title, msg, syslog.LOG_INFO)
+    def set_verbose(self, verbose):
+        self._verbose = verbose
 
-    def log_debug(self, title, msg):
-        self.log(title, msg, syslog.LOG_DEBUG)
+    def getLogger(self, title):
+        return GenericUpdaterLogger(title, self._verbose)
 
-    def log(self, title, msg, logLevel):
-        combined_msg = f"{title}: {msg}"
-        self._log_to_console(combined_msg, logLevel)
-        self._log_to_syslog(combined_msg, logLevel)
-
-    def _log_to_console(self, msg, logLevel):
-        # Always log [warning, error, info] i.e. not debug, but if verbose logging print debug as well
-        if logLevel < syslog.LOG_DEBUG or self.enable_verbose_logging:
-            print(msg)
-
-    def _log_to_syslog(self, msg, logLevel):
-        syslog.openlog(SYSLOG_IDENTIFIER)
-        syslog.syslog(logLevel, msg)
-        syslog.closelog()
-
-logger = GenericUpdaterLogger()
+loggingSettings = LoggingSettings()
