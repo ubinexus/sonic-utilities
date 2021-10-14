@@ -87,8 +87,10 @@ SYSLOG_IDENTIFIER = 'mellanox_buffer_migrator'
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
 class MellanoxBufferMigrator():
-    def __init__(self, configDB):
+    def __init__(self, configDB, appDB, stateDB):
         self.configDB = configDB
+        self.appDB = appDB
+        self.stateDB = stateDB
 
         self.platform = None
         self.sku = None
@@ -985,6 +987,7 @@ class MellanoxBufferMigrator():
 
         lossless_profile_pattern = 'pg_lossless_([1-9][0-9]*000)_([1-9][0-9]*m)_profile'
         zero_item_count = 0
+        reclaimed_ports = set()
         for port_name, port_info in port_table.items():
             if port_info.get('admin_status') == 'up':
                 # Handles admin down ports only
@@ -1002,6 +1005,7 @@ class MellanoxBufferMigrator():
                 else:
                     if set(port_pgs.keys()) == set(['3-4']):
                         if is_dynamic:
+                            reclaimed_ports.add(port_name)
                             if port_pgs['3-4']['profile'] == 'NULL':
                                 is_default = True
                         else:
@@ -1052,3 +1056,35 @@ class MellanoxBufferMigrator():
             if profiles_to_insert:
                 for name, profile in profiles_to_insert.items():
                     self.configDB.set_entry('BUFFER_PROFILE', name, profile)
+
+        # We need to remove BUFFER_PG table items for admin down ports from APPL_DB
+        # and then remove the buffer profiles which are no longer referenced
+        # We do it here because
+        #  - The buffer profiles were copied from CONFIG_DB by db_migrator when the database was being migrated from 1.0.6 to 2.0.0
+        #  - In this migrator the buffer priority-groups have been removed from CONFIG_DB.BUFFER_PG table
+        #  - The dynamic buffer manager will not generate buffer profile by those buffer PG items
+        #    In case a buffer profile was referenced by an admin down port only, the dynamic buffer manager won't create it after starting
+        #    This kind of buffer profiles will be left in APPL_DB and can not be removed.
+        if not is_dynamic:
+            return
+
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+        if warmreboot_state == 'true':
+            referenced_profiles = set()
+            keys = self.appDB.keys(self.appDB.APPL_DB, "BUFFER_PG_TABLE:*")
+            if keys is None:
+                return
+            for buffer_pg_key in keys:
+                port, pg = buffer_pg_key.split(':')[1:]
+                if port in reclaimed_ports:
+                    self.appDB.delete(self.appDB.APPL_DB, buffer_pg_key)
+                else:
+                    buffer_pg_items = self.appDB.get_all(self.appDB.APPL_DB, buffer_pg_key)
+                    profile = buffer_pg_items.get('profile')
+                    if profile:
+                        referenced_profiles.add(profile[22:-1])
+            keys = self.appDB.keys(self.appDB.APPL_DB, "BUFFER_PROFILE_TABLE:*")
+            for buffer_profile_key in keys:
+                profile = buffer_profile_key.split(':')[1]
+                if profile not in referenced_profiles and profile not in buffer_profile_table.keys():
+                    self.appDB.delete(self.appDB.APPL_DB, buffer_profile_key)
