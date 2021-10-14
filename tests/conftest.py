@@ -83,7 +83,7 @@ def setup_cbf_mock_apis():
         )
     )
     device_info.get_sonic_version_file = mock.MagicMock(
-        return_value=os.path.join(cwd, "cbf_config_input/sonic_version.yml")
+        return_value=os.path.join(cwd, "qos_config_input/sonic_version.yml")
     )
 
 @pytest.fixture
