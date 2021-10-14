@@ -2,7 +2,7 @@ import json
 import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper, loggingSettings
+                       DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 from .patch_sorter import PatchSorter
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
@@ -32,7 +32,7 @@ class PatchApplier:
                  changeapplier=None,
                  config_wrapper=None,
                  patch_wrapper=None):
-        self.logger=loggingSettings.getLogger(title="Patch Applier")
+        self.logger = genericUpdaterLogging.get_logger(title="Patch Applier")
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
         self.patchsorter = patchsorter if patchsorter is not None else PatchSorter(self.config_wrapper, self.patch_wrapper)
@@ -313,7 +313,7 @@ class GenericUpdateFactory:
         return config_rollbacker
 
     def init_verbose_logging(self, verbose):
-        loggingSettings.set_verbose(verbose)
+        genericUpdaterLogging.set_verbose(verbose)
 
     def get_config_wrapper(self, dry_run):
         if dry_run:

@@ -694,9 +694,9 @@ class PathAddressing:
 
         return None
 
-class GenericUpdaterLogger(logger.Logger):
-    def __init__(self, title, verbose):
-        super().__init__(SYSLOG_IDENTIFIER)
+class TitledLogger(logger.Logger):
+    def __init__(self, syslog_identifier, title, verbose):
+        super().__init__(syslog_identifier)
         self._title = title
         if verbose:
             self.set_min_log_priority_debug()
@@ -705,14 +705,14 @@ class GenericUpdaterLogger(logger.Logger):
         combined_msg = f"{self._title}: {msg}"
         super().log(priority, combined_msg, also_print_to_console)
 
-class LoggingSettings:
+class GenericUpdaterLogging:
     def __init__(self):
         self.set_verbose(False)
 
     def set_verbose(self, verbose):
         self._verbose = verbose
 
-    def getLogger(self, title):
-        return GenericUpdaterLogger(title, self._verbose)
+    def get_logger(self, title):
+        return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose)
 
-loggingSettings = LoggingSettings()
+genericUpdaterLogging = GenericUpdaterLogging()
