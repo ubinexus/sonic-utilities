@@ -75,7 +75,7 @@ class DBMigrator():
 
         if asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
-            self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB)
+            self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB, self.appDB, self.stateDB)
 
     def migrate_pfc_wd_table(self):
         '''
