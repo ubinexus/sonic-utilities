@@ -853,7 +853,7 @@ class MellanoxBufferMigrator():
         cable_length_key = self.configDB.get_keys('CABLE_LENGTH')
         if not cable_length_key:
             log.log_notice("No cable length table defined, do not migrate buffer objects for reclaiming buffer")
-            return True;
+            return
 
         log.log_info("Migrate buffer objects for reclaiming buffer based on 'CABLE_LENGTH|{}'".format(cable_length_key[0]))
 
@@ -1024,5 +1024,3 @@ class MellanoxBufferMigrator():
             if profiles_to_insert:
                 for name, profile in profiles_to_insert.items():
                     self.configDB.set_entry('BUFFER_PROFILE', name, profile)
-
-        return True
