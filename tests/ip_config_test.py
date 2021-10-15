@@ -63,7 +63,7 @@ class TestConfigIP(object):
         obj = {'config_db':db.cfgdb}
         
         # config int ip add Ethernet68 10.10.10.002/24
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet68", "10.10.10.002/24"], obj=obj)        
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet68", "10.10.10.0002/24"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ERROR_MSG in result.output
