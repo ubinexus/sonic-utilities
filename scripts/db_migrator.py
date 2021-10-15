@@ -364,9 +364,9 @@ class DBMigrator():
                     self.appDB.set(self.appDB.APPL_DB, appl_db_key, field, data)
 
             if keys_copied:
-                log.log_info("The following items in table {} in CONFIG_DB have been copied to APPL_DB: {}".format(table_name, keys_copied))
+                log.log_notice("The following items in table {} in CONFIG_DB have been copied to APPL_DB: {}".format(table_name, keys_copied))
             if keys_ignored:
-                log.log_info("The following items in table {} in CONFIG_DB have been ignored: {}".format(table_name, keys_copied))
+                log.log_notice("The following items in table {} in CONFIG_DB have been ignored: {}".format(table_name, keys_copied))
 
         return True
 

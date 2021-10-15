@@ -1086,5 +1086,5 @@ class MellanoxBufferMigrator():
             keys = self.appDB.keys(self.appDB.APPL_DB, "BUFFER_PROFILE_TABLE:*")
             for buffer_profile_key in keys:
                 profile = buffer_profile_key.split(':')[1]
-                if profile not in referenced_profiles and profile not in buffer_profile_table.keys():
+                if profile[:12] == 'pg_lossless_' and profile not in referenced_profiles and profile not in buffer_profile_table.keys():
                     self.appDB.delete(self.appDB.APPL_DB, buffer_profile_key)

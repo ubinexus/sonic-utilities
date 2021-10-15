@@ -217,10 +217,11 @@ class TestMellanoxBufferMigrator(object):
         tables_to_verify.extend(['BUFFER_QUEUE', 'BUFFER_PORT_INGRESS_PROFILE_LIST', 'BUFFER_PORT_EGRESS_PROFILE_LIST'])
         self.check_config_db(dbmgtr.configDB, expected_db.cfgdb, tables_to_verify)
 
-    def test_mellanox_buffer_reclaiming_warm_reboot(self):
+    @pytest.mark.parametrize('scenario', ['warmreboot', 'warmreboot-same-version'])
+    def test_mellanox_buffer_reclaiming_warm_reboot(self, scenario):
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
-        input_db_name = 'reclaiming-buffer-warmreboot-input'
-        expected_db_name = 'reclaiming-buffer-warmreboot-expected'
+        input_db_name = 'reclaiming-buffer-' + scenario + '-input'
+        expected_db_name = 'reclaiming-buffer-' + scenario + '-expected'
         self.mellanox_buffer_migrator_warm_reboot_runner(input_db_name, input_db_name, expected_db_name,expected_db_name, True)
 
 
