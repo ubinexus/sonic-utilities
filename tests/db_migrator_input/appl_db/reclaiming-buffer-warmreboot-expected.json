@@ -185,12 +185,6 @@
     "BUFFER_PG_TABLE:Ethernet240:3-4": {
         "profile": "[BUFFER_PROFILE_TABLE:pg_lossless_100000_40m_profile]"
     },
-    "BUFFER_PG_TABLE:Ethernet248:0": {
-        "profile": "[BUFFER_PROFILE_TABLE:ingress_lossy_profile]"
-    },
-    "BUFFER_PG_TABLE:Ethernet248:3-4": {
-        "profile": "[BUFFER_PROFILE_TABLE:pg_lossless_100000_40m_profile]"
-    },
     "BUFFER_POOL_TABLE:egress_lossless_pool": {
         "type": "egress",
         "mode": "dynamic",
