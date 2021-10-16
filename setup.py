@@ -137,7 +137,8 @@ setup(
         'scripts/centralize_database',
         'scripts/null_route_helper',
         'scripts/coredump_gen_handler.py',
-        'scripts/techsupport_cleanup.py'
+        'scripts/techsupport_cleanup.py',
+        'scripts/check_db_integrity.py'
     ],
     entry_points={
         'console_scripts': [
