@@ -109,7 +109,7 @@ class CriticalProcCoreDumpHandle():
     def invoke_ts_cmd(self, since_cfg):
         since_cfg = "'" + since_cfg + "'"
         cmd  = " ".join(["show", "techsupport", "--since", since_cfg])
-        _, _, _ = subprocess_exec(["show", "techsupport", "--since", since_cfg])
+        subprocess_exec(["show", "techsupport", "--since", since_cfg])
         new_list = get_ts_dumps(True)
         diff = list(set(new_list).difference(set(self.curr_ts_list)))
         self.curr_ts_list = new_list
