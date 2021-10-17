@@ -28,21 +28,31 @@ Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
-load_yang_cfg_command_output = """\
+
+RELOAD_CONFIG_DB_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
 Stopping SONiC target ...
-Running command: /usr/local/bin/sonic-cfggen -H -Y /tmp/cfg.json -j /etc/sonic/init_cfg.json --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
-Please note setting loaded from config file will be lost after system reboot.To preserve setting, run `config save`.
 """
 
-load_yang_cfg_cmd_without_restart_output = """\
-Running command: /usr/local/bin/sonic-cfggen -H -Y /tmp/cfg.json -j /etc/sonic/init_cfg.json --write-to-db
-Please note setting loaded from config file will be lost after system reboot.To preserve setting, run `config save`.
+RELOAD_YANG_CFG_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -Y /tmp/config.json  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
 """
 
-load_cfg_output = """\
-Running command: /usr/local/bin/sonic-cfggen -j /tmp/cfg.json --write-to-db
+RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
 """
 
 def mock_run_command_side_effect(*args, **kwargs):
@@ -146,8 +156,8 @@ class TestLoadMinigraph(object):
         print("TEARDOWN")
 
 
-class TestLoadConfig(object):
-    dummy_cfg_file = os.path.join(os.sep, "tmp", "cfg.json")
+class TestReloadConfig(object):
+    dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
 
     @classmethod
     def setup_class(cls):
@@ -157,7 +167,7 @@ class TestLoadConfig(object):
         importlib.reload(config.main)
         open(cls.dummy_cfg_file, 'w').close()
 
-    def test_load_yang_config(self, get_cmd_module, setup_single_broadcom_asic):
+    def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)
@@ -166,18 +176,40 @@ class TestLoadConfig(object):
             runner = CliRunner()
 
             result = runner.invoke(
-                config.config.commands["load"],
-                [self.dummy_cfg_file, "-y", "-t", "config_yang", "-r"])
+                config.config.commands["reload"],
+                [self.dummy_cfg_file, '-y', '-f'])
 
             print(result.exit_code)
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == load_yang_cfg_command_output
-            assert mock_run_command.call_count == 8
+                == RELOAD_CONFIG_DB_OUTPUT
 
-    def test_load_yang_config_no_restart(self, get_cmd_module,
+    def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            # 3 config files: 1 for host and 2 for asic
+            cfg_files = "{},{},{}".format(
+                            self.dummy_cfg_file, 
+                            self.dummy_cfg_file,
+                            self.dummy_cfg_file)
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [cfg_files, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_MASIC_CONFIG_DB_OUTPUT
+
+    def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
         with mock.patch(
                 "utilities_common.cli.run_command",
@@ -186,34 +218,16 @@ class TestLoadConfig(object):
             (config, show) = get_cmd_module
             runner = CliRunner()
 
-            result = runner.invoke(config.config.commands["load"],
-                                    [self.dummy_cfg_file, "-y", "-t", "config_yang"])
+            result = runner.invoke(config.config.commands["reload"],
+                                    [self.dummy_cfg_file, '-y','-f' ,'-t', 'config_yang'])
 
             print(result.exit_code)
             print(result.output)
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == load_yang_cfg_cmd_without_restart_output
-            assert mock_run_command.call_count == 1
+                == RELOAD_YANG_CFG_OUTPUT
 
-    def test_load_cfg(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch(
-                "utilities_common.cli.run_command",
-                mock.MagicMock(side_effect=mock_run_command_side_effect)
-        ) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            result = runner.invoke(config.config.commands["load"],
-                                    [self.dummy_cfg_file, "-y"])
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == load_cfg_output
-            assert mock_run_command.call_count == 1
 
     @classmethod
     def teardown_class(cls):
