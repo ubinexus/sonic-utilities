@@ -1259,6 +1259,9 @@ main() {
         rm $rm_list
     fi
 
+    # Remove secret from dump files before tar
+    remove_secret()
+
     start_t=$(date +%s%3N)
     ($TAR $V --warning=no-file-removed -rhf $TARFILE -C $DUMPDIR --mode=+rw \
         --exclude="etc/alternatives" \
@@ -1269,8 +1272,17 @@ main() {
         --exclude="*/etc/ssh*" \
         --exclude="*get_creds*" \
         --exclude="*snmpd.conf*" \
-        --exclude="/etc/mlnx" \
-        --exclude="/etc/mft" \
+        --exclude="*/etc/mlnx" \
+        --exclude="*/etc/mft" \
+        --exclude="*/etc/shadow" \
+        --exclude="*/etc/tacplus_nss.conf" \
+        --exclude="*/etc/radius_nss.conf" \
+        --exclude="*/etc/pam_radius_auth.conf" \
+        --exclude="*/etc/pam.d/common-auth-sonic" \
+        --exclude="*/etc/sonic/snmp.yml" \
+        --exclude="*/etc/sonic/*/*.cer" \
+        --exclude="*/etc/sonic/*/*.crt" \
+        --exclude="*/etc/sonic/*/*.key" \
         $BASE/etc \
         || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
@@ -1308,6 +1320,27 @@ main() {
 
     echo ${TARFILE}
     exit $RETURN_CODE
+}
+
+###############################################################################
+# Remove secret from dump files.
+# Globals:
+#  BASE
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+remove_secret() {
+    # Remove tacacs&redus passkey from config db dump: "passkey": "testing123"
+    local passkey_regex='s/\"passkey\"\s*:\s*\"([^\"]*)\"/\"passkey\":\"\"/g'
+    sed -i -E $passkey_regex $BASE/etc/dump/CONFIG_DB.json
+    sed -i -E $passkey_regex $BASE/etc/sonic/config_db.json
+
+    # Remove snmp community from config DB
+    local snmp_community_regex= '/SNMP_COMMUNITY/,/    \},/d'
+    sed -i $snmp_community_regex $BASE/etc/dump/CONFIG_DB.json
+    sed -i $snmp_community_regex $BASE/etc/sonic/config_db.json
 }
 
 ###############################################################################
