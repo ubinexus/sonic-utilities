@@ -1082,7 +1082,7 @@ class MellanoxBufferMigrator():
                     buffer_pg_items = self.appDB.get_all(self.appDB.APPL_DB, buffer_pg_key)
                     profile = buffer_pg_items.get('profile')
                     if profile:
-                        referenced_profiles.add(profile[22:-1])
+                        referenced_profiles.add(profile)
             keys = self.appDB.keys(self.appDB.APPL_DB, "BUFFER_PROFILE_TABLE:*")
             for buffer_profile_key in keys:
                 profile = buffer_profile_key.split(':')[1]
