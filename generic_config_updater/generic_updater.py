@@ -86,63 +86,122 @@ class PatchApplier:
 
 class ConfigReplacer:
     def __init__(self, patch_applier=None, config_wrapper=None, patch_wrapper=None):
+        self.logger = genericUpdaterLogging.get_logger(title="Config Replacer")
         self.patch_applier = patch_applier if patch_applier is not None else PatchApplier()
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
 
     def replace(self, target_config):
+        print_to_console=True
+        self.logger.log_notice("Config replacement starting.", print_to_console)
+        self.logger.log_notice(f"Target config length: {len(json.dumps(target_config))}.", print_to_console)
+
+        self.logger.log_notice("Validating target config according to YANG models.", print_to_console)
         if not(self.config_wrapper.validate_config_db_config(target_config)):
             raise ValueError(f"The given target config is not valid")
 
+        self.logger.log_notice("Getting current config db.", print_to_console)
         old_config = self.config_wrapper.get_config_db_as_json()
-        patch = self.patch_wrapper.generate_patch(old_config, target_config)
 
+        self.logger.log_notice("Generating patch between target config and current config db.", print_to_console)
+        patch = self.patch_wrapper.generate_patch(old_config, target_config)
+        self.logger.log_debug(f"Generated patch: {patch}.", print_to_console) # debug since the patch will printed again in 'patch_applier.apply'
+
+        self.logger.log_notice("Applying patch using 'Patch Applier'.", print_to_console)
         self.patch_applier.apply(patch)
 
+        self.logger.log_notice("Verifying config replacement is reflected on ConfigDB.", print_to_console)
         new_config = self.config_wrapper.get_config_db_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise GenericConfigUpdaterError(f"After replacing config, there is still some parts not updated")
+
+        self.logger.log_notice("Config replacement completed.", print_to_console)
 
 class FileSystemConfigRollbacker:
     def __init__(self,
                  checkpoints_dir=CHECKPOINTS_DIR,
                  config_replacer=None,
                  config_wrapper=None):
+        self.logger = genericUpdaterLogging.get_logger(title="Config Rollbacker")
         self.checkpoints_dir = checkpoints_dir
         self.config_replacer = config_replacer if config_replacer is not None else ConfigReplacer()
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
 
     def rollback(self, checkpoint_name):
+        print_to_console=True
+        self.logger.log_notice("Config rollbacking starting.", print_to_console)
+        self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.", print_to_console)
+
+        self.logger.log_notice(f"Verifying '{checkpoint_name}' exists.", print_to_console)
         if not self._check_checkpoint_exists(checkpoint_name):
             raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
 
+        self.logger.log_notice(f"Loading checkpoint into memory.", print_to_console)
         target_config = self._get_checkpoint_content(checkpoint_name)
 
+        self.logger.log_notice(f"Replacing config using 'Config Replacer'.", print_to_console)
         self.config_replacer.replace(target_config)
 
+        self.logger.log_notice("Config rollbacking completed.", print_to_console)
+
     def checkpoint(self, checkpoint_name):
+        print_to_console=True
+        self.logger.log_notice("Config checkpoint starting.", print_to_console)
+        self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.", print_to_console)
+
+        self.logger.log_notice("Getting current config db.", print_to_console)
         json_content = self.config_wrapper.get_config_db_as_json()
 
+        # if current config are not valid, we might not be able to rollback to it. So fail early by not taking checkpoint at all.
+        self.logger.log_notice("Validating current config according to YANG models.", print_to_console)
         if not self.config_wrapper.validate_config_db_config(json_content):
             raise ValueError(f"Running configs on the device are not valid.")
 
+        self.logger.log_notice("Getting checkpoint full-path.", print_to_console)
         path = self._get_checkpoint_full_path(checkpoint_name)
 
+        self.logger.log_notice("Ensuring checkpoint directory exist.", print_to_console)
         self._ensure_checkpoints_dir_exists()
 
+        self.logger.log_notice(f"Saving config db content to {path}.", print_to_console)
         self._save_json_file(path, json_content)
 
+        self.logger.log_notice("Config checkpoint completed.", print_to_console)
+
     def list_checkpoints(self):
+        print_to_console=True
+        self.logger.log_info("Listing checkpoints starting.", print_to_console)
+        
+        self.logger.log_info(f"Verifying checkpoints directory '{self.checkpoints_dir}' exists.", print_to_console)
         if not self._checkpoints_dir_exist():
+            self.logger.log_info("Checkpoints directory is empty, returning empty checkpoints list.", print_to_console)
             return []
 
-        return self._get_checkpoint_names()
+        self.logger.log_info("Getting checkpoints in checkpoints directory.", print_to_console)
+        checkpoint_names = self._get_checkpoint_names()
+
+        checkpoints_len = len(checkpoint_names)
+        self.logger.log_info(f"Found {checkpoints_len} checkpoint{'s' if checkpoints_len != 1 else ''}{':' if checkpoints_len > 0 else '.'}", print_to_console)
+        for checkpoint_name in checkpoint_names:
+            self.logger.log_info(f"  * {checkpoint_name}", print_to_console)
+
+        self.logger.log_info("Listing checkpoints completed.", print_to_console)
+
+        return checkpoint_names
 
     def delete_checkpoint(self, checkpoint_name):
+        print_to_console=True
+        self.logger.log_notice("Deleting checkpoint starting.", print_to_console)
+        self.logger.log_notice(f"Checkpoint name: {checkpoint_name}.", print_to_console)
+
+        self.logger.log_notice(f"Checking checkpoint exists.", print_to_console)
         if not self._check_checkpoint_exists(checkpoint_name):
             raise ValueError(f"Checkpoint '{checkpoint_name}' does not exist")
 
+        self.logger.log_notice(f"Deleting checkpoint.", print_to_console)
         self._delete_checkpoint(checkpoint_name)
+
+        self.logger.log_notice("Deleting checkpoint completed.", print_to_console)
 
     def _ensure_checkpoints_dir_exists(self):
         os.makedirs(self.checkpoints_dir, exist_ok=True)
