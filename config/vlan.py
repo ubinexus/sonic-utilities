@@ -53,10 +53,10 @@ def del_vlan(db, vid):
             ctx.fail("{} can not be removed. First remove IP addresses assigned to this VLAN".format(vlan))
 
     keys = [ (k, v) for k, v in db.cfgdb.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
-    
+
     if keys:
         ctx.fail("VLAN ID {} can not be removed. First remove all members assigned to this VLAN.".format(vid))
-        
+
     db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
 def restart_ndppd():
@@ -144,7 +144,7 @@ def add_vlan_member(db, vid, port, untagged):
     if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
        (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
         ctx.fail("{} is a router interface!".format(port))
-        
+
     portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
 
     if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
@@ -185,3 +185,45 @@ def del_vlan_member(db, vid, port):
 
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), None)
 
+#
+# 'static-anycast-gateway' group ('config vlan static-anycast-gateway ...')
+#
+@vlan.group(cls=clicommon.AbbreviationGroup, name='static-anycast-gateway')
+def static_anycast_gateway():
+    pass
+
+@static_anycast_gateway.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@clicommon.pass_db
+def add_vlan_sag(db, vid):
+    """Enable static-anycast-gatweay on VLAN interface"""
+    ctx = click.get_current_context()
+
+    log.log_info(f"'vlan static-anycast-gateway add {vid}' executing...")
+
+    vlan = f'Vlan{vid}'
+    if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
+        ctx.fail(f"Interface {vlan} does not exist")
+
+    db.cfgdb.mod_entry('VLAN_INTERFACE', vlan, {"static_anycast_gateway": "true"})
+    click.echo('static-anycast-gateway setting saved to ConfigDB')
+
+
+@static_anycast_gateway.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@clicommon.pass_db
+def del_vlan_sag(db, vid):
+    """Disable static-anycast-gatweay on VLAN interface"""
+    ctx = click.get_current_context()
+
+    log.log_info(f"'vlan static-anycast-gateway del {vid}' executing...")
+
+    if not clicommon.is_vlanid_in_range(vid):
+        ctx.fail(f"Invalid VLAN ID {vid} (1-4094)")
+
+    vlan = f'Vlan{vid}'
+    if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
+        ctx.fail(f"Interface {vlan} does not exist")
+
+    db.cfgdb.mod_entry('VLAN_INTERFACE', vlan, {"static_anycast_gateway": "false"})
+    click.echo('static-anycast-gateway setting saved to ConfigDB')
