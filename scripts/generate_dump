@@ -1288,9 +1288,13 @@ main() {
         --exclude="*snmpd.conf*" \
         --exclude="*/etc/mlnx" \
         --exclude="*/etc/mft" \
-        --exclude="*/etc/sonic/*/*.cer" \
-        --exclude="*/etc/sonic/*/*.crt" \
-        --exclude="*/etc/sonic/*/*.key" \
+        --exclude="*/etc/sonic/*.cer" \
+        --exclude="*/etc/sonic/*.crt" \
+        --exclude="*/etc/sonic/*.pem" \
+        --exclude="*/etc/sonic/*.key" \
+        --exclude="*/etc/ssl/*.pem" \
+        --exclude="*/etc/ssl/certs/*" \
+        --exclude="*/etc/ssl/private/*" \
         $BASE/etc \
         || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
