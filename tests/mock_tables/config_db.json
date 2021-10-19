@@ -533,7 +533,8 @@
         "vlanid": "4000"
     },
     "VLAN_INTERFACE|Vlan1000": {
-        "NULL": "NULL"
+        "NULL": "NULL",
+        "static_anycast_gateway": "true"
     },
     "VLAN_INTERFACE|Vlan2000": {
         "proxy_arp": "enabled"
@@ -2457,5 +2458,8 @@
     },
     "QUEUE|Ethernet96|6": {
         "scheduler": "[SCHEDULER|scheduler.0]"
+    },
+    "SAG|GLOBAL": {
+        "gwmac": "00:11:22:33:44:55"
     }
 }
