@@ -26,7 +26,6 @@ class ConfigFormat(Enum):
     CONFIGDB = 1
     SONICYANG = 2
 
-
 class PatchApplier:
     def __init__(self,
                  patchsorter=None,
@@ -298,7 +297,7 @@ class GenericUpdateFactory:
         # Usually logs have levels such as: error, warning, info, debug.
         # By default all log levels should show up to the user, except debug.
         # By allowing verbose logging, debug msgs will also be shown to the user.
-        set_log_level(syslog.LOG_ERR if not verbose else syslog.LOG_DEBUG)
+        pass
 
     def get_config_wrapper(self, dry_run):
         if dry_run:

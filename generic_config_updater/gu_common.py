@@ -13,36 +13,6 @@ YANG_DIR = "/usr/local/yang-models"
 class GenericConfigUpdaterError(Exception):
     pass
 
-log_level = syslog.LOG_ERR
-
-def _log_msg(lvl, m):
-    if lvl <= log_level:
-        syslog.syslog(lvl, m)
-        if log_level == syslog.LOG_DEBUG:
-            print(m)
-
-def log_error(m):
-    _log_msg(syslog.LOG_ERR, m)
-
-
-def log_info(m):
-    _log_msg(syslog.LOG_INFO, m)
-
-
-def log_debug(m):
-    _log_msg(syslog.LOG_DEBUG, m)
-
-
-def run_cmd(cmd):
-    proc = subprocess.run(cmd, shell=True, capture_output=True)
-    if proc.returncode:
-        log_error("Failed to run: ret={} cmd: {}".format(
-            proc.returncode, proc.args))
-        log_error(f"Failed to run: stdout: {proc.stdout}")
-        log_error(f"Failed to run: stderr: {proc.stderr}")
-    return proc.returncode
-
-
 class JsonChange:
     """
     A class that describes a partial change to a JSON object.
