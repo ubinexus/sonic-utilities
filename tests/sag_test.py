@@ -5,7 +5,6 @@ from click.testing import CliRunner
 
 import config.main as config
 import show.main as show
-import show.sag as show_sag
 from utilities_common.db import Db
 from importlib import reload
 
