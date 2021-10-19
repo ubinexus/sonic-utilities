@@ -87,22 +87,19 @@ class TestConfigIP(object):
         assert result.exit_code != 0
         assert ('Ethernet72', '2001:1db8:11a3:19d7:1f34:8a2e:17a0:765d/34') not in db.cfgdb.get_table('INTERFACE')
 
-    def test_add_del_interface_case_sensitive_ipv6(self):
+    def test_del_interface_case_sensitive_ipv6(self):
         db = Db()
         runner = CliRunner()
         obj = {'config_db':db.cfgdb}
 
-        # config int ip add Ethernet72 fc00::1/126
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet72", "fc00::1/126"], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code == 0
-        assert ('Ethernet72', 'fc00::1/126') in db.cfgdb.get_table('INTERFACE')
+        obj['config_db'].set_entry('INTERFACE', ('Ethernet72', 'FC00::1/126'), {})
+        assert ('Ethernet72', 'FC00::1/126') in db.cfgdb.get_table('INTERFACE')
 
         # config int ip remove Ethernet72 FC00::1/126
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet72", "FC00::1/126"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert ('Ethernet72', 'fc00::1/126') not in db.cfgdb.get_table('INTERFACE')
+        assert ('Ethernet72', 'FC00::1/126') not in db.cfgdb.get_table('INTERFACE')
 
     def test_add_interface_invalid_ipv6(self):
         db = Db()

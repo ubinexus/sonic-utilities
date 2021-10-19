@@ -946,6 +946,20 @@ def cache_arp_entries():
         open(restore_flag_file, 'w').close()
     return success
 
+def remove_router_interface_ip_address(config_db, interface_name, ipaddress_to_remove):
+    table_name = get_interface_table_name(interface_name)
+    keys = config_db.get_keys(table_name)
+
+    for key in keys:
+        if not isinstance(key, tuple) or len(key) != 2:
+            continue
+
+        iface, ipaddress_string = key
+        if iface != interface_name:
+            continue
+
+        if ipaddress.ip_interface(ipaddress_string) == ipaddress_to_remove:
+            config_db.set_entry(table_name, (interface_name, ipaddress_string), None)
 
 def validate_ipv4_address(ctx, param, ip_addr):
     """Helper function to validate ipv4 address
@@ -3708,7 +3722,7 @@ def remove(ctx, interface_name, ip_addr):
             if output != "":
                 if any(interface_name in output_line for output_line in output.splitlines()):
                     ctx.fail("Cannot remove the last IP entry of interface {}. A static {} route is still bound to the RIF.".format(interface_name, ip_ver))
-    config_db.set_entry(table_name, (interface_name, str(ip_address)), None)
+    remove_router_interface_ip_address(config_db, interface_name, ip_address)
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     if len(interface_addresses) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False and get_intf_ipv6_link_local_mode(ctx, interface_name, table_name) != "enable":
         config_db.set_entry(table_name, interface_name, None)
