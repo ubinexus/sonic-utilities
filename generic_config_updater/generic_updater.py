@@ -2,12 +2,10 @@ import json
 import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper, \
-                       set_log_level
+                       DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 
 from .patch_sorter import PatchSorter
 from .change_applier import ChangeApplier
-
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
