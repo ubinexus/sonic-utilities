@@ -421,13 +421,19 @@ def read_saved_pbh_counters():
     return {}
 
 
+def read_acl_rule_counter_map(db_connector):
+    if db_connector.exists(db_connector.COUNTERS_DB, ACL_COUNTER_RULE_MAP):
+        return db_connector.get_all(db_connector.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
+    return {}
+
+
 def read_pbh_counters(pbh_rules) -> dict:
     pbh_counters = {}
 
     db_connector = SonicV2Connector(use_unix_socket_path=False)
     db_connector.connect(db_connector.COUNTERS_DB)
     counters_db_separator = db_connector.get_db_separator(db_connector.COUNTERS_DB)
-    rule_to_counter_map = db_connector.get_all(db_connector.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
+    rule_to_counter_map = read_acl_rule_counter_map(db_connector)
 
     for table, rule in natsort.natsorted(pbh_rules):
         pbh_counters[table, rule] = {}

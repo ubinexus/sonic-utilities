@@ -93,6 +93,14 @@ class AclStat(object):
         read redis database for acl counters
         """
 
+        def get_acl_rule_counter_map():
+            """
+            Return ACL_COUNTER_RULE_MAP
+            """
+            if self.db.exists(self.db.COUNTERS_DB, ACL_COUNTER_RULE_MAP):
+                return self.db.get_all(self.db.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
+            return {}
+
         def fetch_acl_tables():
             """
             Get ACL tables from the DB
@@ -124,7 +132,7 @@ class AclStat(object):
             Get ACL counters from the DB
             """
             counters_db_separator = self.db.get_db_separator(self.db.COUNTERS_DB)
-            rule_to_counter_map = self.db.get_all(self.db.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
+            rule_to_counter_map = get_acl_rule_counter_map()
             for table, rule in self.acl_rules:
                 self.acl_counters[table, rule] = {}
                 rule_identifier = table + counters_db_separator + rule
