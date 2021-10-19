@@ -42,7 +42,6 @@ SAVE_STDERR=true
 RETURN_CODE=0
 DEBUG_DUMP=false
 
-
 handle_signal()
 {
     echo "Generate Dump received interrupt" >&2
@@ -180,6 +179,13 @@ save_cmd() {
         redirect_eval=""
     fi
 
+    # Disable gzip for dump CONFIG_DB to remove secret.
+    if [[ $filename == *CONFIG_DB.json ]]
+    then
+        echo "Disable gzip for dump '$filepath'"
+        do_gzip=false
+    fi
+
     # eval required here to re-evaluate the $cmd properly at runtime
     # This is required if $cmd has quoted strings that should be bunched
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
@@ -208,6 +214,14 @@ save_cmd() {
             fi
         fi
     fi
+    
+    # Remove secret from CONFIG_DB.json
+    if [[ $filename == *CONFIG_DB.json ]]
+    then
+        echo "Remove secret from '$filepath'"
+        remove_secret_from_config_db_dump $filepath
+    fi
+    
     ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
         || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
         && $RM $V -rf "$filepath"
@@ -1259,8 +1273,8 @@ main() {
         rm $rm_list
     fi
 
-    # Remove secret from dump files before tar
-    remove_secret()
+    # Remove secret from /etc files before tar
+    remove_secret_from_etc_files
 
     start_t=$(date +%s%3N)
     ($TAR $V --warning=no-file-removed -rhf $TARFILE -C $DUMPDIR --mode=+rw \
@@ -1317,44 +1331,59 @@ main() {
 }
 
 ###############################################################################
+# Remove secret from Config DB dump files.
+# Globals:
+#  None
+# Arguments:
+#  filepath: the filepath to save the output as in $BASE/dump
+# Returns:
+#  None
+###############################################################################
+remove_secret_from_config_db_dump() {
+    local filepath=$1
+    echo "Remove secret from '$filepath' files."
+
+    # Remove tacacs & radius passkey from config DB
+    sed -i -E 's/\"passkey\"\s*:\s*\"([^\"]*)\"/\"passkey\":\"\"/g' $filepath
+
+    # Remove snmp community from config DB
+    sed -i -E '/SNMP_COMMUNITY/,/\s{2,4}\},/d' $filepath
+}
+
+###############################################################################
 # Remove secret from dump files.
 # Globals:
-#  BASE
+#  TARDIR
 # Arguments:
 #  None
 # Returns:
 #  None
 ###############################################################################
-remove_secret() {
-    # Remove tacacs & radius passkey from config DB
-    local passkey_regex='s/\"passkey\"\s*:\s*\"([^\"]*)\"/\"passkey\":\"\"/g'
-    sed -i -E $passkey_regex $BASE/etc/dump/CONFIG_DB.json
-    sed -i -E $passkey_regex $BASE/etc/sonic/config_db.json
-
-    # Remove snmp community from config DB
-    local snmp_community_regex= '/SNMP_COMMUNITY/,/    \},/d'
-    sed -i $snmp_community_regex $BASE/etc/dump/CONFIG_DB.json
-    sed -i $snmp_community_regex $BASE/etc/sonic/config_db.json
-
+remove_secret_from_etc_files() {
+    echo "Remove secret from etc files."
     # Remove tacacs passkey from tacplus_nss.conf
-    sed -i -E 's/(secret=)([^,|^\s]*),/\1***,/g' $BASE/etc/tacplus_nss.conf
-
-    # Remove tacacs passkey from common-auth-sonic
-    sed -i -E 's/(secret=)(\S*)/\1***/g' $BASE/etc/pam.d/common-auth-sonic
-
-    # Remove tacacs passkey from pam_radius_auth.conf
-    sed -i -E 's/^([^#]\S*\s*)(\S*)/\1***/g' $BASE/etc/pam_radius_auth.conf
+    local secret_regex='s/(secret=)([^,|\S]*)(.*)/\1***\3/g'
+    sed -i -E $secret_regex $TARDIR/etc/tacplus_nss.conf
 
     # Remove radius passkey from radius_nss.conf
-    sed -i -E 's/(secret=)([^,|^\s]*),/\1***,/g' $BASE/etc/radius_nss.conf
+    sed -i -E $secret_regex $TARDIR/etc/radius_nss.conf
+
+    # Remove tacacs passkey from common-auth-sonic
+    sed -i -E 's/(secret=)(\S*)/\1***/g' $TARDIR/etc/pam.d/common-auth-sonic
+
+    # Remove tacacs passkey from pam_radius_auth.conf
+    sed -i -E 's/^([^#]\S*\s*)(\S*)/\1***/g' $TARDIR/etc/pam_radius_auth.conf
 
     # Remove radius passkey from per-server conf file /etc/pam_radius_auth.d/{ip}_{port}.conf
-    for filename in $BASE/etc/pam_radius_auth.d/*.conf; do
+    for filename in $TARDIR/etc/pam_radius_auth.d/*.conf; do
         sed -i -E 's/^([^#]\S*\s*)(\S*)/\1***/g' $filename
     done
 
     # Remove snmp community string from snmp.yml
-    sed -i -E 's/(\s*snmp_\S*community\s*:\s*)(\S*)/\1***/g' $BASE/etc/sonic/snmp.yml
+    sed -i -E 's/(\s*snmp_\S*community\s*:\s*)(\S*)/\1***/g' $TARDIR/etc/sonic/snmp.yml
+    
+    # Remove secret from /etc/sonic/config_db.json
+    remove_secret_from_config_db_dump $TARDIR/etc/sonic/config_db.json
 }
 
 ###############################################################################
