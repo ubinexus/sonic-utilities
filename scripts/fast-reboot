@@ -12,6 +12,7 @@ SHUTDOWN_ORDER_FILE="/etc/sonic/${REBOOT_TYPE}_order"
 VERBOSE=no
 FORCE=no
 IGNORE_ASIC=no
+IGNORE_DB_CHECK=no
 STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
@@ -38,6 +39,7 @@ EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
 EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_COUNTERPOLL_DELAY_FAILURE=14
+EXIT_DB_INTEGRITY_FAILURE=15
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 
@@ -59,8 +61,9 @@ function showHelpAndExit()
     echo "Usage: ${REBOOT_SCRIPT_NAME} [options]"
     echo "    -h,-? : get this help"
     echo "    -v    : turn on verbose"
-    echo "    -f    : force execution"
-    echo "    -i    : ignore MD5-checksum-verification of ASIC configuration files"
+    echo "    -f    : force execution - ignore Orchagent RESTARTCHECK failure"
+    echo "    -i    : force execution - ignore ASIC MD5-checksum-verification"
+    echo "    -d    : force execution - ignore database integrity check"
     echo "    -r    : reboot with /sbin/reboot"
     echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
@@ -74,7 +77,7 @@ function showHelpAndExit()
 
 function parseOptions()
 {
-    while getopts "vfih?rkxc:s" opt; do
+    while getopts "vfidh?rkxc:s" opt; do
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -87,6 +90,9 @@ function parseOptions()
                 ;;
             i )
                 IGNORE_ASIC=yes
+                ;;
+            d )
+                IGNORE_DB_CHECK=yes
                 ;;
             r )
                 REBOOT_METHOD="/sbin/reboot"
@@ -271,8 +277,13 @@ function backup_database()
 function setup_control_plane_assistant()
 {
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
-        debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
-        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+        # TH3 HW is not capable of VxLAN programming thus skipping TH3 platforms
+        if [[ "${HWSKU}" != "DellEMC-Z9332f-M-O16C64" && "${HWSKU}" != "DellEMC-Z9332f-M-O16C64-lab" ]]; then
+            debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
+            ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+        else
+            debug "${HWSKU} Not capable to support CPA. Skipping gracefully ..."
+        fi
     elif [[ X"${STRICT}" == X"yes" ]]; then
         debug "Strict mode: fail due to lack of control plane assistant ..."
         exit ${EXIT_NO_CONTROL_PLANE_ASSISTANT}
@@ -282,8 +293,11 @@ function setup_control_plane_assistant()
 function teardown_control_plane_assistant()
 {
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
-        debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
-        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+        # TH3 HW is not capable of VxLAN programming thus skipping TH3 platforms
+        if [[ "${HWSKU}" != "DellEMC-Z9332f-M-O16C64" && "${HWSKU}" != "DellEMC-Z9332f-M-O16C64-lab" ]]; then
+            debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
+            ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+        fi
     fi
 }
 
@@ -294,6 +308,7 @@ function is_secureboot() {
 function setup_reboot_variables()
 {
     # Kernel and initrd image
+    HWSKU=$(show platform summary --json | python -c 'import sys, json; print(json.load(sys.stdin)["hwsku"])')
     NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
@@ -327,6 +342,23 @@ function check_docker_exec()
     done
 }
 
+function check_db_integrity()
+{
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        CHECK_DB_INTEGRITY=0
+        /usr/local/bin/check_db_integrity.py || CHECK_DB_INTEGRITY=$?
+        if [[ CHECK_DB_INTEGRITY -ne 0 ]]; then
+            if [[ x"${IGNORE_DB_CHECK}" == x"yes" ]]; then
+                debug "Ignoring Database integrity checks..."
+            else
+                error "Failed to validate DB's integrity. Exit code: ${CHECK_DB_INTEGRITY}. \
+                    Use '-d' option to force ignore this check."
+                exit ${EXIT_DB_INTEGRITY_FAILURE}
+            fi
+        fi
+    fi
+}
+
 function reboot_pre_check()
 {
     check_docker_exec
@@ -336,6 +368,8 @@ function reboot_pre_check()
         touch ${filename}
     fi
     rm ${filename}
+
+    check_db_integrity
 
     # Make sure /host has enough space for warm reboot temp files
     avail=$(df -k /host | tail -1 | awk '{ print $4 }')
