@@ -1274,12 +1274,6 @@ main() {
         --exclude="*snmpd.conf*" \
         --exclude="*/etc/mlnx" \
         --exclude="*/etc/mft" \
-        --exclude="*/etc/shadow" \
-        --exclude="*/etc/tacplus_nss.conf" \
-        --exclude="*/etc/radius_nss.conf" \
-        --exclude="*/etc/pam_radius_auth.conf" \
-        --exclude="*/etc/pam.d/common-auth-sonic" \
-        --exclude="*/etc/sonic/snmp.yml" \
         --exclude="*/etc/sonic/*/*.cer" \
         --exclude="*/etc/sonic/*/*.crt" \
         --exclude="*/etc/sonic/*/*.key" \
@@ -1332,7 +1326,7 @@ main() {
 #  None
 ###############################################################################
 remove_secret() {
-    # Remove tacacs&redus passkey from config db dump: "passkey": "testing123"
+    # Remove tacacs & radius passkey from config DB
     local passkey_regex='s/\"passkey\"\s*:\s*\"([^\"]*)\"/\"passkey\":\"\"/g'
     sed -i -E $passkey_regex $BASE/etc/dump/CONFIG_DB.json
     sed -i -E $passkey_regex $BASE/etc/sonic/config_db.json
@@ -1341,6 +1335,26 @@ remove_secret() {
     local snmp_community_regex= '/SNMP_COMMUNITY/,/    \},/d'
     sed -i $snmp_community_regex $BASE/etc/dump/CONFIG_DB.json
     sed -i $snmp_community_regex $BASE/etc/sonic/config_db.json
+
+    # Remove tacacs passkey from tacplus_nss.conf
+    sed -i -E 's/(secret=)([^,|^\s]*),/\1***,/g' $BASE/etc/tacplus_nss.conf
+
+    # Remove tacacs passkey from common-auth-sonic
+    sed -i -E 's/(secret=)(\S*)/\1***/g' $BASE/etc/pam.d/common-auth-sonic
+
+    # Remove tacacs passkey from pam_radius_auth.conf
+    sed -i -E 's/^([^#]\S*\s*)(\S*)/\1***/g' $BASE/etc/pam_radius_auth.conf
+
+    # Remove radius passkey from radius_nss.conf
+    sed -i -E 's/(secret=)([^,|^\s]*),/\1***,/g' $BASE/etc/radius_nss.conf
+
+    # Remove radius passkey from per-server conf file /etc/pam_radius_auth.d/{ip}_{port}.conf
+    for filename in $BASE/etc/pam_radius_auth.d/*.conf; do
+        sed -i -E 's/^([^#]\S*\s*)(\S*)/\1***/g' $filename
+    done
+
+    # Remove snmp community string from snmp.yml
+    sed -i -E 's/(\s*snmp_\S*community\s*:\s*)(\S*)/\1***/g' $BASE/etc/sonic/snmp.yml
 }
 
 ###############################################################################
