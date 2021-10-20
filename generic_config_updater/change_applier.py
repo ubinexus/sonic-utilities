@@ -3,7 +3,6 @@ import json
 import jsondiff
 import importlib
 import os
-import syslog
 import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
