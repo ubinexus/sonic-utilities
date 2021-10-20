@@ -3,7 +3,6 @@ import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
                        DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
-
 from .patch_sorter import PatchSorter
 from .change_applier import ChangeApplier
 

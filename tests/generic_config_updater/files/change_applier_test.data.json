@@ -241,7 +241,8 @@
         {
             "name": "change_0",
             "update": {},
-            "remove": {}
+            "remove": {},
+            "services_validated": ["system_health"]
         },
         {
             "name": "change_1",
@@ -253,7 +254,8 @@
             "remove": {
                 "BGP_NEIGHBOR": { "10.0.0.57": {} },
                 "BGP_PEER_RANGE": { "BGPSLBPassive": {} }
-            }
+            },
+            "services_validated": [ "vlan_validate", "acl_validate" ]
         },
         {
             "name": "change_2",

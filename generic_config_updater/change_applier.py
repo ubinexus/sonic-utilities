@@ -1,12 +1,40 @@
 import copy
 import json
+import jsondiff
 import importlib
 import os
 import syslog
 import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
-from .gu_common import log_error, log_debug, log_info
+from .gu_common import genericUpdaterLogging
+
+
+UPDATER_CONF_FILE = "/etc/sonic/generic_config_updater.conf"
+updater_data = None
+
+logger = genericUpdaterLogging.get_logger(title="Change Applier")
+
+print_to_console = False
+print_to_stdout = False
+
+def set_print_options(to_console=False, to_stdout=False):
+    global print_to_console, print_to_stdout
+
+    print_to_console = to_console
+    print_to_stdout = to_stdout
+
+
+def log_debug(m):
+    logger.log_debug(m, print_to_console)
+    if print_to_stdout:
+        print(m)
+
+
+def log_error(m):
+    logger.log_error(m, print_to_console)
+    if print_to_stdout:
+        print(m)
 
 
 def get_config_db():
@@ -19,20 +47,19 @@ def set_config(config_db, tbl, key, data):
     config_db.set_entry(tbl, key, data)
 
 
-UPDATER_CONF_FILE = "/etc/sonic/generic_config_updater.conf"
-updater_data = None
-
 class ChangeApplier:
     def __init__(self):
-        global updater_data, log_level
+        global updater_data
 
         self.config_db = get_config_db()
-        if updater_data == None:
+        if not updater_data:
             with open(UPDATER_CONF_FILE, "r") as s:
                 updater_data = json.load(s)
 
 
-    def _invoke_cmd(cmd, old_cfg, upd_cfg, keys):
+    def _invoke_cmd(self, cmd, old_cfg, upd_cfg, keys):
+        # cmd is in the format as <package/module name>.<method name>
+        #
         method_name = cmd.split(".")[-1]
         module_name = ".".join(cmd.split(".")[0:-1])
 
@@ -42,20 +69,29 @@ class ChangeApplier:
         return method_to_call(old_cfg, upd_cfg, keys)
 
 
-    def _services_validate(old_cfg, upd_cfg, keys):
+    def _services_validate(self, old_cfg, upd_cfg, keys):
         lst_svcs = set()
         lst_cmds = set()
         if not keys:
+            # calling apply with no config would invoke
+            # default validation, if any
+            #
             keys[""] = {}
+
+        tables = updater_data["tables"]
         for tbl in keys:
-            lst_svcs.update(updater_data.get(tbl, {}).get("services_to_validate", []))
+            lst_svcs.update(tables.get(tbl, {}).get("services_to_validate", []))
+
+        services = updater_data["services"]
         for svc in lst_svcs:
-            lst_cmds.update(updater_data.get(svc, {}).get("validate_commands", []))
+            lst_cmds.update(services.get(svc, {}).get("validate_commands", []))
 
         for cmd in lst_cmds:
-            ret = _invoke_cmd(cmd, old_cfg, upd_cfg, keys)
+            ret = self._invoke_cmd(cmd, old_cfg, upd_cfg, keys)
             if ret:
+                log_error("service invoked: {} failed with ret={}".format(cmd, ret))
                 return ret
+            log_debug("service invoked: {}".format(cmd))
         return 0
 
 
@@ -67,6 +103,12 @@ class ChangeApplier:
             if run_data != upd_data:
                 set_config(self.config_db, tbl, key, upd_data)
                 upd_keys[tbl][key] = {}
+                log_debug("Patch affected tbl={} key={}".format(tbl, key))
+
+
+    def _report_mismatch(self, run_data, upd_data):
+        log_error("run_data vs expected_data: {}".format(
+            str(jsondiff.diff(run_data, upd_data))[0:40]))
 
 
     def apply(self, change):
@@ -74,16 +116,18 @@ class ChangeApplier:
         upd_data = change.apply(copy.deepcopy(run_data))
         upd_keys = defaultdict(dict)
 
-        for tbl in set(run_data.keys()).union(set(upd_data.keys())):
+        for tbl in sorted(set(run_data.keys()).union(set(upd_data.keys()))):
             self._upd_data(tbl, run_data.get(tbl, {}),
                     upd_data.get(tbl, {}), upd_keys)
 
-        ret = _services_validate(run_data, upd_data, upd_keys)
+        ret = self._services_validate(run_data, upd_data, upd_keys)
         if not ret:
             run_data = self._get_running_config()
             if upd_data != run_data:
-                report_mismatch(run_data, upd_data)
+                self._report_mismatch(run_data, upd_data)
                 ret = -1
+        if ret:
+            log_error("Failed to apply Json change")
         return ret
 
 
@@ -96,8 +140,3 @@ class ChangeApplier:
         if os.path.isfile(fname):
             os.remove(fname)
         return run_data
-
-
-            
-
-

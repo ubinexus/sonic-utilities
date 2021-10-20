@@ -1,5 +1,6 @@
 import copy
 import json
+import jsondiff
 import os
 import unittest
 from collections import defaultdict
@@ -14,14 +15,21 @@ CONF_FILE =  os.path.join(SCRIPT_DIR, "files", "change_applier_test.conf.json")
 #
 # Datafile is structured as 
 # "running_config": {....}
-# "json_changes": [ {"name": ..., "update": { <tbl>: {<key>: {<new data>}, ...}...},
-#                               "remove": { <tbl>: { <key>: {}, ..}, ...} }, ...]
+# "json_changes": [ 
+#        {
+#         "notes": <short note on this change for dev>,
+#         "update": { <tbl>: {<key>: {<new data>}, ...}...},
+#         "remove": { <tbl>: { <key>: {}, ..}, ...},
+#         "services_to_validate": [ <service name>, ...]
+#        },
+#        ...
+#   ]
 #
 # The json_changes is read into global json_changes
-# The applier is called with each change
-#   The mocked JsonChange.apply applies this diff on given config
-#   The applier calls set_entry to update redis
-#   But we mock set_entry, and that instead:
+# The ChangeApplier.apply is called with each change
+# The mocked JsonChange.apply applies this diff on given config
+# The ChangeApplier.apply calls set_entry to update redis
+# But we mock set_entry, and that instead:
 #       remove the corresponding changes from json_changes.
 #       Updates the global running_config
 # 
@@ -60,11 +68,8 @@ json_change_index = 0
 
 DB_HANDLE = "config_db"
 
-in_debug = False
-
 def debug_print(msg):
-    if in_debug:
-        print(msg)
+    print(msg)
 
 
 # Mimics os.system call for sonic-cfggen -d --print-data > filename
@@ -133,90 +138,83 @@ class mock_obj:
                 for key in remove[tbl]:
                     config[tbl].pop(key, None)
                     debug_print("apply: popped tbl={} key={}".format(tbl, key))
+                if not config[tbl]:
+                    config.pop(tbl, None)
+                    debug_print("apply: popped EMPTY tbl={}".format(tbl))
         return config
-
-def print_diff(expect, ct):
-    for tbl in set(expect.keys()).union(set(ct.keys())):
-        if tbl not in expect:
-            debug_print("Unexpected table in current: {}".format(tbl))
-        elif tbl not in ct:
-            debug_print("Missing table in current: {}".format(tbl))
-        else:
-            ex_tbl = expect[tbl]
-            ct_tbl = ct[tbl]
-            for key in set(ex_tbl.keys()).union(set(ct_tbl.keys())):
-                if key not in ex_tbl:
-                    debug_print("Unexpected key in current: {}/{}".format(tbl, key))
-                elif key not in ct_tbl:
-                    debug_print("Missing key in current: {}/{}".format(tbl, key))
-                else:
-                    ex_val = ex_tbl[key]
-                    ct_val = ct_tbl[key]
-                    if ex_val != ct_val:
-                        debug_print("Val mismatch {}/{} expect:{} ct: {}".format(
-                            tbl, key, ex_val, ct_val))
-    debug_print("diff is complete")
 
 
 # Test validators
 #
 def system_health(old_cfg, new_cfg, keys):
+    debug_print("system_health called")
     svc_name = "system_health"
     if old_cfg != new_cfg:
-        print_diff(old_cfg, new_cfg)
+        debug_print("system_health: diff={}".format(str(
+            jsondiff.diff(old_cfg, new_cfg))))
         assert False, "No change expected"
     svcs = json_changes[json_change_index].get("services_validated", None)
     if svcs != None:
-        assert svc_name not in svcs
+        assert svc_name in svcs
         svcs.remove(svc_name)
 
 
 def _validate_keys(keys):
-    change = copy.deepcopy(read_data["json_changes"][json_change_index])
-    change.update(read_data["json_changes"][json_change_index])
+    # validate keys against original change as read from data file
+    #
+    change = read_data["json_changes"][json_change_index]
+    change_data = copy.deepcopy(change["update"])
+    change_data.update(change["remove"])
 
-    for tbl in set(change.keys()).union(set(keys.keys())):
-        assert tbl in change
+    for tbl in set(change_data.keys()).union(set(keys.keys())):
+        assert tbl in change_data
         assert tbl in keys
-        chg_tbl = change[tbl]
+        chg_tbl = change_data[tbl]
         keys_tbl = keys[tbl]
         for key in set(chg_tbl.keys()).union(set(keys_tbl.keys())):
-            assert key not in chg_tbl
-            assert key not in keys_tbl
+            assert key in chg_tbl
+            assert key in keys_tbl
 
         
 def _validate_svc(svc_name, old_cfg, new_cfg, keys):
     if old_cfg != start_running_config:
-        print_diff(old_cfg, start_running_config)
-        assert False
+        debug_print("validate svc {}: old diff={}".format(svc_name, str(
+            jsondiff.diff(old_cfg, start_running_config))))
+        assert False, "_validate_svc: old config mismatch"
 
     if new_cfg != running_config:
-        print_diff(old_cfg, running_config)
-        assert False
+        debug_print("validate svc {}: new diff={}".format(svc_name, str(
+            jsondiff.diff(new_cfg, running_config))))
+        assert False, "_validate_svc: running config mismatch"
 
     _validate_keys(keys)
 
+    # None provides a chance for test data to skip services_validated
+    # verification
     svcs = json_changes[json_change_index].get("services_validated", None)
     if svcs != None:
-        assert svc_name not in svcs
+        assert svc_name in svcs
         svcs.remove(svc_name)
 
 
 def acl_validate(old_cfg, new_cfg, keys):
+    debug_print("acl_validate called")
     _validate_svc("acl_validate", old_cfg, new_cfg, keys)
 
 
 def vlan_validate(old_cfg, new_cfg, keys):
+    debug_print("vlan_validate called")
     _validate_svc("vlan_validate", old_cfg, new_cfg, keys)
 
 
 class TestChangeApplier(unittest.TestCase):
 
-    @patch("generic_config_updater.gu_common.subprocess.run")
     @patch("generic_config_updater.change_applier.os.system")
     @patch("generic_config_updater.change_applier.get_config_db")
     @patch("generic_config_updater.change_applier.set_config")
+    def test_change_apply(self, mock_set, mock_db, mock_os_sys):
         global read_data, running_config, json_changes, json_change_index
+        global start_running_config
 
         mock_os_sys.side_effect = os_system_cfggen
         mock_db.return_value = DB_HANDLE
@@ -229,6 +227,7 @@ class TestChangeApplier(unittest.TestCase):
         json_changes = copy.deepcopy(read_data["json_changes"])
 
         generic_config_updater.change_applier.UPDATER_CONF_FILE = CONF_FILE
+        generic_config_updater.change_applier.set_print_options(to_stdout=True)
         
         applier = generic_config_updater.change_applier.ChangeApplier()
         debug_print("invoked applier")
@@ -240,10 +239,11 @@ class TestChangeApplier(unittest.TestCase):
             start_running_config = copy.deepcopy(running_config)
             
             debug_print("main: json_change_index={}".format(json_change_index))
+
             applier.apply(mock_obj())
 
-        # All changes are consumed
-        for i in range(len(json_changes)):
+            debug_print(f"Testing json_change {json_change_index}")
+
             debug_print("Checking: index={} update:{} remove:{} svcs:{}".format(i,
                 json.dumps(json_changes[i]["update"])[0:20],
                 json.dumps(json_changes[i]["remove"])[0:20],
@@ -251,12 +251,16 @@ class TestChangeApplier(unittest.TestCase):
             assert not json_changes[i]["update"]
             assert not json_changes[i]["remove"]
             assert not json_changes[i].get("services_validated", [])
+            debug_print(f"----------------------------- DONE {i} ---------------------------------")
+
+        debug_print("All changes applied & tested")
 
         # Test data is set up in such a way the multiple changes
         # finally brings it back to original config.
         #
         if read_data["running_data"] != running_config:
-            print_diff(read_data["running_data"], running_config)
+            debug_print("final config mismatch: {}".format(str(
+                jsondiff.diff(read_data["running_data"], running_config))))
 
         assert read_data["running_data"] == running_config
 
