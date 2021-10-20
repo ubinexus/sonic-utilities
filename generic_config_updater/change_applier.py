@@ -51,7 +51,7 @@ class ChangeApplier:
         global updater_data
 
         self.config_db = get_config_db()
-        if not updater_data:
+        if (not updater_data) and os.path.exists(UPDATER_CONF_FILE):
             with open(UPDATER_CONF_FILE, "r") as s:
                 updater_data = json.load(s)
 
