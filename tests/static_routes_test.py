@@ -26,7 +26,7 @@ ERROR_INVALID_IP = '''
 Error: ip address is not valid.
 '''
 ERROR_INVALID_PORTCHANNEL = '''
-Error: portchannel doest not exist.
+Error: portchannel does not exist.
 '''
 
 
