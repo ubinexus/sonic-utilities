@@ -603,7 +603,7 @@ def _clear_qos():
             'MAP_PFC_PRIORITY_TO_QUEUE',
             'TC_TO_QUEUE_MAP',
             'DSCP_TO_TC_MAP',
-            'EXP_TO_TC_MAP',
+            'MPLS_TC_TO_TC_MAP',
             'SCHEDULER',
             'PFC_PRIORITY_TO_PRIORITY_GROUP_MAP',
             'PORT_QOS_MAP',
@@ -4044,7 +4044,7 @@ def add(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name)  
+    table_name = get_interface_table_name(interface_name)
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
@@ -4066,7 +4066,7 @@ def remove(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name) 
+    table_name = get_interface_table_name(interface_name)
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
