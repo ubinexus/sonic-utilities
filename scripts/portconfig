@@ -35,6 +35,9 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
 except KeyError:
     pass
 
@@ -68,7 +71,7 @@ VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','SR','SR2','SR4',
 
 class portconfig(object):
     """
-    Process aclstat
+    Process portconfig
     """
     def __init__(self, verbose, port, namespace):
         self.verbose = verbose
@@ -101,13 +104,13 @@ class portconfig(object):
         else:
             raise Exception("Invalid port %s" % (port))
 
-    def list_params(self, port):
+    def list_params(self, table_name, port):
         # chack whether table for this port exists
-        port_tables = self.db.get_table(PORT_TABLE_NAME)
+        port_tables = self.db.get_table(table_name)
         if port in port_tables:
             print(port_tables[port])
 
-    def set_speed(self, port, speed):
+    def set_speed(self, table_name, port, speed):
         if self.verbose:
             print("Setting speed %s on port %s" % (speed, port))
         supported_speeds_str = self.get_supported_speeds(port)
@@ -116,25 +119,25 @@ class portconfig(object):
                 print('Invalid speed specified: {}'.format(speed))
                 print('Valid speeds:{}'.format(supported_speeds_str))
                 exit(1)
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
+        self.db.mod_entry(table_name, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
-    def set_fec(self, port, fec):
+    def set_fec(self, table_name, port, fec):
         if self.verbose:
             print("Setting fec %s on port %s" % (fec, port))
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
+        self.db.mod_entry(table_name, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
 
     def set_mtu(self, table_name, port, mtu):
         if self.verbose:
             print("Setting mtu %s on port %s" % (mtu, port))
         self.db.mod_entry(table_name, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
 
-    def set_autoneg(self, port, mode):
+    def set_autoneg(self, table_name, port, mode):
         if self.verbose:
             print("Setting autoneg %s on port %s" % (mode, port))
         mode = 'on' if mode == 'enabled' else 'off'
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_AUTONEG_CONFIG_FIELD_NAME: mode})
+        self.db.mod_entry(table_name, port, {PORT_AUTONEG_CONFIG_FIELD_NAME: mode})
 
-    def set_adv_speeds(self, port, adv_speeds):
+    def set_adv_speeds(self, table_name, port, adv_speeds):
         if self.verbose:
             print("Setting adv_speeds %s on port %s" % (adv_speeds, port))
 
@@ -153,18 +156,18 @@ class portconfig(object):
                     print('Valid speeds:{}'.format(supported_speeds_str))
                     exit(1)
 
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
+        self.db.mod_entry(table_name, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
 
-    def set_interface_type(self, port, interface_type):
+    def set_interface_type(self, table_name, port, interface_type):
         if self.verbose:
             print("Setting interface_type %s on port %s" % (interface_type, port))
         if interface_type not in VALID_INTERFACE_TYPE_SET:
             print("Invalid interface type specified: {}".format(interface_type))
             print("Valid interface types:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
             exit(1)
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
+        self.db.mod_entry(table_name, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
 
-    def set_adv_interface_types(self, port, adv_interface_types):
+    def set_adv_interface_types(self, table_name, port, adv_interface_types):
         if self.verbose:
             print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
         
@@ -179,7 +182,7 @@ class portconfig(object):
                 print("Invalid interface type specified: {}".format(','.join(invalid_interface_types)))
                 print("Valid interface types:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
                 exit(1)
-        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME: adv_interface_types})
+        self.db.mod_entry(table_name, port, {PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME: adv_interface_types})
     
     def get_supported_speeds(self, port):
         if not self.namespace:
@@ -189,7 +192,7 @@ class portconfig(object):
         state_db.connect(state_db.STATE_DB)
         return state_db.get(state_db.STATE_DB, '{}|{}'.format(PORT_STATE_TABLE_NAME, port), PORT_STATE_SUPPORTED_SPEEDS)
 
-    def set_tpid(self, port, tpid):
+    def set_tpid(self, table_name, port, tpid):
         if self.verbose:
             print("Setting tpid %s on port %s" % (tpid, port))
 
@@ -224,7 +227,7 @@ class portconfig(object):
                        raise Exception("%s is already member of %s. Set TPID NOT allowed." % (port, self.parent))
                    else:
                        if tpid_port_capable:
-                           self.db.mod_entry(PORT_TABLE_NAME, port, {TPID_CONFIG_FIELD_NAME: tpid})
+                           self.db.mod_entry(table_name, port, {TPID_CONFIG_FIELD_NAME: tpid})
                        else:
                            raise Exception("HW is not capable to support Port TPID config.")
             else:
@@ -237,15 +240,15 @@ def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',
                          formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--port', type=str, help='port name (e.g. Ethernet0)', required=True, default=None)
-    parser.add_argument('-l', '--list', action='store_true', help='list port parametars', default=False)
+    parser.add_argument('-l', '--list', action='store_true', help='list port parameters', default=False)
     parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
     parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
     parser.add_argument('-m', '--mtu', type=int, help='port mtu value in bytes', default=None)
     parser.add_argument('-tp', '--tpid', type=str, help='port TPID value in hex (e.g. 0x8100)', default=None)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
-    parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
-                        help = 'The asic namespace whose DB instance we need to connect', default=None)
+    parser.add_argument('-n', '--namespace', metavar='namespace details', type=str, required=False,
+                        help='The asic namespace whose DB instance we need to connect', default=None)
     parser.add_argument('-an', '--autoneg', type = str, required = False,
                         help = 'port auto negotiation mode', default=None)
     parser.add_argument('-S', '--adv-speeds', type = str, required = False,
@@ -260,30 +263,29 @@ def main():
     load_db_config()
     try:
         port_table_name = interface.get_port_table_name(args.port)
-        print("portconfig:262 port_table_name = {}".format(str(port_table_name)))
         if not port_table_name:
             raise Exception("Invalid port type specified")
         
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
-            port.list_params(args.port)
+            port.list_params(port_table_name, args.port)
         elif args.speed or args.fec or args.mtu or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types or args.tpid:
             if args.speed:
-                port.set_speed(args.port, args.speed)
+                port.set_speed(port_table_name, args.port, args.speed)
             if args.fec:
-                port.set_fec(args.port, args.fec)
+                port.set_fec(port_table_name, args.port, args.fec)
             if args.mtu:
                 port.set_mtu(port_table_name, args.port, args.mtu)
             if args.autoneg:
-                port.set_autoneg(args.port, args.autoneg)
+                port.set_autoneg(port_table_name, args.port, args.autoneg)
             if args.adv_speeds:
-                port.set_adv_speeds(args.port, args.adv_speeds)
+                port.set_adv_speeds(port_table_name, args.port, args.adv_speeds)
             if args.interface_type:
-                port.set_interface_type(args.port, args.interface_type)
+                port.set_interface_type(port_table_name, args.port, args.interface_type)
             if args.adv_interface_types:
-                port.set_adv_interface_types(args.port, args.adv_interface_types)
+                port.set_adv_interface_types(port_table_name, args.port, args.adv_interface_types)
             if args.tpid:
-                port.set_tpid(args.port, args.tpid)
+                port.set_tpid(port_table_name, args.port, args.tpid)
         else:
             parser.print_help()
             sys.exit(1)
