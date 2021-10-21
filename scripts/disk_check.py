@@ -32,6 +32,7 @@ import argparse
 import os
 import sys
 import syslog
+import time
 import subprocess
 
 UPPER_DIR = "/run/mount/upper"
@@ -87,30 +88,57 @@ def get_dname(path_name):
     return os.path.basename(os.path.normpath(path_name))
 
 
+def do_mkdir(d):
+    try:
+        os.mkdir(d)
+        return 0
+    except OSError as error:
+        log_err(f"Failed to create {d}")
+        return -1
+
+
 def do_mnt(dirs):
+    ret = 0
+
     if os.path.exists(UPPER_DIR):
         log_err("Already mounted")
         return 1
 
     for i in (UPPER_DIR, WORK_DIR):
-        try:
-            os.mkdir(i)
-        except OSError as error:
-            log_err("Failed to create {}".format(i))
-            return 1
-
-    for d in dirs:
-        d_name = get_dname(d)
-        d_upper = os.path.join(UPPER_DIR, d_name)
-        d_work = os.path.join(WORK_DIR, d_name)
-        os.mkdir(d_upper)
-        os.mkdir(d_work)
-
-        ret = run_cmd("mount -t overlay overlay_{} -o lowerdir={},"
-        "upperdir={},workdir={} {}".format(
-            d_name, d, d_upper, d_work, d))
+        ret = do_mkdir(i)
         if ret:
-            break
+            return ret
+
+    # disable ssh during mounting of /etc & /home
+    # If a ssh login happen during this remount, it could end up creating
+    # the user account incorrectly, which could block this user forever,
+    # until reboot.
+    #
+    log_info("Stopping ssh")
+    os.system("systemctl stop ssh")
+
+    # Pause 5 seconds, to let any current login failure to complete.
+    #
+    time.sleep(5)
+
+    try:
+        for d in dirs:
+            d_name = get_dname(d)
+            d_upper = os.path.join(UPPER_DIR, d_name)
+            d_work = os.path.join(WORK_DIR, d_name)
+            ret = do_mkdir(d_upper)
+            if not ret:
+                ret = do_mkdir(d_work)
+
+            if not ret:
+                ret = run_cmd("mount -t overlay overlay_{} -o lowerdir={},"
+                        "upperdir={},workdir={} {}".format(
+                            d_name, d, d_upper, d_work, d))
+            if ret:
+                break
+    finally:
+        os.system("systemctl start ssh")
+        log_info("ssh started")
 
     if ret:
         log_err("Failed to mount {} as Read-Write".format(dirs))
@@ -141,6 +169,12 @@ def do_check(skip_mount, dirs):
     if not test_writable(dirs):
         if not skip_mount:
             ret = do_mnt(dirs)
+
+        # ensure, ssh is started.
+        # If in case, process crashed after stop
+        # Start is no-op, if already running.
+        #
+        os.system("systemctl start ssh")
 
     # Check if mounted
     if (not ret) and is_mounted(dirs):
