@@ -227,7 +227,6 @@ class TestReloadConfig(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_YANG_CFG_OUTPUT
 
-
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
@@ -235,7 +234,7 @@ class TestReloadConfig(object):
         print("TEARDOWN")
 
  
- class TestConfigCbf(object):
+class TestConfigCbf(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
@@ -256,8 +255,8 @@ class TestReloadConfig(object):
         except OSError:
             pass
         result = runner.invoke(
-            config.config.commands["cbf"],
-            ["reload", "--dry_run", output_file]
+           config.config.commands["cbf"],
+             ["reload", "--dry_run", output_file]
         )
         print(result.exit_code)
         print(result.output)
