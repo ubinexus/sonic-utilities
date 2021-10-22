@@ -73,7 +73,7 @@ AAA accounting login disable (default)
 show_aaa_tacacs_accounting_output="""\
 AAA authentication login tacacs+
 AAA authentication failthrough False (default)
-AAA authorization login tacacs+
+AAA authorization login tacacs+,local
 AAA accounting login tacacs+
 
 """
