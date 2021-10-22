@@ -39,6 +39,11 @@
         "mode": "dynamic",
         "size": "5088768"
     },
+    "BUFFER_POOL|ingress_lossy_pool": {
+        "type": "ingress",
+        "mode": "dynamic",
+        "size": "5088768"
+    },
     "BUFFER_POOL|ingress_lossless_pool": {
         "xoff": "688128",
         "type": "ingress",
