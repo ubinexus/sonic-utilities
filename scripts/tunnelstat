@@ -35,7 +35,7 @@ from swsscommon.swsscommon import SonicV2Connector
 nstat_fields = ("rx_b_ok", "rx_p_ok", "tx_b_ok", "tx_p_ok")
 NStats = namedtuple("NStats", nstat_fields)
 
-header = ['IFACE', 'RX_OK', 'RX_BYTES', 'RX_PPS','TX_OK', 'TX_BYTES', 'TX_PPS']
+header = ['IFACE', 'RX_PKTS', 'RX_BYTES', 'RX_PPS','TX_PKTS', 'TX_BYTES', 'TX_PPS']
 
 rates_key_list = [ 'RX_BPS', 'RX_PPS', 'TX_BPS', 'TX_PPS']
 ratestat_fields = ("rx_bps", "rx_pps", "tx_bps", "tx_pps")
