@@ -619,7 +619,7 @@ class DBMigrator():
         """
         Version 2_0_3
         """
-        log.log_info('Handling version_2_0_2')
+        log.log_info('Handling version_2_0_3')
         if self.asic_type == "mellanox":
             self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
         self.set_version('version_2_0_4')
