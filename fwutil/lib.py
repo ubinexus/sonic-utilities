@@ -405,12 +405,6 @@ class PlatformComponentsParser(object):
                 if self.FIRMWARE_KEY not in value1:
                     missing_key = self.FIRMWARE_KEY
                     break
-                elif len(value1) == 2 and self.VERSION_KEY not in value1:
-                    missing_key = self.VERSION_KEY
-                    break
-                elif len(value1) == 3 and self.UTILITY_KEY not in value1:
-                    missing_key = self.UTILITY_KEY
-                    break
 
                 for key2, value2 in value1.items():
                     if not self.__is_str(value2):
@@ -421,7 +415,7 @@ class PlatformComponentsParser(object):
                 else:
                     self.__module_component_map[section][key1] = value1
 
-        if missing_key is not None and missing_key is not self.UTILITY_KEY and missing_key is not self.VERSION_KEY:
+        if missing_key is not None:
             self.__parser_component_fail("\"{}\" key hasn't been found".format(missing_key))
 
     def __parse_chassis_section(self, chassis):

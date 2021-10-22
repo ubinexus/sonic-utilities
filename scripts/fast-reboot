@@ -423,6 +423,25 @@ function check_warm_restart_in_progress() {
     done
 }
 
+function check_conflict_boot_in_fw_update() {
+    # Make sure firmware auto update is not scheduled for a different reboot
+    FIRMWARE_AU_STATUS_DIR="/tmp/firmwareupdate"
+    FW_AU_TASK_FILE_REGEX="${FIRMWARE_AU_STATUS_DIR}/*_fw_au_task"
+    case "$REBOOT_TYPE" in
+        "fast-reboot")
+            FW_AU_TASK_FILE_EXP="${FIRMWARE_AU_STATUS_DIR}/fast_fw_au_task"
+            ;;
+        "warm-reboot")
+            FW_AU_TASK_FILE_EXP="${FIRMWARE_AU_STATUS_DIR}/warm_fw_au_task"
+            ;;
+    esac
+    FW_AU_TASK_FILE=$(compgen -G ${FW_AU_TASK_FILE_REGEX}) || true
+    if [[ -n "${FW_AU_TASK_FILE}" ]] && [[ ! -f "${FW_AU_TASK_FILE_EXP}" ]]; then
+        error "Firmware auto update scheduled for a different reboot: ${FW_AU_TASK_FILE}"
+        exit "${EXIT_FAILURE}"
+    fi
+}
+
 # main starts here
 parseOptions $@
 
@@ -432,6 +451,8 @@ then
     echo "This command must be run as root" >&2
     exit "${EXIT_FAILURE}"
 fi
+
+check_conflict_boot_in_fw_update
 
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 

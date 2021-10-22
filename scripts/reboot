@@ -136,6 +136,19 @@ function reboot_pre_check()
     fi
 }
 
+function check_conflict_boot_in_fw_update()
+{
+    # Make sure firmware auto update is not scheduled for a different reboot
+    FIRMWARE_AU_STATUS_DIR="/tmp/firmwareupdate"
+    FW_AU_TASK_FILE_REGEX="${FIRMWARE_AU_STATUS_DIR}/*_fw_au_task"
+    FW_AU_TASK_FILE_EXP="${FIRMWARE_AU_STATUS_DIR}/cold_fw_au_task"
+    FW_AU_TASK_FILE=$(compgen -G ${FW_AU_TASK_FILE_REGEX}) || true
+    if [[ -n "${FW_AU_TASK_FILE}" ]] && [[ ! -f "${FW_AU_TASK_FILE_EXP}" ]]; then
+        VERBOSE=yes debug "Firmware auto update scheduled for a different reboot: ${FW_AU_TASK_FILE}"
+        exit 1
+    fi
+}
+
 function parse_options()
 {
     while getopts "h?v" opt; do
@@ -162,6 +175,8 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 debug "User requested rebooting device ..."
+
+check_conflict_boot_in_fw_update
 
 setup_reboot_variables
 reboot_pre_check
