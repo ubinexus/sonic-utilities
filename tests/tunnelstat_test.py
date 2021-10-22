@@ -1,3 +1,6 @@
+import clear.main as clear
+import show.main as show
+from .mock_tables import dbconnector
 import sys
 import os
 import traceback
@@ -10,24 +13,20 @@ scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
-from .mock_tables import dbconnector
 
-import show.main as show
-import clear.main as clear
-
-show_vxlan_counters_output="""\
+show_vxlan_counters_output = """\
   IFACE    RX_PKTS    RX_BYTES      RX_PPS    TX_PKTS    TX_BYTES    TX_PPS
 -------  ---------  ----------  ----------  ---------  ----------  --------
   vtep1        452       81922  20523.00/s        154       23434  201.00/s
 """
 
-show_vxlan_counters_clear_output="""\
+show_vxlan_counters_clear_output = """\
   IFACE    RX_PKTS    RX_BYTES      RX_PPS    TX_PKTS    TX_BYTES    TX_PPS
 -------  ---------  ----------  ----------  ---------  ----------  --------
   vtep1          0           0  20523.00/s          0           0  201.00/s
 """
 
-show_vxlan_counters_interface_output="""\
+show_vxlan_counters_interface_output = """\
 vtep1
 -----
 
@@ -39,7 +38,7 @@ vtep1
              23434 bytes
 """
 
-show_vxlan_counters_clear_interface_output="""\
+show_vxlan_counters_clear_interface_output = """\
 vtep1
 -----
 
@@ -50,6 +49,8 @@ vtep1
                  0 packets
                  0 bytes
 """
+
+
 class TestTunnelstat(object):
     @classmethod
     def setup_class(cls):
@@ -71,7 +72,6 @@ class TestTunnelstat(object):
         result = runner.invoke(show.cli.commands["vxlan"].commands["counters"], ["vtep1"])
         expected = show_vxlan_counters_interface_output
         assert result.output == expected
-
 
     def test_clear(self):
         runner = CliRunner()
