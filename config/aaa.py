@@ -139,49 +139,55 @@ authentication.add_command(login)
 
 # cmd: aaa authorization
 @click.group()
-def authorization():
-    """User authorization"""
-    pass
-aaa.add_command(authorization)
+@click.argument('protocol', nargs=-1, type=click.Choice([ "tacacs+", "local"]))
+def authorization(protocol):
+    """Switch AAA authorization [tacacs+ | local | tacacs+ local]"""
+    if len(protocol) is 0:
+        click.echo('Argument "protocol" is required')
+        return
 
-# cmd: aaa authorization configration
-@click.command()
-@click.argument('option', type=click.Choice(["tacacs+", "local"]))
-def authorization_config(option):
-    """Allow AAA authorization [tacacs+ | local | tacacs+ local]"""
-    if option == 'tacacs+':
-        add_table_kv('AAA', 'authorization', 'tacacs+')
-    elif option == 'local':
-        add_table_kv('AAA', 'authorization', 'local')
-    elif option == 'tacacs+ local':
-        add_table_kv('AAA', 'authorization')
+    if len(protocol) is 1:
+        if protocol[0] == 'tacacs+'
+            or protocol[0] == 'local':
+            add_table_kv('AAA', 'authorization', 'login', protocol[0])
+        else:
+            click.echo('Not a valid command')
+    elif len(auth_protocol) == 2:
+        if protocol[0] == 'tacacs+'
+            and protocol[1] == 'local':
+            add_table_kv('AAA', 'authorization', 'login', 'tacacs+,local')
+        else:
+            click.echo('Not a valid command')
     else:
-        click.echo('Argument "option" is required')
-authorization.add_command(authorization_config)
+        click.echo('Not a valid command')
+aaa.add_command(authorization)
 
 # cmd: aaa accounting
 @click.group()
-def accounting():
-    """User accounting"""
-    pass
-aaa.add_command(accounting)
+@click.argument('protocol', nargs=-1, type=click.Choice(["disable", "tacacs+", "local"]))
+def accounting(protocol):
+    """Switch AAA accounting [disable | tacacs+ | local | tacacs+ local]"""
+    if len(protocol) is 0:
+        click.echo('Argument "protocol" is required')
+        return
 
-# cmd: aaa accounting configration
-@click.command()
-@click.argument('option', type=click.Choice(["tacacs+", "local"]))
-def accounting_config(option):
-    """Allow AAA accounting [disable | tacacs+ | local | tacacs+ local]"""
-    if option == 'tacacs+':
-        add_table_kv('AAA', 'accounting', 'tacacs+')
-    elif option == 'local':
-        add_table_kv('AAA', 'accounting', 'local')
-    elif option == 'tacacs+ local':
-        add_table_kv('AAA', 'accounting', 'tacacs+ local')
-    elif option == 'disable':
-        del_table_key('AAA', 'accounting')
+    if len(protocol) is 1:
+        if protocol[0] == 'tacacs+'
+            or protocol[0] == 'local':
+            add_table_kv('AAA', 'accounting', 'login', protocol[0])
+        elif protocol[0] == 'disable':
+            del_table_key('AAA', 'accounting', 'login')
+        else:
+            click.echo('Not a valid command')
+    elif len(auth_protocol) == 2:
+        if protocol[0] == 'tacacs+'
+            and protocol[1] == 'local':
+            add_table_kv('AAA', 'accounting', 'login', 'tacacs+,local')
+        else:
+            click.echo('Not a valid command')
     else:
-        click.echo('Argument "option" is required')
-accounting.add_command(accounting_config)
+        click.echo('Not a valid command')
+aaa.add_command(accounting)
 
 @click.group()
 def tacacs():
