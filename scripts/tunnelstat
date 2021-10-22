@@ -35,7 +35,7 @@ from swsscommon.swsscommon import SonicV2Connector
 nstat_fields = ("rx_b_ok", "rx_p_ok", "tx_b_ok", "tx_p_ok")
 NStats = namedtuple("NStats", nstat_fields)
 
-header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS','TX_OK', 'TX_BPS', 'TX_PPS']
+header = ['IFACE', 'RX_OK', 'RX_BYTES', 'RX_PPS','TX_OK', 'TX_BYTES', 'TX_PPS']
 
 rates_key_list = [ 'RX_BPS', 'RX_PPS', 'TX_BPS', 'TX_PPS']
 ratestat_fields = ("rx_bps", "rx_pps", "tx_bps", "tx_pps")
@@ -148,8 +148,8 @@ class Tunnelstat(object):
                 continue
 
             rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
-            table.append((key, data.rx_p_ok, format_brate(rates.rx_bps), format_prate(rates.rx_pps),
-                               data.tx_p_ok, format_brate(rates.tx_bps), format_prate(rates.tx_pps)))
+            table.append((key, data.rx_p_ok, data.rx_b_ok, format_prate(rates.rx_pps),
+                               data.tx_p_ok, data.tx_b_ok, format_prate(rates.tx_pps)))
 
         if use_json:
             print(table_as_json(table, header))
@@ -175,18 +175,18 @@ class Tunnelstat(object):
             if old_cntr is not None:
                 table.append((key,
                             ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                            format_brate(rates.rx_bps),
+                            ns_diff(cntr.rx_b_ok, old_cntr.rx_b_ok),
                             format_prate(rates.rx_pps),
                             ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                            format_brate(rates.tx_bps),
+                            ns_diff(cntr.tx_b_ok, old_cntr.tx_b_ok),
                             format_prate(rates.tx_pps)))
             else:
                 table.append((key,
                             cntr.rx_p_ok,
-                            format_brate(rates.rx_bps),
+                            cntr.rx_b_ok,
                             format_prate(rates.rx_pps),
                             cntr.tx_p_ok,
-                            format_brate(rates.tx_bps),
+                            cntr.tx_b_ok,
                             format_prate(rates.tx_pps)))
         if use_json:
             print(table_as_json(table, header))

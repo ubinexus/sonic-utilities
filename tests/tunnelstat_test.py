@@ -16,15 +16,15 @@ import show.main as show
 import clear.main as clear
 
 show_vxlan_counters_output="""\
-  IFACE    RX_OK      RX_BPS      RX_PPS    TX_OK       TX_BPS    TX_PPS
--------  -------  ----------  ----------  -------  -----------  --------
-  vtep1      452  20.97 MB/s  20523.00/s      154  2048.00 B/s  201.00/s
+  IFACE    RX_OK    RX_BYTES      RX_PPS    TX_OK    TX_BYTES    TX_PPS
+-------  -------  ----------  ----------  -------  ----------  --------
+  vtep1      452       81922  20523.00/s      154       23434  201.00/s
 """
 
 show_vxlan_counters_clear_output="""\
-  IFACE    RX_OK      RX_BPS      RX_PPS    TX_OK       TX_BPS    TX_PPS
--------  -------  ----------  ----------  -------  -----------  --------
-  vtep1      452  20.97 MB/s  20523.00/s        0  2048.00 B/s  201.00/s
+  IFACE    RX_OK    RX_BYTES      RX_PPS    TX_OK    TX_BYTES    TX_PPS
+-------  -------  ----------  ----------  -------  ----------  --------
+  vtep1        0           0  20523.00/s        0           0  201.00/s
 """
 
 show_vxlan_counters_interface_output="""\
