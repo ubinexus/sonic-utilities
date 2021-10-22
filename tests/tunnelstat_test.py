@@ -1,6 +1,3 @@
-import clear.main as clear
-import show.main as show
-from .mock_tables import dbconnector
 import sys
 import os
 import traceback
@@ -13,6 +10,9 @@ scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
+import clear.main as clear
+import show.main as show
+from .mock_tables import dbconnector
 
 show_vxlan_counters_output = """\
   IFACE    RX_PKTS    RX_BYTES      RX_PPS    TX_PKTS    TX_BYTES    TX_PPS
