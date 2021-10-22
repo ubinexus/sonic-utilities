@@ -146,18 +146,10 @@ def authorization(protocol):
         click.echo('Argument "protocol" is required')
         return
 
-    if len(protocol) is 1:
-        if protocol[0] == 'tacacs+'
-            or protocol[0] == 'local':
-            add_table_kv('AAA', 'authorization', 'login', protocol[0])
-        else:
-            click.echo('Not a valid command')
-    elif len(auth_protocol) == 2:
-        if protocol[0] == 'tacacs+'
-            and protocol[1] == 'local':
-            add_table_kv('AAA', 'authorization', 'login', 'tacacs+,local')
-        else:
-            click.echo('Not a valid command')
+    if len(protocol) is 1 and (protocol[0] == 'tacacs+' or protocol[0] == 'local'):
+        add_table_kv('AAA', 'authorization', 'login', protocol[0])
+    elif len(auth_protocol) == 2 and protocol[0] == 'tacacs+' and protocol[1] == 'local':
+        add_table_kv('AAA', 'authorization', 'login', 'tacacs+,local')
     else:
         click.echo('Not a valid command')
 aaa.add_command(authorization)
@@ -172,19 +164,14 @@ def accounting(protocol):
         return
 
     if len(protocol) is 1:
-        if protocol[0] == 'tacacs+'
-            or protocol[0] == 'local':
+        if protocol[0] == 'tacacs+' or protocol[0] == 'local':
             add_table_kv('AAA', 'accounting', 'login', protocol[0])
         elif protocol[0] == 'disable':
             del_table_key('AAA', 'accounting', 'login')
         else:
             click.echo('Not a valid command')
-    elif len(auth_protocol) == 2:
-        if protocol[0] == 'tacacs+'
-            and protocol[1] == 'local':
-            add_table_kv('AAA', 'accounting', 'login', 'tacacs+,local')
-        else:
-            click.echo('Not a valid command')
+    elif len(auth_protocol) == 2 and protocol[0] == 'tacacs+' and protocol[1] == 'local':
+        add_table_kv('AAA', 'accounting', 'login', 'tacacs+,local')
     else:
         click.echo('Not a valid command')
 aaa.add_command(accounting)
