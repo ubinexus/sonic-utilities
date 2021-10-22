@@ -138,7 +138,7 @@ def login(auth_protocol):
 authentication.add_command(login)
 
 # cmd: aaa authorization
-@click.group()
+@click.command()
 @click.argument('protocol', nargs=-1, type=click.Choice([ "tacacs+", "local"]))
 def authorization(protocol):
     """Switch AAA authorization [tacacs+ | local | tacacs+ local]"""
@@ -148,14 +148,14 @@ def authorization(protocol):
 
     if len(protocol) is 1 and (protocol[0] == 'tacacs+' or protocol[0] == 'local'):
         add_table_kv('AAA', 'authorization', 'login', protocol[0])
-    elif len(auth_protocol) == 2 and protocol[0] == 'tacacs+' and protocol[1] == 'local':
+    elif len(protocol) == 2 and protocol[0] == 'tacacs+' and protocol[1] == 'local':
         add_table_kv('AAA', 'authorization', 'login', 'tacacs+,local')
     else:
         click.echo('Not a valid command')
 aaa.add_command(authorization)
 
 # cmd: aaa accounting
-@click.group()
+@click.command()
 @click.argument('protocol', nargs=-1, type=click.Choice(["disable", "tacacs+", "local"]))
 def accounting(protocol):
     """Switch AAA accounting [disable | tacacs+ | local | tacacs+ local]"""
@@ -170,7 +170,7 @@ def accounting(protocol):
             del_table_key('AAA', 'accounting', 'login')
         else:
             click.echo('Not a valid command')
-    elif len(auth_protocol) == 2 and protocol[0] == 'tacacs+' and protocol[1] == 'local':
+    elif len(protocol) == 2 and protocol[0] == 'tacacs+' and protocol[1] == 'local':
         add_table_kv('AAA', 'accounting', 'login', 'tacacs+,local')
     else:
         click.echo('Not a valid command')
