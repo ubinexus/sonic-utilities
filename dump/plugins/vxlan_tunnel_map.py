@@ -1,4 +1,4 @@
-from dump.match_infra import MatchEngine, MatchRequest
+from dump.match_infra import MatchRequest
 from dump.helper import create_template_dict
 from .executor import Executor
 
@@ -57,8 +57,6 @@ class Vxlan_tunnel_map(Executor):
         app_vxlan_tunnel_map_name = vxlan_tunnel_map_name.replace('|', ':')
         req = MatchRequest(db="APPL_DB", table="VXLAN_TUNNEL_MAP_TABLE", key_pattern=app_vxlan_tunnel_map_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if ret["keys"]:
-            app_key = ret["keys"][0]
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
     def init_asic_vxlan_tunnel_map_entry_info(self):

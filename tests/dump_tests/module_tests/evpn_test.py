@@ -1,11 +1,7 @@
 import json
 import os
-import sys
-import jsonpatch
-import unittest
 import pytest
 from deepdiff import DeepDiff
-from mock import patch
 from dump.helper import create_template_dict
 from dump.plugins.evpn import Evpn
 from dump.match_infra import MatchEngine, ConnectionPool
@@ -162,7 +158,6 @@ class TestEvpnModule:
         """
         Scenario: Verify Whether the get_all_args method is working as expected
         """
-        params = {}
         m_evpn = Evpn(match_engine)
         returned = m_evpn.get_all_args("")
         expect = ["Vlan2345:11.1.0.32", "Vlan2345:11.1.0.33", "Vlan2345:11.1.0.34", "Vlan2345:11.1.0.35"]

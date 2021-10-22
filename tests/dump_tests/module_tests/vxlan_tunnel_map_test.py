@@ -1,11 +1,7 @@
 import json
 import os
-import sys
-import jsonpatch
-import unittest
 import pytest
 from deepdiff import DeepDiff
-from mock import patch
 from dump.helper import create_template_dict
 from dump.plugins.vxlan_tunnel_map import Vxlan_tunnel_map
 from dump.match_infra import MatchEngine, ConnectionPool
@@ -133,7 +129,6 @@ class TestVxlantunnelmapModule:
         """
         Scenario: Verify Whether the get_all_args method is working as expected
         """
-        params = {}
         m_vxlan_tunnel_map = Vxlan_tunnel_map(match_engine)
         returned = m_vxlan_tunnel_map.get_all_args("")
         expect = ["vtep_1336|map_1336_Vlan2345", "vtep_1336|map_1337_Vlan2346", "vtep_1338|map_1338_Vlan2347"]
