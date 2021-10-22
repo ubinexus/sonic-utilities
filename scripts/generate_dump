@@ -181,7 +181,7 @@ save_cmd() {
         redirect_eval=""
     fi
 
-    # Cleanup metthod need do post procress on dump file.
+    # Cleanup method need do post procress on dump file.
     if [ ! -z "$cleanup_method" ]
     then
         echo "Disable gzip for dump '$filepath'"
@@ -1345,7 +1345,7 @@ main() {
 # Globals:
 #  None
 # Arguments:
-#  filepath: the filepath to save the output as in $BASE/dump
+#  filepath: the filepath to save the output as in $BASE/dump.
 # Returns:
 #  None
 ###############################################################################
@@ -1354,7 +1354,7 @@ remove_secret_from_config_db_dump() {
     echo "Remove secret from '$filepath' files."
 
     # Remove tacacs & radius passkey from config DB
-    sed -i -E 's/\"passkey\"\s*:\s*\"([^\"]*)\"/\"passkey\":\"\"/g' $filepath
+    sed -i -E 's/\"passkey\"\s*:\s*\"([^\"]*)\"/\"passkey\":\"****\"/g' $filepath
 
     # Remove snmp community from config DB
     sed -i -E '/SNMP_COMMUNITY/,/\s{2,4}\},/d' $filepath
@@ -1363,37 +1363,37 @@ remove_secret_from_config_db_dump() {
 ###############################################################################
 # Remove secret from dump files.
 # Globals:
-#  TARDIR
 # Arguments:
-#  None
+#  dumppath: the dump file path.
 # Returns:
 #  None
 ###############################################################################
 remove_secret_from_etc_files() {
+    local dumppath=$1
     echo "Remove secret from etc files."
     # Remove tacacs passkey from tacplus_nss.conf
-    local secret_regex='s/(secret=)([^,|\S]*)(.*)/\1***\3/g'
-    sed -i -E $secret_regex $TARDIR/etc/tacplus_nss.conf
+    local secret_regex='s/(secret=)([^,|\S]*)(.*)/\1****\3/g'
+    sed -i -E $secret_regex $dumppath/etc/tacplus_nss.conf
 
     # Remove radius passkey from radius_nss.conf
-    sed -i -E $secret_regex $TARDIR/etc/radius_nss.conf
+    sed -i -E $secret_regex $dumppath/etc/radius_nss.conf
 
     # Remove tacacs passkey from common-auth-sonic
-    sed -i -E 's/(secret=)(\S*)/\1***/g' $TARDIR/etc/pam.d/common-auth-sonic
+    sed -i -E 's/(secret=)(\S*)/\1****/g' $dumppath/etc/pam.d/common-auth-sonic
 
     # Remove tacacs passkey from pam_radius_auth.conf
-    sed -i -E 's/^([^#]\S*\s*)(\S*)/\1***/g' $TARDIR/etc/pam_radius_auth.conf
+    sed -i -E 's/^([^#]\S*\s*)(\S*)/\1****/g' $dumppath/etc/pam_radius_auth.conf
 
     # Remove radius passkey from per-server conf file /etc/pam_radius_auth.d/{ip}_{port}.conf
-    for filename in $TARDIR/etc/pam_radius_auth.d/*.conf; do
-        sed -i -E 's/^([^#]\S*\s*)(\S*)/\1***/g' $filename
+    for filename in $dumppath/etc/pam_radius_auth.d/*.conf; do
+        sed -i -E 's/^([^#]\S*\s*)(\S*)/\1****/g' $filename
     done
 
     # Remove snmp community string from snmp.yml
-    sed -i -E 's/(\s*snmp_\S*community\s*:\s*)(\S*)/\1***/g' $TARDIR/etc/sonic/snmp.yml
+    sed -i -E 's/(\s*snmp_\S*community\s*:\s*)(\S*)/\1****/g' $dumppath/etc/sonic/snmp.yml
     
     # Remove secret from /etc/sonic/config_db.json
-    remove_secret_from_config_db_dump $TARDIR/etc/sonic/config_db.json
+    remove_secret_from_config_db_dump $dumppath/etc/sonic/config_db.json
 }
 
 ###############################################################################
