@@ -18,18 +18,24 @@ import mock_tables.dbconnector
 show_aaa_default_output="""\
 AAA authentication login local (default)
 AAA authentication failthrough False (default)
+AAA authorization login local (default)
+AAA accounting login disable (default)
 
 """
 
 show_aaa_radius_output="""\
 AAA authentication login radius
 AAA authentication failthrough False (default)
+AAA authorization login local (default)
+AAA accounting login disable (default)
 
 """
 
 show_aaa_radius_local_output="""\
 AAA authentication login radius,local
 AAA authentication failthrough False (default)
+AAA authorization login local (default)
+AAA accounting login disable (default)
 
 """
 
