@@ -10,8 +10,6 @@ from .gu_common import genericUpdaterLogging
 
 
 UPDATER_CONF_FILE = "/etc/sonic/generic_config_updater.conf"
-updater_data = None
-
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
@@ -47,13 +45,14 @@ def set_config(config_db, tbl, key, data):
 
 
 class ChangeApplier:
-    def __init__(self):
-        global updater_data
 
+    updater_conf = None
+
+    def __init__(self):
         self.config_db = get_config_db()
-        if (not updater_data) and os.path.exists(UPDATER_CONF_FILE):
+        if (not ChangeApplier.updater_conf) and os.path.exists(UPDATER_CONF_FILE):
             with open(UPDATER_CONF_FILE, "r") as s:
-                updater_data = json.load(s)
+                ChangeApplier.updater_conf = json.load(s)
 
 
     def _invoke_cmd(self, cmd, old_cfg, upd_cfg, keys):
@@ -77,11 +76,11 @@ class ChangeApplier:
             #
             keys[""] = {}
 
-        tables = updater_data["tables"]
+        tables = ChangeApplier.updater_conf["tables"]
         for tbl in keys:
             lst_svcs.update(tables.get(tbl, {}).get("services_to_validate", []))
 
-        services = updater_data["services"]
+        services = ChangeApplier.updater_conf["services"]
         for svc in lst_svcs:
             lst_cmds.update(services.get(svc, {}).get("validate_commands", []))
 
