@@ -861,7 +861,7 @@ configDbJson =  {
             "admin_status": "up"
         }
     },
-    "VLAN_INTERFACE": {
+   "VLAN_INTERFACE": {
         "Vlan100": {},
         "Vlan100|100.0.0.1/20": {}
     },
@@ -873,7 +873,7 @@ configDbJson =  {
 			"peer_ip": "100.0.0.2",
 			"peer_link": "Ethernet0"
 			}
-	}  
+	}   
 }
 
 portBreakOutConfigDbJson = {
