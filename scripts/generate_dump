@@ -248,7 +248,7 @@ dummy_cleanup_method() {
 save_cmd_all_ns() {
     trap 'handle_error $? $LINENO' ERR
     local do_zip=${3:-false}
-    local cleanup_method=${4:-null}
+    local cleanup_method=${4:-dummy_cleanup_method}
 
     # host or default namespace
     save_cmd "$1" "$2" "$do_zip" $cleanup_method
@@ -662,7 +662,7 @@ save_proc() {
 #  None
 ###############################################################################
 save_redis() {
-    local cleanup_method=${3:-null}
+    local cleanup_method=${3:-dummy_cleanup_method}
     trap 'handle_error $? $LINENO' ERR
     local db_name=$1
     if [ $# -ge 2 ] && [ -n "$2" ]; then
