@@ -24,7 +24,7 @@ PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 SSD_FW_UPDATE="ssd-fw-upgrade"
 TAG_LATEST=yes
-DETACH=yes
+DETACH=no
 LOG_PATH="/var/log/${REBOOT_TYPE}.txt"
 
 # Require 100M available on the hard drive for warm reboot temp files,
@@ -73,14 +73,14 @@ function showHelpAndExit()
     echo "    -s    : strict mode: do not proceed without:"
     echo "            - control plane assistant IP list."
     echo "    -t    : Don't tag the current kube images as latest"
-    echo "    -d    : Don't detach the process from the terminal session"
+    echo "    -D    : detached mode - closing terminal will not cause stopping reboot"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfih?rkxc:sd" opt; do
+    while getopts "vfidh?rkxc:sD" opt; do #TODO "t" is missing
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -115,8 +115,8 @@ function parseOptions()
             t )
                 TAG_LATEST=no
                 ;;
-            d )
-                DETACH=no
+            D )
+                DETACH=yes
                 ;;
         esac
     done
@@ -283,8 +283,13 @@ function backup_database()
 function setup_control_plane_assistant()
 {
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
-        debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
-        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+        # TH3 HW is not capable of VxLAN programming thus skipping TH3 platforms
+        if [[ "${HWSKU}" != "DellEMC-Z9332f-M-O16C64" && "${HWSKU}" != "DellEMC-Z9332f-M-O16C64-lab" ]]; then
+            debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
+            ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+        else
+            debug "${HWSKU} Not capable to support CPA. Skipping gracefully ..."
+        fi
     elif [[ X"${STRICT}" == X"yes" ]]; then
         debug "Strict mode: fail due to lack of control plane assistant ..."
         exit ${EXIT_NO_CONTROL_PLANE_ASSISTANT}
@@ -294,8 +299,11 @@ function setup_control_plane_assistant()
 function teardown_control_plane_assistant()
 {
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
-        debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
-        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+        # TH3 HW is not capable of VxLAN programming thus skipping TH3 platforms
+        if [[ "${HWSKU}" != "DellEMC-Z9332f-M-O16C64" && "${HWSKU}" != "DellEMC-Z9332f-M-O16C64-lab" ]]; then
+            debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
+            ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+        fi
     fi
 }
 
@@ -306,6 +314,7 @@ function is_secureboot() {
 function setup_reboot_variables()
 {
     # Kernel and initrd image
+    HWSKU=$(show platform summary --json | python -c 'import sys, json; print(json.load(sys.stdin)["hwsku"])')
     NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
@@ -463,12 +472,14 @@ then
     exit "${EXIT_FAILURE}"
 fi
 
+
 # re-run the script in background mode with detaching from the terminal session
-if [[ x"${DETACH}" == x"yes" ]]; then
+if [[ x"${DETACH}" == x"yes" && x"${ALREADY_DETACHED}" == x"" ]]; then
    echo "Detaching the process from the terminal session. Redirecting output to ${LOG_PATH}."
-   $0 "$@" -d &>$LOG_PATH & disown %%
+   ALREADY_DETACHED=yes $0 "$@" &>$LOG_PATH & disown %%
    exit $?
 fi
+
 
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 

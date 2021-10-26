@@ -8925,15 +8925,9 @@ command will setup everything needed to perform warm reboot.
 
 This command requires root privilege.
 
-This command works in background mode with detaching from its terminal session
-to prevent errors, cased by closing/disconnecting of the terminal session.
-All the output of the command is redirected to the file: /var/log/warm-reboot.txt.
-To run the command in foreground mode with output to the terminal, run the command
-with parameter '-d'.
-
 - Usage:
   ```
-  warm-reboot [-h|-?|-v|-f|-i|-r|-k|-x|-c <control plane assistant IP list>|-s|-t|-d]
+  warm-reboot [-h|-?|-v|-f|-r|-k|-x|-c <control plane assistant IP list>|-s|-D]
   ```
 
 - Parameters:
@@ -8941,24 +8935,18 @@ with parameter '-d'.
     -h,-? : get this help
     -v    : turn on verbose mode
     -f    : force execution
-    -i    : ignore MD5-checksum-verification of ASIC configuration files
     -r    : reboot with /sbin/reboot
     -k    : reboot with /sbin/kexec -e [default]
     -x    : execute script with -x flag
     -c    : specify control plane assistant IP list
     -s    : strict mode: do not proceed without:
             - control plane assistant IP list.
-    -t    : Don't tag the current kube images as latest
-    -d    : Don't detach the process from the terminal session
+    -D    : detached mode - closing terminal will not cause stopping reboot
   ```
 
 - Example:
   ```
-  admin@sonic:~$ sudo warm-reboot
-  Detaching the process from the terminal session. Redirecting output to /var/log/warm-reboot.txt.
-  ```
-  ```
-  admin@sonic:~$ sudo warm-reboot -v -d
+  admin@sonic:~$ sudo warm-reboot -v
   Tue Oct 22 23:20:53 UTC 2019 Pausing orchagent ...
   Tue Oct 22 23:20:53 UTC 2019 Stopping radv ...
   Tue Oct 22 23:20:54 UTC 2019 Stopping bgp ...
