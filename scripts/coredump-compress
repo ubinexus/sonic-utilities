@@ -21,10 +21,10 @@ fi
 if [[ ! -z $CONTAINER_ID ]]; then
    CONTAINER_NAME=$(docker inspect --format='{{.Name}}' ${CONTAINER_ID} | cut -c2-)
    if [[ ! -z ${CONTAINER_NAME} ]]; then
-        # coredump_gen_handler invokes techsupport if all the other required conditions  are met
-        # explicitly passing in the env vars because coredump-compress's namespace doesn't have these set by default
-        setsid $(echo > /tmp/coredump_gen_handler.log;
-             export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.7/dist-packages/;
+      # coredump_gen_handler invokes techsupport if all the other required conditions  are met
+      # explicitly passing in the env vars because coredump-compress's namespace doesn't have these set by default
+      setsid $(echo > /tmp/coredump_gen_handler.log;
+             export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3.7/dist-packages/:/usr/local/lib/python2.7/dist-packages/;
              export PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin;
              python3 /usr/local/bin/coredump_gen_handler.py ${PREFIX}core.gz ${CONTAINER_NAME} &>> /tmp/coredump_gen_handler.log) &
    fi
