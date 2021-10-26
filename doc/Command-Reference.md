@@ -7189,7 +7189,7 @@ This command is used to clear all the QoS configuration from all the following Q
 2) MAP_PFC_PRIORITY_TO_QUEUE,
 3) TC_TO_QUEUE_MAP,
 4) DSCP_TO_TC_MAP,
-5) EXP_TO_TC_MAP,
+5) MPLS_TC_TO_TC_MAP,
 6) SCHEDULER,
 7) PFC_PRIORITY_TO_PRIORITY_GROUP_MAP,
 8) PORT_QOS_MAP,
@@ -7234,7 +7234,7 @@ Some of the example QOS configurations that users can modify are given below.
 2) MAP_PFC_PRIORITY_TO_QUEUE
 3) TC_TO_QUEUE_MAP
 4) DSCP_TO_TC_MAP
-5) EXP_TO_TC_MAP
+5) MPLS_TC_TO_TC_MAP
 6) SCHEDULER
 7) PFC_PRIORITY_TO_PRIORITY_GROUP_MAP
 8) PORT_QOS_MAP
