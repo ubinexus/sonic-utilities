@@ -164,3 +164,4 @@ class MetadataResolver:
                     raise MetadataError(f'Failed to parse component version: {err}')
 
         return Metadata(Manifest.marshal(manifest_dict), components)
+
