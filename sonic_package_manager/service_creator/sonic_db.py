@@ -78,7 +78,7 @@ class PersistentConfigDbConnector:
         with contextlib.suppress(KeyError):
             config[table].pop(key)
 
-        if not config[table]:
+        if table in config and not config[table]:
             self._del_table(config, table)
 
     def _write_config(self, config):
