@@ -1,21 +1,4 @@
 {
-    "tables": {
-        "": {
-            "services_to_validate": [ "system_health" ]
-        },
-        "PORT": {
-            "services_to_validate": [ "port_service" ]
-        },
-        "SYSLOG_SERVER":{
-            "services_to_validate": [ "rsyslog" ]
-        },
-        "DHCP_RELAY": {
-            "services_to_validate": [ "dhcp-relay" ]
-        },
-        "DHCP_SERVER": {
-            "services_to_validate": [ "dhcp-relay" ]
-        }
-    },
     "README": [
         "Validate_commands provides, module & method name as ",
         "    <module name>.<method name>",
@@ -41,6 +24,23 @@
         "Note: The commands may be called in any order",
         ""
     ],
+    "tables": {
+        "": {
+            "services_to_validate": [ "system_health" ]
+        },
+        "PORT": {
+            "services_to_validate": [ "port_service" ]
+        },
+        "SYSLOG_SERVER":{
+            "services_to_validate": [ "rsyslog" ]
+        },
+        "DHCP_RELAY": {
+            "services_to_validate": [ "dhcp-relay" ]
+        },
+        "DHCP_SERVER": {
+            "services_to_validate": [ "dhcp-relay" ]
+        }
+    },
     "services": {
         "system_health": { 
             "validate_commands": [ ]

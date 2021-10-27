@@ -9,7 +9,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import genericUpdaterLogging
 
 
-UPDATER_CONF_FILE = "/etc/sonic/generic_config_updater.conf"
+UPDATER_CONF_FILE = "/etc/sonic/generic_updater_config.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
