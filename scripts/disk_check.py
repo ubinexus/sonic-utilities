@@ -69,7 +69,7 @@ def test_writable(dirs):
 
 
 def run_cmd(cmd):
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
     ## Wait for end of command. Get return returncode ##
     ret = p.wait()
