@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -69,17 +69,20 @@ def test_writable(dirs):
 
 
 def run_cmd(cmd):
-    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
-    ret = proc.returncode
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    (output, err) = p.communicate()
+    ## Wait for end of command. Get return returncode ##
+    ret = p.wait()
     if ret:
         log_err("failed: ret={} cmd={}".format(ret, cmd))
     else:
         log_info("ret={} cmd: {}".format(ret, cmd))
 
-    if proc.stdout:
-        log_info("stdout: {}".format(proc.stdout.decode("utf-8")))
-    if proc.stderr:
-        log_info("stderr: {}".format(proc.stderr.decode("utf-8")))
+    if output:
+        log_info("stdout: {}".format(output.decode("utf-8")))
+    if err:
+        log_info("stderr: {}".format(err.decode("utf-8")))
+
     return ret
 
 
@@ -113,6 +116,12 @@ def do_mnt(dirs):
             break
 
     if ret:
+        for i in (UPPER_DIR, WORK_DIR):
+            if os.path.exists(i):
+                ret = run_cmd("rm -rf {}".format(i))
+                if ret:
+                    log_err("Failed to remove {}".format(i))
+
         log_err("Failed to mount {} as Read-Write".format(dirs))
     else:
         log_info("{} are mounted as Read-Write".format(dirs))
