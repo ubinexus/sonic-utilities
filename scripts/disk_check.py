@@ -69,11 +69,19 @@ def test_writable(dirs):
 
 
 def run_cmd(cmd):
-    ret = subprocess.call(cmd, shell=True)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    (output, err) = p.communicate()
+    ## Wait for end of command. Get return returncode ##
+    ret = p.wait()
     if ret:
         log_err("failed: ret={} cmd={}".format(ret, cmd))
     else:
         log_info("ret={} cmd: {}".format(ret, cmd))
+
+    if output:
+        log_info("stdout: {}".format(output.decode("utf-8")))
+    if err:
+        log_info("stderr: {}".format(err.decode("utf-8")))
 
     return ret
 
