@@ -11,6 +11,11 @@ import syslog
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.auto_techsupport_helper import *
 
+# Explicity Pass this to the subprocess invoking techsupport
+ENV_VAR = os.environ
+PATH_PREV = ENV_VAR["PATH"] if "PATH" in ENV_VAR else ""
+ENV_VAR["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:" + PATH_PREV
+
 
 def handle_coredump_cleanup(dump_name, db):
     file_path = os.path.join(CORE_DUMP_DIR, dump_name)
@@ -101,7 +106,7 @@ class CriticalProcCoreDumpHandle():
         since_cfg = self.db.get(CFG_DB, AUTO_TS, CFG_SINCE)
         if not since_cfg:
             return SINCE_DEFAULT
-        rc, _, stderr = subprocess_exec(["date", "--date='{}'".format(since_cfg)])
+        rc, _, stderr = subprocess_exec(["date", "--date='{}'".format(since_cfg)], env=ENV_VAR)
         if rc == 0:
             return since_cfg
         return SINCE_DEFAULT
@@ -109,7 +114,9 @@ class CriticalProcCoreDumpHandle():
     def invoke_ts_cmd(self, since_cfg):
         since_cfg = "'" + since_cfg + "'"
         cmd  = " ".join(["show", "techsupport", "--since", since_cfg])
-        subprocess_exec(["show", "techsupport", "--since", since_cfg])
+        rc, _, stderr = subprocess_exec(["show", "techsupport", "--since", since_cfg], env=ENV_VAR)
+        if not rc:
+            syslog.syslog(syslog.LOG_ERR, "show techsupport failed with exit code {}, stderr:{}".format(rc, stderr))
         new_list = get_ts_dumps(True)
         diff = list(set(new_list).difference(set(self.curr_ts_list)))
         self.curr_ts_list = new_list

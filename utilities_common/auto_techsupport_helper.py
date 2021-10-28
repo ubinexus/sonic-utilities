@@ -38,9 +38,9 @@ CFG_DB = "CONFIG_DB"
 # AUTO_TECHSUPPORT|GLOBAL table attributes
 AUTO_TS = "AUTO_TECHSUPPORT|GLOBAL"
 CFG_STATE = "state"
-CFG_MAX_TS = "max_techsupport_size"
+CFG_MAX_TS = "max_techsupport_limit"
 COOLOFF = "rate_limit_interval"
-CFG_CORE_USAGE = "max_core_size"
+CFG_CORE_USAGE = "max_core_limit"
 CFG_SINCE = "since"
 
 # AUTO_TECHSUPPORT_FEATURE Table
@@ -181,5 +181,4 @@ def trim_masic_suffix(container_name):
         else:
             break
         index = index - 1
-    print(arr)
     return "".join(arr)

@@ -73,7 +73,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_feature_table_cfg(redis_mock, state="enabled")
         populate_state_db(redis_mock)
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -104,7 +104,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_feature_table_cfg(redis_mock, state="enabled")
         populate_state_db(redis_mock)
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -137,7 +137,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock, ts_map={"sonic_dump_random1":
                                               "orchagent;{};swss".format(int(time.time()))})
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -166,7 +166,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         populate_state_db(redis_mock, ts_map={"sonic_dump_random1":
                                               "orchagent;{};swss".format(int(time.time()))})
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -196,7 +196,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_feature_table_cfg(redis_mock, state="enabled", container_name="snmp")
         populate_state_db(redis_mock, {})
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -224,7 +224,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_feature_table_cfg(redis_mock, state="disabled", container_name="snmp")
         populate_state_db(redis_mock, {})
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -250,7 +250,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_feature_table_cfg(redis_mock, state="enabled")
         populate_state_db(redis_mock)
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport --since '4 days ago'" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -283,7 +283,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_feature_table_cfg(redis_mock, state="enabled")
         populate_state_db(redis_mock)
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -314,7 +314,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         set_feature_table_cfg(redis_mock, state="enabled")
         populate_state_db(redis_mock)
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport --since '2 days ago'" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")
@@ -366,7 +366,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
         redis_mock = db_wrap.db
         set_auto_ts_cfg(redis_mock, state="enabled", max_core_size="5.0")
         with Patcher() as patcher:
-            def mock_cmd(cmd):
+            def mock_cmd(cmd, env):
                 cmd_str = " ".join(cmd)
                 if "show techsupport" in cmd_str:
                     patcher.fs.create_file("/var/dump/sonic_dump_random3.tar.gz")

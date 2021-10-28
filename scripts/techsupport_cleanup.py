@@ -36,7 +36,7 @@ def handle_techsupport_creation_event(dump_name, db):
         max_ts = 0.0
 
     if not max_ts:
-        msg = "max-techsupport-size argument is not set. No cleanup is performed, current size occupied: {}"
+        msg = "max-techsupport-limit argument is not set. No cleanup is performed, current size occupied: {}"
         syslog.syslog(syslog.LOG_NOTICE, msg.format(pretty_size(num_bytes)))
         return
 
