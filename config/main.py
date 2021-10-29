@@ -67,6 +67,7 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
+DEFAULT_CONFIG_YANG_FILE = '/etc/sonic/config_yang.json'
 NAMESPACE_PREFIX = 'asic'
 INTF_KEY = "interfaces"
 
@@ -91,6 +92,11 @@ PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
 
 asic_type = None
+
+DSCP_RANGE = click.IntRange(min=0, max=63)
+TTL_RANGE = click.IntRange(min=0, max=255)
+QUEUE_RANGE = click.IntRange(min=0, max=255)
+GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
 
 #
 # Helper functions
@@ -287,6 +293,7 @@ def interface_name_is_valid(config_db, interface_name):
     port_dict = config_db.get_table('PORT')
     port_channel_dict = config_db.get_table('PORTCHANNEL')
     sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
+    loopback_dict = config_db.get_table('LOOPBACK_INTERFACE')
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -305,6 +312,10 @@ def interface_name_is_valid(config_db, interface_name):
         if sub_port_intf_dict:
             for sub_port_intf_name in sub_port_intf_dict:
                 if interface_name == sub_port_intf_name:
+                    return True
+        if loopback_dict:
+            for loopback_name in loopback_dict:
+                if interface_name == loopback_name:
                     return True
     return False
 
@@ -596,6 +607,27 @@ def _change_hostname(hostname):
         clicommon.run_command('hostname -F /etc/hostname', display_cmd=True)
         clicommon.run_command(r'sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         clicommon.run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
+
+def _clear_cbf():
+    CBF_TABLE_NAMES = [
+            'DSCP_TO_FC_MAP',
+            'EXP_TO_FC_MAP']
+
+    namespace_list = [DEFAULT_NAMESPACE]
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            config_db = ConfigDBConnector()
+        else:
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+        config_db.connect()
+        for cbf_table in CBF_TABLE_NAMES:
+            config_db.delete_table(cbf_table)
+
 
 def _clear_qos():
     QOS_TABLE_NAMES = [
@@ -953,6 +985,19 @@ def cache_arp_entries():
         open(restore_flag_file, 'w').close()
     return success
 
+
+def validate_ipv4_address(ctx, param, ip_addr):
+    """Helper function to validate ipv4 address
+    """
+    try:
+        ip_n = ipaddress.ip_network(ip_addr, False)
+        if ip_n.version != 4:
+            raise click.UsageError("{} is not a valid IPv4 address".format(ip_addr))
+        return ip_addr
+    except ValueError as e:
+        raise click.UsageError(str(e))
+
+
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -1245,9 +1290,10 @@ def list_checkpoints(ctx, verbose):
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
 @click.option('-f', '--force', default=False, is_flag=True, help='Force config reload without system checks')
+@click.option('-t', '--file_format', default='config_db',type=click.Choice(['config_yang', 'config_db']),show_default=True,help='specify the file format')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force, file_format):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -1265,9 +1311,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             return
 
     if filename is None:
-        message = 'Clear current config and reload config from the default config file(s) ?'
+        message = 'Clear current config and reload config in {} format from the default config file(s) ?'.format(file_format)
     else:
-        message = 'Clear current config and reload config from the file(s) {} ?'.format(filename)
+        message = 'Clear current config and reload config in {} from the file(s) {} ?'.format(file_format, filename)
 
     if not yes:
         click.confirm(message, abort=True)
@@ -1278,7 +1324,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     cfg_files = []
 
     num_cfg_file = 1
-    if multi_asic.is_multi_asic():
+    # single config_yang file for the multi asic device
+    if multi_asic.is_multi_asic() and file_format == 'config_db':
         num_cfg_file += num_asic
 
     # Remove cached PG drop counters data
@@ -1331,14 +1378,18 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         if cfg_files:
             file = cfg_files[inst+1]
         else:
-            if namespace is None:
-                file = DEFAULT_CONFIG_DB_FILE
+            if file_format == 'config_db':
+                if namespace is None:
+                    file = DEFAULT_CONFIG_DB_FILE
+                else:
+                    file = "/etc/sonic/config_db{}.json".format(inst)
             else:
-                file = "/etc/sonic/config_db{}.json".format(inst)
+                file = DEFAULT_CONFIG_YANG_FILE
+
 
         # Check the file exists before proceeding.
         if not os.path.exists(file):
-            click.echo("The config_db file {} doesn't exist".format(file))
+            click.echo("The config file {} doesn't exist".format(file))
             continue
 
         if namespace is None:
@@ -1349,6 +1400,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         config_db.connect()
         client = config_db.get_redis_client(config_db.CONFIG_DB)
         client.flushdb()
+
         if load_sysinfo:
             if namespace is None:
                 command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
@@ -1359,16 +1411,23 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         # For the database service running in linux host we use the file user gives as input
         # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
-        if namespace is None:
-            if os.path.isfile(INIT_CFG_FILE):
-                command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file)
-            else:
-                command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
+
+        config_gen_opts = ""
+        if file_format == 'config_db':
+            config_gen_opts += ' -j {} '.format(file)
         else:
-            if os.path.isfile(INIT_CFG_FILE):
-                command = "{} -j {} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file, namespace)
-            else:
-                command = "{} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, file, namespace)
+            config_gen_opts += ' -Y {} '.format(file)
+
+        if os.path.isfile(INIT_CFG_FILE):
+            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
+
+        if namespace is not None:
+            config_gen_opts += " -n {} ".format(namespace)
+
+
+        command = "{sonic_cfggen} {options} --write-to-db".format(
+            sonic_cfggen=SONIC_CFGGEN_PATH,
+            options=config_gen_opts)
 
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
@@ -1711,9 +1770,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # Dont allow a port to be member of port channel if its MTU does not match with portchannel
     portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
     if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
-       port_entry = db.get_entry('PORT', port_name)
+        port_entry = db.get_entry('PORT', port_name)
 
-       if port_entry and port_entry.get(PORT_MTU) is not None:
+        if port_entry and port_entry.get(PORT_MTU) is not None:
             port_mtu = port_entry.get(PORT_MTU)
 
             portchannel_mtu = portchannel_entry.get(PORT_MTU)
@@ -1726,9 +1785,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # new member by SAI.
     port_entry = db.get_entry('PORT', port_name)
     if port_entry and port_entry.get(PORT_TPID) is not None:
-       port_tpid = port_entry.get(PORT_TPID)
-       if port_tpid != DEFAULT_TPID:
-           ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
+        port_tpid = port_entry.get(PORT_TPID)
+        if port_tpid != DEFAULT_TPID:
+            ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -1775,12 +1834,12 @@ def mirror_session():
 
 @mirror_session.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True)
-@click.argument('src_ip', metavar='<src_ip>', required=True)
-@click.argument('dst_ip', metavar='<dst_ip>', required=True)
-@click.argument('dscp', metavar='<dscp>', required=True)
-@click.argument('ttl', metavar='<ttl>', required=True)
-@click.argument('gre_type', metavar='[gre_type]', required=False)
-@click.argument('queue', metavar='[queue]', required=False)
+@click.argument('src_ip', metavar='<src_ip>', callback=validate_ipv4_address, required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', callback=validate_ipv4_address, required=True)
+@click.argument('dscp', metavar='<dscp>', type=DSCP_RANGE, required=True)
+@click.argument('ttl', metavar='<ttl>', type=TTL_RANGE, required=True)
+@click.argument('gre_type', metavar='[gre_type]', type=GRE_TYPE_RANGE, required=False)
+@click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """ Add ERSPAN mirror session.(Legacy support) """
@@ -1799,12 +1858,12 @@ def erspan(ctx):
 
 @erspan.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True)
-@click.argument('src_ip', metavar='<src_ip>', required=True)
-@click.argument('dst_ip', metavar='<dst_ip>', required=True)
-@click.argument('dscp', metavar='<dscp>', required=True)
-@click.argument('ttl', metavar='<ttl>', required=True)
-@click.argument('gre_type', metavar='[gre_type]', required=False)
-@click.argument('queue', metavar='[queue]', required=False)
+@click.argument('src_ip', metavar='<src_ip>', callback=validate_ipv4_address, required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', callback=validate_ipv4_address,required=True)
+@click.argument('dscp', metavar='<dscp>', type=DSCP_RANGE, required=True)
+@click.argument('ttl', metavar='<ttl>', type=TTL_RANGE, required=True)
+@click.argument('gre_type', metavar='[gre_type]', type=GRE_TYPE_RANGE, required=False)
+@click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.argument('src_port', metavar='[src_port]', required=False)
 @click.argument('direction', metavar='[direction]', required=False)
 @click.option('--policer')
@@ -1877,7 +1936,7 @@ def span(ctx):
 @click.argument('dst_port', metavar='<dst_port>', required=True)
 @click.argument('src_port', metavar='[src_port]', required=False)
 @click.argument('direction', metavar='[direction]', required=False)
-@click.argument('queue', metavar='[queue]', required=False)
+@click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.option('--policer')
 def add(session_name, dst_port, src_port, direction, queue, policer):
     """ Add SPAN mirror session """
@@ -2022,6 +2081,83 @@ def start_default(verbose):
     cmd = "pfcwd start_default"
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
+#
+# 'cbf' group ('config cbf ...')
+#
+@config.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def cbf(ctx):
+    """CBF-related configuration tasks"""
+    pass
+
+@cbf.command('clear')
+def clear():
+    """Clear CBF configuration"""
+    log.log_info("'cbf clear' executing...")
+    _clear_cbf()
+
+@cbf.command('reload')
+@click.pass_context
+@click.option(
+    '--json-data', type=click.STRING,
+    help="json string with additional data, valid with --dry-run option"
+)
+@click.option(
+    '--dry_run', type=click.STRING,
+    help="Dry run, writes config to the given file"
+)
+def reload(ctx, dry_run, json_data):
+    """Reload CBF configuration"""
+    log.log_info("'cbf reload' executing...")
+    _clear_cbf()
+
+    _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+    from_db = "-d --write-to-db"
+    if dry_run:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
+
+    namespace_list = [DEFAULT_NAMESPACE]
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            asic_id_suffix = ""
+            config_db = ConfigDBConnector()
+        else:
+            asic_id = multi_asic.get_asic_id_from_name(ns)
+            if asic_id is None:
+                click.secho(
+                    "Command 'cbf reload' failed with invalid namespace '{}'".
+                        format(ns),
+                    fg="yellow"
+                )
+                raise click.Abort()
+            asic_id_suffix = str(asic_id)
+
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+
+        config_db.connect()
+
+        cbf_template_file = os.path.join(hwsku_path, asic_id_suffix, "cbf.json.j2")
+        if os.path.isfile(cbf_template_file):
+            cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+            fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "config-db"
+            command = "{} {} {} -t {},{} -y {}".format(
+                SONIC_CFGGEN_PATH, cmd_ns, from_db,
+                cbf_template_file, fname, sonic_version_file
+            )
+
+            # Apply the configuration
+            clicommon.run_command(command, display_cmd=True)
+        else:
+            click.secho("CBF definition template not found at {}".format(
+                cbf_template_file
+            ), fg="yellow")
 
 #
 # 'qos' group ('config qos ...')
@@ -3132,10 +3268,10 @@ def startup(ctx, interface_name):
 
     intf_fs = parse_interface_in_filter(interface_name)
     if len(intf_fs) > 1 and multi_asic.is_multi_asic():
-         ctx.fail("Interface range not supported in multi-asic platforms !!")
+        ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
-         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     log.log_info("'interface startup {}' executing...".format(interface_name))
     port_dict = config_db.get_table('PORT')
@@ -3173,7 +3309,7 @@ def shutdown(ctx, interface_name):
 
     intf_fs = parse_interface_in_filter(interface_name)
     if len(intf_fs) > 1 and multi_asic.is_multi_asic():
-         ctx.fail("Interface range not supported in multi-asic platforms !!")
+        ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
@@ -3609,8 +3745,8 @@ def add(ctx, interface_name, ip_addr, gw):
     # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
-            click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
-            return
+        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+        return
 
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
@@ -4043,7 +4179,7 @@ def add(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name)  
+    table_name = get_interface_table_name(interface_name)
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
@@ -4065,7 +4201,7 @@ def remove(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name) 
+    table_name = get_interface_table_name(interface_name)
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
@@ -4383,7 +4519,7 @@ def route(ctx):
     ctx.obj = {}
     ctx.obj['config_db'] = config_db
 
-@route.command('add', context_settings={"ignore_unknown_options":True})
+@route.command('add', context_settings={"ignore_unknown_options": True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
@@ -4454,7 +4590,7 @@ def add_route(ctx, command_str):
     else:
         config_db.set_entry("STATIC_ROUTE", key, route)
 
-@route.command('del', context_settings={"ignore_unknown_options":True})
+@route.command('del', context_settings={"ignore_unknown_options": True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
