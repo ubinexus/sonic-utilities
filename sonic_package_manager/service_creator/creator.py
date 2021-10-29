@@ -14,7 +14,7 @@ from toposort import toposort_flatten, CircularDependencyError
 
 from config.config_mgmt import sonic_cfggen
 from sonic_cli_gen.generator import CliGenerator
-
+from sonic_package_manager import utils
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator import (
@@ -322,6 +322,7 @@ class ServiceCreator:
     def update_dependent_list_file(self, package: Package, remove=False):
         """ This function updates dependent list file for packages listed in "dependent-of"
             (path: /etc/sonic/<service>_dependent file).
+
         Args:
             package: Package to update packages dependent of it.
             remove: True if update for removal process.
@@ -362,6 +363,7 @@ class ServiceCreator:
 
     def generate_dump_script(self, package):
         """ Generates dump plugin script for package.
+
         Args:
             package: Package object to generate dump plugin script for.
         Returns:
@@ -492,7 +494,7 @@ class ServiceCreator:
         for conn in self.sonic_db.get_connectors():
             cfg = conn.get_config()
             new_cfg = init_cfg.copy()
-            sonic_cfggen.deep_update(new_cfg, cfg)
+            utils.deep_update(new_cfg, cfg)
             self.validate_config(new_cfg)
             conn.mod_config(new_cfg)
 

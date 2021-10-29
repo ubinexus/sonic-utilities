@@ -33,6 +33,8 @@ setup(
         'crm',
         'debug',
         'generic_config_updater',
+        'dump',
+        'dump.plugins',
         'pfcwd',
         'sfputil',
         'ssdutil',
@@ -75,7 +77,8 @@ setup(
                   'filter_fdb_input/*',
                   'pfcwd_input/*',
                   'wm_input/*',
-                  'ecn_input/*']
+                  'ecn_input/*',
+                  'dump_input/*']
     },
     scripts=[
         'scripts/aclshow',
@@ -136,7 +139,8 @@ setup(
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
         'scripts/centralize_database',
-        'scripts/null_route_helper'
+        'scripts/null_route_helper',
+        'scripts/check_db_integrity.py'
     ],
     entry_points={
         'console_scripts': [
@@ -147,6 +151,7 @@ setup(
             'counterpoll = counterpoll.main:cli',
             'crm = crm.main:cli',
             'debug = debug.main:cli',
+            'dump = dump.main:dump',
             'filter_fdb_entries = fdbutil.filter_fdb_entries:main',
             'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',

@@ -8,13 +8,17 @@ import subprocess
 
 import click
 
+from sonic_py_common import device_info
 from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
    run_command,
+   default_sigpipe,
 )
 from .onie import OnieInstallerBootloader
+
+PLATFORMS_ASIC = "installer/platforms_asic"
 
 class GrubBootloader(OnieInstallerBootloader):
 
@@ -80,6 +84,35 @@ class GrubBootloader(OnieInstallerBootloader):
 
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         click.echo('Image removed')
+
+    def platform_in_platforms_asic(self, platform, image_path):
+        """
+        For those images that don't have devices list builtin, 'tar' will have non-zero returncode.
+        In this case, we simply return True to make it worked compatible as before.
+        Otherwise, we can grep to check if platform is inside the supported target platforms list.
+        """
+        with open(os.devnull, 'w') as fnull:
+            p1 = subprocess.Popen(["sed", "-e", "1,/^exit_marker$/d", image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+            p2 = subprocess.Popen(["tar", "xf", "-", PLATFORMS_ASIC, "-O"], stdin=p1.stdout, stdout=subprocess.PIPE, stderr=fnull, preexec_fn=default_sigpipe)
+            p3 = subprocess.Popen(["grep", "-Fxq", "-m 1", platform], stdin=p2.stdout, preexec_fn=default_sigpipe)
+
+            p2.wait()
+            if p2.returncode != 0:
+                return True
+
+            # Code 0 is returned by grep as a result of found
+            p3.wait()
+            return p3.returncode ==0
+
+    def verify_image_platform(self, image_path):
+        if not os.path.isfile(image_path):
+            return False
+
+        # Get running platform
+        platform = device_info.get_platform()
+
+        # Check if platform is inside image's target platforms
+        return self.platform_in_platforms_asic(platform, image_path)
 
     @classmethod
     def detect(cls):

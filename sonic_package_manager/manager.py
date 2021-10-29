@@ -479,6 +479,17 @@ class PackageManager:
         # After all checks are passed we proceed to actual uninstallation
 
         try:
+            # Stop and disable the service.
+            # First to make sure we are not uninstalling
+            # package before the service has fully stopped
+            # since "config feature state" command is not blocking.
+            # Second, we make sure the service is in disabled state
+            # so that after reinstall and enablement hostcfgd will enable
+            # it and start it.
+            # TODO: once there is a way to block till hostcfgd will stop
+            # the service, replace it with new approach.
+            self._systemctl_action(package, 'stop')
+            self._systemctl_action(package, 'disable')
             self._uninstall_cli_plugins(package)
             self.service_creator.remove(package, keep_config=keep_config)
             self.service_creator.generate_shutdown_sequence_files(
@@ -577,7 +588,7 @@ class PackageManager:
                 feature_enabled = self.feature_registry.is_feature_enabled(old_feature)
 
                 if feature_enabled:
-                    self._systemctl_action(new_package, 'disable')
+                    self._systemctl_action(old_package, 'disable')
                     exits.callback(rollback(self._systemctl_action,
                                             old_package, 'enable'))
                     self._systemctl_action(old_package, 'stop')
@@ -602,10 +613,11 @@ class PackageManager:
                     self._get_installed_packages_and(old_package))
                 )
 
+                # If old feature was enabled, the user should have the new feature enabled as well.
                 if feature_enabled:
                     self._systemctl_action(new_package, 'enable')
                     exits.callback(rollback(self._systemctl_action,
-                                            old_package, 'disable'))
+                                            new_package, 'disable'))
                     self._systemctl_action(new_package, 'start')
                     exits.callback(rollback(self._systemctl_action,
                                             new_package, 'stop'))
@@ -621,7 +633,7 @@ class PackageManager:
 
                 if not skip_host_plugins:
                     self._install_cli_plugins(new_package)
-                    exits.callback(rollback(self._uninstall_cli_plugin, old_package))
+                    exits.callback(rollback(self._uninstall_cli_plugin, new_package))
 
                 self.docker.rmi(old_package.image_id, force=True)
 
