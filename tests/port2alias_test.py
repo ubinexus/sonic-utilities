@@ -1,9 +1,11 @@
 import os
 import sys
 from unittest import TestCase
+from unittest import mock
+from mock import patch
+from io import StringIO 
 
 from utilities_common.general import load_module_from_source
-
 # Load the file under test
 port2alias_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port2alias')
 port2alias = load_module_from_source('port2alias', port2alias_path)
@@ -17,6 +19,12 @@ class TestPort2Alias(TestCase):
                 "Ethernet10": {"alias" : "fortyG0/10"},
                 "Ethernet_11": {"alias" : "fortyG0/11"},
                 }
+
+    @mock.patch('sys.stdout')
+    def test_main(self, mock_stdout):
+        with patch('sys.stdin', StringIO("Ethernet0")):
+            port2alias.main()
+            mock_stdout.write.assert_called_with("etp1")
 
     def test_translate_line_single_word(self):
         self.assertEqual(port2alias.translate_line("1", self.ports),"1")
@@ -42,3 +50,11 @@ class TestPort2Alias(TestCase):
     def test_translate_line_empty_ports(self):
         self.assertEqual(port2alias.translate_line("Ethernet1\n", {}),"Ethernet1\n")
 
+class TestPort2AliasNamespace(TestCase):
+    @mock.patch('sys.stdout')
+    def test_main(self, mock_stdout):
+        with patch('sys.stdin', StringIO("Ethernet0")):
+            os.environ["UTILITIES_UNIT_TESTING"] = "2"
+            port2alias = load_module_from_source('port2alias', port2alias_path)
+            port2alias.main()
+            mock_stdout.write.assert_called_with("Ethernet1/1")
