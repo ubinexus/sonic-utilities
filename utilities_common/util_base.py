@@ -83,3 +83,9 @@ class UtilHelper(object):
             return True
         else:
             return False
+
+    def load_and_register_plugins(self, plugins, cli):
+        """ Load plugins and register them """
+
+        for plugin in self.load_plugins(plugins):
+            self.register_plugin(plugin, cli)

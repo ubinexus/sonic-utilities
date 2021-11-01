@@ -63,7 +63,7 @@ Jinja2:
             {"name": "leaf_1"},
             {"name": "leaf_2"},
             {"name": "leaf_3", "group": "group_0"}
-        ]) 
+        ])
 }}
 Result:
 [
@@ -111,15 +111,15 @@ Result:
 ]
 {% endmacro %}
 
-{# Generates a list that represents a header in table view. 
+{# Generates a list that represents a header in table view.
 E.g:
-Jinja2: {{ 
+Jinja2: {{
         gen_header([
             {"name": "key"},
             {"name": "leaf_1"},
             {"name": "leaf_2"},
             {"name": "leaf_3", "group": "group_0"}
-        ]) 
+        ])
       }}
 
 Result:
@@ -237,6 +237,15 @@ def {{ name }}(db):
 {% endfor %}
 
 def register(cli):
+    """ Register new CLI nodes in root CLI.
+
+    Args:
+        cli (click.core.Command): Root CLI node.
+    Raises:
+        Exception: when root CLI already has a command
+                   we are trying to register.
+    """
+
 {%- for table in tables %}
     cli_node = {{ table.name }}
     if cli_node.name in cli.commands:

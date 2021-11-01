@@ -20,14 +20,25 @@ sonic_cfggen = general.load_module_from_source('sonic_cfggen', '/usr/local/bin/s
 
 
 def exit_with_error(*args, **kwargs):
-    """ Print a message and abort CLI. """
+    """ Print a message with click.secho and abort CLI.
+
+    Args:
+        args: Positional arguments to pass to click.secho
+        kwargs: Keyword arguments to pass to click.secho
+    """
 
     click.secho(*args, **kwargs)
     raise click.Abort()
 
 
 def validate_config_or_raise(cfg):
-    """ Validate config db data using ConfigMgmt """
+    """ Validate config db data using ConfigMgmt.
+
+    Args:
+        cfg (Dict): Config DB data to validate.
+    Raises:
+        Exception: when cfg does not satisfy YANG schema.
+    """
 
     try:
         cfg = sonic_cfggen.FormatConverter.to_serialized(cfg)
@@ -37,7 +48,16 @@ def validate_config_or_raise(cfg):
 
 
 def add_entry_validated(db, table, key, data):
-    """ Add new entry in table and validate configuration """
+    """ Add new entry in table and validate configuration.
+
+    Args:
+        db (swsscommon.ConfigDBConnector): Config DB connector obect.
+        table (str): Table name to add new entry to.
+        key (Union[str, Tuple]): Key name in the table.
+        data (Dict): Entry data.
+    Raises:
+        Exception: when cfg does not satisfy YANG schema.
+    """
 
     cfg = db.get_config()
     cfg.setdefault(table, {})
@@ -53,6 +73,18 @@ def add_entry_validated(db, table, key, data):
 def update_entry_validated(db, table, key, data, create_if_not_exists=False):
     """ Update entry in table and validate configuration.
     If attribute value in data is None, the attribute is deleted.
+
+    Args:
+        db (swsscommon.ConfigDBConnector): Config DB connector obect.
+        table (str): Table name to add new entry to.
+        key (Union[str, Tuple]): Key name in the table.
+        data (Dict): Entry data.
+        create_if_not_exists (bool):
+            In case entry does not exists already a new entry
+            is not created if this flag is set to False and
+            creates a new entry if flag is set to True.
+    Raises:
+        Exception: when cfg does not satisfy YANG schema.
     """
 
     cfg = db.get_config()
@@ -75,7 +107,15 @@ def update_entry_validated(db, table, key, data, create_if_not_exists=False):
 
 
 def del_entry_validated(db, table, key):
-    """ Delete entry in table and validate configuration """
+    """ Delete entry in table and validate configuration.
+
+    Args:
+        db (swsscommon.ConfigDBConnector): Config DB connector obect.
+        table (str): Table name to add new entry to.
+        key (Union[str, Tuple]): Key name in the table.
+    Raises:
+        Exception: when cfg does not satisfy YANG schema.
+    """
 
     cfg = db.get_config()
     cfg.setdefault(table, {})
@@ -89,7 +129,17 @@ def del_entry_validated(db, table, key):
 
 
 def add_list_entry_validated(db, table, key, attr, data):
-    """ Add new entry into list in table and validate configuration"""
+    """ Add new entry into list in table and validate configuration.
+
+    Args:
+        db (swsscommon.ConfigDBConnector): Config DB connector obect.
+        table (str): Table name to add data to.
+        key (Union[str, Tuple]): Key name in the table.
+        attr (str): Attribute name which represents a list the data needs to be added to.
+        data (List): Data list to add to config DB.
+    Raises:
+        Exception: when cfg does not satisfy YANG schema.
+    """
 
     cfg = db.get_config()
     cfg.setdefault(table, {})
@@ -106,7 +156,17 @@ def add_list_entry_validated(db, table, key, attr, data):
 
 
 def del_list_entry_validated(db, table, key, attr, data):
-    """ Delete entry from list in table and validate configuration"""
+    """ Delete entry from list in table and validate configuration.
+
+    Args:
+        db (swsscommon.ConfigDBConnector): Config DB connector obect.
+        table (str): Table name to remove data from.
+        key (Union[str, Tuple]): Key name in the table.
+        attr (str): Attribute name which represents a list the data needs to be removed from.
+        data (Dict): Data list to remove from config DB.
+    Raises:
+        Exception: when cfg does not satisfy YANG schema.
+    """
 
     cfg = db.get_config()
     cfg.setdefault(table, {})
@@ -125,7 +185,16 @@ def del_list_entry_validated(db, table, key, attr, data):
 
 
 def clear_list_entry_validated(db, table, key, attr):
-    """ Clear list in object and validate configuration"""
+    """ Clear list in object and validate configuration.
+
+    Args:
+        db (swsscommon.ConfigDBConnector): Config DB connector obect.
+        table (str): Table name to remove the list attribute from.
+        key (Union[str, Tuple]): Key name in the table.
+        attr (str): Attribute name which represents a list that needs to be removed.
+    Raises:
+        Exception: when cfg does not satisfy YANG schema.
+    """
 
     update_entry_validated(db, table, key, {attr: None})
 
@@ -235,7 +304,7 @@ E.g:
 {{ gen_click_arguments(object["keys"] + [attr]) }}
 @clicommon.pass_db
 def {{ list_update_group }}_delete(
-    db, 
+    db,
     {{ pythonize(object["keys"] + [attr]) }}
 ):
     """ Delete {{ attr.name }} in {{ table.name }} """
@@ -262,7 +331,7 @@ E.g:
 {{ gen_click_arguments(object["keys"]) }}
 @clicommon.pass_db
 def {{ list_update_group }}_clear(
-    db, 
+    db,
     {{ pythonize(object["keys"]) }}
 ):
     """ Clear {{ attr.name }} in {{ table.name }} """
@@ -473,6 +542,15 @@ def {{ table.name }}():
 {% endfor %}
 
 def register(cli):
+    """ Register new CLI nodes in root CLI.
+
+    Args:
+        cli: Root CLI node.
+    Raises:
+        Exception: when root CLI already has a command
+                   we are trying to register.
+    """
+
 {%- for table in tables %}
     cli_node = {{ table.name }}
     if cli_node.name in cli.commands:

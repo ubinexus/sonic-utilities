@@ -3,27 +3,28 @@ import logging
 import pprint
 
 from sonic_cli_gen.yang_parser import YangParser
-from .cli_autogen_input import assert_dictionaries
+from .cli_autogen_input.yang_parser_test import assert_dictionaries
+from .cli_autogen_input.cli_autogen_common import move_yang_models, remove_yang_models
 
 logger = logging.getLogger(__name__)
 
 test_path = os.path.dirname(os.path.abspath(__file__))
-yang_models_path = '/usr/local/yang-models'
+
 test_yang_models = [
-    'sonic-1-table-container',
-    'sonic-2-table-containers',
-    'sonic-1-object-container',
-    'sonic-2-object-containers',
-    'sonic-1-list',
-    'sonic-2-lists',
-    'sonic-static-object-complex-1',
-    'sonic-static-object-complex-2',
-    'sonic-dynamic-object-complex-1',
-    'sonic-dynamic-object-complex-2',
-    'sonic-choice-complex',
-    'sonic-grouping-complex',
-    'sonic-grouping-1',
-    'sonic-grouping-2',
+    'sonic-1-table-container.yang',
+    'sonic-2-table-containers.yang',
+    'sonic-1-object-container.yang',
+    'sonic-2-object-containers.yang',
+    'sonic-1-list.yang',
+    'sonic-2-lists.yang',
+    'sonic-static-object-complex-1.yang',
+    'sonic-static-object-complex-2.yang',
+    'sonic-dynamic-object-complex-1.yang',
+    'sonic-dynamic-object-complex-2.yang',
+    'sonic-choice-complex.yang',
+    'sonic-grouping-complex.yang',
+    'sonic-grouping-1.yang',
+    'sonic-grouping-2.yang',
 ]
 
 
@@ -31,14 +32,14 @@ class TestYangParser:
     @classmethod
     def setup_class(cls):
         logger.info("SETUP")
-        os.environ['UTILITIES_UNIT_TESTING'] = "1"
-        move_yang_models()
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        move_yang_models(test_path, 'yang_parser_test', test_yang_models)
 
     @classmethod
     def teardown_class(cls):
         logger.info("TEARDOWN")
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        remove_yang_models()
+        remove_yang_models(test_yang_models)
 
     def test_1_table_container(self):
         """ Test for 1 'table' container
@@ -153,7 +154,7 @@ def base_test(yang_model_name, correct_dict):
     """ General logic for each test case """
 
     config_db_path = os.path.join(test_path,
-                                  'cli_autogen_input/config_db.json')
+                                  'mock_tables/config_db.json')
     parser = YangParser(yang_model_name=yang_model_name,
                         config_db_path=config_db_path,
                         allow_tbl_without_yang=True,
@@ -161,31 +162,6 @@ def base_test(yang_model_name, correct_dict):
     yang_dict = parser.parse_yang_model()
     pretty_log_debug(yang_dict)
     assert yang_dict == correct_dict
-
-
-def move_yang_models():
-    """ Move a test YANG models to known location
-        in order to be parsed by YangParser class
-    """
-
-    for yang_model in test_yang_models:
-        src_path = os.path.join(test_path,
-                                'cli_autogen_input',
-                                yang_model + '.yang')
-        cmd = 'sudo cp {} {}'.format(src_path, yang_models_path)
-        os.system(cmd)
-
-
-def remove_yang_models():
-    """ Remove a test YANG models to known location
-        in order to be parsed by YangParser class
-    """
-
-    for yang_model in test_yang_models:
-        yang_model_path = os.path.join(yang_models_path,
-                                       yang_model + '.yang')
-        cmd = 'sudo rm {}'.format(yang_model_path)
-        os.system(cmd)
 
 
 def pretty_log_debug(dictionary):
