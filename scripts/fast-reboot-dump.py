@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import swsssdk
+from swsscommon.swsscommon import SonicV2Connector
 import json
 import socket
 import struct
@@ -11,39 +11,44 @@ import binascii
 import argparse
 import syslog
 import traceback
+import ipaddress
+from builtins import str #for unicode conversion in python2
 
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
 ARP_PAD = binascii.unhexlify('00' * 18)
 
-def generate_arp_entries(filename, all_available_macs):
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+def generate_neighbor_entries(filename, all_available_macs):
+    db = SonicV2Connector(use_unix_socket_path=False)
     db.connect(db.APPL_DB, False)   # Make one attempt only
 
     arp_output = []
-    arp_entries = []
+    neighbor_entries = []
     keys = db.keys(db.APPL_DB, 'NEIGH_TABLE:*')
     keys = [] if keys is None else keys
     for key in keys:
         vlan_name = key.split(':')[1]
-        ip_addr = key.split(':')[2]
         entry = db.get_all(db.APPL_DB, key)
-        if (vlan_name, entry['neigh'].lower()) not in all_available_macs:
+        mac = entry['neigh'].lower()
+        if (vlan_name, mac) not in all_available_macs:
             # FIXME: print me to log
             continue
         obj = {
           key: entry,
           'OP': 'SET'
         }
-        arp_entries.append((vlan_name, entry['neigh'].lower(), ip_addr))
         arp_output.append(obj)
+
+        ip_addr = key.split(':', 2)[2]
+        neighbor_entries.append((vlan_name, mac, ip_addr))
+        syslog.syslog(syslog.LOG_INFO, "Neighbor entry: [Vlan: %s, Mac: %s, Ip: %s]" % (vlan_name, mac, ip_addr))
 
     db.close(db.APPL_DB)
 
     with open(filename, 'w') as fp:
         json.dump(arp_output, fp, indent=2, separators=(',', ': '))
 
-    return arp_entries
+    return neighbor_entries
 
 def is_mac_unicast(mac):
     first_octet = mac.split(':')[0]
@@ -72,21 +77,58 @@ def get_bridge_port_id_2_port_id(db):
 
     return bridge_port_id_2_port_id
 
-def get_map_port_id_2_iface_name(db):
-    port_id_2_iface = {}
-    keys = db.keys(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:*')
+def get_lag_by_member(member_name, app_db):
+    keys = app_db.keys(app_db.APPL_DB, 'LAG_MEMBER_TABLE:*')
     keys = [] if keys is None else keys
     for key in keys:
-        value = db.get_all(db.ASIC_DB, key)
+        _, lag_name, lag_member_name = key.split(":")
+        if lag_member_name == member_name:
+            return lag_name
+    return None
+
+def get_map_host_port_id_2_iface_name(asic_db):
+    host_port_id_2_iface = {}
+    keys = asic_db.keys(asic_db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:*')
+    keys = [] if keys is None else keys
+    for key in keys:
+        value = asic_db.get_all(asic_db.ASIC_DB, key)
+        if value['SAI_HOSTIF_ATTR_TYPE'] != 'SAI_HOSTIF_TYPE_NETDEV':
+            continue
         port_id = value['SAI_HOSTIF_ATTR_OBJ_ID']
         iface_name = value['SAI_HOSTIF_ATTR_NAME']
-        port_id_2_iface[port_id] = iface_name
+        host_port_id_2_iface[port_id] = iface_name
+    
+    return host_port_id_2_iface
+
+def get_map_lag_port_id_2_portchannel_name(asic_db, app_db, host_port_id_2_iface):
+    lag_port_id_2_iface = {}
+    keys = asic_db.keys(asic_db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_LAG_MEMBER:oid:*')
+    keys = [] if keys is None else keys
+    for key in keys:
+        value = asic_db.get_all(asic_db.ASIC_DB, key)
+        lag_id = value['SAI_LAG_MEMBER_ATTR_LAG_ID']
+        if lag_id in lag_port_id_2_iface:
+            continue
+        member_id = value['SAI_LAG_MEMBER_ATTR_PORT_ID']
+        member_name = host_port_id_2_iface[member_id]
+        lag_name = get_lag_by_member(member_name, app_db)
+        if lag_name is not None:
+            lag_port_id_2_iface[lag_id] = lag_name
+
+    return lag_port_id_2_iface
+
+def get_map_port_id_2_iface_name(asic_db, app_db):
+    port_id_2_iface = {}
+    host_port_id_2_iface = get_map_host_port_id_2_iface_name(asic_db)
+    port_id_2_iface.update(host_port_id_2_iface)
+    lag_port_id_2_iface = get_map_lag_port_id_2_portchannel_name(asic_db, app_db, host_port_id_2_iface)
+    port_id_2_iface.update(lag_port_id_2_iface)
 
     return port_id_2_iface
 
-def get_map_bridge_port_id_2_iface_name(db):
-    bridge_port_id_2_port_id = get_bridge_port_id_2_port_id(db)
-    port_id_2_iface = get_map_port_id_2_iface_name(db)
+def get_map_bridge_port_id_2_iface_name(asic_db, app_db):
+    bridge_port_id_2_port_id = get_bridge_port_id_2_port_id(asic_db)
+    port_id_2_iface = get_map_port_id_2_iface_name(asic_db, app_db)
 
     bridge_port_id_2_iface_name = {}
 
@@ -94,7 +136,7 @@ def get_map_bridge_port_id_2_iface_name(db):
         if port_id in port_id_2_iface:
             bridge_port_id_2_iface_name[bridge_port_id] = port_id_2_iface[port_id]
         else:
-            print "Not found"
+            print("Not found")
 
     return bridge_port_id_2_iface_name
 
@@ -148,33 +190,41 @@ def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
     return fdb_entries, available_macs, map_mac_ip
 
 def generate_fdb_entries(filename):
-    fdb_entries = []
-
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    db.connect(db.ASIC_DB, False)   # Make one attempt only
-
-    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(db)
+    asic_db = SonicV2Connector(use_unix_socket_path=False)
+    app_db = SonicV2Connector(use_unix_socket_path=False)
+    asic_db.connect(asic_db.ASIC_DB, False)   # Make one attempt only
+    app_db.connect(app_db.APPL_DB, False)   # Make one attempt only
 
     vlan_ifaces = get_vlan_ifaces()
 
-    all_available_macs = set()
-    map_mac_ip_per_vlan = {}
-    for vlan in vlan_ifaces:
-        vlan_id = int(vlan.replace('Vlan', ''))
-        fdb_entry, available_macs, map_mac_ip_per_vlan[vlan] = get_fdb(db, vlan, vlan_id, bridge_id_2_iface)
-        all_available_macs |= available_macs
-        fdb_entries.extend(fdb_entry)
+    fdb_entries, all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries_logic(asic_db, app_db, vlan_ifaces)
 
-    db.close(db.ASIC_DB)
+    asic_db.close(asic_db.ASIC_DB)
+    app_db.close(app_db.APPL_DB)
 
     with open(filename, 'w') as fp:
         json.dump(fdb_entries, fp, indent=2, separators=(',', ': '))
 
     return all_available_macs, map_mac_ip_per_vlan
 
+def generate_fdb_entries_logic(asic_db, app_db, vlan_ifaces):
+    fdb_entries = []
+    all_available_macs = set()
+    map_mac_ip_per_vlan = {}
+
+    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(asic_db, app_db)
+
+    for vlan in vlan_ifaces:
+        vlan_id = int(vlan.replace('Vlan', ''))
+        fdb_entry, available_macs, map_mac_ip_per_vlan[vlan] = get_fdb(asic_db, vlan, vlan_id, bridge_id_2_iface)
+        all_available_macs |= available_macs
+        fdb_entries.extend(fdb_entry)
+
+    return fdb_entries, all_available_macs, map_mac_ip_per_vlan
+
 def get_if(iff, cmd):
     s = socket.socket()
-    ifreq = ioctl(s, cmd, struct.pack("16s16x",iff))
+    ifreq = ioctl(s, cmd, struct.pack("16s16x",bytes(iff.encode())))
     s.close()
     return ifreq
 
@@ -201,14 +251,19 @@ def send_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
 
     return
 
-def garp_send(arp_entries, map_mac_ip_per_vlan):
+def send_ndp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
+    #TODO: Implement send in neighbor solicitation format
+
+    return
+
+def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
     ETH_P_ALL = 0x03
 
     # generate source ip addresses for arp packets
-    src_ip_addrs = {vlan_name:get_iface_ip_addr(vlan_name) for vlan_name,_,_ in arp_entries}
+    src_ip_addrs = {vlan_name:get_iface_ip_addr(vlan_name) for vlan_name,_,_ in neighbor_entries}
 
     # generate source mac addresses for arp packets
-    src_ifs = {map_mac_ip_per_vlan[vlan_name][dst_mac] for vlan_name, dst_mac, _ in arp_entries}
+    src_ifs = {map_mac_ip_per_vlan[vlan_name][dst_mac] for vlan_name, dst_mac, _ in neighbor_entries}
     src_mac_addrs = {src_if:get_iface_mac_addr(src_if) for src_if in src_ifs}
 
     # open raw sockets for all required interfaces
@@ -217,10 +272,13 @@ def garp_send(arp_entries, map_mac_ip_per_vlan):
         sockets[src_if] = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
         sockets[src_if].bind((src_if, 0))
 
-    # send arp packets
-    for vlan_name, dst_mac, dst_ip in arp_entries:
+    # send arp/ndp packets
+    for vlan_name, dst_mac, dst_ip in neighbor_entries:
         src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
-        send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
+        if ipaddress.ip_interface(str(dst_ip)).ip.version == 4:
+            send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
+        else:
+            send_ndp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
 
     # close the raw sockets
     for s in sockets.values():
@@ -243,7 +301,7 @@ def get_default_entries(db, route):
     return obj
 
 def generate_default_route_entries(filename):
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    db = SonicV2Connector(unix_socket_path=False)
     db.connect(db.APPL_DB, False)   # Make one attempt only
 
     default_routes_output = []
@@ -268,12 +326,12 @@ def main():
     args = parser.parse_args()
     root_dir = args.target
     if not os.path.isdir(root_dir):
-        print "Target directory '%s' not found" % root_dir
+        print("Target directory '%s' not found" % root_dir)
         return 3
     all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
-    arp_entries = generate_arp_entries(root_dir + '/arp.json', all_available_macs)
+    neighbor_entries = generate_neighbor_entries(root_dir + '/arp.json', all_available_macs)
     generate_default_route_entries(root_dir + '/default_routes.json')
-    garp_send(arp_entries, map_mac_ip_per_vlan)
+    send_garp_nd(neighbor_entries, map_mac_ip_per_vlan)
     return 0
 
 if __name__ == '__main__':

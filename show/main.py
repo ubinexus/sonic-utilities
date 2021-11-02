@@ -1,165 +1,87 @@
-#! /usr/bin/python -u
-
-import errno
 import json
-import netaddr
-import netifaces
 import os
-import re
 import subprocess
 import sys
+import re
 
 import click
-from click_default_group import DefaultGroup
+import utilities_common.cli as clicommon
+import utilities_common.multi_asic as multi_asic_util
+from importlib import reload
 from natsort import natsorted
+from sonic_py_common import device_info
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
+from utilities_common import util_base
+from utilities_common.db import Db
+import utilities_common.constants as constants
+from utilities_common.general import load_db_config
 
-import sonic_device_util
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-
-import mlnx
-
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-
+# mock the redis for unit test purposes #
 try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import configparser
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        reload(mock_tables.mock_multi_asic)
+        reload(mock_tables.dbconnector)
+        mock_tables.dbconnector.load_namespace_config()
 
+except KeyError:
+    pass
 
-# This is from the aliases example:
-# https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
-class Config(object):
-    """Object to hold CLI config"""
+from . import acl
+from . import bgp_common
+from . import chassis_modules
+from . import dropcounters
+from . import feature
+from . import fgnhg
+from . import gearbox
+from . import interfaces
+from . import kdump
+from . import kube
+from . import muxcable
+from . import nat
+from . import platform
+from . import processes
+from . import reboot_cause
+from . import sflow
+from . import vlan
+from . import vnet
+from . import vxlan
+from . import system_health
+from . import warm_restart
+from . import plugins
 
-    def __init__(self):
-        self.path = os.getcwd()
-        self.aliases = {}
+# Global Variables
+PLATFORM_JSON = 'platform.json'
+HWSKU_JSON = 'hwsku.json'
+PORT_STR = "Ethernet"
 
-    def read_config(self, filename):
-        parser = configparser.RawConfigParser()
-        parser.read([filename])
-        try:
-            self.aliases.update(parser.items('aliases'))
-        except configparser.NoSectionError:
-            pass
+VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
-class InterfaceAliasConverter(object):
-    """Class which handles conversion between interface name and alias"""
-
-    def __init__(self):
-        self.alias_max_length = 0
-
-        config_db = ConfigDBConnector()
-        config_db.connect()
-        self.port_dict = config_db.get_table('PORT')
-
-        if not self.port_dict:
-            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
-            self.port_dict = {}
-
-        for port_name in self.port_dict.keys():
-            try:
-                if self.alias_max_length < len(
-                        self.port_dict[port_name]['alias']):
-                   self.alias_max_length = len(
-                        self.port_dict[port_name]['alias'])
-            except KeyError:
-                break
-
-    def name_to_alias(self, interface_name):
-        """Return vendor interface alias if SONiC
-           interface name is given as argument
-        """
-        if interface_name is not None:
-            for port_name in self.port_dict.keys():
-                if interface_name == port_name:
-                    return self.port_dict[port_name]['alias']
-
-        # interface_name not in port_dict. Just return interface_name
-        return interface_name
-
-    def alias_to_name(self, interface_alias):
-        """Return SONiC interface name if vendor
-           port alias is given as argument
-        """
-        if interface_alias is not None:
-            for port_name in self.port_dict.keys():
-                if interface_alias == self.port_dict[port_name]['alias']:
-                    return port_name
-
-        # interface_alias not in port_dict. Just return interface_alias
-        return interface_alias
-
-
-# Global Config object
-_config = None
-
-
-# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
-# a help message if no subcommand is passed
-class AliasedGroup(DefaultGroup):
-    """This subclass of a DefaultGroup supports looking up aliases in a config
-    file and with a bit of magic.
-    """
-
-    def get_command(self, ctx, cmd_name):
-        global _config
-
-        # If we haven't instantiated our global config, do it now and load current config
-        if _config is None:
-            _config = Config()
-
-            # Load our config file
-            cfg_file = os.path.join(os.path.dirname(__file__), 'aliases.ini')
-            _config.read_config(cfg_file)
-
-        # Try to get builtin commands as normal
-        rv = click.Group.get_command(self, ctx, cmd_name)
-        if rv is not None:
-            return rv
-
-        # No builtin found. Look up an explicit command alias in the config
-        if cmd_name in _config.aliases:
-            actual_cmd = _config.aliases[cmd_name]
-            return click.Group.get_command(self, ctx, actual_cmd)
-
-        # Alternative option: if we did not find an explicit alias we
-        # allow automatic abbreviation of the command.  "status" for
-        # instance will match "st".  We only allow that however if
-        # there is only one command.
-        matches = [x for x in self.list_commands(ctx)
-                   if x.lower().startswith(cmd_name.lower())]
-        if not matches:
-            # No command name matched. Issue Default command.
-            ctx.arg0 = cmd_name
-            cmd_name = self.default_cmd_name
-            return DefaultGroup.get_command(self, ctx, cmd_name)
-        elif len(matches) == 1:
-            return DefaultGroup.get_command(self, ctx, matches[0])
-        ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
-
+GEARBOX_TABLE_PHY_PATTERN = r"_GEARBOX_TABLE:phy:*"
 
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
-    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -n 1"
 
     try:
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
 
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect routing-stack")
 
     return (result)
@@ -168,20 +90,32 @@ def get_routing_stack():
 # Global Routing-Stack variable
 routing_stack = get_routing_stack()
 
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except Exception as e:
+        click.echo(str(e))
+        raise click.Abort()
+    return result
 
-def run_command(command, display_cmd=False):
+def run_command(command, display_cmd=False, return_cmd=False):
     if display_cmd:
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
-    if get_interface_mode() == "alias" and not command.startswith("intfutil"):
-        run_command_in_alias_mode(command)
+    if clicommon.get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
+        clicommon.run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     while True:
+        if return_cmd:
+            output = proc.communicate()[0]
+            return output
         output = proc.stdout.readline()
         if output == "" and proc.poll() is not None:
             break
@@ -192,172 +126,33 @@ def run_command(command, display_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
-
-def get_interface_mode():
-    mode = os.getenv('SONIC_CLI_IFACE_MODE')
-    if mode is None:
-        mode = "default"
-    return mode
-
-
-def is_ip_prefix_in_key(key):
-    '''
-    Function to check if IP address is present in the key. If it
-    is present, then the key would be a tuple or else, it shall be
-    be string
-    '''
-    return (isinstance(key, tuple))
-
-
 # Global class instance for SONiC interface name to alias conversion
-iface_alias_converter = InterfaceAliasConverter()
+iface_alias_converter = clicommon.InterfaceAliasConverter()
 
 
-def print_output_in_alias_mode(output, index):
-    """Convert and print all instances of SONiC interface
-       name to vendor-sepecific interface aliases.
+
+def connect_config_db():
     """
-
-    alias_name = ""
-    interface_name = ""
-
-    # Adjust tabulation width to length of alias name
-    if output.startswith("---"):
-        word = output.split()
-        dword = word[index]
-        underline = dword.rjust(iface_alias_converter.alias_max_length,
-                                '-')
-        word[index] = underline
-        output = '  ' .join(word)
-
-    # Replace SONiC interface name with vendor alias
-    word = output.split()
-    if word:
-        interface_name = word[index]
-        interface_name = interface_name.replace(':', '')
-    for port_name in natsorted(iface_alias_converter.port_dict.keys()):
-            if interface_name == port_name:
-                alias_name = iface_alias_converter.port_dict[port_name]['alias']
-    if alias_name:
-        if len(alias_name) < iface_alias_converter.alias_max_length:
-            alias_name = alias_name.rjust(
-                                iface_alias_converter.alias_max_length)
-        output = output.replace(interface_name, alias_name, 1)
-
-    click.echo(output.rstrip('\n'))
-
-
-def run_command_in_alias_mode(command):
-    """Run command and replace all instances of SONiC interface names
-       in output with vendor-sepecific interface aliases.
+    Connects to config_db
     """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    return config_db
 
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+def is_gearbox_configured():
+    """
+    Checks whether Gearbox is configured or not
+    """
+    app_db = SonicV2Connector()
+    app_db.connect(app_db.APPL_DB)
 
-    while True:
-        output = process.stdout.readline()
-        if output == '' and process.poll() is not None:
-            break
+    keys = app_db.keys(app_db.APPL_DB, '*')
 
-        if output:
-            index = 1
-            raw_output = output
-            output = output.lstrip()
-
-            if command.startswith("portstat"):
-                """Show interface counters"""
-                index = 0
-                if output.startswith("IFACE"):
-                    output = output.replace("IFACE", "IFACE".rjust(
-                               iface_alias_converter.alias_max_length))
-                print_output_in_alias_mode(output, index)
-
-            elif command.startswith("intfstat"):
-                """Show RIF counters"""
-                index = 0
-                if output.startswith("IFACE"):
-                    output = output.replace("IFACE", "IFACE".rjust(
-                               iface_alias_converter.alias_max_length))
-                print_output_in_alias_mode(output, index)
-
-            elif command == "pfcstat":
-                """Show pfc counters"""
-                index = 0
-                if output.startswith("Port Tx"):
-                    output = output.replace("Port Tx", "Port Tx".rjust(
-                                iface_alias_converter.alias_max_length))
-
-                elif output.startswith("Port Rx"):
-                    output = output.replace("Port Rx", "Port Rx".rjust(
-                                iface_alias_converter.alias_max_length))
-                print_output_in_alias_mode(output, index)
-
-            elif (command.startswith("sudo sfputil show eeprom")):
-                """show interface transceiver eeprom"""
-                index = 0
-                print_output_in_alias_mode(raw_output, index)
-
-            elif (command.startswith("sudo sfputil show")):
-                """show interface transceiver lpmode,
-                   presence
-                """
-                index = 0
-                if output.startswith("Port"):
-                    output = output.replace("Port", "Port".rjust(
-                               iface_alias_converter.alias_max_length))
-                print_output_in_alias_mode(output, index)
-
-            elif command == "sudo lldpshow":
-                """show lldp table"""
-                index = 0
-                if output.startswith("LocalPort"):
-                    output = output.replace("LocalPort", "LocalPort".rjust(
-                               iface_alias_converter.alias_max_length))
-                print_output_in_alias_mode(output, index)
-
-            elif command.startswith("queuestat"):
-                """show queue counters"""
-                index = 0
-                if output.startswith("Port"):
-                    output = output.replace("Port", "Port".rjust(
-                               iface_alias_converter.alias_max_length))
-                print_output_in_alias_mode(output, index)
-
-            elif command == "fdbshow":
-                """show mac"""
-                index = 3
-                if output.startswith("No."):
-                    output = "  " + output
-                    output = re.sub(
-                                'Type', '      Type', output)
-                elif output[0].isdigit():
-                    output = "    " + output
-                print_output_in_alias_mode(output, index)
-            elif command.startswith("nbrshow"):
-                """show arp"""
-                index = 2
-                if "Vlan" in output:
-                    output = output.replace('Vlan', '  Vlan')
-                print_output_in_alias_mode(output, index)
-
-            else:
-                if index:
-                    for port_name in iface_alias_converter.port_dict.keys():
-                        regex = re.compile(r"\b{}\b".format(port_name))
-                        result = re.findall(regex, raw_output)
-                        if result:
-                            interface_name = ''.join(result)
-                            if not raw_output.startswith("    PortID:"):
-                                raw_output = raw_output.replace(
-                                    interface_name,
-                                    iface_alias_converter.name_to_alias(
-                                            interface_name))
-                    click.echo(raw_output.rstrip('\n'))
-
-    rc = process.poll()
-    if rc != 0:
-        sys.exit(rc)
-
+    # If any _GEARBOX_TABLE:phy:* records present in APPL_DB, then the gearbox is configured
+    if any(re.match(GEARBOX_TABLE_PHY_PATTERN, key) for key in keys):
+        return True
+    else:
+        return False
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -367,11 +162,84 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 # This is our entrypoint - the main "show" command
 # TODO: Consider changing function name to 'show' for better understandability
-@click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
-def cli():
+@click.group(cls=clicommon.AliasedGroup, context_settings=CONTEXT_SETTINGS)
+@click.pass_context
+def cli(ctx):
     """SONiC command line - 'show' command"""
-    pass
 
+    # Load database config files
+    load_db_config()
+    ctx.obj = Db()
+
+
+# Add groups from other modules
+cli.add_command(acl.acl)
+cli.add_command(chassis_modules.chassis)
+cli.add_command(dropcounters.dropcounters)
+cli.add_command(feature.feature)
+cli.add_command(fgnhg.fgnhg)
+cli.add_command(kdump.kdump)
+cli.add_command(interfaces.interfaces)
+cli.add_command(kdump.kdump)
+cli.add_command(kube.kubernetes)
+cli.add_command(muxcable.muxcable)
+cli.add_command(nat.nat)
+cli.add_command(platform.platform)
+cli.add_command(processes.processes)
+cli.add_command(reboot_cause.reboot_cause)
+cli.add_command(sflow.sflow)
+cli.add_command(vlan.vlan)
+cli.add_command(vnet.vnet)
+cli.add_command(vxlan.vxlan)
+cli.add_command(system_health.system_health)
+cli.add_command(warm_restart.warm_restart)
+
+# Add greabox commands only if GEARBOX is configured
+if is_gearbox_configured():
+    cli.add_command(gearbox.gearbox)
+
+
+#
+# 'vrf' command ("show vrf")
+#
+
+def get_interface_bind_to_vrf(config_db, vrf_name):
+    """Get interfaces belong to vrf
+    """
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    data = []
+    for table_name in tables:
+        interface_dict = config_db.get_table(table_name)
+        if interface_dict:
+            for interface in interface_dict:
+                if 'vrf_name' in interface_dict[interface] and vrf_name == interface_dict[interface]['vrf_name']:
+                    data.append(interface)
+    return data
+
+@cli.command()
+@click.argument('vrf_name', required=False)
+def vrf(vrf_name):
+    """Show vrf config"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['VRF', 'Interfaces']
+    body = []
+    vrf_dict = config_db.get_table('VRF')
+    if vrf_dict:
+        vrfs = []
+        if vrf_name is None:
+            vrfs = list(vrf_dict.keys())
+        elif vrf_name in vrf_dict:
+            vrfs = [vrf_name]
+        for vrf in vrfs:
+            intfs = get_interface_bind_to_vrf(config_db, vrf)
+            if len(intfs) == 0:
+                body.append([vrf, ""])
+            else:
+                body.append([vrf, intfs[0]])
+                for intf in intfs[1:]:
+                    body.append(["", intf])
+    click.echo(tabulate(body, header))
 
 #
 # 'arp' command ("show arp")
@@ -389,7 +257,7 @@ def arp(ipaddress, iface, verbose):
         cmd += " -ip {}".format(ipaddress)
 
     if iface is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             if not ((iface.startswith("PortChannel")) or
                     (iface.startswith("eth"))):
                 iface = iface_alias_converter.alias_to_name(iface)
@@ -418,51 +286,26 @@ def ndp(ip6address, iface, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-#
-# 'interfaces' group ("show interfaces ...")
-#
+def is_mgmt_vrf_enabled(ctx):
+    """Check if management VRF is enabled"""
+    if ctx.invoked_subcommand is None:
+        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def interfaces():
-    """Show details of the network interfaces"""
-    pass
+        p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try :
+            mvrf_dict = json.loads(p.stdout.read())
+        except ValueError:
+            print("MGMT_VRF_CONFIG is not present.")
+            return False
 
-# 'alias' subcommand ("show interfaces alias")
-@interfaces.command()
-@click.argument('interfacename', required=False)
-def alias(interfacename):
-    """Show Interface Name/Alias Mapping"""
+        # if the mgmtVrfEnabled attribute is configured, check the value
+        # and return True accordingly.
+        if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+            if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
+                #ManagementVRF is enabled. Return True.
+                return True
 
-    cmd = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-
-    port_dict = json.loads(p.stdout.read())
-
-    header = ['Name', 'Alias']
-    body = []
-
-    if interfacename is not None:
-        if get_interface_mode() == "alias":
-            interfacename = iface_alias_converter.alias_to_name(interfacename)
-
-        # If we're given an interface name, output name and alias for that interface only
-        if interfacename in port_dict:
-            if 'alias' in port_dict[interfacename]:
-                body.append([interfacename, port_dict[interfacename]['alias']])
-            else:
-                body.append([interfacename, interfacename])
-        else:
-            click.echo("Invalid interface name, '{0}'".format(interfacename))
-            return
-    else:
-        # Output name and alias for all interfaces
-        for port_name in natsorted(port_dict.keys()):
-            if 'alias' in port_dict[port_name]:
-                body.append([port_name, port_dict[port_name]['alias']])
-            else:
-                body.append([port_name, port_name])
-
-    click.echo(tabulate(body, header))
+    return False
 
 @cli.group('storm-control')
 def storm_control():
@@ -531,235 +374,211 @@ def storm_control_interface(interfacename):
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 #
-# 'neighbor' group ###
+# 'mgmt-vrf' group ("show mgmt-vrf ...")
 #
-@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
-def neighbor():
-    """Show neighbor related information"""
+
+@cli.group('mgmt-vrf', invoke_without_command=True)
+@click.argument('routes', required=False, type=click.Choice(["routes"]))
+@click.pass_context
+def mgmt_vrf(ctx,routes):
+    """Show management VRF attributes"""
+
+    if is_mgmt_vrf_enabled(ctx) is False:
+        click.echo("\nManagementVRF : Disabled")
+        return
+    else:
+        if routes is None:
+            click.echo("\nManagementVRF : Enabled")
+            click.echo("\nManagement VRF interfaces in Linux:")
+            cmd = "ip -d link show mgmt"
+            run_command(cmd)
+            cmd = "ip link show vrf mgmt"
+            run_command(cmd)
+        else:
+            click.echo("\nRoutes in Management VRF Routing Table:")
+            cmd = "ip route show table 5000"
+            run_command(cmd)
+
+#
+# 'management_interface' group ("show management_interface ...")
+#
+
+@cli.group(name='management_interface', cls=clicommon.AliasedGroup)
+def management_interface():
+    """Show management interface parameters"""
     pass
 
-# 'expected' subcommand ("show interface neighbor expected")
-@neighbor.command()
-@click.argument('interfacename', required=False)
-def expected(interfacename):
-    """Show expected neighbor information by interfaces"""
-    neighbor_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR"'
-    p1 = subprocess.Popen(neighbor_cmd, shell=True, stdout=subprocess.PIPE)
-    try :
-        neighbor_dict = json.loads(p1.stdout.read())
-    except ValueError:
-        print("DEVICE_NEIGHBOR information is not present.")
-        return
+# 'address' subcommand ("show management_interface address")
+@management_interface.command()
+def address ():
+    """Show IP address configured for management interface"""
 
-    neighbor_metadata_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR_METADATA"'
-    p2 = subprocess.Popen(neighbor_metadata_cmd, shell=True, stdout=subprocess.PIPE)
-    try :
-        neighbor_metadata_dict = json.loads(p2.stdout.read())
-    except ValueError:
-        print("DEVICE_NEIGHBOR_METADATA information is not present.")
-        return
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
-    #Swap Key and Value from interface: name to name: interface
-    device2interface_dict = {}
-    for port in natsorted(neighbor_dict['DEVICE_NEIGHBOR'].keys()):
-        temp_port = port
-        if get_interface_mode() == "alias":
-            port = iface_alias_converter.name_to_alias(port)
-            neighbor_dict['DEVICE_NEIGHBOR'][port] = neighbor_dict['DEVICE_NEIGHBOR'].pop(temp_port)
-        device2interface_dict[neighbor_dict['DEVICE_NEIGHBOR'][port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict['DEVICE_NEIGHBOR'][port]['port']}
+    # Fetching data from config_db for MGMT_INTERFACE
+    mgmt_ip_data = config_db.get_table('MGMT_INTERFACE')
+    for key in natsorted(list(mgmt_ip_data.keys())):
+        click.echo("Management IP address = {0}".format(key[1]))
+        click.echo("Management Network Default Gateway = {0}".format(mgmt_ip_data[key]['gwaddr']))
 
-    header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
+#
+# 'snmpagentaddress' group ("show snmpagentaddress ...")
+#
+
+@cli.group('snmpagentaddress', invoke_without_command=True)
+@click.pass_context
+def snmpagentaddress (ctx):
+    """Show SNMP agent listening IP address configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    agenttable = config_db.get_table('SNMP_AGENT_ADDRESS_CONFIG')
+
+    header = ['ListenIP', 'ListenPort', 'ListenVrf']
     body = []
-    if interfacename:
-        for device in natsorted(neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'].keys()):
-            if device2interface_dict[device]['localPort'] == interfacename:
-                body.append([device2interface_dict[device]['localPort'],
-                             device,
-                             device2interface_dict[device]['neighborPort'],
-                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['lo_addr'],
-                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['mgmt_addr'],
-                             neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['type']])
-    else:
-        for device in natsorted(neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'].keys()):
-            body.append([device2interface_dict[device]['localPort'],
-                         device,
-                         device2interface_dict[device]['neighborPort'],
-                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['lo_addr'],
-                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['mgmt_addr'],
-                         neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['type']])
-
+    for agent in agenttable:
+        body.append([agent[0], agent[1], agent[2]])
     click.echo(tabulate(body, header))
 
-@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
-def transceiver():
-    """Show SFP Transceiver information"""
+#
+# 'snmptrap' group ("show snmptrap ...")
+#
+
+@cli.group('snmptrap', invoke_without_command=True)
+@click.pass_context
+def snmptrap (ctx):
+    """Show SNMP agent Trap server configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    traptable = config_db.get_table('SNMP_TRAP_CONFIG')
+
+    header = ['Version', 'TrapReceiverIP', 'Port', 'VRF', 'Community']
+    body = []
+    for row in traptable:
+        if row == "v1TrapDest":
+            ver=1
+        elif row == "v2TrapDest":
+            ver=2
+        else:
+            ver=3
+        body.append([ver, traptable[row]['DestIp'], traptable[row]['DestPort'], traptable[row]['vrf'], traptable[row]['Community']])
+    click.echo(tabulate(body, header))
+
+
+#
+# 'subinterfaces' group ("show subinterfaces ...")
+#
+
+@cli.group(cls=clicommon.AliasedGroup)
+def subinterfaces():
+    """Show details of the sub port interfaces"""
     pass
 
-
-@transceiver.command()
-@click.argument('interfacename', required=False)
-@click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
+# 'subinterfaces' subcommand ("show subinterfaces status")
+@subinterfaces.command()
+@click.argument('subinterfacename', type=str, required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def eeprom(interfacename, dump_dom, verbose):
-    """Show interface transceiver EEPROM information"""
+def status(subinterfacename, verbose):
+    """Show sub port interface status information"""
+    cmd = "intfutil -c status"
 
-    cmd = "sfpshow eeprom"
+    if subinterfacename is not None:
+        sub_intf_sep_idx = subinterfacename.find(VLAN_SUB_INTERFACE_SEPARATOR)
+        if sub_intf_sep_idx == -1:
+            print("Invalid sub port interface name")
+            return
 
-    if dump_dom:
-        cmd += " --dom"
+        if clicommon.get_interface_naming_mode() == "alias":
+            subinterfacename = iface_alias_converter.alias_to_name(subinterfacename)
 
-    if interfacename is not None:
-        if get_interface_mode() == "alias":
-            interfacename = iface_alias_converter.alias_to_name(interfacename)
-
-        cmd += " -p {}".format(interfacename)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-@transceiver.command()
-@click.argument('interfacename', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def lpmode(interfacename, verbose):
-    """Show interface transceiver low-power mode status"""
-
-    cmd = "sudo sfputil show lpmode"
-
-    if interfacename is not None:
-        if get_interface_mode() == "alias":
-            interfacename = iface_alias_converter.alias_to_name(interfacename)
-
-        cmd += " -p {}".format(interfacename)
-
-    run_command(cmd, display_cmd=verbose)
-
-@transceiver.command()
-@click.argument('interfacename', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def presence(interfacename, verbose):
-    """Show interface transceiver presence"""
-
-    cmd = "sfpshow presence"
-
-    if interfacename is not None:
-        if get_interface_mode() == "alias":
-            interfacename = iface_alias_converter.alias_to_name(interfacename)
-
-        cmd += " -p {}".format(interfacename)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-@interfaces.command()
-@click.argument('interfacename', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def description(interfacename, verbose):
-    """Show interface status, protocol and description"""
-
-    cmd = "intfutil description"
-
-    if interfacename is not None:
-        if get_interface_mode() == "alias":
-            interfacename = iface_alias_converter.alias_to_name(interfacename)
-
-        cmd += " {}".format(interfacename)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-@interfaces.command()
-@click.argument('interfacename', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def status(interfacename, verbose):
-    """Show Interface status information"""
-
-    cmd = "intfutil status"
-
-    if interfacename is not None:
-        if get_interface_mode() == "alias":
-            interfacename = iface_alias_converter.alias_to_name(interfacename)
-
-        cmd += " {}".format(interfacename)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'counters' subcommand ("show interfaces counters")
-@interfaces.group(invoke_without_command=True)
-@click.option('-a', '--printall', is_flag=True)
-@click.option('-p', '--period')
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.pass_context
-def counters(ctx, verbose, period, printall):
-    """Show interface counters"""
-
-    if ctx.invoked_subcommand is None:
-        cmd = "portstat"
-
-        if printall:
-            cmd += " -a"
-        if period is not None:
-            cmd += " -p {}".format(period)
-
-        run_command(cmd, display_cmd=verbose)
-
-# 'counters' subcommand ("show interfaces counters rif")
-@counters.command()
-@click.argument('interface', metavar='<interface_name>', required=False, type=str)
-@click.option('-p', '--period')
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def rif(interface, period, verbose):
-    """Show interface counters"""
-
-    cmd = "intfstat"
-    if period is not None:
-        cmd += " -p {}".format(period)
-    if interface is not None:
-        cmd += " -i {}".format(interface)
-
-    run_command(cmd, display_cmd=verbose)
-
-# 'portchannel' subcommand ("show interfaces portchannel")
-@interfaces.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def portchannel(verbose):
-    """Show PortChannel information"""
-    cmd = "sudo teamshow"
+        cmd += " -i {}".format(subinterfacename)
+    else:
+        cmd += " -i subport"
     run_command(cmd, display_cmd=verbose)
 
 #
 # 'pfc' group ("show pfc ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def pfc():
     """Show details of the priority-flow-control (pfc) """
     pass
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(verbose):
+def counters(namespace, display, verbose):
     """Show pfc counters"""
 
-    cmd = "pfcstat"
+    cmd = "pfcstat -s {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 
-# 'naming_mode' subcommand ("show interfaces naming_mode")
-@interfaces.command()
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def priority(interface):
+    """Show pfc priority"""
+    cmd = 'pfc show priority'
+    if interface is not None and clicommon.get_interface_naming_mode() == "alias":
+        interface = iface_alias_converter.alias_to_name(interface)
+
+    if interface is not None:
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def asymmetric(interface):
+    """Show asymmetric pfc"""
+    cmd = 'pfc show asymmetric'
+    if interface is not None and clicommon.get_interface_naming_mode() == "alias":
+        interface = iface_alias_converter.alias_to_name(interface)
+
+    if interface is not None:
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+
+# 'pfcwd' subcommand ("show pfcwd...")
+@cli.group(cls=clicommon.AliasedGroup)
+def pfcwd():
+    """Show details of the pfc watchdog """
+    pass
+
+@pfcwd.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def naming_mode(verbose):
-    """Show interface naming_mode status"""
+def config(namespace, display, verbose):
+    """Show pfc watchdog config"""
 
-    click.echo(get_interface_mode())
+    cmd = "pfcwd show config -d {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
+    run_command(cmd, display_cmd=verbose)
+
+@pfcwd.command()
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def stats(namespace, display, verbose):
+    """Show pfc watchdog stats"""
+
+    cmd = "pfcwd show stats -d {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'watermark' group ("show watermark telemetry interval")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def watermark():
     """Show details of watermark """
     pass
@@ -780,7 +599,7 @@ def show_tm_interval():
 # 'queue' group ("show queue ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def queue():
     """Show details of the queues """
     pass
@@ -789,17 +608,21 @@ def queue():
 @queue.command()
 @click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(interfacename, verbose):
+@click.option('--json', is_flag=True, help="JSON output")
+def counters(interfacename, verbose, json):
     """Show queue counters"""
 
     cmd = "queuestat"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
+
+    if json:
+        cmd += " -j"
 
     run_command(cmd, display_cmd=verbose)
 
@@ -826,6 +649,13 @@ def wm_q_multi():
     command = 'watermarkstat -t q_shared_multi'
     run_command(command)
 
+# 'all' subcommand ("show queue watermarks all")
+@watermark.command('all')
+def wm_q_all():
+    """Show user WM for all queues"""
+    command = 'watermarkstat -t q_shared_all'
+    run_command(command)
+
 #
 # 'persistent-watermarks' subgroup ("show queue persistent-watermarks ...")
 #
@@ -849,12 +679,18 @@ def pwm_q_multi():
     command = 'watermarkstat -p -t q_shared_multi'
     run_command(command)
 
+# 'all' subcommand ("show queue persistent-watermarks all")
+@persistent_watermark.command('all')
+def pwm_q_all():
+    """Show persistent WM for all queues"""
+    command = 'watermarkstat -p -t q_shared_all'
+    run_command(command)
 
 #
 # 'priority-group' group ("show priority-group ...")
 #
 
-@cli.group(name='priority-group', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='priority-group', cls=clicommon.AliasedGroup)
 def priority_group():
     """Show details of the PGs """
 
@@ -873,6 +709,17 @@ def wm_pg_headroom():
 def wm_pg_shared():
     """Show user shared WM for pg"""
     command = 'watermarkstat -t pg_shared'
+    run_command(command)
+
+@priority_group.group()
+def drop():
+    """Show priority-group"""
+    pass
+
+@drop.command('counters')
+def pg_drop_counters():
+    """Show dropped packets for priority-group"""
+    command = 'pg-drop -c show'
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -897,7 +744,7 @@ def pwm_pg_shared():
 # 'buffer_pool' group ("show buffer_pool ...")
 #
 
-@cli.group(name='buffer_pool', cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='buffer_pool', cls=clicommon.AliasedGroup)
 def buffer_pool():
     """Show details of the buffer pools"""
 
@@ -911,6 +758,27 @@ def wm_buffer_pool():
 def pwm_buffer_pool():
     """Show persistent WM for buffer pools"""
     command = 'watermarkstat -p -t buffer_pool'
+    run_command(command)
+
+
+#
+# 'headroom-pool' group ("show headroom-pool ...")
+#
+
+@cli.group(name='headroom-pool', cls=clicommon.AliasedGroup)
+def headroom_pool():
+    """Show details of headroom pool"""
+
+@headroom_pool.command('watermark')
+def wm_headroom_pool():
+    """Show user WM for headroom pool"""
+    command = 'watermarkstat -t headroom_pool'
+    run_command(command)
+
+@headroom_pool.command('persistent-watermark')
+def pwm_headroom_pool():
+    """Show persistent WM for headroom pool"""
+    command = 'watermarkstat -p -t headroom_pool'
     run_command(command)
 
 
@@ -944,7 +812,7 @@ def mac(vlan, port, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route_map(route_map_name, verbose):
     """show route-map"""
-    cmd = 'sudo vtysh -c "show route-map'
+    cmd = 'sudo {} -c "show route-map'.format(constants.RVTYSH_COMMAND)
     if route_map_name is not None:
         cmd += ' {}'.format(route_map_name)
     cmd += '"'
@@ -955,143 +823,42 @@ def route_map(route_map_name, verbose):
 #
 
 # This group houses IP (i.e., IPv4) commands and subgroups
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def ip():
     """Show IP (IPv4) commands"""
     pass
 
 
 #
-# get_if_admin_state
-#
-# Given an interface name, return its admin state reported by the kernel.
-#
-def get_if_admin_state(iface):
-    admin_file = "/sys/class/net/{0}/flags"
-
-    try:
-        state_file = open(admin_file.format(iface), "r")
-    except IOError as e:
-        print "Error: unable to open file: %s" % str(e)
-        return "error"
-
-    content = state_file.readline().rstrip()
-    flags = int(content, 16)
-
-    if flags & 0x1:
-        return "up"
-    else:
-        return "down"
-
-
-#
-# get_if_oper_state
-#
-# Given an interface name, return its oper state reported by the kernel.
-#
-def get_if_oper_state(iface):
-    oper_file = "/sys/class/net/{0}/carrier"
-
-    try:
-        state_file = open(oper_file.format(iface), "r")
-    except IOError as e:
-        print "Error: unable to open file: %s" % str(e)
-        return "error"
-
-    oper_state = state_file.readline().rstrip()
-    if oper_state == "1":
-        return "up"
-    else:
-        return "down"
-
-
-#
 # 'show ip interfaces' command
 #
-# Display all interfaces with an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
+# Display all interfaces with master, an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
 @ip.command()
-def interfaces():
-    """Show interfaces IPv4 address"""
-    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
-    data = []
-    bgp_peer = get_bgp_peer()
+@multi_asic_util.multi_asic_click_options
+def interfaces(namespace, display):
+    cmd = "sudo ipintutil -a ipv4"
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
-    interfaces = natsorted(netifaces.interfaces())
-
-    for iface in interfaces:
-        ipaddresses = netifaces.ifaddresses(iface)
-
-        if netifaces.AF_INET in ipaddresses:
-            ifaddresses = []
-            for ipaddr in ipaddresses[netifaces.AF_INET]:
-                neighbor_name = 'N/A'
-                neighbor_ip = 'N/A'
-                local_ip = str(ipaddr['addr'])
-                netmask = netaddr.IPAddress(ipaddr['netmask']).netmask_bits()
-                ifaddresses.append(["", local_ip + "/" + str(netmask)])
-                try:
-                    neighbor_name = bgp_peer[local_ip][0]
-                    neighbor_ip = bgp_peer[local_ip][1]
-                except:
-                    pass
-
-            if len(ifaddresses) > 0:
-                admin = get_if_admin_state(iface)
-                if admin == "up":
-                    oper = get_if_oper_state(iface)
-                else:
-                    oper = "down"
-
-                if get_interface_mode() == "alias":
-                    iface = iface_alias_converter.name_to_alias(iface)
-
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
-
-            for ifaddr in ifaddresses[1:]:
-                data.append(["", ifaddr[1], ""])
-
-    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
-
-# get bgp peering info
-def get_bgp_peer():
-    """
-    collects local and bgp neighbor ip along with device name in below format
-    {
-     'local_addr1':['neighbor_device1_name', 'neighbor_device1_ip'],
-     'local_addr2':['neighbor_device2_name', 'neighbor_device2_ip']
-     }
-    """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('BGP_NEIGHBOR')
-    bgp_peer = {}
-
-    for neighbor_ip in data.keys():
-        local_addr = data[neighbor_ip]['local_addr']
-        neighbor_name = data[neighbor_ip]['name']
-        bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
-    return bgp_peer
+    cmd += " -d {}".format(display)
+    clicommon.run_command(cmd)
 
 #
 # 'route' subcommand ("show ip route")
 #
 
 @ip.command()
-@click.argument('ipaddress', required=False)
+@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(ipaddress, verbose):
+def route(args, namespace, display, verbose):
     """Show IP (IPv4) routing table"""
-    cmd = 'sudo vtysh -c "show ip route'
-
-    if ipaddress is not None:
-        cmd += ' {}'.format(ipaddress)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ip route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ip")
 
 #
 # 'prefix-list' subcommand ("show ip prefix-list")
@@ -1102,7 +869,7 @@ def route(ipaddress, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
-    cmd = 'sudo vtysh -c "show ip prefix-list'
+    cmd = 'sudo {} -c "show ip prefix-list'.format(constants.RVTYSH_COMMAND)
     if prefix_list_name is not None:
         cmd += ' {}'.format(prefix_list_name)
     cmd += '"'
@@ -1114,7 +881,7 @@ def prefix_list(prefix_list_name, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv4 protocol information"""
-    cmd = 'sudo vtysh -c "show ip protocol"'
+    cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1123,58 +890,46 @@ def protocol(verbose):
 #
 
 # This group houses IPv6-related commands and subgroups
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def ipv6():
     """Show IPv6 commands"""
     pass
+
+#
+# 'prefix-list' subcommand ("show ipv6 prefix-list")
+#
+
+@ipv6.command('prefix-list')
+@click.argument('prefix_list_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def prefix_list(prefix_list_name, verbose):
+    """show ip prefix-list"""
+    cmd = 'sudo {} -c "show ipv6 prefix-list'.format(constants.RVTYSH_COMMAND)
+    if prefix_list_name is not None:
+        cmd += ' {}'.format(prefix_list_name)
+    cmd += '"'
+    run_command(cmd, display_cmd=verbose)
+
 
 
 #
 # 'show ipv6 interfaces' command
 #
-# Display all interfaces with an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
+# Display all interfaces with master, an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
 @ipv6.command()
-def interfaces():
-    """Show interfaces IPv6 address"""
-    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
-    data = []
-    bgp_peer = get_bgp_peer()
+@multi_asic_util.multi_asic_click_options
+def interfaces(namespace, display):
+    cmd = "sudo ipintutil -a ipv6"
 
-    interfaces = natsorted(netifaces.interfaces())
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
-    for iface in interfaces:
-        ipaddresses = netifaces.ifaddresses(iface)
+    cmd += " -d {}".format(display)
 
-        if netifaces.AF_INET6 in ipaddresses:
-            ifaddresses = []
-            for ipaddr in ipaddresses[netifaces.AF_INET6]:
-                neighbor_name = 'N/A'
-                neighbor_ip = 'N/A'
-                local_ip = str(ipaddr['addr'])
-                netmask = ipaddr['netmask'].split('/', 1)[-1]
-                ifaddresses.append(["", local_ip + "/" + str(netmask)])
-                try:
-                    neighbor_name = bgp_peer[local_ip][0]
-                    neighbor_ip = bgp_peer[local_ip][1]
-                except:
-                    pass
-
-            if len(ifaddresses) > 0:
-                admin = get_if_admin_state(iface)
-                if admin == "up":
-                    oper = get_if_oper_state(iface)
-                else:
-                    oper = "down"
-                if get_interface_mode() == "alias":
-                    iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper], neighbor_name, neighbor_ip)
-            for ifaddr in ifaddresses[1:]:
-                data.append(["", ifaddr[1], ""])
-
-    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
+    clicommon.run_command(cmd)
 
 
 #
@@ -1182,18 +937,14 @@ def interfaces():
 #
 
 @ipv6.command()
-@click.argument('ipaddress', required=False)
+@click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(ipaddress, verbose):
+def route(args, namespace, display, verbose):
     """Show IPv6 routing table"""
-    cmd = 'sudo vtysh -c "show ipv6 route'
-
-    if ipaddress is not None:
-        cmd += ' {}'.format(ipaddress)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ipv6 route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ipv6")
 
 
 # 'protocol' command
@@ -1201,9 +952,8 @@ def route(ipaddress, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv6 protocol information"""
-    cmd = 'sudo vtysh -c "show ipv6 protocol"'
+    cmd = 'sudo {} -c "show ipv6 protocol"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
-
 
 #
 # Inserting BGP functionality into cli's show parse-chain.
@@ -1215,23 +965,59 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    @cli.command()
-    @click.argument('bgp_args', nargs = -1, required = False)
-    @click.option('--verbose', is_flag=True, help="Enable verbose output")
-    def bgp(bgp_args, verbose):
-        """Show BGP information"""
-        bgp_cmd = "show bgp"
-        for arg in bgp_args:
-            bgp_cmd += " " + str(arg)
-        cmd = 'sudo vtysh -c "{}"'.format(bgp_cmd)
-        run_command(cmd, display_cmd=verbose)
+    from .bgp_frr_v4 import bgp
+    ip.add_command(bgp)
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
 
+#
+# 'link-local-mode' subcommand ("show ipv6 link-local-mode")
+#
+
+@ipv6.command('link-local-mode')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def link_local_mode(verbose):
+    """show ipv6 link-local-mode"""
+    header = ['Interface Name', 'Mode']
+    body = []
+    tables = ['PORT', 'PORTCHANNEL', 'VLAN']
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    interface = ""
+
+    for table in tables:
+        if table == "PORT":
+            interface = "INTERFACE"
+        elif table == "PORTCHANNEL":
+            interface = "PORTCHANNEL_INTERFACE"
+        elif table == "VLAN":
+            interface = "VLAN_INTERFACE"
+
+        port_dict = config_db.get_table(table)
+        interface_dict = config_db.get_table(interface)
+        link_local_data = {}
+
+        for port in port_dict.keys():
+            if port not in interface_dict:
+                body.append([port, 'Disabled'])
+            elif interface_dict:
+                value = interface_dict[port]
+                if 'ipv6_use_link_local_only' in value:
+                    link_local_data[port] = interface_dict[port]['ipv6_use_link_local_only']
+                    if link_local_data[port] == 'enable':
+                        body.append([port, 'Enabled'])
+                    else:
+                        body.append([port, 'Disabled'])
+                else:
+                    body.append([port, 'Disabled'])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 #
 # 'lldp' group ("show lldp ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def lldp():
     """LLDP (Link Layer Discovery Protocol) information"""
     pass
@@ -1242,13 +1028,13 @@ def lldp():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def neighbors(interfacename, verbose):
     """Show LLDP neighbors"""
-    cmd = "sudo lldpctl"
+    cmd = "sudo lldpshow -d"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-        cmd += " {}".format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1260,83 +1046,6 @@ def table(verbose):
     cmd = "sudo lldpshow"
     run_command(cmd, display_cmd=verbose)
 
-#
-# 'platform' group ("show platform ...")
-#
-
-def get_hw_info_dict():
-    """
-    This function is used to get the HW info helper function  
-    """
-    hw_info_dict = {}
-    machine_info = sonic_device_util.get_machine_info()
-    platform = sonic_device_util.get_platform_info(machine_info)
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('DEVICE_METADATA')
-    try: 
-        hwsku = data['localhost']['hwsku']
-    except KeyError:
-        hwsku = "Unknown"
-    version_info = sonic_device_util.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-    hw_info_dict['platform'] = platform
-    hw_info_dict['hwsku'] = hwsku
-    hw_info_dict['asic_type'] = asic_type
-    return hw_info_dict
-
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def platform():
-    """Show platform-specific hardware info"""
-    pass
-
-version_info = sonic_device_util.get_sonic_version_info()
-if (version_info and version_info.get('asic_type') == 'mellanox'):
-    platform.add_command(mlnx.mlnx)
-
-# 'summary' subcommand ("show platform summary")
-@platform.command()
-def summary():
-    """Show hardware platform information"""
-    hw_info_dict = get_hw_info_dict()
-    click.echo("Platform: {}".format(hw_info_dict['platform']))
-    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
-
-# 'syseeprom' subcommand ("show platform syseeprom")
-@platform.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def syseeprom(verbose):
-    """Show system EEPROM information"""
-    cmd = "sudo decode-syseeprom -d"
-    run_command(cmd, display_cmd=verbose)
-
-# 'psustatus' subcommand ("show platform psustatus")
-@platform.command()
-@click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def psustatus(index, verbose):
-    """Show PSU status information"""
-    cmd = "psushow -s"
-
-    if index >= 0:
-        cmd += " -i {}".format(index)
-
-    run_command(cmd, display_cmd=verbose)
-
-# 'ssdhealth' subcommand ("show platform ssdhealth [--verbose/--vendor]")
-@platform.command()
-@click.argument('device', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('--vendor', is_flag=True, help="Enable vendor specific output")
-def ssdhealth(device, verbose, vendor):
-    """Show SSD Health information"""
-    if not device:
-        device = os.popen("lsblk -o NAME,TYPE -p | grep disk").readline().strip().split()[0]
-    cmd = "ssdutil -d " + device
-    options = " -v" if verbose else ""
-    options += " -e" if vendor else ""
-    run_command(cmd + options, display_cmd=verbose)
 
 #
 # 'logging' command ("show logging")
@@ -1375,26 +1084,30 @@ def logging(process, lines, follow, verbose):
 @click.option("--verbose", is_flag=True, help="Enable verbose output")
 def version(verbose):
     """Show version information"""
-    version_info = sonic_device_util.get_sonic_version_info()
-    hw_info_dict = get_hw_info_dict()
-    serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
+    version_info = device_info.get_sonic_version_info()
+    platform_info = device_info.get_platform_info()
+    chassis_info = platform.get_chassis_info()
+    
     sys_uptime_cmd = "uptime"
-    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
-    click.echo("\nPlatform: {}".format(hw_info_dict['platform']))
-    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
-    click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
+    click.echo("\nPlatform: {}".format(platform_info['platform']))
+    click.echo("HwSKU: {}".format(platform_info['hwsku']))
+    click.echo("ASIC: {}".format(platform_info['asic_type']))
+    click.echo("ASIC Count: {}".format(platform_info['asic_count']))
+    click.echo("Serial Number: {}".format(chassis_info['serial']))
+    click.echo("Model Number: {}".format(chassis_info['model']))
+    click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
 #
@@ -1408,42 +1121,6 @@ def environment(verbose):
     cmd = "sudo sensors"
     run_command(cmd, display_cmd=verbose)
 
-
-#
-# 'processes' group ("show processes ...")
-#
-
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def processes():
-    """Display process information"""
-    pass
-
-@processes.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def summary(verbose):
-    """Show processes info"""
-    # Run top batch mode to prevent unexpected newline after each newline
-    cmd = "ps -eo pid,ppid,cmd,%mem,%cpu "
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'cpu' subcommand ("show processes cpu")
-@processes.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def cpu(verbose):
-    """Show processes CPU info"""
-    # Run top in batch mode to prevent unexpected newline after each newline
-    cmd = "top -bn 1 -o %CPU"
-    run_command(cmd, display_cmd=verbose)
-
-# 'memory' subcommand
-@processes.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def memory(verbose):
-    """Show processes memory info"""
-    # Run top batch mode to prevent unexpected newline after each newline
-    cmd = "top -bn 1 -o %MEM"
-    run_command(cmd, display_cmd=verbose)
 
 #
 # 'users' command ("show users")
@@ -1463,12 +1140,35 @@ def users(verbose):
 
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
+@click.option('-g', '--global-timeout', default=30, type=int, help="Global timeout in minutes. Default 30 mins")
+@click.option('-c', '--cmd-timeout', default=5, type=int, help="Individual command timeout in minutes. Default 5 mins")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(since, verbose):
+@click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
+@click.option('--silent', is_flag=True, help="Run techsupport in silent mode")
+@click.option('--debug-dump', is_flag=True, help="Collect Debug Dump Output")
+@click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
+def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
-    cmd = "sudo generate_dump -v"
+    cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
+
+    if allow_process_stop:
+        cmd += " -a"
+
+    if silent:
+        cmd += " generate_dump"
+        click.echo("Techsupport is running with silent option. This command might take a long time.")
+    else:
+        cmd += " generate_dump -v"
+
     if since:
-        cmd += " -s {}".format(since)
+        cmd += " -s '{}'".format(since)
+    
+    if debug_dump:
+        cmd += " -d "
+
+    cmd += " -t {}".format(cmd_timeout)
+    if redirect_stderr:
+        cmd += " -r"
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1476,7 +1176,7 @@ def techsupport(since, verbose):
 # 'runningconfiguration' group ("show runningconfiguration")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def runningconfiguration():
     """Show current running configuration information"""
     pass
@@ -1519,7 +1219,7 @@ def ports(portname, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def bgp(verbose):
     """Show BGP running configuration"""
-    cmd = 'sudo vtysh -c "show running-config"'
+    cmd = 'sudo {} -c "show running-config"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1533,20 +1233,6 @@ def interfaces(interfacename, verbose):
 
     if interfacename is not None:
         cmd += " {0} {1}".format("--key", interfacename)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'snmp' subcommand ("show runningconfiguration snmp")
-@runningconfiguration.command()
-@click.argument('server', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def snmp(server, verbose):
-    """Show SNMP information"""
-    cmd = "sudo docker exec snmp cat /etc/snmp/snmpd.conf"
-
-    if server is not None:
-        cmd += " | grep -i agentAddress"
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1565,7 +1251,171 @@ def ntp(verbose):
             ntp_server = line.split(" ")[1]
             ntp_servers.append(ntp_server)
     ntp_dict['NTP Servers'] = ntp_servers
-    print tabulate(ntp_dict, headers=ntp_dict.keys(), tablefmt="simple", stralign='left', missingval="")
+    print(tabulate(ntp_dict, headers=list(ntp_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
+
+
+
+# 'snmp' subcommand ("show runningconfiguration snmp")
+@runningconfiguration.group("snmp", invoke_without_command=True)
+@clicommon.pass_db
+@click.pass_context
+def snmp(ctx, db):
+    """Show SNMP running configuration"""
+    if ctx.invoked_subcommand is None:
+       show_run_snmp(db.cfgdb)
+
+
+# ("show runningconfiguration snmp community")
+@snmp.command('community')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def community(db, json_output):
+    """show SNMP running configuration community"""
+    snmp_comm_header = ["Community String", "Community Type"]
+    snmp_comm_body = []
+    snmp_comm_keys = db.cfgdb.get_table('SNMP_COMMUNITY')
+    snmp_comm_strings = snmp_comm_keys.keys()
+    if json_output:
+        click.echo(snmp_comm_keys)
+    else:
+        for line in snmp_comm_strings:
+            comm_string = line
+            comm_string_type = snmp_comm_keys[line]['TYPE']
+            snmp_comm_body.append([comm_string, comm_string_type])
+        click.echo(tabulate(natsorted(snmp_comm_body), snmp_comm_header))
+
+
+# ("show runningconfiguration snmp contact")
+@snmp.command('contact')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def contact(db, json_output):
+    """show SNMP running configuration contact"""
+    snmp = db.cfgdb.get_table('SNMP')
+    snmp_header = ["Contact", "Contact Email"]
+    snmp_body = []
+    if json_output:
+        try:
+            if snmp['CONTACT']:
+                click.echo(snmp['CONTACT'])
+        except KeyError:
+            snmp['CONTACT'] = {}
+            click.echo(snmp['CONTACT'])
+    else:
+        try:
+            if snmp['CONTACT']:
+                snmp_contact = list(snmp['CONTACT'].keys())
+                snmp_contact_email = [snmp['CONTACT'][snmp_contact[0]]]
+                snmp_body.append([snmp_contact[0], snmp_contact_email[0]])
+        except KeyError:
+            snmp['CONTACT'] = ''
+        click.echo(tabulate(snmp_body, snmp_header))
+
+
+# ("show runningconfiguration snmp location")
+@snmp.command('location')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def location(db, json_output):
+    """show SNMP running configuration location"""
+    snmp = db.cfgdb.get_table('SNMP')
+    snmp_header = ["Location"]
+    snmp_body = []
+    if json_output:
+        try:
+            if snmp['LOCATION']:
+                click.echo(snmp['LOCATION'])
+        except KeyError:
+            snmp['LOCATION'] = {}
+            click.echo(snmp['LOCATION'])
+    else:
+        try:
+            if snmp['LOCATION']:
+                snmp_location = [snmp['LOCATION']['Location']]
+                snmp_body.append(snmp_location)
+        except KeyError:
+            snmp['LOCATION'] = ''
+        click.echo(tabulate(snmp_body, snmp_header))
+
+
+# ("show runningconfiguration snmp user")
+@snmp.command('user')
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+              help="Display the output in JSON format")
+@clicommon.pass_db
+def users(db, json_output):
+    """show SNMP running configuration user"""
+    snmp_users = db.cfgdb.get_table('SNMP_USER')
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+                        "Encryption Password"]
+    snmp_user_body = []
+    if json_output:
+        click.echo(snmp_users)
+    else:
+        for snmp_user, snmp_user_value in snmp_users.items():
+            snmp_user_permissions_type = snmp_users[snmp_user].get('SNMP_USER_PERMISSION', 'Null')
+            snmp_user_auth_type = snmp_users[snmp_user].get('SNMP_USER_AUTH_TYPE', 'Null')
+            snmp_user_auth_password = snmp_users[snmp_user].get('SNMP_USER_AUTH_PASSWORD', 'Null')
+            snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
+            snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
+            snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
+            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+                                   snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
+        click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
+
+
+# ("show runningconfiguration snmp")
+@clicommon.pass_db
+def show_run_snmp(db, ctx):
+    snmp_contact_location_table = db.cfgdb.get_table('SNMP')
+    snmp_comm_table = db.cfgdb.get_table('SNMP_COMMUNITY')
+    snmp_users = db.cfgdb.get_table('SNMP_USER')
+    snmp_location_header = ["Location"]
+    snmp_location_body = []
+    snmp_contact_header = ["SNMP_CONTACT", "SNMP_CONTACT_EMAIL"]
+    snmp_contact_body = []
+    snmp_comm_header = ["Community String", "Community Type"]
+    snmp_comm_body = []
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+                        "Encryption Password"]
+    snmp_user_body = []
+    try:
+        if snmp_contact_location_table['LOCATION']:
+            snmp_location = [snmp_contact_location_table['LOCATION']['Location']]
+            snmp_location_body.append(snmp_location)
+    except KeyError:
+        snmp_contact_location_table['LOCATION'] = ''
+    click.echo(tabulate(snmp_location_body, snmp_location_header))
+    click.echo("\n")
+    try:
+        if snmp_contact_location_table['CONTACT']:
+            snmp_contact = list(snmp_contact_location_table['CONTACT'].keys())
+            snmp_contact_email = [snmp_contact_location_table['CONTACT'][snmp_contact[0]]]
+            snmp_contact_body.append([snmp_contact[0], snmp_contact_email[0]])
+    except KeyError:
+        snmp_contact_location_table['CONTACT'] = ''
+    click.echo(tabulate(snmp_contact_body, snmp_contact_header))
+    click.echo("\n")
+    snmp_comm_strings = snmp_comm_table.keys()
+    for line in snmp_comm_strings:
+        comm_string = line
+        comm_string_type = snmp_comm_table[line]['TYPE']
+        snmp_comm_body.append([comm_string, comm_string_type])
+    click.echo(tabulate(natsorted(snmp_comm_body), snmp_comm_header))
+    click.echo("\n")
+    for snmp_user, snmp_user_value in snmp_users.items():
+        snmp_user_permissions_type = snmp_users[snmp_user].get('SNMP_USER_PERMISSION', 'Null')
+        snmp_user_auth_type = snmp_users[snmp_user].get('SNMP_USER_AUTH_TYPE', 'Null')
+        snmp_user_auth_password = snmp_users[snmp_user].get('SNMP_USER_AUTH_PASSWORD', 'Null')
+        snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
+        snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
+        snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
+        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+                               snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
+    click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
 
 # 'syslog' subcommand ("show runningconfiguration syslog")
@@ -1583,14 +1433,14 @@ def syslog(verbose):
             server = line[0][5:]
             syslog_servers.append(server)
     syslog_dict['Syslog Servers'] = syslog_servers
-    print tabulate(syslog_dict, headers=syslog_dict.keys(), tablefmt="simple", stralign='left', missingval="")
+    print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
 
 #
 # 'startupconfiguration' group ("show startupconfiguration ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=clicommon.AliasedGroup)
 def startupconfiguration():
     """Show startup configuration information"""
     pass
@@ -1602,7 +1452,7 @@ def startupconfiguration():
 def bgp(verbose):
     """Show BGP startup configuration"""
     cmd = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     result = proc.stdout.read().rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
@@ -1623,25 +1473,22 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ntp(ctx, verbose):
     """Show NTP information"""
+    from pkg_resources import parse_version
+    ntpstat_cmd = "ntpstat"
     ntpcmd = "ntpq -p -n"
-    if ctx.invoked_subcommand is None:
-        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+    if is_mgmt_vrf_enabled(ctx) is True:
+        #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version
+        os_info =  os.uname()
+        release = os_info[2].split('-')
+        if parse_version(release[0]) > parse_version("4.9.0"):
+            ntpstat_cmd = "sudo ip vrf exec mgmt ntpstat"
+            ntpcmd = "sudo ip vrf exec mgmt ntpq -p -n"
+        else:
+            ntpstat_cmd = "sudo cgexec -g l3mdev:mgmt ntpstat"
+            ntpcmd = "sudo cgexec -g l3mdev:mgmt ntpq -p -n"
 
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        res = p.communicate()
-        if p.returncode == 0 :
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            mvrf_dict = json.loads(p.stdout.read())
-
-            # if the mgmtVrfEnabled attribute is configured, check the value
-            # and print Enabled or Disabled accordingly.
-            if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
-                if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
-                    #ManagementVRF is enabled. Call ntpq using cgexec
-                    ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+    run_command(ntpstat_cmd, display_cmd=verbose)
     run_command(ntpcmd, display_cmd=verbose)
-
-
 
 #
 # 'uptime' command ("show uptime")
@@ -1668,163 +1515,28 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def vlan():
-    """Show VLAN information"""
-    pass
-
-@vlan.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def brief(verbose):
-    """Show all bridge information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['VLAN ID', 'IP Address', 'Ports', 'Port Tagging', 'DHCP Helper Address']
-    body = []
-    vlan_keys = []
-
-    # Fetching data from config_db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
-    vlan_dhcp_helper_data = config_db.get_table('VLAN')
-    vlan_ip_data = config_db.get_table('VLAN_INTERFACE')
-    vlan_ports_data = config_db.get_table('VLAN_MEMBER')
-
-    vlan_keys = natsorted(vlan_dhcp_helper_data.keys())
-
-    # Defining dictionaries for DHCP Helper address, Interface Gateway IP,
-    # VLAN ports and port tagging
-    vlan_dhcp_helper_dict = {}
-    vlan_ip_dict = {}
-    vlan_ports_dict = {}
-    vlan_tagging_dict = {}
-
-    # Parsing DHCP Helpers info
-    for key in natsorted(vlan_dhcp_helper_data.keys()):
-        try:
-            if vlan_dhcp_helper_data[key]['dhcp_servers']:
-                vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
-        except KeyError:
-            vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
-            pass
-
-    # Parsing VLAN Gateway info
-    for key in natsorted(vlan_ip_data.keys()):
-        if not is_ip_prefix_in_key(key):
-            continue
-        interface_key = str(key[0].strip("Vlan"))
-        interface_value = str(key[1])
-        if interface_key in vlan_ip_dict:
-            vlan_ip_dict[interface_key].append(interface_value)
-        else:
-            vlan_ip_dict[interface_key] = [interface_value]
-
-    # Parsing VLAN Ports info
-    for key in natsorted(vlan_ports_data.keys()):
-        ports_key = str(key[0].strip("Vlan"))
-        ports_value = str(key[1])
-        ports_tagging = vlan_ports_data[key]['tagging_mode']
-        if ports_key in vlan_ports_dict:
-            if get_interface_mode() == "alias":
-                ports_value = iface_alias_converter.name_to_alias(ports_value)
-            vlan_ports_dict[ports_key].append(ports_value)
-        else:
-            if get_interface_mode() == "alias":
-                ports_value = iface_alias_converter.name_to_alias(ports_value)
-            vlan_ports_dict[ports_key] = [ports_value]
-        if ports_key in vlan_tagging_dict:
-            vlan_tagging_dict[ports_key].append(ports_tagging)
-        else:
-            vlan_tagging_dict[ports_key] = [ports_tagging]
-
-    # Printing the following dictionaries in tablular forms:
-    # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
-    # vlan_tagging_dict = {}
-    for key in natsorted(vlan_dhcp_helper_dict.keys()):
-        if key not in vlan_ip_dict:
-            ip_address = ""
-        else:
-            ip_address = ','.replace(',', '\n').join(vlan_ip_dict[key])
-        if key not in vlan_ports_dict:
-            vlan_ports = ""
-        else:
-            vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
-        if key not in vlan_dhcp_helper_dict:
-            dhcp_helpers = ""
-        else:
-            dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
-        if key not in vlan_tagging_dict:
-            vlan_tagging = ""
-        else:
-            vlan_tagging = ','.replace(',', '\n').join((vlan_tagging_dict[key]))
-        body.append([key, ip_address, vlan_ports, vlan_tagging, dhcp_helpers])
-    click.echo(tabulate(body, header, tablefmt="grid"))
-
-@vlan.command()
-@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
-def config(redis_unix_socket_path):
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
-    config_db.connect(wait_for_init=False)
-    data = config_db.get_table('VLAN')
-    keys = data.keys()
-
-    def tablelize(keys, data):
-        table = []
-
-        for k in natsorted(keys):
-            if 'members' not in data[k] :
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                table.append(r)
-                continue
-
-            for m in data[k].get('members', []):
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                if get_interface_mode() == "alias":
-                    alias = iface_alias_converter.name_to_alias(m)
-                    r.append(alias)
-                else:
-                    r.append(m)
-
-                entry = config_db.get_entry('VLAN_MEMBER', (k, m))
-                mode = entry.get('tagging_mode')
-                if mode == None:
-                    r.append('?')
-                else:
-                    r.append(mode)
-
-                table.append(r)
-
-        return table
-
-    header = ['Name', 'VID', 'Member', 'Mode']
-    click.echo(tabulate(tablelize(keys, data), header))
 
 @cli.command('services')
 def services():
     """Show all daemon services"""
     cmd = "sudo docker ps --format '{{.Names}}'"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     while True:
         line = proc.stdout.readline()
         if line != '':
                 print(line.rstrip()+'\t'+"docker")
                 print("---------------------------")
                 cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
-                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                print proc1.stdout.read()
+                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+                print(proc1.stdout.read())
         else:
                 break
 
 @cli.command()
-def aaa():
+@clicommon.pass_db
+def aaa(db):
     """Show AAA configuration"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    config_db = db.cfgdb
     data = config_db.get_table('AAA')
     output = ''
 
@@ -1872,10 +1584,62 @@ def tacacs():
                 output += ('               %s %s\n' % (key, str(entry[key])))
     click.echo(output)
 
+@cli.command()
+@clicommon.pass_db
+def radius(db):
+    """Show RADIUS configuration"""
+    output = ''
+    config_db = db.cfgdb
+    data = config_db.get_table('RADIUS')
+
+    radius = {
+        'global': {
+            'auth_type': 'pap (default)',
+            'retransmit': '3 (default)',
+            'timeout': '5 (default)',
+            'passkey': '<EMPTY_STRING> (default)'
+        }
+    }
+    if 'global' in data:
+        radius['global'].update(data['global'])
+    for key in radius['global']:
+        output += ('RADIUS global %s %s\n' % (str(key), str(radius['global'][key])))
+
+    data = config_db.get_table('RADIUS_SERVER')
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            output += ('\nRADIUS_SERVER address %s\n' % row)
+            for key in entry:
+                output += ('               %s %s\n' % (key, str(entry[key])))
+
+    counters_db = SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB, retry_on=False)
+
+    if radius['global'].get('statistics', False) and (data != {}):
+        for row in data:
+            exists = counters_db.exists(counters_db.COUNTERS_DB,
+                                     'RADIUS_SERVER_STATS:{}'.format(row))
+            if not exists:
+                continue
+
+            counter_entry = counters_db.get_all(counters_db.COUNTERS_DB,
+                    'RADIUS_SERVER_STATS:{}'.format(row))
+            output += ('\nStatistics for RADIUS_SERVER address %s\n' % row)
+            for key in counter_entry:
+                if counter_entry[key] != "0":
+                    output += ('               %s %s\n' % (key, str(counter_entry[key])))
+    try:
+        counters_db.close(counters_db.COUNTERS_DB)
+    except Exception as e:
+        pass
+
+    click.echo(output)
+
 #
 # 'mirror_session' command  ("show mirror_session ...")
 #
-@cli.command()
+@cli.command('mirror_session')
 @click.argument('session_name', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def mirror_session(session_name, verbose):
@@ -1905,56 +1669,14 @@ def policer(policer_name, verbose):
 
 
 #
-# 'acl' group ###
-#
-
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def acl():
-    """Show ACL related information"""
-    pass
-
-
-# 'rule' subcommand  ("show acl rule")
-@acl.command()
-@click.argument('table_name', required=False)
-@click.argument('rule_id', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def rule(table_name, rule_id, verbose):
-    """Show existing ACL rules"""
-    cmd = "acl-loader show rule"
-
-    if table_name is not None:
-        cmd += " {}".format(table_name)
-
-    if rule_id is not None:
-        cmd += " {}".format(rule_id)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'table' subcommand  ("show acl table")
-@acl.command()
-@click.argument('table_name', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def table(table_name, verbose):
-    """Show existing ACL tables"""
-    cmd = "acl-loader show table"
-
-    if table_name is not None:
-        cmd += " {}".format(table_name)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-#
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
-def ecn():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ecn(verbose):
     """Show ECN configuration"""
     cmd = "ecnconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd, display_cmd=verbose)
 
 
 #
@@ -1963,162 +1685,80 @@ def ecn():
 @cli.command('boot')
 def boot():
     """Show boot configuration"""
-    cmd = "sudo sonic_installer list"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    cmd = "sudo sonic-installer list"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
 
 
+#
 # 'mmu' command ("show mmu")
 #
 @cli.command('mmu')
 def mmu():
     """Show mmu configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    click.echo(proc.stdout.read())
-
+    run_command(cmd)
 
 #
-# 'reboot-cause' command ("show reboot-cause")
+# 'buffer' command ("show buffer")
 #
-@cli.command('reboot-cause')
-def reboot_cause():
-    """Show cause of most recent reboot"""
-    PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
+@cli.group(cls=clicommon.AliasedGroup)
+def buffer():
+    """Show buffer information"""
+    pass
 
-    # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
-    # the contents of the 'reboot cause' file as it was left when the device
-    # went down for reboot. This file should always be created at boot,
-    # but check first just in case it's not present.
-    if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
-        click.echo("Unable to determine cause of previous reboot\n")
-    else:
-        cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        click.echo(proc.stdout.read())
+#
+# 'configuration' command ("show buffer command")
+#
+@buffer.command()
+def configuration():
+    """show buffer configuration"""
+    cmd = "mmuconfig -l"
+    run_command(cmd)
+
+#
+# 'information' command ("show buffer state")
+#
+@buffer.command()
+def information():
+    """show buffer information"""
+    cmd = "buffershow -l"
+    run_command(cmd)
 
 
 #
 # 'line' command ("show line")
 #
 @cli.command('line')
-def line():
-    """Show all /dev/ttyUSB lines and their info"""
-    cmd = "consutil show"
+@click.option('--brief', '-b', metavar='<brief_mode>', required=False, is_flag=True)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def line(brief, verbose):
+    """Show all console lines and their info include available ttyUSB devices unless specified brief mode"""
+    cmd = "consutil show" + (" -b" if brief else "")
     run_command(cmd, display_cmd=verbose)
     return
 
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def warm_restart():
-    """Show warm restart configuration and state"""
-    pass
+#
+# 'ztp status' command ("show ztp status")
+#
+@cli.command()
+@click.argument('status', required=False, type=click.Choice(["status"]))
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ztp(status, verbose):
+    """Show Zero Touch Provisioning status"""
+    if os.path.isfile('/usr/bin/ztp') is False:
+        exit("ZTP feature unavailable in this image version")
 
-@warm_restart.command()
-@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
-def state(redis_unix_socket_path):
-    """Show warm restart state"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
+    cmd = "ztp status"
+    if verbose:
+       cmd = cmd + " --verbose"
+    run_command(cmd, display_cmd=verbose)
 
-    data = {}
-    db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.STATE_DB, False)   # Make one attempt only
-
-    TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_TABLE' + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, '*')
-    table_keys = db.keys(db.STATE_DB, _hash)
-
-    def remove_prefix(text, prefix):
-        if text.startswith(prefix):
-            return text[len(prefix):]
-        return text
-
-    table = []
-    for tk in table_keys:
-        entry = db.get_all(db.STATE_DB, tk)
-        r = []
-        r.append(remove_prefix(tk, prefix))
-        if 'restore_count' not in entry:
-            r.append("")
-        else:
-            r.append(entry['restore_count'])
-
-        if 'state' not in entry:
-            r.append("")
-        else:
-            r.append(entry['state'])
-
-        table.append(r)
-
-    header = ['name', 'restore_count', 'state']
-    click.echo(tabulate(table, header))
-
-@warm_restart.command()
-@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
-def config(redis_unix_socket_path):
-    """Show warm restart config"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
-    config_db.connect(wait_for_init=False)
-    data = config_db.get_table('WARM_RESTART')
-    # Python dictionary keys() Method
-    keys = data.keys()
-
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
-    TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, '*')
-    # DBInterface keys() method
-    enable_table_keys = state_db.keys(state_db.STATE_DB, _hash)
-
-    def tablelize(keys, data, enable_table_keys, prefix):
-        table = []
-
-        if enable_table_keys is not None:
-            for k in enable_table_keys:
-                k = k.replace(prefix, "")
-                if k not in keys:
-                    keys.append(k)
-
-        for k in keys:
-            r = []
-            r.append(k)
-
-            enable_k = prefix + k
-            if enable_table_keys is None or enable_k not in enable_table_keys:
-                r.append("false")
-            else:
-                r.append(state_db.get(state_db.STATE_DB, enable_k, "enable"))
-
-            if k not in data:
-                r.append("NULL")
-                r.append("NULL")
-            elif 'neighsyncd_timer' in  data[k]:
-                r.append("neighsyncd_timer")
-                r.append(data[k]['neighsyncd_timer'])
-            elif 'bgp_timer' in data[k]:
-                r.append("bgp_timer")
-                r.append(data[k]['bgp_timer'])
-            elif 'teamsyncd_timer' in data[k]:
-                r.append("teamsyncd_timer")
-                r.append(data[k]['teamsyncd_timer'])
-            else:
-                r.append("NULL")
-                r.append("NULL")
-
-            table.append(r)
-
-        return table
-
-    header = ['name', 'enable', 'timer_name', 'timer_duration']
-    click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
-    state_db.close(state_db.STATE_DB)
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
 
 if __name__ == '__main__':
     cli()
