@@ -104,6 +104,7 @@ setup(
         'scripts/ipintutil',
         'scripts/lldpshow',
         'scripts/log_ssd_health',
+        'scripts/macsecshow',
         'scripts/mellanox_buffer_migrator.py',
         'scripts/mmuconfig',
         'scripts/natclear',
