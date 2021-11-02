@@ -1,5 +1,7 @@
 import click
-from show.main import *
+from show.main import AliasedGroup, ip, run_command
+from utilities_common.bgp_util import get_bgp_summary_extended
+import utilities_common.constants as constants
 
 
 ###############################################################################
@@ -9,7 +11,7 @@ from show.main import *
 ###############################################################################
 
 
-@ip.group(cls=AliasedGroup, default_if_no_args=False)
+@ip.group(cls=AliasedGroup)
 def bgp():
     """Show IPv4 BGP (Border Gateway Protocol) information"""
     pass
@@ -19,7 +21,11 @@ def bgp():
 @bgp.command()
 def summary():
     """Show summarized information of IPv4 BGP state"""
-    run_command('sudo vtysh -c "show ip bgp summary"')
+    try:
+        device_output = run_command('sudo {} -c "show ip bgp summary"'.format(constants.RVTYSH_COMMAND), return_cmd=True)
+        get_bgp_summary_extended(device_output)
+    except Exception:
+        run_command('sudo {} -c "show ip bgp summary"'.format(constants.RVTYSH_COMMAND))
 
 
 # 'neighbors' subcommand ("show ip bgp neighbors")
@@ -29,7 +35,7 @@ def summary():
 def neighbors(ipaddress, info_type):
     """Show IP (IPv4) BGP neighbors"""
 
-    command = 'sudo vtysh -c "show ip bgp neighbor'
+    command = 'sudo {} -c "show ip bgp neighbor'.format(constants.RVTYSH_COMMAND)
 
     if ipaddress is not None:
         command += ' {}'.format(ipaddress)

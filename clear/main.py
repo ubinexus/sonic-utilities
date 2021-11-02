@@ -1,16 +1,14 @@
-#! /usr/bin/python -u
-
-import click
+import configparser
 import os
 import subprocess
-from click_default_group import DefaultGroup
+import sys
+import click
+import utilities_common.cli as clicommon
+import json
 
-try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import configparser
+from utilities_common import util_base
+from show.plugins.pbh import read_pbh_counters
+from . import plugins
 
 
 # This is from the aliases example:
@@ -35,12 +33,10 @@ class Config(object):
 _config = None
 
 
-# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultFroup is a superclass of click.Group which calls a default subcommand instead of showing
-# a help message if no subcommand is passed
-class AliasedGroup(DefaultGroup):
-    """This subclass of a DefaultGroup supports looking up aliases in a config
-    file and with a bit of magic.
+
+class AliasedGroup(click.Group):
+    """This subclass of click.Group supports abbreviations and
+       looking up aliases in a config file with a bit of magic.
     """
 
     def get_command(self, ctx, cmd_name):
@@ -71,12 +67,9 @@ class AliasedGroup(DefaultGroup):
         matches = [x for x in self.list_commands(ctx)
                    if x.lower().startswith(cmd_name.lower())]
         if not matches:
-            # No command name matched. Issue Default command.
-            ctx.arg0 = cmd_name
-            cmd_name = self.default_cmd_name
-            return DefaultGroup.get_command(self, ctx, cmd_name)
+            return None
         elif len(matches) == 1:
-            return DefaultGroup.get_command(self, ctx, matches[0])
+            return click.Group.get_command(self, ctx, matches[0])
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 
@@ -90,12 +83,12 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
 
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect routing-stack")
 
     return (result)
@@ -105,20 +98,18 @@ def get_routing_stack():
 routing_stack = get_routing_stack()
 
 
-def run_command(command, pager=False, return_output=False):
+def run_command(command, pager=False, return_output=False, return_exitstatus=False):
     # Provide option for caller function to Process the output.
-    if return_output == True:
-        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        return proc.communicate()
-
-    if pager is True:
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    if return_output:
+        output = proc.communicate()
+        return output if not return_exitstatus else output + (proc.returncode,)
+    elif pager:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo_via_pager(p.stdout.read())
+        click.echo_via_pager(proc.stdout.read())
     else:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo(p.stdout.read())
+        click.echo(proc.stdout.read())
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
@@ -133,7 +124,6 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli():
     """SONiC command line - 'Clear' command"""
     pass
-
 
 #
 # 'ip' group ###
@@ -165,21 +155,10 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    @cli.command()
-    @click.argument('bgp_args', nargs = -1, required = False)
-    def bgp(bgp_args):
-        """BGP information"""
-        bgp_cmd = "clear bgp"
-        options = False
-        for arg in bgp_args:
-            bgp_cmd += " " + str(arg)
-            options = True
-        if options is True:
-            command = 'sudo vtysh -c "{}"'.format(bgp_cmd)
-        else:
-            command = 'sudo vtysh -c "clear bgp *"'
-        run_command(command)
-
+    from .bgp_quagga_v4 import bgp
+    ip.add_command(bgp)
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
 
 @cli.command()
 def counters():
@@ -208,6 +187,18 @@ def pfccounters():
     command = "pfcstat -c"
     run_command(command)
 
+@cli.command()
+def dropcounters():
+    """Clear drop counters"""
+    command = "dropstat -c clear"
+    run_command(command)
+
+@cli.command()
+def tunnelcounters():
+    """Clear Tunnel counters"""
+    command = "tunnelstat -c"
+    run_command(command)
+
 #
 # 'clear watermarks
 #
@@ -233,6 +224,20 @@ def clear_wm_pg_headroom():
 def clear_wm_pg_shared():
     """Clear user shared WM for pg"""
     command = 'watermarkstat -c -t pg_shared'
+    run_command(command)
+
+@priority_group.group()
+def drop():
+    """Clear priority-group dropped packets stats"""
+    pass
+
+@drop.command('counters')
+def clear_pg_counters():
+    """Clear priority-group dropped packets counter """
+
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        exit("Root privileges are required for this operation")
+    command = 'pg-drop -c clear'
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -277,6 +282,12 @@ def clear_wm_q_multi():
     command = 'watermarkstat -c -t q_shared_multi'
     run_command(command)
 
+@watermark.command('all')
+def clear_wm_q_all():
+    """Clear user WM for all queues"""
+    command = 'watermarkstat -c -t q_shared_all'
+    run_command(command)
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
@@ -293,6 +304,35 @@ def clear_pwm_q_uni():
 def clear_pwm_q_multi():
     """Clear persistent WM for multicast queues"""
     command = 'watermarkstat -c -p -t q_shared_multi'
+    run_command(command)
+
+@persistent_watermark.command('all')
+def clear_pwm_q_all():
+    """Clear persistent WM for all queues"""
+    command = 'watermarkstat -c -p -t q_shared_all'
+    run_command(command)
+
+@cli.group(name='headroom-pool')
+def headroom_pool():
+    """Clear headroom pool WM"""
+    pass
+
+@headroom_pool.command('watermark')
+def watermark():
+    """Clear headroom pool user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -t headroom_pool'
+    run_command(command)
+
+@headroom_pool.command('persistent-watermark')
+def persistent_watermark():
+    """Clear headroom pool persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -p -t headroom_pool'
     run_command(command)
 
 #
@@ -382,11 +422,71 @@ def clear_vlan_fdb(vlanid):
 # 'line' command
 #
 @cli.command('line')
-@click.argument('linenum')
-def line(linenum):
+@click.argument('target')
+@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
+def line(target, devicename):
     """Clear preexisting connection to line"""
-    cmd = "consutil clear " + str(linenum)
+    cmd = "consutil clear {}".format("--devicename " if devicename else "") + str(target)
+    (output, _, exitstatus) = run_command(cmd, return_output=True, return_exitstatus=True)
+    click.echo(output)
+    sys.exit(exitstatus)
+
+#
+# 'nat' group ("clear nat ...")
+#
+
+@cli.group(cls=AliasedGroup)
+def nat():
+    """Clear the nat info"""
+    pass
+
+# 'statistics' subcommand ("clear nat statistics")
+@nat.command()
+def statistics():
+    """ Clear all NAT statistics """
+
+    cmd = "natclear -s"
     run_command(cmd)
+
+# 'translations' subcommand ("clear nat translations")
+@nat.command()
+def translations():
+    """ Clear all NAT translations """
+
+    cmd = "natclear -t"
+    run_command(cmd)
+
+# 'pbh' group ("clear pbh ...")
+@cli.group(cls=AliasedGroup)
+def pbh():
+    """ Clear the PBH info """
+    pass
+
+# 'statistics' subcommand ("clear pbh statistics")
+@pbh.command()
+@clicommon.pass_db
+def statistics(db):
+    """ Clear PBH counters
+        clear counters -- write current counters to file in /tmp
+    """
+
+    pbh_rules = db.cfgdb.get_table("PBH_RULE")
+    pbh_counters = read_pbh_counters(pbh_rules)
+
+    try:
+        with open('/tmp/.pbh_counters.txt', 'w') as fp:
+            json.dump(remap_keys(pbh_counters), fp)
+    except IOError as err:
+        pass
+
+def remap_keys(dict):
+    return [{'key': k, 'value': v} for k, v in dict.items()]
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
+
 
 if __name__ == '__main__':
     cli()
