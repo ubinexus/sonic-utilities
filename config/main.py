@@ -635,13 +635,13 @@ def _clear_cbf():
 
 def storm_control_interface_validate(port_name):
     if get_interface_naming_mode() == "alias":
-        port_name = interface_alias_to_name(port_name)
+        port_name = interface_alias_to_name(None, port_name)
         if port_name is None:
             click.echo("'port_name' is None!")
             return False
 
     if (port_name.startswith("Ethernet")):
-        if interface_name_is_valid(port_name) is False:
+        if interface_name_is_valid(None, port_name) is False:
             click.echo("Interface name %s is invalid. Please enter a valid interface name" %(port_name))
             return False
     else:
