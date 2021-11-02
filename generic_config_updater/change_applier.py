@@ -6,10 +6,10 @@ import os
 import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
-from .gu_common import genericUpdaterLogging
+from .gu_common import genericUpdaterLogging, prune_empty_entries
 
-
-UPDATER_CONF_FILE = "/etc/sonic/generic_updater_config.conf.json"
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_updater_config.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
@@ -111,7 +111,7 @@ class ChangeApplier:
 
     def apply(self, change):
         run_data = self._get_running_config()
-        upd_data = change.apply(copy.deepcopy(run_data))
+        upd_data = prune_empty_entries(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)
 
         for tbl in sorted(set(run_data.keys()).union(set(upd_data.keys()))):
