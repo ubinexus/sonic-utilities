@@ -311,9 +311,10 @@ def is_mgmt_vrf_enabled(ctx):
 def storm_control():
     """ show storm-control """
     pass
+
 @storm_control.command('all')
 def storm_control_all():
-    """ Show storm-control """
+    """ Show storm-control for all interfaces"""
 
     header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
     body = []
@@ -335,19 +336,16 @@ def storm_control_all():
         #interface_name, storm_type = storm_key.split(':')
         data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
 
-        if not data:
-            return
-
-        kbps = data['kbps']
-
-        body.append([interface_name, storm_type, kbps])
+        if data:
+            kbps = data['kbps']
+            body.append([interface_name, storm_type, kbps])
 
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 @storm_control.command('interface')
 @click.argument('interfacename', required=True)
 def storm_control_interface(interfacename):
-    """ Show storm-control """
+    """ Show storm-control for an interface"""
 
     storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
 
