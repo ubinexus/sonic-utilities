@@ -1,4 +1,5 @@
 import configparser
+import datetime
 import os
 import re
 import subprocess
@@ -6,10 +7,12 @@ import sys
 
 import click
 import json
+import netaddr
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common.db import Db
+from utilities_common.general import load_db_config
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -117,6 +120,8 @@ class InterfaceAliasConverter(object):
 
     def __init__(self, db=None):
 
+        # Load database config files
+        load_db_config()
         if db is None:
             self.port_dict = multi_asic.get_port_table()
         else:
@@ -126,7 +131,7 @@ class InterfaceAliasConverter(object):
 
 
         if not self.port_dict:
-            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
+            click.echo(message="Configuration database contains no ports")
             self.port_dict = {}
 
         for port_name in self.port_dict:
@@ -199,6 +204,17 @@ def is_ipaddress(val):
         return False
     return True
 
+def ipaddress_type(val):
+    """ Return the IP address type """
+    if not val:
+        return None
+
+    try:
+        ip_version = netaddr.IPAddress(str(val))
+    except netaddr.core.AddrFormatError:
+        return None
+
+    return ip_version.version
 
 def is_ip_prefix_in_key(key):
     '''
@@ -301,6 +317,34 @@ def is_port_mirror_dst_port(config_db, port):
 
     return False
 
+def vni_id_is_valid(vni):
+    """Check if the vni id is in acceptable range (between 1 and 2^24)
+    """
+
+    if (vni < 1) or (vni > 16777215):
+        return False
+
+    return True
+
+def is_vni_vrf_mapped(db, vni):
+    """Check if the vni is mapped to vrf
+    """
+
+    found = 0
+    vrf_table = db.cfgdb.get_table('VRF')
+    vrf_keys = vrf_table.keys()
+    if vrf_keys is not None:
+      for vrf_key in vrf_keys:
+        if ('vni' in vrf_table[vrf_key] and vrf_table[vrf_key]['vni'] == vni):
+           found = 1
+           break
+
+    if (found == 1):
+        print("VNI {} mapped to Vrf {}, Please remove VRF VNI mapping".format(vni, vrf_key))
+        return False
+
+    return True
+
 def interface_has_mirror_config(mirror_table, interface_name):
     """Check if port is already configured with mirror config """
     for _,v in mirror_table.items():
@@ -323,6 +367,8 @@ def print_output_in_alias_mode(output, index):
     if output.startswith("---"):
         word = output.split()
         dword = word[index]
+        if(len(dword) > iface_alias_converter.alias_max_length):
+            dword = dword[:len(dword) - iface_alias_converter.alias_max_length]
         underline = dword.rjust(iface_alias_converter.alias_max_length,
                                 '-')
         word[index] = underline
@@ -437,6 +483,13 @@ def run_command_in_alias_mode(command):
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
+            elif command.startswith("sudo ipintutil"):
+                """show ip(v6) int"""
+                index = 0
+                if output.startswith("Interface"):
+                   output = output.replace("Interface", "Interface".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
 
             else:
                 """
@@ -509,10 +562,12 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         sys.exit(rc)
 
 
-def do_exit(msg):
-    m = "FATAL failure: {}. Exiting...".format(msg)
-    _log_msg(syslog.LOG_ERR, True, inspect.stack()[1][1], inspect.stack()[1][2], m)
-    raise SystemExit(m)
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default"""
+
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    raise TypeError("Type %s not serializable" % type(obj))
 
 
 def json_dump(data):
@@ -520,5 +575,57 @@ def json_dump(data):
     Dump data in JSON format
     """
     return json.dumps(
-        data, sort_keys=True, indent=2, ensure_ascii=False
+        data, sort_keys=True, indent=2, ensure_ascii=False, default=json_serial
     )
+
+    
+def interface_is_untagged_member(db, interface_name):
+    """ Check if interface is already untagged member"""    
+    vlan_member_table = db.get_table('VLAN_MEMBER')
+    
+    for key,val in vlan_member_table.items():
+        if(key[1] == interface_name):
+            if (val['tagging_mode'] == 'untagged'):
+                return True
+    return False
+
+def is_interface_in_config_db(config_db, interface_name):
+    """ Check if an interface is in CONFIG DB """
+    if (not interface_name in config_db.get_keys('VLAN_INTERFACE') and
+        not interface_name in config_db.get_keys('INTERFACE') and
+        not interface_name in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+        not interface_name == 'null'):
+            return False
+
+    return True
+
+
+class MutuallyExclusiveOption(click.Option):
+    """
+    This option type is extended with `mutually_exclusive` parameter which make
+    CLI to ensure the other options specified in `mutually_exclusive` are not used.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.mutually_exclusive = set(kwargs.pop('mutually_exclusive', []))
+        super(MutuallyExclusiveOption, self).__init__(*args, **kwargs)
+
+    def get_help_record(self, ctx):
+        """Return help string with mutually_exclusive list added."""
+        help_record = list(super(MutuallyExclusiveOption, self).get_help_record(ctx))
+        if self.mutually_exclusive:
+            mutually_exclusive_str = 'NOTE: this argument is mutually exclusive with arguments: %s' % ', '.join(self.mutually_exclusive)
+            if help_record[-1]:
+                help_record[-1] += ' ' + mutually_exclusive_str
+            else:
+                help_record[-1] = mutually_exclusive_str
+        return tuple(help_record)
+
+    def handle_parse_result(self, ctx, opts, args):
+        if self.name in opts and opts[self.name] is not None:
+            for opt_name in self.mutually_exclusive:
+                if opt_name in opts and opts[opt_name] is not None:
+                    raise click.UsageError(
+                        "Illegal usage: %s is mutually exclusive with arguments %s" % (self.name, ', '.join(self.mutually_exclusive))
+                        )
+        return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)

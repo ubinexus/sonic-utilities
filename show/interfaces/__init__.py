@@ -1,13 +1,38 @@
 import json
+import os
 
+import subprocess
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
+from sonic_py_common import device_info
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
+from portconfig import get_child_ports
+import sonic_platform_base.sonic_sfp.sfputilhelper
 
 from . import portchannel
+from collections import OrderedDict
+
+HWSKU_JSON = 'hwsku.json'
+
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except FileNotFoundError as e:
+        click.echo("{}".format(str(e)), err=True)
+        raise click.Abort()
+    except json.decoder.JSONDecodeError as e:
+        click.echo("Invalid JSON file format('{}')\n{}".format(fileName, str(e)), err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo("{}\n{}".format(type(e), str(e)), err=True)
+        raise click.Abort()
+    return result
 
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
@@ -124,6 +149,29 @@ def status(interfacename, namespace, display, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+@interfaces.command()
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def tpid(interfacename, namespace, display, verbose):
+    """Show Interface tpid information"""
+
+    ctx = click.get_current_context()
+
+    cmd = "intfutil -c tpid"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
 #
 # 'breakout' group ###
 #
@@ -144,13 +192,14 @@ def breakout(ctx):
 
     if ctx.invoked_subcommand is None:
         # Get port capability from platform and hwsku related files
-        platform_path, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
-        platform_file = os.path.join(platform_path, PLATFORM_JSON)
+        hwsku_path = device_info.get_path_to_hwsku_dir()
+        platform_file = device_info.get_path_to_port_config_file()
         platform_dict = readJsonFile(platform_file)['interfaces']
-        hwsku_dict = readJsonFile(os.path.join(hwsku_path, HWSKU_JSON))['interfaces']
+        hwsku_file = os.path.join(hwsku_path, HWSKU_JSON)
+        hwsku_dict = readJsonFile(hwsku_file)['interfaces']
 
         if not platform_dict or not hwsku_dict:
-            click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
+            click.echo("Can not load port config from {} or {} file".format(platform_file, hwsku_file))
             raise click.Abort()
 
         for port_name in platform_dict:
@@ -161,9 +210,9 @@ def breakout(ctx):
             platform_dict[port_name]["Current Breakout Mode"] = cur_brkout_mode
 
             # List all the child ports if present
-            child_port_dict = get_child_ports(port_name, cur_brkout_mode, platformFile)
+            child_port_dict = get_child_ports(port_name, cur_brkout_mode, platform_file)
             if not child_port_dict:
-                click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
+                click.echo("Cannot find ports from {} file ".format(platform_file))
                 raise click.Abort()
 
             child_ports = natsorted(list(child_port_dict.keys()))
@@ -272,6 +321,88 @@ def expected(db, interfacename):
 
     click.echo(tabulate(body, header))
 
+@interfaces.command()
+@click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None,
+              type=str, show_default=True, help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--display', '-d', 'display', default=None, show_default=False,
+              type=str, help='all|frontend')
+@click.pass_context
+def mpls(ctx, interfacename, namespace, display):
+    """Show Interface MPLS status"""
+    
+    #Edge case: Force show frontend interfaces on single asic
+    if not (multi_asic.is_multi_asic()):
+       if (display == 'frontend' or display == 'all' or display is None):
+           display = None
+       else:
+           print("Error: Invalid display option command for single asic")
+           return
+    
+    display = "all" if interfacename else display
+    masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
+    ns_list = masic.get_ns_list_based_on_options()
+    intfs_data = {}
+    intf_found = False
+
+    for ns in ns_list:
+
+        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns)
+
+        if interfacename is not None:
+            interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        # Fetching data from appl_db for intfs
+        keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+        for key in keys if keys else []:
+            tokens = key.split(":")
+            ifname = tokens[1]
+            # Skip INTF_TABLE entries with address information
+            if len(tokens) != 2:
+                continue
+
+            if (interfacename is not None):
+                if (interfacename != ifname):
+                    continue
+                
+                intf_found = True
+            
+            if (display != "all"):
+                if ("Loopback" in ifname):
+                    continue
+                
+                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
+                    continue
+
+                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns):
+                    continue
+
+
+            mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
+
+            if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
+                intfs_data.update({ifname: 'disable'})
+            else:
+                intfs_data.update({ifname: mpls_intf['mpls']}) 
+    
+    # Check if interface is valid
+    if (interfacename is not None and not intf_found):
+        ctx.fail('interface {} doesn`t exist'.format(interfacename))    
+
+    header = ['Interface', 'MPLS State']
+    body = []
+
+    # Output name and alias for all interfaces
+    for intf_name in natsorted(list(intfs_data.keys())):
+        if clicommon.get_interface_naming_mode() == "alias":
+            alias = clicommon.InterfaceAliasConverter().name_to_alias(intf_name)
+            body.append([alias, intfs_data[intf_name]])
+        else:
+            body.append([intf_name, intfs_data[intf_name]])
+
+    click.echo(tabulate(body, header))
+
 interfaces.add_command(portchannel.portchannel)
 
 #
@@ -345,6 +476,31 @@ def presence(db, interfacename, namespace, verbose):
 
     if namespace is not None:
         cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+
+@transceiver.command()
+@click.argument('interfacename', required=False)
+@click.option('--fetch-from-hardware', '-hw', 'fetch_from_hardware', is_flag=True, default=False)
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@clicommon.pass_db
+def error_status(db, interfacename, fetch_from_hardware, namespace, verbose):
+    """ Show transceiver error-status """
+
+    ctx = click.get_current_context()
+
+    cmd = "sudo sfputil show error-status"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -p {}".format(interfacename)
+
+    if fetch_from_hardware:
+        cmd += " -hw"
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -426,3 +582,53 @@ def rif(interface, period, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+# 'counters' subcommand ("show interfaces counters detailed")
+@counters.command()
+@click.argument('interface', metavar='<interface_name>', required=True, type=str)
+@click.option('-p', '--period', help="Display statistics over a specified period (in seconds)")
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def detailed(interface, period, verbose):
+    """Show interface counters detailed"""
+
+    cmd = "portstat -l"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    if interface is not None:
+        cmd += " -i {}".format(interface)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+
+#
+# autoneg group (show interfaces autoneg ...)
+#
+@interfaces.group(name='autoneg', cls=clicommon.AliasedGroup)
+def autoneg():
+    """Show interface autoneg information"""
+    pass
+
+
+# 'autoneg status' subcommand ("show interfaces autoneg status")
+@autoneg.command(name='status')
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def autoneg_status(interfacename, namespace, display, verbose):
+    """Show interface autoneg status"""
+
+    ctx = click.get_current_context()
+
+    cmd = "intfutil -c autoneg"
+
+    #ignore the display option when interface name is passed
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)

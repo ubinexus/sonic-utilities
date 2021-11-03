@@ -9,33 +9,58 @@ import re
 import subprocess
 import sys
 import zipfile
+from contextlib import contextmanager
 
 import click
 
 from M2Crypto import X509
 
+from sonic_py_common import device_info
 from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
+   ROOTFS_NAME,
    run_command,
+   run_command_or_raise,
+   default_sigpipe,
 )
 from .bootloader import Bootloader
 
 _secureboot = None
 DEFAULT_SWI_IMAGE = 'sonic.swi'
+KERNEL_CMDLINE_NAME = 'kernel-cmdline'
+
+UNZIP_MISSING_FILE = 11
 
 # For the signature format, see: https://github.com/aristanetworks/swi-tools/tree/master/switools
 SWI_SIG_FILE_NAME = 'swi-signature'
 SWIX_SIG_FILE_NAME = 'swix-signature'
 ISSUERCERT = 'IssuerCert'
 
-def isSecureboot():
+def parse_cmdline(cmdline=None):
+    if cmdline is None:
+        with open('/proc/cmdline') as f:
+            cmdline = f.read()
+
+    data = {}
+    for entry in cmdline.split():
+        idx = entry.find('=')
+        if idx == -1:
+            data[entry] = None
+        else:
+            data[entry[:idx]] = entry[idx+1:]
+    return data
+
+def docker_inram(cmdline=None):
+    cmdline = parse_cmdline(cmdline)
+    return cmdline.get('docker_inram') == 'on'
+
+def is_secureboot():
     global _secureboot
     if _secureboot is None:
-        with open('/proc/cmdline') as f:
-           m  = re.search(r"secure_boot_enable=[y1]", f.read())
-        _secureboot = bool(m)
+        cmdline = parse_cmdline()
+        _secureboot = cmdline.get('secure_boot_enable') in ['y', '1']
     return _secureboot
 
 class AbootBootloader(Bootloader):
@@ -68,7 +93,7 @@ class AbootBootloader(Bootloader):
 
     def _swi_image_path(self, image):
         image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-        if isSecureboot():
+        if is_secureboot():
            return 'flash:%s/sonic.swi' % image_dir
         return 'flash:%s/.sonic-boot.swi' % image_dir
 
@@ -116,6 +141,25 @@ class AbootBootloader(Bootloader):
         subprocess.call(['rm','-rf', image_path])
         click.echo('Image removed')
 
+    def _get_image_cmdline(self, image):
+        image_path = self.get_image_path(image)
+        with open(os.path.join(image_path, KERNEL_CMDLINE_NAME)) as f:
+            return f.read()
+
+    def supports_package_migration(self, image):
+        if is_secureboot():
+            # NOTE: unsafe until migration can guarantee migration safety
+            #       packages need to be signed and verified at boot time.
+            return False
+        cmdline = self._get_image_cmdline(image)
+        if docker_inram(cmdline):
+            # NOTE: the docker_inram feature extracts builtin containers at boot
+            #       time in memory. the use of package manager under these
+            #       circumpstances is not possible without a boot time package
+            #       installation mechanism.
+            return False
+        return True
+
     def get_binary_image_version(self, image_path):
         try:
             version = subprocess.check_output(['/usr/bin/unzip', '-qop', image_path, '.imagehash'], text=True)
@@ -123,7 +167,30 @@ class AbootBootloader(Bootloader):
             return None
         return IMAGE_PREFIX + version.strip()
 
-    def verify_binary_image(self, image_path):
+    def verify_image_platform(self, image_path):
+        if not os.path.isfile(image_path):
+            return False
+
+        # Get running platform
+        platform = device_info.get_platform()
+
+        # If .platforms_asic is not existed, unzip will return code 11.
+        # Return True for backward compatibility.
+        # Otherwise, we grep to see if current platform is inside the
+        # supported target platforms list.
+        with open(os.devnull, 'w') as fnull:
+            p1 = subprocess.Popen(['/usr/bin/unzip', '-qop', image_path, '.platforms_asic'], stdout=subprocess.PIPE, stderr=fnull, preexec_fn=default_sigpipe)
+            p2 = subprocess.Popen(['grep', '-Fxq', '-m 1', platform], stdin=p1.stdout, preexec_fn=default_sigpipe)
+
+            p1.wait()
+            if p1.returncode == UNZIP_MISSING_FILE:
+                return True
+
+            # Code 0 is returned by grep as a result of found
+            p2.wait()
+            return p2.returncode == 0
+
+    def verify_secureboot_image(self, image_path):
         try:
             subprocess.check_call(['/usr/bin/unzip', '-tq', image_path])
             return self._verify_secureboot_image(image_path)
@@ -138,7 +205,7 @@ class AbootBootloader(Bootloader):
         return self._verify_secureboot_image(image_path)
 
     def _verify_secureboot_image(self, image_path):
-        if isSecureboot():
+        if is_secureboot():
             cert = self.getCert(image_path)
             return cert is not None
         return True
@@ -153,7 +220,7 @@ class AbootBootloader(Bootloader):
                 return None
             with swi.open(sigInfo, 'r') as sigFile:
                 for line in sigFile:
-                    data = line.split(':')
+                    data = line.decode('utf8').split(':')
                     if len(data) == 2:
                         if data[0] == ISSUERCERT:
                             try:
@@ -179,3 +246,25 @@ class AbootBootloader(Bootloader):
     def detect(cls):
         with open('/proc/cmdline') as f:
             return 'Aboot=' in f.read()
+
+    def _get_swi_file_offset(self, swipath, filename):
+        with zipfile.ZipFile(swipath) as swi:
+            with swi.open(filename) as f:
+                return f._fileobj.tell() # pylint: disable=protected-access
+
+    @contextmanager
+    def get_rootfs_path(self, image_path):
+        path = os.path.join(image_path, ROOTFS_NAME)
+        if os.path.exists(path) and not is_secureboot():
+            yield path
+            return
+
+        swipath = os.path.join(image_path, DEFAULT_SWI_IMAGE)
+        offset = self._get_swi_file_offset(swipath, ROOTFS_NAME)
+        loopdev = subprocess.check_output(['losetup', '-f']).decode('utf8').rstrip()
+
+        try:
+            run_command_or_raise(['losetup', '-o', str(offset), loopdev, swipath])
+            yield loopdev
+        finally:
+            run_command_or_raise(['losetup', '-d', loopdev])

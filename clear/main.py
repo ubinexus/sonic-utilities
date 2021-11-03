@@ -2,8 +2,13 @@ import configparser
 import os
 import subprocess
 import sys
-
 import click
+import utilities_common.cli as clicommon
+import json
+
+from utilities_common import util_base
+from show.plugins.pbh import read_pbh_counters
+from . import plugins
 
 
 # This is from the aliases example:
@@ -78,8 +83,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                text=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
@@ -120,7 +124,6 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli():
     """SONiC command line - 'Clear' command"""
     pass
-
 
 #
 # 'ip' group ###
@@ -190,6 +193,12 @@ def dropcounters():
     command = "dropstat -c clear"
     run_command(command)
 
+@cli.command()
+def tunnelcounters():
+    """Clear Tunnel counters"""
+    command = "tunnelstat -c"
+    run_command(command)
+
 #
 # 'clear watermarks
 #
@@ -215,6 +224,20 @@ def clear_wm_pg_headroom():
 def clear_wm_pg_shared():
     """Clear user shared WM for pg"""
     command = 'watermarkstat -c -t pg_shared'
+    run_command(command)
+
+@priority_group.group()
+def drop():
+    """Clear priority-group dropped packets stats"""
+    pass
+
+@drop.command('counters')
+def clear_pg_counters():
+    """Clear priority-group dropped packets counter """
+
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        exit("Root privileges are required for this operation")
+    command = 'pg-drop -c clear'
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -259,6 +282,12 @@ def clear_wm_q_multi():
     command = 'watermarkstat -c -t q_shared_multi'
     run_command(command)
 
+@watermark.command('all')
+def clear_wm_q_all():
+    """Clear user WM for all queues"""
+    command = 'watermarkstat -c -t q_shared_all'
+    run_command(command)
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
@@ -275,6 +304,35 @@ def clear_pwm_q_uni():
 def clear_pwm_q_multi():
     """Clear persistent WM for multicast queues"""
     command = 'watermarkstat -c -p -t q_shared_multi'
+    run_command(command)
+
+@persistent_watermark.command('all')
+def clear_pwm_q_all():
+    """Clear persistent WM for all queues"""
+    command = 'watermarkstat -c -p -t q_shared_all'
+    run_command(command)
+
+@cli.group(name='headroom-pool')
+def headroom_pool():
+    """Clear headroom pool WM"""
+    pass
+
+@headroom_pool.command('watermark')
+def watermark():
+    """Clear headroom pool user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -t headroom_pool'
+    run_command(command)
+
+@headroom_pool.command('persistent-watermark')
+def persistent_watermark():
+    """Clear headroom pool persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -p -t headroom_pool'
     run_command(command)
 
 #
@@ -394,6 +452,38 @@ def translations():
 
     cmd = "natclear -t"
     run_command(cmd)
+
+# 'pbh' group ("clear pbh ...")
+@cli.group(cls=AliasedGroup)
+def pbh():
+    """ Clear the PBH info """
+    pass
+
+# 'statistics' subcommand ("clear pbh statistics")
+@pbh.command()
+@clicommon.pass_db
+def statistics(db):
+    """ Clear PBH counters
+        clear counters -- write current counters to file in /tmp
+    """
+
+    pbh_rules = db.cfgdb.get_table("PBH_RULE")
+    pbh_counters = read_pbh_counters(pbh_rules)
+
+    try:
+        with open('/tmp/.pbh_counters.txt', 'w') as fp:
+            json.dump(remap_keys(pbh_counters), fp)
+    except IOError as err:
+        pass
+
+def remap_keys(dict):
+    return [{'key': k, 'value': v} for k, v in dict.items()]
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
+
 
 if __name__ == '__main__':
     cli()
