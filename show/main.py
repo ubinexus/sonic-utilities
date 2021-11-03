@@ -1698,7 +1698,7 @@ def sag(db):
     """Show static anycast gateway information"""
     sag_entry = db.cfgdb.get_entry('SAG', 'GLOBAL')
     row = []
-    sag_mac = sag_entry.get('gwmac')
+    sag_mac = sag_entry.get('gateway_mac')
     if sag_mac:
         row.append(sag_mac)
 

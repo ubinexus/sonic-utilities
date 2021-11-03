@@ -5875,7 +5875,7 @@ def add_mac(db, mac_address):
     log.log_info(f"'static-anycast-gateway mac_address add {mac_address}' executing...")
 
     if not db.cfgdb.get_entry('SAG', 'GLOBAL'):
-        db.cfgdb.set_entry('SAG', 'GLOBAL', {'gwmac': mac_address})
+        db.cfgdb.set_entry('SAG', 'GLOBAL', {'gateway_mac': mac_address})
     else:
         click.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} is alreday existed. Remove it first')
 
@@ -5888,7 +5888,7 @@ def del_mac(db, mac_address):
 
     sag_entry = db.cfgdb.get_entry('SAG', 'GLOBAL')
     if sag_entry:
-        if sag_entry.get('gwmac').lower() == mac_address.lower():
+        if sag_entry.get('gateway_mac').lower() == mac_address.lower():
             db.cfgdb.mod_entry('SAG', 'GLOBAL', None)
     else:
         click.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} not found.')

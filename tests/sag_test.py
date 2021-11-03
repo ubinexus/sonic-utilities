@@ -28,7 +28,7 @@ class TestSag(object):
         result = runner.invoke(config.config.commands["static-anycast-gateway"].commands["mac_address"].commands["add"],
                         ["00:22:33:44:55:66"], obj=db)
         assert result.exit_code != 0, f"sag invalid mac with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
-        assert {"gwmac": "00:11:22:33:44:55"} == db.cfgdb.get_entry("SAG", "GLOBAL")
+        assert {"gateway_mac": "00:11:22:33:44:55"} == db.cfgdb.get_entry("SAG", "GLOBAL")
 
     def test_config_del_add_sag_mac_address(self):
         runner = CliRunner()
@@ -42,7 +42,7 @@ class TestSag(object):
         result = runner.invoke(config.config.commands["static-anycast-gateway"].commands["mac_address"].commands["add"],
                         ["00:22:33:44:55:66"], obj=db)
         assert result.exit_code == 0, f"sag invalid mac with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
-        assert {"gwmac": "00:22:33:44:55:66"} == db.cfgdb.get_entry("SAG", "GLOBAL")
+        assert {"gateway_mac": "00:22:33:44:55:66"} == db.cfgdb.get_entry("SAG", "GLOBAL")
 
     def test_config_enable_sag_on_vlan_interface(self):
         runner = CliRunner()

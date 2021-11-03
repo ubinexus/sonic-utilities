@@ -2465,6 +2465,6 @@
         "scheduler": "[SCHEDULER|scheduler.0]"
     },
     "SAG|GLOBAL": {
-        "gwmac": "00:11:22:33:44:55"
+        "gateway_mac": "00:11:22:33:44:55"
     }
 }
