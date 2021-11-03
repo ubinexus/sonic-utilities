@@ -716,26 +716,3 @@ class GenericUpdaterLogging:
         return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose)
 
 genericUpdaterLogging = GenericUpdaterLogging()
-
-def prune_empty_entries(data):
-    # For JSON Patch empty entries are valid
-    # With redis, when last attribute/field is removed, the key gets
-    # removed.
-    #
-    # Hence where required, prune keys with no field and tables with no keys.
-    #
-    # Take a deep copy as data will be modified in loop
-    # Use copy for walking and input data for update
-    #
-    tmp_data = copy.deepcopy(data)
-    for tbl, tmp_tbl_data in tmp_data.items():
-        tbl_data = data[tbl]
-        for key, tmp_key_data in tmp_tbl_data.items():
-            if not tmp_key_data:
-                # Pop it from input data
-                tbl_data.pop(key)
-        if not tbl_data:
-            data.pop(tbl)
-    return data
-
-
