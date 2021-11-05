@@ -296,6 +296,18 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
                         output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
                 except ValueError as e:
                     output += '{}N/A\n'.format((indent * 2))
+        elif key == 'application_advertisement' and sfp_info_dict[key] != 'N/A':
+            output += '{}{}:\n'.format(indent, QSFP_DATA_MAP[key])
+
+            try:
+                appl_advert_dict = ast.literal_eval(sfp_info_dict[key])
+                for appl in natsorted(appl_advert_dict.keys()):
+                    output += '{}{}: {} | {}\n'.format(\
+                                  (indent * 2), appl, \
+                                  appl_advert_dict[appl]['host_electrical_interface_id'], \
+                                  appl_advert_dict[appl]['module_media_interface_id'])
+            except:
+                output += '{}N/A\n'.format((indent * 2))
         else:
             output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
@@ -716,6 +728,8 @@ def fetch_error_status_from_platform_api(port):
     output_dict = {}
     for output in output_list:
         sfp_index, error_status = output.split(':')
+        if error_status in ['', 'None', 'none', None]:
+            error_status = 'OK'
         output_dict[int(sfp_index)] = error_status
 
     output = []
