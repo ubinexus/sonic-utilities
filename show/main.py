@@ -37,6 +37,8 @@ except KeyError:
 from . import acl
 from . import bgp_common
 from . import chassis_modules
+from . import dhcp6relay_counters
+from . import dhcp_relay_helper
 from . import dropcounters
 from . import feature
 from . import fgnhg
@@ -175,6 +177,8 @@ def cli(ctx):
 # Add groups from other modules
 cli.add_command(acl.acl)
 cli.add_command(chassis_modules.chassis)
+cli.add_command(dhcp_relay_helper.dhcp_relay_helper)
+cli.add_command(dhcp6relay_counters.dhcp6relay_counters)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
