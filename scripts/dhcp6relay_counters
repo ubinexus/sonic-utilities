@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+
+#####################################################################
+#
+# dhcp6relay_counters is a tool for displaying DHCPv6 message counters.
+#
+#####################################################################
+
+import argparse
+import sys
+from tabulate import tabulate
+
+from swsscommon.swsscommon import SonicV2Connector
+from swsscommon import swsscommon
+
+
+# STATE_DB Table
+DHCPv6_COUNTER_TABLE = 'DHCPv6_COUNTER_TABLE'
+
+# DHCPv6 Counter Messages
+messages = ["Solicit", "Advertise", "Request", "Confirm", "Renew", "Rebind", "Reply", "Release", "Decline", "Relay-Forward", "Relay-Reply"]
+
+class DHCPv6_Counter(object):
+    def __init__(self):
+        self.db = SonicV2Connector(use_unix_socket_path=False)
+        self.db.connect(self.db.STATE_DB)
+        self.table_name = DHCPv6_COUNTER_TABLE + self.db.get_db_separator(self.db.STATE_DB)
+
+
+    def get_interface(self):
+        vlans = []
+        for key in self.db.keys(self.db.STATE_DB):
+            if DHCPv6_COUNTER_TABLE in key:
+                vlans.append(key[21:])
+        return vlans
+        
+
+    def get_dhcp6relay_msg_count(self, interface, msg):
+        count = self.db.get(self.db.STATE_DB, self.table_name + str(interface), str(msg))
+        data = [str(msg), count]
+        return data
+
+    
+    def clear_table(self, interface):
+        for msg in messages:
+            self.db.set(self.db.STATE_DB, self.table_name + str(interface), str(msg), '0') 
+        
+def print_count(counter, intf):
+    data = []
+    for i in messages:
+        data.append(counter.get_dhcp6relay_msg_count(intf, i))
+    print(tabulate(data, headers = ["Message Type", intf], tablefmt='simple', stralign='right') + "\n")
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Display dhcp6relay counters',
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     epilog="""
+Examples:
+  dhcp6relay_counters 
+  dhcp6relay_counters -i Vlan1000
+""")
+
+    # Version
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+
+    # Display
+    parser.add_argument('-p', '--print', action='store_true',
+        help='display counter of specific interface'
+    )
+
+    # Variables
+    parser.add_argument('-i', '--interface',   type=str, 
+        help='specify interface', default=None
+    )
+
+    parser.add_argument( '-c', '--clear', action='store_true',
+        help='Clear all counters or specified interface counter'
+    )
+    
+    args = parser.parse_args()
+    display = args.print
+    save_fresh_stats = args.clear
+
+    interface = args.interface
+
+    counter = DHCPv6_Counter()
+    counter_intf = counter.get_interface()
+
+    if display:
+        if interface is None:
+            for intf in counter_intf:
+                print_count(counter, intf)
+        else:
+            print_count(counter, interface)
+
+
+    if save_fresh_stats:
+        if interface is None:
+            for intf in counter_intf:
+                counter.clear_table(intf)
+        else:
+            counter.clear_table(interface)
+
+
+if __name__ == '__main__':
+    main()
