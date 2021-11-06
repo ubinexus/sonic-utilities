@@ -75,7 +75,7 @@ def counts(interface, verbose):
         print_count(counter, interface)
     else:
         for intf in counter_intf:
-                print_count(counter, intf)
+            print_count(counter, intf)
 
 
 # 'clear' subcommand ("clear dhcp6relay_counters counts")
@@ -92,5 +92,5 @@ def clear(interface, verbose):
         counter.clear_table(interface)
     else:
         for intf in counter_intf:
-                counter.clear_table(intf)
+            counter.clear_table(intf)
                 
