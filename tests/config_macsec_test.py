@@ -25,7 +25,6 @@ def test_macsec_default_profile():
     assert "enable_replay_protect" not in profile_table
     assert "replay_window" not in profile_table
     assert profile_table["send_sci"] == "1"
-    assert "replay_period" not in profile_table
     assert "rekey_period" not in profile_table
 
     result = runner.invoke(config.config.commands["macsec"].commands["profile"].commands["del"], [profile_name], obj=db)
@@ -72,8 +71,8 @@ def test_macsec_valid_profile():
         assert profile_table["send_sci"] == "1"
     if "no_send_sci" in profile_map:
         assert profile_table["send_sci"] == "0"
-    if "replay_period" in profile_map:
-        assert profile_table["replay_period"] == str(rekey_period)
+    if "rekey_period" in profile_map:
+        assert profile_table["rekey_period"] == str(profile_map["rekey_period"])
 
 
 def test_macsec_invalid_profile():

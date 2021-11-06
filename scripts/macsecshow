@@ -6,9 +6,7 @@
 #
 #####################################################################
 
-import json
 import os
-import re
 import swsssdk
 import subprocess
 import sys
@@ -223,9 +221,9 @@ def main(args):
     intf_name = args[1] if len(args) == 2 else None
 
     if command == "connections":
-        macsec_conn = MacsecConn(intf_name)
+        MacsecConn(intf_name)
     elif command == "statistics":
-        macsec_stat = MacsecStat(intf_name)
+        MacsecStat(intf_name)
 
     sys.exit(0)
 
