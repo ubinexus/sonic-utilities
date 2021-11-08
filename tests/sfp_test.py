@@ -155,24 +155,23 @@ Ethernet0: SFP EEPROM detected
 
 test_qsfp_dd_eeprom_output = """\
 Ethernet8: SFP EEPROM detected
-        Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Active Cable assembly with BER < 2.6x10^-4
-				   IB EDR (Arch.Spec.Vol.2) - Active Cable assembly with BER < 5x10^-5
-				   IB QDR (Arch.Spec.Vol.2) - Active Cable assembly with BER < 10^-12
-				   
-        Connector: No separable connector
-        Encoding: Not supported for CMIS cables
-        Extended Identifier: Power Class 1(10.0W Max)
-        Extended RateSelect Compliance: Not supported for CMIS cables
+        Application Advertisement:
+                1: 400GAUI-8 C2M (Annex 120E) | 400GBASE-DR4 (Cl 124)
+                2: 100GAUI-2 C2M (Annex 135G) | 100G-FR/100GBASE-FR1 (Cl 140)
+        Connector: SN optical connector
+        Encoding: N/A
+        Extended Identifier: Power Class 6 (12.0W Max)
+        Extended RateSelect Compliance: N/A
         Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
-        Length Cable Assembly(m): 10
-        Nominal Bit Rate(100Mbs): Not supported for CMIS cables
-        Specification compliance: Not supported for CMIS cables
-        Vendor Date Code(YYYY-MM-DD Lot): 2020-05-22 
-        Vendor Name: INNOLIGHT
-        Vendor OUI: 44-7c-7f
-        Vendor PN: C-DQ8FNM010-N00
-        Vendor Rev: 2A
-        Vendor SN: INKAO2900002A
+        Length cable Assembly(m): 0.0
+        Nominal Bit Rate(100Mbs): 0
+        Specification compliance: sm_media_interface
+        Vendor Date Code(YYYY-MM-DD Lot): 2020-10-07
+        Vendor Name: AVAGO
+        Vendor OUI: 00-17-6a
+        Vendor PN: AFCT-93DRPHZ-AZ2
+        Vendor Rev: 01
+        Vendor SN: FD2038FG0FY
 """
 
 test_sfp_eeprom_dom_all_output = """\
@@ -375,7 +374,7 @@ Ethernet200  Not present
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet8"])
         assert result.exit_code == 0
-        assert "result.output == test_qsfp_dd_eeprom_output"
+        assert result.output == test_qsfp_dd_eeprom_output
 
     @classmethod
     def teardown_class(cls):
