@@ -7,11 +7,9 @@
 #####################################################################
 
 import argparse
-import sys
 from tabulate import tabulate
 
 from swsscommon.swsscommon import SonicV2Connector
-from swsscommon import swsscommon
 
 
 # STATE_DB Table
