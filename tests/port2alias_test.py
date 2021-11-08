@@ -20,11 +20,11 @@ class TestPort2Alias(TestCase):
                 "Ethernet_11": {"alias" : "fortyG0/11"},
                 }
 
-    @mock.patch('sys.stdout')
+    @mock.patch('sys.stdout.write')
     def test_main(self, mock_stdout):
         with patch('sys.stdin', StringIO("Ethernet0")):
             port2alias.main()
-            mock_stdout.write.assert_called_with("etp1")
+            mock_stdout.assert_called_with("etp1")
 
     def test_translate_line_single_word(self):
         self.assertEqual(port2alias.translate_line("1", self.ports),"1")
@@ -51,10 +51,10 @@ class TestPort2Alias(TestCase):
         self.assertEqual(port2alias.translate_line("Ethernet1\n", {}),"Ethernet1\n")
 
 class TestPort2AliasNamespace(TestCase):
-    @mock.patch('sys.stdout')
+    @mock.patch('sys.stdout.write')
     def test_main(self, mock_stdout):
         with patch('sys.stdin', StringIO("Ethernet0")):
             os.environ["UTILITIES_UNIT_TESTING"] = "2"
             port2alias = load_module_from_source('port2alias', port2alias_path)
             port2alias.main()
-            mock_stdout.write.assert_called_with("Ethernet1/1")
+            mock_stdout.assert_called_with("Ethernet1/1")
