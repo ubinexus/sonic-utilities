@@ -141,9 +141,9 @@ def add_profile(db, profile, priority, cipher_suite, primary_cak, primary_ckn, p
     for k, v in profile_table.items():
         if isinstance(v, bool):
             if v:
-                profile_table[k] = "1"
+                profile_table[k] = "true"
             else:
-                profile_table[k] = "0"
+                profile_table[k] = "false"
         else:
             profile_table[k] = str(v)
     db.cfgdb.set_entry("MACSEC_PROFILE", profile, profile_table)
