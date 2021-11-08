@@ -79,6 +79,7 @@ class TestSfputil(object):
         assert output == expected_output
 
     def test_convert_sfp_info_to_output_string(self):
+        # QSFP28
         sfp_info_dict = {
             'type': 'QSFP28 or later',
             'type_abbrv_name': 'QSFP28',
@@ -117,6 +118,49 @@ class TestSfputil(object):
         Vendor PN: MCP1600-C003
         Vendor Rev: A2
         Vendor SN: MT1636VS10561
+'''
+        output = sfputil.convert_sfp_info_to_output_string(sfp_info_dict)
+        assert output == expected_output
+
+        # CMIS
+        sfp_info_dict = {
+            "application_advertisement": "{1: {'ap_sel_code_id': 1, 'host_electrical_interface_id': '400GAUI-8 C2M (Annex 120E)', 'module_media_interface_id': '400GBASE-DR4 (Cl 124)', 'host_lane_count': 8, 'media_lane_count': 4, 'host_lane_assignment_options': 1, 'media_lane_assignment_options': None}, 2: {'ap_sel_code_id': 2, 'host_electrical_interface_id': '100GAUI-2 C2M (Annex 135G)', 'module_media_interface_id': '100G-FR/100GBASE-FR1 (Cl 140)', 'host_lane_count': 2, 'media_lane_count': 1, 'host_lane_assignment_options': 85, 'media_lane_assignment_options': None}}",
+            "cable_length": "0.0",
+            "cable_type": "Length cable Assembly(m)",
+            "connector": "SN optical connector",
+            "dom_capability": "N/A",
+            "encoding": "N/A",
+            "ext_identifier": "Power Class 6 (12.0W Max)",
+            "ext_rateselect_compliance": "N/A",
+            "hardware_rev": "01",
+            "is_replaceable": "False",
+            "manufacturer": "AVAGO",
+            "model": "AFCT-93DRPHZ-AZ2",
+            "nominal_bit_rate": "0",
+            "serial": "FD2038FG0FY",
+            "specification_compliance": "sm_media_interface",
+            "type": "QSFP-DD Double Density 8X Pluggable Transceiver",
+            "vendor_date": "2020-10-07",
+            "vendor_oui": "00-17-6a"
+        }
+        expected_output = '''\
+        Application Advertisement:
+                1: 400GAUI-8 C2M (Annex 120E) | 400GBASE-DR4 (Cl 124)
+                2: 100GAUI-2 C2M (Annex 135G) | 100G-FR/100GBASE-FR1 (Cl 140)
+        Connector: SN optical connector
+        Encoding: N/A
+        Extended Identifier: Power Class 6 (12.0W Max)
+        Extended RateSelect Compliance: N/A
+        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+        Length cable Assembly(m): 0.0
+        Nominal Bit Rate(100Mbs): 0
+        Specification compliance: sm_media_interface
+        Vendor Date Code(YYYY-MM-DD Lot): 2020-10-07
+        Vendor Name: AVAGO
+        Vendor OUI: 00-17-6a
+        Vendor PN: AFCT-93DRPHZ-AZ2
+        Vendor Rev: 01
+        Vendor SN: FD2038FG0FY
 '''
         output = sfputil.convert_sfp_info_to_output_string(sfp_info_dict)
         assert output == expected_output

@@ -283,6 +283,20 @@ class SFPShow(object):
                             output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
                     except ValueError as e:
                         output += '{}N/A\n'.format((indent * 2))
+            elif key == 'application_advertisement':
+                appl_advert_dict = None
+                if sfp_info_dict[key] != 'N/A':
+                    try:
+                        appl_advert_dict = ast.literal_eval(sfp_info_dict[key])
+                    except:
+                        appl_advert_dict = None
+                if appl_advert_dict is not None:
+                    output += '{}{}:\n'.format(indent, QSFP_DATA_MAP[key])
+                    for appl in natsorted(appl_advert_dict.keys()):
+                        info = appl_advert_dict[appl]
+                        output += '{}{}: {} | {}\n'.format((indent * 2), appl, info['host_electrical_interface_id'], info['module_media_interface_id'])
+                else:
+                    output += '{}{}: N/A\n'.format(indent, QSFP_DATA_MAP[key])
             else:
                 output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
