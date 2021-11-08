@@ -17,7 +17,7 @@ sys.path.insert(0, modules_path)
 @pytest.fixture(scope='module')
 def ctx(scope='module'):
     db = Db()
-    obj = {'config_db':db.cfgdb, 'namespace': ''}  
+    obj = {'config_db':db.cfgdb, 'namespace': ''}
     yield obj
 
 
@@ -50,9 +50,13 @@ class TestConfigInterface(object):
         result = self.basic_check("advertised-speeds", ["Ethernet0", "50000,100000"], ctx, operator.ne)
         assert 'Invalid speed' in result.output
         assert 'Valid speeds:' in result.output
+        result = self.basic_check("advertised-speeds", ["Ethernet0", "50000,50000"], ctx, operator.ne)
+        assert 'Invalid speed' in result.output
+        assert 'duplicate' in result.output
 
     def test_config_type(self, ctx):
         self.basic_check("type", ["Ethernet0", "CR4"], ctx)
+        self.basic_check("type", ["Ethernet0", "none"], ctx)
         self.basic_check("type", ["Invalid", "CR4"], ctx, operator.ne)
         self.basic_check("type", ["Ethernet0", ""], ctx, operator.ne)
         result = self.basic_check("type", ["Ethernet0", "Invalid"], ctx, operator.ne)
@@ -66,6 +70,9 @@ class TestConfigInterface(object):
         result = self.basic_check("advertised-types", ["Ethernet0", "CR4,Invalid"], ctx, operator.ne)
         assert 'Invalid interface type specified' in result.output
         assert 'Valid interface types:' in result.output
+        result = self.basic_check("advertised-types", ["Ethernet0", "CR4,CR4"], ctx, operator.ne)
+        assert 'Invalid interface type specified' in result.output
+        assert 'duplicate' in result.output
         self.basic_check("advertised-types", ["Ethernet0", ""], ctx, operator.ne)
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
