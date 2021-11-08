@@ -90,4 +90,4 @@ def clear(interface, verbose):
     else:
         for intf in counter_intf:
             counter.clear_table(intf)
-                
+
