@@ -91,20 +91,38 @@ Vlan4000   4000  PortChannel1001  tagged
 """
 
 show_vlan_config_output_range="""\
-Name        VID  Member      Mode
---------  -----  ----------  --------
-Vlan1000   1000  Ethernet4   untagged
-Vlan1000   1000  Ethernet8   untagged
-Vlan1000   1000  Ethernet12  untagged
-Vlan1000   1000  Ethernet16  untagged
-Vlan2000   2000  Ethernet24  untagged
-Vlan2000   2000  Ethernet28  untagged
-Vlan3001   3001  Ethernet4   tagged
-Vlan3001   3001  Ethernet8   tagged
-Vlan3002   3002  Ethernet4   tagged
-Vlan3002   3002  Ethernet8   tagged
-Vlan3003   3003  Ethernet4   tagged
-Vlan3003   3003  Ethernet8   tagged
+Name        VID  Member           Mode
+--------  -----  ---------------  --------
+Vlan1000   1000  Ethernet4        untagged
+Vlan1000   1000  Ethernet8        untagged
+Vlan1000   1000  Ethernet12       untagged
+Vlan1000   1000  Ethernet16       untagged
+Vlan2000   2000  Ethernet24       untagged
+Vlan2000   2000  Ethernet28       untagged
+Vlan3000   3000
+Vlan3001   3001  Ethernet4        tagged
+Vlan3001   3001  Ethernet8        tagged
+Vlan3002   3002  Ethernet4        tagged
+Vlan3002   3002  Ethernet8        tagged
+Vlan3003   3003  Ethernet4        tagged
+Vlan3003   3003  Ethernet8        tagged
+Vlan4000   4000  PortChannel1001  tagged
+"""
+
+show_vlan_config_output_range_after_del="""\
+Name        VID  Member           Mode
+--------  -----  ---------------  --------
+Vlan1000   1000  Ethernet4        untagged
+Vlan1000   1000  Ethernet8        untagged
+Vlan1000   1000  Ethernet12       untagged
+Vlan1000   1000  Ethernet16       untagged
+Vlan2000   2000  Ethernet24       untagged
+Vlan2000   2000  Ethernet28       untagged
+Vlan3000   3000
+Vlan3001   3001
+Vlan3002   3002
+Vlan3003   3003
+Vlan4000   4000  PortChannel1001  tagged
 """
 
 show_vlan_config_in_alias_mode_output="""\
@@ -477,92 +495,6 @@ class TestVlan(object):
 
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
 
-    def test_config_vlan_add_dhcp_relay_with_nonexist_vlanid(self):
-        runner = CliRunner()
-
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                                   ["1001", "192.0.0.100"])
-            print(result.exit_code)
-            print(result.output)
-            # traceback.print_tb(result.exc_info[2])
-            assert result.exit_code != 0
-            assert "Error: Vlan1001 doesn't exist" in result.output
-            assert mock_run_command.call_count == 0
-
-    def test_config_vlan_add_dhcp_relay_with_invalid_vlanid(self):
-        runner = CliRunner()
-
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                                   ["4096", "192.0.0.100"])
-            print(result.exit_code)
-            print(result.output)
-            # traceback.print_tb(result.exc_info[2])
-            assert result.exit_code != 0
-            assert "Error: Vlan4096 doesn't exist" in result.output
-            assert mock_run_command.call_count == 0
-
-    def test_config_vlan_add_dhcp_relay_with_invalid_ip(self):
-        runner = CliRunner()
-
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                                   ["1000", "192.0.0.1000"])
-            print(result.exit_code)
-            print(result.output)
-            # traceback.print_tb(result.exc_info[2])
-            assert result.exit_code != 0
-            assert "Error: 192.0.0.1000 is invalid IP address" in result.output
-            assert mock_run_command.call_count == 0
-
-    def test_config_vlan_add_dhcp_relay_with_exist_ip(self):
-        runner = CliRunner()
-
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                                   ["1000", "192.0.0.1"])
-            print(result.exit_code)
-            print(result.output)
-            # traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 0
-            assert "192.0.0.1 is already a DHCP relay destination for Vlan1000" in result.output
-            assert mock_run_command.call_count == 0
-
-    def test_config_vlan_add_del_dhcp_relay_dest(self):
-        runner = CliRunner()
-        db = Db()
-
-        # add new relay dest
-        with mock.patch("utilities_common.cli.run_command") as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                                   ["1000", "192.0.0.100"], obj=db)
-            print(result.exit_code)
-            print(result.output)
-            assert result.exit_code == 0
-            assert result.output == config_vlan_add_dhcp_relay_output
-            assert mock_run_command.call_count == 3
-
-        # show output
-        result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
-        print(result.output)
-        assert result.output == show_vlan_brief_output_with_new_dhcp_relay_address
-
-        # del relay dest
-        with mock.patch("utilities_common.cli.run_command") as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
-                                   ["1000", "192.0.0.100"], obj=db)
-            print(result.exit_code)
-            print(result.output)
-            assert result.exit_code == 0
-            assert result.output == config_vlan_del_dhcp_relay_output
-            assert mock_run_command.call_count == 3
-
-        # show output
-        result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
-        print(result.output)
-        assert result.output == show_vlan_brief_output
-
     def test_vlan_config_range(self):
         runner = CliRunner()
         db = Db()
@@ -595,33 +527,7 @@ class TestVlan(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_vlan_config_output
-
-    def test_config_vlan_remove_nonexist_dhcp_relay_dest(self):
-        runner = CliRunner()
-
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
-                                   ["1000", "192.0.0.100"])
-            print(result.exit_code)
-            print(result.output)
-            # traceback.print_tb(result.exc_info[2])
-            assert result.exit_code != 0
-            assert "Error: 192.0.0.100 is not a DHCP relay destination for Vlan1000" in result.output
-            assert mock_run_command.call_count == 0
-
-    def test_config_vlan_remove_dhcp_relay_dest_with_nonexist_vlanid(self):
-        runner = CliRunner()
-
-        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
-            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
-                                   ["1001", "192.0.0.1"])
-            print(result.exit_code)
-            print(result.output)
-            # traceback.print_tb(result.exc_info[2])
-            assert result.exit_code != 0
-            assert "Error: Vlan1001 doesn't exist" in result.output
-            assert mock_run_command.call_count == 0
+        assert result.output == show_vlan_config_output_range_after_del
 
     def test_config_vlan_proxy_arp_with_nonexist_vlan_intf_table(self):
         modes = ["enabled", "disabled"]

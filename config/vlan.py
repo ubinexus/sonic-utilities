@@ -156,11 +156,6 @@ def add_vlan_member(db, vid, port, untagged):
     if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged):
         ctx.fail("{} is already untagged member!".format(port))
 
-    vlan_in_db = db.cfgdb.get_entry('VLAN', vlan)
-    members = vlan_in_db.get('members', [])
-    members.append(port)
-    vlan_in_db['members'] = members
-    db.cfgdb.set_entry('VLAN', vlan, vlan_in_db)
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
 
 @vlan_member.command('del')
@@ -191,90 +186,7 @@ def del_vlan_member(db, vid, port):
     if not clicommon.is_port_vlan_member(db.cfgdb, port, vlan):
         ctx.fail("{} is not a member of {}".format(port, vlan))
 
-    vlan_in_db = db.cfgdb.get_entry('VLAN', vlan)
-    members = vlan_in_db.get('members', [])
-    vlan_in_db['members'] = members
-    members.remove(port)
-    if len(members) == 0:
-        del vlan_in_db['members']
-    else:
-        vlan_in_db['members'] = members
-    db.cfgdb.set_entry('VLAN', vlan, vlan_in_db)
     db.cfgdb.set_entry('VLAN_MEMBER', (vlan, port), None)
-
-@vlan.group(cls=clicommon.AbbreviationGroup, name='dhcp_relay')
-def vlan_dhcp_relay():
-    pass
-
-@vlan_dhcp_relay.command('add')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
-@clicommon.pass_db
-def add_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
-    """ Add a destination IP address to the VLAN's DHCP relay """
-
-    ctx = click.get_current_context()
-
-    if not clicommon.is_ipaddress(dhcp_relay_destination_ip):
-        ctx.fail('{} is invalid IP address'.format(dhcp_relay_destination_ip))
-
-    vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.cfgdb.get_entry('VLAN', vlan_name)
-    if len(vlan) == 0:
-        ctx.fail("{} doesn't exist".format(vlan_name))
-
-    dhcp_relay_dests = vlan.get('dhcp_servers', [])
-    if dhcp_relay_destination_ip in dhcp_relay_dests:
-        click.echo("{} is already a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
-        return
-
-    dhcp_relay_dests.append(dhcp_relay_destination_ip)
-    vlan['dhcp_servers'] = dhcp_relay_dests
-    db.cfgdb.set_entry('VLAN', vlan_name, vlan)
-    click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
-
-@vlan_dhcp_relay.command('del')
-@click.argument('vid', metavar='<vid>', required=True, type=int)
-@click.argument('dhcp_relay_destination_ip', metavar='<dhcp_relay_destination_ip>', required=True)
-@clicommon.pass_db
-def del_vlan_dhcp_relay_destination(db, vid, dhcp_relay_destination_ip):
-    """ Remove a destination IP address from the VLAN's DHCP relay """
-
-    ctx = click.get_current_context()
-
-    if not clicommon.is_ipaddress(dhcp_relay_destination_ip):
-        ctx.fail('{} is invalid IP address'.format(dhcp_relay_destination_ip))
-
-    vlan_name = 'Vlan{}'.format(vid)
-    vlan = db.cfgdb.get_entry('VLAN', vlan_name)
-    if len(vlan) == 0:
-        ctx.fail("{} doesn't exist".format(vlan_name))
-
-    dhcp_relay_dests = vlan.get('dhcp_servers', [])
-    if not dhcp_relay_destination_ip in dhcp_relay_dests:
-        ctx.fail("{} is not a DHCP relay destination for {}".format(dhcp_relay_destination_ip, vlan_name))
-
-    dhcp_relay_dests.remove(dhcp_relay_destination_ip)
-    if len(dhcp_relay_dests) == 0:
-        del vlan['dhcp_servers']
-    else:
-        vlan['dhcp_servers'] = dhcp_relay_dests
-    db.cfgdb.set_entry('VLAN', vlan_name, vlan)
-    click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
-    try:
-        click.echo("Restarting DHCP relay service...")
-        clicommon.run_command("systemctl stop dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl reset-failed dhcp_relay", display_cmd=False)
-        clicommon.run_command("systemctl start dhcp_relay", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service dhcp_relay failed with error {}".format(e))
 
 def vlan_id_is_valid(vid):
     """Check if the vlan id is in acceptable range (between 1 and 4094)
@@ -329,6 +241,9 @@ def add_vlan_range(db, vid1, vid2, warning):
     vid2 = vid2+1
 
     warning_vlans_list = []
+    ctx = click.get_current_context()
+    ctx.obj = {'db': db.cfgdb}
+
     curr_vlan_count = 0
     clients = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
     pipe = clients.pipeline()
@@ -362,25 +277,27 @@ def del_vlan_range(db, vid1, vid2, warning):
     warning_vlans_list = []
     warning_membership_list = []
     warning_ip_list = []
+    ctx = click.get_current_context()
+    ctx.obj = {'db': db.cfgdb}
     client = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
     pipe = client.pipeline()
 
-    cur, vlan_member_keys = client.scan(cursor=0, match='*VLAN_MEMBER*', count=50)
+    cur, vlan_member_keys = client.scan(cursor=0, match='VLAN_MEMBER*', count=50)
     while cur != 0:
-        cur, keys = client.scan(cursor=cur, match='*VLAN_MEMBER*', count=50)
+        cur, keys = client.scan(cursor=cur, match='VLAN_MEMBER*', count=50)
         vlan_member_keys.extend(keys)
-    
-    cur, vlan_temp_member_keys = client.scan(cursor=0, match='*VLAN_MEMBER*', count=50)
+
+    cur, vlan_temp_member_keys = client.scan(cursor=0, match='VLAN_MEMBER*', count=50)
     while cur != 0:
-        cur, keys = client.scan(cursor=cur, match='*VLAN_MEMBER*', count=50)
+        cur, keys = client.scan(cursor=cur, match='VLAN_MEMBER*', count=50)
         vlan_temp_member_keys.extend(keys)
 
-    cur, vlan_ip_keys = client.scan(cursor=0, match='*VLAN_INTERFACE*', count=50)
+    cur, vlan_ip_keys = client.scan(cursor=0, match='VLAN_INTERFACE*', count=50)
     while cur != 0:
-        cur, keys = client.scan(cursor=cur, match='*VLAN_INTERFACE*', count=50)
+        cur, keys = client.scan(cursor=cur, match='VLAN_INTERFACE*', count=50)
         vlan_ip_keys.extend(keys)
 
-    # Fetch the interfaces from config_db associated with *VLAN_MEMBER*
+    # Fetch the interfaces from config_db associated with VLAN_MEMBER*
     stored_intf_list = []
     if vlan_temp_member_keys is not None:
         for x in range(len(vlan_temp_member_keys)):
@@ -390,7 +307,7 @@ def del_vlan_range(db, vid1, vid2, warning):
     stored_intf_list = list(set(stored_intf_list))
     list_length = len(stored_intf_list)
 
-    # Fetch VLAN participation list for each interface 
+    # Fetch VLAN participation list for each interface
     vid = range(vid1, vid2)
     if vlan_temp_member_keys is not None and list_length != 0:
         for i in range(list_length):
@@ -567,6 +484,7 @@ def add_vlan_member_range(db, vid1, vid2, interface_name, untagged, warning):
         if v == interface_name:
             ctx.fail(" {} is configured as a port channel member".format(interface_name))
 
+    vlan_ports_data = db.cfgdb.get_table('VLAN_MEMBER')
     for vid in range(vid1, vid2):
         vlan_name = 'Vlan{}'.format(vid)
         vlan = db.cfgdb.get_entry('VLAN', vlan_name)
@@ -576,8 +494,7 @@ def add_vlan_member_range(db, vid1, vid2, interface_name, untagged, warning):
                 warning_vlans_list.append(vid)
             continue
 
-        members = vlan.get('members', [])
-        if interface_name in members:
+        if (vlan_name, interface_name) in vlan_ports_data.keys():
             if warning is True:
                 warning_membership_list.append(vid)
             if clicommon.get_interface_naming_mode() == "alias":
@@ -588,11 +505,9 @@ def add_vlan_member_range(db, vid1, vid2, interface_name, untagged, warning):
             else:
                 continue
 
-        members.append(interface_name)
-        vlan['members'] = members
-        pipe.hmset('VLAN|{}'.format(vlan_name), vlan_member_data(vlan))
         pipe.hmset('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name), {'tagging_mode': "untagged" if untagged else "tagged" })
     # If port is being made L2 port, enable STP
+    ctx.obj = {'db': db.cfgdb}
     pipe.execute()
     # Log warning messages if 'warning' option is enabled
     if warning is True and len(warning_vlans_list) != 0:
@@ -630,6 +545,7 @@ def del_vlan_member_range(db, vid1, vid2, interface_name, warning):
     clients = db.cfgdb.get_redis_client(db.cfgdb.CONFIG_DB)
     pipe = clients.pipeline()
 
+    vlan_ports_data = db.cfgdb.get_table('VLAN_MEMBER')
     for vid in range(vid1, vid2):
         vlan_name = 'Vlan{}'.format(vid)
         vlan = db.cfgdb.get_entry('VLAN', vlan_name)
@@ -639,8 +555,7 @@ def del_vlan_member_range(db, vid1, vid2, interface_name, warning):
                 warning_vlans_list.append(vid)
             continue
 
-        members = vlan.get('members', [])
-        if interface_name not in members:
+        if (vlan_name, interface_name) not in vlan_ports_data.keys():
             if warning is True:
                 warning_membership_list.append(vid)
             if clicommon.get_interface_naming_mode() == "alias":
@@ -651,16 +566,13 @@ def del_vlan_member_range(db, vid1, vid2, interface_name, warning):
             else:
                 continue
 
-        members.remove(interface_name)
-        if len(members) == 0:
-            pipe.hdel('VLAN|{}'.format(vlan_name), 'members@')
-        else:
-            vlan['members'] = members
             pipe.hmset('VLAN|{}'.format(vlan_name), vlan_member_data(vlan))
 
         pipe.delete('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name))
-        pipe.delete('STP_VLAN_INTF|{}'.format(vlan_name + '|' + interface_name))
+        pipe.delete('STP_VLAN_PORT|{}'.format(vlan_name + '|' + interface_name))
     pipe.execute()
+    # If port is being made non-L2 port, disable STP on interface
+    ctx.obj = {'db': db.cfgdb}
     # Log warning messages if 'warning' option is enabled
     if warning is True and len(warning_vlans_list) != 0:
         logging.warning('Non-existent VLANs: {}'.format(get_hyphenated_string(warning_vlans_list)))
