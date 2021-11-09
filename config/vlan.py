@@ -566,8 +566,6 @@ def del_vlan_member_range(db, vid1, vid2, interface_name, warning):
             else:
                 continue
 
-            pipe.hmset('VLAN|{}'.format(vlan_name), vlan_member_data(vlan))
-
         pipe.delete('VLAN_MEMBER|{}'.format(vlan_name+'|'+interface_name))
         pipe.delete('STP_VLAN_PORT|{}'.format(vlan_name + '|' + interface_name))
     pipe.execute()

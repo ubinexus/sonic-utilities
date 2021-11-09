@@ -198,10 +198,11 @@ def generate_fdb_entries_2(filename):
     all_available_macs = set()
     map_mac_ip_per_vlan = {}
 
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    db = SonicV2Connector(use_unix_socket_path=False)
+    app_db = SonicV2Connector(use_unix_socket_path=False)
     db.connect(db.ASIC_DB, False)   # Make one attempt only
-
-    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(db)
+    app_db.connect(app_db.APPL_DB, False)   # Make one attempt only
+    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(db, app_db)
 
     vlan_ifaces = get_vlan_ifaces()
     for vlan in vlan_ifaces:
