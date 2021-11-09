@@ -19,3 +19,4 @@ class TestDhcpRelayHelper(object):
         result = runner.invoke(show.cli.commands["dhcprelay_helper"].commands["ipv6"])
         print(result.output)
         assert result.output == expected_table
+

@@ -157,7 +157,7 @@ def cli(ctx):
 
 # Add groups from other modules
 cli.add_command(acl.acl)
-cli.add_command(chassis_modules.chassis)
+cli.add_command(chassis_modules.chassis_modules)
 cli.add_command(dhcp_relay_helper.dhcp_relay_helper)
 cli.add_command(dhcp6relay_counters.dhcp6relay_counters)
 cli.add_command(dropcounters.dropcounters)

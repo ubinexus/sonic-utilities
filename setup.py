@@ -76,7 +76,6 @@ setup(
         'scripts/configlet',
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
-        'scripts/dhcp6relay_counters',
         'scripts/dropcheck',
         'scripts/disk_check.py',
         'scripts/dropconfig',

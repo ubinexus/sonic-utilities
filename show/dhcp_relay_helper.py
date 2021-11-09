@@ -34,3 +34,4 @@ def get_data(table_data, vlan):
             addr[vlan].append(ip)
     output = tabulate({'Interface':[vlan], vlan:addr.get(vlan)}, tablefmt='simple', stralign='right') + '\n'
     return output
+

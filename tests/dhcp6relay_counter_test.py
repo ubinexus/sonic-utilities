@@ -36,3 +36,4 @@ class TestDhcp6RelayCounters(object):
         
         print(result.output)
         assert result.output == expected_counts
+
