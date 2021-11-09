@@ -184,7 +184,8 @@ class TestIntfutil(TestCase):
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation\n"
+          "        Eth64.10          40G   9100     100       up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
@@ -209,12 +210,18 @@ class TestIntfutil(TestCase):
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
+          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation\n"
+          "        Eth64.10          40G   9100     100       up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
         # Test 'intfutil status Ethernet0.10'
         output = subprocess.check_output('intfutil -c status -i Ethernet0.10', stderr=subprocess.STDOUT, shell=True, text=True)
+        print(output, file=sys.stderr)
+        self.assertEqual(output.strip(), expected_output)
+
+        # Test 'intfutil status Eth64.10'
+        output = subprocess.check_output('intfutil -c status -i Eth64.10', stderr=subprocess.STDOUT, shell=True, text=True)
         print(output, file=sys.stderr)
         self.assertEqual(output.strip(), expected_output)
 
@@ -225,6 +232,10 @@ class TestIntfutil(TestCase):
         expected_output = "Command: intfutil -c status -i Ethernet0.10"
         self.assertEqual(result.output.split('\n')[0], expected_output)
 
+        result = self.runner.invoke(show.cli.commands["subinterfaces"].commands["status"], ["Eth64.10", "--verbose"])
+        print(result.output, file=sys.stderr)
+        expected_output = "Command: intfutil -c status -i Eth64.10"
+        self.assertEqual(result.output.split('\n')[0], expected_output)
 
     # Test status of single sub interface in alias naming mode
     def test_single_subintf_status_alias_mode(self):
