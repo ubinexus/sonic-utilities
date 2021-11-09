@@ -1,8 +1,5 @@
 import click
 import utilities_common.cli as clicommon
-
-import argparse
-import sys
 from tabulate import tabulate
 
 from swsscommon.swsscommon import SonicV2Connector
@@ -93,4 +90,4 @@ def clear(interface, verbose):
     else:
         for intf in counter_intf:
             counter.clear_table(intf)
-                
+
