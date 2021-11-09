@@ -6,13 +6,9 @@
 #
 ############################################
 
-import _pickle as pickle
 import argparse
-import datetime
-import json
 import sys
 import os
-import time
 
 # mock the redis for unit test purposes #
 try:
@@ -55,7 +51,7 @@ class storm_control(object):
                     kbps = data['kbps']
                     body.append([port, storm_type, kbps])
         else:
-            for storm_key in sorted_table:
+            for storm_key in storm_configs:
                 interface_name = storm_key[0]
                 storm_type = storm_key[1]
                 data = self.db.get_entry(STORM_TABLE_NAME, storm_key)
