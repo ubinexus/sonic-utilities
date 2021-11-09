@@ -38,6 +38,8 @@
   * [Console clear commands](#console-clear-commands)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
+  * [DHCPv6 Relay show commands](#dhcpv6-relay-show-commands)
+  * [DHCPv6 Relay show counter commands](#dhcpv6-relay-show-counter-commands)
 * [Drop Counters](#drop-counters)
   * [Drop Counter show commands](#drop-counters-show-commands)
   * [Drop Counter config commands](#drop-counters-config-commands)
@@ -2199,6 +2201,61 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
   admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
   Removed DHCP relay destination address 7.7.7.7 from Vlan1000
   Restarting DHCP relay service...
+  ```
+
+### DHCPv6 Relay show commands
+
+This sub-section of commands is used to show the DHCPv6 Relay Destination IPv6 address for VLAN interfaces.
+
+**show dhcprelay_helper ipv6**
+
+This command is used to show DHCPv6 Relay Destination IPv6 address to Vlans.
+
+- Usage:
+  ```
+  show dhcprelay_helper ipv6
+  ```
+
+- Example:
+  admin@sonic:~$ sudo show dhcprelay_helper ipv6
+  ```
+   -------  ------------
+  Vlan1000  fc02:2000::1
+            fc02:2000::2
+            fc02:2000::3
+            fc02:2000::4
+   -------  ------------
+  ```
+
+### DHCPv6 Relay show counter commands
+
+This sub-section of commands is used to show the DHCPv6 Relay counters for VLAN interfaces.
+
+**show dhcp6relay_counters counts**
+
+This command is used to show the DHCPv6 Relay counter to Vlans.
+
+- Usage:
+  ```
+  show dhcp6relay_counters counts
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo show dhcp6relay_counters counts
+   Message Type    Vlan1000
+  --------------  ---------
+        Solicit          0
+      Advertise          0
+        Request          0
+        Confirm          0
+          Renew          0
+          Rebind         0
+          Reply          0
+        Release          0
+        Decline          0
+  Relay-Forward          0
+    Relay-Reply          0
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
