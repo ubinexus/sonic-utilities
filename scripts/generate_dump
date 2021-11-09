@@ -42,7 +42,6 @@ SAVE_STDERR=true
 RETURN_CODE=0
 DEBUG_DUMP=false
 
-
 handle_signal()
 {
     echo "Generate Dump received interrupt" >&2
@@ -68,7 +67,9 @@ save_bcmcmd() {
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
-    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
+    if [ ! -d $LOGDIR ]; then
+        $MKDIR $V -p $LOGDIR
+    fi
 
     if [ $SKIP_BCMCMD -eq 1 ]; then
         echo "Skip $cmd"
@@ -81,14 +82,15 @@ save_bcmcmd() {
     if $NOOP; then
         echo "${timeout_cmd} $cmd &> '${filepath}'"
     else
-        eval "${timeout_cmd} $cmd" &> "${filepath}"
-        ret=$?
+        ret=0
+        eval "${timeout_cmd} $cmd" &> "${filepath}" || ret=$?
         if [ $ret -ne 0 ]; then
             if [ $ret -eq 124 ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             else
-                grep "polling socket timeout: Success" ${filepath} &>/dev/null
-                if [ $? -eq 0 ]; then
+                RC=0
+                grep "polling socket timeout: Success" ${filepath} &>/dev/null || RC=$?
+                if [ $RC -eq 0 ]; then
                     echo "bcmcmd command timeout. Setting SKIP_BCMCMD to true ..."
                     SKIP_BCMCMD=1
                 fi
@@ -152,6 +154,7 @@ save_bcmcmd_all_ns() {
 #  cmd: The command to run. Make sure that arguments with spaces have quotes
 #  filename: the filename to save the output as in $BASE/dump
 #  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+#  cleanup_method: (OPTIONAL) the cleanup method to procress dump file after it generated.
 # Returns:
 #  None
 ###############################################################################
@@ -165,9 +168,12 @@ save_cmd() {
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+    local cleanup_method=${4:-dummy_cleanup_method}
     local redirect='&>'
     local redirect_eval='2>&1'
-    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
+    if [ ! -d $LOGDIR ]; then
+        $MKDIR $V -p $LOGDIR
+    fi
 
     if ! $SAVE_STDERR
     then
@@ -182,30 +188,48 @@ save_cmd() {
     if $do_gzip; then
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
-        local cmds="$cmd $redirect_eval | gzip -c > '${filepath}'"
+        # cleanup_method will run in a sub-shell, need declare it first
+        local cleanup_method_declration=$(declare -f $cleanup_method)
+        local cmds="$cleanup_method_declration; $cmd $redirect_eval | $cleanup_method | gzip -c > '${filepath}'"
         if $NOOP; then
             echo "${timeout_cmd} bash -c \"${cmds}\""
         else
-            eval "${timeout_cmd} bash -c \"${cmds}\""
-            if [ $? -ne 0 ]; then
+            RC=0
+            eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
+            if [ $RC -ne 0 ]; then
                 echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
             fi
         fi
     else
         if $NOOP; then
-            echo "${timeout_cmd} $cmd $redirect '$filepath'"
+            echo "${timeout_cmd} $cmd | $cleanup_method $redirect '$filepath'"
         else
-            eval "${timeout_cmd} $cmd" "$redirect" "$filepath"
-            if [ $? -ne 0 ]; then
+            RC=0
+            eval "${timeout_cmd} $cmd | $cleanup_method" "$redirect" "$filepath" || RC=$?
+            if [ $RC -ne 0 ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             fi
         fi
     fi
+
     ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
         || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
         && $RM $V -rf "$filepath"
     end_t=$(date +%s%3N)
     echo "[ save_cmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+}
+
+###############################################################################
+# Dummy cleanup method.
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+dummy_cleanup_method() {
+    cat
 }
 
 ###############################################################################
@@ -217,22 +241,24 @@ save_cmd() {
 #  cmd: The command to run. Make sure that arguments with spaces have quotes
 #  filename: the filename to save the output as in $BASE/dump
 #  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+#  cleanup_method: (OPTIONAL) the cleanup method to procress dump file after it generated.
 # Returns:
 #  None
 ###############################################################################
 save_cmd_all_ns() {
     trap 'handle_error $? $LINENO' ERR
     local do_zip=${3:-false}
+    local cleanup_method=${4:-dummy_cleanup_method}
 
     # host or default namespace
-    save_cmd "$1" "$2" "$do_zip"
+    save_cmd "$1" "$2" "$do_zip" $cleanup_method
 
     if [[ ( "$NUM_ASICS" > 1 ) ]] ; then
       for (( i=0; i<$NUM_ASICS; i++ ))
       do
           local cmd="sonic-netns-exec asic$i $1"
           local file="$2.$i"
-          save_cmd "$cmd" "$file" "$do_zip"
+          save_cmd "$cmd" "$file" "$do_zip" $cleanup_method
       done
     fi
 }
@@ -265,12 +291,13 @@ copy_from_docker() {
         echo "${timeout_cmd} ${touch_cmd}"
         echo "${timeout_cmd} ${cp_cmd}"
     else
-        eval "${timeout_cmd} ${touch_cmd}"
-        if [ $? -ne 0 ]; then
+        RC=0
+        eval "${timeout_cmd} ${touch_cmd}" || RC=$?
+        if [ $RC -ne 0 ]; then
             echo "Command: $touch_cmd timedout after ${TIMEOUT_MIN} minutes."
         fi
-        eval "${timeout_cmd} ${cp_cmd}"
-        if [ $? -ne 0 ]; then
+        eval "${timeout_cmd} ${cp_cmd}" || RC=$?
+        if [ $RC -ne 0 ]; then
             echo "Command: $cp_cmd timedout after ${TIMEOUT_MIN} minutes."
         fi
     fi
@@ -583,7 +610,8 @@ save_redis_info() {
     save_redis "APPL_DB"
     save_redis "ASIC_DB"
     save_redis "COUNTERS_DB"
-    save_redis "CONFIG_DB"
+    # There are secrets in CONFIG_DB need to be cleanup.
+    save_redis "CONFIG_DB" "CONFIG_DB" remove_secret_from_config_db_dump
     save_redis "FLEX_COUNTER_DB"
     save_redis "STATE_DB"
 }
@@ -629,10 +657,12 @@ save_proc() {
 # Arguments:
 #  DB name: DB name
 #  Filename: Destination filename, if not given then filename would be DB name
+#  cleanup_method: (OPTIONAL) the cleanup method to procress dump file after it generated.
 # Returns:
 #  None
 ###############################################################################
 save_redis() {
+    local cleanup_method=${3:-dummy_cleanup_method}
     trap 'handle_error $? $LINENO' ERR
     local db_name=$1
     if [ $# -ge 2 ] && [ -n "$2" ]; then
@@ -640,7 +670,7 @@ save_redis() {
     else
         local dest_file_name="$db_name"
     fi
-    save_cmd_all_ns "sonic-db-dump -n '$db_name' -y" "$dest_file_name.json"
+    save_cmd_all_ns "sonic-db-dump -n '$db_name' -y" "$dest_file_name.json" false $cleanup_method
 }
 
 ###############################################################################
@@ -711,7 +741,9 @@ save_file() {
     local tar_path="${BASE}/$supp_dir/$(basename $orig_path)"
     local do_gzip=${3:-true}
     local do_tar_append=${4:-true}
-    [ ! -d "$TARDIR/$supp_dir" ] && $MKDIR $V -p "$TARDIR/$supp_dir"
+    if [ ! -d "$TARDIR/$supp_dir" ]; then
+        $MKDIR $V -p "$TARDIR/$supp_dir"
+    fi
 
     if $do_gzip; then
         gz_path="${gz_path}.gz"
@@ -988,26 +1020,30 @@ save_warmboot_files() {
 save_crash_files() {
     # archive core dump files
     trap 'handle_error $? $LINENO' ERR
-    for file in $(find_files "/var/core/"); do
-        # don't gzip already-gzipped log files :)
-        if [ -z "${file##*.gz}" ]; then
-            save_file $file core false
-        else
-            save_file $file core true
-        fi
-    done
+    if [ -d /var/core/ ]; then
+        for file in $(find_files "/var/core/"); do
+            # don't gzip already-gzipped log files :)
+            if [ -z "${file##*.gz}" ]; then
+                save_file $file core false
+            else
+                save_file $file core true
+            fi
+        done
+    fi
 
     # archive kernel dump files
-    [ -d /var/crash/ ] && for file in $(find_files "/var/crash/"); do
-        # don't gzip already-gzipped dmesg files :)
-        if [ ! ${file} = "/var/crash/kexec_cmd" -a ! ${file} = "/var/crash/export" ]; then
-            if [[ ${file} == *"kdump."* ]]; then
-                save_file $file kdump false
-            else
-                save_file $file kdump true
+    if [ -d /var/crash/ ]; then
+        for file in $(find_files "/var/crash/"); do
+            # don't gzip already-gzipped dmesg files :)
+            if [ ! ${file} = "/var/crash/kexec_cmd" -a ! ${file} = "/var/crash/export" ]; then
+                if [[ ${file} == *"kdump."* ]]; then
+                    save_file $file kdump false
+                else
+                    save_file $file kdump true
+                fi
             fi
-        fi
-    done
+        done
+    fi
 }
 
 ###############################################################################
@@ -1245,6 +1281,9 @@ main() {
         rm $rm_list
     fi
 
+    # Remove secret from /etc files before tar
+    remove_secret_from_etc_files $TARDIR
+
     start_t=$(date +%s%3N)
     ($TAR $V --warning=no-file-removed -rhf $TARFILE -C $DUMPDIR --mode=+rw \
         --exclude="etc/alternatives" \
@@ -1257,6 +1296,13 @@ main() {
         --exclude="*snmpd.conf*" \
         --exclude="/etc/mlnx" \
         --exclude="/etc/mft" \
+        --exclude="*/etc/sonic/*.cer" \
+        --exclude="*/etc/sonic/*.crt" \
+        --exclude="*/etc/sonic/*.pem" \
+        --exclude="*/etc/sonic/*.key" \
+        --exclude="*/etc/ssl/*.pem" \
+        --exclude="*/etc/ssl/certs/*" \
+        --exclude="*/etc/ssl/private/*" \
         $BASE/etc \
         || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
@@ -1283,8 +1329,9 @@ main() {
     $RM $V -rf $TARDIR
 
     if $DO_COMPRESS; then
-        $GZIP $V $TARFILE
-        if [ $? -eq 0 ]; then
+        RC=0
+        $GZIP $V $TARFILE || RC=$?
+        if [ $RC -eq 0 ]; then
             TARFILE="${TARFILE}.gz"
         else
             echo "WARNING: gzip operation appears to have failed." >&2
@@ -1293,6 +1340,57 @@ main() {
 
     echo ${TARFILE}
     exit $RETURN_CODE
+}
+
+###############################################################################
+# Remove secret from pipeline inout and output result to pipeline.
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+remove_secret_from_config_db_dump() {
+    # Remove tacacs & radius passkey and snmp community from config DB
+    sed -E 's/\"passkey\"\s*:\s*\"([^\"]*)\"/\"passkey\":\"****\"/g; /SNMP_COMMUNITY/,/\s{2,4}\},/d'
+}
+
+###############################################################################
+# Remove secret from dump files.
+# Globals:
+# Arguments:
+#  dumppath: the dump file path.
+# Returns:
+#  None
+###############################################################################
+remove_secret_from_etc_files() {
+    local dumppath=$1
+    echo "Remove secret from etc files."
+    # Remove tacacs passkey from tacplus_nss.conf
+    local secret_regex='s/(secret=)([^,|\S]*)(.*)/\1****\3/g'
+    sed -i -E $secret_regex $dumppath/etc/tacplus_nss.conf
+
+    # Remove radius passkey from radius_nss.conf
+    sed -i -E $secret_regex $dumppath/etc/radius_nss.conf
+
+    # Remove tacacs passkey from common-auth-sonic
+    sed -i -E 's/(secret=)(\S*)/\1****/g' $dumppath/etc/pam.d/common-auth-sonic
+
+    # Remove tacacs passkey from pam_radius_auth.conf
+    sed -i -E 's/^([^#]\S*\s*)(\S*)/\1****/g' $dumppath/etc/pam_radius_auth.conf
+
+    # Remove radius passkey from per-server conf file /etc/pam_radius_auth.d/{ip}_{port}.conf
+    for filename in $dumppath/etc/pam_radius_auth.d/*.conf; do
+        sed -i -E 's/^([^#]\S*\s*)(\S*)/\1****/g' $filename
+    done
+
+    # Remove snmp community string from snmp.yml
+    sed -i -E 's/(\s*snmp_\S*community\s*:\s*)(\S*)/\1****/g' $dumppath/etc/sonic/snmp.yml
+    
+    # Remove secret from /etc/sonic/config_db.json
+    cat $dumppath/etc/sonic/config_db.json | remove_secret_from_config_db_dump > $dumppath/etc/sonic/config_db.json.temp
+    mv $dumppath/etc/sonic/config_db.json.temp $dumppath/etc/sonic/config_db.json
 }
 
 ###############################################################################
