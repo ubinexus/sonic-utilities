@@ -138,6 +138,7 @@ setup(
         'scripts/centralize_database',
         'scripts/null_route_helper',
         'scripts/check_db_integrity.py'
+        'scripts/storm_control.py'
     ],
     entry_points={
         'console_scripts': [

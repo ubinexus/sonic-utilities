@@ -1529,6 +1529,26 @@
         "nhopself": "0",
         "rrclient": "0"
     },
+    "PORT_STORM_CONTROL": {
+        "Ethernet0|broadcast": {
+            "kbps":"100000"
+        },
+        "Ethernet0|unknown-unicast": {
+            "kbps":"200000"
+        },
+        "Ethernet0|unknown-multicast": {
+            "kbps":"300000"
+        },
+        "Ethernet4|broadcast": {
+            "kbps":"400000"
+        },
+        "Ethernet8|unknown-unicast": {
+            "kbps":"500000"
+        },
+        "Ethernet8|unknown-multicast": {
+            "kbps":"600000"
+        }
+    },
     "FLEX_COUNTER_TABLE|QUEUE": {
             "POLL_INTERVAL": "10000",
             "FLEX_COUNTER_STATUS": "enable"
