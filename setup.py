@@ -137,7 +137,7 @@ setup(
         'scripts/sonic-kdump-config',
         'scripts/centralize_database',
         'scripts/null_route_helper',
-        'scripts/check_db_integrity.py'
+        'scripts/check_db_integrity.py',
         'scripts/storm_control.py'
     ],
     entry_points={
