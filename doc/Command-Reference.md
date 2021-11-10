@@ -40,6 +40,7 @@
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
   * [DHCPv6 Relay show commands](#dhcpv6-relay-show-commands)
   * [DHCPv6 Relay show counter commands](#dhcpv6-relay-show-counter-commands)
+  * [DHCPv6 Relay counter clear commands](#dhcpv6-relay-counter-clear-commands)
 * [Drop Counters](#drop-counters)
   * [Drop Counter show commands](#drop-counters-show-commands)
   * [Drop Counter config commands](#drop-counters-config-commands)
@@ -2256,6 +2257,26 @@ This command is used to show the DHCPv6 Relay counter to Vlans.
         Decline          0
   Relay-Forward          0
     Relay-Reply          0
+  ```
+### DHCPv6 Relay counter clear commands
+
+**sonic-clear dhcp6relay-counters**
+
+This comnmand is used to clear DHCPv6 Relay Counters. This is done by clearing all counters or per-vlan basis.
+
+- Usage:
+  ```
+  sonic-clear dhcp6relay-counters
+  sonic-clear dhcp6relay-counters "interface"
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear dhcp6relay-counters
+  Cleared DHCPv6 Relay Counters
+
+  admin@sonic:~$ sonic-clear dhcp6relay-counters Vlan1000
+  Cleared DHCPv6 Relay Counter Vlan1000
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)

@@ -87,7 +87,9 @@ def clear(interface, verbose):
 
     if interface:
         counter.clear_table(interface)
+        print("Cleared DHCPv6 Relay Counter " + interface)
     else:
         for intf in counter_intf:
             counter.clear_table(intf)
+        print("Cleared DHCPv6 Relay Counters")
 
