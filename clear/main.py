@@ -484,8 +484,8 @@ def remap_keys(dict):
 
 # Load plugins and register them
 helper = util_base.UtilHelper()
-helper.load_and_register_plugins(plugins, cli)
-
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
 
 if __name__ == '__main__':
     cli()

@@ -5979,7 +5979,8 @@ def smoothing_interval(interval, rates_type):
 
 # Load plugins and register them
 helper = util_base.UtilHelper()
-helper.load_and_register_plugins(plugins, config)
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
 
 
 if __name__ == '__main__':
