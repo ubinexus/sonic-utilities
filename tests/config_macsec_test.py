@@ -24,8 +24,7 @@ def test_macsec_default_profile():
     assert profile_table["policy"] == "security"
     assert "enable_replay_protect" not in profile_table
     assert "replay_window" not in profile_table
-    assert profile_table["send_sci"] == "1"
-    assert "replay_period" not in profile_table
+    assert profile_table["send_sci"] == "true"
     assert "rekey_period" not in profile_table
 
     result = runner.invoke(config.config.commands["macsec"].commands["profile"].commands["del"], [profile_name], obj=db)
@@ -66,14 +65,14 @@ def test_macsec_valid_profile():
     assert profile_table["primary_ckn"] == profile_map["primary_ckn"]
     assert profile_table["policy"] == profile_map["policy"]
     if "enable_replay_protect" in profile_map:
-        assert "enable_replay_protect" in profile_table and profile_table["enable_replay_protect"] == "1"
+        assert "enable_replay_protect" in profile_table and profile_table["enable_replay_protect"] == "true"
         assert profile_table["replay_window"] == str(profile_map["replay_window"])
     if "send_sci" in profile_map:
-        assert profile_table["send_sci"] == "1"
+        assert profile_table["send_sci"] == "true"
     if "no_send_sci" in profile_map:
-        assert profile_table["send_sci"] == "0"
-    if "replay_period" in profile_map:
-        assert profile_table["replay_period"] == str(rekey_period)
+        assert profile_table["send_sci"] == "false"
+    if "rekey_period" in profile_map:
+        assert profile_table["rekey_period"] == str(profile_map["rekey_period"])
 
 
 def test_macsec_invalid_profile():

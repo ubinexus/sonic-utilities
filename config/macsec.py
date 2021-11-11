@@ -27,7 +27,7 @@ def macsec_port():
 @clicommon.pass_db
 def add_port(db, port, profile):
     """
-    Add MACsec port 
+    Add MACsec port
     """
     ctx = click.get_current_context()
 
@@ -46,7 +46,7 @@ def add_port(db, port, profile):
 
 
 #
-# 'del' command ('config port del ...')
+# 'del' command ('config macsec port del ...')
 #
 @macsec_port.command('del')
 @click.argument('port', metavar='<port_name>', required=True)
@@ -92,10 +92,10 @@ def is_hexstring(hexstring: str):
 @click.option('--cipher_suite', metavar='<cipher_suite>', required=False, default="GCM-AES-128", show_default=True, type=click.Choice(["GCM-AES-128", "GCM-AES-256", "GCM-AES-XPN-128", "GCM-AES-XPN-256"]), help="The cipher suite for MACsec.")
 @click.option('--primary_cak', metavar='<primary_cak>', required=True, type=str, help="Primary Connectivity Association Key.")
 @click.option('--primary_ckn', metavar='<primary_cak>', required=True, type=str, help="Primary CAK Name.")
-@click.option('--policy', metavar='<policy>', required=False, default="security", show_default=True, type=click.Choice(["integrity_only", "security"]), help="MACsec policy. INTEGRITY_ONLY: All traffics, except EAPOL, will be converted to MACsec packets without encryption.SECURITY: All traffics, except EAPOL, will be encrypted by SecY.")
+@click.option('--policy', metavar='<policy>', required=False, default="security", show_default=True, type=click.Choice(["integrity_only", "security"]), help="MACsec policy. INTEGRITY_ONLY: All traffic, except EAPOL, will be converted to MACsec packets without encryption.  SECURITY: All traffic, except EAPOL, will be encrypted by SecY.")
 @click.option('--enable_replay_protect/--disable_replay_protect', metavar='<replay_protect>', required=False, default=False, show_default=True, is_flag=True, help="Whether enable replay protect.")
-@click.option('--replay_window', metavar='<enable_replay_protect>', required=False, default=0, show_default=True, type=click.IntRange(0, 2**32), help="Replay window size that is the number of packets that could be out of order. This filed works only if ENABLE_REPLAY_PROTECT is true.")
-@click.option('--send_sci/--no_send_sci', metavar='<send_sci>', required=False, default=True, show_default=True, is_flag=True, help="Whether send SCI.")
+@click.option('--replay_window', metavar='<enable_replay_protect>', required=False, default=0, show_default=True, type=click.IntRange(0, 2**32), help="Replay window size that is the number of packets that could be out of order. This field works only if ENABLE_REPLAY_PROTECT is true.")
+@click.option('--send_sci/--no_send_sci', metavar='<send_sci>', required=False, default=True, show_default=True, is_flag=True, help="Send SCI in SecTAG field of MACsec header.")
 @click.option('--rekey_period', metavar='<rekey_period>', required=False, default=0, show_default=True, type=click.IntRange(min=0), help="The period of proactively refresh (Unit second).")
 @clicommon.pass_db
 def add_profile(db, profile, priority, cipher_suite, primary_cak, primary_ckn, policy, enable_replay_protect, replay_window, send_sci, rekey_period):
@@ -136,14 +136,14 @@ def add_profile(db, profile, priority, cipher_suite, primary_cak, primary_ckn, p
     profile_table["send_sci"] = send_sci
 
     if rekey_period > 0:
-        profile_table["replay_period"] = rekey_period
+        profile_table["rekey_period"] = rekey_period
 
     for k, v in profile_table.items():
         if isinstance(v, bool):
             if v:
-                profile_table[k] = "1"
+                profile_table[k] = "true"
             else:
-                profile_table[k] = "0"
+                profile_table[k] = "false"
         else:
             profile_table[k] = str(v)
     db.cfgdb.set_entry("MACSEC_PROFILE", profile, profile_table)
