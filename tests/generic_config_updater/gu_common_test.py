@@ -148,6 +148,42 @@ class TestConfigWrapper(unittest.TestCase):
         # Assert
         self.assertDictEqual(expected, actual)
 
+    def test_has_empty_tables__no_empty_tables__returns_false(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}}
+
+        # Act
+        flag, empty_tables = config_wrapper.has_empty_tables(config)
+
+        # Assert
+        self.assertFalse(flag)
+        self.assertCountEqual([], empty_tables)
+
+    def test_has_empty_tables__single_empty_table__returns_true(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}, "another_table":{}}
+
+        # Act
+        flag, empty_tables = config_wrapper.has_empty_tables(config)
+
+        # Assert
+        self.assertTrue(flag)
+        self.assertCountEqual(["another_table"], empty_tables)
+
+    def test_has_empty_tables__multiple_empty_tables__returns_true(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}, "another_table":{}, "yet_another_table":{}}
+
+        # Act
+        flag, empty_tables = config_wrapper.has_empty_tables(config)
+
+        # Assert
+        self.assertTrue(flag)
+        self.assertCountEqual(["another_table", "yet_another_table"], empty_tables)
+
 class TestPatchWrapper(unittest.TestCase):
     def setUp(self):
         self.config_wrapper_mock = gu_common.ConfigWrapper()
