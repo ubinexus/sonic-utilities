@@ -1697,13 +1697,21 @@ def ztp(status, verbose):
 def sag(db):
     """Show static anycast gateway information"""
     sag_entry = db.cfgdb.get_entry('SAG', 'GLOBAL')
-    row = []
     sag_mac = sag_entry.get('gateway_mac')
-    if sag_mac:
-        row.append(sag_mac)
-
+    
+    header = ['MacAddress', 'Interfaces']
+    body = []
+    intf_dict = db.cfgdb.get_table('VLAN_INTERFACE')
+    if intf_dict:
+        for intf in intf_dict:
+            if 'static_anycast_gateway' in intf_dict[intf] and 'true' == intf_dict[intf]['static_anycast_gateway']:
+                if not body:
+                    body.append([sag_mac, intf])
+                else:
+                    body.append(['', intf])
+    
     click.echo("Static Anycast Gateway Information")
-    click.echo(tabulate([row], ["MacAddress"], tablefmt='simple'))
+    click.echo(tabulate(body, header, tablefmt='simple'))
 
 # Load plugins and register them
 helper = util_base.UtilHelper()

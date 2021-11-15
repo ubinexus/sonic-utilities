@@ -10,9 +10,9 @@ from importlib import reload
 
 show_sag_output="""\
 Static Anycast Gateway Information
-MacAddress
------------------
-00:11:22:33:44:55
+MacAddress         Interfaces
+-----------------  ------------
+00:11:22:33:44:55  Vlan1000
 """
 
 class TestSag(object):
@@ -29,6 +29,20 @@ class TestSag(object):
                         ["00:22:33:44:55:66"], obj=db)
         assert result.exit_code != 0, f"sag invalid mac with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
         assert {"gateway_mac": "00:11:22:33:44:55"} == db.cfgdb.get_entry("SAG", "GLOBAL")
+    
+    def test_config_del_add_invalid_sag_mac_address(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["static-anycast-gateway"].commands["mac_address"].commands["del"],
+                        ["00:11:22:33:44:55"], obj=db)
+        assert result.exit_code == 0, f"sag invalid mac with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
+        assert not db.cfgdb.get_entry("SAG", "GLOBAL")
+        
+        result = runner.invoke(config.config.commands["static-anycast-gateway"].commands["mac_address"].commands["add"],
+                        ["01:22:33:44:55:66"], obj=db)
+        assert result.exit_code != 0, f"sag invalid mac with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
+        assert {"gateway_mac": "01:11:22:33:44:55"} != db.cfgdb.get_entry("SAG", "GLOBAL")
 
     def test_config_del_add_sag_mac_address(self):
         runner = CliRunner()
@@ -48,7 +62,7 @@ class TestSag(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["vlan"].commands["static-anycast-gateway"].commands["add"],
+        result = runner.invoke(config.config.commands["vlan"].commands["static-anycast-gateway"].commands["enable"],
                         ["2000"], obj=db)
         assert result.exit_code == 0, f"sag invalid vlan with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
         assert {"static_anycast_gateway": "true"}.items() <= db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan2000").items()
@@ -57,7 +71,7 @@ class TestSag(object):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(config.config.commands["vlan"].commands["static-anycast-gateway"].commands["del"],
+        result = runner.invoke(config.config.commands["vlan"].commands["static-anycast-gateway"].commands["disable"],
                         ["1000"], obj=db)
         assert result.exit_code == 0, f"sag invalid vlan with code {type(result.exit_code)}:{result.exit_code} Output:{result.output}"
         assert {"static_anycast_gateway": "false"}.items() <= db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000").items()

@@ -192,14 +192,14 @@ def del_vlan_member(db, vid, port):
 def static_anycast_gateway():
     pass
 
-@static_anycast_gateway.command('add')
+@static_anycast_gateway.command('enable')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @clicommon.pass_db
-def add_vlan_sag(db, vid):
+def enable_vlan_sag(db, vid):
     """Enable static-anycast-gatweay on VLAN interface"""
     ctx = click.get_current_context()
 
-    log.log_info(f"'vlan static-anycast-gateway add {vid}' executing...")
+    log.log_info(f"'vlan static-anycast-gateway enable {vid}' executing...")
 
     vlan = f'Vlan{vid}'
     if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
@@ -209,14 +209,14 @@ def add_vlan_sag(db, vid):
     click.echo('static-anycast-gateway setting saved to ConfigDB')
 
 
-@static_anycast_gateway.command('del')
+@static_anycast_gateway.command('disable')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @clicommon.pass_db
-def del_vlan_sag(db, vid):
+def disable_vlan_sag(db, vid):
     """Disable static-anycast-gatweay on VLAN interface"""
     ctx = click.get_current_context()
 
-    log.log_info(f"'vlan static-anycast-gateway del {vid}' executing...")
+    log.log_info(f"'vlan static-anycast-gateway disable {vid}' executing...")
 
     if not clicommon.is_vlanid_in_range(vid):
         ctx.fail(f"Invalid VLAN ID {vid} (1-4094)")
