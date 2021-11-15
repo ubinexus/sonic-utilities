@@ -11,7 +11,6 @@ def fgnhg():
     """Show FGNHG information"""
     pass
 
-
 @fgnhg.command()
 @click.argument('nhg', required=False)
 def active_hops(nhg):
@@ -73,10 +72,8 @@ def active_hops(nhg):
         for nexthop, nexthop_metadata in fg_nhg_member_table.items():
             alias_list.append(nexthop_metadata['FG_NHG'])
             nexthop_alias[nexthop] = nexthop_metadata['FG_NHG']
-
         if nhg not in alias_list:
             click.echo ("Please provide a valid NHG alias")
-
         else:
             for nhg_prefix in table_keys:
                 t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
