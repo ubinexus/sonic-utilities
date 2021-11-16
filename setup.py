@@ -58,6 +58,7 @@ setup(
         'watchdogutil',
     ],
     package_data={
+        'generic_config_updater': ['generic_updater_config.conf.json'],
         'show': ['aliases.ini'],
         'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
@@ -128,6 +129,7 @@ setup(
         'scripts/storyteller',
         'scripts/syseeprom-to-json',
         'scripts/tempershow',
+        'scripts/tunnelstat',
         'scripts/update_json.py',
         'scripts/voqutil',
         'scripts/warm-reboot',
@@ -135,7 +137,10 @@ setup(
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
         'scripts/centralize_database',
-        'scripts/null_route_helper'
+        'scripts/null_route_helper',
+        'scripts/coredump_gen_handler.py',
+        'scripts/techsupport_cleanup.py',
+        'scripts/check_db_integrity.py'
     ],
     entry_points={
         'console_scripts': [
@@ -206,6 +211,7 @@ setup(
     ],
     tests_require = [
         'pyfakefs',
+        'responses',
         'pytest',
         'mockredispy>=2.9.3',
         'deepdiff==5.2.3'

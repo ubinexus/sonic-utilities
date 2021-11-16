@@ -57,7 +57,6 @@ from . import system_health
 from . import warm_restart
 from . import plugins
 
-
 # Global Variables
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
@@ -915,22 +914,36 @@ def link_local_mode(verbose):
     """show ipv6 link-local-mode"""
     header = ['Interface Name', 'Mode']
     body = []
-    interfaces = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE']
+    tables = ['PORT', 'PORTCHANNEL', 'VLAN']
     config_db = ConfigDBConnector()
     config_db.connect()
+    interface = ""
 
-    for i in interfaces:
-        interface_dict = config_db.get_table(i)
+    for table in tables:
+        if table == "PORT":
+            interface = "INTERFACE"
+        elif table == "PORTCHANNEL":
+            interface = "PORTCHANNEL_INTERFACE"
+        elif table == "VLAN":
+            interface = "VLAN_INTERFACE"
+
+        port_dict = config_db.get_table(table)
+        interface_dict = config_db.get_table(interface)
         link_local_data = {}
 
-        if interface_dict:
-          for interface,value in interface_dict.items():
-             if 'ipv6_use_link_local_only' in value:
-                 link_local_data[interface] = interface_dict[interface]['ipv6_use_link_local_only']
-                 if link_local_data[interface] == 'enable':
-                     body.append([interface, 'Enabled'])
-                 else:
-                     body.append([interface, 'Disabled'])
+        for port in port_dict.keys():
+            if port not in interface_dict:
+                body.append([port, 'Disabled'])
+            elif interface_dict:
+                value = interface_dict[port]
+                if 'ipv6_use_link_local_only' in value:
+                    link_local_data[port] = interface_dict[port]['ipv6_use_link_local_only']
+                    if link_local_data[port] == 'enable':
+                        body.append([port, 'Enabled'])
+                    else:
+                        body.append([port, 'Disabled'])
+                else:
+                    body.append([port, 'Disabled'])
 
     click.echo(tabulate(body, header, tablefmt="grid"))
 
@@ -1465,10 +1478,20 @@ def aaa(db):
         'authentication': {
             'login': 'local (default)',
             'failthrough': 'False (default)'
+        },
+        'authorization': {
+            'login': 'local (default)'
+        },
+        'accounting': {
+            'login': 'disable (default)'
         }
     }
     if 'authentication' in data:
         aaa['authentication'].update(data['authentication'])
+    if 'authorization' in data:
+        aaa['authorization'].update(data['authorization'])
+    if 'accounting' in data:
+        aaa['accounting'].update(data['accounting'])
     for row in aaa:
         entry = aaa[row]
         for key in entry:
@@ -1676,12 +1699,10 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
-
 # Load plugins and register them
 helper = util_base.UtilHelper()
 for plugin in helper.load_plugins(plugins):
     helper.register_plugin(plugin, cli)
-
 
 if __name__ == '__main__':
     cli()
