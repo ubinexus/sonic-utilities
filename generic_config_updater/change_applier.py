@@ -13,25 +13,23 @@ UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
-print_to_stdout = False
 
-def set_print_options(to_console=False, to_stdout=False):
-    global print_to_console, print_to_stdout
+def set_verbose(verbose=False):
+    global print_to_console, logger
 
-    print_to_console = to_console
-    print_to_stdout = to_stdout
-
-
-def log_debug(m):
-    logger.log_debug(m, print_to_console)
-    if print_to_stdout:
-        print(m)
+    print_to_console = verbose
+    if verbose:
+        logger.set_min_log_priority_debug()
+    else:
+        logger.set_min_log_priority_notice()
 
 
-def log_error(m):
-    logger.log_error(m, print_to_console)
-    if print_to_stdout:
-        print(m)
+def _log_debug(m):
+    logger.log(logger.LOG_PRIORITY_DEBUG, m, print_to_console)
+
+
+def _log_error(m):
+    logger.log(logger.LOG_PRIORITY_ERROR, m, print_to_console)
 
 
 def get_config_db():
@@ -100,9 +98,9 @@ class ChangeApplier:
         for cmd in lst_cmds:
             ret = self._invoke_cmd(cmd, old_cfg, upd_cfg, keys)
             if ret:
-                log_error("service invoked: {} failed with ret={}".format(cmd, ret))
+                _log_error("service invoked: {} failed with ret={}".format(cmd, ret))
                 return ret
-            log_debug("service invoked: {}".format(cmd))
+            _log_debug("service invoked: {}".format(cmd))
         return 0
 
 
@@ -114,11 +112,11 @@ class ChangeApplier:
             if run_data != upd_data:
                 set_config(self.config_db, tbl, key, upd_data)
                 upd_keys[tbl][key] = {}
-                log_debug("Patch affected tbl={} key={}".format(tbl, key))
+                _log_debug("Patch affected tbl={} key={}".format(tbl, key))
 
 
     def _report_mismatch(self, run_data, upd_data):
-        log_error("run_data vs expected_data: {}".format(
+        _log_error("run_data vs expected_data: {}".format(
             str(jsondiff.diff(run_data, upd_data))[0:40]))
 
 
@@ -138,7 +136,7 @@ class ChangeApplier:
                 self._report_mismatch(run_data, upd_data)
                 ret = -1
         if ret:
-            log_error("Failed to apply Json change")
+            _log_error("Failed to apply Json change")
         return ret
 
 

@@ -39,6 +39,9 @@
         },
         "DHCP_SERVER": {
             "services_to_validate": [ "dhcp-relay" ]
+        },
+        "VLAN": {
+            "services_to_validate": [ "vlan-service" ]
         }
     },
     "services": {
@@ -53,6 +56,9 @@
         },
         "dhcp-relay": {
             "validate_commands": [ "generic_config_updater.services_validator.dhcp_validator" ]
+        },
+        "vlan-service": {
+            "validate_commands": [ "generic_config_updater.services_validator.vlan_validator" ]
         }
     }
 }
