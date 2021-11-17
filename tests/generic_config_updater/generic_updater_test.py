@@ -72,9 +72,9 @@ class TestPatchApplier(unittest.TestCase):
             [Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH]
         config_wrapper.validate_config_db_config.side_effect = \
             create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): valid_config_db})
-        config_wrapper.has_empty_tables.side_effect = \
-            create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): \
-                (not(valid_patch_does_not_produce_empty_tables), ["AnyTable"])})
+        empty_tables = [] if valid_patch_does_not_produce_empty_tables else ["AnyTable"]
+        config_wrapper.get_empty_tables.side_effect = \
+            create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): empty_tables})
 
         patch_wrapper = Mock()
         patch_wrapper.validate_config_db_patch_has_yang_models.side_effect = \
