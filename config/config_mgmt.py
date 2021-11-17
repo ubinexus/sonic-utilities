@@ -5,7 +5,9 @@ Port Breakout.
 
 import os
 import re
+import shutil
 import syslog
+import tempfile
 import yang as ly
 from json import load
 from sys import flags
@@ -220,7 +222,7 @@ class ConfigMgmt():
 
         return
 
-    def add_module(self, yang_module_str, replace_if_exists=False):
+    def add_module(self, yang_module_str):
         """
         Validate and add new YANG module to the system.
 
@@ -233,7 +235,7 @@ class ConfigMgmt():
 
         module_name = self.get_module_name(yang_module_str)
         module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
-        if os.path.exists(module_path) and not replace_if_exists:
+        if os.path.exists(module_path):
             raise Exception('{} already exists'.format(module_name))
         with open(module_path, 'w') as module_file:
             module_file.write(yang_module_str)
@@ -245,7 +247,7 @@ class ConfigMgmt():
 
     def remove_module(self, module_name):
         """
-        Remove YANG module on the system and validate.
+        Remove YANG module from the system and validate.
 
         Parameters:
             module_name (str): YANG module name.
@@ -257,13 +259,12 @@ class ConfigMgmt():
         module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
         if not os.path.exists(module_path):
             return
-        with open(module_path, 'r') as module_file:
-            yang_module_str = module_file.read()
+        temp_module_path = tempfile.mktemp()
         try:
-            os.remove(module_path)
+            shutil.move(module_path, temp_module_path)
             self.__init_sonic_yang()
         except Exception:
-            self.add_module(yang_module_str)
+            shutil.move(temp_module_path, module_path)
             raise
 
     @staticmethod
