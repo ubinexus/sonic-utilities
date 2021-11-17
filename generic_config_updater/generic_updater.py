@@ -55,8 +55,8 @@ class PatchApplier:
         # Validate target config does not have empty tables since they do not show up in ConfigDb
         self.logger.log_notice("Validating target config does not have empty tables, " \
                                "since they do not show up in ConfigDb.")
-        has_empty_tables, empty_tables = self.config_wrapper.has_empty_tables(target_config)
-        if has_empty_tables:
+        empty_tables = self.config_wrapper.get_empty_tables(target_config)
+        if empty_tables: # if there are empty tables
             empty_tables_txt = ", ".join(empty_tables)
             raise ValueError("Given patch is not valid because it will result in empty tables " \
                              "which is not allowed in ConfigDb. " \
