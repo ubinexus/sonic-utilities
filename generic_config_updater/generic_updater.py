@@ -67,8 +67,12 @@ class PatchApplier:
             self.logger.log_notice(f"  * {change}")
 
         # Apply changes in order
-        self.logger.log_notice("Applying changes in order.")
+        if changes_len:
+            self.logger.log_notice(f"Applying {changes_len} change{'s' if changes_len != 1 else ''} in order:")
+        else:
+            self.logger.log_notice(f"No changes to apply.")
         for change in changes:
+            self.logger.log_notice(f"  * {change}")
             self.changeapplier.apply(change)
 
         # Validate config updated successfully
