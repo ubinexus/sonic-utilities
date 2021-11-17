@@ -259,12 +259,12 @@ class ConfigMgmt():
         module_path = os.path.join(YANG_DIR, '{}.yang'.format(module_name))
         if not os.path.exists(module_path):
             return
-        temp_module_path = tempfile.mktemp()
+        temp = tempfile.NamedTemporaryFile(delete=False)
         try:
-            shutil.move(module_path, temp_module_path)
+            shutil.move(module_path, temp.name)
             self.__init_sonic_yang()
         except Exception:
-            shutil.move(temp_module_path, module_path)
+            shutil.move(temp.name, module_path)
             raise
 
     @staticmethod
