@@ -23,8 +23,10 @@ setup(
         'acl_loader',
         'clear',
         'clear.plugins',
+        'clear.plugins.auto',
         'config',
         'config.plugins',
+        'config.plugins.auto',
         'connect',
         'consutil',
         'counterpoll',
@@ -48,6 +50,7 @@ setup(
         'show',
         'show.interfaces',
         'show.plugins',
+        'show.plugins.auto',
         'sonic_installer',
         'sonic_installer.bootloader',
         'sonic_package_manager',
@@ -56,6 +59,7 @@ setup(
         'undebug',
         'utilities_common',
         'watchdogutil',
+        'sonic_cli_gen',
     ],
     package_data={
         'generic_config_updater': ['generic_updater_config.conf.json'],
@@ -138,8 +142,10 @@ setup(
         'scripts/sonic-kdump-config',
         'scripts/centralize_database',
         'scripts/null_route_helper',
-        'scripts/check_db_integrity.py',
-        'scripts/storm_control.py'
+        'scripts/coredump_gen_handler.py',
+        'scripts/techsupport_cleanup.py',
+        'scripts/storm_control.py',
+        'scripts/check_db_integrity.py'
     ],
     entry_points={
         'console_scripts': [
@@ -171,6 +177,7 @@ setup(
             'spm = sonic_package_manager.main:cli',
             'undebug = undebug.main:cli',
             'watchdogutil = watchdogutil.main:watchdogutil',
+            'sonic-cli-gen = sonic_cli_gen.main:cli',
         ]
     },
     install_requires=[
@@ -210,6 +217,7 @@ setup(
     ],
     tests_require = [
         'pyfakefs',
+        'responses',
         'pytest',
         'mockredispy>=2.9.3',
         'deepdiff==5.2.3'
