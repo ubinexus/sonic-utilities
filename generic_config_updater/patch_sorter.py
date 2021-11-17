@@ -599,8 +599,8 @@ class NoEmptyTableMoveValidator:
         return True
 
     def _validate_table(self, table, config):
-        is_empty = table in config and not(config[table])
-        return not(is_empty)
+        # the only invalid case is if table exists and is empty
+        return table not in config or config[table]
 
 class LowLevelMoveGenerator:
     """
