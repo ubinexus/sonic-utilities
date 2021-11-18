@@ -980,9 +980,9 @@ def rollback(db, port, fwfile):
 @click.argument('target', required=True,  metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
 @clicommon.pass_db
 def reset(db, port, target):
-    """Enable PRBS mode on a port args port target mode_value lane_mask prbs_direction"""
+    """reset a target on the cable 0 NIC 1 ToR A 2 ToR B 3 Local """
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
@@ -1006,6 +1006,7 @@ def reset(db, port, target):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
 
+        port = platform_sfputil_helper.get_interface_alias(port, db)
         if rc == 0:
             click.echo("Success in reset port {}".format(port))
         else:
@@ -1016,12 +1017,12 @@ def reset(db, port, target):
 @muxcable.command()
 @click.argument('port', required=True, default=None)
 @click.argument('target', required=True,  metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
-@click.argument('mode', required=True, metavar='<target> 0 disable 1 enable',  default=True, type=click.Choice(["0", "1"]))
+@click.argument('mode', required=True, metavar='<mode> 0 disable 1 enable',  default=True, type=click.Choice(["0", "1"]))
 @clicommon.pass_db
 def set_anlt(db, port, target, mode):
-    """Enable PRBS mode on a port args port target mode_value lane_mask prbs_direction"""
+    """Enable anlt mode on a port args port <target> 0 NIC 1 ToR A 2 ToR B 3 Local enable/disable 1/0"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
@@ -1047,8 +1048,50 @@ def set_anlt(db, port, target, mode):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
 
+        port = platform_sfputil_helper.get_interface_alias(port, db)
         if rc == 0:
             click.echo("Success in anlt enable/disable port {} to {}".format(port, mode))
         else:
             click.echo("ERR: Unable to set anlt enable/disable port {} to {}".format(port, mode))
+            sys.exit(CONFIG_FAIL)
+
+@muxcable.command()
+@click.argument('port', required=True, default=None)
+@click.argument('target', required=True,  metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('mode', required=True, metavar='<mode> FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2',  default=True, type=click.Choice(["0", "1", "2"]))
+@clicommon.pass_db
+def set_fec(db, port, target, mode):
+    """Enable fec mode on a port args port <target> 0 NIC 1 ToR A 2 ToR B 3 Local <mode_value> FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2 """
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+    if port is not None:
+        click.confirm(
+            ('Muxcable at port {} will be changed to enable/disable fec mode {} state; disable traffic Continue?'.format(port, mode)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        param_dict["target"] = target
+        param_dict["mode"] = mode
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_prbs", "status", "True", "XCVRD_CONFIG_PRBS_CMD", "XCVRD_CONFIG_PRBS_CMD_ARG", "XCVRD_CONFIG_PRBS_RSP", port, 30, param_dict, "fec")
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        if rc == 0:
+            click.echo("Success in fec enable/disable port {} to {}".format(port, mode))
+        else:
+            click.echo("ERR: Unable to set fec enable/disable port {} to {}".format(port, mode))
             sys.exit(CONFIG_FAIL)

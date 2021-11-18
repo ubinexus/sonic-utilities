@@ -656,12 +656,13 @@ def config(db, port, json_output):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def berinfo(db, port, target):
+def berinfo(db, port, target, json_output):
     """Show muxcable BER (bit error rate) information"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
@@ -690,7 +691,15 @@ def berinfo(db, port, target):
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
 
-        click.echo("{}".format(json.dumps(result, indent=4)))
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
+
     else:
         click.echo("Did not get a valid Port for ber value".format(port))
         sys.exit(CONFIG_FAIL)
@@ -698,9 +707,10 @@ def berinfo(db, port, target):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def eyeinfo(db, port, target):
+def eyeinfo(db, port, target, json_output):
     """Show muxcable eye information in mv"""
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
@@ -731,8 +741,15 @@ def eyeinfo(db, port, target):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
-        click.echo("{}".format(json.dumps(result, indent=4)))
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
+
     else:
         click.echo("Did not get a valid Port for ber value".format(port))
         sys.exit(CONFIG_FAIL)
@@ -740,9 +757,10 @@ def eyeinfo(db, port, target):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def fecstatistics(db, port, target):
+def fecstatistics(db, port, target, json_output):
     """Show muxcable fec layer statistics information, target 0 NIC 1 ToR A 2 ToR B"""
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
@@ -773,8 +791,15 @@ def fecstatistics(db, port, target):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
-        click.echo("{}".format(json.dumps(result, indent=4)))
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
+
     else:
         click.echo("Did not get a valid Port for ber value".format(port))
         sys.exit(CONFIG_FAIL)
@@ -782,9 +807,10 @@ def fecstatistics(db, port, target):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.INT)
+@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def pcsstatistics(db, port, target):
+def pcsstatistics(db, port, target, json_output):
     """Show muxcable pcs layer statistics information"""
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
@@ -815,6 +841,14 @@ def pcsstatistics(db, port, target):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
 
         click.echo("{}".format(json.dumps(result, indent=4)))
     else:
@@ -824,11 +858,12 @@ def pcsstatistics(db, port, target):
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.argument('option', required=False, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def debugdumpregisters(db, port, option):
+def debugdumpregisters(db, port, option, json_output):
     """Show muxcable debug deump registers information, preagreed by vendors"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
@@ -856,19 +891,26 @@ def debugdumpregisters(db, port, option):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
-        click.echo("{}".format(json.dumps(result, indent=4)))
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for debug dump registers".format(port))
         sys.exit(CONFIG_FAIL)
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def alivecablestatus(db, port):
+def alivecablestatus(db, port, json_output):
     """Show muxcable alive information """
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
@@ -893,7 +935,14 @@ def alivecablestatus(db, port):
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RES")
 
-        click.echo("{}".format(json.dumps(result, indent=4)))
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for cable alive status".format(port))
         sys.exit(CONFIG_FAIL)
@@ -1374,7 +1423,7 @@ def metrics(db, port, json_output):
 def event_log(db, port, json_output):
     """Show muxcable event log <port>"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_EVENT_LOG_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_EVENT_LOG_RSP")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_EVENT_LOG_RES")
@@ -1397,19 +1446,26 @@ def event_log(db, port, json_output):
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_EVENT_LOG_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_EVENT_LOG_RES")
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_EVENT_LOG_CMD")
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
-        click.echo("{}".format(json.dumps(mux_info_dict, indent=4)))
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for event log".format(port))
         sys.exit(CONFIG_FAIL)
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
-def get_fec_anlt_speed(db, port):
+def get_fec_anlt_speed(db, port, json_output):
     """Show muxcable configurations for fec anlt speed <port>"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_FEC_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_FEC_RSP")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_FEC_RES")
@@ -1433,8 +1489,14 @@ def get_fec_anlt_speed(db, port):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_FEC_CMD")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_FEC_RSP")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_FEC_RES")
+        port = platform_sfputil_helper.get_interface_name(port, db)
 
-        click.echo("{}".format(json.dumps(result, indent=4)))
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'VALUE']
+            res = [[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for fec value speed anlt".format(port))
         sys.exit(CONFIG_FAIL)
