@@ -2246,6 +2246,7 @@ This command is used to show the DHCPv6 Relay counter to Vlans.
   admin@sonic:~$ sudo show dhcp6relay_counters counts
    Message Type    Vlan1000
   --------------  ---------
+        Unknown          0
         Solicit          0
       Advertise          0
         Request          0
