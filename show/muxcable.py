@@ -696,8 +696,8 @@ def berinfo(db, port, target, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
 
     else:
@@ -746,8 +746,8 @@ def eyeinfo(db, port, target, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
 
     else:
@@ -796,8 +796,8 @@ def fecstatistics(db, port, target, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
 
     else:
@@ -846,8 +846,8 @@ def pcsstatistics(db, port, target, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
 
         click.echo("{}".format(json.dumps(result, indent=4)))
@@ -896,8 +896,8 @@ def debugdumpregisters(db, port, option, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for debug dump registers".format(port))
@@ -940,8 +940,8 @@ def alivecablestatus(db, port, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for cable alive status".format(port))
@@ -1452,8 +1452,8 @@ def event_log(db, port, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for event log".format(port))
@@ -1495,8 +1495,8 @@ def get_fec_anlt_speed(db, port, json_output):
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
         else:
-            headers = ['PORT', 'VALUE']
-            res = [[key] + [val] for key, val in result.items()]
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
     else:
         click.echo("Did not get a valid Port for fec value speed anlt".format(port))
