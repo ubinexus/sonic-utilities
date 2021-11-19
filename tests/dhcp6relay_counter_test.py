@@ -7,6 +7,7 @@ from click.testing import CliRunner
 expected_counts = """\
   Message Type    Vlan1000
 --------------  ----------
+       Unknown           0
        Solicit           0
      Advertise           0
        Request           0

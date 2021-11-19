@@ -9,7 +9,7 @@ from swsscommon.swsscommon import SonicV2Connector
 DHCPv6_COUNTER_TABLE = 'DHCPv6_COUNTER_TABLE'
 
 # DHCPv6 Counter Messages
-messages = ["Solicit", "Advertise", "Request", "Confirm", "Renew", "Rebind", "Reply", "Release", "Decline", "Relay-Forward", "Relay-Reply"]
+messages = ["Unknown", "Solicit", "Advertise", "Request", "Confirm", "Renew", "Rebind", "Reply", "Release", "Decline", "Relay-Forward", "Relay-Reply"]
 
 class DHCPv6_Counter(object):
     def __init__(self):
