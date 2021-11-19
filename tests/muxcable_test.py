@@ -824,6 +824,8 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={0: 0,
+                                                                          1: "active"}))
     def test_show_mux_fecstatistics(self):
         runner = CliRunner()
         db = Db()
@@ -837,7 +839,9 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
-    def test_show_mux_debugdeumpregisters(self):
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={0: 0,
+                                                                          1: "active"}))
+    def test_show_mux_event_log(self):
         runner = CliRunner()
         db = Db()
 
@@ -850,11 +854,13 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
-    def test_show_mux_debugdeumpregisters(self):
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={0: 0,
+                                                                          1: "active"}))
+    def test_show_mux_get_fec_anlt_speed(self):
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(show.cli.commands["muxcable"].commands["get_fec_anlt_speed"],
+        result = runner.invoke(show.cli.commands["muxcable"].commands["get-fec-anlt-speed"],
                                ["Ethernet0"], obj=db)
 
         assert result.exit_code == 0
