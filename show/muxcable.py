@@ -1474,7 +1474,6 @@ def get_fec_anlt_speed(db, port, json_output):
 
         res_dict = {}
         result = {}
-        mux_info_dict, mux_info_active_dict = {}, {}
 
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
