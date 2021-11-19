@@ -362,7 +362,7 @@ def enable(db, port, target, mode_value, lane_mask, prbs_direction):
        example sudo config mux prbs enable Ethernet48 0 3 3 0
     """
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
@@ -386,6 +386,7 @@ def enable(db, port, target, mode_value, lane_mask, prbs_direction):
 
         rc = res_dict[0]
 
+        port = platform_sfputil_helper.get_interface_alias(port, db)
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
@@ -406,7 +407,7 @@ def disable(db, port, target, prbs_direction):
     """Disable PRBS mode on a port
        example sudo config mux prbs disable Ethernet48 0
     """
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
@@ -432,6 +433,7 @@ def disable(db, port, target, prbs_direction):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
 
+        port = platform_sfputil_helper.get_interface_alias(port, db)
         if rc == 0:
             click.echo("Success in disable PRBS mode port {} on target {}".format(port, target))
         else:
@@ -454,7 +456,7 @@ def loopback():
 def enable(db, port, target, lane_mask, mode_value):
     """Enable loopback mode on a port args port target lane_map mode_value"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
@@ -481,6 +483,7 @@ def enable(db, port, target, lane_mask, mode_value):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_LOOP_RSP")
 
+        port = platform_sfputil_helper.get_interface_alias(port, db)
         if rc == 0:
             click.echo("Success in LOOP mode port {} to {}".format(port, mode_value))
         else:
@@ -495,7 +498,7 @@ def enable(db, port, target, lane_mask, mode_value):
 def disable(db, port, target):
     """Disable loopback mode on a port"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
@@ -520,6 +523,7 @@ def disable(db, port, target):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_LOOP_RSP")
 
+        port = platform_sfputil_helper.get_interface_alias(port, db)
         if rc == 0:
             click.echo("Success in disable LOOP mode port {} to {}".format(port, target))
         else:

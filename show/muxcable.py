@@ -1146,6 +1146,7 @@ def switchmode(db, port):
             res_dict[1] = "unknown"
             res_dict = update_and_get_response_for_xcvr_cmd(
                 "state", "state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", None, "XCVRD_SHOW_HWMODE_SWMODE_RSP", port, 1, None, "probe")
+            port = platform_sfputil_helper.get_interface_alias(port, db)
             temp_list.append(port)
             temp_list.append(res_dict[1])
             rc = res_dict[1]

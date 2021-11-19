@@ -778,8 +778,10 @@ class TestMuxcable(object):
 
         assert result.exit_code == 1
 
-    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
-    @mock.patch('sonic_y_cable.y_cable.get_eye_info', mock.MagicMock(return_value=[0, 0]))
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     def test_show_muxcable_eye_info(self):
         runner = CliRunner()
         db = Db()
@@ -789,8 +791,10 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
 
-    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
-    @mock.patch('sonic_y_cable.y_cable.get_ber_info', mock.MagicMock(return_value=[0, 0]))
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     def test_show_muxcable_ber_info(self):
         runner = CliRunner()
         db = Db()
@@ -800,8 +804,14 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
 
-    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
-    @mock.patch('sonic_y_cable.y_cable.enable_prbs_mode', mock.MagicMock(return_value=1))
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     def test_config_muxcable_enable_prbs(self):
         runner = CliRunner()
         db = Db()
@@ -811,8 +821,14 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
 
-    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
-    @mock.patch('sonic_y_cable.y_cable.enable_loopback_mode', mock.MagicMock(return_value=1))
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     def test_config_muxcable_enable_loopback(self):
         runner = CliRunner()
         db = Db()
@@ -822,8 +838,14 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
 
-    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
-    @mock.patch('sonic_y_cable.y_cable.disable_prbs_mode', mock.MagicMock(return_value=1))
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     def test_config_muxcable_disble_prbs(self):
         runner = CliRunner()
         db = Db()
@@ -833,14 +855,20 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
 
-    @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
-    @mock.patch('sonic_y_cable.y_cable.disable_loopback_mode', mock.MagicMock(return_value=1))
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     def test_config_muxcable_disable_loopback(self):
         runner = CliRunner()
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["disable"],
-                               ["0", "0"], obj=db)
+                               ["Ethernet0", "0"], obj=db)
 
         assert result.exit_code == 0
 
