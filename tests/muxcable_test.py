@@ -841,6 +841,8 @@ class TestMuxcable(object):
                                                                                                       1: "True"}))
     @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={0: 0,
                                                                           1: "active"}))
+    @mock.patch('show.muxcable.get_event_logs', mock.MagicMock(return_value={0: 0,
+                                                                          2: "log"}))
     def test_show_mux_event_log(self):
         runner = CliRunner()
         db = Db()
