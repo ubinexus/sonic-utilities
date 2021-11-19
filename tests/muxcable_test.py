@@ -781,6 +781,8 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "active"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={0: 0,
+                                                                          1: "active"}))
     @mock.patch('click.confirm', mock.MagicMock(return_value=("y")))
     def test_show_muxcable_eye_info(self):
         runner = CliRunner()
@@ -794,6 +796,8 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={0: 0,
+                                                                          1: "active"}))
     def test_show_mux_debugdeumpregisters(self):
         runner = CliRunner()
         db = Db()
@@ -806,6 +810,8 @@ class TestMuxcable(object):
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={0: 0,
+                                                                          1: "active"}))
     def test_show_mux_pcsstatistics(self):
         runner = CliRunner()
         db = Db()

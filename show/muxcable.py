@@ -762,7 +762,7 @@ def eyeinfo(db, port, target, json_output):
 def fecstatistics(db, port, target, json_output):
     """Show muxcable fec layer statistics information, target 0 NIC 1 ToR A 2 ToR B"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
@@ -812,7 +812,7 @@ def fecstatistics(db, port, target, json_output):
 def pcsstatistics(db, port, target, json_output):
     """Show muxcable pcs layer statistics information"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD_ARG")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_GET_BER_RSP")
