@@ -5,10 +5,8 @@ import pytest
 from click.testing import CliRunner
 
 from utilities_common import multi_asic
-from utilities_common.db import Db
 from utilities_common import constants
 
-from unittest import mock
 from unittest.mock import patch
 
 from sonic_py_common import device_info
@@ -275,7 +273,6 @@ class TestBgpCommands(object):
         self, mock_is_chassis, setup_bgp_commands,
         setup_single_bgp_instance_chassis
     ):
-
         mock_is_chassis.return_value = {'switch_type': 'voq'}
         show = setup_bgp_commands
         runner = CliRunner()
@@ -295,7 +292,6 @@ class TestBgpCommands(object):
         self, mock_is_chassis, setup_bgp_commands,
         setup_single_bgp_instance_chassis
     ):
-
         mock_is_chassis.return_value = {'switch_type': 'voq'}
         show = setup_bgp_commands
         runner = CliRunner()
@@ -315,7 +311,6 @@ class TestBgpCommands(object):
         self, mock_is_chassis, setup_bgp_commands,
         setup_single_bgp_instance_chassis
     ):
-
         mock_is_chassis.return_value = {'switch_type': 'voq'}
         show = setup_bgp_commands
         runner = CliRunner()

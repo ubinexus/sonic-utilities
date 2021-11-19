@@ -4,8 +4,6 @@ import re
 import sys
 from unittest import mock
 
-from importlib import reload
-
 import pytest
 from sonic_py_common import device_info, multi_asic
 from swsscommon.swsscommon import ConfigDBConnector
