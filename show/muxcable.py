@@ -1431,7 +1431,8 @@ def event_log(db, port, json_output):
     if port is not None:
 
         res_dict = {}
-        mux_info_dict, mux_info_active_dict = {}, {}
+        result = {}
+        mux_info_dict = {}
 
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
@@ -1440,7 +1441,7 @@ def event_log(db, port, json_output):
             "show_event", "status", "True", "XCVRD_EVENT_LOG_CMD", None, "XCVRD_EVENT_LOG_RSP", port, 1000, None, "probe")
 
         if res_dict[1] == "True":
-            get_event_logs(port, res_dict, mux_info_dict)
+            result = get_event_logs(port, res_dict, mux_info_dict)
 
 
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_EVENT_LOG_RSP")
