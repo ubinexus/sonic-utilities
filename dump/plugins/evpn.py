@@ -67,8 +67,10 @@ class Evpn(Executor):
         if self.remote_ip in self.asic_tunnel_cache:
             ret = self.asic_tunnel_cache[self.remote_ip]
         else:
-            req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_TUNNEL", field="SAI_TUNNEL_ATTR_ENCAP_DST_IP", value=self.remote_ip, ns=self.ns,
-                               return_fields=["SAI_TUNNEL_ATTR_TYPE", "SAI_TUNNEL_ATTR_ENCAP_MAPPERS", "SAI_TUNNEL_ATTR_DECAP_MAPPERS"])
+            req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_TUNNEL",
+                               field="SAI_TUNNEL_ATTR_ENCAP_DST_IP", value=self.remote_ip, ns=self.ns,
+                               return_fields=["SAI_TUNNEL_ATTR_TYPE", "SAI_TUNNEL_ATTR_ENCAP_MAPPERS",
+                               "SAI_TUNNEL_ATTR_DECAP_MAPPERS"])
             ret = self.match_engine.fetch(req)
             self.asic_tunnel_cache[self.remote_ip] = ret
         ret["keys"] = [x for x in ret["keys"] if ret["return_values"][x]["SAI_TUNNEL_ATTR_TYPE"] == "SAI_TUNNEL_TYPE_VXLAN"]
