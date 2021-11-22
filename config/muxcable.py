@@ -34,6 +34,14 @@ def db_connect(db_name, namespace=EMPTY_NAMESPACE):
     return swsscommon.DBConnector(db_name, REDIS_TIMEOUT_MSECS, True, namespace)
 
 
+target_dict = { "NIC":"0",
+                "TORA":"1",
+                "TORB":"2",
+                "LOCAL":"3"}
+
+def parse_target(target):
+    return target_dict.get(target, None)
+
 def get_value_for_key_in_dict(mdict, port, key, table_name):
     value = mdict.get(key, None)
     if value is None:
@@ -352,7 +360,7 @@ def prbs():
 
 @prbs.command()
 @click.argument('port', required=True, default=None)
-@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.argument('mode_value', required=True, default=None, type=click.INT)
 @click.argument('lane_mask', required=True, default=None, type=click.INT)
 @click.argument('prbs_direction', metavar='<PRBS_DIRECTION> PRBS_DIRECTION_BOTH = 0 PRBS_DIRECTION_GENERATOR = 1 PRBS_DIRECTION_CHECKER = 2', required=False, default="0", type=click.Choice(["0", "1", "2"]))
@@ -376,6 +384,7 @@ def enable(db, port, target, mode_value, lane_mask, prbs_direction):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
         param_dict["mode_value"] = mode_value
         param_dict["lane_mask"] = lane_mask
@@ -400,7 +409,7 @@ def enable(db, port, target, mode_value, lane_mask, prbs_direction):
 
 @prbs.command()
 @click.argument('port', required=True, default=None)
-@click.argument('target', required=True, metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.argument('prbs_direction',  metavar='<PRBS_DIRECTION> PRBS_DIRECTION_BOTH = 0 PRBS_DIRECTION_GENERATOR = 1 PRBS_DIRECTION_CHECKER = 2', required=False, default="0", type=click.Choice(["0", "1", "2"]))
 @clicommon.pass_db
 def disable(db, port, target, prbs_direction):
@@ -421,6 +430,7 @@ def disable(db, port, target, prbs_direction):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
         param_dict["direction"] = prbs_direction
 
@@ -449,7 +459,7 @@ def loopback():
 
 @loopback.command()
 @click.argument('port', required=True, default=None)
-@click.argument('target', required=True, metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.argument('lane_mask', required=True, default=None, type=click.INT)
 @click.argument('mode_value', required=False, metavar='<Loop mode> 1 LOOPBACK_MODE_NEAR_END 2 LOOPBACK_MODE_FAR_END', default="1", type=click.Choice(["1", "2"]))
 @clicommon.pass_db
@@ -470,6 +480,7 @@ def enable(db, port, target, lane_mask, mode_value):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
         param_dict["mode_value"] = mode_value
         param_dict["lane_mask"] = lane_mask
@@ -493,7 +504,7 @@ def enable(db, port, target, lane_mask, mode_value):
 
 @loopback.command()
 @click.argument('port', required=True, default=None)
-@click.argument('target', required=True,  metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @clicommon.pass_db
 def disable(db, port, target):
     """Disable loopback mode on a port"""
@@ -512,6 +523,7 @@ def disable(db, port, target):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
 
         res_dict = update_and_get_response_for_xcvr_cmd(
@@ -981,10 +993,10 @@ def rollback(db, port, fwfile):
 
 @muxcable.command()
 @click.argument('port', required=True, default=None)
-@click.argument('target', required=True,  metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @clicommon.pass_db
 def reset(db, port, target):
-    """reset a target on the cable 0 NIC 1 ToR A 2 ToR B 3 Local """
+    """reset a target on the cable NIC TORA TORB Local """
 
     port = platform_sfputil_helper.get_interface_name(port, db)
 
@@ -999,6 +1011,7 @@ def reset(db, port, target):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
 
         res_dict = update_and_get_response_for_xcvr_cmd(
@@ -1020,11 +1033,11 @@ def reset(db, port, target):
 
 @muxcable.command()
 @click.argument('port', required=True, default=None)
-@click.argument('target', required=True,  metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.argument('mode', required=True, metavar='<mode> 0 disable 1 enable',  default=True, type=click.Choice(["0", "1"]))
 @clicommon.pass_db
 def set_anlt(db, port, target, mode):
-    """Enable anlt mode on a port args port <target> 0 NIC 1 ToR A 2 ToR B 3 Local enable/disable 1/0"""
+    """Enable anlt mode on a port args port <target> NIC TORA TORB LOCAL enable/disable 1/0"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
 
@@ -1040,6 +1053,7 @@ def set_anlt(db, port, target, mode):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
         param_dict["mode"] = mode
 
@@ -1061,11 +1075,11 @@ def set_anlt(db, port, target, mode):
 
 @muxcable.command()
 @click.argument('port', required=True, default=None)
-@click.argument('target', required=True,  metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.argument('mode', required=True, metavar='<mode> FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2',  default=True, type=click.Choice(["0", "1", "2"]))
 @clicommon.pass_db
 def set_fec(db, port, target, mode):
-    """Enable fec mode on a port args port <target> 0 NIC 1 ToR A 2 ToR B 3 Local <mode_value> FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2 """
+    """Enable fec mode on a port args port <target>  NIC TORA TORB LOCAL <mode_value> FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2 """
 
     port = platform_sfputil_helper.get_interface_name(port, db)
 
@@ -1081,6 +1095,7 @@ def set_fec(db, port, target, mode):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
         param_dict["mode"] = mode
 

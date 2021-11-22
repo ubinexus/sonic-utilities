@@ -52,6 +52,49 @@ def delete_all_keys_in_db_table(db_type, table_name):
         for key in table_keys[asic_id]:
             table[asic_id]._del(key)
 
+target_dict = { "NIC":"0",
+                "TORA":"1",
+                "TORB":"2",
+                "LOCAL":"3"}
+
+def parse_target(target):
+    return target_dict.get(target, None)
+
+def check_port_in_mux_cable_table(port):
+
+    per_npu_configdb = {}
+    mux_tbl_cfg_db = {}
+    peer_switch_tbl_cfg_db = {}
+    port_mux_tbl_keys = {}
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        # TO-DO replace the macros with correct swsscommon names
+        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_configdb[asic_id].connect()
+        mux_tbl_cfg_db[asic_id] = per_npu_configdb[asic_id].get_table("MUX_CABLE")
+        port_mux_tbl_keys[asic_id] = mux_tbl_cfg_db[asic_id].keys()
+
+    asic_index = None
+    if platform_sfputil is not None:
+        asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+
+    if asic_index is None:
+        # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+        # is fully mocked
+        import sonic_platform_base.sonic_sfp.sfputilhelper
+        asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+            return False
+
+    if port in port_mux_tbl_keys[asic_index]:
+        return True
+    return False
+
 
 def get_response_for_version(port, mux_info_dict):
     state_db = {}
@@ -655,7 +698,7 @@ def config(db, port, json_output):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def berinfo(db, port, target, json_output):
@@ -672,6 +715,7 @@ def berinfo(db, port, target, json_output):
         res_dict = {}
         result = {}
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
 
 
@@ -706,7 +750,7 @@ def berinfo(db, port, target, json_output):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def eyeinfo(db, port, target, json_output):
@@ -723,6 +767,7 @@ def eyeinfo(db, port, target, json_output):
         res_dict = {}
         result = {}
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
 
 
@@ -756,11 +801,11 @@ def eyeinfo(db, port, target, json_output):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def fecstatistics(db, port, target, json_output):
-    """Show muxcable fec layer statistics information, target 0 NIC 1 ToR A 2 ToR B"""
+    """Show muxcable fec layer statistics information, target NIC TORA TORB"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_GET_BER_CMD")
@@ -773,6 +818,7 @@ def fecstatistics(db, port, target, json_output):
         res_dict = {}
         result = {}
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
 
 
@@ -806,7 +852,7 @@ def fecstatistics(db, port, target, json_output):
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
-@click.argument('target', metavar='<target> 0 NIC 1 ToR A 2 ToR B 3 Local', required=True, default=None, type=click.Choice(["0", "1", "2", "3"]))
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
 @clicommon.pass_db
 def pcsstatistics(db, port, target, json_output):
@@ -823,6 +869,7 @@ def pcsstatistics(db, port, target, json_output):
         res_dict = {}
         result = {}
         param_dict = {}
+        target = parse_target(target)
         param_dict["target"] = target
 
 
@@ -849,7 +896,6 @@ def pcsstatistics(db, port, target, json_output):
             res = [[port]+[key] + [val] for key, val in result.items()]
             click.echo(tabulate(res, headers=headers))
 
-        click.echo("{}".format(json.dumps(result, indent=4)))
     else:
         click.echo("Did not get a valid Port for pcs statistics".format(port))
         sys.exit(CONFIG_FAIL)
@@ -999,6 +1045,10 @@ def muxdirection(db, port):
 
     if port is not None:
 
+        if check_port_in_mux_cable_table(port) == False:
+            click.echo("Not Y-cable port")
+            return CONFIG_FAIL
+
         res_dict = {}
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
@@ -1036,6 +1086,9 @@ def muxdirection(db, port):
             if not isinstance(physical_port_list, list):
                 continue
             if len(physical_port_list) != 1:
+                continue
+
+            if not check_port_in_mux_cable_table(port):
                 continue
 
             physical_port = physical_port_list[0]
@@ -1087,6 +1140,10 @@ def switchmode(db, port):
 
     if port is not None:
 
+        if check_port_in_mux_cable_table(port) == False:
+            click.echo("Not Y-cable port")
+            return CONFIG_FAIL
+
         res_dict = {}
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
@@ -1124,6 +1181,9 @@ def switchmode(db, port):
             if not isinstance(physical_port_list, list):
                 continue
             if len(physical_port_list) != 1:
+                continue
+
+            if not check_port_in_mux_cable_table(port):
                 continue
 
             physical_port = physical_port_list[0]

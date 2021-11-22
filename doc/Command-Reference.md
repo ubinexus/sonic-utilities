@@ -5344,10 +5344,10 @@ While displaying the muxcable configuration, users can configure the following f
 **show muxcable ber-info**
 
 This command displays the ber(Bit error rate) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
-0 -> local
-1 -> tor 1
-2 -> tor 2
-3 -> nic
+NIC
+TORA
+TORB
+LOCAL
 
 - Usage:
   ```
@@ -5360,19 +5360,20 @@ This command displays the ber(Bit error rate) of the port user provides on the t
 
 - Example:
     ```
-        admin@sonic:~$ show muxcable ber-info 1 1
+        admin@sonic:~$ show muxcable ber-info Ethernet48 NIC
         Lane1    Lane2
         -------  -------
         0       0
     ```
 
-**show muxcable ber-info**
+**show muxcable eye-info**
 
 This command displays the eye info in mv(milli volts) of the port user provides on the target user provides. The target provided as an integer corresponds to actual target as.
-0 -> local
-1 -> tor 1
-2 -> tor 2
-3 -> nic
+NIC
+TORA
+TORB
+LOCAL
+
 
 - Usage:
   ```
@@ -5384,10 +5385,117 @@ This command displays the eye info in mv(milli volts) of the port user provides 
 
 - Example:
     ```
-        admin@sonic:~$ show muxcable ber-info 1 1
+        admin@sonic:~$ show muxcable eye-info Ethernet48 NIC
         Lane1    Lane2
         -------  -------
         632      622
+    ```
+
+**show muxcable alivecablestatus**
+
+This command displays whether the cable is alive if connected to a muxcable port, which basically means if the NIC side is configured and powered on
+
+
+- Usage:
+  ```
+  Usage: Usage: show mux alivecablestatus [OPTIONS] <port_name>
+  ```
+
+- PORT   required - Port number should be a valid port
+
+- Example:
+    ```
+      admin@sonic:~$ show mux alivecablestatus Ethernet48
+          PORT        ATTR    VALUE
+          ----------  ------  -------
+          Ethernet48  cable   False
+
+    ```
+
+    **show muxcable pcsstatistics**
+
+This command displays pcs layer statistics on the target which the user enters. The attributes will be predefined by the vendor. Target can be any of
+NIC
+TORA
+TORB
+LOCAL
+
+- Usage:
+  ```
+  : show mux pcsstatistics [OPTIONS] <port_name> <target> NIC TORA TORB LOCAL
+
+  ```
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the ber info of.
+
+- Example:
+    ```
+    admin@sonic:~$ show mux pcsstatistics Ethernet48 NIC
+                  PORT        ATTR                    VALUE
+                  ----------  --------------------  -------
+                  Ethernet48  Rx Frames OK                0
+                  Ethernet48  Rx Chk SEQ Errs             0
+                  Ethernet48  Rx Alignment Errs           0
+                  Ethernet48  Rx In Errs                  0
+                  Ethernet48  Rx FrameTooLong Errs        0
+                  Ethernet48  Rx Octets OK                0
+                  Ethernet48  Tx Frames OK                0
+                  Ethernet48  Tx Out Errs                 0
+                  Ethernet48  Tx Octets OK                0
+    ```
+**show muxcable fecstatistics**
+
+This command displays fec layer statistics on the target which the user enters. The attributes will be predefined by the vendor. Target can be any of
+NIC
+TORA
+TORB
+LOCAL
+
+
+- Usage:
+  ```
+  Usage: show mux fecstatistics [OPTIONS] <port_name> <target> NIC TORA TORB LOCAL
+  ```
+
+- PORT   required - Port number should be a valid port
+- TARGET required - the actual target to get the eye info of.
+- Example:
+    ```
+      show mux fec Ethernet48 NIC
+      PORT        ATTR                         VALUE
+      ----------  -------------------------  -------
+      Ethernet48  Total recevied CW                0
+      Ethernet48  Total correct CW                 0
+      Ethernet48  Total corrected CW               0
+      Ethernet48  Total uncorrectable CW           0
+      Ethernet48  Corrected CW ( 1 sym err)        0
+    ```
+
+**show muxcable get-fec-anlt-speed**
+
+This command displays the fec, anlt and speed related configurations for the cable
+
+
+- Usage:
+  ```
+  Usage: Usage: show mux get-fec-anlt-speed [OPTIONS] <port_name>
+  ```
+
+- PORT   required - Port number should be a valid port
+
+- Example:
+    ```
+      admin@sonic:~$ show mux get-fec-anlt-speed Ethernet48
+      PORT        ATTR          VALUE
+      ----------  ----------  -------
+      Ethernet48  fec_nic           0
+      Ethernet48  fec_tor_a         0
+      Ethernet48  fec_tor_b         0
+      Ethernet48  speed         50000
+      Ethernet48  anlt_nic      False
+      Ethernet48  anlt_tor_a    False
+      Ethernet48  anlt_tor_b    False
     ```
 
 ### Muxcable Config commands
@@ -5454,10 +5562,10 @@ While configuring the muxcable, users needs to configure the following fields fo
 
 - PORT   required - Port number should be a valid port
 - TARGET  required - the actual target to run the prbs on
-                         0 -> local side,
-                         1 -> TOR 1
-                         2 -> TOR 2
-                         3 -> NIC
+                        NIC
+                        TORA
+                        TORB
+                        LOCAL
 - MODE_VALUE  required - the mode/type for configuring the PRBS mode.
              0x00 = PRBS 9, 0x01 = PRBS 15, 0x02 = PRBS 23, 0x03 = PRBS 31
 - LANE_MAP  required - an integer representing the lane_map to be run PRBS on
@@ -5465,9 +5573,9 @@ While configuring the muxcable, users needs to configure the following fields fo
              for example 3 -> 0b'0011 , means running on lane0 and lane1
 - Example:
     ```
-        admin@sonic:~$ sudo config muxcable prbs enable 1 1 3 3
+        admin@sonic:~$ sudo config muxcable prbs enable Ethernet48 NIC 3 3
         PRBS config sucessful
-        admin@sonic:~$  sudo config muxcable prbs disable 1 0
+        admin@sonic:~$  sudo config muxcable prbs disable Ethernet48 NIC
         PRBS disable sucessful
     ```
 
@@ -5481,25 +5589,102 @@ This command is used for setting the configuration and enable/disable of loopbac
   config muxcable loopback disable [OPTIONS] PORT TARGET
   ```
 
-While configuring the muxcable, users needs to configure the following fields for the operation
+While configuring the muxcable, users needs to provide the following fields for the operation
 
 - PORT   required - Port number should be a valid port
 - TARGET  required - the actual target to run the loopback on
-                         0 -> local side,
-                         1 -> TOR 1
-                         2 -> TOR 2
-                         3 -> NIC
+                        NIC
+                        TORA
+                        TORB
+                        LOCAL
 - LANE_MAP  required - an integer representing the lane_map to be run loopback on
              0bit for lane 0, 1bit for lane1 and so on.
              for example 3 -> 0b'0011 , means running on lane0 and lane1
 
 - Example:
     ```
-        admin@sonic:~$ sudo config muxcable loopback enable 1 1 3
+        admin@sonic:~$ sudo config muxcable loopback enable Ethernet48 NIC 3
         loopback config sucessful
-        admin@sonic:~$  sudo config muxcable loopback disable 1 0
+        admin@sonic:~$  sudo config muxcable loopback disable Ethernet48 NIC
         loopback disable sucessfull
     ```
+
+
+**config muxcable set-anlt enable/disable**
+
+This command is used for setting the configuration and enable/disable of anlt on the port and target on the cable.
+
+- Usage:
+  ```
+  config mux set-anlt [OPTIONS] PORT <target> NIC TORA TORB LOCAL <mode>0 disable 1 enable
+  ```
+
+While configuring the muxcable for fec, users needs to provide the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the loopback on
+                        NIC
+                        TORA
+                        TORB
+                        LOCAL
+
+- Example:
+    ```
+       admin@sonic:~$ sudo config mux set-fec Ethernet48 NIC 0
+
+       Success in fec mode port Ethernet48 to 0
+    ```
+
+**config muxcable set-fec mode**
+
+This command is used for setting the configuration and enable/disable of fec mode on the port and target on the cable. The fec could be one of FEC_MODE_NONE FEC_MODE_RS  FEC_MODE_FC
+
+- Usage:
+  ```
+  config mux set-fec [OPTIONS] PORT <target> NIC TORA TORB LOCAL <mode>FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2
+  ```
+
+While configuring the muxcable for anlt, users needs to configure the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the loopback on
+                        NIC
+                        TORA
+                        TORB
+                        LOCAL
+
+- Example:
+    ```
+       admin@sonic:~$ sudo config mux set-anlt Ethernet48 NIC 0
+       Success in anlt enable/disable port Ethernet48 to 0
+    ```
+
+
+**config muxcable reset**
+
+This command is used for hard reset for the configuration
+of the MCU on the side which the user wants to.
+
+- Usage:
+  ```
+     config mux reset [OPTIONS] PORT <target> NIC TORA TORB LOCAL
+  ```
+
+While configuring the muxcable for reset, users needs to provide the following fields for the operation
+
+- PORT   required - Port number should be a valid port
+- TARGET  required - the actual target to run the loopback on
+                        NIC
+                        TORA
+                        TORB
+                        LOCAL
+
+- Example:
+    ```
+       admin@sonic:~$ sudo config mux reset Ethernet48 NIC Muxcable at port Ethernet48 will be reset;  CAUTION: disable traffic Continue? [y/N]: y
+       Success in reset port Ethernet48
+    ```
+
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 
