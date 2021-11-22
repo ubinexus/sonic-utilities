@@ -52,7 +52,7 @@
             "validate_commands": [ ]
         },
         "rsyslog": {
-            "validate_commands": [ "generic_config_updater.services_validator.ryslog_validator" ]
+            "validate_commands": [ "generic_config_updater.services_validator.rsyslog_validator" ]
         },
         "dhcp-relay": {
             "validate_commands": [ "generic_config_updater.services_validator.dhcp_validator" ]

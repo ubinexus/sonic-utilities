@@ -22,7 +22,7 @@ def _service_restart(svc_name):
     return rc == 0
 
 
-def ryslog_validator(old_config, upd_config, keys):
+def rsyslog_validator(old_config, upd_config, keys):
     return _service_restart("rsyslog-config")
 
 

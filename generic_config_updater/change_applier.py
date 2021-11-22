@@ -24,11 +24,11 @@ def set_verbose(verbose=False):
         logger.set_min_log_priority_notice()
 
 
-def _log_debug(m):
+def log_debug(m):
     logger.log(logger.LOG_PRIORITY_DEBUG, m, print_to_console)
 
 
-def _log_error(m):
+def log_error(m):
     logger.log(logger.LOG_PRIORITY_ERROR, m, print_to_console)
 
 
@@ -98,9 +98,9 @@ class ChangeApplier:
         for cmd in lst_cmds:
             ret = self._invoke_cmd(cmd, old_cfg, upd_cfg, keys)
             if ret:
-                _log_error("service invoked: {} failed with ret={}".format(cmd, ret))
+                log_error("service invoked: {} failed with ret={}".format(cmd, ret))
                 return ret
-            _log_debug("service invoked: {}".format(cmd))
+            log_debug("service invoked: {}".format(cmd))
         return 0
 
 
@@ -112,11 +112,11 @@ class ChangeApplier:
             if run_data != upd_data:
                 set_config(self.config_db, tbl, key, upd_data)
                 upd_keys[tbl][key] = {}
-                _log_debug("Patch affected tbl={} key={}".format(tbl, key))
+                log_debug("Patch affected tbl={} key={}".format(tbl, key))
 
 
     def _report_mismatch(self, run_data, upd_data):
-        _log_error("run_data vs expected_data: {}".format(
+        log_error("run_data vs expected_data: {}".format(
             str(jsondiff.diff(run_data, upd_data))[0:40]))
 
 
@@ -136,7 +136,7 @@ class ChangeApplier:
                 self._report_mismatch(run_data, upd_data)
                 ret = -1
         if ret:
-            _log_error("Failed to apply Json change")
+            log_error("Failed to apply Json change")
         return ret
 
 
