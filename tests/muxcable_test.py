@@ -789,7 +789,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["eyeinfo"],
-                               ["Ethernet48", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -817,7 +817,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["pcsstatistics"],
-                               ["Ethernet0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -831,7 +831,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["fecstatistics"],
-                               ["Ethernet0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -874,7 +874,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["berinfo"],
-                               ["Ethernet0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -891,7 +891,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["enable"],
-                               ["0", "0", "0", "0"], obj=db)
+                               ["Ethernet0", "NIC", "0", "0"], obj=db)
 
         assert result.exit_code == 0
 
@@ -908,7 +908,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["enable"],
-                               ["0", "0", "0"], obj=db)
+                               ["Ethernet0", "NIC", "0"], obj=db)
 
         assert result.exit_code == 0
 
@@ -925,7 +925,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["disable"],
-                               ["0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -942,7 +942,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["disable"],
-                               ["Ethernet0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -1406,7 +1406,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(show.cli.commands["muxcable"].commands["berinfo"],
-                               ["Ethernet0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -1423,7 +1423,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["enable"],
-                               ["0", "0", "0", "0"], obj=db)
+                               ["Ethernet0", "NIC", "0", "0"], obj=db)
 
         assert result.exit_code == 0
 
@@ -1440,7 +1440,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["enable"],
-                               ["0", "0", "0"], obj=db)
+                               ["Ethernet0", "NIC", "0"], obj=db)
 
         assert result.exit_code == 0
 
@@ -1457,7 +1457,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["prbs"].commands["disable"],
-                               ["0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
@@ -1474,7 +1474,7 @@ class TestMuxcable(object):
         db = Db()
 
         result = runner.invoke(config.config.commands["muxcable"].commands["loopback"].commands["disable"],
-                               ["Ethernet0", "0"], obj=db)
+                               ["Ethernet0", "NIC"], obj=db)
 
         assert result.exit_code == 0
 
