@@ -1,17 +1,23 @@
 import importlib
 import os
+import sys
 
 from click.testing import CliRunner
+from unittest import mock
 
 import show.main as show
 import clear.main as clear
 
 from .utils import get_result_and_return_code
+from utilities_common.general import load_module_from_source
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
+sys.path.insert(0, scripts_path)
 
+flow_counters_stat_path = os.path.join(scripts_path, 'flow_counters_stat')
+flow_counters_stat = load_module_from_source('flow_counters_stat', flow_counters_stat_path)
 
 expect_show_output = """\
   Trap Name    Packets    Bytes      PPS
@@ -115,6 +121,36 @@ class TestTrapStat:
 
         assert result.exit_code == 0
         assert result.output == expect_show_output_after_clear
+
+    def test_diff(self):
+        args = mock.MagicMock()
+        args.type = 'trap'
+        args.delete = False
+        args.namespace = None
+        args.json = False
+        stats = flow_counters_stat.FlowCounterStats(args)
+        stats._collect = mock.MagicMock()
+        old_data = {
+            '': {
+                'bgp': [100, 200, 50.0, 1],
+                'bgpv6': [100, 200, 50.0, 2],
+                'lldp': [100, 200, 50.0, 3],
+            }
+        }
+        stats._save(old_data)
+        stats.data = {
+            '': {
+                'bgp': [100, 200, 50.0, 4],
+                'bgpv6': [100, 100, 50.0, 2],
+                'lldp': [200, 300, 50.0, 3],
+            }
+        }
+
+        stats._collect_and_diff()
+        cached_data = stats._load()
+        assert cached_data['']['bgp'] == [0, 0, 50.0, 4]
+        assert cached_data['']['bgpv6'] == [0, 0, 50.0, 2]
+        assert cached_data['']['lldp'] == [100, 200, 50.0, 3]
 
 
 class TestTrapStatsMultiAsic:

@@ -26,7 +26,7 @@ QUEUE_WATERMARK_STAT               10000  enable
 PG_WATERMARK_STAT                  10000  enable
 PG_DROP_STAT                       10000  enable
 ACL                                10000  enable
-FLOW_CNT_TRAP_STAT                  1000  enable
+FLOW_CNT_TRAP_STAT                 10000  enable
 """
 
 class TestCounterpoll(object):

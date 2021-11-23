@@ -387,7 +387,7 @@ def show():
     if tunnel_info:
         data.append(["TUNNEL_STAT", rif_info.get("POLL_INTERVAL", DEFLT_10_SEC), rif_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if trap_info:
-        data.append(["FLOW_CNT_TRAP_STAT", trap_info.get("POLL_INTERVAL", DEFLT_1_SEC), trap_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+        data.append(["FLOW_CNT_TRAP_STAT", trap_info.get("POLL_INTERVAL", DEFLT_10_SEC), trap_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 

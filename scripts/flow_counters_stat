@@ -69,7 +69,9 @@ class FlowCounterStats(object):
         """
         self._collect()
         old_data = self._load()
-        self._diff(old_data, self.data)
+        need_update_cache = self._diff(old_data, self.data)
+        if need_update_cache:
+            self._save(old_data)
 
     def _adjust_headers(self, headers):
         """Adjust table headers based on platforms
@@ -122,7 +124,7 @@ class FlowCounterStats(object):
            issue show command after clear, it does a diff between new data and saved data.
         """
         self._collect()
-        self._save()
+        self._save(self.data)
         print('Flow Counters were successfully cleared')
 
     @multi_asic_util.run_on_multi_asic
@@ -169,7 +171,7 @@ class FlowCounterStats(object):
             values.append(STATUS_NA if counter_data is None else counter_data)
         return values
 
-    def _save(self):
+    def _save(self, data):
         """Save flow counter statistic to a file
         """
         try:
@@ -177,7 +179,7 @@ class FlowCounterStats(object):
                 os.remove(self.data_file)
 
             with open(self.data_file, 'wb') as f:
-                pickle.dump(self.data, f)
+                pickle.dump(data, f)
         except IOError as e:
             print('Failed to save statistic - {}'.format(repr(e)))
 
@@ -205,10 +207,14 @@ class FlowCounterStats(object):
         Args:
             old_data (dict): E.g: {<namespace>: {<trap_name>: [<value_in_pkts>, <value_in_bytes>, <rx_pps>, <counter_oid>]}}
             new_data (dict): E.g: {<namespace>: {<trap_name>: [<value_in_pkts>, <value_in_bytes>, <rx_pps>, <counter_oid>]}}
+
+        Returns:
+            bool: True if cache need to be updated
         """
         if not old_data:
-            return
+            return False
 
+        need_update_cache = False
         for ns, stats in new_data.items():
             if ns not in old_data:
                 continue
@@ -222,10 +228,31 @@ class FlowCounterStats(object):
                     # Counter OID not equal means the trap was removed and added again. Removing a trap would cause
                     # the stats value restart from 0. To avoid get minus value here, it should not do diff in case
                     # counter OID is changed.
+                    old_values[-1] = values[-1]
+                    for i in diff_column_positions:
+                        old_values[i] = 0
+                        values[i] = ns_diff(values[i], old_values[i])
+                    need_update_cache = True
+                    continue
+
+                has_negative_diff = False
+                for i in diff_column_positions:
+                    # If any diff has negative value, set all counter values to 0 and update cache
+                    if values[i] < old_values[i]:
+                        has_negative_diff = True
+                        break
+
+                if has_negative_diff:
+                    for i in diff_column_positions:
+                        old_values[i] = 0
+                        values[i] = ns_diff(values[i], old_values[i])
+                    need_update_cache = True
                     continue
 
                 for i in diff_column_positions:
                     values[i] = ns_diff(values[i], old_values[i])
+
+        return need_update_cache
 
 
 def main():
