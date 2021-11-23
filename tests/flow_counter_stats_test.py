@@ -171,8 +171,8 @@ class TestTrapStatsMultiAsic:
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         delete_cache()
-        import mock_tables.mock_single_asic
-        importlib.reload(mock_tables.mock_single_asic)
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
 
     def test_show(self):
         runner = CliRunner()
