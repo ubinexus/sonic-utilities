@@ -12,7 +12,7 @@ port2alias_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port
 
 class TestPort2Alias(TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         self.port2alias = load_module_from_source('port2alias', port2alias_path)
         self.ports = {
                 "Ethernet1": {"alias" : "fortyG0/1"},
@@ -53,7 +53,7 @@ class TestPort2Alias(TestCase):
 
 class TestPort2AliasNamespace(TestCase):
     @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         self.port2alias = load_module_from_source('port2alias', port2alias_path)
 
@@ -63,6 +63,5 @@ class TestPort2AliasNamespace(TestCase):
             self.port2alias.main()
             mock_stdout.assert_called_with("Ethernet1/1")
 
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
