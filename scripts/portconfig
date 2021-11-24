@@ -111,7 +111,7 @@ class portconfig(object):
             print("Setting speed %s on port %s" % (speed, port))
         supported_speeds_str = self.get_supported_speeds(port)
         if supported_speeds_str:
-            if supported_speeds_str.find(str(speed)) == -1:
+            if str(speed) not in supported_speeds_str.split(","):
                 print('Invalid speed specified: {}'.format(speed))
                 print('Valid speeds:{}'.format(supported_speeds_str))
                 exit(1)
