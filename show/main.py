@@ -129,7 +129,69 @@ def run_command(command, display_cmd=False, return_cmd=False):
 # Global class instance for SONiC interface name to alias conversion
 iface_alias_converter = clicommon.InterfaceAliasConverter()
 
+#
+# Display all storm-control data 
+#
+def display_storm_all():
+    """ Show storm-control """
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
 
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    sorted_table = natsorted(table)
+
+    for storm_key in sorted_table:
+        interface_name = storm_key[0]
+        storm_type = storm_key[1]
+        #interface_name, storm_type = storm_key.split(':')
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if not data:
+            return
+
+        kbps = data['kbps']
+
+        body.append([interface_name, storm_type, kbps])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
+
+#
+# Display storm-control data of given interface
+#
+def display_storm_interface(intf):
+    """ Show storm-control """
+
+    storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
+
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    for storm_type in storm_type_list:
+        storm_key = intf + '|' + storm_type
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if data:
+            kbps = data['kbps']
+            body.append([intf, storm_type, kbps])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 def connect_config_db():
     """
@@ -307,69 +369,22 @@ def is_mgmt_vrf_enabled(ctx):
 
     return False
 
-@cli.group('storm-control')
-def storm_control():
-    """ show storm-control """
-    pass
-
-@storm_control.command('all')
-def storm_control_all():
-    """ Show storm-control for all interfaces"""
-
-    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
-    body = []
-
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
-    table = config_db.get_table('PORT_STORM_CONTROL')
-
-    #To avoid further looping below
-    if not table:
-        return
-
-    sorted_table = natsorted(table)
-
-    for storm_key in sorted_table:
-        interface_name = storm_key[0]
-        storm_type = storm_key[1]
-        #interface_name, storm_type = storm_key.split(':')
-        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
-
-        if data:
-            kbps = data['kbps']
-            body.append([interface_name, storm_type, kbps])
-
-    click.echo(tabulate(body, header, tablefmt="grid"))
+#
+# 'storm-control' group 
+# "show storm-control [interface <interface>]"
+#
+@cli.group('storm-control', invoke_without_command=True)
+@click.pass_context
+def storm_control(ctx):
+    """ Show storm-control """
+        if ctx.invoked_subcommand is None:
+            display_storm_all()
 
 @storm_control.command('interface')
-@click.argument('interfacename', required=True)
-def storm_control_interface(interfacename):
-    """ Show storm-control for an interface"""
-
-    storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
-
-    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
-    body = []
-
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
-    table = config_db.get_table('PORT_STORM_CONTROL')
-
-    #To avoid further looping below
-    if not table:
-        return
-
-    for storm_type in storm_type_list:
-        storm_key = interfacename + '|' + storm_type
-        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
-
-        if data:
-            kbps = data['kbps']
-            body.append([interfacename, storm_type, kbps])
-
-    click.echo(tabulate(body, header, tablefmt="grid"))
+@click.argument('interface', metavar='<interface>',required=True)
+def interface(interface):
+    if interface:
+        display_storm_interface(interface)
 
 #
 # 'mgmt-vrf' group ("show mgmt-vrf ...")
