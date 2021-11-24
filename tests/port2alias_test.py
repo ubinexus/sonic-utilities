@@ -13,7 +13,7 @@ port2alias_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port
 class TestPort2Alias(TestCase):
     @classmethod
     def setUpClass(cls):
-        self.self.port2alias = load_module_from_source('port2alias', port2alias_path)
+        self.port2alias = load_module_from_source('port2alias', port2alias_path)
         self.ports = {
                 "Ethernet1": {"alias" : "fortyG0/1"},
                 "Ethernet2": {"alias" : "fortyG0/2"},
