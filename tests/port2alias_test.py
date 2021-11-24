@@ -4,6 +4,7 @@ from unittest import TestCase
 from unittest import mock
 from mock import patch
 from io import StringIO 
+import tests.mock_tables.dbconnector
 
 from utilities_common.general import load_module_from_source
 # Load the file under test
@@ -11,7 +12,6 @@ port2alias_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port
 
 
 class TestPort2Alias(TestCase):
-    @classmethod
     def setUp(self):
         self.port2alias = load_module_from_source('port2alias', port2alias_path)
         self.ports = {
@@ -52,9 +52,9 @@ class TestPort2Alias(TestCase):
         self.assertEqual(self.port2alias.translate_line("Ethernet1\n", {}),"Ethernet1\n")
 
 class TestPort2AliasNamespace(TestCase):
-    @classmethod
     def setUp(self):
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
+        tests.mock_tables.dbconnector.load_namespace_config()
         self.port2alias = load_module_from_source('port2alias', port2alias_path)
 
     @mock.patch('sys.stdout.write')
@@ -65,3 +65,4 @@ class TestPort2AliasNamespace(TestCase):
 
     def tearDown(self):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        tests.mock_tables.dbconnector.clean_up_config()
