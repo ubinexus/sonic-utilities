@@ -1056,6 +1056,10 @@ def download_firmware(port_name, filepath):
                 status = api.cdb_lpl_block_write(address, data)
             else:
                 status = api.cdb_epl_block_write(address, data, autopaging_flag, writelength)
+            if (status != 1):
+                click.echo("CDB: firmware download failed! - status {}".format(status))
+                sys.exit(EXIT_FAIL)
+
             bar.update(count)
             time.sleep(0.1)
             address += count
@@ -1083,7 +1087,7 @@ def run(port_name, mode):
 
     try:
         presence = sfp.get_presence()
-    except NotImplemented:
+    except NotImplementedError:
         click.echo("sfp get_presence() NOT implemented!")
         sys.exit(EXIT_FAIL)
 
@@ -1112,7 +1116,7 @@ def commit(port_name):
 
     try:
         presence = sfp.get_presence()
-    except NotImplemented:
+    except NotImplementedError:
         click.echo("sfp get_presence() NOT implemented!")
         sys.exit(EXIT_FAIL)
 
@@ -1139,7 +1143,7 @@ def upgrade(port_name, filepath):
 
     try:
         presence = sfp.get_presence()
-    except NotImplemented:
+    except NotImplementedError:
         click.echo("sfp get_presence() NOT implemented!")
         sys.exit(EXIT_FAIL)
 
@@ -1155,8 +1159,6 @@ def upgrade(port_name, filepath):
     else:
         click.echo("Firmware download complete failed! CDB status = {}".format(status))
 
-    show_firmware_version(physical_port)
-
     status = run_firmware(port_name, 1)
     if status != 1:
         click.echo('Failed to run firmware! CDB status: {}'.format(status))
@@ -1170,7 +1172,6 @@ def upgrade(port_name, filepath):
         sys.exit(EXIT_FAIL)
 
     click.echo("Firmware commit successful")
-    show_firmware_version(physical_port)
 
 # 'download' subcommand
 @firmware.command()
@@ -1184,7 +1185,7 @@ def download(port_name, filepath):
 
     try:
         presence = sfp.get_presence()
-    except NotImplemented:
+    except NotImplementedError:
         click.echo("sfp get_presence() NOT implemented!")
         sys.exit(EXIT_FAIL)
 
@@ -1210,7 +1211,7 @@ def unlock(port_name, password):
 
     try:
         presence = sfp.get_presence()
-    except NotImplemented:
+    except NotImplementedError:
         click.echo("sfp get_presence() NOT implemented!")
         sys.exit(EXIT_FAIL)
 
