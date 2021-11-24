@@ -5,7 +5,7 @@
         },
         "FDB_TABLE|Vlan10:04:3f:72:ce:80:8b":{
                 "port" : "Ethernet252",
-                "type" : "dynamic"
+                "type" : "static"
         },
         "FDB_TABLE|Vlan10:04:3f:72:ce:80:8c":{
                 "port" : "Ethernet252",

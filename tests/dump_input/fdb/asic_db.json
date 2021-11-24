@@ -6,7 +6,7 @@
         },
         "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x26000000000d20\",\"mac\":\"04:3F:72:CE:80:8B\",\"switch_id\":\"oid:0x21000000000000\"}":{
                 "SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID" : "oid:0x3a000000000d18",
-                "SAI_FDB_ENTRY_ATTR_TYPE": "SAI_FDB_ENTRY_TYPE_DYNAMIC",
+                "SAI_FDB_ENTRY_ATTR_TYPE": "SAI_FDB_ENTRY_TYPE_STATIC",
                 "SAI_FDB_ENTRY_ATTR_PACKET_ACTION" : "SAI_PACKET_ACTION_FORWARD"
         },
         "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x26000000000d20\",\"mac\":\"04:3F:72:CE:80:8C\",\"switch_id\":\"oid:0x21000000000000\"}":{
@@ -21,11 +21,6 @@
         },
         "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x26000000000d1c\",\"mac\":\"04:3F:72:CE:80:8B\",\"switch_id\":\"oid:0x21000000000000\"}":{
                 "SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID" : "oid:0x3a000000000d55",
-                "SAI_FDB_ENTRY_ATTR_TYPE": "SAI_FDB_ENTRY_TYPE_DYNAMIC",
-                "SAI_FDB_ENTRY_ATTR_PACKET_ACTION" : "SAI_PACKET_ACTION_FORWARD"
-        },
-        "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:{\"bvid\":\"oid:0x26000000000d20\",\"mac\":\"04:3F:72:CE:80:8B\",\"switch_id\":\"oid:0x21000000000000\"}":{
-                "SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID" : "oid:0x3a000000000d18",
                 "SAI_FDB_ENTRY_ATTR_TYPE": "SAI_FDB_ENTRY_TYPE_DYNAMIC",
                 "SAI_FDB_ENTRY_ATTR_PACKET_ACTION" : "SAI_PACKET_ACTION_FORWARD"
         },
