@@ -377,8 +377,8 @@ def is_mgmt_vrf_enabled(ctx):
 @click.pass_context
 def storm_control(ctx):
     """ Show storm-control """
-        if ctx.invoked_subcommand is None:
-            display_storm_all()
+    if ctx.invoked_subcommand is None:
+        display_storm_all()
 
 @storm_control.command('interface')
 @click.argument('interface', metavar='<interface>',required=True)
