@@ -844,7 +844,7 @@ def fwversion(port_name):
 
     try:
         presence = sfp.get_presence()
-    except NotImplemented:
+    except NotImplementedError:
         click.echo("sfp get_presence() NOT implemented!")
         sys.exit(EXIT_FAIL)
 
