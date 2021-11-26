@@ -1573,11 +1573,6 @@ def load_minigraph(db, no_service_restart):
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
 
-    # get the device type
-    device_type = _get_device_type()
-    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'EPMS':
-        clicommon.run_command("pfcwd start_default", display_cmd=True)
-
     # Update SONiC environmnet file
     update_sonic_environment()
 
@@ -1592,6 +1587,11 @@ def load_minigraph(db, no_service_restart):
 
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
+
+    # get the device type
+    device_type = _get_device_type()
+    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'EPMS':
+        clicommon.run_command("pfcwd start_default", display_cmd=True)
 
     # Write latest db version string into db
     db_migrator='/usr/local/bin/db_migrator.py'
@@ -6029,7 +6029,7 @@ def rate():
 
 @rate.command()
 @click.argument('interval', metavar='<interval>', type=click.IntRange(min=1, max=1000), required=True)
-@click.argument('rates_type', type=click.Choice(['all', 'port', 'rif']), default='all')
+@click.argument('rates_type', type=click.Choice(['all', 'port', 'rif', 'flowcnt-trap']), default='all')
 def smoothing_interval(interval, rates_type):
     """Set rates smoothing interval """
     counters_db = swsssdk.SonicV2Connector()
@@ -6043,6 +6043,9 @@ def smoothing_interval(interval, rates_type):
     if rates_type in ['rif', 'all']:
         counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_SMOOTH_INTERVAL', interval)
         counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_ALPHA', alpha)
+    if rates_type in ['flowcnt-trap', 'all']:
+        counters_db.set('COUNTERS_DB', 'RATES:TRAP', 'TRAP_SMOOTH_INTERVAL', interval)
+        counters_db.set('COUNTERS_DB', 'RATES:TRAP', 'TRAP_ALPHA', alpha)
 
 
 # Load plugins and register them
