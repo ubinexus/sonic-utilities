@@ -230,6 +230,17 @@ platform_sfputil = None
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
+def is_sfp_present(port_name):
+    physical_port = logical_port_to_physical_port_index(port_name)
+    sfp = platform_chassis.get_sfp(physical_port)
+
+    try:
+        presence = sfp.get_presence()
+    except NotImplementedError:
+        click.echo("sfp get_presence() NOT implemented!")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    return True if presence else False
 
 # ========================== Methods for formatting output ==========================
 
@@ -1082,16 +1093,8 @@ def download_firmware(port_name, filepath):
                                                                3 = Attempt Hitless Reset to Running Image\n")
 def run(port_name, mode):
     """Run the firmware with default mode=1"""
-    physical_port = logical_port_to_physical_port_index(port_name)
-    sfp = platform_chassis.get_sfp(physical_port)
 
-    try:
-        presence = sfp.get_presence()
-    except NotImplementedError:
-        click.echo("sfp get_presence() NOT implemented!")
-        sys.exit(EXIT_FAIL)
-
-    if not presence:
+    if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
 
@@ -1100,10 +1103,10 @@ def run(port_name, mode):
 
     status = run_firmware(port_name, int(mode))
     if status != 1:
-        click.echo('Failed to run firmware! CDB status: {}'.format(status))
+        click.echo('Failed to run firmware in mode={}! CDB status: {}'.format(mode, status))
         sys.exit(EXIT_FAIL)
 
-    click.echo("Firmware run in mode {} success".format(mode))
+    click.echo("Firmware run in mode={} success".format(mode))
 
 # 'commit' subcommand
 @firmware.command()
@@ -1111,16 +1114,7 @@ def run(port_name, mode):
 def commit(port_name):
     """Commit the running firmware"""
 
-    physical_port = logical_port_to_physical_port_index(port_name)
-    sfp = platform_chassis.get_sfp(physical_port)
-
-    try:
-        presence = sfp.get_presence()
-    except NotImplementedError:
-        click.echo("sfp get_presence() NOT implemented!")
-        sys.exit(EXIT_FAIL)
-
-    if not presence:
+    if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
 
@@ -1139,15 +1133,8 @@ def upgrade(port_name, filepath):
     """Upgrade firmware on the transceiver"""
 
     physical_port = logical_port_to_physical_port_index(port_name)
-    sfp = platform_chassis.get_sfp(physical_port)
 
-    try:
-        presence = sfp.get_presence()
-    except NotImplementedError:
-        click.echo("sfp get_presence() NOT implemented!")
-        sys.exit(EXIT_FAIL)
-
-    if not presence:
+    if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
 
@@ -1161,7 +1148,7 @@ def upgrade(port_name, filepath):
 
     status = run_firmware(port_name, 1)
     if status != 1:
-        click.echo('Failed to run firmware! CDB status: {}'.format(status))
+        click.echo('Failed to run firmware in mode=1 ! CDB status: {}'.format(status))
         sys.exit(EXIT_FAIL)
 
     click.echo("Firmware run in mode 1 successful")
@@ -1180,25 +1167,21 @@ def upgrade(port_name, filepath):
 def download(port_name, filepath):
     """Download firmware on the transceiver"""
 
-    physical_port = logical_port_to_physical_port_index(port_name)
-    sfp = platform_chassis.get_sfp(physical_port)
+    if not is_sfp_present(port_name):
+       click.echo("{}: SFP EEPROM not detected\n".format(port_name))
+       sys.exit(EXIT_FAIL)
 
-    try:
-        presence = sfp.get_presence()
-    except NotImplementedError:
-        click.echo("sfp get_presence() NOT implemented!")
-        sys.exit(EXIT_FAIL)
-
-    if not presence:
-        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
-        sys.exit(EXIT_FAIL)
-
+    start = time.time()
     status = download_firmware(port_name, filepath)
     if status == 1:
         click.echo("Firmware download complete success")
     else:
         click.echo("Firmware download complete failed! status = {}".format(status))
         sys.exit(EXIT_FAIL)
+    end = time.time()
+    hours, rem = divmod(end-start, 3600)
+    minutes, seconds = divmod(rem, 60)
+    click.echo("Total download Time: {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 
 # 'unlock' subcommand
 @firmware.command()
@@ -1209,15 +1192,9 @@ def unlock(port_name, password):
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
 
-    try:
-        presence = sfp.get_presence()
-    except NotImplementedError:
-        click.echo("sfp get_presence() NOT implemented!")
-        sys.exit(EXIT_FAIL)
-
-    if not presence:
-        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
-        sys.exit(EXIT_FAIL)
+    if not is_sfp_present(port_name):
+       click.echo("{}: SFP EEPROM not detected\n".format(port_name))
+       sys.exit(EXIT_FAIL)
 
     try:
         api = sfp.get_xcvr_api()
