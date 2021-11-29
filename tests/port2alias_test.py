@@ -5,6 +5,7 @@ from unittest import mock
 from mock import patch
 from io import StringIO 
 import tests.mock_tables.dbconnector
+import importlib
 
 from utilities_common.general import load_module_from_source
 # Load the file under test
@@ -52,9 +53,15 @@ class TestPort2Alias(TestCase):
         self.assertEqual(self.port2alias.translate_line("Ethernet1\n", {}),"Ethernet1\n")
 
 class TestPort2AliasNamespace(TestCase):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
+
     def setUp(self):
-        os.environ["UTILITIES_UNIT_TESTING"] = "2"
-        tests.mock_tables.dbconnector.load_namespace_config()
         self.port2alias = load_module_from_source('port2alias', port2alias_path)
 
     @mock.patch('sys.stdout.write')
@@ -63,6 +70,12 @@ class TestPort2AliasNamespace(TestCase):
             self.port2alias.main()
             mock_stdout.assert_called_with("Ethernet1/1")
 
-    def tearDown(self):
-        os.environ["UTILITIES_UNIT_TESTING"] = "0"
-        tests.mock_tables.dbconnector.clean_up_config()
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
