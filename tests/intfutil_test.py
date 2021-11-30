@@ -235,8 +235,7 @@ class TestIntfutil(TestCase):
         expected_output = (
             "Sub port interface    Speed    MTU    Vlan    Admin                  Type\n"
           "--------------------  -------  -----  ------  -------  --------------------\n"
-          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation\n"
-          "        Eth64.10          40G   9100     100       up  802.1q-encapsulation"
+          "        Ethernet0.10      25G   9100      10       up  802.1q-encapsulation"
         )
         self.assertEqual(result.output.strip(), expected_output)
 

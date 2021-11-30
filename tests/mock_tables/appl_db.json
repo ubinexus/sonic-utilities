@@ -192,10 +192,6 @@
         "admin_status": "up",
         "vlan": "100"
     },
-    "INTF_TABLE:Eth64.10": {
-        "admin_status": "up",
-        "vlan": "100"
-    },
     "_GEARBOX_TABLE:phy:1": {
         "name": "sesto-1",
         "phy_id": "1",
