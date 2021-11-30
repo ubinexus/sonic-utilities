@@ -28,6 +28,7 @@ PLATFORM_JSON = 'platform.json'
 PORT_CONFIG_INI = 'port_config.ini'
 
 EXIT_FAIL = -1
+EXIT_SUCCESS = 0
 ERROR_PERMISSIONS = 1
 ERROR_CHASSIS_LOAD = 2
 ERROR_SFPUTILHELPER_LOAD = 3
@@ -237,10 +238,10 @@ def is_sfp_present(port_name):
     try:
         presence = sfp.get_presence()
     except NotImplementedError:
-        click.echo("sfp get_presence() NOT implemented!")
+        click.echo("sfp get_presence() NOT implemented!", err=True)
         sys.exit(ERROR_NOT_IMPLEMENTED)
 
-    return True if presence else False
+    return bool(presence)
 
 # ========================== Methods for formatting output ==========================
 
@@ -425,7 +426,7 @@ def logical_port_name_to_physical_port_list(port_name):
         return [int(port_name)]
 
 def logical_port_to_physical_port_index(port_name):
-    if platform_sfputil.is_logical_port(port_name) == 0:
+    if not platform_sfputil.is_logical_port(port_name):
         click.echo("Error: invalid port '{}'\n".format(port_name))
         print_all_valid_port_values()
         sys.exit(ERROR_INVALID_PORT)
@@ -864,6 +865,7 @@ def fwversion(port_name):
         sys.exit(EXIT_FAIL)
 
     show_firmware_version(physical_port)
+    sys.exit(EXIT_SUCCESS)
 
 # 'lpmode' subgroup
 @cli.group()
@@ -969,6 +971,12 @@ def firmware():
     pass
 
 def run_firmware(port_name, mode):
+    """
+        Make the inactive firmware as the current running firmware
+        @port_name:
+        @mode: 0, 1, 2, 3 different modes to run the firmware
+        Returns 1 on success, and exit_code = -1 on failure
+    """
     status = 0
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
@@ -988,13 +996,14 @@ def run_firmware(port_name, mode):
     elif mode == 3:
         click.echo("Running firmware: Attempt Hitless Reset to Running Image")
     else:
-        click.echo("Running firmwaer: Unknown mode {}".format(mode))
+        click.echo("Running firmware: Unknown mode {}".format(mode))
         sys.exit(EXIT_FAIL)
 
     try:
         status = api.cdb_run_firmware(mode)
     except NotImplementedError:
         click.echo("This functionality is not applicable for this transceiver")
+        sys.exit(EXIT_FAIL)
 
     return status
 
@@ -1063,6 +1072,7 @@ def download_firmware(port_name, filepath):
         while remaining > 0:
             count = BLOCK_SIZE if remaining >= BLOCK_SIZE else remaining
             data = fd.read(count)
+            assert(len(data) == count)
             if lplonly_flag:
                 status = api.cdb_lpl_block_write(address, data)
             else:
@@ -1072,14 +1082,14 @@ def download_firmware(port_name, filepath):
                 sys.exit(EXIT_FAIL)
 
             bar.update(count)
-            time.sleep(0.1)
+            #time.sleep(0.1)
             address += count
-            remaining = remaining - count
+            remaining -= count
 
     # Restore the optoe driver's write max to '1' (default value)
     sfp.set_optoe_write_max(1)
 
-    time.sleep(2)
+    #time.sleep(2)
     status = api.cdb_firmware_download_complete()
     click.echo('CDB: firmware download complete')
     return status
@@ -1088,7 +1098,7 @@ def download_firmware(port_name, filepath):
 @firmware.command()
 @click.argument('port_name', required=True, default=None)
 @click.option('--mode', type=click.Choice(["0", "1", "2", "3"]), help="0 = Non-hitless Reset to Inactive Image\n \
-                                                               1 = Hitless Reset to Inactive Image\n \
+                                                               1 = Hitless Reset to Inactive Image (Default)\n \
                                                                2 = Attempt non-hitless Reset to Running Image\n \
                                                                3 = Attempt Hitless Reset to Running Image\n")
 def run(port_name, mode):
@@ -1145,6 +1155,7 @@ def upgrade(port_name, filepath):
         click.echo("Firmware download complete success")
     else:
         click.echo("Firmware download complete failed! CDB status = {}".format(status))
+        sys.exit(EXIT_FAIL)
 
     status = run_firmware(port_name, 1)
     if status != 1:
