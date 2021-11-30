@@ -16,10 +16,8 @@ def fgnhg():
 def active_hops(nhg):
     config_db = ConfigDBConnector()
     config_db.connect()
-
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)  # Make one attempt only STATE_DB
-
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
@@ -28,7 +26,6 @@ def active_hops(nhg):
     header = ["FG NHG Prefix", "Active Next Hops"]
     table = []
     output_dict = {}
-
     ctx = click.get_current_context()
 
     try:
@@ -88,9 +85,11 @@ def active_hops(nhg):
                     else:
                         ctx.fail ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
                         sys.exit(1)                        
-
                 output_list = sorted(output_list)
-            
+            if not output_list:
+                ctx.fail ("FG_ROUTE table likely does not contain the required entries")
+                sys.exit(1)
+
             nhg_prefix_report = nhip_prefix_map[output_list[0]].split("|")[1]
             formatted_output_list = ','.replace(',', '\n').join(output_list)
             table.append([nhg_prefix_report, formatted_output_list])
@@ -102,10 +101,8 @@ def active_hops(nhg):
 def hash_view(nhg):
     config_db = ConfigDBConnector()
     config_db.connect()
-
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)  # Make one attempt only STATE_DB
-
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'FG_ROUTE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
@@ -115,6 +112,7 @@ def hash_view(nhg):
     table = []
     output_dict = {}
     bank_dict = {}
+    ctx = click.get_current_context()
 
     try:
         table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
@@ -239,4 +237,3 @@ def hash_view(nhg):
                     table.append([nhg_prefix_report, nhip, bank_output])
 
             click.echo(tabulate(table, header))
-
