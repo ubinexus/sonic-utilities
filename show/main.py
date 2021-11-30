@@ -165,6 +165,29 @@ def display_storm_all():
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 #
+# Get storm-control configurations per interface append to body
+#
+def get_storm_interface(intf, body):
+    storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    for storm_type in storm_type_list:
+        storm_key = intf + '|' + storm_type
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if data:
+            kbps = data['kbps']
+            body.append([intf, storm_type, kbps])
+
+#
 # Display storm-control data of given interface
 #
 def display_storm_interface(intf):
@@ -376,15 +399,35 @@ def is_mgmt_vrf_enabled(ctx):
 # "show storm-control [interface <interface>]"
 #
 @cli.group('storm-control', invoke_without_command=True)
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
 @click.pass_context
-def storm_control(ctx):
+def storm_control(ctx, namespace, display):
     """ Show storm-control """
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
     if ctx.invoked_subcommand is None:
-        display_storm_all()
+        if namespace is None:
+            display_storm_all()
+        else:
+            interfaces = multi_asic.multi_asic_get_ip_intf_from_ns(namespace)
+            for intf in interfaces:
+                get_storm_interface(interface, body)
+            click.echo(tabulate(body, header, tablefmt="grid"))
 
 @storm_control.command('interface')
 @click.argument('interface', metavar='<interface>',required=True)
-def interface(interface):
+def interface(interface, namespace, display):
+    if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
+        ctx = click.get_current_context()
+        ctx.fail('-n/--namespace option required. provide namespace from list {}'.format(multi_asic.get_namespace_list()))
     if interface:
         display_storm_interface(interface)
 
