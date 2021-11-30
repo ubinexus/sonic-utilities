@@ -116,8 +116,7 @@ class CriticalProcCoreDumpHandle():
         matches = re.findall(TS_PTRN, ts_stdout)
         if matches:
             return matches[-1]
-        else:
-            syslog.syslog(syslog.LOG_ERR, "stdout of the 'show techsupport' cmd doesn't have the dump name")
+        syslog.syslog(syslog.LOG_ERR, "stdout of the 'show techsupport' cmd doesn't have the dump name")
         return ""
 
     def invoke_ts_cmd(self, since_cfg):
