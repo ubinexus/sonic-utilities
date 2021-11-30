@@ -650,7 +650,7 @@ def storm_control_interface_validate(port_name):
 
     return True
 
-def is_storm_control_supported(storm_type, namespace=EMPTY_NAMESPACE):
+def is_storm_control_supported(storm_type, namespace):
     asic_id = multi_asic.get_asic_index_from_namespace(namespace)
     #state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
     #supported = state_db[asic_id].get_entry('BUM_STORM_CAPABILITY', storm_type)
