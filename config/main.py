@@ -20,7 +20,7 @@ from natsort import natsorted
 from portconfig import get_child_ports
 from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
-from sonic_py_common.interface import get_interface_table_name, get_port_table_name, intf_get_longname
+from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
 from utilities_common import util_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.db import Db
@@ -5901,7 +5901,7 @@ def add_subinterface(ctx, subinterface_name, vid):
     if interface_alias is not None:
         if not port_dict:
             ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
-        if intf_get_longname(interface_alias) not in port_dict.keys():
+        if get_intf_longname(interface_alias) not in port_dict.keys():
             ctx.fail("{} parent interface not found".format(subinterface_name))
 
     # Validate if parent is portchannel member
@@ -5924,7 +5924,7 @@ def add_subinterface(ctx, subinterface_name, vid):
     if vid is not None:
         subintf_dict.update({"vlan" : vid})
 
-    if subintf_vlan_check(config_db, intf_get_longname(interface_alias), vid) is True:
+    if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
         ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias))
 
     subintf_dict.update({"admin_status" : "up"})

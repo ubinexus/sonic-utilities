@@ -136,7 +136,8 @@
         "speed": "100000"
     },
     "INTF_TABLE:Ethernet0.10": {
-        "admin_status": "up"
+        "admin_status": "up",
+        "vlan": "10"
     },
     "INTF_TABLE:Eth64.10": {
         "admin_status": "up",
