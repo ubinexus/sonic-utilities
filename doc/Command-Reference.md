@@ -28,6 +28,8 @@
 * [ARP & NDP](#arp--ndp)
   * [ARP show commands](#arp-show-commands)
   * [NDP show commands](#ndp-show-commands)
+* [BFD](#bfd)
+  * [BFD show commands](#bfd-show-commands)
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
@@ -51,6 +53,9 @@
 * [Feature](#feature)
   * [Feature show commands](#feature-show-commands)
   * [Feature config commands](#feature-config-commands)
+* [Flow Counters](#flow-counters)
+  * [Flow Counters show commands](#flow-counters-show-commands)
+  * [Flow Counters clear commands](#flow-counters-clear-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -1550,6 +1555,45 @@ This command displays either all the IPv6 neighbor mac addresses, or for a parti
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#arp--ndp)
 
+## BFD
+
+### BFD show commands
+
+**show bfd summary**
+
+This command displays the state and key parameters of all BFD sessions.
+
+- Usage:
+  ```
+  show bgp summary
+  ```
+- Example:
+  ```
+  >> show bfd summary
+  Total number of BFD sessions: 3
+  Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
+  -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
+  10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
+  10.0.2.1     Ethernet12   default  UP       async_active  10.0.0.1                200            600             3  false
+  2000::10:1   default      default  UP       async_active  2000::1                 100            700             3  false
+  ```
+
+**show bfd peer**
+
+This command displays the state and key parameters of all BFD sessions that match an IP address.
+
+- Usage:
+  ```
+  show bgp peer <peer-ip>
+  ```
+- Example:
+  ```
+  >> show bfd peer 10.0.1.1
+  Total number of BFD sessions for peer IP 10.0.1.1: 1
+  Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
+  -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
+  10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
+  ```
 
 ## BGP
 
@@ -3029,6 +3073,58 @@ commands are don't care and will not update state/auto-restart value.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
 
+## Flow Counters
+
+This section explains all the Flow Counters show commands and clear commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
+
+  - Host interface traps (number of received traps per Trap ID)
+
+### Flow Counters show commands
+
+**show flowcnt-trap stats**
+
+This command is used to show the current statistics for the registered host interface traps. 
+
+Because clear (see below) is handled on a per-user basis different users may see different counts.
+
+- Usage:
+  ```
+  show flowcnt-trap stats
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-trap stats
+  Trap Name    Packets    Bytes      PPS
+  ---------  ---------  -------  -------
+       dhcp        100    2,000  50.25/s
+
+  For multi-ASIC:
+  admin@sonic:~$ show flowcnt-trap stats
+  ASIC ID    Trap Name    Packets    Bytes      PPS
+  -------  -----------  ---------  -------  -------
+    asic0         dhcp        100    2,000  50.25/s
+    asic1         dhcp        200    3,000  45.25/s
+  ```
+
+### Flow Counters clear commands
+
+**sonic-clear flowcnt-trap**
+
+This command is used to clear the current statistics for the registered host interface traps. This is done on a per-user basis.
+
+- Usage:
+  ```
+  sonic-clear flowcnt-trap
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-trap
+  Trap Flow Counters were successfully cleared
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#flow-counters)
 ## Gearbox
 
 This section explains all the Gearbox PHY show commands that are supported in SONiC.
@@ -4859,9 +4955,11 @@ When user specifies the optional argument "-n" or "--no-service-restart", this c
 running on the device. One use case for this option is during boot time when config-setup service loads existing old configuration and there is no services
 running on the device.
 
+When user specifies the optional argument "-f" or "--force", this command ignores the system sanity checks. By default a list of sanity checks are performed and if one of the checks fail, the command will not execute. The sanity checks include ensuring the system status is not starting, all the essential services are up and swss is in ready state.
+
 - Usage:
   ```
-  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart]
+  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart] [-f|--force]
   ```
 
 - Example:
@@ -4882,6 +4980,19 @@ running on the device.
   Running command: systemctl restart hostname-config
   Running command: systemctl restart interfaces-config
   Timeout, server 10.11.162.42 not responding.
+  ```
+  When some sanity checks fail below error messages can be seen
+  ```
+  admin@sonic:~$ sudo config reload -y
+  System is not up. Retry later or use -f to avoid system checks
+  ```
+  ```
+  admin@sonic:~$ sudo config reload -y
+  Relevant services are not up. Retry later or use -f to avoid system checks
+  ```
+  ```
+  admin@sonic:~$ sudo config reload -y
+  SwSS container is not ready. Retry later or use -f to avoid system checks
   ```
 
 
@@ -7193,16 +7304,17 @@ This command is used to clear all the QoS configuration from all the following Q
 2) MAP_PFC_PRIORITY_TO_QUEUE,
 3) TC_TO_QUEUE_MAP,
 4) DSCP_TO_TC_MAP,
-5) SCHEDULER,
-6) PFC_PRIORITY_TO_PRIORITY_GROUP_MAP,
-7) PORT_QOS_MAP,
-8) WRED_PROFILE,
-9) QUEUE,
-10) CABLE_LENGTH,
-11) BUFFER_POOL,
-12) BUFFER_PROFILE,
-13) BUFFER_PG,
-14) BUFFER_QUEUE
+5) MPLS_TC_TO_TC_MAP,
+6) SCHEDULER,
+7) PFC_PRIORITY_TO_PRIORITY_GROUP_MAP,
+8) PORT_QOS_MAP,
+9) WRED_PROFILE,
+10) QUEUE,
+11) CABLE_LENGTH,
+12) BUFFER_POOL,
+13) BUFFER_PROFILE,
+14) BUFFER_PG,
+15) BUFFER_QUEUE
 
 - Usage:
   ```
@@ -7237,12 +7349,13 @@ Some of the example QOS configurations that users can modify are given below.
 2) MAP_PFC_PRIORITY_TO_QUEUE
 3) TC_TO_QUEUE_MAP
 4) DSCP_TO_TC_MAP
-5) SCHEDULER
-6) PFC_PRIORITY_TO_PRIORITY_GROUP_MAP
-7) PORT_QOS_MAP
-8) WRED_PROFILE
-9) CABLE_LENGTH
-10) BUFFER_QUEUE
+5) MPLS_TC_TO_TC_MAP
+6) SCHEDULER
+7) PFC_PRIORITY_TO_PRIORITY_GROUP_MAP
+8) PORT_QOS_MAP
+9) WRED_PROFILE
+10) CABLE_LENGTH
+11) BUFFER_QUEUE
 
 - Usage:
   ```
@@ -8985,7 +9098,7 @@ This command requires root privilege.
 
 - Usage:
   ```
-  warm-reboot [-h|-?|-v|-f|-r|-k|-x|-c <control plane assistant IP list>|-s]
+  warm-reboot [-h|-?|-v|-f|-r|-k|-x|-c <control plane assistant IP list>|-s|-D]
   ```
 
 - Parameters:
@@ -8999,6 +9112,7 @@ This command requires root privilege.
     -c    : specify control plane assistant IP list
     -s    : strict mode: do not proceed without:
             - control plane assistant IP list.
+    -D    : detached mode - closing terminal will not cause stopping reboot
   ```
 
 - Example:
