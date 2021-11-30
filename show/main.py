@@ -419,7 +419,7 @@ def storm_control(ctx, namespace, display):
         else:
             interfaces = multi_asic.multi_asic_get_ip_intf_from_ns(namespace)
             for intf in interfaces:
-                get_storm_interface(interface, body)
+                get_storm_interface(intf, body)
             click.echo(tabulate(body, header, tablefmt="grid"))
 
 @storm_control.command('interface')
