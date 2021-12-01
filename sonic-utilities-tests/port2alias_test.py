@@ -52,11 +52,10 @@ class TestPort2AliasNamespace(TestCase):
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
-        from .mock_tables import dbconnector
-        from .mock_tables import mock_multi_asic
-        importlib.reload(mock_multi_asic)
+        from mock_tables import dbconnector
+        from mock_tables import mock_multi_asic
+        reload(mock_multi_asic)
         dbconnector.load_namespace_config()
-        port2alias = load_module_from_source('port2alias', port2alias_path)
 
     def setUp(self):
         self.port2alias = imp.load_source('port2alias', os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port2alias'))
