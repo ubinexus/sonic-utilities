@@ -8,6 +8,7 @@
 try:
     import argparse
     import os
+    import subprocess
     import sys
 
     from sonic_py_common import device_info, logger
@@ -16,9 +17,18 @@ except ImportError as e:
 
 DEFAULT_DEVICE="/dev/sda"
 SYSLOG_IDENTIFIER = "ssdutil"
+DISK_TYPE_SSD = "0"
 
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
+
+
+def get_disk_type(diskdev):
+    """Check disk type"""
+    cmd = "cat /sys/block/{}/queue/rotational".format(diskdev.replace('/dev/',''))
+    proc = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    out = proc.stdout.readline()
+    return out.rstrip()
 
 
 def import_ssd_api(diskdev):
@@ -64,6 +74,11 @@ def ssdutil():
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Show verbose output (some additional parameters)")
     parser.add_argument("-e", "--vendor", action="store_true", default=False, help="Show vendor output (extended output if provided by platform vendor)")
     args = parser.parse_args()
+
+    disk_type = get_disk_type(args.device)
+    if disk_type != DISK_TYPE_SSD:
+        print("Disk is not SSD")
+        sys.exit(1)
 
     ssd = import_ssd_api(args.device)
 
