@@ -3898,6 +3898,17 @@ def buffer_objects_map_check_legality(ctx, db, interface_name, input_map, is_new
     2. Whether the input_map overlaps an existing pg in the port
     """
     def _parse_object_id(idsmap):
+        """
+        Tool function to parse the idsmap
+        Args:
+            idsmap: string containing object IDs map, like 3-4 or 7
+        Return:
+            The upper and lower bound. In case the idsmap is illegal, it returns None, None
+        Example:
+            3-4 => 3, 4
+            7   => 7
+            3-  => None, None
+        """
         try:
             match = re.search("^([0-9]+)(-[0-9]+)?$", idsmap)
             lower = int(match.group(1))
@@ -4003,7 +4014,6 @@ def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=Tr
     for k, v in existing_buffer_objects.items():
         port, existing_buffer_object = k
         if port == interface_name and (not buffer_object_map or buffer_object_map == existing_buffer_object):
-            need_to_remove = False
             referenced_profile = v.get('profile')
             if referenced_profile and referenced_profile == 'ingress_lossy_profile':
                 if buffer_object_map:
@@ -4015,11 +4025,11 @@ def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=Tr
                 adjust_pfc_enable(ctx, db, interface_name, buffer_object_map, False)
             removed = True
     if not removed:
-        object_name = "priority group" if is_pg else "queue"
+        object_name = "lossless priority group" if is_pg else "queue"
         if buffer_object_map:
             ctx.fail("No specified {} {} found on port {}".format(object_name, buffer_object_map, interface_name))
         else:
-            ctx.fail("No lossless {} found on port {}".format(object_name, interface_name))
+            ctx.fail("No {} found on port {}".format(object_name, interface_name))
 
 
 def adjust_pfc_enable(ctx, db, interface_name, pg_map, add):
@@ -4170,7 +4180,7 @@ def set_queue(db, interface_name, queue_map, buffer_profile):
 #
 @queue.command('remove')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('queue_map', metavar='<queue_map', required=False)
+@click.argument('queue_map', metavar='<queue_map>', required=False)
 @clicommon.pass_db
 def remove_queue(db, interface_name, queue_map):
     """Clear lossless QUEUEs for the interface"""

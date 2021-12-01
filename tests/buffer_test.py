@@ -345,6 +345,24 @@ class TestInterfaceBuffer(object):
             assert result.exit_code
             assert "Buffer priority group 8 is not valid" in result.output
 
+        # Try to use a pg map in wrong format
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
+                                   commands["lossless"].commands["add"],
+                                   ["Ethernet0", "3-", "testprofile"], obj=db)
+            print(result.exit_code, result.output)
+            assert result.exit_code
+            assert "Buffer priority group 3- is not valid" in result.output
+
+        # Try to use a pg which is not a number
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
+                                   commands["lossless"].commands["add"],
+                                   ["Ethernet0", "a"], obj=db)
+            print(result.exit_code, result.output)
+            assert result.exit_code
+            assert "Buffer priority group a is not valid" in result.output
+
         # Try to use a non-exist profile
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
@@ -353,6 +371,19 @@ class TestInterfaceBuffer(object):
             print(result.exit_code, result.output)
             assert result.exit_code
             assert "Profile testprofile doesn't exist" in result.output
+
+        # Try to remove all lossless profiles
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            keys = db.cfgdb.get_keys('BUFFER_PG')
+            assert set(keys) == {('Ethernet0', '0'), ('Ethernet0', '3-4'), ('Ethernet0', '5')}
+            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
+                                   commands["lossless"].commands["remove"],
+                                   ["Ethernet0"], obj=db)
+            print(result.exit_code, result.output)
+            assert result.exit_code == 0
+            keys = db.cfgdb.get_keys('BUFFER_PG')
+            assert keys == [('Ethernet0', '0')]
+            assert {'pfc_enable': ''} == db.cfgdb.get_entry('PORT_QOS_MAP', 'Ethernet0')
 
     def test_config_int_buffer_pg_lossless_set(self, get_cmd_module):
         (config, show) = get_cmd_module
@@ -389,7 +420,7 @@ class TestInterfaceBuffer(object):
                                    ["Ethernet0", "5"], obj=db)
             print(result.exit_code, result.output)
             assert result.exit_code
-            assert "No specified priority group 5 found on port Ethernet0" in result.output
+            assert "No specified lossless priority group 5 found on port Ethernet0" in result.output
 
         # Remove lossy PG
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
@@ -411,37 +442,14 @@ class TestInterfaceBuffer(object):
             assert [('Ethernet0', '0')] == db.cfgdb.get_keys('BUFFER_PG')
             assert {'pfc_enable': ''} == db.cfgdb.get_entry('PORT_QOS_MAP', 'Ethernet0')
 
-            # Readd lossless PGs
-            expected_lossless_pg = {'profile': 'NULL'}
-            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
-                                   commands["lossless"].commands["add"],
-                                   ["Ethernet0", "3-4"], obj=db)
-            assert expected_lossless_pg == db.cfgdb.get_entry('BUFFER_PG', 'Ethernet0|3-4')
-            assert {'pfc_enable': '3,4'} == db.cfgdb.get_entry('PORT_QOS_MAP', 'Ethernet0')
-
-            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
-                                   commands["lossless"].commands["add"],
-                                   ["Ethernet0", "5"], obj=db)
-            assert expected_lossless_pg == db.cfgdb.get_entry('BUFFER_PG', 'Ethernet0|5')
-            assert {'pfc_enable': '3,4,5'} == db.cfgdb.get_entry('PORT_QOS_MAP', 'Ethernet0')
-
-            # Remove all lossless PGs
-            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["priority-group"].
-                                   commands["lossless"].commands["remove"],
-                                   ["Ethernet0"], obj=db)
-            print(result.exit_code, result.output)
-            assert result.exit_code == 0
-            keys = db.cfgdb.get_keys('BUFFER_PG')
-            assert keys == [('Ethernet0', '0')]
-            assert {'pfc_enable': ''} == db.cfgdb.get_entry('PORT_QOS_MAP', 'Ethernet0')
-
+        # Remove all lossless PGs is tested in the 'add' test case to avoid repeating adding PGs
 
     def test_config_int_buffer_queue_add(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
         db = Db()
 
-        # Set a non-exist entry
+        # Not providing a profile
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["queue"].commands["add"],
                                    ["Ethernet0", "5"], obj=db)
@@ -457,6 +465,7 @@ class TestInterfaceBuffer(object):
             assert result.exit_code
             assert "Buffer queue 3-4 overlaps with existing queue 3-4" in result.output
 
+        # Normal add
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["queue"].commands["add"],
                                    ["Ethernet0", "5", "egress_lossy_profile"], obj=db)
@@ -465,12 +474,30 @@ class TestInterfaceBuffer(object):
             pg = db.cfgdb.get_entry('BUFFER_QUEUE', 'Ethernet0|5')
             assert pg == {'profile': 'egress_lossy_profile'}
 
+        # Large queue ID
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["queue"].commands["add"],
+                                   ["Ethernet0", "20", "egress_lossy_profile"], obj=db)
+            print(result.exit_code, result.output)
+            assert result.exit_code
+            assert "Buffer queue 20 is not valid" in result.output
+
+        # Remove all
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            keys = db.cfgdb.get_keys('BUFFER_QUEUE')
+            assert set(keys) == {('Ethernet0', '3-4'), ('Ethernet0', '5')}
+            result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["queue"].commands["remove"],
+                                   ["Ethernet0"], obj=db)
+            print(result.exit_code, result.output)
+            assert result.exit_code == 0
+            assert [] == db.cfgdb.get_keys('BUFFER_QUEUE')
+
     def test_config_int_buffer_queue_set(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
         db = Db()
 
-        # Set a non-exist entry
+        # Remove non-exist entry
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
             result = runner.invoke(config.config.commands["interface"].commands["buffer"].commands["queue"].commands["set"],
                                    ["Ethernet0", "5"], obj=db)
@@ -490,10 +517,10 @@ class TestInterfaceBuffer(object):
                                    ["Ethernet0", "3-4", "egress_lossy_profile"], obj=db)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
-            pg = db.cfgdb.get_entry('BUFFER_QUEUE', 'Ethernet0|3-4')
-            assert pg == {'profile': 'egress_lossy_profile'}
+            queue = db.cfgdb.get_entry('BUFFER_QUEUE', 'Ethernet0|3-4')
+            assert queue == {'profile': 'egress_lossy_profile'}
 
-    def test_config_int_buffer_pg_lossless_remove(self, get_cmd_module):
+    def test_config_int_buffer_queue_remove(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
         db = Db()
@@ -514,3 +541,4 @@ class TestInterfaceBuffer(object):
             assert result.exit_code == 0
             assert [] == db.cfgdb.get_keys('BUFFER_QUEUE')
 
+        # Removing all queues is tested in "add" test case to avoid repeating adding queues.
