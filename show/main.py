@@ -6,6 +6,7 @@ import re
 
 import click
 import utilities_common.cli as clicommon
+from sonic_py_common import multi_asic
 import utilities_common.multi_asic as multi_asic_util
 from importlib import reload
 from natsort import natsorted
@@ -406,7 +407,7 @@ def is_mgmt_vrf_enabled(ctx):
               type=str,
               show_default=True,
               help='Namespace name or all',
-              callback=multi_asic.multi_asic_namespace_validation_callback)
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
 @click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
 @click.pass_context
 def storm_control(ctx, namespace, display):
