@@ -5413,7 +5413,7 @@ def storm_control(ctx):
               type=str,
               show_default=True,
               help='Namespace name or all',
-              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+              callback=multi_asic.multi_asic_namespace_validation_callback)
 @click.pass_context
 def add_interface_storm(ctx, port_name,storm_type, kbps, namespace):
     if storm_control_set_entry(port_name, kbps, storm_type, namespace) is False:
@@ -5429,7 +5429,7 @@ def add_interface_storm(ctx, port_name,storm_type, kbps, namespace):
               type=str,
               show_default=True,
               help='Namespace name or all',
-              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+              callback=multi_asic.multi_asic_namespace_validation_callback)
 @click.pass_context
 def del_interface_storm(ctx,port_name,storm_type, namespace):
     if storm_control_delete_entry(port_name, storm_type) is False:
