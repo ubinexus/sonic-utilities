@@ -6,6 +6,7 @@ from tabulate import tabulate
 BUFFER_POOL_WATERMARK = "BUFFER_POOL_WATERMARK"
 PORT_BUFFER_DROP = "PORT_BUFFER_DROP"
 PG_DROP = "PG_DROP"
+ACL = "ACL"
 DISABLE = "disable"
 ENABLE = "enable"
 DEFLT_60_SEC= "default (60000)"
@@ -53,12 +54,12 @@ def disable():
 # Port counter commands
 @cli.group()
 def port():
-    """ Queue counter commands """
+    """ Port counter commands """
 
 @port.command()
 @click.argument('poll_interval', type=click.IntRange(100, 30000))
 def interval(poll_interval):
-    """ Set queue counter query interval """
+    """ Set port counter query interval """
     configdb = ConfigDBConnector()
     configdb.connect()
     port_info = {}
@@ -203,7 +204,7 @@ def watermark():
     """ Watermark counter commands """
 
 @watermark.command()
-@click.argument('poll_interval', type=click.IntRange(1000, 30000))
+@click.argument('poll_interval', type=click.IntRange(1000, 60000))
 def interval(poll_interval):
     """ Set watermark counter query interval for both queue and PG watermarks """
     configdb = ConfigDBConnector()
@@ -241,6 +242,111 @@ def disable():
     configdb.mod_entry("FLEX_COUNTER_TABLE", "PG_WATERMARK", fc_info)
     configdb.mod_entry("FLEX_COUNTER_TABLE", BUFFER_POOL_WATERMARK, fc_info)
 
+# ACL counter commands
+@cli.group()
+@click.pass_context
+def acl(ctx):
+    """  ACL counter commands """
+    ctx.obj = ConfigDBConnector()
+    ctx.obj.connect()
+
+@acl.command()
+@click.argument('poll_interval', type=click.IntRange(1000, 30000))
+@click.pass_context
+def interval(ctx, poll_interval):
+    """
+    Set ACL counters query interval
+    interval is between 1s and 30s.
+    """
+
+    fc_group_cfg = {}
+    fc_group_cfg['POLL_INTERVAL'] = poll_interval
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ACL, fc_group_cfg)
+
+@acl.command()
+@click.pass_context
+def enable(ctx):
+    """ Enable ACL counter query """
+
+    fc_group_cfg = {}
+    fc_group_cfg['FLEX_COUNTER_STATUS'] = ENABLE
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ACL, fc_group_cfg)
+
+@acl.command()
+@click.pass_context
+def disable(ctx):
+    """ Disable ACL counter query """
+
+    fc_group_cfg = {}
+    fc_group_cfg['FLEX_COUNTER_STATUS'] = DISABLE
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ACL, fc_group_cfg)
+
+# Tunnel counter commands
+@cli.group()
+def tunnel():
+    """ Tunnel counter commands """
+
+@tunnel.command()
+@click.argument('poll_interval', type=click.IntRange(100, 30000))
+def interval(poll_interval):
+    """ Set tunnel counter query interval """
+    configdb = ConfigDBConnector()
+    configdb.connect()
+    tunnel_info = {}
+    tunnel_info['POLL_INTERVAL'] = poll_interval
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "TUNNEL", tunnel_info)
+
+@tunnel.command()
+def enable():
+    """ Enable tunnel counter query """
+    configdb = ConfigDBConnector()
+    configdb.connect()
+    tunnel_info = {}
+    tunnel_info['FLEX_COUNTER_STATUS'] = ENABLE
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "TUNNEL", tunnel_info)
+
+@tunnel.command()
+def disable():
+    """ Disable tunnel counter query """
+    configdb = ConfigDBConnector()
+    configdb.connect()
+    tunnel_info = {}
+    tunnel_info['FLEX_COUNTER_STATUS'] = DISABLE
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "TUNNEL", tunnel_info)
+
+# Trap flow counter commands
+@cli.group()
+@click.pass_context
+def flowcnt_trap(ctx):
+    """ Trap flow counter commands """
+    ctx.obj = ConfigDBConnector()
+    ctx.obj.connect()
+
+@flowcnt_trap.command()
+@click.argument('poll_interval', type=click.IntRange(1000, 30000))
+@click.pass_context
+def interval(ctx, poll_interval):
+    """ Set trap flow counter query interval """
+    fc_info = {}
+    fc_info['POLL_INTERVAL'] = poll_interval
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_TRAP", fc_info)
+
+@flowcnt_trap.command()
+@click.pass_context
+def enable(ctx):
+    """ Enable trap flow counter query """
+    fc_info = {}
+    fc_info['FLEX_COUNTER_STATUS'] = 'enable'
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_TRAP", fc_info)
+
+@flowcnt_trap.command()
+@click.pass_context
+def disable(ctx):
+    """ Disable trap flow counter query """
+    fc_info = {}
+    fc_info['FLEX_COUNTER_STATUS'] = 'disable'
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_TRAP", fc_info)
+
 @cli.command()
 def show():
     """ Show the counter configuration """
@@ -254,7 +360,10 @@ def show():
     pg_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PG_WATERMARK')
     pg_drop_info = configdb.get_entry('FLEX_COUNTER_TABLE', PG_DROP)
     buffer_pool_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', BUFFER_POOL_WATERMARK)
-    
+    acl_info = configdb.get_entry('FLEX_COUNTER_TABLE', ACL)
+    tunnel_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'TUNNEL')
+    trap_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'FLOW_CNT_TRAP')
+
     header = ("Type", "Interval (in ms)", "Status")
     data = []
     if queue_info:
@@ -273,6 +382,12 @@ def show():
         data.append(['PG_DROP_STAT', pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), pg_drop_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if buffer_pool_wm_info:
         data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+    if acl_info:
+        data.append([ACL, pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), acl_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+    if tunnel_info:
+        data.append(["TUNNEL_STAT", rif_info.get("POLL_INTERVAL", DEFLT_10_SEC), rif_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+    if trap_info:
+        data.append(["FLOW_CNT_TRAP_STAT", trap_info.get("POLL_INTERVAL", DEFLT_10_SEC), trap_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
