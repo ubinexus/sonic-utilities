@@ -13,7 +13,6 @@ import os.path
 import sys
 
 from collections import namedtuple, OrderedDict
-from swsssdk import SonicDBConfig
 from natsort import natsorted
 from tabulate import tabulate
 
