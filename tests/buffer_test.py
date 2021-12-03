@@ -471,8 +471,8 @@ class TestInterfaceBuffer(object):
                                    ["Ethernet0", "5", "egress_lossy_profile"], obj=db)
             print(result.exit_code, result.output)
             assert result.exit_code == 0
-            pg = db.cfgdb.get_entry('BUFFER_QUEUE', 'Ethernet0|5')
-            assert pg == {'profile': 'egress_lossy_profile'}
+            queue = db.cfgdb.get_entry('BUFFER_QUEUE', 'Ethernet0|5')
+            assert queue == {'profile': 'egress_lossy_profile'}
 
         # Large queue ID
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:
