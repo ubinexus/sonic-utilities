@@ -62,7 +62,7 @@ setup(
         'sonic_cli_gen',
     ],
     package_data={
-        'generic_config_updater': ['generic_updater_config.conf.json'],
+        'generic_config_updater': ['generic_config_updater.conf.json'],
         'show': ['aliases.ini'],
         'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
@@ -101,6 +101,7 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
+        'scripts/flow_counters_stat',
         'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/generate_shutdown_order.py',

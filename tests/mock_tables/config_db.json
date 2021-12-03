@@ -373,6 +373,10 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },
+    "VLAN_SUB_INTERFACE|Eth32.10": {
+        "admin_status": "up",
+        "vlan": "100"
+    },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
         "PACKET_ACTION": "DROP",
         "PRIORITY": "1"
@@ -1554,6 +1558,10 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|ACL": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|FLOW_CNT_TRAP": {
         "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
