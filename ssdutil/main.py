@@ -25,10 +25,19 @@ log = logger.Logger(SYSLOG_IDENTIFIER)
 
 def get_disk_type(diskdev):
     """Check disk type"""
-    cmd = "cat /sys/block/{}/queue/rotational".format(diskdev.replace('/dev/',''))
+    diskdev_name = diskdev.replace('/dev/','')
+    cmd = "lsblk -l -n |grep disk"
     proc = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
-    out = proc.stdout.readline()
-    return out.rstrip()
+    outs = proc.stdout.readlines()
+    for out in outs:
+        if out.split()[0] in diskdev_name:
+              cmd = "cat /sys/block/{}/queue/rotational".format(diskdev_name)
+              proc = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
+              out = proc.stdout.readline()
+              return out.rstrip()
+
+    print("disk {} does not exist in the device".format(diskdev_name))
+    sys.exit(1)
 
 
 def import_ssd_api(diskdev):
