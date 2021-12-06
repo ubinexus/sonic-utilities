@@ -154,12 +154,9 @@ save_cmd() {
     local save_stderr=${4:-true}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
-    local cleanup_method=${4:-dummy_cleanup_method}
-    local redirect='&>'
-    local redirect_eval='2>&1'
-    if [ ! -d $LOGDIR ]; then
-        $MKDIR $V -p $LOGDIR
-    fi
+    local cleanup_method=${5:-dummy_cleanup_method}
+    local redirect="&>"
+    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
 
     if ! $save_stderr
     then
@@ -175,7 +172,7 @@ save_cmd() {
         filepath="${filepath}.gz"
         # cleanup_method will run in a sub-shell, need declare it first
         local cleanup_method_declration=$(declare -f $cleanup_method)
-        local cmds="$cleanup_method_declration; $cmd $redirect_eval | $cleanup_method | gzip -c > '${filepath}'"
+        local cmds="$cleanup_method_declration; $cmd 2>&1 | $cleanup_method | gzip -c > '${filepath}'"
         if $NOOP; then
             echo "${timeout_cmd} bash -c \"${cmds}\""
         else
@@ -188,14 +185,12 @@ save_cmd() {
         if $NOOP; then
             echo "${timeout_cmd} $cmd | $cleanup_method $redirect '$filepath'"
         else
-            RC=0
-            eval "${timeout_cmd} $cmd | $cleanup_method" "$redirect" "$filepath" || RC=$?
-            if [ $RC -ne 0 ]; then
+            eval "${timeout_cmd} $cmd | $cleanup_method" "$redirect" "$filepath"
+            if [ $? -ne 0 ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             fi
         fi
     fi
-
     ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
         || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
         && $RM $V -rf "$filepath"
@@ -234,14 +229,14 @@ save_cmd_all_ns() {
     local cleanup_method=${4:-dummy_cleanup_method}
 
     # host or default namespace
-    save_cmd "$1" "$2" "$do_zip" $cleanup_method
+    save_cmd "$1" "$2" "$do_zip" true $cleanup_method
 
     if [[ ( "$NUM_ASICS" > 1 ) ]] ; then
       for (( i=0; i<$NUM_ASICS; i++ ))
       do
           local cmd="sonic-netns-exec asic$i $1"
           local file="$2.$i"
-          save_cmd "$cmd" "$file" "$do_zip" $cleanup_method
+          save_cmd "$cmd" "$file" "$do_zip" true $cleanup_method
       done
     fi
 }
