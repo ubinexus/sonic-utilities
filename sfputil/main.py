@@ -10,6 +10,7 @@ import sys
 import natsort
 import ast
 import time
+import datetime
 
 import subprocess
 import click
@@ -1075,7 +1076,10 @@ def download_firmware(port_name, filepath):
         while remaining > 0:
             count = BLOCK_SIZE if remaining >= BLOCK_SIZE else remaining
             data = fd.read(count)
-            assert(len(data) == count)
+            if len(data) != count:
+                click.echo("Firmware file read failed!")
+                sys.exit(EXIT_FAIL)
+
             if lplonly_flag:
                 status = api.cdb_lpl_block_write(address, data)
             else:
@@ -1085,14 +1089,12 @@ def download_firmware(port_name, filepath):
                 sys.exit(EXIT_FAIL)
 
             bar.update(count)
-            #time.sleep(0.1)
             address += count
             remaining -= count
 
     # Restore the optoe driver's write max to '1' (default value)
     sfp.set_optoe_write_max(1)
 
-    #time.sleep(2)
     status = api.cdb_firmware_download_complete()
     click.echo('CDB: firmware download complete')
     return status
@@ -1100,7 +1102,8 @@ def download_firmware(port_name, filepath):
 # 'run' subcommand
 @firmware.command()
 @click.argument('port_name', required=True, default=None)
-@click.option('--mode', type=click.Choice(["0", "1", "2", "3"]), help="0 = Non-hitless Reset to Inactive Image\n \
+@click.option('--mode', default="1", type=click.Choice(["0", "1", "2", "3"]), show_default=True,
+                                                         help="0 = Non-hitless Reset to Inactive Image\n \
                                                                1 = Hitless Reset to Inactive Image (Default)\n \
                                                                2 = Attempt non-hitless Reset to Running Image\n \
                                                                3 = Attempt Hitless Reset to Running Image\n")
@@ -1110,9 +1113,6 @@ def run(port_name, mode):
     if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
-
-    if mode is None:
-        mode = 1
 
     status = run_firmware(port_name, int(mode))
     if status != 1:
@@ -1193,9 +1193,8 @@ def download(port_name, filepath):
         click.echo("Firmware download complete failed! status = {}".format(status))
         sys.exit(EXIT_FAIL)
     end = time.time()
-    hours, rem = divmod(end-start, 3600)
-    minutes, seconds = divmod(rem, 60)
-    click.echo("Total download Time: {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
+    click.echo("Total download Time: {}".format(str(datetime.timedelta(seconds=end-start))))
+
 
 # 'unlock' subcommand
 @firmware.command()
