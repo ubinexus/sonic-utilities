@@ -505,9 +505,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
                                              "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
                                              "--non-strict",
-                                             "--ignore-more", "/ANY_TABLE",
-                                             "--ignore-more", "/ANY_OTHER_TABLE/ANY_FIELD",
-                                             "--ignore-more", "",
+                                             "--ignore-more-from-yang-validation", "/ANY_TABLE",
+                                             "--ignore-more-from-yang-validation", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                             "--ignore-more-from-yang-validation", "",
                                              "--verbose"],
                                             catch_exceptions=False)
 
@@ -549,7 +549,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
             ["--non-strict"],
             mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, True, ()))
         self.validate_apply_patch_optional_parameter(
-            ["--ignore-more", "/ANY_TABLE"],
+            ["--ignore-more-from-yang-validation", "/ANY_TABLE"],
             mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, False, ("/ANY_TABLE",)))
 
     def validate_apply_patch_optional_parameter(self, param_args, expected_call):
@@ -630,9 +630,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
                                              "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
                                              "--non-strict",
-                                             "--ignore-more", "/ANY_TABLE",
-                                             "--ignore-more", "/ANY_OTHER_TABLE/ANY_FIELD",
-                                             "--ignore-more", "",
+                                             "--ignore-more-from-yang-validation", "/ANY_TABLE",
+                                             "--ignore-more-from-yang-validation", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                             "--ignore-more-from-yang-validation", "",
                                              "--verbose"],
                                             catch_exceptions=False)
 
@@ -674,7 +674,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
             ["--non-strict"],
             mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, True, ()))
         self.validate_replace_optional_parameter(
-            ["--ignore-more", "/ANY_TABLE"],
+            ["--ignore-more-from-yang-validation", "/ANY_TABLE"],
             mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, False, ("/ANY_TABLE",)))
 
     def validate_replace_optional_parameter(self, param_args, expected_call):
@@ -751,9 +751,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
                                         [self.any_checkpoint_name,
                                             "--dry-run",
                                              "--non-strict",
-                                             "--ignore-more", "/ANY_TABLE",
-                                             "--ignore-more", "/ANY_OTHER_TABLE/ANY_FIELD",
-                                             "--ignore-more", "",
+                                             "--ignore-more-from-yang-validation", "/ANY_TABLE",
+                                             "--ignore-more-from-yang-validation", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                             "--ignore-more-from-yang-validation", "",
                                             "--verbose"],
                                         catch_exceptions=False)
 
@@ -791,7 +791,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
             ["--non-strict"],
             mock.call(self.any_checkpoint_name, False, False, True, ()))
         self.validate_rollback_optional_parameter(
-            ["--ignore-more", "/ACL_TABLE"],
+            ["--ignore-more-from-yang-validation", "/ACL_TABLE"],
             mock.call(self.any_checkpoint_name, False, False, False, ("/ACL_TABLE",)))
 
     def validate_rollback_optional_parameter(self, param_args, expected_call):

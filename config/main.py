@@ -1165,10 +1165,10 @@ def load(filename, yes):
                help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
 @click.option('-n', '--non-strict', is_flag=True, default=False, help='ignore validation for changes to tables not YANG covered', hidden=True)
-@click.option('-i', '--ignore-more', multiple=True, help='used with -n option to ignore validation for more config. Requires JsonPointer', hidden=True)
+@click.option('-i', '--ignore-more-from-yang-validation', multiple=True, help='used with -n option to ignore validation for more config. Requires JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def apply_patch(ctx, patch_file_path, format, dry_run, non_strict, ignore_more, verbose):
+def apply_patch(ctx, patch_file_path, format, dry_run, non_strict, ignore_more_from_yang_validation, verbose):
     """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
        This command can be used do partial updates to the config with minimum disruption to running processes.
        It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
@@ -1182,7 +1182,7 @@ def apply_patch(ctx, patch_file_path, format, dry_run, non_strict, ignore_more, 
             patch = jsonpatch.JsonPatch(patch_as_json)
 
         config_format = ConfigFormat[format.upper()]
-        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, non_strict, ignore_more)
+        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, non_strict, ignore_more_from_yang_validation)
 
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1196,10 +1196,10 @@ def apply_patch(ctx, patch_file_path, format, dry_run, non_strict, ignore_more, 
                help='format of target config is either ConfigDb(ABNF) or SonicYang')
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
 @click.option('-n', '--non-strict', is_flag=True, default=False, help='ignore validation for changes to tables not YANG covered', hidden=True)
-@click.option('-i', '--ignore-more', multiple=True, help='used with -n option to ignore validation for more config. Requires JsonPointer', hidden=True)
+@click.option('-i', '--ignore-more-from-yang-validation', multiple=True, help='used with -n option to ignore validation for more config. Requires JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def replace(ctx, target_file_path, format, dry_run, non_strict, ignore_more, verbose):
+def replace(ctx, target_file_path, format, dry_run, non_strict, ignore_more_from_yang_validation, verbose):
     """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
        if ACL config is different between current and target config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
@@ -1214,7 +1214,7 @@ def replace(ctx, target_file_path, format, dry_run, non_strict, ignore_more, ver
 
         config_format = ConfigFormat[format.upper()]
 
-        GenericUpdater().replace(target_config, config_format, verbose, dry_run, non_strict, ignore_more)
+        GenericUpdater().replace(target_config, config_format, verbose, dry_run, non_strict, ignore_more_from_yang_validation)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1225,17 +1225,17 @@ def replace(ctx, target_file_path, format, dry_run, non_strict, ignore_more, ver
 @click.argument('checkpoint-name', type=str, required=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
 @click.option('-n', '--non-strict', is_flag=True, default=False, help='ignore validation for changes to tables not YANG covered', hidden=True)
-@click.option('-i', '--ignore-more', multiple=True, help='used with -n option to ignore validation for more config. Requires JsonPointer', hidden=True)
+@click.option('-i', '--ignore-more-from-yang-validation', multiple=True, help='used with -n option to ignore validation for more config. Requires JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def rollback(ctx, checkpoint_name, dry_run, non_strict, ignore_more, verbose):
+def rollback(ctx, checkpoint_name, dry_run, non_strict, ignore_more_from_yang_validation, verbose):
     """Rollback the whole config to the specified checkpoint. The config is rolled back with minimum disruption e.g.
        if ACL config is different between current and checkpoint config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        GenericUpdater().rollback(checkpoint_name, verbose, dry_run, non_strict, ignore_more)
+        GenericUpdater().rollback(checkpoint_name, verbose, dry_run, non_strict, ignore_more_from_yang_validation)
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)
     except Exception as ex:

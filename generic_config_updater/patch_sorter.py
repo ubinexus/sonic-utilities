@@ -1024,12 +1024,13 @@ class StrictPatchSorter:
 
     def sort(self, patch, algorithm=Algorithm.DFS):
         current_config = self.config_wrapper.get_config_db_as_json()
-        target_config = self.patch_wrapper.simulate_patch(patch, current_config)
 
-        # validate patch is only updating tables with yang models
+        # Validate patch is only updating tables with yang models
         self.logger.log_info("Validating patch is not making changes to tables without YANG models.")
         if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(patch)):
             raise ValueError(f"Given patch is not valid because it has changes to tables without YANG models")
+
+        target_config = self.patch_wrapper.simulate_patch(patch, current_config)
 
         # Validate target config
         self.logger.log_info("Validating target config according to YANG models.")
