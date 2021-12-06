@@ -36,8 +36,11 @@ ERROR_PORT_CONFIG_LOAD = 4
 ERROR_NOT_IMPLEMENTED = 5
 ERROR_INVALID_PORT = 6
 SMBUS_BLOCK_WRITE_SIZE = 32
-# Default host password as per CMIS spec
+# Default host password as per CMIS spec:
+# http://www.qsfp-dd.com/wp-content/uploads/2021/05/CMIS5p0.pdf
 CDB_DEFAULT_HOST_PASSWORD = 0x00001011
+
+MAX_LPL_FIRMWARE_BLOCK_SIZE = 116 #Bytes
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
 QSFP_DATA_MAP = {
@@ -988,7 +991,7 @@ def run_firmware(port_name, mode):
         sys.exit(ERROR_NOT_IMPLEMENTED)
 
     if mode == 0:
-        click.echo("Running firmare: Non-hitless Reset to Inactive Image")
+        click.echo("Running firmware: Non-hitless Reset to Inactive Image")
     elif mode == 1:
         click.echo("Running firmware: Hitless Reset to Inactive Image")
     elif mode == 2:
@@ -1067,7 +1070,7 @@ def download_firmware(port_name, filepath):
 
     with click.progressbar(length=file_size, label="Downloading ...") as bar:
         address = 0
-        BLOCK_SIZE = 116 if lplonly_flag else maxblocksize
+        BLOCK_SIZE = MAX_LPL_FIRMWARE_BLOCK_SIZE if lplonly_flag else maxblocksize
         remaining = file_size - startLPLsize
         while remaining > 0:
             count = BLOCK_SIZE if remaining >= BLOCK_SIZE else remaining
