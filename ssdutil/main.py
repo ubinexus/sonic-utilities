@@ -30,7 +30,7 @@ def get_disk_type(diskdev):
     proc = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
     outs = proc.stdout.readlines()
     for out in outs:
-        if out.split()[0] in diskdev_name:
+        if out.split()[0] is diskdev_name:
               cmd = "cat /sys/block/{}/queue/rotational".format(diskdev_name)
               proc = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
               out = proc.stdout.readline()
