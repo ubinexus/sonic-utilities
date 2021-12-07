@@ -1088,10 +1088,65 @@ class ChangeWrapper:
     def __init__(self, patch_wrapper):
         self.patch_wrapper = patch_wrapper
 
-    def adjust_changes(self, changes, assumed_curr_config, remaining_distinct_curr_config):
+    def adjust_changes(self, assumed_changes, assumed_curr_config, remaining_distinct_curr_config):
+        """
+        The merging of 'assumed_curr_config' and 'remaining_distinct_curr_config' will generate the full config.
+        The list of 'assumed_changes' are applicable to 'assumed_curr_config' but they cannot be applied directly to the full config.
+        'assumed_changes' can blindly alter existing config in 'remaining_distinct_curr_config' but they should not. Check example below.
+
+        Example:
+          assumed_curr_config:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "type": "L3" }
+            }
+          }
+
+          remaining_distinct_curr_config:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "policy_desc": "some-description" }
+            }
+          }
+
+          assumed_changes (these are only applicable to assumed_curr_config):
+          {
+            [{"op":"replace", "path":"/ACL_TABLE/EVERFLOW", "value":{"type":"MIRROR"}}]
+          }
+
+          The merging of assumed_curr_config and remaining_distinct_curr_config to get the full config is:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "type": "L3", "policy_desc": "some-description" }
+            }
+          }
+
+          Applying changes to the merging i.e. full config will result in:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "type": "MIRROR" }
+            }
+          }
+
+          This is not correct, as we have deleted /ACL_TABLE/EVERFLOW/policy_desc
+          This problem happend because we used 'assumed_changes' for 'assumed_curr_config' on the full config.
+
+          The solution is to adjust the 'assumed_changes' list to be:
+          {
+            [{"op":"replace", "path":"/ACL_TABLE/EVERFLOW/type", "value":"MIRROR"}]
+          }
+
+          This method adjust the given 'assumed_changes' to be applicable to the full config.
+
+          Check unit-test for more examples.
+       """
         adjusted_changes = []
         assumed_curr_config = copy.deepcopy(assumed_curr_config)
-        for change in changes:
+        for change in assumed_changes:
             assumed_target_config = change.apply(assumed_curr_config)
 
             adjusted_curr_config = self._merge_configs_with_distinct_field_path(assumed_curr_config, remaining_distinct_curr_config)
