@@ -32,7 +32,7 @@ def get_default_disk():
     out = proc.stdout.readline()
     if host_mnt in out:
         dev_nums = out.split()[1]
-        dev_maj_num = out.split(':')[0]
+        dev_maj_num = dev_nums.split(':')[0]
 
         cmd = "lsblk -l -I {} |grep disk".format(dev_maj_num)
         proc = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -109,7 +109,7 @@ def ssdutil():
 
     disk_type = get_disk_type(disk_device)
     if disk_type != DISK_TYPE_SSD:
-        print("Disk is not SSD")
+        print("Disk type is not SSD")
         sys.exit(1)
 
     ssd = import_ssd_api(disk_device)
