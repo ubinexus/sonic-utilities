@@ -313,8 +313,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
     def setUp(self):
         self.any_verbose=True
         self.any_dry_run=True
-        self.any_non_strict=True
-        self.any_ignore_more_list=[""]
+        self.any_ignore_non_yang_tables=True
+        self.any_ignore_paths=[""]
 
     def test_create_patch_applier__invalid_config_format__failure(self):
         # Arrange
@@ -326,8 +326,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
                           "INVALID_FORMAT",
                           self.any_verbose,
                           self.any_dry_run,
-                          self.any_non_strict,
-                          self.any_ignore_more_list)
+                          self.any_ignore_non_yang_tables,
+                          self.any_ignore_paths)
 
     def test_create_patch_applier__different_options(self):
         # Arrange
@@ -340,8 +340,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
                     gu.ConfigFormat.CONFIGDB: None,
                 }
             },
-            {"non_strict": {True: None, False: None}},
-            {"ignore_more_list": {(): None, ("", "/ACL_TABLE"): None}},
+            {"ignore_non_yang_tables": {True: None, False: None}},
+            {"ignore_paths": {(): None, ("", "/ACL_TABLE"): None}},
         ]
 
         # Act and assert
@@ -357,8 +357,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
                           "INVALID_FORMAT",
                           self.any_verbose,
                           self.any_dry_run,
-                          self.any_non_strict,
-                          self.any_ignore_more_list)
+                          self.any_ignore_non_yang_tables,
+                          self.any_ignore_paths)
 
     def test_create_config_replacer__different_options(self):
         # Arrange
@@ -371,8 +371,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
                     gu.ConfigFormat.CONFIGDB: None,
                 }
             },
-            {"non_strict": {True: None, False: None}},
-            {"ignore_more_list": {(): None, ("", "/ACL_TABLE"): None}},
+            {"ignore_non_yang_tables": {True: None, False: None}},
+            {"ignore_paths": {(): None, ("", "/ACL_TABLE"): None}},
         ]
 
         # Act and assert
@@ -382,7 +382,9 @@ class TestGenericUpdateFactory(unittest.TestCase):
         # Arrange
         options = [
             {"verbose": {True: None, False: None}},
-            {"dry_run": {True: None, False: gu.ConfigLockDecorator}}
+            {"dry_run": {True: None, False: gu.ConfigLockDecorator}},
+            {"ignore_non_yang_tables": {True: None, False: None}},
+            {"ignore_paths": {(): None, ("", "/ACL_TABLE"): None}},
         ]
 
         # Act and assert
@@ -408,8 +410,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
         patch_applier = factory.create_patch_applier(params["config_format"],
                                                      params["verbose"],
                                                      params["dry_run"],
-                                                     params["non_strict"],
-                                                     params["ignore_more_list"])
+                                                     params["ignore_non_yang_tables"],
+                                                     params["ignore_paths"])
         for decorator_type in expected_decorators:
             self.assertIsInstance(patch_applier, decorator_type)
 
@@ -421,9 +423,15 @@ class TestGenericUpdateFactory(unittest.TestCase):
         else:
             self.assertIsInstance(patch_applier.config_wrapper, gu.ConfigWrapper)
 
-        if params["non_strict"]:
+        if params["ignore_non_yang_tables"] or params["ignore_paths"]:
             self.assertIsInstance(patch_applier.patchsorter, ps.NonStrictPatchSorter)
-            self.assertEqual(params["ignore_more_list"], patch_applier.patchsorter.config_splitter.ignore_paths_from_yang_list)
+            expected_config_splitters = []
+            if params["ignore_non_yang_tables"]:
+                expected_config_splitters.append(ps.TablesWithoutYangConfigSplitter.__name__)
+            if params["ignore_paths"]:
+                expected_config_splitters.append(ps.IgnorePathsFromYangConfigSplitter.__name__)
+            actual_config_splitters = [type(splitter).__name__ for splitter in patch_applier.patchsorter.config_splitter.inner_config_splitters]
+            self.assertCountEqual(expected_config_splitters, actual_config_splitters)
         else:
             self.assertIsInstance(patch_applier.patchsorter, ps.StrictPatchSorter)
 
@@ -432,8 +440,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
         config_replacer = factory.create_config_replacer(params["config_format"],
                                                          params["verbose"],
                                                          params["dry_run"],
-                                                         params["non_strict"],
-                                                         params["ignore_more_list"])
+                                                         params["ignore_non_yang_tables"],
+                                                         params["ignore_paths"])
         for decorator_type in expected_decorators:
             self.assertIsInstance(config_replacer, decorator_type)
 
@@ -447,9 +455,22 @@ class TestGenericUpdateFactory(unittest.TestCase):
             self.assertIsInstance(config_replacer.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
 
+        if params["ignore_non_yang_tables"] or params["ignore_paths"]:
+            self.assertIsInstance(config_replacer.patch_applier.patchsorter, ps.NonStrictPatchSorter)
+            expected_config_splitters = []
+            if params["ignore_non_yang_tables"]:
+                expected_config_splitters.append(ps.TablesWithoutYangConfigSplitter.__name__)
+            if params["ignore_paths"]:
+                expected_config_splitters.append(ps.IgnorePathsFromYangConfigSplitter.__name__)
+            actual_config_splitters = [type(splitter).__name__ for splitter in
+                    config_replacer.patch_applier.patchsorter.config_splitter.inner_config_splitters]
+            self.assertCountEqual(expected_config_splitters, actual_config_splitters)
+        else:
+            self.assertIsInstance(config_replacer.patch_applier.patchsorter, ps.StrictPatchSorter)
+
     def validate_create_config_rollbacker(self, params, expected_decorators):
         factory = gu.GenericUpdateFactory()
-        config_rollbacker = factory.create_config_rollbacker(params["verbose"], params["dry_run"])
+        config_rollbacker = factory.create_config_rollbacker(params["verbose"], params["dry_run"], params["ignore_non_yang_tables"], params["ignore_paths"])
         for decorator_type in expected_decorators:
             self.assertIsInstance(config_rollbacker, decorator_type)
 
@@ -467,6 +488,19 @@ class TestGenericUpdateFactory(unittest.TestCase):
             self.assertIsInstance(
                 config_rollbacker.config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
 
+        if params["ignore_non_yang_tables"] or params["ignore_paths"]:
+            self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.patchsorter, ps.NonStrictPatchSorter)
+            expected_config_splitters = []
+            if params["ignore_non_yang_tables"]:
+                expected_config_splitters.append(ps.TablesWithoutYangConfigSplitter.__name__)
+            if params["ignore_paths"]:
+                expected_config_splitters.append(ps.IgnorePathsFromYangConfigSplitter.__name__)
+            actual_config_splitters = [type(splitter).__name__ for splitter in
+                    config_rollbacker.config_replacer.patch_applier.patchsorter.config_splitter.inner_config_splitters]
+            self.assertCountEqual(expected_config_splitters, actual_config_splitters)
+        else:
+            self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.patchsorter, ps.StrictPatchSorter)
+
 class TestGenericUpdater(unittest.TestCase):
     def setUp(self):
         self.any_checkpoint_name = "anycheckpoint"
@@ -475,8 +509,8 @@ class TestGenericUpdater(unittest.TestCase):
         self.any_config_format = gu.ConfigFormat.SONICYANG
         self.any_verbose = True
         self.any_dry_run = True
-        self.any_non_strict = True
-        self.any_ignore_more_list = ["", "/ACL_TABLE"]
+        self.any_ignore_non_yang_tables = True
+        self.any_ignore_paths = ["", "/ACL_TABLE"]
 
     def test_apply_patch__creates_applier_and_apply(self):
         # Arrange
@@ -489,8 +523,8 @@ class TestGenericUpdater(unittest.TestCase):
                 {(str(self.any_config_format),
                   str(self.any_verbose),
                   str(self.any_dry_run),
-                  str(self.any_non_strict),
-                  str(self.any_ignore_more_list)): patch_applier})
+                  str(self.any_ignore_non_yang_tables),
+                  str(self.any_ignore_paths)): patch_applier})
 
         generic_updater = gu.GenericUpdater(factory)
 
@@ -499,8 +533,8 @@ class TestGenericUpdater(unittest.TestCase):
                                     self.any_config_format,
                                     self.any_verbose,
                                     self.any_dry_run,
-                                    self.any_non_strict,
-                                    self.any_ignore_more_list)
+                                    self.any_ignore_non_yang_tables,
+                                    self.any_ignore_paths)
 
         # Assert
         patch_applier.apply.assert_has_calls([call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
@@ -516,8 +550,8 @@ class TestGenericUpdater(unittest.TestCase):
                 {(str(self.any_config_format),
                   str(self.any_verbose),
                   str(self.any_dry_run),
-                  str(self.any_non_strict),
-                  str(self.any_ignore_more_list)): config_replacer})
+                  str(self.any_ignore_non_yang_tables),
+                  str(self.any_ignore_paths)): config_replacer})
 
         generic_updater = gu.GenericUpdater(factory)
 
@@ -526,8 +560,8 @@ class TestGenericUpdater(unittest.TestCase):
                                 self.any_config_format,
                                 self.any_verbose,
                                 self.any_dry_run,
-                                self.any_non_strict,
-                                self.any_ignore_more_list)
+                                self.any_ignore_non_yang_tables,
+                                self.any_ignore_paths)
 
         # Assert
         config_replacer.replace.assert_has_calls([call(Files.SONIC_YANG_AS_JSON)])
@@ -541,8 +575,8 @@ class TestGenericUpdater(unittest.TestCase):
         factory.create_config_rollbacker.side_effect = \
             create_side_effect_dict({(str(self.any_verbose),
                                       str(self.any_dry_run),
-                                      str(self.any_non_strict),
-                                      str(self.any_ignore_more_list)): config_rollbacker})
+                                      str(self.any_ignore_non_yang_tables),
+                                      str(self.any_ignore_paths)): config_rollbacker})
 
         generic_updater = gu.GenericUpdater(factory)
 
@@ -550,8 +584,8 @@ class TestGenericUpdater(unittest.TestCase):
         generic_updater.rollback(self.any_checkpoint_name,
                                  self.any_verbose,
                                  self.any_dry_run,
-                                 self.any_non_strict,
-                                 self.any_ignore_more_list)
+                                 self.any_ignore_non_yang_tables,
+                                 self.any_ignore_paths)
 
         # Assert
         config_rollbacker.rollback.assert_has_calls([call(self.any_checkpoint_name)])

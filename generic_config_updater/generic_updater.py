@@ -3,7 +3,8 @@ import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
                        DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
-from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter
+from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
+                          TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
 from .change_applier import ChangeApplier
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
@@ -295,11 +296,11 @@ class ConfigLockDecorator(Decorator):
         self.config_lock.release_lock()
 
 class GenericUpdateFactory:
-    def create_patch_applier(self, config_format, verbose, dry_run, non_strict, ignore_more_list):
+    def create_patch_applier(self, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
         self.init_verbose_logging(verbose)
         config_wrapper = self.get_config_wrapper(dry_run)
         patch_wrapper = PatchWrapper(config_wrapper)
-        patch_sorter = self.get_patch_sorter(non_strict, ignore_more_list, config_wrapper, patch_wrapper)
+        patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
         patch_applier = PatchApplier(config_wrapper=config_wrapper, patchsorter=patch_sorter, patch_wrapper=patch_wrapper)
 
         if config_format == ConfigFormat.CONFIGDB:
@@ -315,12 +316,12 @@ class GenericUpdateFactory:
 
         return patch_applier
 
-    def create_config_replacer(self, config_format, verbose, dry_run, non_strict, ignore_more_list):
+    def create_config_replacer(self, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
         self.init_verbose_logging(verbose)
 
         config_wrapper = self.get_config_wrapper(dry_run)
         patch_wrapper = PatchWrapper(config_wrapper)
-        patch_sorter = self.get_patch_sorter(non_strict, ignore_more_list, config_wrapper, patch_wrapper)
+        patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
         patch_applier = PatchApplier(config_wrapper=config_wrapper, patchsorter=patch_sorter, patch_wrapper=patch_wrapper)
 
         config_replacer = ConfigReplacer(patch_applier=patch_applier, config_wrapper=config_wrapper)
@@ -337,12 +338,12 @@ class GenericUpdateFactory:
 
         return config_replacer
 
-    def create_config_rollbacker(self, verbose, dry_run=False, non_strict=False, ignore_more_list=[]):
+    def create_config_rollbacker(self, verbose, dry_run=False, ignore_non_yang_tables=False, ignore_paths=[]):
         self.init_verbose_logging(verbose)
 
         config_wrapper = self.get_config_wrapper(dry_run)
         patch_wrapper = PatchWrapper(config_wrapper)
-        patch_sorter = self.get_patch_sorter(non_strict, ignore_more_list, config_wrapper, patch_wrapper)
+        patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
         patch_applier = PatchApplier(config_wrapper=config_wrapper, patchsorter=patch_sorter, patch_wrapper=patch_wrapper)
 
         config_replacer = ConfigReplacer(config_wrapper=config_wrapper, patch_applier=patch_applier)
@@ -362,27 +363,36 @@ class GenericUpdateFactory:
         else:
             return ConfigWrapper()
 
-    def get_patch_sorter(self, non_strict, ignore_more_list, config_wrapper, patch_wrapper):
-        if non_strict:
-            return NonStrictPatchSorter(ignore_more_list, config_wrapper=config_wrapper, patch_wrapper=patch_wrapper)
-        else:
-            return StrictPatchSorter(config_wrapper=config_wrapper, patch_wrapper=patch_wrapper)
+    def get_patch_sorter(self, ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper):
+        if not ignore_non_yang_tables and not ignore_paths:
+            return StrictPatchSorter(config_wrapper, patch_wrapper)
+
+        inner_config_splitters = []
+        if ignore_non_yang_tables:
+            inner_config_splitters.append(TablesWithoutYangConfigSplitter(config_wrapper))
+
+        if ignore_paths:
+            inner_config_splitters.append(IgnorePathsFromYangConfigSplitter(ignore_paths, config_wrapper))
+
+        config_splitter = ConfigSplitter(config_wrapper, inner_config_splitters)
+
+        return NonStrictPatchSorter(config_wrapper, patch_wrapper, config_splitter)
 
 class GenericUpdater:
     def __init__(self, generic_update_factory=None):
         self.generic_update_factory = \
             generic_update_factory if generic_update_factory is not None else GenericUpdateFactory()
 
-    def apply_patch(self, patch, config_format, verbose, dry_run, non_strict, ignore_more_list):
-        patch_applier = self.generic_update_factory.create_patch_applier(config_format, verbose, dry_run, non_strict, ignore_more_list)
+    def apply_patch(self, patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+        patch_applier = self.generic_update_factory.create_patch_applier(config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths)
         patch_applier.apply(patch)
 
-    def replace(self, target_config, config_format, verbose, dry_run, non_strict, ignore_more_list):
-        config_replacer = self.generic_update_factory.create_config_replacer(config_format, verbose, dry_run, non_strict, ignore_more_list)
+    def replace(self, target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+        config_replacer = self.generic_update_factory.create_config_replacer(config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths)
         config_replacer.replace(target_config)
 
-    def rollback(self, checkpoint_name, verbose, dry_run, non_strict, ignore_more_list):
-        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run, non_strict, ignore_more_list)
+    def rollback(self, checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+        config_rollbacker = self.generic_update_factory.create_config_rollbacker(verbose, dry_run, ignore_non_yang_tables, ignore_paths)
         config_rollbacker.rollback(checkpoint_name)
 
     def checkpoint(self, checkpoint_name, verbose):

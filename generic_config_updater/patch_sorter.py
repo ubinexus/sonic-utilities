@@ -1043,23 +1043,28 @@ class StrictPatchSorter:
 
         return changes
 
-class ConfigSplitter:
-    def __init__(self, config_wrapper, ignore_paths_from_yang_list):
+class TablesWithoutYangConfigSplitter:
+    def __init__(self, config_wrapper):
         self.config_wrapper = config_wrapper
-        self.ignore_paths_from_yang_list = ignore_paths_from_yang_list
 
     def split_yang_non_yang_distinct_field_path(self, config):
-        empty_tables = self.config_wrapper.get_empty_tables(config)
-        empty_tables_txt = ", ".join(empty_tables)
-        if empty_tables:
-            raise ValueError(f"Given config has empty tables. Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
-
-        # split based on tables with our without YANG models
         config_with_yang = self.config_wrapper.crop_tables_without_yang(config)
         config_without_yang = {}
+
         for key in config:
             if key not in config_with_yang:
                 config_without_yang[key] = copy.deepcopy(config[key])
+
+        return config_with_yang, config_without_yang
+
+class IgnorePathsFromYangConfigSplitter:
+    def __init__(self, ignore_paths_from_yang_list, config_wrapper):
+        self.ignore_paths_from_yang_list = ignore_paths_from_yang_list
+        self.config_wrapper = config_wrapper
+
+    def split_yang_non_yang_distinct_field_path(self, config):
+        config_with_yang = copy.deepcopy(config)
+        config_without_yang = {}
 
         path_addressing = PathAddressing()
         # ignore more config from config_with_yang
@@ -1084,9 +1089,45 @@ class ConfigSplitter:
         config_without_yang_without_empty_tables = self.config_wrapper.remove_empty_tables(config_without_yang)
         return config_with_yang_without_empty_tables, config_without_yang_without_empty_tables
 
+class ConfigSplitter:
+    def __init__(self, config_wrapper, inner_config_splitters):
+        self.config_wrapper = config_wrapper
+        self.inner_config_splitters = inner_config_splitters
+
+    def split_yang_non_yang_distinct_field_path(self, config):
+        empty_tables = self.config_wrapper.get_empty_tables(config)
+        empty_tables_txt = ", ".join(empty_tables)
+        if empty_tables:
+            raise ValueError(f"Given config has empty tables. Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
+
+        # Start by assuming all config should be YANG covered
+        config_with_yang = copy.deepcopy(config)
+        config_without_yang = {}
+
+        for config_splitter in self.inner_config_splitters:
+            config_with_yang, additional_config_without_yang = config_splitter.split_yang_non_yang_distinct_field_path(config_with_yang)
+            config_without_yang = self.merge_configs_with_distinct_field_path(config_without_yang, additional_config_without_yang)
+
+        return config_with_yang, config_without_yang
+
+    def merge_configs_with_distinct_field_path(self, config1, config2):
+        merged_config = copy.deepcopy(config1)
+        self.__recursive_append(merged_config, config2)
+        return merged_config
+
+    def __recursive_append(self, target, additional, path=""):
+        if not isinstance(target, dict):
+            raise ValueError(f"Found a field that exist in both config1 and config2. Path: {path}")
+        for key in additional:
+            if key not in target:
+                target[key] = copy.deepcopy(additional[key])
+            else:
+                self.__recursive_append(target[key], additional[key], f"{path}/{key}")
+
 class ChangeWrapper:
-    def __init__(self, patch_wrapper):
+    def __init__(self, patch_wrapper, config_splitter):
         self.patch_wrapper = patch_wrapper
+        self.config_splitter = config_splitter
 
     def adjust_changes(self, assumed_changes, assumed_curr_config, remaining_distinct_curr_config):
         """
@@ -1149,8 +1190,8 @@ class ChangeWrapper:
         for change in assumed_changes:
             assumed_target_config = change.apply(assumed_curr_config)
 
-            adjusted_curr_config = self._merge_configs_with_distinct_field_path(assumed_curr_config, remaining_distinct_curr_config)
-            adjusted_target_config = self._merge_configs_with_distinct_field_path(assumed_target_config, remaining_distinct_curr_config)
+            adjusted_curr_config = self.config_splitter.merge_configs_with_distinct_field_path(assumed_curr_config, remaining_distinct_curr_config)
+            adjusted_target_config = self.config_splitter.merge_configs_with_distinct_field_path(assumed_target_config, remaining_distinct_curr_config)
 
             adjusted_patch = self.patch_wrapper.generate_patch(adjusted_curr_config, adjusted_target_config)
 
@@ -1161,28 +1202,14 @@ class ChangeWrapper:
 
         return adjusted_changes
 
-    def _merge_configs_with_distinct_field_path(self, config1, config2):
-        merged_config = copy.deepcopy(config1)
-        self.__recursive_append(merged_config, config2)
-        return merged_config
-
-    def __recursive_append(self, target, additional, path=""):
-        if not isinstance(target, dict):
-            raise ValueError(f"Found a field that exist in both config1 and config2. Path: {path}")
-        for key in additional:
-            if key not in target:
-                target[key] = copy.deepcopy(additional[key])
-            else:
-                self.__recursive_append(target[key], additional[key], f"{path}/{key}")
-
 class NonStrictPatchSorter:
-    def __init__(self, ignore_more_list, config_wrapper, patch_wrapper, patch_sorter=None, config_splitter=None, change_wrapper=None):
+    def __init__(self, config_wrapper, patch_wrapper, config_splitter, change_wrapper=None, patch_sorter=None):
         self.logger = genericUpdaterLogging.get_logger(title="Patch Sorter - Non-Strict", print_all_to_console=True)
         self.config_wrapper = config_wrapper
         self.patch_wrapper = patch_wrapper
+        self.config_splitter = config_splitter
+        self.change_wrapper = change_wrapper if change_wrapper else ChangeWrapper(patch_wrapper, config_splitter)
         self.inner_patch_sorter = patch_sorter if patch_sorter else PatchSorter(config_wrapper, patch_wrapper)
-        self.config_splitter = config_splitter if config_splitter else ConfigSplitter(config_wrapper, ignore_more_list)
-        self.change_wrapper = change_wrapper if change_wrapper else ChangeWrapper(patch_wrapper)
 
     def sort(self, patch, algorithm=Algorithm.DFS):
         current_config = self.config_wrapper.get_config_db_as_json()
@@ -1212,6 +1239,11 @@ class NonStrictPatchSorter:
         self.logger.log_info("Regenerating patch for YANG covered configs only.")
         yang_patch = self.patch_wrapper.generate_patch(current_config_yang, target_config_yang)
         self.logger.log_info(f"Generated patch {yang_patch}")
+
+        # Validate YANG covered config patch is only updating tables with yang models
+        self.logger.log_info("Validating YANG covered config patch is not making changes to tables without YANG models.")
+        if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(yang_patch)):
+            raise ValueError(f"Given YANG covered config patch is not valid because it has changes to tables without YANG models")
 
         # Generating changes associated with YANG covered configs
         self.logger.log_info("Sorting YANG-covered configs patch updates.")
