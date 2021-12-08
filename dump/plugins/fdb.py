@@ -27,14 +27,6 @@ class Fdb(Executor):
         self.init_state_fdb_info(fdb_entry)
         return self.ret_temp
 
-    def add_to_ret_template(self, table, db, keys, err):
-        if not err and keys:
-            self.ret_temp[db]["keys"].extend(keys)
-            return True
-        else:
-            self.ret_temp[db]["tables_not_found"].extend([table])
-            return False
-
     def init_state_fdb_info(self, fdb_name):
         req = MatchRequest(db="STATE_DB", table="FDB_TABLE", key_pattern=fdb_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
