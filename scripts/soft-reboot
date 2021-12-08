@@ -127,7 +127,7 @@ function setup_reboot_variables()
         # Handle architectures supporting Device Tree
         elif [ -f /sys/firmware/devicetree/base/chosen/bootargs ]; then
             KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-            BOOT_OPTIONS=$(cat /sys/firmware/devicetree/base/chosen/bootargs | sed 's/.$/\n/')" SONIC_BOOT_TYPE=soft"
+            BOOT_OPTIONS=$(cat /sys/firmware/devicetree/base/chosen/bootargs | sed 's/.$/\n/')" SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
             INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 
             # If initrd is a U-Boot uImage, remove the uImage header
