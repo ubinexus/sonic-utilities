@@ -43,7 +43,9 @@ try: # pragma: no cover
                           "2": 'asic_db_def_vlan',
                           "3": 'asic_db_no_fdb',
                           "4": 'asic_db_no_bridge',
-                          "5": 'asic_db_fetch_except'}
+                          "5": 'asic_db_fetch_except',
+                          "6": 'asic_db_no_static',
+                          "7": 'asic_db_mac_case'}
         mock_db_path = os.path.join(test_path, "fdbshow_input")
         file_name = mock_variants[os.environ["FDBSHOW_MOCK"]]
         jsonfile_asic = os.path.join(mock_db_path, file_name)
@@ -146,7 +148,7 @@ class FdbShow(object):
         return keys.index(key_value)
 
 
-    def display(self, vlan, port):
+    def display(self, vlan, port, address, entry_type, count):
         """
             Display the FDB entries for specified vlan/port.
             @todo: - PortChannel support
@@ -163,11 +165,25 @@ class FdbShow(object):
             self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
                                     if fdb[2] == port]
 
+        if address is not None:
+            address = address.upper()
+            s_index = self.get_iter_index(address, 1)
+            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
+                                    if fdb[1] == address]
+
+        if entry_type is not None:
+            entry_type = entry_type.capitalize()
+            s_index = self.get_iter_index(entry_type, 3)
+            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
+                                   if fdb[3] == entry_type]
+
         for fdb in self.bridge_mac_list:
             self.FDB_COUNT += 1
-            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
+            if not count:
+                output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
 
-        print(tabulate(output, self.HEADER))
+        if not count:
+            print(tabulate(output, self.HEADER))
         print("Total number of entries {0}".format(self.FDB_COUNT))
 
 
@@ -177,11 +193,14 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--port', type=str, help='FDB learned on specific port: Ethernet0', default=None)
     parser.add_argument('-v', '--vlan', type=str, help='FDB learned on specific Vlan: 1001', default=None)
+    parser.add_argument('-a', '--address', type=str, help='FDB display based on specific mac address', default=None)
+    parser.add_argument('-t', '--type', type=str, help='FDB display of specific type of mac address', default=None)
+    parser.add_argument('-c', '--count', action='store_true', help='FDB display count of mac address')
     args = parser.parse_args()
 
     try:
         fdb = FdbShow()
-        fdb.display(args.vlan, args.port)
+        fdb.display(args.vlan, args.port, args.address, args.type, args.count)
     except Exception as e:
         print(str(e))
         sys.exit(1)
