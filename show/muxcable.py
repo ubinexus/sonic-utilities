@@ -64,7 +64,6 @@ def check_port_in_mux_cable_table(port):
 
     per_npu_configdb = {}
     mux_tbl_cfg_db = {}
-    peer_switch_tbl_cfg_db = {}
     port_mux_tbl_keys = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
