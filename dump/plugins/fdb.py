@@ -35,18 +35,13 @@ class Fdb(Executor):
     def init_fdb_appl_info(self, fdb_name):
         req = MatchRequest(db="APPL_DB", table="FDB_TABLE", key_pattern=fdb_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if len(ret["keys"]) != 0:
-            self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
-
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], false)
         req = MatchRequest(db="APPL_DB", table="VXLAN_FDB_TABLE", key_pattern=fdb_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if len(ret["keys"]) != 0:
-            self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
-
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], false)
         req = MatchRequest(db="APPL_DB", table="MCLAG_FDB_TABLE", key_pattern=fdb_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if len(ret["keys"]) != 0:
-            self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], false)
 
     def init_asic_fdb_info(self, fdb_name):
         key_split = fdb_name.split(":",1)
