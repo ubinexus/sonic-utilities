@@ -733,7 +733,9 @@ def _get_sonic_services():
 
 def _get_delayed_sonic_services():
     out = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
-    return (unit.strip().rstrip('.timer') for unit in out.splitlines())
+    timers = [unit for unit in out.splitlines() if(clicommon.run_command("systemctl is-enabled {}".format(unit),
+            return_cmd=True).strip() == "enabled")]
+    return (unit.strip().rstrip('.timer') for unit in timers)
 
 
 def _reset_failed_services():
