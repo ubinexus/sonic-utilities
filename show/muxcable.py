@@ -402,12 +402,23 @@ def get_switch_name(config_db):
 
 def create_json_dump_per_port_status(db, port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_index, port):
 
+    res_dict = {}
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     port_name = platform_sfputil_helper.get_interface_alias(port, db)
     port_status_dict["MUX_CABLE"][port_name] = {}
     port_status_dict["MUX_CABLE"][port_name]["STATUS"] = status_value
     health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
     port_status_dict["MUX_CABLE"][port_name]["HEALTH"] = health_value
+    res_dict = get_hwmode_mux_direction_port(db, port)
+    if res_dict[2] == "False":
+        hwstatus = "absent"
+    elif res_dict[1] == "not Y-Cable port":
+        hwstatus = "not Y-Cable port"
+    elif res_dict[1] == status_value:
+        hwstatus = "consistent"
+    else:
+        hwstatus = "inconsistent"
+    port_status_dict["MUX_CABLE"][port_name]["HWSTATUS"] = hwstatus
 
 
 def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcable_health_dict, asic_index, port):
@@ -1058,7 +1069,7 @@ def get_hwmode_mux_direction_port(db, port):
 
         result = get_result(port, res_dict, "muxdirection" , result, "XCVRD_SHOW_HWMODE_DIR_RES")
 
-        res_dict[2] = result.get("presence","unknown") 
+        res_dict[2] = result.get("presence","unknown")
 
     return res_dict
 
@@ -1088,7 +1099,7 @@ def muxdirection(db, port):
             return CONFIG_FAIL
 
         res_dict = get_hwmode_mux_direction_port(db, port)
-       
+
         body = []
         temp_list = []
         headers = ['Port', 'Direction', 'Presence']
