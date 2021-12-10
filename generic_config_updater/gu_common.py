@@ -28,6 +28,9 @@ class JsonChange:
     def apply(self, config):
         return self.patch.apply(config)
 
+    def __repr__(self):
+        return str(self)
+
     def __str__(self):
         return f'{self.patch}'
 
@@ -133,6 +136,20 @@ class ConfigWrapper:
         sy._cropConfigDB()
 
         return sy.jIn
+    
+    def get_empty_tables(self, config):
+        empty_tables = []
+        for key in config.keys():
+            if not(config[key]):
+                empty_tables.append(key)
+        return empty_tables
+        
+    def remove_empty_tables(self, config):
+        config_with_non_empty_tables = {}
+        for table in config:
+            if config[table]:
+                config_with_non_empty_tables[table] = copy.deepcopy(config[table])
+        return config_with_non_empty_tables
 
 class DryRunConfigWrapper(ConfigWrapper):
     # TODO: implement DryRunConfigWrapper
@@ -227,6 +244,9 @@ class PathAddressing:
 
     def create_path(self, tokens):
         return JsonPointer.from_parts(tokens).path
+
+    def has_path(self, doc, path):
+        return JsonPointer(path).get(doc, default=None) is not None
 
     def get_xpath_tokens(self, xpath):
         """
@@ -695,15 +715,16 @@ class PathAddressing:
         return None
 
 class TitledLogger(logger.Logger):
-    def __init__(self, syslog_identifier, title, verbose):
+    def __init__(self, syslog_identifier, title, verbose, print_all_to_console):
         super().__init__(syslog_identifier)
         self._title = title
         if verbose:
             self.set_min_log_priority_debug()
+        self.print_all_to_console = print_all_to_console
 
     def log(self, priority, msg, also_print_to_console=False):
         combined_msg = f"{self._title}: {msg}"
-        super().log(priority, combined_msg, also_print_to_console)
+        super().log(priority, combined_msg, self.print_all_to_console or also_print_to_console)
 
 class GenericUpdaterLogging:
     def __init__(self):
@@ -712,7 +733,7 @@ class GenericUpdaterLogging:
     def set_verbose(self, verbose):
         self._verbose = verbose
 
-    def get_logger(self, title):
-        return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose)
+    def get_logger(self, title, print_all_to_console=False):
+        return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose, print_all_to_console)
 
 genericUpdaterLogging = GenericUpdaterLogging()
