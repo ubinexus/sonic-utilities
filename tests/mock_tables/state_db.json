@@ -68,7 +68,7 @@
         "vcclowwarning": "3.1349"
     },
     "TRANSCEIVER_INFO|Ethernet8": {
-        "application_advertisement": "{1: {'ap_sel_code_id': 1, 'host_electrical_interface_id': '400GAUI-8 C2M (Annex 120E)', 'module_media_interface_id': '400GBASE-DR4 (Cl 124)', 'host_lane_count': 8, 'media_lane_count': 4, 'host_lane_assignment_options': 1, 'media_lane_assignment_options': None}, 2: {'ap_sel_code_id': 2, 'host_electrical_interface_id': '100GAUI-2 C2M (Annex 135G)', 'module_media_interface_id': '100G-FR/100GBASE-FR1 (Cl 140)', 'host_lane_count': 2, 'media_lane_count': 1, 'host_lane_assignment_options': 85, 'media_lane_assignment_options': None}}",
+        "application_advertisement": "{1: {'host_electrical_interface_id': '400GAUI-8 C2M (Annex 120E)', 'module_media_interface_id': '400GBASE-DR4 (Cl 124)', 'host_lane_count': 8, 'media_lane_count': 4, 'host_lane_assignment_options': 1}, 2: {'host_electrical_interface_id': '100GAUI-2 C2M (Annex 135G)', 'module_media_interface_id': '100G-FR/100GBASE-FR1 (Cl 140)', 'host_lane_count': 2, 'media_lane_count': 1, 'host_lane_assignment_options': 85 }}",
         "cable_length": "0.0",
         "cable_type": "Length cable Assembly(m)",
         "connector": "SN optical connector",
@@ -76,7 +76,7 @@
         "encoding": "N/A",
         "ext_identifier": "Power Class 6 (12.0W Max)",
         "ext_rateselect_compliance": "N/A",
-        "hardware_rev": "01",
+        "vendor_rev": "01",
         "is_replaceable": "False",
         "manufacturer": "AVAGO",
         "model": "AFCT-93DRPHZ-AZ2",

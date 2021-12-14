@@ -306,7 +306,7 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
                                   (indent * 2), appl, \
                                   appl_advert_dict[appl]['host_electrical_interface_id'], \
                                   appl_advert_dict[appl]['module_media_interface_id'])
-            except:
+            except ValueError:
                 output += '{}N/A\n'.format((indent * 2))
         else:
             output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])

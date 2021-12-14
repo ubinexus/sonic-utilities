@@ -288,7 +288,7 @@ class SFPShow(object):
                 if sfp_info_dict[key] != 'N/A':
                     try:
                         appl_advert_dict = ast.literal_eval(sfp_info_dict[key])
-                    except:
+                    except ValueError:
                         appl_advert_dict = None
                 if appl_advert_dict is not None:
                     output += '{}{}:\n'.format(indent, QSFP_DATA_MAP[key])
@@ -298,7 +298,7 @@ class SFPShow(object):
                 else:
                     output += '{}{}: N/A\n'.format(indent, QSFP_DATA_MAP[key])
             else:
-                output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
+                output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict.get(key, "N/A"))
 
         return output
 
