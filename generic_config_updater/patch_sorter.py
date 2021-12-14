@@ -372,40 +372,46 @@ class UniqueLanesMoveValidator:
 
 class CreateOnlyMoveValidator:
     """
-    A class to validate create-only fields are only added/removed but never replaced.
-    Parents of create-only fields are also only added/removed but never replaced when they contain
-    a modified create-only field.
+    A class to validate create-only fields are only created, but never modified/updated. In other words:
+    - Field cannot be replaced.
+    - Field cannot be added, only if the parent is added.
+    - Field cannot be deleted, only if the parent is deleted.
     """
     def __init__(self, path_addressing):
         self.path_addressing = path_addressing
 
     def validate(self, move, diff):
-        if move.op_type != OperationType.REPLACE:
-            return True
-
-        # The 'create-only' field needs to be common between current and simulated anyway but different.
-        # This means it is enough to just get the paths from current_config, paths that are not common can be ignored.
-        paths = self._get_create_only_paths(diff.current_config)
         simulated_config = move.apply(diff.current_config)
+        paths = set(list(self._get_create_only_paths(diff.current_config)) + list(self._get_create_only_paths(simulated_config)))
 
         for path in paths:
             tokens = self.path_addressing.get_path_tokens(path)
             if self._value_exist_but_different(tokens, diff.current_config, simulated_config):
+                return False
+            if self._value_added_but_parent_exist(tokens, diff.current_config, simulated_config):
+                return False
+            if self._value_removed_but_parent_remain(tokens, diff.current_config, simulated_config):
                 return False
 
         return True
 
     # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
     def _get_create_only_paths(self, config):
-        if "PORT" not in config:
-            return
+        if "PORT" in config:
+            ports = config["PORT"]
 
-        ports = config["PORT"]
+            for port in ports:
+                attrs = ports[port]
+                if "lanes" in attrs:
+                    yield f"/PORT/{port}/lanes"
 
-        for port in ports:
-            attrs = ports[port]
-            if "lanes" in attrs:
-                yield f"/PORT/{port}/lanes"
+        if "LOOPBACK_INTERFACE" in config:
+            interfaces = config["LOOPBACK_INTERFACE"]
+
+            for interface in interfaces:
+                attrs = interfaces[interface]
+                if "vrf_name" in attrs:
+                    yield f"/LOOPBACK_INTERFACE/{interface}/vrf_name"
 
     def _value_exist_but_different(self, tokens, current_config_ptr, simulated_config_ptr):
         for token in tokens:
@@ -421,6 +427,46 @@ class CreateOnlyMoveValidator:
             simulated_config_ptr = simulated_config_ptr[mod_token]
 
         return current_config_ptr != simulated_config_ptr
+
+    def _value_added_but_parent_exist(self, tokens, current_config_ptr, simulated_config_ptr):
+        # if value is not added, return false
+        if not self._exist_only_in_first(tokens, simulated_config_ptr, current_config_ptr):
+            return False
+
+        # if parent is added, return false
+        if self._exist_only_in_first(tokens[:-1], simulated_config_ptr, current_config_ptr):
+            return False
+
+        # otherwise parent exist and value is added
+        return True
+
+    def _value_removed_but_parent_remain(self, tokens, current_config_ptr, simulated_config_ptr):
+        # if value is not removed, return false
+        if not self._exist_only_in_first(tokens, current_config_ptr, simulated_config_ptr):
+            return False
+
+        # if parent is removed, return false
+        if self._exist_only_in_first(tokens[:-1], current_config_ptr, simulated_config_ptr):
+            return False
+
+        # otherwise parent remained and value is removed
+        return True
+
+    def _exist_only_in_first(self, tokens, first_config_ptr, second_config_ptr):
+        for token in tokens:
+            mod_token = int(token) if isinstance(first_config_ptr, list) else token
+
+            if mod_token not in second_config_ptr:
+                return True
+
+            if mod_token not in first_config_ptr:
+                return False
+
+            first_config_ptr = first_config_ptr[mod_token]
+            second_config_ptr = second_config_ptr[mod_token]
+
+        # tokens exist in both
+        return False
 
 class NoDependencyMoveValidator:
     """
