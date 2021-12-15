@@ -397,21 +397,32 @@ class CreateOnlyMoveValidator:
 
     # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
     def _get_create_only_paths(self, config):
-        if "PORT" in config:
-            ports = config["PORT"]
+        # Each pattern consist of a list of tokens. Token matching starts from the root level of the config.
+        # Each token is either a specific key or '*' to match all keys.
+        create_only_patterns = [
+            ["PORT", "*", "lanes"],
+            ["LOOPBACK_INTERFACE", "*", "vrf_name"]
+        ]
+        for pattern in create_only_patterns:
+            for create_only_path in self._get_create_only_path_recursive(config, pattern, [], 0):
+                yield create_only_path
 
-            for port in ports:
-                attrs = ports[port]
-                if "lanes" in attrs:
-                    yield f"/PORT/{port}/lanes"
+    def _get_create_only_path_recursive(self, config, pattern_tokens, matching_tokens, idx):
+        if idx == len(pattern_tokens):
+            yield '/' + '/'.join(matching_tokens)
+            return
 
-        if "LOOPBACK_INTERFACE" in config:
-            interfaces = config["LOOPBACK_INTERFACE"]
+        matching_keys = []
+        if pattern_tokens[idx] == "*":
+            matching_keys = config.keys()
+        elif pattern_tokens[idx] in config:
+            matching_keys = [pattern_tokens[idx]]
 
-            for interface in interfaces:
-                attrs = interfaces[interface]
-                if "vrf_name" in attrs:
-                    yield f"/LOOPBACK_INTERFACE/{interface}/vrf_name"
+        for key in matching_keys:
+            matching_tokens.append(key)
+            for create_only_path in self._get_create_only_path_recursive(config[key], pattern_tokens, matching_tokens, idx+1):
+                yield create_only_path
+            matching_tokens.pop()
 
     def _value_exist_but_different(self, tokens, current_config_ptr, simulated_config_ptr):
         for token in tokens:
