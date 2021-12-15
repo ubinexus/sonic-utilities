@@ -380,6 +380,14 @@ class CreateOnlyMoveValidator:
     def __init__(self, path_addressing):
         self.path_addressing = path_addressing
 
+        # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
+        # Each pattern consist of a list of tokens. Token matching starts from the root level of the config.
+        # Each token is either a specific key or '*' to match all keys.
+        self.create_only_patterns = [
+            ["PORT", "*", "lanes"],
+            ["LOOPBACK_INTERFACE", "*", "vrf_name"],
+        ]
+
     def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
         paths = set(list(self._get_create_only_paths(diff.current_config)) + list(self._get_create_only_paths(simulated_config)))
@@ -395,15 +403,8 @@ class CreateOnlyMoveValidator:
 
         return True
 
-    # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
     def _get_create_only_paths(self, config):
-        # Each pattern consist of a list of tokens. Token matching starts from the root level of the config.
-        # Each token is either a specific key or '*' to match all keys.
-        create_only_patterns = [
-            ["PORT", "*", "lanes"],
-            ["LOOPBACK_INTERFACE", "*", "vrf_name"]
-        ]
-        for pattern in create_only_patterns:
+        for pattern in self.create_only_patterns:
             for create_only_path in self._get_create_only_path_recursive(config, pattern, [], 0):
                 yield create_only_path
 
