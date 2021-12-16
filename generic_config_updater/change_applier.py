@@ -6,7 +6,7 @@ import os
 import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
-from .gu_common import genericUpdaterLogging
+from .gu_common import genericUpdaterLogging, DryRunConfigWrapper
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
@@ -59,7 +59,12 @@ class ChangeApplier:
 
     updater_conf = None
 
-    def __init__(self):
+    def __init__(self, config_wrapper):
+        self.config_wrapper = config_wrapper
+        if type(self.config_wrapper) is DryRunConfigWrapper:
+            # No need to init the rest of the parameters
+            return
+
         self.config_db = get_config_db()
         if (not ChangeApplier.updater_conf) and os.path.exists(UPDATER_CONF_FILE):
             with open(UPDATER_CONF_FILE, "r") as s:
@@ -121,6 +126,11 @@ class ChangeApplier:
 
 
     def apply(self, change):
+        # TODO: DryRun to also include service validation.
+        if type(self.config_wrapper) is DryRunConfigWrapper:
+            self.config_wrapper.apply_change_to_config_db(change)
+            return
+
         run_data = self._get_running_config()
         upd_data = prune_empty_table(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)

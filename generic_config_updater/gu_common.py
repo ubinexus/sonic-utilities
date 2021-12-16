@@ -152,9 +152,19 @@ class ConfigWrapper:
         return config_with_non_empty_tables
 
 class DryRunConfigWrapper(ConfigWrapper):
-    # TODO: implement DryRunConfigWrapper
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
-    pass
+    def __init__(self, yang_dir = YANG_DIR):
+        self.yang_dir = YANG_DIR
+        super().__init__(yang_dir)
+        self.logger = genericUpdaterLogging.get_logger(title="** DryRun", print_all_to_console=True)
+        self.imitated_config_db = super().get_config_db_as_json()
+
+    def apply_change_to_config_db(self, change):
+        self.logger.log_notice(f"Would apply {change}")
+        self.imitated_config_db = change.apply(self.imitated_config_db)
+
+    def get_config_db_as_json(self):
+        return self.imitated_config_db
 
 class PatchWrapper:
     def __init__(self, config_wrapper=None):

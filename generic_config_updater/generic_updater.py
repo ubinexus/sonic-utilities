@@ -34,7 +34,7 @@ class PatchApplier:
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
         self.patchsorter = patchsorter if patchsorter is not None else StrictPatchSorter(self.config_wrapper, self.patch_wrapper)
-        self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
+        self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier(self.config_wrapper)
 
     def apply(self, patch):
         self.logger.log_notice("Patch application starting.")
