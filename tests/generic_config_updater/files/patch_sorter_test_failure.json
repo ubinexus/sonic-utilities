@@ -1,6 +1,6 @@
 {
     "EMPTYING_A_CONFIGDB_TABLE__FAILURE": {
-        "desc": "Emptying a configdb table fails because empty tables are not allowed in configdb.",
+        "desc": "Emptying a configdb table fails because empty tables are not allowed in configdb. User should remove whole table instead e.g. remove /ACL_TABLE in this case.",
         "current_config": {
             "ACL_TABLE": {
                 "EVERFLOW": {
@@ -39,7 +39,7 @@
         ]
     },
     "EMPTYING_MULTIPLE_CONFIGDB_TABLE__FAILURE": {
-        "desc": "Emptying multiple configdb table fails because empty tables are not allowed in configdb.",
+        "desc": "Emptying multiple configdb table fails because empty tables are not allowed in configdb. User should remove whole tables instead  e.g. remove /PORT and /ACL_TABLE in this case.",
         "current_config": {
             "ACL_TABLE": {
                 "EVERFLOW": {
