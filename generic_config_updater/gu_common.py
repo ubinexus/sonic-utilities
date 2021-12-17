@@ -153,11 +153,12 @@ class ConfigWrapper:
 
 class DryRunConfigWrapper(ConfigWrapper):
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
-    def __init__(self, yang_dir = YANG_DIR):
-        self.yang_dir = YANG_DIR
-        super().__init__(yang_dir)
+    def __init__(self, initial_imitated_config_db = None):
+        super().__init__()
         self.logger = genericUpdaterLogging.get_logger(title="** DryRun", print_all_to_console=True)
-        self.imitated_config_db = super().get_config_db_as_json()
+        self.imitated_config_db = copy.deepcopy(initial_imitated_config_db) \
+                                  if initial_imitated_config_db \
+                                  else super().get_config_db_as_json()
 
     def apply_change_to_config_db(self, change):
         self.logger.log_notice(f"Would apply {change}")

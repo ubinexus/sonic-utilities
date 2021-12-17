@@ -55,16 +55,21 @@ def prune_empty_table(data):
     return data
 
 
+class DryRunChangeApplier:
+
+    def __init__(self, config_wrapper):
+        self.config_wrapper = config_wrapper
+
+
+    def apply(self, change):
+        self.config_wrapper.apply_change_to_config_db(change)
+
+
 class ChangeApplier:
 
     updater_conf = None
 
-    def __init__(self, config_wrapper):
-        self.config_wrapper = config_wrapper
-        if type(self.config_wrapper) is DryRunConfigWrapper:
-            # No need to init the rest of the parameters
-            return
-
+    def __init__(self):
         self.config_db = get_config_db()
         if (not ChangeApplier.updater_conf) and os.path.exists(UPDATER_CONF_FILE):
             with open(UPDATER_CONF_FILE, "r") as s:
@@ -126,11 +131,6 @@ class ChangeApplier:
 
 
     def apply(self, change):
-        # TODO: DryRun to also include service validation.
-        if type(self.config_wrapper) is DryRunConfigWrapper:
-            self.config_wrapper.apply_change_to_config_db(change)
-            return
-
         run_data = self._get_running_config()
         upd_data = prune_empty_table(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)
