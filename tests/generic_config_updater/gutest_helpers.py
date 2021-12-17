@@ -5,6 +5,10 @@ import shutil
 import sys
 import unittest
 from unittest.mock import MagicMock, Mock, call
+import generic_config_updater.gu_common as gu_common
+
+def init_tests():
+    gu_common.YANG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", "test-yang-models")
 
 class MockSideEffectDict:
     def __init__(self, map):

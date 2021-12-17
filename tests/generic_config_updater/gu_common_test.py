@@ -4,8 +4,10 @@ import sonic_yang
 import unittest
 from unittest.mock import MagicMock, Mock
 
-from .gutest_helpers import create_side_effect_dict, Files
+from .gutest_helpers import create_side_effect_dict, Files, init_tests
 import generic_config_updater.gu_common as gu_common
+
+init_tests()
 
 class TestConfigWrapper(unittest.TestCase):
     def setUp(self):
@@ -15,7 +17,7 @@ class TestConfigWrapper(unittest.TestCase):
     def test_ctor__default_values_set(self):
         config_wrapper = gu_common.ConfigWrapper()
 
-        self.assertEqual("/usr/local/yang-models", gu_common.YANG_DIR)
+        self.assertEqual(gu_common.YANG_DIR, config_wrapper.yang_dir)
 
     def test_get_sonic_yang_as_json__returns_sonic_yang_as_json(self):
         # Arrange

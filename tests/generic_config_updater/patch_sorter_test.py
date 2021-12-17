@@ -3,9 +3,11 @@ import unittest
 from unittest.mock import MagicMock, Mock
 
 import generic_config_updater.patch_sorter as ps
-from .gutest_helpers import Files, create_side_effect_dict
+from .gutest_helpers import Files, create_side_effect_dict, init_tests
 from generic_config_updater.gu_common import ConfigWrapper, PatchWrapper, OperationWrapper, \
                                              GenericConfigUpdaterError, OperationType, JsonChange, PathAddressing
+
+init_tests()
 
 class TestDiff(unittest.TestCase):
     def test_apply_move__updates_current_config(self):

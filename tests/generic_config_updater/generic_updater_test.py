@@ -3,7 +3,7 @@ import os
 import shutil
 import unittest
 from unittest.mock import MagicMock, Mock, call
-from .gutest_helpers import create_side_effect_dict, Files
+from .gutest_helpers import create_side_effect_dict, Files, init_tests
 
 import generic_config_updater.generic_updater as gu
 import generic_config_updater.patch_sorter as ps
@@ -11,6 +11,8 @@ import generic_config_updater.patch_sorter as ps
 # import sys
 # sys.path.insert(0,'../../generic_config_updater')
 # import generic_updater as gu
+
+init_tests()
 
 class TestPatchApplier(unittest.TestCase):
     def test_apply__invalid_patch_producing_empty_tables__failure(self):
