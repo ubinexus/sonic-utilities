@@ -6,7 +6,7 @@ import os
 import tempfile
 from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
-from .gu_common import genericUpdaterLogging, DryRunConfigWrapper
+from .gu_common import genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
