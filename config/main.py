@@ -1166,7 +1166,7 @@ def load(filename, yes):
 
 def print_dry_run_message(dry_run):
     if dry_run:
-        click.secho("** DRY RUN EXECUTION **.", fg="yellow", underline=True)
+        click.secho("** DRY RUN EXECUTION **", fg="yellow", underline=True)
 
 @config.command('apply-patch')
 @click.argument('patch-file-path', type=str, required=True)
