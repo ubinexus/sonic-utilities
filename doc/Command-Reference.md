@@ -8822,7 +8822,7 @@ To show the default MAC address aging time on the switch.
 
 - Usage:
   ```
-  show mac [-v <vlan_id>] [-p <port_name>] [-a <mac_address>] [-t <type>] [-c <count>]
+  show mac [-v <vlan_id>] [-p <port_name>] [-a <mac_address>] [-t <type>] [-c]
   ```
 
 - Example:
