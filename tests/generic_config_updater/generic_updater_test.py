@@ -422,7 +422,7 @@ class TestGenericUpdateFactory(unittest.TestCase):
         if params["dry_run"]:
             self.assertIsInstance(patch_applier.config_wrapper, gu.DryRunConfigWrapper)
             self.assertIsInstance(patch_applier.changeapplier, ca.DryRunChangeApplier)
-            self.assertIsInstance(patch_applier.changeapplier.config_wrapper, ca.DryRunConfigWrapper)
+            self.assertIsInstance(patch_applier.changeapplier.config_wrapper, gu.DryRunConfigWrapper)
         else:
             self.assertIsInstance(patch_applier.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(patch_applier.changeapplier, ca.ChangeApplier)
@@ -456,7 +456,7 @@ class TestGenericUpdateFactory(unittest.TestCase):
             self.assertIsInstance(config_replacer.config_wrapper, gu.DryRunConfigWrapper)
             self.assertIsInstance(config_replacer.patch_applier.config_wrapper, gu.DryRunConfigWrapper)
             self.assertIsInstance(config_replacer.patch_applier.changeapplier, ca.DryRunChangeApplier)
-            self.assertIsInstance(config_replacer.patch_applier.changeapplier.config_wrapper, ca.DryRunConfigWrapper)
+            self.assertIsInstance(config_replacer.patch_applier.changeapplier.config_wrapper, gu.DryRunConfigWrapper)
         else:
             self.assertIsInstance(config_replacer.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
@@ -491,7 +491,7 @@ class TestGenericUpdateFactory(unittest.TestCase):
                 config_rollbacker.config_replacer.patch_applier.config_wrapper, gu.DryRunConfigWrapper)
             self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.changeapplier, ca.DryRunChangeApplier)
             self.assertIsInstance(
-                config_rollbacker.config_replacer.patch_applier.changeapplier.config_wrapper, ca.DryRunConfigWrapper)
+                config_rollbacker.config_replacer.patch_applier.changeapplier.config_wrapper, gu.DryRunConfigWrapper)
         else:
             self.assertIsInstance(config_rollbacker.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(config_rollbacker.config_replacer.config_wrapper, gu.ConfigWrapper)
