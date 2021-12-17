@@ -767,8 +767,20 @@ def _delay_timers_elapsed():
             return False
     return True
 
+def _per_namespace_swss_ready(service_name):
+    out = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
+    if out.strip() != "active":
+        return False
+    out = clicommon.run_command("systemctl show {} --property ActiveEnterTimestampMonotonic --value".format(service_name), return_cmd=True)
+    swss_up_time = float(out.strip())/1000000
+    now =  time.monotonic()
+    if (now - swss_up_time > 120):
+        return True
+    else:
+        return False
+
 def _swss_ready():
-    list_of_swss = []
+    list_of_swss = [] 
     num_asics = multi_asic.get_num_asics()
     if num_asics == 1:
         list_of_swss.append("swss.service")
@@ -781,19 +793,7 @@ def _swss_ready():
         if _per_namespace_swss_ready(service_name) == False:
             return False
 
-    return True
-
-def _per_namespace_swss_ready(service_name):
-    out = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
-    if out.strip() != "active":
-        return False
-    out = clicommon.run_command("systemctl show {} --property ActiveEnterTimestampMonotonic --value".format(service_name), return_cmd=True)
-    swss_up_time = float(out.strip())/1000000
-    now =  time.monotonic()
-    if (now - swss_up_time > 120):
-        return True
-    else:
-        return False
+    return True 
 
 def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
