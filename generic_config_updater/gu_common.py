@@ -156,16 +156,22 @@ class DryRunConfigWrapper(ConfigWrapper):
     def __init__(self, initial_imitated_config_db = None):
         super().__init__()
         self.logger = genericUpdaterLogging.get_logger(title="** DryRun", print_all_to_console=True)
-        self.imitated_config_db = copy.deepcopy(initial_imitated_config_db) \
-                                  if initial_imitated_config_db \
-                                  else super().get_config_db_as_json()
+        self.imitated_config_db = copy.deepcopy(initial_imitated_config_db)
 
     def apply_change_to_config_db(self, change):
+        self._init_imitated_config_db_if_none()
         self.logger.log_notice(f"Would apply {change}")
         self.imitated_config_db = change.apply(self.imitated_config_db)
 
     def get_config_db_as_json(self):
+        self._init_imitated_config_db_if_none()
         return self.imitated_config_db
+
+    def _init_imitated_config_db_if_none(self):
+        # if there is no initial imitated config_db and it is the first time calling this method
+        if self.imitated_config_db is None:
+            self.imitated_config_db = super().get_config_db_as_json()
+
 
 class PatchWrapper:
     def __init__(self, config_wrapper=None):
