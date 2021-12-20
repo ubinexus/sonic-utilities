@@ -22,6 +22,10 @@ show_mac_aging_time_output = """\
 Aging time for switch is 600 seconds
 """
 
+show_mac_aging_time_not_present_output = """\
+Aging time not configured for the switch
+"""
+
 show_mac_output = """\
   No.    Vlan  MacAddress         Port           Type
 -----  ------  -----------------  -------------  -------
@@ -202,7 +206,7 @@ class TestFdbshow():
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == ""
+        assert result.output == show_mac_aging_time_not_present_output
 
     def test_show_mac(self):
         self.set_mock_variant("1")

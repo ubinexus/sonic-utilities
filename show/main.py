@@ -763,10 +763,16 @@ def aging_time(ctx):
     table = "SWITCH_TABLE*"
     keys = app_db.keys(app_db.APPL_DB, table)
 
+    if not keys:
+        click.echo("Aging time not configured for the switch")
+        return
+
     for key in keys:
         fdb_aging_time = app_db.get(app_db.APPL_DB, key, 'fdb_aging_time')
         if fdb_aging_time is not None:
             click.echo("Aging time for {} is {} seconds".format(key.split(':')[-1], fdb_aging_time))
+        else:
+            click.echo("Aging time not configured for the {}".format(key.split(':')[-1]))
 #
 # 'show route-map' command ("show route-map")
 #
