@@ -173,6 +173,48 @@ class TestFdbModule:
         ddiff = DeepDiff(returned, expect, ignore_order=True)
         assert not ddiff, ddiff
 
+    def test_invalid_key(self, match_engine):
+        """
+        Scenario: When invalid fdb key is given as input
+        """
+        params = {Fdb.ARG_NAME: "012345abcdef", "namespace": ""}
+        m_fdb = Fdb(match_engine)
+        returned = m_fdb.execute(params)
+        expect = create_template_dict(dbs=["APPL_DB", "ASIC_DB", "STATE_DB"])
+        expect["STATE_DB"]["tables_not_found"].append("FDB_TABLE")
+        expect["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT")
+        expect["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY")
+        ddiff = DeepDiff(returned, expect, ignore_order=True)
+        assert not ddiff, ddiff
+
+    def test_invalid_mac(self, match_engine):
+        """
+        Scenario: When invalid fdb key is given as input
+        """
+        params = {Fdb.ARG_NAME: "Vlan690:012345abcdef", "namespace": ""}
+        m_fdb = Fdb(match_engine)
+        returned = m_fdb.execute(params)
+        expect = create_template_dict(dbs=["APPL_DB", "ASIC_DB", "STATE_DB"])
+        expect["STATE_DB"]["tables_not_found"].append("FDB_TABLE")
+        expect["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT")
+        expect["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY")
+        ddiff = DeepDiff(returned, expect, ignore_order=True)
+        assert not ddiff, ddiff
+
+    def test_invalid_vlan(self, match_engine):
+        """
+        Scenario: When invalid fdb key is given as input
+        """
+        params = {Fdb.ARG_NAME: "Vlan6900:04:3f:72:ce:80:8b", "namespace": ""}
+        m_fdb = Fdb(match_engine)
+        returned = m_fdb.execute(params)
+        expect = create_template_dict(dbs=["APPL_DB", "ASIC_DB", "STATE_DB"])
+        expect["STATE_DB"]["tables_not_found"].append("FDB_TABLE")
+        expect["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT")
+        expect["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY")
+        ddiff = DeepDiff(returned, expect, ignore_order=True)
+        assert not ddiff, ddiff
+
     def test_all_args(self, match_engine):
         """
         Scenario: Verify Whether the get_all_args method is working as expected

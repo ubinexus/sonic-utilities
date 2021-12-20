@@ -44,6 +44,12 @@ class Fdb(Executor):
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], False)
 
     def init_asic_fdb_info(self, fdb_name):
+        # One colon between Vlan and MAC and 5 colons in mac address are expected in key
+        if fdb_name.count(':') != 6:
+            self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY")
+            self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT")
+            return
+
         key_split = fdb_name.split(":",1)
         vlan_name = key_split[0]
         mac = key_split[1]
