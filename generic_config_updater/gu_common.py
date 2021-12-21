@@ -151,19 +151,11 @@ class ConfigWrapper:
         # sonic_yang_with_loaded_models will only be initialized once the first time this method is called
         if self.sonic_yang_with_loaded_models is None:
             loaded_models_sy = sonic_yang.SonicYang(self.yang_dir)
-            loaded_models_sy.loadYangModel()
+            loaded_models_sy.loadYangModel() # This call takes a long time (100s of ms) because it reads files from disk
             self.sonic_yang_with_loaded_models = loaded_models_sy
 
-        # create a copy of sonic_yang_with_loaded_models, only copy the loaded yang models related properties
         # TODO: move to sonic-yang-mgmt directly
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.confDbYangMap = self.sonic_yang_with_loaded_models.confDbYangMap
-        sy.ctx = self.sonic_yang_with_loaded_models.ctx
-        sy.preProcessedYang = self.sonic_yang_with_loaded_models.preProcessedYang
-        sy.yangFiles = self.sonic_yang_with_loaded_models.yangFiles
-        sy.yJson = self.sonic_yang_with_loaded_models.yJson
-
-        return sy
+        return copy.copy(self.sonic_yang_with_loaded_models)
 
 class DryRunConfigWrapper(ConfigWrapper):
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
