@@ -258,6 +258,35 @@ class TestConfigWrapper(unittest.TestCase):
         # Assert
         self.assertDictEqual({"any_table": {"key": "value"}}, actual)
 
+    def test_create_sonic_yang_with_loaded_models__creates_new_sonic_yang_every_call(self):
+        # check yang models fields are the same, non-yang model fields are different
+        def check(sy1, sy2):
+            # instances are different
+            self.assertNotEqual(sy1, sy2)
+
+            # yang models fields are same
+            self.assertTrue(sy1.confDbYangMap is sy2.confDbYangMap)
+            self.assertTrue(sy1.ctx is sy2.ctx)
+            self.assertTrue(sy1.preProcessedYang is sy2.preProcessedYang)
+            self.assertTrue(sy1.yangFiles is sy2.yangFiles)
+            self.assertTrue(sy1.yJson is sy2.yJson)
+
+            # non yang models fields are different
+            self.assertFalse(sy1.jIn is sy2.jIn)
+            self.assertFalse(sy1.xlateJson is sy2.xlateJson)
+            self.assertFalse(sy1.revXlateJson is sy2.revXlateJson)
+            self.assertFalse(sy1.tablesWithOutYang is sy2.tablesWithOutYang)
+
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertTrue(config_wrapper.sonic_yang_with_loaded_models is None)
+
+        sy1 = config_wrapper.create_sonic_yang_with_loaded_models()
+        sy2 = config_wrapper.create_sonic_yang_with_loaded_models()
+
+        check(sy1, sy2)
+        check(sy1, config_wrapper.sonic_yang_with_loaded_models)
+        check(sy2, config_wrapper.sonic_yang_with_loaded_models)
+
 class TestPatchWrapper(unittest.TestCase):
     def setUp(self):
         self.config_wrapper_mock = gu_common.ConfigWrapper()
@@ -443,7 +472,7 @@ class TestPatchWrapper(unittest.TestCase):
 
 class TestPathAddressing(unittest.TestCase):
     def setUp(self):
-        self.path_addressing = gu_common.PathAddressing()
+        self.path_addressing = gu_common.PathAddressing(gu_common.ConfigWrapper())
         self.sy_only_models = sonic_yang.SonicYang(gu_common.YANG_DIR)
         self.sy_only_models.loadYangModel()
 
