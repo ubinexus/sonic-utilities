@@ -147,6 +147,7 @@ class ConfigWrapper:
                 config_with_non_empty_tables[table] = copy.deepcopy(config[table])
         return config_with_non_empty_tables
 
+    # TODO: move creating copies of sonic_yang with loaded models to sonic-yang-mgmt directly
     def create_sonic_yang_with_loaded_models(self):
         # sonic_yang_with_loaded_models will only be initialized once the first time this method is called
         if self.sonic_yang_with_loaded_models is None:
@@ -154,7 +155,6 @@ class ConfigWrapper:
             loaded_models_sy.loadYangModel() # This call takes a long time (100s of ms) because it reads files from disk
             self.sonic_yang_with_loaded_models = loaded_models_sy
 
-        # TODO: move to sonic-yang-mgmt directly
         return copy.copy(self.sonic_yang_with_loaded_models)
 
 class DryRunConfigWrapper(ConfigWrapper):

@@ -283,7 +283,6 @@ class TestConfigWrapper(unittest.TestCase):
             self.assertFalse(sy1.xlateJson is sy2.xlateJson)
             self.assertFalse(sy1.revXlateJson is sy2.revXlateJson)
 
-
         config_wrapper = gu_common.ConfigWrapper()
         self.assertTrue(config_wrapper.sonic_yang_with_loaded_models is None)
 
