@@ -3860,16 +3860,17 @@ This command is used for administratively bringing up the Physical interface or 
 **config interface <interface_name> speed (Versions >= 202006)**
 
 Dynamic breakout feature is supported in SONiC from 202006 version.
-User can configure any speed specified under "breakout_modes" keys under the parent interface in the platform-specific port configuration file (i.e. platform.json). Remember, Speed specified in the current breakout mode are the only available speed for the interface at that point of time.
+User can configure any speed specified under "breakout_modes" keys for the parent interface in the platform-specific port configuration file (i.e. platform.json).
 
-For details please refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
+For example for a breakout mode of 2x50G[25G,10G] the default speed is 50G but the interface also supports 25G and 10G.
+
+Refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
 **config interface speed <interface_name> (Versions >= 201904)**
 
 **config interface <interface_name> speed (Versions <= 201811)**
 
 This command is used to configure the speed for the Physical interface. Use the value 40000 for setting it to 40G and 100000 for 100G. Users need to know the device to configure it properly.
-Dynamic breakout feature is not supported in SONiC yet.
 
 - Usage:
 
@@ -3964,11 +3965,12 @@ This command is used to configure the TPID for the Physical/PortChannel interfac
 
 **config interface breakout (Versions >= 202006)**
 
-This command is used to set breakout mode available for user-specified interface. Check the platform-specific port configuration file(i.e. platform.json)
-to get available breakout mode for each parent interface.Based on the platform.json and the current mode set in interface, this command acts on setting
-breakout mode for the interface.
+This command is used to set active breakout mode available for user-specified interface based on the platform-specific port configuration file(i.e. platform.json)
+and the current mode set for the interface.
 
-kindly use, double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
+Based on the platform.json and the current mode set in interface, this command acts on setting breakout mode for the interface.
+
+Double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
 
 - Usage:
   ```
@@ -3993,7 +3995,8 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
   1x100G[40G]  2x50G        4x25G[10G]
   ```
 
-  This command also provides  "--force-remove-dependencies/-f" option to CLI, which will remove the configuration dependencies automatically.
+  This command also provides  "--force-remove-dependencies/-f" option to CLI, which will automatically determine and remove the configuration dependencies using Yang models.
+
   ```
   admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
