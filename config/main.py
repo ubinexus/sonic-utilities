@@ -20,7 +20,7 @@ from natsort import natsorted
 from portconfig import get_child_ports
 from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
-from sonic_py_common.interface import get_interface_table_name, get_port_table_name
+from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
 from utilities_common import util_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.db import Db
@@ -840,17 +840,33 @@ def _delay_timers_elapsed():
             return False
     return True
 
-def _swss_ready():
-    out = clicommon.run_command("systemctl show swss.service --property ActiveState --value", return_cmd=True)
+def _per_namespace_swss_ready(service_name):
+    out = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
     if out.strip() != "active":
         return False
-    out = clicommon.run_command("systemctl show swss.service --property ActiveEnterTimestampMonotonic --value", return_cmd=True)
+    out = clicommon.run_command("systemctl show {} --property ActiveEnterTimestampMonotonic --value".format(service_name), return_cmd=True)
     swss_up_time = float(out.strip())/1000000
     now =  time.monotonic()
     if (now - swss_up_time > 120):
         return True
     else:
         return False
+
+def _swss_ready():
+    list_of_swss = [] 
+    num_asics = multi_asic.get_num_asics()
+    if num_asics == 1:
+        list_of_swss.append("swss.service")
+    else:
+        for asic in range(num_asics):
+            service = "swss@{}.service".format(asic)
+            list_of_swss.append(service)
+
+    for service_name in list_of_swss:
+        if _per_namespace_swss_ready(service_name) == False:
+            return False
+
+    return True 
 
 def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
@@ -979,9 +995,15 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     try:
         ipaddress.ip_network(ip_prefix)
         if 'nexthop' in config_entry:
-            nh = config_entry['nexthop'].split(',')
-            for ip in nh:
-                ipaddress.ip_address(ip)
+            nh_list = config_entry['nexthop'].split(',')
+            for nh in nh_list:
+                # Nexthop to portchannel
+                if nh.startswith('PortChannel'):
+                    config_db = ctx.obj['config_db']
+                    if not nh in config_db.get_keys('PORTCHANNEL'):
+                        ctx.fail("portchannel does not exist.")
+                else:
+                    ipaddress.ip_address(nh)
     except ValueError:
         ctx.fail("ip address is not valid.")
 
@@ -1231,15 +1253,21 @@ def load(filename, yes):
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
 
+def print_dry_run_message(dry_run):
+    if dry_run:
+        click.secho("** DRY RUN EXECUTION **", fg="yellow", underline=True)
+
 @config.command('apply-patch')
 @click.argument('patch-file-path', type=str, required=True)
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
                help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
+@click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
+def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
        This command can be used do partial updates to the config with minimum disruption to running processes.
        It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
@@ -1247,14 +1275,15 @@ def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
 
        <patch-file-path>: Path to the patch file on the file-system."""
     try:
+        print_dry_run_message(dry_run)
+
         with open(patch_file_path, 'r') as fh:
             text = fh.read()
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
 
         config_format = ConfigFormat[format.upper()]
-
-        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run)
+        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1267,9 +1296,11 @@ def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
                default=ConfigFormat.CONFIGDB.name,
                help='format of target config is either ConfigDb(ABNF) or SonicYang')
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
+@click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def replace(ctx, target_file_path, format, dry_run, verbose):
+def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
        if ACL config is different between current and target config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
@@ -1278,13 +1309,15 @@ def replace(ctx, target_file_path, format, dry_run, verbose):
 
        <target-file-path>: Path to the target file on the file-system."""
     try:
+        print_dry_run_message(dry_run)
+
         with open(target_file_path, 'r') as fh:
             target_config_as_text = fh.read()
             target_config = json.loads(target_config_as_text)
 
         config_format = ConfigFormat[format.upper()]
 
-        GenericUpdater().replace(target_config, config_format, verbose, dry_run)
+        GenericUpdater().replace(target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1294,16 +1327,20 @@ def replace(ctx, target_file_path, format, dry_run, verbose):
 @config.command()
 @click.argument('checkpoint-name', type=str, required=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
+@click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def rollback(ctx, checkpoint_name, dry_run, verbose):
+def rollback(ctx, checkpoint_name, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Rollback the whole config to the specified checkpoint. The config is rolled back with minimum disruption e.g.
        if ACL config is different between current and checkpoint config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        GenericUpdater().rollback(checkpoint_name, verbose, dry_run)
+        print_dry_run_message(dry_run)
+
+        GenericUpdater().rollback(checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1483,14 +1520,16 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
 
+
         config_gen_opts = ""
+        
+        if os.path.isfile(INIT_CFG_FILE):
+            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
+        
         if file_format == 'config_db':
             config_gen_opts += ' -j {} '.format(file)
         else:
             config_gen_opts += ' -Y {} '.format(file)
-
-        if os.path.isfile(INIT_CFG_FILE):
-            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
 
         if namespace is not None:
             config_gen_opts += " -n {} ".format(namespace)
@@ -6083,6 +6122,123 @@ def smoothing_interval(interval, rates_type):
 helper = util_base.UtilHelper()
 helper.load_and_register_plugins(plugins, config)
 
+#
+# 'subinterface' group ('config subinterface ...')
+#
+@config.group()
+@click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def subinterface(ctx, redis_unix_socket_path):
+    """subinterface-related configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db}
+
+def subintf_vlan_check(config_db, parent_intf, vlan):
+    subintf_db = config_db.get_table('VLAN_SUB_INTERFACE')
+    subintf_names = [k for k in subintf_db if type(k) != tuple]
+    for subintf in subintf_names:
+        sub_intf_sep_idx = subintf.find(VLAN_SUB_INTERFACE_SEPARATOR)
+        if sub_intf_sep_idx == -1:
+            continue
+        if parent_intf == subintf[:sub_intf_sep_idx]:
+            if 'vlan' in subintf_db[subintf]:
+                if str(vlan) == subintf_db[subintf]['vlan']:
+                    return True
+            else:
+                vlan_id = subintf[sub_intf_sep_idx + 1:]
+                if str(vlan) == vlan_id:
+                    return True
+    return False
+
+@subinterface.command('add')
+@click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
+@click.argument('vid', metavar='<vid>', required=False, type=click.IntRange(1,4094))
+@click.pass_context
+def add_subinterface(ctx, subinterface_name, vid):
+    sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+    if sub_intf_sep_idx == -1:
+        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
+
+    interface_alias = subinterface_name[:sub_intf_sep_idx]
+    if interface_alias is None:
+        ctx.fail("{} invalid subinterface".format(interface_alias))
+
+    if interface_alias.startswith("Po") is True:
+        intf_table_name = CFG_PORTCHANNEL_PREFIX
+    elif interface_alias.startswith("Eth") is True:
+        intf_table_name = 'PORT'
+
+    config_db = ctx.obj['db']
+    port_dict = config_db.get_table(intf_table_name)
+    if interface_alias is not None:
+        if not port_dict:
+            ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
+        if get_intf_longname(interface_alias) not in port_dict.keys():
+            ctx.fail("{} parent interface not found".format(subinterface_name))
+
+    # Validate if parent is portchannel member
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    if interface_is_in_portchannel(portchannel_member_table, interface_alias):
+        ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
+                .format(interface_alias))
+
+    # Validate if parent is vlan member
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+    if interface_is_in_vlan(vlan_member_table, interface_alias):
+        ctx.fail("{} is configured as a member of vlan. Cannot configure subinterface"
+                .format(interface_alias))
+
+    sub_intfs = [k for k,v in config_db.get_table('VLAN_SUB_INTERFACE').items() if type(k) != tuple]
+    if subinterface_name in sub_intfs:
+        ctx.fail("{} already exists".format(subinterface_name))
+
+    subintf_dict = {}
+    if vid is not None:
+        subintf_dict.update({"vlan" : vid})
+
+    if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
+        ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias))
+
+    subintf_dict.update({"admin_status" : "up"})
+    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, subintf_dict)
+
+@subinterface.command('del')
+@click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
+@click.pass_context
+def del_subinterface(ctx, subinterface_name):
+    sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+    if sub_intf_sep_idx == -1:
+        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
+
+    config_db = ctx.obj['db']
+    #subinterface_name = subintf_get_shortname(subinterface_name)
+    if interface_name_is_valid(config_db, subinterface_name) is False:
+        ctx.fail("{} is invalid ".format(subinterface_name))
+
+    subintf_config_db = config_db.get_table('VLAN_SUB_INTERFACE')
+    sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
+    if subinterface_name not in sub_intfs:
+        ctx.fail("{} does not exists".format(subinterface_name))
+        
+    ips = {}
+    ips = [ k[1] for k in config_db.get_table('VLAN_SUB_INTERFACE') if type(k) == tuple and k[0] == subinterface_name ]
+    for ip in ips:
+        try:
+            ipaddress.ip_network(ip, strict=False)
+            config_db.set_entry('VLAN_SUB_INTERFACE', (subinterface_name, ip), None)
+        except ValueError:
+            ctx.fail("Invalid ip {} found on interface {}".format(ip, subinterface_name))
+
+    subintf_config_db = config_db.get_table('INTERFACE')
+    ips = [ k[1] for k in subintf_config_db if type(k) == tuple and k[0] == subinterface_name ]
+    for ip in ips:
+        config_db.set_entry('INTERFACE', (subinterface_name, ip), None)
+
+    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
 
 if __name__ == '__main__':
     config()
