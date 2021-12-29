@@ -3537,11 +3537,6 @@ def remove(ctx, interface_name, ip_addr):
             mgmt_ip_restart_services()
             return
 
-        if not (interface_name_is_valid(config_db, interface_name)
-                or vlan_name_is_valid(config_db, interface_name)
-                or loopback_name_is_valid(config_db, interface_name)):
-            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
-
         table_name = get_interface_table_name(interface_name)
         interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
         # If we deleting the last IP entry of the interface, check whether a static route present for the RIF
