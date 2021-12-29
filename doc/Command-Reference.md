@@ -65,9 +65,15 @@
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
+* [IPv6 Link Local](#ipv6-link-local)
+  * [IPv6 Link Local config commands](#ipv6-link-local-config-commands)
+  * [IPv6 Link Local show commands](#ipv6-link-local-show-commands)
 * [Kubernetes](#Kubernetes)
   * [Kubernetes show commands](#Kubernetes-show-commands)
   * [Kubernetes config commands](#Kubernetes-config-commands)
+* [Linux Kernel Dump](#kdump)
+  * [Linux Kernel Dump show commands](#kdump-show-commands)
+  * [Linux Kernel Dump config commands](#kdump-config-commands)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -97,6 +103,9 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [PBH](#pbh)
+  * [PBH show commands](#pbh-show-commands)
+  * [PBH config commands](#pbh-config-commands)
 * [PFC Watchdog Commands](#pfc-watchdog-commands)
 * [Platform Component Firmware](#platform-component-firmware)
   * [Platform Component Firmware show commands](#platform-component-firmware-show-commands)
@@ -150,6 +159,7 @@
   * [SONiC Package Manager](#sonic-package-manager)
   * [SONiC Installer](#sonic-installer)
 * [Troubleshooting Commands](#troubleshooting-commands)
+  * [Debug Dumps](#debug-dumps)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
 * [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
@@ -406,6 +416,7 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
     neighbor     Show neighbor related information
     portchannel  Show PortChannel information
     status       Show Interface status information
+    tpid         Show Interface tpid information
     transceiver  Show SFP Transceiver information
   ```
 
@@ -439,6 +450,15 @@ This command displays relevant information as the SONiC and Linux kernel version
   Build commit: 21ea29a
   Build date: Fri Mar 22 01:55:48 UTC 2019
   Built by: johnar@jenkins-worker-4
+
+  Platform: x86_64-mlnx_msn2700-r0
+  HwSKU: Mellanox-SN2700
+  ASIC: mellanox
+  ASIC Count: 1
+  Serial Number: MT1822K07815
+  Model Number: MSN2700-CS2FO
+  Hardware Rev: A1
+  Uptime: 14:40:15 up 3 min,  1 user,  load average: 1.26, 1.45, 0.66
 
   Docker images:
   REPOSITORY                 TAG                 IMAGE ID            SIZE
@@ -685,9 +705,13 @@ This command displays a summary of the device's hardware platform
 - Example:
   ```
   admin@sonic:~$ show platform summary
-  Platform: x86_64-dell_s6000_s1220-r0
-  HwSKU: Force10-S6000
-  ASIC: broadcom
+  Platform: x86_64-mlnx_msn2700-r0
+  HwSKU: Mellanox-SN2700
+  ASIC: mellanox
+  ASIC Count: 1
+  Serial Number: MT1822K07815
+  Model Number: MSN2700-CS2FO
+  Hardware Rev: A1
   ```
 
 **show platform syseeprom**
@@ -869,7 +893,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence | error-status [-hw|--fetch-from-hardware]) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -923,6 +947,15 @@ This command displays information for all the interfaces for the transceiver req
   -----------  ----------
   Ethernet100  Present
   ```
+
+- Example (Display error status of SFP transceiver connected to Ethernet100):
+  ```
+  admin@sonic:~$ show interfaces transceiver error-status Ethernet100
+  Port         Error Status
+  -----------  --------------
+  Ethernet100  OK
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-show-commands)
 
 ## AAA & TACACS+
@@ -2202,33 +2235,43 @@ This sub-section of commands is used to add or remove the DHCP Relay Destination
 
 **config vlan dhcp_relay add**
 
-This command is used to add a DHCP Relay Destination IP address to the a VLAN.  Note that more that one DHCP Relay Destination IP address can be added on a VLAN interface.
+This command is used to add a DHCP Relay Destination IP address or multiple IP addresses to a VLAN.  Note that more than one DHCP Relay Destination IP address can be added on a VLAN interface.
 
 - Usage:
   ```
-  config vlan dhcp_relay add <vlan_id> <dhcp_relay_destination_ip>
+  config vlan dhcp_relay add <vlan_id> <dhcp_relay_destination_ips>
   ```
 
 - Example:
   ```
   admin@sonic:~$ sudo config vlan dhcp_relay add 1000 7.7.7.7
-  Added DHCP relay destination address 7.7.7.7 to Vlan1000
+  Added DHCP relay destination address ['7.7.7.7'] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+  ```
+  admin@sonic:~$ sudo config vlan dhcp_relay add 1000 7.7.7.7 1.1.1.1
+  Added DHCP relay destination address ['7.7.7.7', '1.1.1.1'] to Vlan1000
   Restarting DHCP relay service...
   ```
 
 **config vlan dhcp_relay delete**
 
-This command is used to delete a configured DHCP Relay Destination IP address from a VLAN interface.
+This command is used to delete a configured DHCP Relay Destination IP address or multiple IP addresses from a VLAN interface.
 
 - Usage:
   ```
-  config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ip>
+  config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ips>
   ```
 
 - Example:
   ```
   admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
   Removed DHCP relay destination address 7.7.7.7 from Vlan1000
+  Restarting DHCP relay service...
+  ```
+  ```
+  admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7 1.1.1.1
+  Removed DHCP relay destination address ('7.7.7.7', '1.1.1.1') from Vlan1000
   Restarting DHCP relay service...
   ```
 
@@ -3072,10 +3115,12 @@ Subsequent pages explain each of these commands in detail.
   breakout     Show Breakout Mode information by interfaces
   counters     Show interface counters
   description  Show interface status, protocol and...
+  mpls         Show Interface MPLS status
   naming_mode  Show interface naming_mode status
   neighbor     Show neighbor related information
   portchannel  Show PortChannel information
   status       Show Interface status information
+  tpid         Show Interface tpid information
   transceiver  Show SFP Transceiver information
   ```
 
@@ -3310,6 +3355,78 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
+**show interfaces mpls**
+
+This command is used to display the configured MPLS state for the list of configured interfaces.
+
+- Usage:
+  ```
+  show interfaces mpls [<interface_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces mpls
+  Interface    MPLS State
+  -----------  ------------
+  Ethernet0    disable
+  Ethernet4    enable
+  Ethernet8    enable
+  Ethernet12   disable
+  Ethernet16   disable
+  Ethernet20   disable
+  ```
+
+- Example (to only display the MPLS state for interface Ethernet4):
+  ```
+  admin@sonic:~$ show interfaces mpls Ethernet4
+  Interface    MPLS State
+  -----------  ------------
+  Ethernet4    enable
+  ```
+
+**show interfaces tpid**
+
+This command displays the key fields of the interfaces such as Operational Status, Administrative Status, Alias and TPID.
+
+- Usage:
+  ```
+  show interfaces tpid [<interface_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces tpid
+        Interface            Alias    Oper    Admin    TPID
+  ---------------  ---------------  ------  -------  ------
+        Ethernet0   fortyGigE1/1/1      up       up  0x8100
+        Ethernet1   fortyGigE1/1/2      up       up  0x8100
+        Ethernet2   fortyGigE1/1/3    down     down  0x8100
+        Ethernet3   fortyGigE1/1/4    down     down  0x8100
+        Ethernet4   fortyGigE1/1/5      up       up  0x8100
+        Ethernet5   fortyGigE1/1/6      up       up  0x8100
+        Ethernet6   fortyGigE1/1/7      up       up  0x9200
+        Ethernet7   fortyGigE1/1/8      up       up  0x88A8
+        Ethernet8   fortyGigE1/1/9      up       up  0x8100
+        ...
+       Ethernet63  fortyGigE1/4/16    down     down  0x8100
+  PortChannel0001              N/A      up       up  0x8100
+  PortChannel0002              N/A      up       up  0x8100
+  PortChannel0003              N/A      up       up  0x8100
+  PortChannel0004              N/A      up       up  0x8100
+  admin@sonic:~$
+  ```
+
+- Example (to only display the TPID for interface Ethernet6):
+
+  ```
+  admin@sonic:~$ show interfaces tpid Ethernet6
+    Interface           Alias    Oper    Admin    TPID
+  -----------  --------------  ------  -------  ------
+    Ethernet6  fortyGigE1/1/7      up       up  0x9200
+  admin@sonic:~$
+  ```
+
 **show interfaces naming_mode**
 
 Refer sub-section [Interface-Naming-Mode](#Interface-Naming-Mode)
@@ -3413,6 +3530,7 @@ This sub-section explains the following list of configuration on the interfaces.
 8) advertised-speeds - to set interface advertised speeds
 9) advertised-types - to set interface advertised types
 10) type - to set interface type
+11) mpls - To add or remove MPLS operation for the interface
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -3715,6 +3833,22 @@ This command is used to configure the mtu for the Physical interface. Use the va
   admin@sonic:~$ sudo config interface mtu Ethernet64 1500
   ```
 
+**config interface tpid <interface_name> (Versions >= 202106)**
+
+This command is used to configure the TPID for the Physical/PortChannel interface. default is 0x8100. Other allowed values if supported by HW SKU (0x9100, 0x9200, 0x88A8).
+
+- Usage:
+
+  *Versions >= 202106*
+  ```
+  config interface tpid <interface_name> <tpid_value>
+  ```
+
+- Example (Versions >= 202106):
+  ```
+  admin@sonic:~$ sudo config interface tpid Ethernet64 0x9200
+  ```
+
 **config interface breakout**
 
 This command is used to set breakout mode available for user-specified interface.
@@ -3866,6 +4000,51 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#interf
 This command is used to configure a static buffer profile on a port's lossless priorities. There shouldn't be any `lossless_pg` configured on the port when configuring `headroom_override`. The port's headroom won't be updated after `headroom_override` has been configured on the port.
 
 For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface mpls add <interface_name> (Versions >= 202106)**
+
+This command is used for adding MPLS operation on the interface.
+MPLS operation for either physical, portchannel, or VLAN interface can be configured using this command.
+
+
+- Usage:
+  ```
+  sudo config interface mpls add --help
+  Usage: config interface mpls add [OPTIONS] <interface_name>
+
+    Add MPLS operation on the interface
+
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface mpls add Ethernet4
+  ```
+
+**config interface mpls remove <interface_name> (Versions >= 202106)**
+
+This command is used for removing MPLS operation on the interface.
+MPLS operation for either physical, portchannel, or VLAN interface can be configured using this command.
+
+- Usage:
+  ```
+  sudo config interface mpls remove --help
+  Usage: config interface mpls remove [OPTIONS] <interface_name>
+
+    Remove MPLS operation from the interface
+
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface mpls remove Ethernet4
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
@@ -4248,6 +4427,96 @@ Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/q
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ip--ipv6)
 
+## IPv6 Link Local
+
+### IPv6 Link Local config commands
+
+This section explains all the commands that are supported in SONiC to configure IPv6 Link-local.
+
+**config interface ipv6 enable use-link-local-only <interface_name>**
+
+This command enables user to enable an interface to forward L3 traffic with out configuring an address. This command creates the routing interface based on the auto generated IPv6 link-local address. This command can be used even if an address is configured on the interface.
+
+- Usage:
+  ```
+  config interface ipv6 enable use-link-local-only <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface ipv6 enable use-link-local-only Vlan206
+  admin@sonic:~$ sudo config interface ipv6 enable use-link-local-only PortChannel007
+  admin@sonic:~$ sudo config interface ipv6 enable use-link-local-only Ethernet52
+  ```
+
+**config interface ipv6 disable use-link-local-only <interface_name>**
+
+This command enables user to disable use-link-local-only configuration on an interface.
+
+- Usage:
+  ```
+  config interface ipv6 disable use-link-local-only <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface ipv6 disable use-link-local-only Vlan206
+  admin@sonic:~$ sudo config interface ipv6 disable use-link-local-only PortChannel007
+  admin@sonic:~$ sudo config interface ipv6 disable use-link-local-only Ethernet52
+  ```
+
+**config ipv6 enable link-local**
+
+This command enables user to enable use-link-local-only command on all the interfaces globally.
+
+- Usage:
+  ```
+  sudo config ipv6 enable link-local
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config ipv6 enable link-local
+  ```
+
+**config ipv6 disable link-local**
+
+This command enables user to disable use-link-local-only command on all the interfaces globally.
+
+- Usage:
+  ```
+  sudo config ipv6 disable link-local
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config ipv6 disable link-local
+  ```
+
+### IPv6 Link Local show commands
+
+**show ipv6 link-local-mode**
+
+This command displays the link local mode of all the interfaces.
+
+- Usage:
+  ```
+  show ipv6 link-local-mode
+  ```
+
+- Example:
+  ```
+  root@sonic:/home/admin# show ipv6 link-local-mode
+  +------------------+----------+
+  | Interface Name   | Mode     |
+  +==================+==========+
+  | Ethernet16       | Disabled |
+  +------------------+----------+
+  | Ethernet18       | Enabled  |
+  +------------------+----------+
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#ipv6-link-local)
 
 ## Kubernetes
 
@@ -4286,6 +4555,119 @@ This command displays the kubernetes server status.
   -----------  ------  -----------  -------------------
   10.3.157.24  6443    true         2020-11-15 18:25:05
   ```
+Go Back To [Beginning of the document](#) or [Beginning of this section](#Kubernetes)
+
+## Linux Kernel Dump
+
+This section demonstrates the show commands and configuration commands of Linux kernel dump mechanism in SONiC.
+
+### Linux Kernel Dump show commands
+
+**show kdump config**
+
+This command shows the configuration of Linux kernel dump.
+
+- Usage:
+  ```
+  show kdump config
+  ```
+
+- Example:
+  ```
+  admin@sonic:$ show kdump config
+  Kdump administrative mode: Disabled
+  Kdump operational mode: Unready
+  Kdump memory researvation: 0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M
+  Maximum number of Kdump files: 3
+  ```
+
+**show kdump files**
+
+This command shows the Linux kernel core dump files and dmesg files which are
+generated by kernel dump tool.
+
+- Usage:
+  ```
+  show kdump files
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kdump files
+            Kernel core dump files 		        Kernel dmesg files
+  ------------------------------------------ ------------------------------------------
+  /var/crash/202106242344/kdump.202106242344 /var/crash/202106242344/dmesg.202106242344
+  /var/crash/202106242337/kdump.202106242337 /var/crash/202106242337/dmesg.202106242337
+  ```
+
+**show kdump logging <file_name> <num_of_lines>**
+
+By default, this command will show the last 10 lines of latest dmesg file.
+This command can also accept a specific file name and number of lines as arguments.
+
+- Usage:
+  ```
+  show kdump logging
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show kdump logging
+  [ 157.642053] RSP: 002b:00007fff1beee708 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+  [ 157.732635] RAX: ffffffffffffffda RBX: 0000000000000002 RCX: 00007fc3887d4504
+  [ 157.818015] RDX: 0000000000000002 RSI: 000055d388eceb40 RDI: 0000000000000001
+  [ 157.903401] RBP: 000055d388eceb40 R08: 000000000000000a R09: 00007fc3888255f0
+  [ 157.988784] R10: 000000000000000a R11: 0000000000000246 R12: 00007fc3888a6760
+  [ 158.074166] R13: 0000000000000002 R14: 00007fc3888a1760 R15: 0000000000000002
+  [ 158.159553] Modules linked in: nft_chain_route_ipv6(E) nft_chain_route_ipv4(E) xt_TCPMSS(E) dummy(E) team_mode_loadbalance(E) team(E) sx_bfd(OE) sx_netdev(OE) psample(E) sx_core(OE) 8021q(E) garp(E) mrp(E) mst_pciconf(OE) mst_pci(OE) xt_hl(E) xt_tcpudp(E) ip6_tables(E) nft_compat(E) nft_chain_nat_ipv4(E) nf_nat_ipv4(E) nft_counter(E) xt_conntrack(E) nf_nat(E) jc42(E) nf_conntrack_netlink(E) nf_conntrack(E) nf_defrag_ipv6(E) nf_defrag_ipv4(E) libcrc32c(E) xfrm_user(E) xfrm_algo(E) mlxsw_minimal(E) mlxsw_i2c(E) i2c_mux_reg(E) i2c_mux(E) i2c_mlxcpld(E) leds_mlxreg(E) mlxreg_io(E) mlxreg_hotplug(E) mei_wdt(E) evdev(E) intel_rapl(E) x86_pkg_temp_thermal(E) intel_powerclamp(E) kvm_intel(E) mlx_platform(E) kvm(E) irqbypass(E) crct10dif_pclmul(E) crc32_pclmul(E) ghash_clmulni_intel(E) intel_cstate(E) intel_uncore(E)
+  [ 159.016731] intel_rapl_perf(E) pcspkr(E) sg(E) iTCO_wdt(E) iTCO_vendor_support(E) mei_me(E) mei(E) bonding(E) pcc_cpufreq(E) video(E) button(E) ebt_vlan(E) ebtable_broute(E) bridge(E) stp(E) llc(E) ebtable_nat(E) ebtable_filter(E) ebtables(E) nf_tables(E) nfnetlink(E) xdpe12284(E) at24(E) ledtrig_timer(E) tmp102(E) lm75(E) drm(E) coretemp(E) max1363(E) industrialio_triggered_buffer(E) kfifo_buf(E) industrialio(E) tps53679(E) fuse(E) pmbus(E) pmbus_core(E) i2c_dev(E) configfs(E) ip_tables(E) x_tables(E) autofs4(E) loop(E) ext4(E) crc16(E) mbcache(E) jbd2(E) crc32c_generic(E) fscrypto(E) ecb(E) crypto_simd(E) cryptd(E) glue_helper(E) aes_x86_64(E) nvme(E) nvme_core(E) nls_utf8(E) nls_cp437(E) nls_ascii(E) vfat(E) fat(E) overlay(E) squashfs(E) zstd_decompress(E) xxhash(E) sd_mod(E) gpio_ich(E) ahci(E)
+  [ 159.864532] libahci(E) mlxsw_core(E) devlink(E) ehci_pci(E) ehci_hcd(E) crc32c_intel(E) libata(E) i2c_i801(E) scsi_mod(E) usbcore(E) usb_common(E) lpc_ich(E) mfd_core(E) e1000e(E) fan(E) thermal(E)
+  [ 160.075846] CR2: 0000000000000000
+  ```
+You can specify a file name in order to show its
+last 10 lines.
+
+- Example:
+  ```
+  admin@sonic:~$ show kdump logging dmesg.202106242337
+  [ 654.120195] RSP: 002b:00007ffe697690f8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+  [ 654.210778] RAX: ffffffffffffffda RBX: 0000000000000002 RCX: 00007fcfca27b504
+  [ 654.296157] RDX: 0000000000000002 RSI: 000055a6e4d1b3f0 RDI: 0000000000000001
+  [ 654.381543] RBP: 000055a6e4d1b3f0 R08: 000000000000000a R09: 00007fcfca2cc5f0
+  [ 654.466925] R10: 000000000000000a R11: 0000000000000246 R12: 00007fcfca34d760
+  [ 654.552310] R13: 0000000000000002 R14: 00007fcfca348760 R15: 0000000000000002
+  [ 654.637694] Modules linked in: binfmt_misc(E) nft_chain_route_ipv6(E) nft_chain_route_ipv4(E) xt_TCPMSS(E) dummy(E) team_mode_loadbalance(E) team(E) sx_bfd(OE) sx_netdev(OE) psample(E) sx_core(OE) 8021q(E) garp(E) mrp(E) mst_pciconf(OE) mst_pci(OE) xt_hl(E) xt_tcpudp(E) ip6_tables(E) nft_chain_nat_ipv4(E) nf_nat_ipv4(E) nft_compat(E) nft_counter(E) xt_conntrack(E) nf_nat(E) jc42(E) nf_conntrack_netlink(E) nf_conntrack(E) nf_defrag_ipv6(E) nf_defrag_ipv4(E) libcrc32c(E) xfrm_user(E) xfrm_algo(E) mlxsw_minimal(E) mlxsw_i2c(E) i2c_mux_reg(E) i2c_mux(E) mlxreg_hotplug(E) mlxreg_io(E) i2c_mlxcpld(E) leds_mlxreg(E) mei_wdt(E) evdev(E) intel_rapl(E) x86_pkg_temp_thermal(E) intel_powerclamp(E) kvm_intel(E) kvm(E) mlx_platform(E) irqbypass(E) crct10dif_pclmul(E) crc32_pclmul(E) ghash_clmulni_intel(E) intel_cstate(E)
+  [ 655.493833] intel_uncore(E) intel_rapl_perf(E) pcspkr(E) sg(E) iTCO_wdt(E) iTCO_vendor_support(E) mei_me(E) mei(E) bonding(E) video(E) button(E) pcc_cpufreq(E) ebt_vlan(E) ebtable_broute(E) bridge(E) stp(E) llc(E) ebtable_nat(E) ebtable_filter(E) ebtables(E) nf_tables(E) nfnetlink(E) xdpe12284(E) at24(E) ledtrig_timer(E) tmp102(E) drm(E) lm75(E) coretemp(E) max1363(E) industrialio_triggered_buffer(E) kfifo_buf(E) industrialio(E) fuse(E) tps53679(E) pmbus(E) pmbus_core(E) i2c_dev(E) configfs(E) ip_tables(E) x_tables(E) autofs4(E) loop(E) ext4(E) crc16(E) mbcache(E) jbd2(E) crc32c_generic(E) fscrypto(E) ecb(E) crypto_simd(E) cryptd(E) glue_helper(E) aes_x86_64(E) nvme(E) nvme_core(E) nls_utf8(E) nls_cp437(E) nls_ascii(E) vfat(E) fat(E) overlay(E) squashfs(E) zstd_decompress(E) xxhash(E) sd_mod(E)
+  [ 656.337476] gpio_ich(E) ahci(E) mlxsw_core(E) libahci(E) devlink(E) crc32c_intel(E) libata(E) i2c_i801(E) scsi_mod(E) lpc_ich(E) mfd_core(E) ehci_pci(E) ehci_hcd(E) usbcore(E) e1000e(E) usb_common(E) fan(E) thermal(E)
+  [ 656.569590] CR2: 0000000000000000
+  ```
+You can also specify a file name and number of lines in order to show the
+last number of lines.
+
+- Example:
+  ```
+  admin@sonic:~$ show kdump logging dmesg.202106242337 -l 20
+  [ 653.525427] __handle_sysrq.cold.9+0x45/0xf2
+  [ 653.576487] write_sysrq_trigger+0x2b/0x30
+  [ 653.625472] proc_reg_write+0x39/0x60
+  [ 653.669252] vfs_write+0xa5/0x1a0
+  [ 653.708881] ksys_write+0x57/0xd0
+  [ 653.748501] do_syscall_64+0x53/0x110
+  [ 653.792287] entry_SYSCALL_64_after_hwframe+0x44/0xa9
+  [ 653.852707] RIP: 0033:0x7fcfca27b504
+  [ 653.895452] Code: 00 f7 d8 64 89 02 48 c7 c0 ff ff ff ff eb b3 0f 1f 80 00 00 00 00 48 8d 05 f9 61 0d 00 8b 00 85 c0 75 13 b8 01 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 54 c3 0f 1f 00 41 54 49 89 d4 55 48 89 f5 53
+  [ 654.120195] RSP: 002b:00007ffe697690f8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+  [ 654.210778] RAX: ffffffffffffffda RBX: 0000000000000002 RCX: 00007fcfca27b504
+  [ 654.296157] RDX: 0000000000000002 RSI: 000055a6e4d1b3f0 RDI: 0000000000000001
+  [ 654.381543] RBP: 000055a6e4d1b3f0 R08: 000000000000000a R09: 00007fcfca2cc5f0
+  [ 654.466925] R10: 000000000000000a R11: 0000000000000246 R12: 00007fcfca34d760
+  [ 654.552310] R13: 0000000000000002 R14: 00007fcfca348760 R15: 0000000000000002
+  [ 654.637694] Modules linked in: binfmt_misc(E) nft_chain_route_ipv6(E) nft_chain_route_ipv4(E) xt_TCPMSS(E) dummy(E) team_mode_loadbalance(E) team(E) sx_bfd(OE) sx_netdev(OE) psample(E) sx_core(OE) 8021q(E) garp(E) mrp(E) mst_pciconf(OE) mst_pci(OE) xt_hl(E) xt_tcpudp(E) ip6_tables(E) nft_chain_nat_ipv4(E) nf_nat_ipv4(E) nft_compat(E) nft_counter(E) xt_conntrack(E) nf_nat(E) jc42(E) nf_conntrack_netlink(E) nf_conntrack(E) nf_defrag_ipv6(E) nf_defrag_ipv4(E) libcrc32c(E) xfrm_user(E) xfrm_algo(E) mlxsw_minimal(E) mlxsw_i2c(E) i2c_mux_reg(E) i2c_mux(E) mlxreg_hotplug(E) mlxreg_io(E) i2c_mlxcpld(E) leds_mlxreg(E) mei_wdt(E) evdev(E) intel_rapl(E) x86_pkg_temp_thermal(E) intel_powerclamp(E) kvm_intel(E) kvm(E) mlx_platform(E) irqbypass(E) crct10dif_pclmul(E) crc32_pclmul(E) ghash_clmulni_intel(E) intel_cstate(E)
+  [ 655.493833] intel_uncore(E) intel_rapl_perf(E) pcspkr(E) sg(E) iTCO_wdt(E) iTCO_vendor_support(E) mei_me(E) mei(E) bonding(E) video(E) button(E) pcc_cpufreq(E) ebt_vlan(E) ebtable_broute(E) bridge(E) stp(E) llc(E) ebtable_nat(E) ebtable_filter(E) ebtables(E) nf_tables(E) nfnetlink(E) xdpe12284(E) at24(E) ledtrig_timer(E) tmp102(E) drm(E) lm75(E) coretemp(E) max1363(E) industrialio_triggered_buffer(E) kfifo_buf(E) industrialio(E) fuse(E) tps53679(E) pmbus(E) pmbus_core(E) i2c_dev(E) configfs(E) ip_tables(E) x_tables(E) autofs4(E) loop(E) ext4(E) crc16(E) mbcache(E) jbd2(E) crc32c_generic(E) fscrypto(E) ecb(E) crypto_simd(E) cryptd(E) glue_helper(E) aes_x86_64(E) nvme(E) nvme_core(E) nls_utf8(E) nls_cp437(E) nls_ascii(E) vfat(E) fat(E) overlay(E) squashfs(E) zstd_decompress(E) xxhash(E) sd_mod(E)
+  [ 656.337476] gpio_ich(E) ahci(E) mlxsw_core(E) libahci(E) devlink(E) crc32c_intel(E) libata(E) i2c_i801(E) scsi_mod(E) lpc_ich(E) mfd_core(E) ehci_pci(E) ehci_hcd(E) usbcore(E) e1000e(E) usb_common(E) fan(E) thermal(E)
+  [ 656.569590] CR2: 0000000000000000
+  ```
+Go Back To [Beginning of the document](#) or [Beginning of this section](#kdump)
 
 ## LLDP
 
@@ -5730,22 +6112,86 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#pfc-wa
 
 ### Platform Component Firmware show commands
 
-**show platform firmware**
+**show platform firmware status**
 
 This command displays platform components firmware status information.
 
 - Usage:
 ```bash
-show platform firmware
+show platform firmware status
 ```
 
 - Example:
 ```bash
-admin@sonic:~$ show platform firmware
+admin@sonic:~$ sudo show platform firmware status
 Chassis    Module    Component    Version                  Description
----------  --------  -----------  -----------------------  ---------------------------------------
-Chassis1   N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
-                     CPLD         5.3.3.1                  CPLD - includes all CPLDs in the switch
+---------  --------  -----------  -----------------------  ----------------------------------------
+MSN3800    N/A       ONIE         2020.11-5.2.0022-9600    ONIE - Open Network Install Environment
+                     SSD          0202-000                 SSD - Solid-State Drive
+                     BIOS         0ACLH004_02.02.008_9600  BIOS - Basic Input/Output System
+                     CPLD1        CPLD000120_REV0900       CPLD - Complex Programmable Logic Device
+                     CPLD2        CPLD000165_REV0500       CPLD - Complex Programmable Logic Device
+                     CPLD3        CPLD000166_REV0300       CPLD - Complex Programmable Logic Device
+                     CPLD4        CPLD000167_REV0100       CPLD - Complex Programmable Logic Device
+```
+
+**show platform firmware updates**
+
+This command displays platform components firmware updates information.
+
+- Usage:
+```bash
+show platform firmware updates [-i|--image]
+```
+
+- Options:
+  - _-i|--image_: show updates using current/next SONiC image
+
+    Valid values:
+    - current
+    - next
+
+    Default:
+    - current
+
+- Example:
+```bash
+admin@sonic:~$ sudo show platform firmware updates
+Chassis    Module    Component    Firmware                                    Version (Current/Available)                        Status
+---------  --------  -----------  ------------------------------------------  -------------------------------------------------  ------------------
+MSN3800    N/A       ONIE         /usr/local/lib/firmware/mellanox/onie.bin   2020.11-5.2.0022-9600 / 2020.11-5.2.0024-9600      update is required
+                     SSD          /usr/local/lib/firmware/mellanox/ssd.bin    0202-000 / 0204-000                                update is required
+                     BIOS         /usr/local/lib/firmware/mellanox/bios.bin   0ACLH004_02.02.008_9600 / 0ACLH004_02.02.010_9600  update is required
+                     CPLD1        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000120_REV0900 / CPLD000120_REV0900            up-to-date
+                     CPLD2        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000165_REV0500 / CPLD000165_REV0500            up-to-date
+                     CPLD3        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000166_REV0300 / CPLD000166_REV0300            up-to-date
+                     CPLD4        /usr/local/lib/firmware/mellanox/cpld.mpfa  CPLD000167_REV0100 / CPLD000167_REV0100            up-to-date
+```
+
+- Note:
+  - current/next values for _-i|--image_ are taken from `sonic-installer list`
+  ```bash
+  admin@sonic:~$ sudo sonic-installer list
+  Current: SONiC-OS-202012.0-fb89c28c9
+  Next: SONiC-OS-201911.0-2bec3004e
+  Available:
+  SONiC-OS-202012.0-fb89c28c9
+  SONiC-OS-201911.0-2bec3004e
+  ```
+
+**show platform firmware version**
+
+This command displays platform components firmware utility version.
+
+- Usage:
+```bash
+show platform firmware version
+```
+
+- Example:
+```bash
+admin@sonic:~$ show platform firmware version
+fwutil version 2.0.0.0
 ```
 
 ### Platform Component Firmware config commands
@@ -5761,14 +6207,19 @@ config platform firmware install chassis component <component_name> fw <fw_path>
 config platform firmware install module <module_name> component <component_name> fw <fw_path> [-y|--yes]
 ```
 
+- Options:
+  - _-y|--yes_: automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
+
 - Example:
 ```bash
-admin@sonic:~$ sudo config platform firmware install chassis component BIOS fw /etc/mlnx/fw/sn3800/chassis1/bios.bin
+admin@sonic:~$ sudo config platform firmware install chassis component BIOS fw /usr/local/lib/firmware/mellanox/sn3800/chassis1/bios.bin
+Warning: Immediate cold reboot is required to complete BIOS firmware update.
 New firmware will be installed, continue? [y/N]: y
 Installing firmware:
-    /etc/mlnx/fw/sn3800/chassis1/bios.bin
+    /usr/local/lib/firmware/mellanox/sn3800/chassis1/bios.bin
 
-admin@sonic:~$ sudo config platform firmware install module Module1 component BIOS fw http://mellanox.com/fw/sn3800/module1/bios.bin
+admin@sonic:~$ sudo config platform firmware install module Module1 component BIOS fw https://www.mellanox.com/fw/sn3800/module1/bios.bin
+Warning: Immediate cold reboot is required to complete BIOS firmware update.
 New firmware will be installed, continue? [y/N]: y
 Downloading firmware:
     [##################################################]  100%
@@ -5776,15 +6227,15 @@ Installing firmware:
     /tmp/bios.bin
 ```
 
-Supported options:
-1. -y|--yes - automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
+- Note:
+  - <fw_path> can be absolute path or URL
 
 **config platform firmware update**
 
-This command is used for automatic FW update of all available platform components.  
+This command is used to update a platform component firmware from current/next SONiC image.  
 Both modular and non modular chassis platforms are supported.
 
-Automatic FW update requires `platform_components.json` to be created and placed at:  
+FW update requires `platform_components.json` to be created and placed at:  
 sonic-buildimage/device/<platform_name>/<onie_platform>/platform_components.json
 
 Example:
@@ -5795,19 +6246,16 @@ Example:
         "Chassis1": {
             "component": {
                 "BIOS": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/bios.bin",
-                    "version": "0ACLH003_02.02.010",
-                    "info": "Cold reboot is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/bios.bin",
+                    "version": "<bios_version>"
                 },
                 "CPLD": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/cpld.bin",
-                    "version": "10",
-                    "info": "Power cycle is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/cpld.bin",
+                    "version": "<cpld_version>"
                 },
                 "FPGA": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/fpga.bin",
-                    "version": "5",
-                    "info": "Power cycle is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/fpga.bin",
+                    "version": "<fpga_version>"
                 }
             }
         }
@@ -5822,19 +6270,16 @@ Example:
         "Chassis1": {
             "component": {
                 "BIOS": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/bios.bin",
-                    "version": "0ACLH003_02.02.010",
-                    "info": "Cold reboot is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/bios.bin",
+                    "version": "<bios_version>"
                 },
                 "CPLD": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/cpld.bin",
-                    "version": "10",
-                    "info": "Power cycle is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/cpld.bin",
+                    "version": "<cpld_version>"
                 },
                 "FPGA": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/fpga.bin",
-                    "version": "5",
-                    "info": "Power cycle is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/chassis1/fpga.bin",
+                    "version": "<fpga_version>"
                 }
             }
         }
@@ -5843,14 +6288,12 @@ Example:
         "Module1": {
             "component": {
                 "CPLD": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/module1/cpld.bin",
-                    "version": "10",
-                    "info": "Power cycle is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/module1/cpld.bin",
+                    "version": "<cpld_version>"
                 },
                 "FPGA": {
-                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/module1/fpga.bin",
-                    "version": "5",
-                    "info": "Power cycle is required"
+                    "firmware": "/usr/local/lib/firmware/<platform_name>/<onie_platform>/module1/fpga.bin",
+                    "version": "<fpga_version>"
                 }
             }
         }
@@ -5858,36 +6301,51 @@ Example:
 }
 ```
 
-Note: FW update will be skipped if component definition is not provided (e.g., 'BIOS': { })
-
 - Usage:
 ```bash
-config platform firmware update [-y|--yes] [-f|--force] [-i|--image=current|next]
+config platform firmware update chassis component <component_name> fw [-y|--yes] [-f|--force] [-i|--image]
+config platform firmware update module <module_name> component <component_name> fw [-y|--yes] [-f|--force] [-i|--image]
 ```
+
+- Options:
+  - _-y|--yes_: automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
+  - _-f|--force_: update FW regardless the current version
+  - _-i|--image_: update FW using current/next SONiC image
+
+    Valid values:
+    - current
+    - next
+
+    Default:
+    - current
 
 - Example:
 ```bash
-admin@sonic:~$ sudo config platform firmware update
-Chassis    Module    Component    Firmware                               Version                                            Status              Info
----------  --------  -----------  -------------------------------------  -------------------------------------------------  ------------------  -----------------------
-Chassis1   N/A       BIOS         /etc/mlnx/fw/sn3800/chassis1/bios.bin  0ACLH004_02.02.007_9600 / 0ACLH004_02.02.007_9600  up-to-date          Cold reboot is required
-                     CPLD         /etc/mlnx/fw/sn3800/chassis1/cpld.bin  5.3.3.1 / 5.3.3.2                                  update is required  Power cycle is required
+admin@sonic:~$ sudo config platform firmware update chassis component BIOS fw
+Warning: Immediate cold reboot is required to complete BIOS firmware update.
 New firmware will be installed, continue? [y/N]: y
+Updating firmware:
+    /usr/local/lib/firmware/mellanox/x86_64-mlnx_msn3800-r0/chassis1/bios.bin
 
-Summary:
-
-Chassis    Module    Component    Status
----------  --------  -----------  ----------
-Chassis1   N/A       BIOS         up-to-date
-                     CPLD         success
+admin@sonic:~$ sudo config platform firmware update module Module1 component BIOS fw
+Warning: Immediate cold reboot is required to complete BIOS firmware update.
+New firmware will be installed, continue? [y/N]: y
+Updating firmware:
+    /usr/local/lib/firmware/mellanox/x86_64-mlnx_msn3800-r0/module1/bios.bin
 ```
 
-Supported options:
-1. -y|--yes - automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
-2. -f|--force - install FW regardless the current version
-3. -i|--image - update FW using current/next SONiC image
-
-Note: the default option is --image=current (current/next values are taken from `sonic-installer list`)
+- Note:
+  - FW update will be disabled if component definition is not provided (e.g., 'BIOS': { })
+  - FW version will be read from image if `version` field is not provided
+  - current/next values for _-i|--image_ are taken from `sonic-installer list`
+  ```bash
+  admin@sonic:~$ sudo sonic-installer list
+  Current: SONiC-OS-202012.0-fb89c28c9
+  Next: SONiC-OS-201911.0-2bec3004e
+  Available:
+  SONiC-OS-202012.0-fb89c28c9
+  SONiC-OS-201911.0-2bec3004e
+  ```
 
 ### Platform Component Firmware vendor specific behaviour
 
@@ -6076,6 +6534,303 @@ This command adds or deletes a member port to/from the already created portchann
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#portchannels)
+
+## PBH
+
+This section explains the various show commands and configuration commands available for users.
+
+### PBH show commands
+
+This subsection explains how to display PBH configuration and statistics.
+
+**show pbh table**
+
+This command displays PBH table configuration.
+
+- Usage:
+```bash
+show pbh table
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh table
+NAME       INTERFACE        DESCRIPTION
+---------  ---------------  ---------------
+pbh_table  Ethernet0        NVGRE and VxLAN
+           Ethernet4
+           PortChannel0001
+           PortChannel0002
+```
+
+**show pbh rule**
+
+This command displays PBH rule configuration.
+
+- Usage:
+```bash
+show pbh rule
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh rule
+TABLE      RULE    PRIORITY    MATCH                                 HASH           ACTION         COUNTER
+---------  ------  ----------  ------------------------------------  -------------  -------------  ---------
+pbh_table  nvgre   2           ether_type:        0x0800             inner_v6_hash  SET_ECMP_HASH  DISABLED
+                               ip_protocol:       0x2f
+                               gre_key:           0x2500/0xffffff00
+                               inner_ether_type:  0x86dd
+pbh_table  vxlan   1           ether_type:        0x0800             inner_v4_hash  SET_LAG_HASH   ENABLED
+                               ip_protocol:       0x11
+                               l4_dst_port:       0x12b5
+                               inner_ether_type:  0x0800
+```
+
+**show pbh hash**
+
+This command displays PBH hash configuration.
+
+- Usage:
+```bash
+show pbh hash
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh hash
+NAME           HASH FIELD
+-------------  -----------------
+inner_v4_hash  inner_ip_proto
+               inner_l4_dst_port
+               inner_l4_src_port
+               inner_dst_ipv4
+               inner_src_ipv4
+inner_v6_hash  inner_ip_proto
+               inner_l4_dst_port
+               inner_l4_src_port
+               inner_dst_ipv6
+               inner_src_ipv6
+```
+
+**show pbh hash-field**
+
+This command displays PBH hash field configuration.
+
+- Usage:
+```bash
+show pbh hash-field
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh hash-field
+NAME               FIELD              MASK       SEQUENCE    SYMMETRIC
+-----------------  -----------------  ---------  ----------  -----------
+inner_ip_proto     INNER_IP_PROTOCOL  N/A        1           No
+inner_l4_dst_port  INNER_L4_DST_PORT  N/A        2           Yes
+inner_l4_src_port  INNER_L4_SRC_PORT  N/A        2           Yes
+inner_dst_ipv4     INNER_DST_IPV4     255.0.0.0  3           Yes
+inner_src_ipv4     INNER_SRC_IPV4     0.0.0.255  3           Yes
+inner_dst_ipv6     INNER_DST_IPV6     ffff::     4           Yes
+inner_src_ipv6     INNER_SRC_IPV6     ::ffff     4           Yes
+```
+
+- Note:
+  - _SYMMETRIC_ is an artificial column and is only used to indicate fields symmetry
+
+**show pbh statistics**
+
+This command displays PBH statistics.
+
+- Usage:
+```bash
+show pbh statistics
+```
+
+- Example:
+```bash
+admin@sonic:~$ show pbh statistics
+TABLE      RULE    RX PACKETS COUNT    RX BYTES COUNT
+---------  ------  ------------------  ----------------
+pbh_table  nvgre   0                   0
+pbh_table  vxlan   0                   0
+```
+
+- Note:
+  - _RX PACKETS COUNT_ and _RX BYTES COUNT_ can be cleared by user:
+  ```bash
+  admin@sonic:~$ sonic-clear pbh statistics
+  ```
+
+### PBH config commands
+
+This subsection explains how to configure PBH.
+
+**config pbh table**
+
+This command is used to manage PBH table objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh table add <table_name> --interface-list <interface_list> --description <description>
+config pbh table update <table_name> [ --interface-list <interface_list> ] [ --description <description> ]
+config pbh table delete <table_name>
+```
+
+- Parameters:
+  - _table_name_: the name of the PBH table
+  - _interface_list_: interfaces to which PBH table is applied
+  - _description_: the description of the PBH table
+
+- Examples:
+```bash
+config pbh table add 'pbh_table' \
+--interface-list 'Ethernet0,Ethernet4,PortChannel0001,PortChannel0002' \
+--description 'NVGRE and VxLAN'
+config pbh table update 'pbh_table' \
+--interface-list 'Ethernet0'
+config pbh table delete 'pbh_table'
+```
+
+**config pbh rule**
+
+This command is used to manage PBH rule objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh rule add <table_name> <rule_name> --priority <priority> \
+[ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
+[ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
+--hash <hash> [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
+config pbh rule update <table_name> <rule_name> [ --priority <priority> ] \
+[ --gre-key <gre_key> ] [ --ether-type <ether_type> ] [ --ip-protocol <ip_protocol> ] \
+[ --ipv6-next-header <ipv6_next_header> ] [ --l4-dst-port <l4_dst_port> ] [ --inner-ether-type <inner_ether_type> ] \
+[ --hash <hash> ] [ --packet-action <packet_action> ] [ --flow-counter <flow_counter> ]
+config pbh rule delete <table_name> <rule_name>
+```
+
+- Parameters:
+  - _table_name_: the name of the PBH table
+  - _rule_name_: the name of the PBH rule
+  - _priority_: the priority of the PBH rule
+  - _gre_key_: packet match for the PBH rule: GRE key (value/mask)
+  - _ether_type_: packet match for the PBH rule: EtherType (IANA Ethertypes)
+  - _ip_protocol_: packet match for the PBH rule: IP protocol (IANA Protocol Numbers)
+  - _ipv6_next_header_: packet match for the PBH rule: IPv6 Next header (IANA Protocol Numbers)
+  - _l4_dst_port_: packet match for the PBH rule: L4 destination port
+  - _inner_ether_type_: packet match for the PBH rule: inner EtherType (IANA Ethertypes)
+  - _hash_: _hash_ object to apply with the PBH rule
+  - _packet_action_: packet action for the PBH rule
+
+    Valid values:
+    - SET_ECMP_HASH
+    - SET_LAG_HASH
+
+    Default:
+    - SET_ECMP_HASH
+
+  - _flow_counter_: packet/byte counter for the PBH rule
+
+    Valid values:
+    - DISABLED
+    - ENABLED
+
+    Default:
+    - DISABLED
+
+- Examples:
+```bash
+config pbh rule add 'pbh_table' 'nvgre' \
+--priority '2' \
+--ether-type '0x0800' \
+--ip-protocol '0x2f' \
+--gre-key '0x2500/0xffffff00' \
+--inner-ether-type '0x86dd' \
+--hash 'inner_v6_hash' \
+--packet-action 'SET_ECMP_HASH' \
+--flow-counter 'DISABLED'
+config pbh rule update 'pbh_table' 'nvgre' \
+--flow-counter 'ENABLED'
+config pbh rule delete 'pbh_table' 'nvgre'
+```
+
+**config pbh hash**
+
+This command is used to manage PBH hash objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh hash add <hash_name> --hash-field-list <hash_field_list>
+config pbh hash update <hash_name> [ --hash-field-list <hash_field_list> ]
+config pbh hash delete <hash_name>
+```
+
+- Parameters:
+  - _hash_name_: the name of the PBH hash
+  - _hash_field_list_: list of _hash-field_ objects to apply with the PBH hash
+
+- Examples:
+```bash
+config pbh hash add 'inner_v6_hash' \
+--hash-field-list 'inner_ip_proto,inner_l4_dst_port,inner_l4_src_port,inner_dst_ipv6,inner_src_ipv6'
+config pbh hash update 'inner_v6_hash' \
+--hash-field-list 'inner_ip_proto'
+config pbh hash delete 'inner_v6_hash'
+```
+
+**config pbh hash-field**
+
+This command is used to manage PBH hash field objects.  
+It supports add/update/remove operations.
+
+- Usage:
+```bash
+config pbh hash-field add <hash_field_name> \
+--hash-field <hash_field> [ --ip-mask <ip_mask> ] --sequence-id <sequence_id>
+config pbh hash-field update <hash_field_name> \
+[ --hash-field <hash_field> ] [ --ip-mask <ip_mask> ] [ --sequence-id <sequence_id> ]
+config pbh hash-field delete <hash_field_name>
+```
+
+- Parameters:
+  - _hash_field_name_: the name of the PBH hash field
+  - _hash_field_: native hash field for the PBH hash field
+
+    Valid values:
+    - INNER_IP_PROTOCOL
+    - INNER_L4_DST_PORT
+    - INNER_L4_SRC_PORT
+    - INNER_DST_IPV4
+    - INNER_SRC_IPV4
+    - INNER_DST_IPV6
+    - INNER_SRC_IPV6
+
+  - _ip_mask_: IPv4/IPv6 address mask for the PBH hash field
+
+    Valid only: _hash_field_ is:
+    - INNER_DST_IPV4
+    - INNER_SRC_IPV4
+    - INNER_DST_IPV6
+    - INNER_SRC_IPV6
+
+  - _sequence_id_: the order in which fields are hashed
+
+- Examples:
+```bash
+config pbh hash-field add 'inner_dst_ipv6' \
+--hash-field 'INNER_DST_IPV6' \
+--ip-mask 'ffff::' \
+--sequence-id '4'
+config pbh hash-field update 'inner_dst_ipv6' \
+--ip-mask 'ffff:ffff::'
+config pbh hash-field delete 'inner_dst_ipv6'
+```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#pbh)
 
 ## QoS
 
@@ -8958,6 +9713,60 @@ If the SONiC system was running for quite some time `show techsupport` will prod
   admin@sonic:~$ show techsupport --since='hour ago' # Will collect syslog and core files for the last one hour
   ```
 
+### Debug Dumps
+
+In SONiC, there usually exists a set of tables related/relevant to a particular module. All of these might have to be looked at to confirm whether any configuration update is properly applied and propagated. This utility comes in handy because it prints a unified view of the redis-state for a given module
+		
+- Usage:
+  ```
+  Usage: dump state [OPTIONS] MODULE IDENTIFIER	 
+  Dump the redis-state of the identifier for the module specified
+  
+  Options:
+	  -s, --show            Display Modules Available
+	  -d, --db TEXT         Only dump from these Databases
+	  -t, --table           Print in tabular format  [default: False]
+	  -k, --key-map         Only fetch the keys matched, don't extract field-value dumps  [default: False]
+	  -v, --verbose         Prints any intermediate output to stdout useful for dev & troubleshooting  [default: False]
+	  -n, --namespace TEXT  Dump the redis-state for this namespace.  [default: DEFAULT_NAMESPACE]
+	  --help                Show this message and exit.
+  ```
+
+  
+- Examples:
+  ```
+  root@sonic# dump state --show
+  Module    Identifier
+  --------  ------------
+  port      port_name
+  copp      trap_id		
+  ```
+		
+  ```
+  admin@sonic:~$ dump state copp arp_req --key-map --db ASIC_DB
+  {
+	    "arp_req": {
+		"ASIC_DB": {
+		    "keys": [
+			"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF_TRAP:oid:0x22000000000c5b",
+			"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF_TRAP_GROUP:oid:0x11000000000c59",
+			"ASIC_STATE:SAI_OBJECT_TYPE_POLICER:oid:0x12000000000c5a",
+			"ASIC_STATE:SAI_OBJECT_TYPE_QUEUE:oid:0x15000000000626"
+		    ],
+		    "tables_not_found": [],
+		    "vidtorid": {
+			"oid:0x22000000000c5b": "oid:0x200000000022",
+			"oid:0x11000000000c59": "oid:0x300000011",
+			"oid:0x12000000000c5a": "oid:0x200000012",
+			"oid:0x15000000000626": "oid:0x12e0000040015"
+		    }
+		}
+	    }
+	}	
+  ```
+  
+		
+		
 Go Back To [Beginning of the document](#) or [Beginning of this section](#troubleshooting-commands)
 
 ## Routing Stack

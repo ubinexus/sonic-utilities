@@ -4,7 +4,6 @@ import pytest
 
 from sonic_package_manager.constraint import ComponentConstraints
 from sonic_package_manager.manifest import Manifest, ManifestError
-from sonic_package_manager.version import VersionRange
 
 
 def test_manifest_v1_defaults():
@@ -55,6 +54,20 @@ def test_manifest_v1_mounts_invalid():
                           'service': {'name': 'cpu-report'},
                           'container': {'privileged': True,
                                         'mounts': [{'not-source': 'a', 'target': 'b', 'type': 'bind'}]}})
+
+
+def test_manifest_invalid_root_type():
+    manifest_json_input = {'package': { 'name': 'test', 'version': '1.0.0'},
+                           'service': {'name': 'test'}, 'container': 'abc'}
+    with pytest.raises(ManifestError):
+        Manifest.marshal(manifest_json_input)
+
+
+def test_manifest_invalid_array_type():
+    manifest_json_input = {'package': { 'name': 'test', 'version': '1.0.0'},
+                           'service': {'name': 'test', 'warm-shutdown': {'after': 'bgp'}}}
+    with pytest.raises(ManifestError):
+        Manifest.marshal(manifest_json_input)
 
 
 def test_manifest_v1_unmarshal():

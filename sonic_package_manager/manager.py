@@ -6,7 +6,7 @@ import os
 import pkgutil
 import tempfile
 from inspect import signature
-from typing import Any, Iterable, Callable, Dict, Optional
+from typing import Any, Iterable, List, Callable, Dict, Optional
 
 import docker
 import filelock
@@ -55,7 +55,6 @@ from sonic_package_manager.source import (
 from sonic_package_manager.utils import DockerReference
 from sonic_package_manager.version import (
     Version,
-    VersionRange,
     version_to_tag,
     tag_to_version
 )
@@ -122,13 +121,14 @@ def package_constraint_to_reference(constraint: PackageConstraint) -> PackageRef
     # Allow only specific version for now.
     # Later we can improve package manager to support
     # installing packages using expressions like 'package>1.0.0'
-    if version_constraint == VersionRange():  # empty range means any version
+    if version_constraint.expression == '*':
         return PackageReference(package_name, None)
-    if not isinstance(version_constraint, Version):
+    if not version_constraint.is_exact():
         raise PackageManagerError(f'Can only install specific version. '
                                   f'Use only following expression "{package_name}=<version>" '
                                   f'to install specific version')
-    return PackageReference(package_name, version_to_tag(version_constraint))
+    version = version_constraint.get_exact_version()
+    return PackageReference(package_name, version_to_tag(version))
 
 
 def parse_reference_expression(expression):
@@ -156,7 +156,7 @@ def validate_package_base_os_constraints(package: Package, sonic_version_info: D
 
         version = Version.parse(sonic_version_info[component])
 
-        if not constraint.allows_all(version):
+        if not constraint.allows(version):
             raise PackageSonicRequirementError(package.name, component, constraint, version)
 
 
@@ -178,7 +178,7 @@ def validate_package_tree(packages: Dict[str, Package]):
 
             installed_version = dependency_package.version
             log.debug(f'dependency package is installed {dependency.name}: {installed_version}')
-            if not dependency.constraint.allows_all(installed_version):
+            if not dependency.constraint.allows(installed_version):
                 raise PackageDependencyError(package.name, dependency, installed_version)
 
             dependency_components = dependency.components
@@ -197,7 +197,7 @@ def validate_package_tree(packages: Dict[str, Package]):
                 log.debug(f'dependency package {dependency.name}: '
                           f'component {component} version is {component_version}')
 
-                if not constraint.allows_all(component_version):
+                if not constraint.allows(component_version):
                     raise PackageComponentDependencyError(package.name, dependency, component,
                                                           constraint, component_version)
 
@@ -209,7 +209,7 @@ def validate_package_tree(packages: Dict[str, Package]):
 
             installed_version = conflicting_package.version
             log.debug(f'conflicting package is installed {conflict.name}: {installed_version}')
-            if conflict.constraint.allows_all(installed_version):
+            if conflict.constraint.allows(installed_version):
                 raise PackageConflictError(package.name, conflict, installed_version)
 
             for component, constraint in conflicting_package.components.items():
@@ -220,7 +220,7 @@ def validate_package_tree(packages: Dict[str, Package]):
                 log.debug(f'conflicting package {dependency.name}: '
                           f'component {component} version is {component_version}')
 
-                if constraint.allows_all(component_version):
+                if constraint.allows(component_version):
                     raise PackageComponentConflictError(package.name, dependency, component,
                                                         constraint, component_version)
 
@@ -375,6 +375,14 @@ class PackageManager:
                 self.service_creator.create(package, state=feature_state, owner=default_owner)
                 exits.callback(rollback(self.service_creator.remove, package))
 
+                self.service_creator.generate_shutdown_sequence_files(
+                    self._get_installed_packages_and(package)
+                )
+                exits.callback(rollback(
+                    self.service_creator.generate_shutdown_sequence_files,
+                    self.get_installed_packages())
+                )
+
                 if not skip_host_plugins:
                     self._install_cli_plugins(package)
                     exits.callback(rollback(self._uninstall_cli_plugins, package))
@@ -429,6 +437,9 @@ class PackageManager:
         try:
             self._uninstall_cli_plugins(package)
             self.service_creator.remove(package)
+            self.service_creator.generate_shutdown_sequence_files(
+                self._get_installed_packages_except(package)
+            )
 
             # Clean containers based on this image
             containers = self.docker.ps(filters={'ancestor': package.image_id},
@@ -525,8 +536,8 @@ class PackageManager:
                                             old_package, 'start'))
 
                 self.service_creator.remove(old_package, deregister_feature=False)
-                exits.callback(rollback(self.service_creator.create,
-                                        old_package, register_feature=False))
+                exits.callback(rollback(self.service_creator.create, old_package,
+                                        register_feature=False))
 
                 # Clean containers based on the old image
                 containers = self.docker.ps(filters={'ancestor': old_package.image_id},
@@ -537,6 +548,14 @@ class PackageManager:
                 self.service_creator.create(new_package, register_feature=False)
                 exits.callback(rollback(self.service_creator.remove, new_package,
                                         register_feature=False))
+
+                self.service_creator.generate_shutdown_sequence_files(
+                    self._get_installed_packages_and(new_package)
+                )
+                exits.callback(rollback(
+                    self.service_creator.generate_shutdown_sequence_files,
+                    self._get_installed_packages_and(old_package))
+                )
 
                 if self.feature_registry.is_feature_enabled(new_feature):
                     self._systemctl_action(new_package, 'start')
@@ -638,6 +657,7 @@ class PackageManager:
                 with tempfile.NamedTemporaryFile('wb') as file:
                     for chunk in image.save(named=True):
                         file.write(chunk)
+                    file.flush()
 
                     self.install(tarball=file.name)
             else:
@@ -817,9 +837,18 @@ class PackageManager:
         """
 
         return {
-            entry.name: self.get_installed_package(entry.name)
-            for entry in self.database if entry.installed
+            entry.name: entry for entry in self.get_installed_packages_list()
         }
+
+    def get_installed_packages_list(self) -> List[Package]:
+        """ Returns a list of installed packages.
+
+        Returns:
+            Installed packages dictionary.
+        """
+
+        return [self.get_installed_package(entry.name) 
+                for entry in self.database if entry.installed]
 
     def _migrate_package_database(self, old_package_database: PackageDatabase):
         """ Performs part of package migration process.

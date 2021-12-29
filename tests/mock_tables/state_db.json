@@ -133,6 +133,22 @@
         "txpowerlowalarm": "-10.5012",
         "txpowerlowwarning": "-7.5007"
     },
+    "TRANSCEIVER_STATUS|Ethernet0": {
+        "status": "67",
+        "error": "Blocking Error|High temperature"
+    },
+    "TRANSCEIVER_STATUS|Ethernet4": {
+        "status": "1",
+        "error": "N/A"
+    },
+    "TRANSCEIVER_STATUS|Ethernet8": {
+        "status": "0",
+        "error": "N/A"
+    },
+    "TRANSCEIVER_STATUS|Ethernet12": {
+        "status": "255",
+        "error": "N/A"
+    },
     "CHASSIS_INFO|chassis 1": {
         "psu_num": "2"
     },
@@ -268,6 +284,8 @@
     "SWITCH_CAPABILITY|switch": {
         "MIRROR": "true",
         "MIRRORV6": "true",
+        "PORT_TPID_CAPABLE": "true",
+        "LAG_TPID_CAPABLE": "true",
         "ACL_ACTIONS|INGRESS": "PACKET_ACTION,REDIRECT_ACTION,MIRROR_INGRESS_ACTION",
         "ACL_ACTIONS|EGRESS": "PACKET_ACTION,MIRROR_EGRESS_ACTION",
         "ACL_ACTION|PACKET_ACTION": "FORWARD"
@@ -527,6 +545,9 @@
     "MUX_CABLE_TABLE|Ethernet8": {
         "state": "standby"
     },
+    "MUX_CABLE_TABLE|Ethernet16": {
+        "state": "standby"
+    },
     "MUX_CABLE_TABLE|Ethernet12": {
         "state": "unknown"
     },
@@ -541,6 +562,9 @@
     },
     "MUX_LINKMGR_TABLE|Ethernet8": {
         "state": "unhealthy"
+    },
+    "MUX_LINKMGR_TABLE|Ethernet16": {
+        "state": "healthy"
     },
     "MUX_LINKMGR_TABLE|Ethernet12": {
         "state": "unhealthy"
@@ -585,12 +609,12 @@
     },
     "BUFFER_PROFILE_TABLE|ingress_lossy_profile": {
         "dynamic_th": "3",
-        "pool": "[BUFFER_POOL_TABLE|ingress_lossy_pool]",
+        "pool": "ingress_lossy_pool",
         "size": "0"
     },
     "BUFFER_PROFILE_TABLE|headroom_profile": {
         "dynamic_th": "0",
-        "pool": "[BUFFER_POOL_TABLE|ingress_lossless_pool]",
+        "pool": "ingress_lossless_pool",
         "xon": "18432",
         "xoff": "32768",
         "size": "51200"
