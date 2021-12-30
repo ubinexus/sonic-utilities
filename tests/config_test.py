@@ -13,20 +13,65 @@ from click.testing import CliRunner
 
 from sonic_py_common import device_info
 from utilities_common.db import Db
+from utilities_common.general import load_module_from_source
 
 from generic_config_updater.generic_updater import ConfigFormat
 
 import config.main as config
 
+# Add Test, module and script path.
+test_path = os.path.dirname(os.path.abspath(__file__))
+modules_path = os.path.dirname(test_path)
+scripts_path = os.path.join(modules_path, "scripts")
+sys.path.insert(0, test_path)
+sys.path.insert(0, modules_path)
+sys.path.insert(0, scripts_path)
+os.environ["PATH"] += os.pathsep + scripts_path
+
+# Config Reload input Path
+mock_db_path = os.path.join(test_path, "config_reload_input")
+
+
 load_minigraph_command_output="""\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
-Running command: pfcwd start_default
 Running command: config qos reload --no-dynamic-buffer
+Running command: pfcwd start_default
 Restarting SONiC target ...
 Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
+
+
+RELOAD_CONFIG_DB_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
+RELOAD_YANG_CFG_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -Y /tmp/config.json  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
+RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
+reload_config_with_sys_info_command_output="""\
+Running command: rm -rf /tmp/dropstat-*
+Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
@@ -41,6 +86,60 @@ def mock_run_command_side_effect(*args, **kwargs):
             return 'swss'
         else:
             return ''
+
+
+# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
+sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
+
+
+class TestConfigReload(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+
+        import config.main
+        importlib.reload(config.main)
+
+    def test_config_reload(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+
+            jsonfile_config = os.path.join(mock_db_path, "config_db.json")
+            jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
+
+            # create object
+            config.INIT_CFG_FILE = jsonfile_init_cfg
+            config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+
+            db = Db()
+            runner = CliRunner()
+            obj = {'config_db': db.cfgdb}
+
+            # simulate 'config reload' to provoke load_sys_info option
+            result = runner.invoke(config.config.commands["reload"], ["-l", "-n", "-y"], obj=obj)
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_sys_info_command_output
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
 
 
 class TestLoadMinigraph(object):
@@ -128,6 +227,183 @@ class TestLoadMinigraph(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")
 
+class TestReloadConfig(object):
+    dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
+
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+        open(cls.dummy_cfg_file, 'w').close()
+
+    def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [self.dummy_cfg_file, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_CONFIG_DB_OUTPUT
+
+    def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            # 3 config files: 1 for host and 2 for asic
+            cfg_files = "{},{},{}".format(
+                            self.dummy_cfg_file, 
+                            self.dummy_cfg_file,
+                            self.dummy_cfg_file)
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [cfg_files, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_MASIC_CONFIG_DB_OUTPUT
+
+    def test_reload_yang_config(self, get_cmd_module,
+                                        setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(config.config.commands["reload"],
+                                    [self.dummy_cfg_file, '-y','-f' ,'-t', 'config_yang'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_YANG_CFG_OUTPUT
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.remove(cls.dummy_cfg_file)
+        print("TEARDOWN")
+
+ 
+class TestConfigCbf(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        import config.main
+        importlib.reload(config.main)
+
+    def test_cbf_reload_single(
+            self, get_cmd_module, setup_cbf_mock_apis,
+            setup_single_broadcom_asic
+        ):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "cbf_config_output.json")
+        print("Saving output in {}".format(output_file))
+        try:
+            os.remove(output_file)
+        except OSError:
+            pass
+        result = runner.invoke(
+           config.config.commands["cbf"],
+             ["reload", "--dry_run", output_file]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        expected_result = os.path.join(
+            cwd, "cbf_config_input", "config_cbf.json"
+        )
+        assert filecmp.cmp(output_file, expected_result, shallow=False)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+
+class TestConfigCbfMasic(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+        import config.main
+        importlib.reload(config.main)
+        # change to multi asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
+
+    def test_cbf_reload_masic(
+            self, get_cmd_module, setup_cbf_mock_apis,
+            setup_multi_broadcom_masic
+    ):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "cbf_config_output.json")
+        print("Saving output in {}<0,1,2..>".format(output_file))
+        num_asic = device_info.get_num_npus()
+        print(num_asic)
+        for asic in range(num_asic):
+            try:
+                file = "{}{}".format(output_file, asic)
+                os.remove(file)
+            except OSError:
+                pass
+        result = runner.invoke(
+            config.config.commands["cbf"],
+            ["reload", "--dry_run", output_file]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+
+        for asic in range(num_asic):
+            expected_result = os.path.join(
+                cwd, "cbf_config_input", str(asic), "config_cbf.json"
+            )
+            file = "{}{}".format(output_file, asic)
+            assert filecmp.cmp(file, expected_result, shallow=False)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
+
 
 class TestConfigQos(object):
     @classmethod
@@ -178,6 +454,11 @@ class TestConfigQosMasic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         import config.main
         importlib.reload(config.main)
+        # change to multi asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
 
     def test_qos_reload_masic(
             self, get_cmd_module, setup_qos_mock_apis,
@@ -227,7 +508,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def setUp(self):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         self.runner = CliRunner()
-        self.any_patch_as_json = [{"op":"remove", "path":"/PORT"}]
+        self.any_patch_as_json = [{"op": "remove", "path": "/PORT"}]
         self.any_patch = jsonpatch.JsonPatch(self.any_patch_as_json)
         self.any_patch_as_text = json.dumps(self.any_patch_as_json)
         self.any_path = '/usr/admin/patch.json-patch'
@@ -265,7 +546,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Patch applied successfully"
-        expected_call_with_default_values = mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False)
+        expected_call_with_default_values = mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, False, ())
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
@@ -283,7 +564,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Patch applied successfully"
-        expected_call_with_non_default_values = mock.call(self.any_patch, ConfigFormat.SONICYANG, True, True)
+        expected_ignore_path_tuple = ('/ANY_TABLE', '/ANY_OTHER_TABLE/ANY_FIELD', '')
+        expected_call_with_non_default_values = \
+            mock.call(self.any_patch, ConfigFormat.SONICYANG, True, True, True, expected_ignore_path_tuple)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
@@ -293,6 +576,10 @@ class TestGenericUpdateCommands(unittest.TestCase):
                                             [self.any_path,
                                              "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
+                                             "--ignore-non-yang-tables",
+                                             "--ignore-path", "/ANY_TABLE",
+                                             "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                             "--ignore-path", "",
                                              "--verbose"],
                                             catch_exceptions=False)
 
@@ -323,13 +610,19 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_apply_patch__optional_parameters_passed_correctly(self):
         self.validate_apply_patch_optional_parameter(
             ["--format", ConfigFormat.SONICYANG.name],
-            mock.call(self.any_patch, ConfigFormat.SONICYANG, False, False))
+            mock.call(self.any_patch, ConfigFormat.SONICYANG, False, False, False, ()))
         self.validate_apply_patch_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_patch, ConfigFormat.CONFIGDB, True, False))
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, True, False, False, ()))
         self.validate_apply_patch_optional_parameter(
             ["--dry-run"],
-            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, True))
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, True, False, ()))
+        self.validate_apply_patch_optional_parameter(
+            ["--ignore-non-yang-tables"],
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, True, ()))
+        self.validate_apply_patch_optional_parameter(
+            ["--ignore-path", "/ANY_TABLE"],
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, False, ("/ANY_TABLE",)))
 
     def validate_apply_patch_optional_parameter(self, param_args, expected_call):
         # Arrange
@@ -378,7 +671,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config replaced successfully"
-        expected_call_with_default_values = mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False)
+        expected_call_with_default_values = mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, False, ())
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
@@ -396,7 +689,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config replaced successfully"
-        expected_call_with_non_default_values = mock.call(self.any_target_config, ConfigFormat.SONICYANG, True, True)
+        expected_ignore_path_tuple = ('/ANY_TABLE', '/ANY_OTHER_TABLE/ANY_FIELD', '')
+        expected_call_with_non_default_values = \
+            mock.call(self.any_target_config, ConfigFormat.SONICYANG, True, True, True, expected_ignore_path_tuple)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
@@ -406,6 +701,10 @@ class TestGenericUpdateCommands(unittest.TestCase):
                                             [self.any_path,
                                              "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
+                                             "--ignore-non-yang-tables",
+                                             "--ignore-path", "/ANY_TABLE",
+                                             "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                             "--ignore-path", "",
                                              "--verbose"],
                                             catch_exceptions=False)
 
@@ -436,13 +735,19 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_replace__optional_parameters_passed_correctly(self):
         self.validate_replace_optional_parameter(
             ["--format", ConfigFormat.SONICYANG.name],
-            mock.call(self.any_target_config, ConfigFormat.SONICYANG, False, False))
+            mock.call(self.any_target_config, ConfigFormat.SONICYANG, False, False, False, ()))
         self.validate_replace_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, True, False))
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, True, False, False, ()))
         self.validate_replace_optional_parameter(
             ["--dry-run"],
-            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, True))
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, True, False, ()))
+        self.validate_replace_optional_parameter(
+            ["--ignore-non-yang-tables"],
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, True, ()))
+        self.validate_replace_optional_parameter(
+            ["--ignore-path", "/ANY_TABLE"],
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, False, ("/ANY_TABLE",)))
 
     def validate_replace_optional_parameter(self, param_args, expected_call):
         # Arrange
@@ -491,7 +796,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config rolled back successfully"
-        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False, False)
+        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False, False, False, ())
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             # Act
@@ -507,7 +812,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config rolled back successfully"
-        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True, True)
+        expected_ignore_path_tuple = ('/ANY_TABLE', '/ANY_OTHER_TABLE/ANY_FIELD', '')
+        expected_call_with_non_default_values = \
+            mock.call(self.any_checkpoint_name, True, True, True, expected_ignore_path_tuple)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
 
@@ -515,6 +822,10 @@ class TestGenericUpdateCommands(unittest.TestCase):
             result = self.runner.invoke(config.config.commands["rollback"],
                                         [self.any_checkpoint_name,
                                             "--dry-run",
+                                            "--ignore-non-yang-tables",
+                                            "--ignore-path", "/ANY_TABLE",
+                                            "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                            "--ignore-path", "",
                                             "--verbose"],
                                         catch_exceptions=False)
 
@@ -544,10 +855,16 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_rollback__optional_parameters_passed_correctly(self):
         self.validate_rollback_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_checkpoint_name, True, False))
+            mock.call(self.any_checkpoint_name, True, False, False, ()))
         self.validate_rollback_optional_parameter(
             ["--dry-run"],
-            mock.call(self.any_checkpoint_name, False, True))
+            mock.call(self.any_checkpoint_name, False, True, False, ()))
+        self.validate_rollback_optional_parameter(
+            ["--ignore-non-yang-tables"],
+            mock.call(self.any_checkpoint_name, False, False, True, ()))
+        self.validate_rollback_optional_parameter(
+            ["--ignore-path", "/ACL_TABLE"],
+            mock.call(self.any_checkpoint_name, False, False, False, ("/ACL_TABLE",)))
 
     def validate_rollback_optional_parameter(self, param_args, expected_call):
         # Arrange

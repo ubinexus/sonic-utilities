@@ -10,7 +10,7 @@ import json
 import netaddr
 
 from natsort import natsorted
-from sonic_py_common import multi_asic
+from sonic_py_common import multi_asic, device_info
 from utilities_common.db import Db
 from utilities_common.general import load_db_config
 
@@ -131,7 +131,8 @@ class InterfaceAliasConverter(object):
 
 
         if not self.port_dict:
-            click.echo(message="Configuration database contains no ports")
+            if not device_info.is_supervisor():
+                click.echo(message="Configuration database contains no ports")
             self.port_dict = {}
 
         for port_name in self.port_dict:
@@ -269,7 +270,7 @@ def is_port_vlan_member(config_db, port, vlan):
     return False
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
-    """ Check if an interface  is in a vlan """
+    """ Check if an interface is in a vlan """
     for _,intf in vlan_member_table:
         if intf == interface_name:
             return True
@@ -436,12 +437,12 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif (command.startswith("sudo sfputil show eeprom")):
-                """show interface transceiver eeprom"""
+                """Show interface transceiver eeprom"""
                 index = 0
                 print_output_in_alias_mode(raw_output, index)
 
             elif (command.startswith("sudo sfputil show")):
-                """show interface transceiver lpmode,
+                """Show interface transceiver lpmode,
                    presence
                 """
                 index = 0
@@ -451,7 +452,7 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command == "sudo lldpshow":
-                """show lldp table"""
+                """Show lldp table"""
                 index = 0
                 if output.startswith("LocalPort"):
                     output = output.replace("LocalPort", "LocalPort".rjust(
@@ -459,7 +460,7 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command.startswith("queuestat"):
-                """show queue counters"""
+                """Show queue counters"""
                 index = 0
                 if output.startswith("Port"):
                     output = output.replace("Port", "Port".rjust(
@@ -467,7 +468,7 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command == "fdbshow":
-                """show mac"""
+                """Show mac"""
                 index = 3
                 if output.startswith("No."):
                     output = "  " + output
@@ -478,13 +479,13 @@ def run_command_in_alias_mode(command):
                 print_output_in_alias_mode(output, index)
 
             elif command.startswith("nbrshow"):
-                """show arp"""
+                """Show arp"""
                 index = 2
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
             elif command.startswith("sudo ipintutil"):
-                """show ip(v6) int"""
+                """Show ip(v6) int"""
                 index = 0
                 if output.startswith("Interface"):
                    output = output.replace("Interface", "Interface".rjust(

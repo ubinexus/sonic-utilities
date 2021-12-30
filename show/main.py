@@ -40,6 +40,7 @@ from . import chassis_modules
 from . import dropcounters
 from . import feature
 from . import fgnhg
+from . import flow_counters
 from . import gearbox
 from . import interfaces
 from . import kdump
@@ -178,6 +179,7 @@ cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
+cli.add_command(flow_counters.flowcnt_trap)
 cli.add_command(kdump.kdump)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kdump.kdump)
@@ -953,7 +955,7 @@ def link_local_mode(verbose):
 
 @cli.group(cls=clicommon.AliasedGroup)
 def lldp():
-    """LLDP (Link Layer Discovery Protocol) information"""
+    """Show LLDP information"""
     pass
 
 # Default 'lldp' command (called if no subcommands or their aliases were passed)
@@ -1356,16 +1358,32 @@ def show_run_snmp(db, ctx):
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def syslog(verbose):
-    """Show Syslog running configuration"""
+    """Show Syslog running configuration
+    To match below cases(port is optional):
+    *.* @IPv4:port
+    *.* @@IPv4:port
+    *.* @[IPv4]:port
+    *.* @@[IPv4]:port
+    *.* @[IPv6]:port
+    *.* @@[IPv6]:port
+    """
     syslog_servers = []
     syslog_dict = {}
+    re_ipv4_1 = re.compile(r'^\*\.\* @{1,2}(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?')
+    re_ipv4_2 = re.compile(r'^\*\.\* @{1,2}\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\](:\d+)?')
+    re_ipv6 = re.compile(r'^\*\.\* @{1,2}\[([0-9a-fA-F:.]+)\](:\d+)?')
     with open("/etc/rsyslog.conf") as syslog_file:
         data = syslog_file.readlines()
     for line in data:
-        if line.startswith("*.* @"):
-            line = line.split(":")
-            server = line[0][5:]
-            syslog_servers.append(server)
+        if re_ipv4_1.match(line):
+            server =  re_ipv4_1.match(line).group(1)
+        elif re_ipv4_2.match(line):
+            server =  re_ipv4_2.match(line).group(1)
+        elif re_ipv6.match(line):
+            server =  re_ipv6.match(line).group(1)
+        else:
+            continue
+        syslog_servers.append("[{}]".format(server))
     syslog_dict['Syslog Servers'] = syslog_servers
     print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
@@ -1478,10 +1496,20 @@ def aaa(db):
         'authentication': {
             'login': 'local (default)',
             'failthrough': 'False (default)'
+        },
+        'authorization': {
+            'login': 'local (default)'
+        },
+        'accounting': {
+            'login': 'disable (default)'
         }
     }
     if 'authentication' in data:
         aaa['authentication'].update(data['authentication'])
+    if 'authorization' in data:
+        aaa['authorization'].update(data['authorization'])
+    if 'accounting' in data:
+        aaa['accounting'].update(data['accounting'])
     for row in aaa:
         entry = aaa[row]
         for key in entry:
@@ -1689,10 +1717,70 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
+
+#
+# 'bfd' group ("show bfd ...")
+#
+@cli.group(cls=clicommon.AliasedGroup)
+def bfd():
+    """Show details of the bfd sessions"""
+    pass
+
+# 'summary' subcommand ("show bfd summary")
+@bfd.command()
+@clicommon.pass_db
+def summary(db):
+    """Show bfd session information"""
+    bfd_headers = ["Peer Addr", "Interface", "Vrf", "State", "Type", "Local Addr",
+                "TX Interval", "RX Interval", "Multiplier", "Multihop"]
+
+    bfd_keys = db.db.keys(db.db.STATE_DB, "BFD_SESSION_TABLE|*")
+
+    click.echo("Total number of BFD sessions: {}".format(0 if bfd_keys is None else len(bfd_keys)))
+
+    bfd_body = []
+    if bfd_keys is not None:
+        for key in bfd_keys:
+            key_values = key.split('|')
+            values = db.db.get_all(db.db.STATE_DB, key)
+            bfd_body.append([key_values[3], key_values[2], key_values[1], values["state"], values["type"], values["local_addr"],
+                                values["tx_interval"], values["rx_interval"], values["multiplier"], values["multihop"]])
+
+    click.echo(tabulate(bfd_body, bfd_headers))
+
+
+# 'peer' subcommand ("show bfd peer ...")
+@bfd.command()
+@clicommon.pass_db
+@click.argument('peer_ip', required=True)
+def peer(db, peer_ip):
+    """Show bfd session information for BFD peer"""
+    bfd_headers = ["Peer Addr", "Interface", "Vrf", "State", "Type", "Local Addr",
+                "TX Interval", "RX Interval", "Multiplier", "Multihop"]
+
+    bfd_keys = db.db.keys(db.db.STATE_DB, "BFD_SESSION_TABLE|*|{}".format(peer_ip))
+    delimiter = db.db.get_db_separator(db.db.STATE_DB)
+
+    if bfd_keys is None or len(bfd_keys) == 0:
+        click.echo("No BFD sessions found for peer IP {}".format(peer_ip))
+        return
+
+    click.echo("Total number of BFD sessions for peer IP {}: {}".format(peer_ip, len(bfd_keys)))
+
+    bfd_body = []
+    if bfd_keys is not None:
+        for key in bfd_keys:
+            key_values = key.split(delimiter)
+            values = db.db.get_all(db.db.STATE_DB, key)
+            bfd_body.append([key_values[3], key_values[2], key_values[1], values.get("state"), values.get("type"), values.get("local_addr"),
+                                values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop")])
+
+    click.echo(tabulate(bfd_body, bfd_headers))
+
+
 # Load plugins and register them
 helper = util_base.UtilHelper()
-for plugin in helper.load_plugins(plugins):
-    helper.register_plugin(plugin, cli)
+helper.load_and_register_plugins(plugins, cli)
 
 if __name__ == '__main__':
     cli()
