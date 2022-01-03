@@ -921,8 +921,8 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
 
 class TestNoDependencyMoveValidator(unittest.TestCase):
     def setUp(self):
-        path_addressing = ps.PathAddressing()
         config_wrapper = ConfigWrapper()
+        path_addressing = ps.PathAddressing(config_wrapper)
         self.validator = ps.NoDependencyMoveValidator(path_addressing, config_wrapper)
 
     def test_validate__add_full_config_has_dependencies__failure(self):
@@ -1050,6 +1050,37 @@ class TestNoDependencyMoveValidator(unittest.TestCase):
 
         diff = ps.Diff(current_config, target_config)
         move = ps.JsonMove(diff, OperationType.REPLACE, [], [])
+
+        # Act and assert
+        self.assertTrue(self.validator.validate(move, diff))
+
+    def test_validate__replace_list_item_different_location_than_target_and_no_deps__true(self):
+        # Arrange
+        current_config = {
+            "VLAN": {
+                "Vlan100": {
+                    "vlanid": "100",
+                    "dhcp_servers": [
+                        "192.0.0.1",
+                        "192.0.0.2"
+                    ]
+                }
+            }
+        }
+        target_config = {
+            "VLAN": {
+                "Vlan100": {
+                    "vlanid": "100",
+                    "dhcp_servers": [
+                        "192.0.0.3"
+                    ]
+                }
+            }
+        }
+        diff = ps.Diff(current_config, target_config)
+        # the target tokens point to location 0 which exist in target_config
+        # but the replace operation is operating on location 1 in current_config
+        move = ps.JsonMove(diff, OperationType.REPLACE, ["VLAN", "Vlan100", "dhcp_servers", 1], ["VLAN", "Vlan100", "dhcp_servers", 0])
 
         # Act and assert
         self.assertTrue(self.validator.validate(move, diff))
@@ -1649,7 +1680,7 @@ class TestDeleteInsteadOfReplaceMoveExtender(unittest.TestCase):
 
 class DeleteRefsMoveExtender(unittest.TestCase):
     def setUp(self):
-        self.extender = ps.DeleteRefsMoveExtender(PathAddressing())
+        self.extender = ps.DeleteRefsMoveExtender(PathAddressing(ConfigWrapper()))
 
     def test_extend__non_delete_ops__no_extended_moves(self):
         self.verify(OperationType.ADD,
@@ -1723,7 +1754,8 @@ class TestSortAlgorithmFactory(unittest.TestCase):
 
     def verify(self, algo, algo_class):
         # Arrange
-        factory = ps.SortAlgorithmFactory(OperationWrapper(), ConfigWrapper(), PathAddressing())
+        config_wrapper = ConfigWrapper()
+        factory = ps.SortAlgorithmFactory(OperationWrapper(), config_wrapper, PathAddressing(config_wrapper))
         expected_generators = [ps.LowLevelMoveGenerator]
         expected_extenders = [ps.UpperLevelMoveExtender, ps.DeleteInsteadOfReplaceMoveExtender, ps.DeleteRefsMoveExtender]
         expected_validator = [ps.DeleteWholeConfigMoveValidator,
@@ -1746,194 +1778,117 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         self.assertCountEqual(expected_validator, actual_validators)
 
 class TestPatchSorter(unittest.TestCase):
-    def create_patch_sorter(self, config=None):
+    def setUp(self):
+        self.config_wrapper = ConfigWrapper()
+
+    def test_patch_sorter_success(self):
+        # Format of the JSON file containing the test-cases:
+        #
+        # {
+        #     "<unique_name_for_the_test>":{
+        #         "desc":"<brief explanation of the test case>",
+        #         "current_config":<the running config to be modified>,
+        #         "patch":<the JsonPatch to apply>,
+        #         "expected_changes":[<list of expected changes after sorting>]
+        #     },
+        #     .
+        #     .
+        #     .
+        # }
+        data = Files.PATCH_SORTER_TEST_SUCCESS
+        skip_exact_change_list_match = False
+        for test_case_name in data:
+            with self.subTest(name=test_case_name):
+                self.run_single_success_case(data[test_case_name], skip_exact_change_list_match)
+
+    def run_single_success_case(self, data, skip_exact_change_list_match):
+        current_config = data["current_config"]
+        patch = jsonpatch.JsonPatch(data["patch"])
+        expected_changes = []
+        for item in data["expected_changes"]:
+            expected_changes.append(JsonChange(jsonpatch.JsonPatch(item)))
+
+        sorter = self.create_patch_sorter(current_config)
+
+        actual_changes = sorter.sort(patch)
+
+        if not skip_exact_change_list_match:
+            self.assertEqual(expected_changes, actual_changes)
+
+        target_config = patch.apply(current_config)
+        simulated_config = current_config
+        for change in actual_changes:
+            simulated_config = change.apply(simulated_config)
+            self.assertTrue(self.config_wrapper.validate_config_db_config(simulated_config))
+        self.assertEqual(target_config, simulated_config)
+
+    def test_patch_sorter_failure(self):
+        # Format of the JSON file containing the test-cases:
+        #
+        # {
+        #     "<unique_name_for_the_test>":{
+        #         "desc":"<brief explanation of the test case>",
+        #         "current_config":<the running config to be modified>,
+        #         "patch":<the JsonPatch to apply>,
+        #         "expected_error_substrings":[<list of expected error substrings>]
+        #     },
+        #     .
+        #     .
+        #     .
+        # }
+        data = Files.PATCH_SORTER_TEST_FAILURE
+        for test_case_name in data:
+            with self.subTest(name=test_case_name):
+                self.run_single_failure_case(data[test_case_name])
+
+    def run_single_failure_case(self, data):
+        current_config = data["current_config"]
+        patch = jsonpatch.JsonPatch(data["patch"])
+        expected_error_substrings = data["expected_error_substrings"]
+
+        try:
+            sorter = self.create_patch_sorter(current_config)
+            sorter.sort(patch)
+            self.fail("An exception was supposed to be thrown")
+        except Exception as ex:
+            notfound_substrings = []
+            error = str(ex)
+            for substring in expected_error_substrings:
+                if substring not in error:
+                    notfound_substrings.append(substring)
+
+            if notfound_substrings:
+                self.fail(f"Did not find the substrings {notfound_substrings} in the error: '{error}'")
+
+    def test_sort__does_not_remove_tables_without_yang_unintentionally_if_generated_change_replaces_whole_config(self):
+        # Arrange
+        current_config = Files.CONFIG_DB_AS_JSON # has a table without yang named 'TABLE_WITHOUT_YANG'
+        any_patch = Files.SINGLE_OPERATION_CONFIG_DB_PATCH
+        target_config = any_patch.apply(current_config)
+        sort_algorithm = Mock()
+        sort_algorithm.sort = lambda diff: [ps.JsonMove(diff, OperationType.REPLACE, [], [])]
+        patch_sorter = self.create_patch_sorter(current_config, sort_algorithm)
+        expected = [JsonChange(jsonpatch.JsonPatch([OperationWrapper().create(OperationType.REPLACE, "", target_config)]))]
+
+        # Act
+        actual = patch_sorter.sort(any_patch)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+    def create_patch_sorter(self, config=None, sort_algorithm=None):
         if config is None:
             config=Files.CROPPED_CONFIG_DB_AS_JSON
-        config_wrapper = ConfigWrapper()
+        config_wrapper = self.config_wrapper
         config_wrapper.get_config_db_as_json = MagicMock(return_value=config)
         patch_wrapper = PatchWrapper(config_wrapper)
         operation_wrapper = OperationWrapper()
-        path_addressing= ps.PathAddressing()
+        path_addressing= ps.PathAddressing(config_wrapper)
         sort_algorithm_factory = ps.SortAlgorithmFactory(operation_wrapper, config_wrapper, path_addressing)
+        if sort_algorithm:
+            sort_algorithm_factory.create = MagicMock(return_value=sort_algorithm)
 
         return ps.PatchSorter(config_wrapper, patch_wrapper, sort_algorithm_factory)
-
-    def test_sort__empty_patch__returns_empty_changes_list(self):
-        # Arrange
-        patch = jsonpatch.JsonPatch([])
-        expected = []
-
-        # Act
-        actual = self.create_patch_sorter().sort(patch)
-
-        # Assert
-        self.assertCountEqual(expected, actual)
-
-    def test_sort__patch_with_single_simple_operation__returns_one_change(self):
-        # Arrange
-        patch = jsonpatch.JsonPatch([{"op":"remove", "path":"/VLAN/Vlan1000/dhcp_servers/0"}])
-        expected = [JsonChange(patch)]
-
-        # Act
-        actual = self.create_patch_sorter().sort(patch)
-
-        # Assert
-        self.assertCountEqual(expected, actual)
-
-    def test_sort__replacing_create_only_field__success(self):
-        # Arrange
-        patch = jsonpatch.JsonPatch([{"op":"replace", "path": "/PORT/Ethernet0/lanes", "value":"67"}])
-
-        # Act
-        actual = self.create_patch_sorter(Files.DPB_1_SPLIT_FULL_CONFIG).sort(patch)
-
-        # Assert
-        self.assertNotEqual(None, actual)
-
-    def test_sort__adding_create_only_field__success(self):
-        # Arrange
-        patch = jsonpatch.JsonPatch([{"op":"add", "path": "/LOOPBACK_INTERFACE/Loopback0/vrf_name", "value":"Vrf_01"}])
-
-        # Act
-        actual = self.create_patch_sorter(Files.CONFIG_DB_WITH_LOOPBACK_INTERFACES).sort(patch)
-
-        # Assert
-        self.assertNotEqual(None, actual)
-
-    def test_sort__removing_create_only_field__success(self):
-        # Arrange
-        patch = jsonpatch.JsonPatch([{"op":"remove", "path": "/LOOPBACK_INTERFACE/Loopback1/vrf_name"}])
-
-        # Act
-        actual = self.create_patch_sorter(Files.CONFIG_DB_WITH_LOOPBACK_INTERFACES).sort(patch)
-
-        # Assert
-        self.assertNotEqual(None, actual)
-
-    def test_sort__inter_dependency_within_same_table__success(self):
-        # Arrange
-        patch = jsonpatch.JsonPatch([{"op":"add", "path":"/VLAN_INTERFACE", "value": {
-            "Vlan1000|fc02:1000::1/64": {},
-            "Vlan1000|192.168.0.1/21": {},
-            "Vlan1000": {}
-        }}])
-        expected = [
-            JsonChange(jsonpatch.JsonPatch([{"op": "add", "path": "/VLAN_INTERFACE", "value": {"Vlan1000": {}}}])),
-            JsonChange(jsonpatch.JsonPatch([{"op": "add", "path": "/VLAN_INTERFACE/Vlan1000|fc02:1000::1~164", "value": {}}])),
-            JsonChange(jsonpatch.JsonPatch([{"op": "add", "path": "/VLAN_INTERFACE/Vlan1000|192.168.0.1~121", "value": {}}]))
-        ]
-
-        # Act
-        actual = self.create_patch_sorter().sort(patch)
-
-        # Assert
-        self.assertListEqual(expected, actual)
-
-    def test_sort__add_table__success(self):
-        self.verify(cc_ops=[{"op":"remove", "path":"/ACL_TABLE"}])
-    
-    def test_sort__remove_table__success(self):
-        self.verify(tc_ops=[{"op":"remove", "path":"/ACL_TABLE"}])
-    
-    def test_sort__modify_value_in_existing_table__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"/ACL_TABLE/EVERFLOW/stage", "value":"egress"}])
-
-    def test_sort__modify_value_in_existing_array__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"/ACL_TABLE/EVERFLOWV6/ports/0", "value":"Ethernet0"}])
-
-    def test_sort__add_value_to_existing_array__success(self):
-        self.verify(tc_ops=[{"op":"add", "path":"/ACL_TABLE/EVERFLOWV6/ports/0", "value":"Ethernet0"}])
-
-    def test_sort__add_new_key_to_existing_table__success(self):
-        self.verify(cc_ops=[{"op":"remove", "path":"/ACL_TABLE/EVERFLOWV6"}])
-
-    def test_sort__remove_2_items_with_dependency_from_different_tables__success(self):
-        self.verify(tc_ops=[{"op":"remove", "path":"/PORT/Ethernet0"},
-                            {"op":"remove", "path":"/VLAN_MEMBER/Vlan1000|Ethernet0"},
-                            {"op":"remove", "path":"/ACL_TABLE/NO-NSW-PACL-V4"}], # removing ACL from current and target
-                    cc_ops=[{"op":"remove", "path":"/ACL_TABLE/NO-NSW-PACL-V4"}])
-
-    def test_sort__add_2_items_with_dependency_from_different_tables__success(self):
-        self.verify(tc_ops=[{"op":"remove", "path":"/ACL_TABLE/NO-NSW-PACL-V4"}], # removing ACL from current and target
-                    cc_ops=[{"op":"remove", "path":"/PORT/Ethernet0"},
-                            {"op":"remove", "path":"/VLAN_MEMBER/Vlan1000|Ethernet0"},
-                            {"op":"remove", "path":"/ACL_TABLE/NO-NSW-PACL-V4"}])
-    
-    def test_sort__remove_2_items_with_dependency_from_same_table__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_INTERFACE},
-                            {"op":"remove", "path":"/INTERFACE/Ethernet8"},
-                            {"op":"remove", "path":"/INTERFACE/Ethernet8|10.0.0.1~130"}],
-                    cc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_INTERFACE}])
-
-    def test_sort__add_2_items_with_dependency_from_same_table__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_INTERFACE}],
-                    cc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_INTERFACE},
-                            {"op":"remove", "path":"/INTERFACE/Ethernet8"},
-                            {"op":"remove", "path":"/INTERFACE/Ethernet8|10.0.0.1~130"}])
-    
-    def test_sort__replace_mandatory_item__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"/ACL_TABLE/EVERFLOWV6/type", "value":"L2"}])
-    
-    def test_sort__dpb_1_to_4__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"", "value":Files.DPB_4_SPLITS_FULL_CONFIG}],
-                    cc_ops=[{"op":"replace", "path":"", "value":Files.DPB_1_SPLIT_FULL_CONFIG}])
-
-    def test_sort__dpb_4_to_1__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"", "value":Files.DPB_1_SPLIT_FULL_CONFIG}],
-                    cc_ops=[{"op":"replace", "path":"", "value":Files.DPB_4_SPLITS_FULL_CONFIG}])
-
-    def test_sort__remove_an_item_with_default_value__success(self):
-        self.verify(tc_ops=[{"op":"remove", "path":"/ACL_TABLE/EVERFLOW/stage"}])
-
-    def test_sort__modify_items_with_dependencies_using_must__success(self):
-        self.verify(tc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_CRM},
-                            {"op":"replace", "path":"/CRM/Config/acl_counter_high_threshold", "value":"60"},
-                            {"op":"replace", "path":"/CRM/Config/acl_counter_low_threshold", "value":"50"}],
-                    cc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_CRM}])
-
-        # in the following example, it is possible to start with acl_counter_high_threshold
-        self.verify(tc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_CRM},
-                            {"op":"replace", "path":"/CRM/Config/acl_counter_high_threshold", "value":"80"},
-                            {"op":"replace", "path":"/CRM/Config/acl_counter_low_threshold", "value":"60"}],
-                    cc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_CRM}])
-
-    def test_sort__modify_items_result_in_empty_table__failure(self):
-        # Emptying a table
-        self.assertRaises(GenericConfigUpdaterError,
-                          self.verify,
-                          cc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS}],
-                          tc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS},
-                                  {"op":"replace", "path":"/ACL_TABLE", "value":{}}])
-        # Adding an empty table
-        self.assertRaises(GenericConfigUpdaterError,
-                          self.verify,
-                          cc_ops=[{"op":"replace", "path":"", "value":Files.ANY_CONFIG_DB}],
-                          tc_ops=[{"op":"replace", "path":"", "value":Files.ANY_CONFIG_DB},
-                                  {"op":"add", "path":"/VLAN", "value":{}}])
-        # Emptying multiple tables
-        self.assertRaises(GenericConfigUpdaterError,
-                          self.verify,
-                          cc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS}],
-                          tc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS},
-                                  {"op":"replace", "path":"/ACL_TABLE", "value":{}},
-                                  {"op":"replace", "path":"/PORT", "value":{}}])
-
-    def verify(self, cc_ops=[], tc_ops=[]):
-        # Arrange
-        config_wrapper=ConfigWrapper()
-        target_config=jsonpatch.JsonPatch(tc_ops).apply(Files.CROPPED_CONFIG_DB_AS_JSON)
-        current_config=jsonpatch.JsonPatch(cc_ops).apply(Files.CROPPED_CONFIG_DB_AS_JSON)
-        patch=jsonpatch.make_patch(current_config, target_config)
-
-        # Act
-        actual = self.create_patch_sorter(current_config).sort(patch)
-
-        # Assert
-        simulated_config = current_config
-        for move in actual:
-            simulated_config = move.apply(simulated_config)
-            self.assertTrue(config_wrapper.validate_config_db_config(simulated_config))
-        self.assertEqual(target_config, simulated_config)
 
 class TestChangeWrapper(unittest.TestCase):
     def setUp(self):

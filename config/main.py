@@ -774,17 +774,33 @@ def _delay_timers_elapsed():
             return False
     return True
 
-def _swss_ready():
-    out = clicommon.run_command("systemctl show swss.service --property ActiveState --value", return_cmd=True)
+def _per_namespace_swss_ready(service_name):
+    out = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
     if out.strip() != "active":
         return False
-    out = clicommon.run_command("systemctl show swss.service --property ActiveEnterTimestampMonotonic --value", return_cmd=True)
+    out = clicommon.run_command("systemctl show {} --property ActiveEnterTimestampMonotonic --value".format(service_name), return_cmd=True)
     swss_up_time = float(out.strip())/1000000
     now =  time.monotonic()
     if (now - swss_up_time > 120):
         return True
     else:
         return False
+
+def _swss_ready():
+    list_of_swss = [] 
+    num_asics = multi_asic.get_num_asics()
+    if num_asics == 1:
+        list_of_swss.append("swss.service")
+    else:
+        for asic in range(num_asics):
+            service = "swss@{}.service".format(asic)
+            list_of_swss.append(service)
+
+    for service_name in list_of_swss:
+        if _per_namespace_swss_ready(service_name) == False:
+            return False
+
+    return True 
 
 def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
@@ -1367,16 +1383,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    if load_sysinfo:
-        command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
-        proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
-        cfg_hwsku, err = proc.communicate()
-        if err:
-            click.echo("Could not get the HWSKU from config file, exiting")
-            sys.exit(1)
-        else:
-            cfg_hwsku = cfg_hwsku.strip()
-
     # For dual ToR devices, cache ARP and FDB info
     localhost_metadata = db.cfgdb.get_table('DEVICE_METADATA')['localhost']
     cache_arp_table = not disable_arp_cache and 'subtype' in localhost_metadata and localhost_metadata['subtype'].lower() == 'dualtor'
@@ -1417,6 +1423,25 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         if not os.path.exists(file):
             click.echo("The config file {} doesn't exist".format(file))
             continue
+
+        if load_sysinfo:
+            try:
+                command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
+                proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+                output, err = proc.communicate()
+
+            except FileNotFoundError as e:
+                click.echo("{}".format(str(e)), err=True)
+                raise click.Abort()
+            except Exception as e:
+                click.echo("{}\n{}".format(type(e), str(e)), err=True)
+                raise click.Abort()
+
+            if not output:
+                click.secho("Could not get the HWSKU from config file,  Exiting!!!", fg='magenta')
+                sys.exit(1)
+
+            cfg_hwsku = output.strip()
 
         if namespace is None:
             config_db = ConfigDBConnector()
@@ -4092,7 +4117,7 @@ def remove_pg(ctx, interface_name, pg_map):
 @click.argument('length', metavar='<length>', required=True)
 @click.pass_context
 def cable_length(ctx, interface_name, length):
-    """Set lossless PGs for the interface"""
+    """Set interface cable length"""
     config_db = ctx.obj["config_db"]
 
     if not is_dynamic_buffer_enabled(config_db):
