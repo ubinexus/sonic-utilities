@@ -2472,8 +2472,6 @@ ip_family = {4: AF_INET, 6: AF_INET6}
 def add_snmp_agent_address(ctx, agentip, port, vrf):
     """Add the SNMP agent listening IP:Port%Vrf configuration"""
 
-    #Convert agentip to lower to match netifaces addresses
-    agentip = agentip.lower()
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
     if not clicommon.is_ipaddress(agentip):
         click.echo("Invalid IP address")
@@ -2490,7 +2488,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
         ipaddresses = netifaces.ifaddresses(intf)
         if ip_family[ip.version] in ipaddresses:
             for ipaddr in ipaddresses[ip_family[ip.version]]:
-                if agentip == ipaddr['addr']:
+                if agentip.lower() == ipaddr['addr'].lower():
                     found = 1
                     break
         if found == 1:
