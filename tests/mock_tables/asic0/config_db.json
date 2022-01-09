@@ -208,7 +208,8 @@
     "FEATURE|bgp": {
         "state": "enabled",
         "auto_restart": "enabled",
-        "high_mem_alert": "disabled"
+        "high_mem_restart": "disabled",
+        "mem_threshold": "314572800"
     },
     "VLAN|Vlan1000": {
         "vlanid": "1000"
