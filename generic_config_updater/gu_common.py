@@ -275,6 +275,9 @@ class PathAddressing:
     def has_path(self, doc, path):
         return JsonPointer(path).get(doc, default=None) is not None
 
+    def get_from_path(self, doc, path):
+        return JsonPointer(path).get(doc, default=None)
+
     def get_xpath_tokens(self, xpath):
         """
         Splits the given xpath into tokens by '/'.

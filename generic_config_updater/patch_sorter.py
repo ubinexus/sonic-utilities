@@ -8,7 +8,7 @@ from .gu_common import OperationWrapper, OperationType, GenericConfigUpdaterErro
 
 class Diff:
     """
-    A class that contains the diff info between current and target configs. 
+    A class that contains the diff info between current and target configs.
     """
     def __init__(self, current_config, target_config):
         self.current_config = current_config
@@ -114,7 +114,7 @@ class JsonMove:
             }
           Assume JsonMove:
             op_type=add, current_config_tokens=[dict1, key11], target_config_tokens=[dict1, key11]
-  
+
           Converting this to operation directly would result in:
             {"op":"add", "path":"/dict1/key11", "value":"value11"}
           BUT this is not correct since 'dict1' which does not exist in Current Config.
@@ -333,6 +333,112 @@ class MoveWrapper:
             for newmove in extender.extend(move, diff):
                 yield newmove
 
+class ConfigFilter:
+    """
+    A filtering class to get the paths matching the filter from the given config.
+    The patterns:
+    - Each pattern consist of multiple tokens
+    - Tokens are matched with the config from the root level
+    - Each token can be:
+      - '*' Will match all keys at the current level
+      - '@' Will be replaced by 'common_key' passed in 'get_paths'
+      - <other> Will match other strings that are not * nor @
+    - Token advanced options
+      - '*|@' Will match keys that end with '|common_key'
+      - '@|*' Will match keys that start with 'common_key|'
+      - '*|<other>' Will match keys that end with '|<other>'
+      - '<other>|*' Will match keys that start with '<other>|'
+    """
+    def __init__(self, patterns):
+        self.patterns = patterns
+
+    def get_paths(self, config, common_key=None):
+        for pattern in self.patterns:
+            for path in self._get_paths_recursive(config, pattern, [], 0, common_key):
+                yield path
+
+    def _get_paths_recursive(self, config, pattern_tokens, matching_tokens, idx, common_key):
+        if idx == len(pattern_tokens):
+            yield PathAddressing().create_path(matching_tokens)
+            return
+
+        token = pattern_tokens[idx]
+        if common_key:
+            token = token.replace("@", common_key)
+
+        matching_keys = []
+        if token == "*":
+            matching_keys = config.keys()
+        elif token.startswith("*|"):
+            suffix = token[2:]
+            matching_keys = [key for key in config.keys() if key.endswith(suffix)]
+        elif token.endswith("|*"):
+            prefix = token[:-2]
+            matching_keys = [key for key in config.keys() if key.startswith(prefix)]
+        elif token in config:
+            matching_keys = [token]
+
+        for key in matching_keys:
+            matching_tokens.append(key)
+            for path in self._get_paths_recursive(config[key], pattern_tokens, matching_tokens, idx+1, common_key):
+                yield path
+            matching_tokens.pop()
+
+class PortCriticalConfigIdentifier:
+    def __init__(self, path_addressing):
+        # TODO: port-critical fields are hard-coded for now, it should be moved to YANG models
+        # NOTE: PortCritical validation logic can be generalized to be validation for any config that
+        #       requires another config to be of a specific value. Call the validator "TransitionalValueValidator"
+        #       For the case of port-critical validation the transitional value would be "admin_status=down".
+        self.port_critical_filter = ConfigFilter([
+            ["BUFFER_PG", "@|*"],
+            ["BUFFER_QUEUE", "@|*"],
+            ["QUEUE", "@|*"]
+        ])
+        self.path_addressing = path_addressing
+
+    def identify_admin_up_ports(self, config):
+        for port_name, port_config in config.get("PORT", {}).items():
+            if port_config.get("admin_status", "down") == "up":
+                yield port_name
+
+    def identify_admin_status_turn_up_ports(self, current_config, target_config):
+        """
+          Identifies the port names where the admin_status is getting turned up, i.e. it up "down" in current_config
+          and "up" in target_config
+        """
+        current_ports = current_config.get("PORT", {})
+        target_ports = target_config.get("PORT", {})
+        for port_name in self._merge_unique([current_ports.keys(), target_ports.keys()]):
+            current_admin_status = current_ports.get(port_name, {}).get("admin_status", "down")
+            target_admin_status = target_ports.get(port_name, {}).get("admin_status", "down")
+            if current_admin_status == "down" and target_admin_status == "up":
+                yield port_name
+
+    def _merge_unique(self, lists):
+        processed = set()
+        for lst in lists:
+            for item in lst:
+                if item in processed:
+                    continue
+                processed.add(item)
+                yield item
+
+    def has_different_critical_configs(self, current_config, target_config, port_name):
+        for path in self._identify_critical_config([current_config, target_config], port_name):
+            if self.path_addressing.get_from_path(current_config, path) != self.path_addressing.get_from_path(target_config, path):
+                return True
+        return False
+
+    def _identify_critical_config(self, configs, port_name):
+        processed = set()
+        for config in configs:
+            for path in self.port_critical_filter.get_paths(config, port_name):
+                if path in processed:
+                    continue
+                processed.add(path)
+                yield path
+
 class DeleteWholeConfigMoveValidator:
     """
     A class to validate not deleting whole config as it is not supported by JsonPatch lib.
@@ -388,9 +494,7 @@ class CreateOnlyMoveValidator:
         self.path_addressing = path_addressing
 
         # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
-        # Each pattern consist of a list of tokens. Token matching starts from the root level of the config.
-        # Each token is either a specific key or '*' to match all keys.
-        self.create_only_patterns = [
+        self.create_only_filter = ConfigFilter([
             ["PORT", "*", "lanes"],
             ["LOOPBACK_INTERFACE", "*", "vrf_name"],
             ["BGP_NEIGHBOR", "*", "holdtime"],
@@ -400,7 +504,7 @@ class CreateOnlyMoveValidator:
             ["BGP_NEIGHBOR", "*", "local_addr"],
             ["BGP_NEIGHBOR", "*", "nhopself"],
             ["BGP_NEIGHBOR", "*", "rrclient"],
-        ]
+        ])
 
     def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
@@ -443,26 +547,8 @@ class CreateOnlyMoveValidator:
             return self.path_addressing.has_path(simulated_config, child_path)
 
     def _get_create_only_paths(self, config):
-        for pattern in self.create_only_patterns:
-            for create_only_path in self._get_create_only_path_recursive(config, pattern, [], 0):
-                yield create_only_path
-
-    def _get_create_only_path_recursive(self, config, pattern_tokens, matching_tokens, idx):
-        if idx == len(pattern_tokens):
-            yield '/' + '/'.join(matching_tokens)
-            return
-
-        matching_keys = []
-        if pattern_tokens[idx] == "*":
-            matching_keys = config.keys()
-        elif pattern_tokens[idx] in config:
-            matching_keys = [pattern_tokens[idx]]
-
-        for key in matching_keys:
-            matching_tokens.append(key)
-            for create_only_path in self._get_create_only_path_recursive(config[key], pattern_tokens, matching_tokens, idx+1):
-                yield create_only_path
-            matching_tokens.pop()
+        for path in self.create_only_filter.get_paths(config):
+            yield path
 
     def _value_exist_but_different(self, tokens, current_config_ptr, simulated_config_ptr):
         for token in tokens:
@@ -610,7 +696,7 @@ class NoDependencyMoveValidator:
                 tokens.pop()
 
             return deleted_paths, added_paths
-        
+
         # current/target configs are not dict nor list, so handle them as string, int, bool, float
         if current_ptr != target_ptr:
             # tokens.append(token)
@@ -691,6 +777,28 @@ class NoEmptyTableMoveValidator:
         # the only invalid case is if table exists and is empty
         return table not in config or config[table]
 
+class PortCriticalMoveValidator:
+    def __init__(self, path_addressing):
+        self.port_critical_config_identifier = PortCriticalConfigIdentifier(path_addressing)
+
+    def validate(self, move, diff):
+        current_config = diff.current_config
+        simulated_config = move.apply(current_config) # Config after applying just this move
+        target_config = diff.target_config # Final config after applying whole patch
+
+        # Validate if admin is up and move does not have critical port changes
+        for port_name in self.port_critical_config_identifier.identify_admin_up_ports(current_config):
+            if self.port_critical_config_identifier.has_different_critical_configs(current_config, simulated_config, port_name):
+                return False
+
+        # Validate admin status does not turn up while some critical port changes are still left
+        for port_name in self.port_critical_config_identifier.identify_admin_status_turn_up_ports(current_config, simulated_config):
+            # NOTE: here we compare current_config with the final target_config, making sure we cover all critical changes not only
+            #       the ones in this move
+            if self.port_critical_config_identifier.has_different_critical_configs(current_config, target_config, port_name):
+                return False
+        return True
+
 class LowLevelMoveGenerator:
     """
     A class to generate the low level moves i.e. moves corresponding to differences between current/target config
@@ -759,7 +867,7 @@ class SingleRunLowLevelMoveGenerator:
                     yield move
                 current_tokens.pop()
                 target_tokens.pop()
-            
+
             return
 
         # The current/target ptr are neither dict nor list, so they might be string, int, float, bool
@@ -910,6 +1018,66 @@ class SingleRunLowLevelMoveGenerator:
             counts[item] = counts.get(item, 0) + 1
 
         return counts
+
+class PortCriticalMoveExtender:
+    def __init__(self, path_addressing, operation_wrapper):
+        self.path_addressing = path_addressing
+        self.port_critical_config_identifier = PortCriticalConfigIdentifier(path_addressing)
+        self.operation_wrapper = operation_wrapper
+
+    def extend(self, move, diff):
+        # skip extending whole config deletion, as it is not supported by JsonPatch lib
+        # TODO: do not generate whole config deletion moves at all
+        if move.op_type == OperationType.REMOVE and move.path == "":
+            return
+        current_config = diff.current_config
+        simulated_config = move.apply(current_config) # Config after applying just this move
+        target_config = diff.target_config # Final config after applying whole patch
+
+        # If admin up and move has critical port changes, turn the port admin down
+        for port_name in self.port_critical_config_identifier.identify_admin_up_ports(current_config):
+            if self.port_critical_config_identifier.has_different_critical_configs(current_config, simulated_config, port_name):
+                yield self._get_turn_admin_down_move(port_name)
+
+        # If the move is turning port up while still critical changes left, flip to admin-status in the move to down
+        to_flip_admin_down_ports = []
+        for port_name in self.port_critical_config_identifier.identify_admin_status_turn_up_ports(current_config, simulated_config):
+            # NOTE: here we compare current_config with the final target_config, making sure we cover all critical changes not only
+            #       the ones in this move
+            if self.port_critical_config_identifier.has_different_critical_configs(current_config, target_config, port_name):
+                to_flip_admin_down_ports.append(port_name)
+
+        if to_flip_admin_down_ports:
+            yield self._flip_admin_down_move(move, to_flip_admin_down_ports)
+
+    def _get_turn_admin_down_move(self, port_name):
+        path = PathAddressing().create_path(["PORT", port_name, "admin_status"])
+        value = "down"
+        operation = self.operation_wrapper.create(OperationType.REPLACE, path, value)
+        return JsonMove.from_operation(operation)
+
+    def _flip_admin_down_move(self, move, port_names):
+        new_value = copy.deepcopy(move.value)
+        move_tokens = self.path_addressing.get_path_tokens(move.path)
+        for port_name in port_names:
+            target_status_tokens = ["PORT", port_name, "admin_status"]
+            new_value = self._change_value(target_status_tokens, "down", move_tokens, new_value)
+
+        operation = self.operation_wrapper.create(move.op_type, move.path, new_value)
+        return JsonMove.from_operation(operation)
+
+    def _change_value(self, status_tokens, status_value, move_tokens, move_value):
+        rem_tokens = status_tokens[len(move_tokens):]
+        if not rem_tokens:
+            return status_value
+
+        move_value_ptr = move_value
+        for token in rem_tokens[:-1]:
+            move_value_ptr = move_value_ptr[token]
+
+        last_token = rem_tokens[-1]
+        move_value_ptr[last_token] = status_value
+        return move_value
 
 class UpperLevelMoveExtender:
     """
@@ -1084,7 +1252,8 @@ class SortAlgorithmFactory:
 
     def create(self, algorithm=Algorithm.DFS):
         move_generators = [LowLevelMoveGenerator(self.path_addressing)]
-        move_extenders = [UpperLevelMoveExtender(),
+        move_extenders = [PortCriticalMoveExtender(self.path_addressing, self.operation_wrapper),
+                          UpperLevelMoveExtender(),
                           DeleteInsteadOfReplaceMoveExtender(),
                           DeleteRefsMoveExtender(self.path_addressing)]
         move_validators = [DeleteWholeConfigMoveValidator(),
@@ -1092,6 +1261,7 @@ class SortAlgorithmFactory:
                            NoDependencyMoveValidator(self.path_addressing, self.config_wrapper),
                            UniqueLanesMoveValidator(),
                            CreateOnlyMoveValidator(self.path_addressing),
+                           PortCriticalMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]
 
         move_wrapper = MoveWrapper(move_generators, move_extenders, move_validators)
