@@ -349,8 +349,9 @@ class ConfigFilter:
       - '*|<other>' Will match keys that end with '|<other>'
       - '<other>|*' Will match keys that start with '<other>|'
     """
-    def __init__(self, patterns):
+    def __init__(self, patterns, path_addressing):
         self.patterns = patterns
+        self.path_addressing = path_addressing
 
     def get_paths(self, config, common_key=None):
         for pattern in self.patterns:
@@ -359,7 +360,7 @@ class ConfigFilter:
 
     def _get_paths_recursive(self, config, pattern_tokens, matching_tokens, idx, common_key):
         if idx == len(pattern_tokens):
-            yield PathAddressing().create_path(matching_tokens)
+            yield self.path_addressing.create_path(matching_tokens)
             return
 
         token = pattern_tokens[idx]
@@ -391,10 +392,11 @@ class PortCriticalConfigIdentifier:
         #       requires another config to be of a specific value. Call the validator "TransitionalValueValidator"
         #       For the case of port-critical validation the transitional value would be "admin_status=down".
         self.port_critical_filter = ConfigFilter([
-            ["BUFFER_PG", "@|*"],
-            ["BUFFER_QUEUE", "@|*"],
-            ["QUEUE", "@|*"]
-        ])
+                ["BUFFER_PG", "@|*"],
+                ["BUFFER_QUEUE", "@|*"],
+                ["QUEUE", "@|*"]
+            ],
+            path_addressing)
         self.path_addressing = path_addressing
 
     def identify_admin_up_ports(self, config):
@@ -495,16 +497,17 @@ class CreateOnlyMoveValidator:
 
         # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
         self.create_only_filter = ConfigFilter([
-            ["PORT", "*", "lanes"],
-            ["LOOPBACK_INTERFACE", "*", "vrf_name"],
-            ["BGP_NEIGHBOR", "*", "holdtime"],
-            ["BGP_NEIGHBOR", "*", "keepalive"],
-            ["BGP_NEIGHBOR", "*", "name"],
-            ["BGP_NEIGHBOR", "*", "asn"],
-            ["BGP_NEIGHBOR", "*", "local_addr"],
-            ["BGP_NEIGHBOR", "*", "nhopself"],
-            ["BGP_NEIGHBOR", "*", "rrclient"],
-        ])
+                ["PORT", "*", "lanes"],
+                ["LOOPBACK_INTERFACE", "*", "vrf_name"],
+                ["BGP_NEIGHBOR", "*", "holdtime"],
+                ["BGP_NEIGHBOR", "*", "keepalive"],
+                ["BGP_NEIGHBOR", "*", "name"],
+                ["BGP_NEIGHBOR", "*", "asn"],
+                ["BGP_NEIGHBOR", "*", "local_addr"],
+                ["BGP_NEIGHBOR", "*", "nhopself"],
+                ["BGP_NEIGHBOR", "*", "rrclient"],
+            ],
+            path_addressing)
 
     def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
@@ -1051,7 +1054,7 @@ class PortCriticalMoveExtender:
             yield self._flip_admin_down_move(move, to_flip_admin_down_ports)
 
     def _get_turn_admin_down_move(self, port_name):
-        path = PathAddressing().create_path(["PORT", port_name, "admin_status"])
+        path = self.path_addressing.create_path(["PORT", port_name, "admin_status"])
         value = "down"
         operation = self.operation_wrapper.create(OperationType.REPLACE, path, value)
         return JsonMove.from_operation(operation)

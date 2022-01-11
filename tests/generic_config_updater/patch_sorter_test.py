@@ -1314,11 +1314,13 @@ class TestNoEmptyTableMoveValidator(unittest.TestCase):
 class TestPortCriticalMoveValidator(unittest.TestCase):
     def setUp(self):
         self.operation_wrapper = OperationWrapper()
-        self.validator = ps.PortCriticalMoveValidator(PathAddressing())
+        path_addressing = PathAddressing()
+        self.validator = ps.PortCriticalMoveValidator(path_addressing)
         self.validator.port_critical_config_identifier.port_critical_filter = ps.ConfigFilter([
-            ["BUFFER_PG", "@|*"],
-            ["PORT", "@", "mtu"]
-        ])
+                ["BUFFER_PG", "@|*"],
+                ["PORT", "@", "mtu"]
+            ],
+            path_addressing)
 
     def test_validate__critical_port_change(self):
         # Each test format:
@@ -2029,11 +2031,13 @@ class TestLowLevelMoveGenerator(unittest.TestCase):
 
 class TestPortCriticalMoveExtender(unittest.TestCase):
     def setUp(self):
-        self.extender = ps.PortCriticalMoveExtender(PathAddressing(), OperationWrapper())
+        path_addressing = PathAddressing()
+        self.extender = ps.PortCriticalMoveExtender(path_addressing, OperationWrapper())
         self.extender.port_critical_config_identifier.port_critical_filter = ps.ConfigFilter([
-            ["BUFFER_PG", "@|*"],
-            ["PORT", "@", "mtu"]
-        ])
+                ["BUFFER_PG", "@|*"],
+                ["PORT", "@", "mtu"]
+            ],
+            path_addressing)
 
     def test_extend__remove_whole_config__no_extended_moves(self):
         # Arrange
