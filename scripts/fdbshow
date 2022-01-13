@@ -30,6 +30,7 @@ import argparse
 import json
 import sys
 import os
+import re
 
 # mock the redis for unit test purposes #
 try: # pragma: no cover
@@ -137,17 +138,6 @@ class FdbShow(object):
         return
     
     
-    def get_iter_index(self, key_value, pos=0):
-        """
-            Get the starting index of matched entry
-        """
-        if pos != 0:
-            self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[pos])
-
-        keys = [r[pos] for r in self.bridge_mac_list]
-        return keys.index(key_value)
-
-
     def display(self, vlan, port, address, entry_type, count):
         """
             Display the FDB entries for specified vlan/port.
@@ -156,36 +146,54 @@ class FdbShow(object):
         output = []
 
         if vlan is not None:
-            vlan = int(vlan)
-            s_index = self.get_iter_index(vlan)
-            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                                    if fdb[0] == vlan]
-        if port is not None:
-            s_index = self.get_iter_index(port, 2)
-            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                                    if fdb[2] == port]
+            vlan_val = int(vlan)
 
         if address is not None:
             address = address.upper()
-            s_index = self.get_iter_index(address, 1)
-            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                                    if fdb[1] == address]
 
         if entry_type is not None:
             entry_type = entry_type.capitalize()
-            s_index = self.get_iter_index(entry_type, 3)
-            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                                   if fdb[3] == entry_type]
 
-        for fdb in self.bridge_mac_list:
-            self.FDB_COUNT += 1
-            if not count:
-                output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
+        self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list
+                                if (vlan is None or fdb[0] == vlan_val) and
+                                   (port is None or fdb[2] == port) and
+                                   (address is None or fdb[1] == address) and
+                                   (entry_type is None or fdb[3] == entry_type)]
 
         if not count:
+            for fdb in self.bridge_mac_list:
+                self.FDB_COUNT += 1
+                output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
             print(tabulate(output, self.HEADER))
-        print("Total number of entries {0}".format(self.FDB_COUNT))
 
+        print("Total number of entries {0}".format(len(self.bridge_mac_list)))
+
+    def validate_params(self, vlan, port, address, entry_type):
+        if vlan is not None:
+            if not vlan.isnumeric():
+                print("Error: Invalid vlan id {0}".format(vlan))
+                return False
+
+            vlan_val = int(vlan)
+            if (vlan_val not in range(1,4096)):
+                print("Error: Invalid vlan id {0}".format(vlan))
+                return False
+
+        if port is not None and port not in self.if_name_map:
+            print("Error: Invalid port {0}".format(port))
+            return False
+
+        if address is not None:
+            mac_addr_pattern ="^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
+            if not re.match(mac_addr_pattern, address):
+                print("Error: Invalid mac address {0}".format(address))
+                return False
+
+        if entry_type is not None and entry_type.capitalize() not in ["Static", "Dynamic"]:
+            print("Error: Invalid type {0}". format(entry_type))
+            return False
+
+        return True
 
 def main():
     
@@ -200,6 +208,9 @@ def main():
 
     try:
         fdb = FdbShow()
+        if not fdb.validate_params(args.vlan, args.port, args.address, args.type):
+           sys.exit(1)
+
         fdb.display(args.vlan, args.port, args.address, args.type, args.count)
     except Exception as e:
         print(str(e))

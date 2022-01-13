@@ -127,20 +127,19 @@ No.    Vlan    MacAddress    Port    Type
 Total number of entries 0
 """
 
-show_mac_no_port_output = """\
-'Ethernet20' is not in list
+show_mac_invalid_port_output= """\
+Error: Invalid port eth123
 """
 
-show_mac_no_vlan_output = """\
-123 is not in list
+show_mac_invalid_vlan_output= """\
+Error: Invalid vlan id 10000
 """
 
-show_mac_no_address_output = """\
-'12:34:56:78:9A:BC' is not in list
+show_mac_invalid_type_output= """\
+Error: Invalid type both
 """
-
-show_mac_no_type_output = """\
-'Static' is not in list
+show_mac_invalid_address_output= """\
+Error: Invalid mac address 12:345:67:a9:bc:d
 """
 
 class TestFdbshow():
@@ -406,17 +405,17 @@ class TestFdbshow():
     def test_show_mac_no_port(self):
         self.set_mock_variant("1")
 
-        result = self.runner.invoke(show.cli.commands["mac"], "-p Ethernet20")
+        result = self.runner.invoke(show.cli.commands["mac"], "-p Ethernet8")
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 1
-        assert result.output == show_mac_no_port_output
+        assert result.exit_code == 0
+        assert result.output == show_mac_no_results_output
 
-        return_code, result = get_result_and_return_code('fdbshow -p Ethernet20')
+        return_code, result = get_result_and_return_code('fdbshow -p Ethernet8')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
-        assert return_code == 1
-        assert result == show_mac_no_port_output.strip("\n")
+        assert return_code == 0
+        assert result == show_mac_no_results_output
 
     def test_show_mac_no_vlan(self):
         self.set_mock_variant("1")
@@ -424,14 +423,14 @@ class TestFdbshow():
         result = self.runner.invoke(show.cli.commands["mac"], "-v 123")
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 1
-        assert result.output == show_mac_no_vlan_output
+        assert result.exit_code == 0
+        assert result.output == show_mac_no_results_output
 
         return_code, result = get_result_and_return_code('fdbshow -v 123')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
-        assert return_code == 1
-        assert result == show_mac_no_vlan_output.strip("\n")
+        assert return_code == 0
+        assert result == show_mac_no_results_output
 
     def test_show_mac_no_address(self):
         self.set_mock_variant("1")
@@ -439,14 +438,14 @@ class TestFdbshow():
         result = self.runner.invoke(show.cli.commands["mac"], "-a 12:34:56:78:9A:BC")
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 1
-        assert result.output == show_mac_no_address_output
+        assert result.exit_code == 0
+        assert result.output == show_mac_no_results_output
 
         return_code, result = get_result_and_return_code('fdbshow -a 12:34:56:78:9A:BC')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
-        assert return_code == 1
-        assert result == show_mac_no_address_output.strip("\n")
+        assert return_code == 0
+        assert result == show_mac_no_results_output
 
     def test_show_mac_no_type(self):
         self.set_mock_variant("6")
@@ -454,14 +453,14 @@ class TestFdbshow():
         result = self.runner.invoke(show.cli.commands["mac"], ["-t Static"])
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 1
-        assert result.output == show_mac_no_type_output
+        assert result.exit_code == 0
+        assert result.output == show_mac_no_results_output
 
         return_code, result = get_result_and_return_code('fdbshow -t Static')
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
-        assert return_code == 1
-        assert result == show_mac_no_type_output.strip("\n")
+        assert return_code == 0
+        assert result == show_mac_no_results_output
 
     def test_show_mac_no_fdb(self):
         self.set_mock_variant("3")
@@ -513,3 +512,63 @@ class TestFdbshow():
         print("result = {}".format(output))
         assert return_code == 1
         assert "Failed to get Vlan id for bvid oid:0x260000000007c7" in output
+
+    def test_show_mac_invalid_port(self):
+        self.set_mock_variant("1")
+
+        result = self.runner.invoke(show.cli.commands["mac"], "-p eth123")
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == show_mac_invalid_port_output
+
+        return_code, result = get_result_and_return_code('fdbshow -p eth123')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 1
+        assert result == show_mac_invalid_port_output.strip("\n")
+
+    def test_show_mac_invalid_vlan(self):
+        self.set_mock_variant("1")
+
+        result = self.runner.invoke(show.cli.commands["mac"], "-v 10000")
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == show_mac_invalid_vlan_output
+
+        return_code, result = get_result_and_return_code('fdbshow -v 10000')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 1
+        assert result == show_mac_invalid_vlan_output.strip("\n")
+
+    def test_show_mac_invalid_type(self):
+        self.set_mock_variant("1")
+
+        result = self.runner.invoke(show.cli.commands["mac"], "-t both")
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == show_mac_invalid_type_output
+
+        return_code, result = get_result_and_return_code('fdbshow -t both')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 1
+        assert result == show_mac_invalid_type_output.strip("\n")
+
+    def test_show_mac_invalid_address(self):
+        self.set_mock_variant("1")
+
+        result = self.runner.invoke(show.cli.commands["mac"], "-a 12:345:67:a9:bc:d")
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == show_mac_invalid_address_output
+
+        return_code, result = get_result_and_return_code('fdbshow -a 12:345:67:a9:bc:d')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 1
+        assert result == show_mac_invalid_address_output.strip("\n")
