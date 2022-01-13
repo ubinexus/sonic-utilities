@@ -1,7 +1,59 @@
 import sys
 
 import click
+from swsscommon import swsscommon
 from utilities_common.cli import AbbreviationGroup, pass_db
+
+SELECT_TIMEOUT = 1000  # ms
+
+
+def set_feature_state(db, name, state, block):
+    """Enable/disable a feature"""
+    entry_data_set = set()
+
+    for ns, cfgdb in db.cfgdb_clients.items():
+        entry_data = cfgdb.get_entry('FEATURE', name)
+        if not entry_data:
+            click.echo("Feature '{}' doesn't exist".format(name))
+            sys.exit(1)
+        entry_data_set.add(entry_data['state'])
+
+    if len(entry_data_set) > 1:
+        click.echo("Feature '{}' state is not consistent across namespaces".format(name))
+        sys.exit(1)
+
+    if entry_data['state'] == "always_enabled":
+        click.echo("Feature '{}' state is always enabled and can not be modified".format(name))
+        return
+
+    for ns, cfgdb in db.cfgdb_clients.items():
+        cfgdb.mod_entry('FEATURE', name, {'state': state})
+
+    while block:
+        db = swsscommon.DBConnector('STATE_DB', 0)
+        tbl = swsscommon.SubscriberStateTable(db, 'FEATURE')
+        sel = swsscommon.Select()
+
+        sel.addSelectable(tbl);
+
+        rc, _ = sel.select(SELECT_TIMEOUT)
+
+        if rc == swsscommon.Select.TIMEOUT:
+            continue
+        elif rc == swsscommon.Select.ERROR:
+            raise click.Abort('Failed to wait till feature reaches desired state: select() failed')
+        else:
+            feature, _, fvs = tbl.pop()
+            if feature != name:
+                continue
+
+            actual_state = dict(fvs).get('state')
+
+            if actual_state == 'failed':
+                raise click.Abort('Feature failed to be {}'.format(state))
+            elif actual_state == state:
+                break
+
 
 #
 # 'feature' group ('config feature ...')
@@ -17,7 +69,7 @@ def _update_field(db, name, fld, val):
         click.echo("Unable to retrieve {} from FEATURE table".format(name))
         sys.exit(1)
     db.cfgdb.mod_entry('FEATURE', name, { fld: val })
-    
+
 
 #
 # 'owner' command ('config feature owner ...')
@@ -49,28 +101,12 @@ def feature_fallback(db, name, fallback):
 @feature.command('state', short_help="Enable/disable a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
 @click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
+@click.option('--block', is_flag=True, help='Wait till operation is finished')
 @pass_db
-def feature_state(db, name, state):
+def feature_state(db, name, state, block):
     """Enable/disable a feature"""
-    entry_data_set = set()
 
-    for ns, cfgdb in db.cfgdb_clients.items():
-        entry_data = cfgdb.get_entry('FEATURE', name)
-        if not entry_data:
-            click.echo("Feature '{}' doesn't exist".format(name))
-            sys.exit(1)
-        entry_data_set.add(entry_data['state'])
-
-    if len(entry_data_set) > 1:
-        click.echo("Feature '{}' state is not consistent across namespaces".format(name))
-        sys.exit(1)
-
-    if entry_data['state'] == "always_enabled":
-        click.echo("Feature '{}' state is always enabled and can not be modified".format(name))
-        return
-
-    for ns, cfgdb in db.cfgdb_clients.items():
-        cfgdb.mod_entry('FEATURE', name, {'state': state})
+    set_feature_state(db, name, state, block)
 
 #
 # 'autorestart' command ('config feature autorestart ...')
@@ -100,3 +136,4 @@ def feature_autorestart(db, name, autorestart):
 
     for ns, cfgdb in db.cfgdb_clients.items():
         cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
+
