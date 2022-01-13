@@ -20,7 +20,7 @@ from natsort import natsorted
 from portconfig import get_child_ports
 from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
-from sonic_py_common.interface import get_interface_table_name, get_port_table_name
+from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
 from utilities_common import util_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.db import Db
@@ -732,8 +732,15 @@ def _get_sonic_services():
 
 
 def _get_delayed_sonic_services():
-    out = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
-    return (unit.strip().rstrip('.timer') for unit in out.splitlines())
+    rc1 = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
+    rc2 = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
+    timer = [line.strip() for line in rc1.splitlines()]
+    state = [line.strip() for line in rc2.splitlines()]
+    services = []
+    for unit in timer:
+        if state[timer.index(unit)] == "enabled":
+            services.append(unit.rstrip(".timer"))
+    return services
 
 
 def _reset_failed_services():
@@ -767,17 +774,33 @@ def _delay_timers_elapsed():
             return False
     return True
 
-def _swss_ready():
-    out = clicommon.run_command("systemctl show swss.service --property ActiveState --value", return_cmd=True)
+def _per_namespace_swss_ready(service_name):
+    out = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
     if out.strip() != "active":
         return False
-    out = clicommon.run_command("systemctl show swss.service --property ActiveEnterTimestampMonotonic --value", return_cmd=True)
+    out = clicommon.run_command("systemctl show {} --property ActiveEnterTimestampMonotonic --value".format(service_name), return_cmd=True)
     swss_up_time = float(out.strip())/1000000
     now =  time.monotonic()
     if (now - swss_up_time > 120):
         return True
     else:
         return False
+
+def _swss_ready():
+    list_of_swss = [] 
+    num_asics = multi_asic.get_num_asics()
+    if num_asics == 1:
+        list_of_swss.append("swss.service")
+    else:
+        for asic in range(num_asics):
+            service = "swss@{}.service".format(asic)
+            list_of_swss.append(service)
+
+    for service_name in list_of_swss:
+        if _per_namespace_swss_ready(service_name) == False:
+            return False
+
+    return True 
 
 def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
@@ -906,9 +929,15 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     try:
         ipaddress.ip_network(ip_prefix)
         if 'nexthop' in config_entry:
-            nh = config_entry['nexthop'].split(',')
-            for ip in nh:
-                ipaddress.ip_address(ip)
+            nh_list = config_entry['nexthop'].split(',')
+            for nh in nh_list:
+                # Nexthop to portchannel
+                if nh.startswith('PortChannel'):
+                    config_db = ctx.obj['config_db']
+                    if not nh in config_db.get_keys('PORTCHANNEL'):
+                        ctx.fail("portchannel does not exist.")
+                else:
+                    ipaddress.ip_address(nh)
     except ValueError:
         ctx.fail("ip address is not valid.")
 
@@ -1158,15 +1187,22 @@ def load(filename, yes):
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
 
+def print_dry_run_message(dry_run):
+    if dry_run:
+        click.secho("** DRY RUN EXECUTION **", fg="yellow", underline=True)
+
 @config.command('apply-patch')
 @click.argument('patch-file-path', type=str, required=True)
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
-               help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
+               help='format of config of the patch is either ConfigDb(ABNF) or SonicYang',
+               show_default=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
+@click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
+def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
        This command can be used do partial updates to the config with minimum disruption to running processes.
        It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
@@ -1174,14 +1210,15 @@ def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
 
        <patch-file-path>: Path to the patch file on the file-system."""
     try:
+        print_dry_run_message(dry_run)
+
         with open(patch_file_path, 'r') as fh:
             text = fh.read()
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
 
         config_format = ConfigFormat[format.upper()]
-
-        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run)
+        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1192,11 +1229,14 @@ def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
 @click.argument('target-file-path', type=str, required=True)
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
-               help='format of target config is either ConfigDb(ABNF) or SonicYang')
+               help='format of target config is either ConfigDb(ABNF) or SonicYang',
+               show_default=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
+@click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def replace(ctx, target_file_path, format, dry_run, verbose):
+def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
        if ACL config is different between current and target config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
@@ -1205,13 +1245,15 @@ def replace(ctx, target_file_path, format, dry_run, verbose):
 
        <target-file-path>: Path to the target file on the file-system."""
     try:
+        print_dry_run_message(dry_run)
+
         with open(target_file_path, 'r') as fh:
             target_config_as_text = fh.read()
             target_config = json.loads(target_config_as_text)
 
         config_format = ConfigFormat[format.upper()]
 
-        GenericUpdater().replace(target_config, config_format, verbose, dry_run)
+        GenericUpdater().replace(target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config replaced successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1221,16 +1263,20 @@ def replace(ctx, target_file_path, format, dry_run, verbose):
 @config.command()
 @click.argument('checkpoint-name', type=str, required=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
+@click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
 @click.pass_context
-def rollback(ctx, checkpoint_name, dry_run, verbose):
+def rollback(ctx, checkpoint_name, dry_run, ignore_non_yang_tables, ignore_path, verbose):
     """Rollback the whole config to the specified checkpoint. The config is rolled back with minimum disruption e.g.
        if ACL config is different between current and checkpoint config only ACL config is updated, and other config/services
        such as DHCP will not be affected.
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
-        GenericUpdater().rollback(checkpoint_name, verbose, dry_run)
+        print_dry_run_message(dry_run)
+
+        GenericUpdater().rollback(checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)
     except Exception as ex:
@@ -1339,16 +1385,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    if load_sysinfo:
-        command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
-        proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
-        cfg_hwsku, err = proc.communicate()
-        if err:
-            click.echo("Could not get the HWSKU from config file, exiting")
-            sys.exit(1)
-        else:
-            cfg_hwsku = cfg_hwsku.strip()
-
     # For dual ToR devices, cache ARP and FDB info
     localhost_metadata = db.cfgdb.get_table('DEVICE_METADATA')['localhost']
     cache_arp_table = not disable_arp_cache and 'subtype' in localhost_metadata and localhost_metadata['subtype'].lower() == 'dualtor'
@@ -1390,6 +1426,25 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
+        if load_sysinfo:
+            try:
+                command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, file)
+                proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+                output, err = proc.communicate()
+
+            except FileNotFoundError as e:
+                click.echo("{}".format(str(e)), err=True)
+                raise click.Abort()
+            except Exception as e:
+                click.echo("{}\n{}".format(type(e), str(e)), err=True)
+                raise click.Abort()
+
+            if not output:
+                click.secho("Could not get the HWSKU from config file,  Exiting!!!", fg='magenta')
+                sys.exit(1)
+
+            cfg_hwsku = output.strip()
+
         if namespace is None:
             config_db = ConfigDBConnector()
         else:
@@ -1410,14 +1465,16 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
 
+
         config_gen_opts = ""
+        
+        if os.path.isfile(INIT_CFG_FILE):
+            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
+        
         if file_format == 'config_db':
             config_gen_opts += ' -j {} '.format(file)
         else:
             config_gen_opts += ' -Y {} '.format(file)
-
-        if os.path.isfile(INIT_CFG_FILE):
-            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
 
         if namespace is not None:
             config_gen_opts += " -n {} ".format(namespace)
@@ -1515,11 +1572,6 @@ def load_minigraph(db, no_service_restart):
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
 
-    # get the device type
-    device_type = _get_device_type()
-    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'EPMS':
-        clicommon.run_command("pfcwd start_default", display_cmd=True)
-
     # Update SONiC environmnet file
     update_sonic_environment()
 
@@ -1534,6 +1586,11 @@ def load_minigraph(db, no_service_restart):
 
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
+
+    # get the device type
+    device_type = _get_device_type()
+    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'EPMS':
+        clicommon.run_command("pfcwd start_default", display_cmd=True)
 
     # Write latest db version string into db
     db_migrator='/usr/local/bin/db_migrator.py'
@@ -2013,7 +2070,7 @@ def start(action, restoration_time, ports, detection_time, verbose):
     Start PFC watchdog on port(s). To config all ports, use all as input.
 
     Example:
-        config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
+        config pfcwd start --action drop all 400 --restoration-time 400
     """
     cmd = "pfcwd start"
 
@@ -3851,72 +3908,117 @@ def remove(ctx, interface_name, ip_addr):
 #
 # buffer commands and utilities
 #
-def pgmaps_check_legality(ctx, interface_name, input_pg, is_new_pg):
+def buffer_objects_map_check_legality(ctx, db, interface_name, input_map, is_new_id, is_pg):
     """
-    Tool function to check whether input_pg is legal.
+    Tool function to check whether input_map is legal.
     Three checking performed:
-    1. Whether the input_pg is legal: pgs are in range [0-7]
-    2. Whether the input_pg overlaps an existing pg in the port
+    1. Whether the input_map is legal: pgs are in range [0-7]
+    2. Whether the input_map overlaps an existing pg in the port
     """
-    config_db = ctx.obj["config_db"]
+    def _parse_object_id(idsmap):
+        """
+        Tool function to parse the idsmap
+        Args:
+            idsmap: string containing object IDs map, like 3-4 or 7
+        Return:
+            The upper and lower bound. In case the idsmap is illegal, it returns None, None
+        Example:
+            3-4 => 3, 4
+            7   => 7
+            3-  => None, None
+        """
+        try:
+            match = re.search("^([0-9]+)(-[0-9]+)?$", idsmap)
+            lower = int(match.group(1))
+            if match.group(2):
+                upper = int(match.group(2)[1:])
+            else:
+                upper = lower
+        except Exception:
+            lower, upper = None, None
+
+        return lower, upper
+
+    config_db = db.cfgdb
+    object_name = "priority group" if is_pg else "queue"
 
     try:
-        lower = int(input_pg[0])
-        upper = int(input_pg[-1])
+        # Fetch maximum object id from STATE_DB
+        state_db = db.db
+        field_name = 'max_priority_groups' if is_pg else 'max_queues'
 
-        if upper < lower or lower < 0 or upper > 7:
-            ctx.fail("PG {} is not valid.".format(input_pg))
+        _hash = 'BUFFER_MAX_PARAM_TABLE|{}'.format(interface_name)
+        buffer_max_params = state_db.get_all(state_db.STATE_DB, _hash)
+        maximum_id = int(buffer_max_params.get(field_name)) - 1
     except Exception:
-        ctx.fail("PG {} is not valid.".format(input_pg))
+        ctx.fail("Unable to fetch {} from {} in STATE_DB".format(field_name, _hash))
+
+    lower, upper = _parse_object_id(input_map)
+    if not upper or not lower or upper < lower or lower < 0 or upper > maximum_id:
+        ctx.fail("Buffer {} {} is not valid.".format(object_name, input_map))
 
     # Check overlapping.
     # To configure a new PG which is overlapping an existing one is not allowed
     # For example, to add '5-6' while '3-5' existing is illegal
-    existing_pgs = config_db.get_table("BUFFER_PG")
-    if not is_new_pg:
-        if not (interface_name, input_pg) in existing_pgs.keys():
-            ctx.fail("PG {} doesn't exist".format(input_pg))
+    existing_object_maps = config_db.get_table("BUFFER_PG" if is_pg else "BUFFER_QUEUE")
+    if not is_new_id:
+        if not (interface_name, input_map) in existing_object_maps.keys():
+            ctx.fail("Buffer {} {} doesn't exist".format(object_name, input_map))
         return
 
-    for k, v in existing_pgs.items():
-        port, existing_pg = k
+    for k, v in existing_object_maps.items():
+        port, existing_object_map = k
         if port == interface_name:
-            existing_lower = int(existing_pg[0])
-            existing_upper = int(existing_pg[-1])
+            existing_lower, existing_upper = _parse_object_id(existing_object_map)
             if existing_upper < lower or existing_lower > upper:
                 # new and existing pgs disjoint, legal
                 pass
             else:
-                ctx.fail("PG {} overlaps with existing PG {}".format(input_pg, existing_pg))
+                ctx.fail("Buffer {} {} overlaps with existing {} {}".format(object_name, input_map, object_name, existing_object_map))
 
 
-def update_pg(ctx, interface_name, pg_map, override_profile, add = True):
-    config_db = ctx.obj["config_db"]
+def update_buffer_object(db, interface_name, object_map, override_profile, is_pg, add=True):
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
 
     # Check whether port is legal
     ports = config_db.get_entry("PORT", interface_name)
     if not ports:
         ctx.fail("Port {} doesn't exist".format(interface_name))
 
-    # Check whether pg_map is legal
+    buffer_table = "BUFFER_PG" if is_pg else "BUFFER_QUEUE"
+
+    # Check whether object_map is legal
     # Check whether there is other lossless profiles configured on the interface
-    pgmaps_check_legality(ctx, interface_name, pg_map, add)
+    buffer_objects_map_check_legality(ctx, db, interface_name, object_map, add, is_pg)
 
     # All checking passed
     if override_profile:
         profile_dict = config_db.get_entry("BUFFER_PROFILE", override_profile)
         if not profile_dict:
             ctx.fail("Profile {} doesn't exist".format(override_profile))
-        if not 'xoff' in profile_dict.keys() and 'size' in profile_dict.keys():
-            ctx.fail("Profile {} doesn't exist or isn't a lossless profile".format(override_profile))
-        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": override_profile})
+        pool_name = profile_dict.get("pool")
+        if not pool_name:
+            ctx.fail("Profile {} is invalid".format(override_profile))
+        pool_dict = config_db.get_entry("BUFFER_POOL", pool_name)
+        pool_dir = pool_dict.get("type")
+        expected_dir = "ingress" if is_pg else "egress"
+        if pool_dir != expected_dir:
+            ctx.fail("Type of pool {} referenced by profile {} is wrong".format(pool_name, override_profile))
+        if is_pg:
+            if not 'xoff' in profile_dict.keys() and 'size' in profile_dict.keys():
+                ctx.fail("Profile {} doesn't exist or isn't a lossless profile".format(override_profile))
+        config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": override_profile})
     else:
-        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": "NULL"})
-    adjust_pfc_enable(ctx, interface_name, pg_map, True)
+        config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": "NULL"})
+
+    if is_pg:
+        adjust_pfc_enable(ctx, db, interface_name, object_map, True)
 
 
-def remove_pg_on_port(ctx, interface_name, pg_map):
-    config_db = ctx.obj["config_db"]
+def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=True):
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
 
     # Check whether port is legal
     ports = config_db.get_entry("PORT", interface_name)
@@ -3924,30 +4026,32 @@ def remove_pg_on_port(ctx, interface_name, pg_map):
         ctx.fail("Port {} doesn't exist".format(interface_name))
 
     # Remvoe all dynamic lossless PGs on the port
-    existing_pgs = config_db.get_table("BUFFER_PG")
+    buffer_table = "BUFFER_PG" if is_pg else "BUFFER_QUEUE"
+    existing_buffer_objects = config_db.get_table(buffer_table)
     removed = False
-    for k, v in existing_pgs.items():
-        port, existing_pg = k
-        if port == interface_name and (not pg_map or pg_map == existing_pg):
-            need_to_remove = False
+    for k, v in existing_buffer_objects.items():
+        port, existing_buffer_object = k
+        if port == interface_name and (not buffer_object_map or buffer_object_map == existing_buffer_object):
             referenced_profile = v.get('profile')
             if referenced_profile and referenced_profile == 'ingress_lossy_profile':
-                if pg_map:
-                    ctx.fail("Lossy PG {} can't be removed".format(pg_map))
+                if buffer_object_map:
+                    ctx.fail("Lossy PG {} can't be removed".format(buffer_object_map))
                 else:
                     continue
-            config_db.set_entry("BUFFER_PG", (interface_name, existing_pg), None)
-            adjust_pfc_enable(ctx, interface_name, pg_map, False)
+            config_db.set_entry(buffer_table, (interface_name, existing_buffer_object), None)
+            if is_pg:
+                adjust_pfc_enable(ctx, db, interface_name, buffer_object_map, False)
             removed = True
     if not removed:
-        if pg_map:
-            ctx.fail("No specified PG {} found on port {}".format(pg_map, interface_name))
+        object_name = "lossless priority group" if is_pg else "queue"
+        if buffer_object_map:
+            ctx.fail("No specified {} {} found on port {}".format(object_name, buffer_object_map, interface_name))
         else:
-            ctx.fail("No lossless PG found on port {}".format(interface_name))
+            ctx.fail("No {} found on port {}".format(object_name, interface_name))
 
 
-def adjust_pfc_enable(ctx, interface_name, pg_map, add):
-    config_db = ctx.obj["config_db"]
+def adjust_pfc_enable(ctx, db, interface_name, pg_map, add):
+    config_db = db.cfgdb
 
     # Fetch the original pfc_enable
     qosmap = config_db.get_entry("PORT_QOS_MAP", interface_name)
@@ -4022,10 +4126,10 @@ def lossless(ctx):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('pg_map', metavar='<pg_map>', required=True)
 @click.argument('override_profile', metavar='<override_profile>', required=False)
-@click.pass_context
-def add_pg(ctx, interface_name, pg_map, override_profile):
+@clicommon.pass_db
+def add_pg(db, interface_name, pg_map, override_profile):
     """Set lossless PGs for the interface"""
-    update_pg(ctx, interface_name, pg_map, override_profile)
+    update_buffer_object(db, interface_name, pg_map, override_profile, True)
 
 
 #
@@ -4035,10 +4139,10 @@ def add_pg(ctx, interface_name, pg_map, override_profile):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('pg_map', metavar='<pg_map>', required=True)
 @click.argument('override_profile', metavar='<override_profile>', required=False)
-@click.pass_context
-def set_pg(ctx, interface_name, pg_map, override_profile):
+@clicommon.pass_db
+def set_pg(db, interface_name, pg_map, override_profile):
     """Set lossless PGs for the interface"""
-    update_pg(ctx, interface_name, pg_map, override_profile, False)
+    update_buffer_object(db, interface_name, pg_map, override_profile, True, False)
 
 
 #
@@ -4047,10 +4151,58 @@ def set_pg(ctx, interface_name, pg_map, override_profile):
 @lossless.command('remove')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('pg_map', metavar='<pg_map', required=False)
-@click.pass_context
-def remove_pg(ctx, interface_name, pg_map):
+@clicommon.pass_db
+def remove_pg(db, interface_name, pg_map):
     """Clear lossless PGs for the interface"""
-    remove_pg_on_port(ctx, interface_name, pg_map)
+    remove_buffer_object_on_port(db, interface_name, pg_map)
+
+
+#
+# 'queue' subgroup ('config interface buffer queue ...')
+#
+@buffer.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def queue(ctx):
+    """Set or clear buffer configuration"""
+    pass
+
+
+#
+# 'add' subcommand
+#
+@queue.command('add')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('queue_map', metavar='<queue_map>', required=True)
+@click.argument('buffer_profile', metavar='<buffer_profile>', required=True)
+@clicommon.pass_db
+def add_queue(db, interface_name, queue_map, buffer_profile):
+    """Set lossless QUEUEs for the interface"""
+    update_buffer_object(db, interface_name, queue_map, buffer_profile, False)
+
+
+#
+# 'set' subcommand
+#
+@queue.command('set')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('queue_map', metavar='<queue_map>', required=True)
+@click.argument('buffer_profile', metavar='<buffer_profile>', required=True)
+@clicommon.pass_db
+def set_queue(db, interface_name, queue_map, buffer_profile):
+    """Set lossless QUEUEs for the interface"""
+    update_buffer_object(db, interface_name, queue_map, buffer_profile, False, False)
+
+
+#
+# 'remove' subcommand
+#
+@queue.command('remove')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('queue_map', metavar='<queue_map>', required=False)
+@clicommon.pass_db
+def remove_queue(db, interface_name, queue_map):
+    """Clear lossless QUEUEs for the interface"""
+    remove_buffer_object_on_port(db, interface_name, queue_map, False)
 
 
 #
@@ -4062,7 +4214,7 @@ def remove_pg(ctx, interface_name, pg_map):
 @click.argument('length', metavar='<length>', required=True)
 @click.pass_context
 def cable_length(ctx, interface_name, length):
-    """Set lossless PGs for the interface"""
+    """Set interface cable length"""
     config_db = ctx.obj["config_db"]
 
     if not is_dynamic_buffer_enabled(config_db):
@@ -5948,7 +6100,7 @@ def rate():
 
 @rate.command()
 @click.argument('interval', metavar='<interval>', type=click.IntRange(min=1, max=1000), required=True)
-@click.argument('rates_type', type=click.Choice(['all', 'port', 'rif']), default='all')
+@click.argument('rates_type', type=click.Choice(['all', 'port', 'rif', 'flowcnt-trap']), default='all')
 def smoothing_interval(interval, rates_type):
     """Set rates smoothing interval """
     counters_db = swsssdk.SonicV2Connector()
@@ -5962,13 +6114,132 @@ def smoothing_interval(interval, rates_type):
     if rates_type in ['rif', 'all']:
         counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_SMOOTH_INTERVAL', interval)
         counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_ALPHA', alpha)
+    if rates_type in ['flowcnt-trap', 'all']:
+        counters_db.set('COUNTERS_DB', 'RATES:TRAP', 'TRAP_SMOOTH_INTERVAL', interval)
+        counters_db.set('COUNTERS_DB', 'RATES:TRAP', 'TRAP_ALPHA', alpha)
 
 
 # Load plugins and register them
 helper = util_base.UtilHelper()
-for plugin in helper.load_plugins(plugins):
-    helper.register_plugin(plugin, config)
+helper.load_and_register_plugins(plugins, config)
 
+#
+# 'subinterface' group ('config subinterface ...')
+#
+@config.group()
+@click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def subinterface(ctx, redis_unix_socket_path):
+    """subinterface-related configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db}
+
+def subintf_vlan_check(config_db, parent_intf, vlan):
+    subintf_db = config_db.get_table('VLAN_SUB_INTERFACE')
+    subintf_names = [k for k in subintf_db if type(k) != tuple]
+    for subintf in subintf_names:
+        sub_intf_sep_idx = subintf.find(VLAN_SUB_INTERFACE_SEPARATOR)
+        if sub_intf_sep_idx == -1:
+            continue
+        if parent_intf == subintf[:sub_intf_sep_idx]:
+            if 'vlan' in subintf_db[subintf]:
+                if str(vlan) == subintf_db[subintf]['vlan']:
+                    return True
+            else:
+                vlan_id = subintf[sub_intf_sep_idx + 1:]
+                if str(vlan) == vlan_id:
+                    return True
+    return False
+
+@subinterface.command('add')
+@click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
+@click.argument('vid', metavar='<vid>', required=False, type=click.IntRange(1,4094))
+@click.pass_context
+def add_subinterface(ctx, subinterface_name, vid):
+    sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+    if sub_intf_sep_idx == -1:
+        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
+
+    interface_alias = subinterface_name[:sub_intf_sep_idx]
+    if interface_alias is None:
+        ctx.fail("{} invalid subinterface".format(interface_alias))
+
+    if interface_alias.startswith("Po") is True:
+        intf_table_name = CFG_PORTCHANNEL_PREFIX
+    elif interface_alias.startswith("Eth") is True:
+        intf_table_name = 'PORT'
+
+    config_db = ctx.obj['db']
+    port_dict = config_db.get_table(intf_table_name)
+    if interface_alias is not None:
+        if not port_dict:
+            ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
+        if get_intf_longname(interface_alias) not in port_dict.keys():
+            ctx.fail("{} parent interface not found".format(subinterface_name))
+
+    # Validate if parent is portchannel member
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    if interface_is_in_portchannel(portchannel_member_table, interface_alias):
+        ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
+                .format(interface_alias))
+
+    # Validate if parent is vlan member
+    vlan_member_table = config_db.get_table('VLAN_MEMBER')
+    if interface_is_in_vlan(vlan_member_table, interface_alias):
+        ctx.fail("{} is configured as a member of vlan. Cannot configure subinterface"
+                .format(interface_alias))
+
+    sub_intfs = [k for k,v in config_db.get_table('VLAN_SUB_INTERFACE').items() if type(k) != tuple]
+    if subinterface_name in sub_intfs:
+        ctx.fail("{} already exists".format(subinterface_name))
+
+    subintf_dict = {}
+    if vid is not None:
+        subintf_dict.update({"vlan" : vid})
+
+    if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
+        ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias))
+
+    subintf_dict.update({"admin_status" : "up"})
+    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, subintf_dict)
+
+@subinterface.command('del')
+@click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
+@click.pass_context
+def del_subinterface(ctx, subinterface_name):
+    sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+    if sub_intf_sep_idx == -1:
+        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
+
+    config_db = ctx.obj['db']
+    #subinterface_name = subintf_get_shortname(subinterface_name)
+    if interface_name_is_valid(config_db, subinterface_name) is False:
+        ctx.fail("{} is invalid ".format(subinterface_name))
+
+    subintf_config_db = config_db.get_table('VLAN_SUB_INTERFACE')
+    sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
+    if subinterface_name not in sub_intfs:
+        ctx.fail("{} does not exists".format(subinterface_name))
+        
+    ips = {}
+    ips = [ k[1] for k in config_db.get_table('VLAN_SUB_INTERFACE') if type(k) == tuple and k[0] == subinterface_name ]
+    for ip in ips:
+        try:
+            ipaddress.ip_network(ip, strict=False)
+            config_db.set_entry('VLAN_SUB_INTERFACE', (subinterface_name, ip), None)
+        except ValueError:
+            ctx.fail("Invalid ip {} found on interface {}".format(ip, subinterface_name))
+
+    subintf_config_db = config_db.get_table('INTERFACE')
+    ips = [ k[1] for k in subintf_config_db if type(k) == tuple and k[0] == subinterface_name ]
+    for ip in ips:
+        config_db.set_entry('INTERFACE', (subinterface_name, ip), None)
+
+    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
 
 if __name__ == '__main__':
     config()

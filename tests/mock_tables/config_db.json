@@ -373,6 +373,10 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },
+    "VLAN_SUB_INTERFACE|Eth32.10": {
+        "admin_status": "up",
+        "vlan": "100"
+    },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
         "PACKET_ACTION": "DROP",
         "PRIORITY": "1"
@@ -1529,6 +1533,26 @@
         "nhopself": "0",
         "rrclient": "0"
     },
+    "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.6": {
+        "admin_status": "up",
+        "asn": "65100",
+        "holdtime": "0",
+        "keepalive": "0",
+        "local_addr": "3.3.3.3",
+        "name": "str2-chassis-lc6-1",
+        "nhopself": "0",
+        "rrclient": "0"
+    },
+    "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.7": {
+        "admin_status": "up",
+        "asn": "65100",
+        "holdtime": "0",
+        "keepalive": "0",
+        "local_addr": "3.3.3.3",
+        "name": "str2-chassis-lc7-1",
+        "nhopself": "0",
+        "rrclient": "0"
+    },
     "FLEX_COUNTER_TABLE|QUEUE": {
             "POLL_INTERVAL": "10000",
             "FLEX_COUNTER_STATUS": "enable"
@@ -1550,6 +1574,14 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|PG_DROP": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|ACL": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|FLOW_CNT_TRAP": {
         "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
@@ -1735,11 +1767,24 @@
         "pool": "ingress_lossless_pool",
         "headroom_type": "dynamic"
     },
+    "BUFFER_PROFILE|egress_lossless_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossless_pool",
+        "size": "0"
+    },
+    "BUFFER_PROFILE|egress_lossy_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossy_pool",
+        "size": "0"
+    },
     "BUFFER_PG|Ethernet0|3-4": {
         "profile": "NULL"
     },
     "BUFFER_PG|Ethernet0|0": {
         "profile": "ingress_lossy_profile"
+    },
+    "BUFFER_QUEUE|Ethernet0|3-4": {
+        "profile": "egress_lossless_profile"
     },
     "PORT_QOS_MAP|Ethernet0": {
         "pfc_enable": "3,4"

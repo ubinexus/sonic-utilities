@@ -6,6 +6,7 @@
 * [Introduction](#introduction)
 * [Basic Tasks](#basic-tasks)
   * [SSH Login](#ssh-login)
+  * [Show Management Interface](#show-management-interface)
   * [Configuring Management Interface](#configuring-management-interface)
 * [Getting Help](#getting-help)
   * [Help for Config Commands](#help-for-config-commands)
@@ -28,6 +29,8 @@
 * [ARP & NDP](#arp--ndp)
   * [ARP show commands](#arp-show-commands)
   * [NDP show commands](#ndp-show-commands)
+* [BFD](#bfd)
+  * [BFD show commands](#bfd-show-commands)
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
@@ -51,6 +54,9 @@
 * [Feature](#feature)
   * [Feature show commands](#feature-show-commands)
   * [Feature config commands](#feature-config-commands)
+* [Flow Counters](#flow-counters)
+  * [Flow Counters show commands](#flow-counters-show-commands)
+  * [Flow Counters clear commands](#flow-counters-clear-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -83,6 +89,7 @@
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
  * [Loopback Interfaces](#loopback-interfaces)
+    * [Loopback show commands](#loopback-show-commands)
     * [Loopback config commands](#loopback-config-commands)
 * [VRF Configuration](#vrf-configuration)
     * [VRF show commands](#vrf-show-commands)
@@ -131,6 +138,9 @@
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
 * [Static routing](#static-routing)
+* [Subinterfaces](#subinterfaces)
+  * [Subinterfaces Show Commands](#subinterfaces-show-commands)
+  * [Subinterfaces Config Commands](#subinterfaces-config-commands)
 * [Syslog](#syslog)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
@@ -245,6 +255,10 @@ Refer the following section for configuring the IP address for management interf
 By default, login takes the user to the default prompt from which all the show commands can be executed.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-tasks)
+
+### Show Management Interface
+
+Please check [show ip interfaces](#show-ip-interfaces)
 
 ### Configuring Management Interface
 
@@ -367,7 +381,7 @@ This command displays the full list of show commands available in the software; 
     ipv6                  Show IPv6 commands
     kubernetes            Show kubernetes commands
     line                  Show all /dev/ttyUSB lines and their info
-    lldp                  LLDP (Link Layer Discovery Protocol)...
+    lldp                  Show LLDP information
     logging               Show system log
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
@@ -379,13 +393,14 @@ This command displays the full list of show commands available in the software; 
     pfc                   Show details of the priority-flow-control...
     platform              Show platform-specific hardware info
     priority-group        Show details of the PGs
-    processes             Display process information
+    processes             Show process information
     queue                 Show details of the queues
     reboot-cause          Show cause of most recent reboot
-    route-map             show route-map
+    route-map             Show route-map
     runningconfiguration  Show current running configuration...
     services              Show all daemon services
     startupconfiguration  Show startup configuration information
+    subinterfaces         Show details of the sub port interfaces
     system-memory         Show memory information
     tacacs                Show TACACS+ configuration
     techsupport           Gather information for troubleshooting
@@ -1546,6 +1561,45 @@ This command displays either all the IPv6 neighbor mac addresses, or for a parti
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#arp--ndp)
 
+## BFD
+
+### BFD show commands
+
+**show bfd summary**
+
+This command displays the state and key parameters of all BFD sessions.
+
+- Usage:
+  ```
+  show bgp summary
+  ```
+- Example:
+  ```
+  >> show bfd summary
+  Total number of BFD sessions: 3
+  Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
+  -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
+  10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
+  10.0.2.1     Ethernet12   default  UP       async_active  10.0.0.1                200            600             3  false
+  2000::10:1   default      default  UP       async_active  2000::1                 100            700             3  false
+  ```
+
+**show bfd peer**
+
+This command displays the state and key parameters of all BFD sessions that match an IP address.
+
+- Usage:
+  ```
+  show bgp peer <peer-ip>
+  ```
+- Example:
+  ```
+  >> show bfd peer 10.0.1.1
+  Total number of BFD sessions for peer IP 10.0.1.1: 1
+  Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
+  -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
+  10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
+  ```
 
 ## BGP
 
@@ -2611,6 +2665,55 @@ This command is used to configure the priority groups on which lossless traffic 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
 
+**config interface buffer queue**
+
+This command is used to configure the buffer profiles for queues.
+
+- Usage:
+
+  ```
+  config interface buffer queue add <interface_name> <queue_map> <profile>
+  config interface buffer queue set <interface_name> <queue_map> <profile>
+  config interface buffer queue remove <interface_name> <queue_map>
+  ```
+
+  The <queue_map> represents the map of queues. It can be in one of the following two forms:
+
+  - For a range of priorities, the lower bound and upper bound connected by a dash, like `3-4`
+  - For a single priority, the number, like `6`
+
+  The subcommand `add` is designed for adding a buffer profile for a group of queues. The new queue range must be disjoint with all queues with buffer profile configured.
+
+  For example, currently the buffer profile configured on queue 3-4 on port Ethernet4, to configure buffer profile on queue 4-5 will fail because it isn't disjoint with 3-4. To configure it on range 5-6 will succeed.
+
+  The `profile` parameter represents a predefined egress buffer profile to be configured on the queues.
+
+  The subcommand `set` is designed for modifying an existing group of queues.
+
+  The subcommand `remove` is designed for removing buffer profile on an existing group of queues.
+
+- Example:
+
+  To configure buffer profiles for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue add Ethernet0 3-4 egress_lossless_profile
+  ```
+
+  To change the profile used for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue set Ethernet0 3-4 new-profile
+  ```
+
+  To remove a group of queues from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue remove Ethernet0 3-4
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
 ### Show commands
 
 **show buffer information**
@@ -3025,6 +3128,58 @@ commands are don't care and will not update state/auto-restart value.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
 
+## Flow Counters
+
+This section explains all the Flow Counters show commands and clear commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
+
+  - Host interface traps (number of received traps per Trap ID)
+
+### Flow Counters show commands
+
+**show flowcnt-trap stats**
+
+This command is used to show the current statistics for the registered host interface traps. 
+
+Because clear (see below) is handled on a per-user basis different users may see different counts.
+
+- Usage:
+  ```
+  show flowcnt-trap stats
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-trap stats
+  Trap Name    Packets    Bytes      PPS
+  ---------  ---------  -------  -------
+       dhcp        100    2,000  50.25/s
+
+  For multi-ASIC:
+  admin@sonic:~$ show flowcnt-trap stats
+  ASIC ID    Trap Name    Packets    Bytes      PPS
+  -------  -----------  ---------  -------  -------
+    asic0         dhcp        100    2,000  50.25/s
+    asic1         dhcp        200    3,000  45.25/s
+  ```
+
+### Flow Counters clear commands
+
+**sonic-clear flowcnt-trap**
+
+This command is used to clear the current statistics for the registered host interface traps. This is done on a per-user basis.
+
+- Usage:
+  ```
+  sonic-clear flowcnt-trap
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-trap
+  Trap Flow Counters were successfully cleared
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#flow-counters)
 ## Gearbox
 
 This section explains all the Gearbox PHY show commands that are supported in SONiC.
@@ -3148,9 +3303,9 @@ This show command displays the port auto negotiation status for all interfaces i
     Ethernet8         disabled     100G           N/A     CR4          N/A      up       up
   ```
 
-**show interfaces breakout**
+**show interfaces breakout (Versions >= 202006)**
 
-This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. all the available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
+This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
 
 - Usage:
   ```
@@ -3751,12 +3906,20 @@ This command is used for administratively bringing up the Physical interface or 
   admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
 
+**config interface <interface_name> speed (Versions >= 202006)**
+
+Dynamic breakout feature is supported in SONiC from 202006 version.
+User can configure any speed specified under "breakout_modes" keys for the parent interface in the platform-specific port configuration file (i.e. platform.json).
+
+For example for a breakout mode of 2x50G[25G,10G] the default speed is 50G but the interface also supports 25G and 10G.
+
+Refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
+
 **config interface speed <interface_name> (Versions >= 201904)**
 
 **config interface <interface_name> speed (Versions <= 201811)**
 
 This command is used to configure the speed for the Physical interface. Use the value 40000 for setting it to 40G and 100000 for 100G. Users need to know the device to configure it properly.
-Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
 
 - Usage:
 
@@ -3849,10 +4012,14 @@ This command is used to configure the TPID for the Physical/PortChannel interfac
   admin@sonic:~$ sudo config interface tpid Ethernet64 0x9200
   ```
 
-**config interface breakout**
+**config interface breakout (Versions >= 202006)**
 
-This command is used to set breakout mode available for user-specified interface.
-kindly use, double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
+This command is used to set active breakout mode available for user-specified interface based on the platform-specific port configuration file(i.e. platform.json)
+and the current mode set for the interface.
+
+Based on the platform.json and the current mode set in interface, this command acts on setting breakout mode for the interface.
+
+Double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
 
 - Usage:
   ```
@@ -3875,9 +4042,15 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
   admin@sonic:~$ sudo config interface breakout  Ethernet0 <tab><tab>
   <tab provides option for breakout mode>
   1x100G[40G]  2x50G        4x25G[10G]
+  ```
 
+  This command also provides  "--force-remove-dependencies/-f" option to CLI, which will automatically determine and remove the configuration dependencies using Yang models.
+
+  ```
   admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
+
+For details please refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
@@ -4167,7 +4340,7 @@ This sub-section explains the various IP protocol specific show commands that ar
 4) prefix-list
 5) protocol
 
-**show ip route**
+#### show ip route
 
 This command displays either all the route entries from the routing table or a specific route.
 
@@ -4222,7 +4395,7 @@ This command displays either all the route entries from the routing table or a s
        * directly connected, Loopback11
    ```
 
-**show ip interfaces**
+#### show ip interfaces
 
 This command displays the details about all the Layer3 IP interfaces in the device for which IP address has been assigned.
 The type of interfaces include the following.
@@ -4257,7 +4430,7 @@ The type of interfaces include the following.
   lo                              127.0.0.1/8           up/up           N/A              N/A
   ```
 
-**show ip protocol**
+#### show ip protocol
 
 This command displays the route-map that is configured for the routing protocol.
 Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about this command.
@@ -4855,9 +5028,11 @@ When user specifies the optional argument "-n" or "--no-service-restart", this c
 running on the device. One use case for this option is during boot time when config-setup service loads existing old configuration and there is no services
 running on the device.
 
+When user specifies the optional argument "-f" or "--force", this command ignores the system sanity checks. By default a list of sanity checks are performed and if one of the checks fail, the command will not execute. The sanity checks include ensuring the system status is not starting, all the essential services are up and swss is in ready state.
+
 - Usage:
   ```
-  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart]
+  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart] [-f|--force]
   ```
 
 - Example:
@@ -4878,6 +5053,19 @@ running on the device.
   Running command: systemctl restart hostname-config
   Running command: systemctl restart interfaces-config
   Timeout, server 10.11.162.42 not responding.
+  ```
+  When some sanity checks fail below error messages can be seen
+  ```
+  admin@sonic:~$ sudo config reload -y
+  System is not up. Retry later or use -f to avoid system checks
+  ```
+  ```
+  admin@sonic:~$ sudo config reload -y
+  Relevant services are not up. Retry later or use -f to avoid system checks
+  ```
+  ```
+  admin@sonic:~$ sudo config reload -y
+  SwSS container is not ready. Retry later or use -f to avoid system checks
   ```
 
 
@@ -4931,7 +5119,11 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#loadin
 
 ## Loopback Interfaces
 
-### Loopback Config commands
+### Loopback show commands
+
+Please check [show ip interfaces](#show-ip-interfaces)
+
+### Loopback config commands
 
 This sub-section explains how to create and delete loopback interfaces.
 
@@ -6029,8 +6221,8 @@ This command starts PFC Watchdog
 
 - Usage:
   ```
-  config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
-  config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+  config pfcwd start --action drop all 400 --restoration-time 400
+  config pfcwd start --action forward Ethernet0 Ethernet8 400
   ```
 
 **config pfcwd stop**
@@ -8017,6 +8209,60 @@ This sub-section explains of command is used to show current routes.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
 
+## Subinterfaces 
+
+### Subinterfaces Show Commands
+
+**show subinterfaces status**
+
+This command displays all the subinterfaces that are configured on the device and its current status.
+
+- Usage:
+```
+show subinterfaces status
+```
+
+- Example:
+```
+admin@sonic:~$ show subinterfaces status
+Sub port interface    Speed    MTU    Vlan    Admin                 Type
+------------------  -------  -----  ------  -------  -------------------
+     Eth64.10          100G   9100    100       up  dot1q-encapsulation
+     Ethernet0.100     100G   9100    100       up  dot1q-encapsulation
+```
+
+### Subinterfaces Config Commands
+
+This sub-section explains how to configure subinterfaces.
+
+**config subinterface**
+
+- Usage:
+```
+config subinterface (add | del) <subinterface_name> [vlan <1-4094>]
+```
+
+- Example (Create the subinterfces with name "Ethernet0.100"):
+```
+admin@sonic:~$ sudo config subinterface add Ethernet0.100
+```
+
+- Example (Create the subinterfces with name "Eth64.100"):
+```
+admin@sonic:~$ sudo config subinterface add Eth64.100 100
+```
+
+- Example (Delete the subinterfces with name "Ethernet0.100"):
+```
+admin@sonic:~$ sudo config subinterface del Ethernet0.100
+```
+
+- Example (Delete the subinterfces with name "Eth64.100"):
+```
+admin@sonic:~$ sudo config subinterface del Eth64.100 100
+```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
 
 ## Syslog
 
@@ -8929,7 +9175,7 @@ This command requires root privilege.
 
 - Usage:
   ```
-  warm-reboot [-h|-?|-v|-f|-r|-k|-x|-c <control plane assistant IP list>|-s]
+  warm-reboot [-h|-?|-v|-f|-r|-k|-x|-c <control plane assistant IP list>|-s|-D]
   ```
 
 - Parameters:
@@ -8943,6 +9189,7 @@ This command requires root privilege.
     -c    : specify control plane assistant IP list
     -s    : strict mode: do not proceed without:
             - control plane assistant IP list.
+    -D    : detached mode - closing terminal will not cause stopping reboot
   ```
 
 - Example:

@@ -1,7 +1,7 @@
 {
     "TRANSCEIVER_INFO|Ethernet0": {
         "type": "QSFP28 or later",
-        "hardware_rev": "AC",
+        "vendor_rev": "AC",
         "serial": "MT1706FT02064",
         "manufacturer": "Mellanox",
         "model": "MFA1A00-C003",
@@ -19,7 +19,7 @@
     },
     "TRANSCEIVER_INFO|Ethernet12": {
         "type": "QSFP28 or later",
-        "hardware_rev": "AC",
+        "vendor_rev": "AC",
         "serial": "MT1706FT02064",
         "manufacturer": "Credo",
         "model": "CACL1X321P2PA1MS",
@@ -69,7 +69,7 @@
     },
     "TRANSCEIVER_INFO|Ethernet8": {
         "type": "QSFP-DD Double Density 8X Pluggable Transceiver",
-        "hardware_rev": "2A",
+        "vendor_rev": "2A",
         "serial": "INKAO2900002A",
         "manufacturer": "INNOLIGHT",
         "model": "C-DQ8FNM010-N00",
@@ -286,9 +286,13 @@
         "MIRRORV6": "true",
         "PORT_TPID_CAPABLE": "true",
         "LAG_TPID_CAPABLE": "true",
-        "ACL_ACTIONS|INGRESS": "PACKET_ACTION,REDIRECT_ACTION,MIRROR_INGRESS_ACTION",
-        "ACL_ACTIONS|EGRESS": "PACKET_ACTION,MIRROR_EGRESS_ACTION",
         "ACL_ACTION|PACKET_ACTION": "FORWARD"
+    },
+    "ACL_STAGE_CAPABILITY_TABLE|INGRESS": {
+        "action_list": "PACKET_ACTION,REDIRECT_ACTION,MIRROR_INGRESS_ACTION"
+    },
+    "ACL_STAGE_CAPABILITY_TABLE|EGRESS": {
+        "action_list": "PACKET_ACTION,MIRROR_EGRESS_ACTION"
     },
     "DEBUG_COUNTER_CAPABILITIES|PORT_INGRESS_DROPS": {
         "reasons": "[IP_HEADER_ERROR,NO_L3_HEADER]",
@@ -621,6 +625,10 @@
     },
     "BUFFER_MAX_PARAM_TABLE|global": {
         "mmu_size": "13945824"
+    },
+    "BUFFER_MAX_PARAM_TABLE|Ethernet0": {
+        "max_queues": "20",
+        "max_priority_groups": "8"
     },
     "CHASSIS_MIDPLANE_TABLE|SUPERVISOR0": {
         "ip_address": "192.168.1.100",
