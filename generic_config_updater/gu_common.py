@@ -403,7 +403,9 @@ class PathAddressing:
     def _find_leafref_paths(self, path, config):
         sy = self.config_wrapper.create_sonic_yang_with_loaded_models()
 
-        sy.loadData(config)
+        tmp_config = copy.deepcopy(config)
+
+        sy.loadData(tmp_config)
 
         xpath = self.convert_path_to_xpath(path, config, sy)
 
@@ -414,11 +416,14 @@ class PathAddressing:
             ref_xpaths.extend(sy.find_data_dependencies(xpath))
 
         ref_paths = []
+        ref_paths_set = set()
         for ref_xpath in ref_xpaths:
             ref_path = self.convert_xpath_to_path(ref_xpath, config, sy)
-            ref_paths.append(ref_path)
+            if ref_path not in ref_paths_set:
+                ref_paths.append(ref_path)
+                ref_paths_set.add(ref_path)
 
-        return set(ref_paths)
+        return ref_paths
 
     def _get_inner_leaf_xpaths(self, xpath, sy):
         if xpath == "/": # Point to Root element which contains all xpaths

@@ -2665,6 +2665,55 @@ This command is used to configure the priority groups on which lossless traffic 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
 
+**config interface buffer queue**
+
+This command is used to configure the buffer profiles for queues.
+
+- Usage:
+
+  ```
+  config interface buffer queue add <interface_name> <queue_map> <profile>
+  config interface buffer queue set <interface_name> <queue_map> <profile>
+  config interface buffer queue remove <interface_name> <queue_map>
+  ```
+
+  The <queue_map> represents the map of queues. It can be in one of the following two forms:
+
+  - For a range of priorities, the lower bound and upper bound connected by a dash, like `3-4`
+  - For a single priority, the number, like `6`
+
+  The subcommand `add` is designed for adding a buffer profile for a group of queues. The new queue range must be disjoint with all queues with buffer profile configured.
+
+  For example, currently the buffer profile configured on queue 3-4 on port Ethernet4, to configure buffer profile on queue 4-5 will fail because it isn't disjoint with 3-4. To configure it on range 5-6 will succeed.
+
+  The `profile` parameter represents a predefined egress buffer profile to be configured on the queues.
+
+  The subcommand `set` is designed for modifying an existing group of queues.
+
+  The subcommand `remove` is designed for removing buffer profile on an existing group of queues.
+
+- Example:
+
+  To configure buffer profiles for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue add Ethernet0 3-4 egress_lossless_profile
+  ```
+
+  To change the profile used for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue set Ethernet0 3-4 new-profile
+  ```
+
+  To remove a group of queues from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue remove Ethernet0 3-4
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
 ### Show commands
 
 **show buffer information**
@@ -3254,9 +3303,9 @@ This show command displays the port auto negotiation status for all interfaces i
     Ethernet8         disabled     100G           N/A     CR4          N/A      up       up
   ```
 
-**show interfaces breakout**
+**show interfaces breakout (Versions >= 202006)**
 
-This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. all the available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
+This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
 
 - Usage:
   ```
@@ -3857,12 +3906,20 @@ This command is used for administratively bringing up the Physical interface or 
   admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
 
+**config interface <interface_name> speed (Versions >= 202006)**
+
+Dynamic breakout feature is supported in SONiC from 202006 version.
+User can configure any speed specified under "breakout_modes" keys for the parent interface in the platform-specific port configuration file (i.e. platform.json).
+
+For example for a breakout mode of 2x50G[25G,10G] the default speed is 50G but the interface also supports 25G and 10G.
+
+Refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
+
 **config interface speed <interface_name> (Versions >= 201904)**
 
 **config interface <interface_name> speed (Versions <= 201811)**
 
 This command is used to configure the speed for the Physical interface. Use the value 40000 for setting it to 40G and 100000 for 100G. Users need to know the device to configure it properly.
-Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
 
 - Usage:
 
@@ -3955,10 +4012,14 @@ This command is used to configure the TPID for the Physical/PortChannel interfac
   admin@sonic:~$ sudo config interface tpid Ethernet64 0x9200
   ```
 
-**config interface breakout**
+**config interface breakout (Versions >= 202006)**
 
-This command is used to set breakout mode available for user-specified interface.
-kindly use, double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
+This command is used to set active breakout mode available for user-specified interface based on the platform-specific port configuration file(i.e. platform.json)
+and the current mode set for the interface.
+
+Based on the platform.json and the current mode set in interface, this command acts on setting breakout mode for the interface.
+
+Double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
 
 - Usage:
   ```
@@ -3981,9 +4042,15 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
   admin@sonic:~$ sudo config interface breakout  Ethernet0 <tab><tab>
   <tab provides option for breakout mode>
   1x100G[40G]  2x50G        4x25G[10G]
+  ```
 
+  This command also provides  "--force-remove-dependencies/-f" option to CLI, which will automatically determine and remove the configuration dependencies using Yang models.
+
+  ```
   admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
+
+For details please refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
@@ -6154,8 +6221,8 @@ This command starts PFC Watchdog
 
 - Usage:
   ```
-  config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
-  config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+  config pfcwd start --action drop all 400 --restoration-time 400
+  config pfcwd start --action forward Ethernet0 Ethernet8 400
   ```
 
 **config pfcwd stop**

@@ -1,3 +1,4 @@
+import copy
 import json
 import jsonpatch
 import sonic_yang
@@ -590,7 +591,7 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__ref_is_a_part_of_key__returns_ref_paths(self):
         # Arrange
@@ -605,7 +606,7 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__ref_is_in_multilist__returns_ref_paths(self):
         # Arrange
@@ -619,7 +620,7 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_INTERFACE)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__ref_is_in_leafref_union__returns_ref_paths(self):
         # Arrange
@@ -632,47 +633,59 @@ class TestPathAddressing(unittest.TestCase):
         actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_PORTCHANNEL_AND_ACL)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__path_is_table__returns_ref_paths(self):
         # Arrange
         path = "/PORT"
         expected = [
-            "/ACL_TABLE/DATAACL/ports/0",
-            "/ACL_TABLE/EVERFLOW/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/1",
             "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
             "/VLAN_MEMBER/Vlan1000|Ethernet0",
+            "/ACL_TABLE/DATAACL/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/0",
             "/VLAN_MEMBER/Vlan1000|Ethernet4",
-            "/VLAN_MEMBER/Vlan1000|Ethernet8",
+            "/ACL_TABLE/EVERFLOW/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/1",
+            "/VLAN_MEMBER/Vlan1000|Ethernet8"
         ]
 
         # Act
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
 
     def test_find_ref_paths__whole_config_path__returns_all_refs(self):
         # Arrange
         path = ""
         expected = [
-            "/ACL_TABLE/DATAACL/ports/0",
-            "/ACL_TABLE/EVERFLOW/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/1",
-            "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
             "/VLAN_MEMBER/Vlan1000|Ethernet0",
             "/VLAN_MEMBER/Vlan1000|Ethernet4",
             "/VLAN_MEMBER/Vlan1000|Ethernet8",
+            "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
+            "/ACL_TABLE/DATAACL/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/0",
+            "/ACL_TABLE/EVERFLOW/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/1",
         ]
 
         # Act
         actual = self.path_addressing.find_ref_paths(path, Files.CROPPED_CONFIG_DB_AS_JSON)
 
         # Assert
-        self.assertCountEqual(expected, actual)
+        self.assertEqual(expected, actual)
+
+    def test_find_ref_paths__does_not_remove_tables_without_yang(self):
+        # Arrange
+        config = Files.CONFIG_DB_AS_JSON # This has a table without yang named 'TABLE_WITHOUT_YANG'
+        any_path = ""
+        expected_config = copy.deepcopy(config)
+
+        # Act
+        self.path_addressing.find_ref_paths(any_path, config)
+
+        # Assert
+        self.assertEqual(expected_config, config)
 
     def test_convert_path_to_xpath(self):
         def check(path, xpath, config=None):
