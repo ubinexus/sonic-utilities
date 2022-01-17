@@ -197,4 +197,4 @@ def monitor_list():
             entry.append(element[1]['status'])
             entry.append(element[1]['type'])
             table.append(entry)
-        click.echo(tabulate(table, header))
+    click.echo(tabulate(table, header))
