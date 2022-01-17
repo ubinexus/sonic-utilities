@@ -56,7 +56,6 @@ from sonic_package_manager.version import (
     version_to_tag,
     tag_to_version
 )
-from utilities_common.db import Db
 
 
 @contextlib.contextmanager
@@ -295,6 +294,7 @@ class PackageManager:
         self.database = database
         self.metadata_resolver = metadata_resolver
         self.service_creator = service_creator
+        self.sonic_db = service_creator.sonic_db
         self.feature_registry = service_creator.feature_registry
         self.is_multi_npu = device_information.is_multi_npu()
         self.num_npus = device_information.get_num_npus()
@@ -952,7 +952,8 @@ class PackageManager:
 
         feature_name = package.manifest['service']['name']
         log.info('{} {}'.format(state.replace('ed', 'ing').capitalize(), feature_name))
-        set_feature_state(Db(), feature_name, state, block)
+        cfgdb_clients = {'': self.sonic_db.get_running_db_connector()}
+        set_feature_state(cfgdb_clients, feature_name, state, block)
 
     def _install_cli_plugins(self, package: Package):
         for command in SONIC_CLI_COMMANDS:
@@ -999,4 +1000,3 @@ class PackageManager:
                               service_creator,
                               device_info,
                               filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0))
-

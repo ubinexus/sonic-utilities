@@ -7,52 +7,50 @@ from utilities_common.cli import AbbreviationGroup, pass_db
 SELECT_TIMEOUT = 1000  # ms
 
 
-def set_feature_state(db, name, state, block):
+def set_feature_state(cfgdb_clients, name, state, block):
     """Enable/disable a feature"""
     entry_data_set = set()
 
-    for ns, cfgdb in db.cfgdb_clients.items():
+    for ns, cfgdb in cfgdb_clients.items():
         entry_data = cfgdb.get_entry('FEATURE', name)
         if not entry_data:
-            click.echo("Feature '{}' doesn't exist".format(name))
-            sys.exit(1)
+            raise Exception("Feature '{}' doesn't exist".format(name))
         entry_data_set.add(entry_data['state'])
 
     if len(entry_data_set) > 1:
-        click.echo("Feature '{}' state is not consistent across namespaces".format(name))
-        sys.exit(1)
+        raise Exception("Feature '{}' state is not consistent across namespaces".format(name))
 
     if entry_data['state'] == "always_enabled":
-        click.echo("Feature '{}' state is always enabled and can not be modified".format(name))
-        return
+        raise Exception("Feature '{}' state is always enabled and can not be modified".format(name))
 
-    for ns, cfgdb in db.cfgdb_clients.items():
+    for ns, cfgdb in cfgdb_clients.items():
         cfgdb.mod_entry('FEATURE', name, {'state': state})
 
-    while block:
+    if block:
         db = swsscommon.DBConnector('STATE_DB', 0)
         tbl = swsscommon.SubscriberStateTable(db, 'FEATURE')
         sel = swsscommon.Select()
 
         sel.addSelectable(tbl);
 
-        rc, _ = sel.select(SELECT_TIMEOUT)
+        while True:
+            rc, _ = sel.select(SELECT_TIMEOUT)
 
-        if rc == swsscommon.Select.TIMEOUT:
-            continue
-        elif rc == swsscommon.Select.ERROR:
-            raise click.Abort('Failed to wait till feature reaches desired state: select() failed')
-        else:
-            feature, _, fvs = tbl.pop()
-            if feature != name:
+            if rc == swsscommon.Select.TIMEOUT:
                 continue
+            elif rc == swsscommon.Select.ERROR:
+                raise Exception('Failed to wait till feature reaches desired state: select() failed')
+            else:
+                feature, _, fvs = tbl.pop()
+                if feature != name:
+                    continue
 
-            actual_state = dict(fvs).get('state')
+                actual_state = dict(fvs).get('state')
 
-            if actual_state == 'failed':
-                raise click.Abort('Feature failed to be {}'.format(state))
-            elif actual_state == state:
-                break
+                if actual_state == 'failed':
+                    raise Exception('Feature failed to be {}'.format(state))
+                elif actual_state == state:
+                    break
 
 
 #
@@ -106,7 +104,11 @@ def feature_fallback(db, name, fallback):
 def feature_state(db, name, state, block):
     """Enable/disable a feature"""
 
-    set_feature_state(db, name, state, block)
+    try:
+        set_feature_state(db.cfgdb_clients, name, state, block)
+    except Exception as exception:
+        click.echo("{}".format(exception))
+        sys.exit(1)
 
 #
 # 'autorestart' command ('config feature autorestart ...')
