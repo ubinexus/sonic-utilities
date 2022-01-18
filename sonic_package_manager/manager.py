@@ -10,7 +10,6 @@ from typing import Any, Iterable, List, Callable, Dict, Optional
 
 import docker
 import filelock
-from config.feature import set_feature_state
 from sonic_py_common import device_info
 
 from sonic_package_manager import utils
@@ -949,6 +948,11 @@ class PackageManager:
 
         if in_chroot():
             return
+
+        # import from here otherwise this import will fail when executing
+        # sonic-package-manager from chroot environment as "config" package
+        # tries accessing database at import time.
+        from config.feature import set_feature_state
 
         feature_name = package.manifest['service']['name']
         log.info('{} {}'.format(state.replace('ed', 'ing').capitalize(), feature_name))
