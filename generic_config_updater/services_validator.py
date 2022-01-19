@@ -5,8 +5,6 @@ logger = genericUpdaterLogging.get_logger(title="Service Validator")
 
 print_to_console = False
 
-PAUSE_AFTER_FAILED_RESTART = "7s"
-
 def set_verbose(verbose=False):
     global print_to_console, logger
 
@@ -21,24 +19,22 @@ def _service_restart(svc_name):
     rc = os.system(f"systemctl restart {svc_name}")
     if rc != 0:
         # This failure is likely due to too many restarts
-        # Which is the reflection of patch sorter not grouping
-        # updates for keys effectively.
-        # Once the patch sorter is tuned, the following
-        # code would not be executed.
         #
         rc = os.system(f"systemctl reset-failed {svc_name}")
         logger.log(logger.LOG_PRIORITY_ERROR, 
-                f"Service has been reset. rc={rc} Pause for {PAUSE_AFTER_FAILED_RESTART}",
+                f"Service has been reset. rc={rc}; Try restart again...",
                 print_to_console)
 
-        # Even with successful reset-failed, a pause is required, else the
-        # immediate restart was found to fail in manual tests.
-        # Hence add a pause.
-        # This pause would help even if the earlier reset-failed fails.
-        # Hence we ignore return code from reset-failed.
-        #
-        os.system(f"sleep {PAUSE_AFTER_FAILED_RESTART}")
         rc = os.system(f"systemctl restart {svc_name}")
+        if rc != 0:
+            # Even with reset-failed, restart fails.
+            # Give a pause before retry.
+            #
+            logger.log(logger.LOG_PRIORITY_ERROR,
+                    f"Restart failed for {svc_name} rc={rc} after reset; Pause for 10s & retry",
+                    print_to_console)
+            os.system("sleep 10s")
+            rc = os.system(f"systemctl restart {svc_name}")
 
     if rc == 0:
         logger.log(logger.LOG_PRIORITY_NOTICE,
@@ -52,7 +48,11 @@ def _service_restart(svc_name):
 
 
 def rsyslog_validator(old_config, upd_config, keys):
-    return _service_restart("rsyslog-config")
+    rc = os.system("/usr/bin/rsyslog-config.sh")
+    if rc != 0:
+        return _service_restart("rsyslog")
+    else:
+        return True
 
 
 def dhcp_validator(old_config, upd_config, keys):
@@ -72,5 +72,16 @@ def vlan_validator(old_config, upd_config, keys):
 
 
 def main_test():
-    for(i=0; i<10; ++i):
-        _service_restart("rsyslog-config")
+    print_to_console = True
+    for i in range(20):
+        print(f"i={i}")
+        rc = _service_restart("rsyslog")
+        # rc = rsyslog_validator("", "", "")
+        if not rc:
+            print("FAILED ...")
+            break
+
+
+if __name__ == "__main__":
+    main_test()
+
