@@ -72,6 +72,8 @@ def vlan_validator(old_config, upd_config, keys):
 
 
 def main_test():
+    global print_to_console
+
     print_to_console = True
     for i in range(20):
         print(f"i={i}")
