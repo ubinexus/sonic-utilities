@@ -69,3 +69,4 @@ def vlan_validator(old_config, upd_config, keys):
             return _service_restart("dhcp_relay")
     # No update to DHCP servers.
     return True
+
