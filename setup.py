@@ -59,6 +59,7 @@ setup(
         'sonic-utilities-tests': ['acl_input/*',
                                   'db_migrator_input/config_db/*.json',
                                   'db_migrator_input/init_cfg.json',
+                                  'mock_tables/*.ini',
                                   'mock_tables/*.py',
                                   'mock_tables/*.json',
                                   'mock_tables/asic0/*',
