@@ -69,21 +69,3 @@ def vlan_validator(old_config, upd_config, keys):
             return _service_restart("dhcp_relay")
     # No update to DHCP servers.
     return True
-
-
-def main_test():
-    global print_to_console
-
-    print_to_console = True
-    for i in range(20):
-        print(f"i={i}")
-        rc = _service_restart("rsyslog")
-        # rc = rsyslog_validator("", "", "")
-        if not rc:
-            print("FAILED ...")
-            break
-
-
-if __name__ == "__main__":
-    main_test()
-
