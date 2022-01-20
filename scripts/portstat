@@ -51,12 +51,12 @@ NStats = namedtuple("NStats", "rx_ok, rx_err, rx_drop, rx_ovr, tx_ok,\
                     rx_uca, rx_mca, rx_bca, rx_all,\
                     tx_64, tx_65_127, tx_128_255, tx_256_511, tx_512_1023, tx_1024_1518, tx_1519_2047, tx_2048_4095, tx_4096_9216, tx_9217_16383,\
                     tx_uca, tx_mca, tx_bca, tx_all,\
-                    rx_jbr, rx_frag, rx_usize, rx_ovrrun")
+                    rx_jbr, rx_frag, rx_usize, rx_ovrrun, fec_corr, fec_uncorr")
 header_all = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
-          'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
+          'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR', 'FEC_CORR', 'FEC_UNCORR']
 header_std = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
-header_errors_only = ['IFACE', 'STATE', 'RX_ERR', 'RX_DRP', 'RX_OVR', 'TX_ERR', 'TX_DRP', 'TX_OVR']
+header_errors_only = ['IFACE', 'STATE', 'RX_ERR', 'RX_DRP', 'RX_OVR', 'TX_ERR', 'TX_DRP', 'TX_OVR', 'FEC_CORR', 'FEC_UNCORR']
 header_rates_only = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL']
 
 rates_key_list = [ 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'TX_BPS', 'TX_PPS', 'TX_UTIL' ]
@@ -67,7 +67,7 @@ RateStats = namedtuple("RateStats", ratestat_fields)
 The order and count of statistics mentioned below needs to be in sync with the values in portstat script
 So, any fields added/deleted in here should be reflected in portstat script also
 """
-BUCKET_NUM = 42
+BUCKET_NUM = 44
 counter_bucket_dict = {
         0:['SAI_PORT_STAT_IF_IN_UCAST_PKTS', 'SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS'],
         1:['SAI_PORT_STAT_IF_IN_ERRORS'],
@@ -110,7 +110,9 @@ counter_bucket_dict = {
         38:['SAI_PORT_STAT_ETHER_STATS_JABBERS'],
         39:['SAI_PORT_STAT_ETHER_STATS_FRAGMENTS'],
         40:['SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS'],
-        41:['SAI_PORT_STAT_IP_IN_RECEIVES']
+        41:['SAI_PORT_STAT_IP_IN_RECEIVES'],
+        42:['SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES'],
+        43:['SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES']
 }
 
 STATUS_NA = 'N/A'
@@ -285,7 +287,9 @@ class Portstat(object):
                               format_util(rates.tx_bps, port_speed),
                               format_number_with_comma(data.tx_err),
                               format_number_with_comma(data.tx_drop),
-                              format_number_with_comma(data.tx_ovr)))
+                              format_number_with_comma(data.tx_ovr),
+                              format_number_with_comma(data.fec_corr),
+                              format_number_with_comma(data.fec_uncorr)))
             elif errors_only:
                 header = header_errors_only
                 table.append((key, self.get_port_state(key),
@@ -294,7 +298,9 @@ class Portstat(object):
                               format_number_with_comma(data.rx_ovr),
                               format_number_with_comma(data.tx_err),
                               format_number_with_comma(data.tx_drop),
-                              format_number_with_comma(data.tx_ovr)))
+                              format_number_with_comma(data.tx_ovr),
+                              format_number_with_comma(data.fec_corr),
+                              format_number_with_comma(data.fec_uncorr)))
             elif rates_only:
                 header = header_rates_only
                 table.append((key, self.get_port_state(key),
@@ -430,7 +436,9 @@ class Portstat(object):
                                   format_util(rates.tx_bps, port_speed),
                                   ns_diff(cntr.tx_err, old_cntr.tx_err),
                                   ns_diff(cntr.tx_drop, old_cntr.tx_drop),
-                                  ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
+                                  ns_diff(cntr.tx_ovr, old_cntr.tx_ovr),
+                                  ns_diff(cntr.fec_corr, old_cntr.fec_corr),
+                                  ns_diff(cntr.fec_uncorr, old_cntr.fec_uncorr)))
                 else:
                     table.append((key, self.get_port_state(key),
                                   format_number_with_comma(cntr.rx_ok),
@@ -446,7 +454,9 @@ class Portstat(object):
                                   format_util(rates.tx_bps, port_speed),
                                   format_number_with_comma(cntr.tx_err),
                                   format_number_with_comma(cntr.tx_drop),
-                                  format_number_with_comma(cntr.tx_ovr)))
+                                  format_number_with_comma(cntr.tx_ovr),
+                                  format_number_with_comma(cntr.fec_corr),
+                                  format_number_with_comma(cntr.fec_uncorr)))
             elif errors_only:
                 header = header_errors_only
                 if old_cntr is not None:
@@ -456,7 +466,9 @@ class Portstat(object):
                                   ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
                                   ns_diff(cntr.tx_err, old_cntr.tx_err),
                                   ns_diff(cntr.tx_drop, old_cntr.tx_drop),
-                                  ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
+                                  ns_diff(cntr.tx_ovr, old_cntr.tx_ovr),
+                                  ns_diff(cntr.fec_corr, old_cntr.fec_corr),
+                                  ns_diff(cntr.fec_uncorr, old_cntr.fec_uncorr)))
                 else:
                     table.append((key, self.get_port_state(key),
                                   format_number_with_comma(cntr.rx_err),
@@ -464,7 +476,9 @@ class Portstat(object):
                                   format_number_with_comma(cntr.rx_ovr),
                                   format_number_with_comma(cntr.tx_err),
                                   format_number_with_comma(cntr.tx_drop),
-                                  format_number_with_comma(cntr.tx_ovr)))
+                                  format_number_with_comma(cntr.tx_ovr),
+                                  format_number_with_comma(cntr.fec_corr),
+                                  format_number_with_comma(cntr.fec_uncorr)))
             elif rates_only:
                 header = header_rates_only
                 if old_cntr is not None:
