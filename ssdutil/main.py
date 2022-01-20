@@ -97,22 +97,18 @@ def ssdutil():
         sys.exit(1)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--device", help="Device name to show health info", default=None)
+    parser.add_argument("-d", "--device", help="Device name to show health info", default=get_default_disk())
     parser.add_argument("-v", "--verbose", action="store_true", default=False, help="Show verbose output (some additional parameters)")
     parser.add_argument("-e", "--vendor", action="store_true", default=False, help="Show vendor output (extended output if provided by platform vendor)")
     args = parser.parse_args()
 
-    if args.device:
-        disk_device = args.device
-    else:
-        disk_device = get_default_disk()
 
-    disk_type = get_disk_type(disk_device)
-    if disk_type != DISK_TYPE_SSD:
+    disk_type = get_disk_type(args.device)
+    if DISK_TYPE_SSD not in disk_type:
         print("Disk type is not SSD")
-        sys.exit(1)
 
-    ssd = import_ssd_api(disk_device)
+    ssd = import_ssd_api(args.device)
+
 
     print("Device Model : {}".format(ssd.get_model()))
     if args.verbose:
