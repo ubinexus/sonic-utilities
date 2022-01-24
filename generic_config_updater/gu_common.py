@@ -278,6 +278,9 @@ class PathAddressing:
     def get_from_path(self, doc, path):
         return JsonPointer(path).get(doc, default=None)
 
+    def is_config_different(self, path, current, target):
+        return self.get_from_path(current, path) != self.get_from_path(target, path)
+
     def get_xpath_tokens(self, xpath):
         """
         Splits the given xpath into tokens by '/'.

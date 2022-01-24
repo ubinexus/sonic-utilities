@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import jsonpatch
 import unittest
 from unittest.mock import MagicMock, Mock
@@ -669,9 +670,9 @@ class TestMoveWrapper(unittest.TestCase):
         # Assert
         self.assertIs(self.any_diff, actual)
 
-class TestPortCriticalConfigIdentifier(unittest.TestCase):
-    def test_hard_coded_port_critical_paths(self):
-        identifier = ps.PortCriticalConfigIdentifier(PathAddressing())
+class TestRequiredValueIdentifier(unittest.TestCase):
+    def test_hard_coded_required_value_data(self):
+        identifier = ps.RequiredValueIdentifier(PathAddressing())
         config = {
             "BUFFER_PG": {
                 "Ethernet4|0": {
@@ -696,17 +697,19 @@ class TestPortCriticalConfigIdentifier(unittest.TestCase):
                 "Ethernet4|7-8": {
                     "scheduler": "scheduler.0"
                 }
+            },
+            "PORT": {
+                "Ethernet4": {}
             }
         }
         port_name = "Ethernet4"
-        expected = [
-            "/BUFFER_PG/Ethernet4|0",
-            "/BUFFER_QUEUE/Ethernet4|1",
-            "/QUEUE/Ethernet4|2",
-            "/QUEUE/Ethernet4|7-8"
-        ]
+        expected = OrderedDict([
+            ('/BUFFER_PG/Ethernet4|0', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/BUFFER_QUEUE/Ethernet4|1', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/QUEUE/Ethernet4|2', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/QUEUE/Ethernet4|7-8', [('/PORT/Ethernet4/admin_status', 'down')])])
 
-        actual = list(identifier._identify_critical_config([config], port_name))
+        actual = identifier.get_required_value_data([config])
 
         self.assertEqual(expected, actual)
 
@@ -1311,12 +1314,12 @@ class TestNoEmptyTableMoveValidator(unittest.TestCase):
         # Act and assert
         self.assertTrue(self.validator.validate(move, diff))
 
-class TestPortCriticalMoveValidator(unittest.TestCase):
+class TestRequiredValueMoveValidator(unittest.TestCase):
     def setUp(self):
         self.operation_wrapper = OperationWrapper()
         path_addressing = PathAddressing()
-        self.validator = ps.PortCriticalMoveValidator(path_addressing)
-        self.validator.port_critical_config_identifier.port_critical_filter = ps.ConfigFilter([
+        self.validator = ps.RequiredValueMoveValidator(path_addressing)
+        self.validator.identifier.settings[0]["requiring_filter"] = ps.ConfigFilter([
                 ["BUFFER_PG", "@|*"],
                 ["PORT", "@", "mtu"]
             ],
@@ -2029,11 +2032,11 @@ class TestLowLevelMoveGenerator(unittest.TestCase):
 
         return ps.Diff(current_config, target_config)
 
-class TestPortCriticalMoveExtender(unittest.TestCase):
+class TestRequiredValueMoveExtender(unittest.TestCase):
     def setUp(self):
         path_addressing = PathAddressing()
-        self.extender = ps.PortCriticalMoveExtender(path_addressing, OperationWrapper())
-        self.extender.port_critical_config_identifier.port_critical_filter = ps.ConfigFilter([
+        self.extender = ps.RequiredValueMoveExtender(path_addressing, OperationWrapper())
+        self.extender.identifier.settings[0]["requiring_filter"] = ps.ConfigFilter([
                 ["BUFFER_PG", "@|*"],
                 ["PORT", "@", "mtu"]
             ],
@@ -2266,7 +2269,7 @@ class TestPortCriticalMoveExtender(unittest.TestCase):
     def _apply_operations(self, config, operations):
         return jsonpatch.JsonPatch(operations).apply(config)
 
-    def test_flip_admin_down_move(self):
+    def test_flip(self):
         test_cases = {
             "ADD_ADMIN_STATUS": {
                 "move": ps.JsonMove.from_operation({"op":"add", "path":"/PORT/Ethernet200/admin_status", "value": "up"}),
@@ -2423,7 +2426,9 @@ class TestPortCriticalMoveExtender(unittest.TestCase):
                 port_names = test_case["port_names"]
                 expected = test_case["expected"]
 
-                actual = self.extender._flip_admin_down_move(move, port_names)
+                path_value_tuples = [(f"/PORT/{port_name}/admin_status", "down") for port_name in port_names]
+
+                actual = self.extender._flip(move, path_value_tuples)
                 self.assertEqual(expected, actual)
 
 class TestUpperLevelMoveExtender(unittest.TestCase):
@@ -2736,7 +2741,7 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         config_wrapper = ConfigWrapper()
         factory = ps.SortAlgorithmFactory(OperationWrapper(), config_wrapper, PathAddressing(config_wrapper))
         expected_generators = [ps.LowLevelMoveGenerator]
-        expected_extenders = [ps.PortCriticalMoveExtender,
+        expected_extenders = [ps.RequiredValueMoveExtender,
                               ps.UpperLevelMoveExtender,
                               ps.DeleteInsteadOfReplaceMoveExtender,
                               ps.DeleteRefsMoveExtender]
@@ -2745,7 +2750,7 @@ class TestSortAlgorithmFactory(unittest.TestCase):
                               ps.NoDependencyMoveValidator,
                               ps.UniqueLanesMoveValidator,
                               ps.CreateOnlyMoveValidator,
-                              ps.PortCriticalMoveValidator,
+                              ps.RequiredValueMoveValidator,
                               ps.NoEmptyTableMoveValidator]
 
         # Act

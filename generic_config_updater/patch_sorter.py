@@ -1,7 +1,7 @@
 import copy
 import json
 import jsonpatch
-from collections import deque
+from collections import deque, OrderedDict
 from enum import Enum
 from .gu_common import OperationWrapper, OperationType, GenericConfigUpdaterError, \
                        JsonChange, PathAddressing, genericUpdaterLogging
@@ -385,61 +385,130 @@ class ConfigFilter:
                 yield path
             matching_tokens.pop()
 
-class PortCriticalConfigIdentifier:
+    def is_match(self, path):
+        tokens = self.path_addressing.get_path_tokens(path)
+        for pattern in self.patterns:
+            if len(pattern) != len(tokens):
+                return False
+
+            for idx in range(len(pattern)):
+                pattern_token = pattern[idx]
+                token = tokens[idx]
+
+                if not self._is_token_match(pattern_token, token):
+                    return False
+
+        return True
+
+    def _is_token_match(self, pattern_token, token):
+        if "|" in pattern_token:
+            pattern_token_parts = pattern_token.split("|", 1)
+            token_parts = token.split("|", 1)
+            if len(pattern_token_parts) != len(token_parts):
+                return False
+
+            return self._is_simple_token_match(pattern_token_parts[0], token_part[0]) and \
+                   self._is_simple_token_match(pattern_token_parts[1], token_part[1])
+
+        return self._is_simple_token_match(pattern_token, token)
+
+
+    def _is_simple_token_match(self, pattern_token, token):
+        if pattern_token == "*" or pattern_token == "@":
+            return True
+
+        return pattern_token == token
+
+class RequiredValueIdentifier:
     def __init__(self, path_addressing):
         # TODO: port-critical fields are hard-coded for now, it should be moved to YANG models
-        # NOTE: PortCritical validation logic can be generalized to be validation for any config that
-        #       requires another config to be of a specific value. Call the validator "TransitionalValueValidator"
-        #       For the case of port-critical validation the transitional value would be "admin_status=down".
-        self.port_critical_filter = ConfigFilter([
-                ["BUFFER_PG", "@|*"],
-                ["BUFFER_QUEUE", "@|*"],
-                ["QUEUE", "@|*"]
-            ],
-            path_addressing)
+        # settings format, each setting consist of:
+        #   [
+        #       "required_pattern": the list of tokens, where there is a single token with value '@' which is the common key
+        #                           with the requiring patterns
+        #       "required_value": the required value
+        #       "default_value": the default value of the required paths
+        #       "requiring_patterns": the patterns matching paths that requires the given value, each pattern can have '@'
+        #                             which will be replaced with the common key, '*' will match any symbol
+        #   }
+        self.settings = [
+            {
+                "required_pattern": ["PORT", "@", "admin_status"],
+                "required_value": "down",
+                "default_value": "down",
+                "requiring_patterns": [
+                        ["BUFFER_PG", "@|*"],
+                        ["BUFFER_PORT_EGRESS_PROFILE_LIST", "@"],
+                        ["BUFFER_PORT_INGRESS_PROFILE_LIST", "@"],
+                        ["BUFFER_QUEUE", "@|*"],
+                        ["PORT_QOS_MAP", "@"],
+                        ["QUEUE", "@|*"],
+                    ]
+            },
+        ]
         self.path_addressing = path_addressing
+        for setting in self.settings:
+            required_pattern = setting["required_pattern"]
+            required_parent_pattern = required_pattern[:-1]
+            # replace the '@' with '*' so it can be used as a ConfigFilter
+            required_parent_pattern_with_asterisk = [token.replace("@", "*") for token in required_parent_pattern]
+            setting["required_parent_filter"] = ConfigFilter([required_parent_pattern_with_asterisk], path_addressing)
+            setting["required_field_name"] = required_pattern[-1]
+            for index, token in enumerate(required_pattern):
+                if token == "@":
+                    setting["common_key_index"] = index
+            setting["requiring_filter"] = ConfigFilter(setting["requiring_patterns"], path_addressing)
 
-    def identify_admin_up_ports(self, config):
-        for port_name, port_config in config.get("PORT", {}).items():
-            if port_config.get("admin_status", "down") == "up":
-                yield port_name
 
-    def identify_admin_status_turn_up_ports(self, current_config, target_config):
-        """
-          Identifies the port names where the admin_status is getting turned up, i.e. it up "down" in current_config
-          and "up" in target_config
-        """
-        current_ports = current_config.get("PORT", {})
-        target_ports = target_config.get("PORT", {})
-        for port_name in self._merge_unique([current_ports.keys(), target_ports.keys()]):
-            current_admin_status = current_ports.get(port_name, {}).get("admin_status", "down")
-            target_admin_status = target_ports.get(port_name, {}).get("admin_status", "down")
-            if current_admin_status == "down" and target_admin_status == "up":
-                yield port_name
+    def get_required_value_data(self, configs):
+        data = {}
+        for setting in self.settings:
+            required_parent_filter = setting["required_parent_filter"]
+            required_field_name = setting["required_field_name"]
+            common_key_index = setting["common_key_index"]
+            required_value = setting["required_value"]
+            requiring_filter = setting["requiring_filter"]
+            for config in configs:
+                for required_parent_path in required_parent_filter.get_paths(config):
+                    parent_tokens = self.path_addressing.get_path_tokens(required_parent_path)
+                    required_path = self.path_addressing.create_path(parent_tokens+[required_field_name])
+                    common_key = parent_tokens[common_key_index]
+                    requires_paths = requiring_filter.get_paths(config, common_key)
+                    for requires_path in requires_paths:
+                        if requires_path not in data:
+                            data[requires_path] = set()
+                        data[requires_path].add((required_path, required_value))
 
-    def _merge_unique(self, lists):
-        processed = set()
-        for lst in lists:
-            for item in lst:
-                if item in processed:
-                    continue
-                processed.add(item)
-                yield item
+        sorted_paths = sorted(data.keys())
+        sorted_data = OrderedDict()
+        for path in sorted_paths:
+            sorted_data[path] = sorted(data[path])
 
-    def has_different_critical_configs(self, current_config, target_config, port_name):
-        for path in self._identify_critical_config([current_config, target_config], port_name):
-            if self.path_addressing.get_from_path(current_config, path) != self.path_addressing.get_from_path(target_config, path):
-                return True
-        return False
+        return sorted_data
 
-    def _identify_critical_config(self, configs, port_name):
-        processed = set()
-        for config in configs:
-            for path in self.port_critical_filter.get_paths(config, port_name):
-                if path in processed:
-                    continue
-                processed.add(path)
-                yield path
+    def get_value_or_default(self, config, path):
+        value = self.path_addressing.get_from_path(config, path)
+        if value is not None:
+            return value
+
+        # Check if parent exist
+        tokens = self.path_addressing.get_path_tokens(path)
+        parent_tokens = tokens[:-1]
+        field_name = tokens[-1]
+        parent_path = self.path_addressing.create_path(parent_tokens)
+        parent_value = self.path_addressing.get_from_path(config, parent_path)
+
+        if parent_value is None:
+            return None
+
+        return self._get_default_value_from_settings(parent_path, field_name)
+
+    def _get_default_value_from_settings(self, parent_path, field_name):
+        for setting in self.settings:
+            if setting["required_parent_filter"].is_match(parent_path) and field_name == setting["required_field_name"]:
+                return setting["default_value"]
+
+        return None
 
 class DeleteWholeConfigMoveValidator:
     """
@@ -780,26 +849,51 @@ class NoEmptyTableMoveValidator:
         # the only invalid case is if table exists and is empty
         return table not in config or config[table]
 
-class PortCriticalMoveValidator:
+class RequiredValueMoveValidator:
     def __init__(self, path_addressing):
-        self.port_critical_config_identifier = PortCriticalConfigIdentifier(path_addressing)
+        self.path_addressing = path_addressing
+        self.identifier = RequiredValueIdentifier(path_addressing)
 
     def validate(self, move, diff):
+        if move.op_type == OperationType.REMOVE and move.path == "":
+            return
+
         current_config = diff.current_config
         simulated_config = move.apply(current_config) # Config after applying just this move
         target_config = diff.target_config # Final config after applying whole patch
 
-        # Validate if admin is up and move does not have critical port changes
-        for port_name in self.port_critical_config_identifier.identify_admin_up_ports(current_config):
-            if self.port_critical_config_identifier.has_different_critical_configs(current_config, simulated_config, port_name):
-                return False
+        # data dictionary:
+        # {
+        #   <path>: [(required_path, required_value), ...],
+        #   ...
+        # }
+        data = self.identifier.get_required_value_data([current_config, simulated_config, target_config])
 
-        # Validate admin status does not turn up while some critical port changes are still left
-        for port_name in self.port_critical_config_identifier.identify_admin_status_turn_up_ports(current_config, simulated_config):
-            # NOTE: here we compare current_config with the final target_config, making sure we cover all critical changes not only
-            #       the ones in this move
-            if self.port_critical_config_identifier.has_different_critical_configs(current_config, target_config, port_name):
-                return False
+        # If move is changing a requiring path while the required path does not have the required value, reject the move
+        # E.g. if the move is changing port-critical configs while the port is up, reject the move
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, simulated_config):
+                for required_path, required_value in data[path]:
+                    actual_value = self.identifier.get_value_or_default(current_config, required_path)
+                    if actual_value == None: # current config does not have this value at all
+                        continue
+                    if actual_value != required_value:
+                        return False
+
+        # If some changes to the requiring paths are still to take place and the move has changes
+        # to the required path, reject the move
+        # E.g. if there are still port-critical changes left and the move has changes to the port
+        #      admin status, reject the move
+        # This makes sure we don't change the required path unnecessarily.
+        flip_path_value_tuples = set()
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, target_config):
+                for required_path, required_value in data[path]:
+                    current_value = self.identifier.get_value_or_default(current_config, required_path)
+                    simulated_value = self.identifier.get_value_or_default(simulated_config, required_path)
+                    if current_value != simulated_value and simulated_value != required_value:
+                        return False
+
         return True
 
 class LowLevelMoveGenerator:
@@ -1022,64 +1116,83 @@ class SingleRunLowLevelMoveGenerator:
 
         return counts
 
-class PortCriticalMoveExtender:
+class RequiredValueMoveExtender:
     def __init__(self, path_addressing, operation_wrapper):
         self.path_addressing = path_addressing
-        self.port_critical_config_identifier = PortCriticalConfigIdentifier(path_addressing)
+        self.identifier = RequiredValueIdentifier(path_addressing)
         self.operation_wrapper = operation_wrapper
 
     def extend(self, move, diff):
-        # skip extending whole config deletion, as it is not supported by JsonPatch lib
-        # TODO: do not generate whole config deletion moves at all
         if move.op_type == OperationType.REMOVE and move.path == "":
             return
+
         current_config = diff.current_config
         simulated_config = move.apply(current_config) # Config after applying just this move
         target_config = diff.target_config # Final config after applying whole patch
 
-        # If admin up and move has critical port changes, turn the port admin down
-        for port_name in self.port_critical_config_identifier.identify_admin_up_ports(current_config):
-            if self.port_critical_config_identifier.has_different_critical_configs(current_config, simulated_config, port_name):
-                yield self._get_turn_admin_down_move(port_name)
+        # data dictionary:
+        # {
+        #   <path>: [(required_path, required_value), ...],
+        #   ...
+        # }
+        data = self.identifier.get_required_value_data([current_config, simulated_config, target_config])
 
-        # If the move is turning port up while still critical changes left, flip to admin-status in the move to down
-        to_flip_admin_down_ports = []
-        for port_name in self.port_critical_config_identifier.identify_admin_status_turn_up_ports(current_config, simulated_config):
-            # NOTE: here we compare current_config with the final target_config, making sure we cover all critical changes not only
-            #       the ones in this move
-            if self.port_critical_config_identifier.has_different_critical_configs(current_config, target_config, port_name):
-                to_flip_admin_down_ports.append(port_name)
+        # If move is changing a requiring path at the same time as the required path,
+        # flip the required path to the required value
+        # E.g. if the move is changing the port to admin up from down at the same time as
+        #      port-critical changes, flip the port to admin down
+        processed_moves = set()
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, simulated_config):
+                for required_path, required_value in data[path]:
+                    actual_value = self.identifier.get_value_or_default(current_config, required_path)
+                    if actual_value == None: # current config does not have this value at all
+                        continue
+                    if actual_value != required_value:
+                        extended_move = JsonMove.from_operation({"op":"replace", "path":required_path, "value":required_value})
+                        if extended_move not in processed_moves:
+                            processed_moves.add(extended_move)
+                            yield extended_move
 
-        if to_flip_admin_down_ports:
-            yield self._flip_admin_down_move(move, to_flip_admin_down_ports)
+        # If some changes to the requiring paths are still to take place and the move has changes
+        # to the required path, flip the required path to the required value.
+        # E.g. if there are still port-critical changes left and the move has changes to the port
+        #      admin status, flip the port to admin down in the move
+        # This makes sure we don't change the required path unnecessarily.
+        flip_path_value_tuples = set()
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, target_config):
+                for required_path, required_value in data[path]:
+                    current_value = self.identifier.get_value_or_default(current_config, required_path)
+                    simulated_value = self.identifier.get_value_or_default(simulated_config, required_path)
+                    if current_value != simulated_value and simulated_value != required_value:
+                        flip_path_value_tuples.add((required_path, required_value))
 
-    def _get_turn_admin_down_move(self, port_name):
-        path = self.path_addressing.create_path(["PORT", port_name, "admin_status"])
-        value = "down"
-        operation = self.operation_wrapper.create(OperationType.REPLACE, path, value)
-        return JsonMove.from_operation(operation)
+        if flip_path_value_tuples:
+            extended_move = self._flip(move, flip_path_value_tuples)
+            yield extended_move
 
-    def _flip_admin_down_move(self, move, port_names):
+    def _flip(self, move, flip_path_value_tuples):
         new_value = copy.deepcopy(move.value)
         move_tokens = self.path_addressing.get_path_tokens(move.path)
-        for port_name in port_names:
-            target_status_tokens = ["PORT", port_name, "admin_status"]
-            new_value = self._change_value(target_status_tokens, "down", move_tokens, new_value)
+        for field_path, field_value in flip_path_value_tuples:
+            field_tokens = self.path_addressing.get_path_tokens(field_path)
+            new_value = self._change_value(field_tokens, field_value, move_tokens, new_value)
 
         operation = self.operation_wrapper.create(move.op_type, move.path, new_value)
         return JsonMove.from_operation(operation)
 
-    def _change_value(self, status_tokens, status_value, move_tokens, move_value):
-        rem_tokens = status_tokens[len(move_tokens):]
+    def _change_value(self, field_tokens, field_value, move_tokens, move_value):
+        rem_tokens = field_tokens[len(move_tokens):]
         if not rem_tokens:
-            return status_value
+            return field_value
 
         move_value_ptr = move_value
         for token in rem_tokens[:-1]:
             move_value_ptr = move_value_ptr[token]
 
         last_token = rem_tokens[-1]
-        move_value_ptr[last_token] = status_value
+        move_value_ptr[last_token] = field_value
         return move_value
 
 class UpperLevelMoveExtender:
@@ -1255,7 +1368,7 @@ class SortAlgorithmFactory:
 
     def create(self, algorithm=Algorithm.DFS):
         move_generators = [LowLevelMoveGenerator(self.path_addressing)]
-        move_extenders = [PortCriticalMoveExtender(self.path_addressing, self.operation_wrapper),
+        move_extenders = [RequiredValueMoveExtender(self.path_addressing, self.operation_wrapper),
                           UpperLevelMoveExtender(),
                           DeleteInsteadOfReplaceMoveExtender(),
                           DeleteRefsMoveExtender(self.path_addressing)]
@@ -1264,7 +1377,7 @@ class SortAlgorithmFactory:
                            NoDependencyMoveValidator(self.path_addressing, self.config_wrapper),
                            UniqueLanesMoveValidator(),
                            CreateOnlyMoveValidator(self.path_addressing),
-                           PortCriticalMoveValidator(self.path_addressing),
+                           RequiredValueMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]
 
         move_wrapper = MoveWrapper(move_generators, move_extenders, move_validators)
