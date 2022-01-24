@@ -128,6 +128,14 @@ PORT_STATE_UP = 'U'
 PORT_STATE_DOWN = 'D'
 PORT_STATE_DISABLED = 'X'
 
+def counter_name_to_pos(name):
+    if not hasattr(counter_name_to_pos, "map"):
+        counter_name_to_pos.map = {}
+        for pos, cntr_list in counter_bucket_dict.items():
+            for counter_name in cntr_list:
+                counter_name_to_pos.map[counter_name] = pos
+
+    return counter_name_to_pos.map[name]
 
 class Portstat(object):
     def __init__(self, namespace, display_option):
@@ -156,23 +164,22 @@ class Portstat(object):
         """
             Get the counters info from database.
         """
-        def get_counters(table_id):
+        def get_counters(db_id, table_id):
             """
                 Get the counters from specific table.
             """
-            fields = ["0"]*BUCKET_NUM
+            fields = [0]*BUCKET_NUM
 
             for pos, cntr_list in counter_bucket_dict.items():
                 for counter_name in cntr_list:
                     full_table_id = COUNTER_TABLE_PREFIX + table_id
-                    counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
+                    counter_data =  self.db.get(db_id, full_table_id, counter_name)
                     if counter_data is None:
                         fields[pos] = STATUS_NA
                     elif fields[pos] != STATUS_NA:
-                        fields[pos] = str(int(fields[pos]) + int(counter_data))
+                        fields[pos] = int(fields[pos]) + int(counter_data)
 
-            cntr = NStats._make(fields)
-            return cntr
+            return fields
 
         def get_rates(table_id):
             """
@@ -186,23 +193,81 @@ class Portstat(object):
                     fields[pos] = STATUS_NA
                 elif fields[pos] != STATUS_NA:
                     fields[pos] = float(counter_data)
-            cntr = RateStats._make(fields)
-            return cntr
+
+            return fields
+
+        def add_gearbox_cnstat(port):
+            """
+                Add gearbox port counter
+            """
+            cnstat_line = get_counters(self.db.GB_COUNTERS_DB, \
+                    gbcounter_port_name_map[port + "_line"])
+            cnstat_system = get_counters(self.db.GB_COUNTERS_DB, \
+                    gbcounter_port_name_map[port + "_system"])
+
+            if not cnstat_line or not cnstat_system:
+                return
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_IF_IN_ERRORS')] += \
+                cnstat_system[counter_name_to_pos('SAI_PORT_STAT_IF_OUT_ERRORS')] + \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_IF_IN_ERRORS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_IF_IN_DISCARDS')] += \
+                cnstat_system[counter_name_to_pos('SAI_PORT_STAT_IF_OUT_DISCARDS')] + \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_IF_IN_DISCARDS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_IF_OUT_ERRORS')] += \
+                cnstat_system[counter_name_to_pos('SAI_PORT_STAT_IF_IN_ERRORS')] + \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_IF_OUT_ERRORS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_IF_OUT_DISCARDS')] += \
+                cnstat_system[counter_name_to_pos('SAI_PORT_STAT_IF_IN_DISCARDS')] + \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_IF_OUT_DISCARDS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS')] += \
+                cnstat_system[counter_name_to_pos('SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS')] + \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS')] += \
+                cnstat_system[counter_name_to_pos('SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS')] + \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS')] += \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_ETHER_STATS_JABBERS')] += \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_ETHER_STATS_JABBERS')]
+
+            cnstat[port][counter_name_to_pos('SAI_PORT_STAT_ETHER_STATS_FRAGMENTS')] += \
+                cnstat_line[counter_name_to_pos('SAI_PORT_STAT_ETHER_STATS_FRAGMENTS')]
+
 
         # Get the info from database
-        counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP);
+        counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
+        gbcounter_port_name_map = self.db.get_all(self.db.GB_COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
         # Build a dictionary of the stats
         cnstat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
         ratestat_dict = OrderedDict()
         if counter_port_name_map is None:
             return cnstat_dict, ratestat_dict
+
+        cnstat = OrderedDict()
+        ratestat = OrderedDict()
         for port in natsorted(counter_port_name_map):
             port_name = port.split(":")[0]
             if self.multi_asic.skip_display(constants.PORT_OBJ, port_name):
                 continue
-            cnstat_dict[port] = get_counters(counter_port_name_map[port])
-            ratestat_dict[port] = get_rates(counter_port_name_map[port])
+            cnstat[port] = get_counters(self.db.COUNTERS_DB, counter_port_name_map[port])
+            ratestat[port] = get_rates(counter_port_name_map[port])
+
+            if port + "_line" in gbcounter_port_name_map and \
+                port + "_system" in gbcounter_port_name_map:
+                add_gearbox_cnstat(port)
+
+            cnstat_dict[port] = NStats._make([str(n) for n in cnstat[port]])
+            ratestat_dict[port] = RateStats._make([str(n) for n in ratestat[port]])
+
         return cnstat_dict, ratestat_dict
 
     def get_port_speed(self, port_name):

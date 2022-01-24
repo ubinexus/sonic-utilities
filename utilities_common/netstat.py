@@ -115,6 +115,6 @@ def format_util(brate, port_rate):
     if brate == STATUS_NA or port_rate == STATUS_NA:
         return STATUS_NA
     else:
-        util = brate/(float(port_rate)*1000*1000/8.0)*100
+        util = float(brate)/(float(port_rate)*1000*1000/8.0)*100
         return "{:.2f}%".format(util)
 
