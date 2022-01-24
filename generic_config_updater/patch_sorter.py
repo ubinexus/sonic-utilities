@@ -333,7 +333,7 @@ class MoveWrapper:
             for newmove in extender.extend(move, diff):
                 yield newmove
 
-class ConfigFilter:
+class JsonPointerFilter:
     """
     A filtering class to get the paths matching the filter from the given config.
     The patterns:
@@ -450,14 +450,14 @@ class RequiredValueIdentifier:
         for setting in self.settings:
             required_pattern = setting["required_pattern"]
             required_parent_pattern = required_pattern[:-1]
-            # replace the '@' with '*' so it can be used as a ConfigFilter
+            # replace the '@' with '*' so it can be used as a JsonPointerFilter
             required_parent_pattern_with_asterisk = [token.replace("@", "*") for token in required_parent_pattern]
-            setting["required_parent_filter"] = ConfigFilter([required_parent_pattern_with_asterisk], path_addressing)
+            setting["required_parent_filter"] = JsonPointerFilter([required_parent_pattern_with_asterisk], path_addressing)
             setting["required_field_name"] = required_pattern[-1]
             for index, token in enumerate(required_pattern):
                 if token == "@":
                     setting["common_key_index"] = index
-            setting["requiring_filter"] = ConfigFilter(setting["requiring_patterns"], path_addressing)
+            setting["requiring_filter"] = JsonPointerFilter(setting["requiring_patterns"], path_addressing)
 
 
     def get_required_value_data(self, configs):
@@ -565,7 +565,7 @@ class CreateOnlyMoveValidator:
         self.path_addressing = path_addressing
 
         # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
-        self.create_only_filter = ConfigFilter([
+        self.create_only_filter = JsonPointerFilter([
                 ["PORT", "*", "lanes"],
                 ["LOOPBACK_INTERFACE", "*", "vrf_name"],
                 ["BGP_NEIGHBOR", "*", "holdtime"],
