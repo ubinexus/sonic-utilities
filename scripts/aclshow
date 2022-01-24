@@ -161,7 +161,7 @@ class AclStat(object):
         if not self.acl_counters[key]:
             return 'N/A'
 
-        if key in self.saved_acl_counters:
+        if key in self.saved_acl_counters and self.saved_acl_counters[key]:
             new_value = int(self.acl_counters[key][type]) - int(self.saved_acl_counters[key][type])
             if new_value >= 0:
                 return str(new_value)
