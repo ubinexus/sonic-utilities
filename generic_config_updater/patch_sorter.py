@@ -420,6 +420,12 @@ class JsonPointerFilter:
         return pattern_token == token
 
 class RequiredValueIdentifier:
+    """
+    A class that identifies the config that requires other fields to be of specific value
+    The "requiring" config is the config that requires other fields to be of specific value.
+    The "required" config is the confing that needs to be of specific value.
+    E.g. Changes to "QUEUE" table requires the corresponding "PORT" to be admin down.
+    """
     def __init__(self, path_addressing):
         # TODO: port-critical fields are hard-coded for now, it should be moved to YANG models
         # settings format, each setting consist of:
@@ -850,11 +856,22 @@ class NoEmptyTableMoveValidator:
         return table not in config or config[table]
 
 class RequiredValueMoveValidator:
+    """
+    Check RequiredValueIdentifier class description first.
+
+    The validator checks the following:
+    - A move that is changing a requiring config, while the required path is not equal to the required value is rejected
+      E.g. A move that is changing "QUEUE" table while the corresponding "PORT" is not admin down is rejected
+    - A move that is changing the required path value to something other than the required value, while there are
+      requiring changes left is rejected
+      E.g. A move is changing "PORT" to admin up from down, while "QUEUE" table still have changes left is rejected.
+    """
     def __init__(self, path_addressing):
         self.path_addressing = path_addressing
         self.identifier = RequiredValueIdentifier(path_addressing)
 
     def validate(self, move, diff):
+        # ignore full config removal because it is not possible by JsonPatch lib
         if move.op_type == OperationType.REMOVE and move.path == "":
             return
 
@@ -875,7 +892,7 @@ class RequiredValueMoveValidator:
             if self.path_addressing.is_config_different(path, current_config, simulated_config):
                 for required_path, required_value in data[path]:
                     actual_value = self.identifier.get_value_or_default(current_config, required_path)
-                    if actual_value == None: # current config does not have this value at all
+                    if actual_value is None: # current config does not have this value at all
                         continue
                     if actual_value != required_value:
                         return False
@@ -885,7 +902,6 @@ class RequiredValueMoveValidator:
         # E.g. if there are still port-critical changes left and the move has changes to the port
         #      admin status, reject the move
         # This makes sure we don't change the required path unnecessarily.
-        flip_path_value_tuples = set()
         for path in data:
             if self.path_addressing.is_config_different(path, current_config, target_config):
                 for required_path, required_value in data[path]:
@@ -1117,12 +1133,26 @@ class SingleRunLowLevelMoveGenerator:
         return counts
 
 class RequiredValueMoveExtender:
+    """
+    Check RequiredValueIdentifier class description first.
+
+    The extender does the following:
+    - If the move that is changing a requiring config, while the required path is not equal to the required value, then
+      generate a move to turn the required path to the required value.
+      E.g. A move that is changing "QUEUE" table while the corresponding "PORT" is not admin down, then generate
+           a move to turn the "PORT" to admin down.
+    - If a move that is changing the required path value to something other than the required value, while there are
+      requiring changes left, then flip all the required paths in the move to the required value.
+      E.g. A move is changing "PORT" to admin up from down, while "QUEUE" table still have changes left, then flip
+           the "PORT" to admin down in the move.
+    """
     def __init__(self, path_addressing, operation_wrapper):
         self.path_addressing = path_addressing
         self.identifier = RequiredValueIdentifier(path_addressing)
         self.operation_wrapper = operation_wrapper
 
     def extend(self, move, diff):
+        # ignore full config removal because it is not possible by JsonPatch lib
         if move.op_type == OperationType.REMOVE and move.path == "":
             return
 
@@ -1139,14 +1169,14 @@ class RequiredValueMoveExtender:
 
         # If move is changing a requiring path while the required path does not have the required value,
         # flip the required path to the required value
-        # E.g. if the move is changing the port to admin up from down at the same time as
-        #      port-critical changes, flip the port to admin down
+        # E.g. if the move is changing port-critical config while the port is admin up, create a move to
+        #      turn the port admin down
         processed_moves = set()
         for path in data:
             if self.path_addressing.is_config_different(path, current_config, simulated_config):
                 for required_path, required_value in data[path]:
                     actual_value = self.identifier.get_value_or_default(current_config, required_path)
-                    if actual_value == None: # current config does not have this value at all
+                    if actual_value is None: # current config does not have this value at all
                         continue
                     if actual_value != required_value:
                         extended_move = JsonMove.from_operation({"op":"replace", "path":required_path, "value":required_value})

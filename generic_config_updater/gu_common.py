@@ -554,7 +554,8 @@ class PathAddressing:
             # Source: Check examples in https://netopeer.liberouter.org/doc/libyang/master/html/howto_x_path.html
             return [f"{token}[.='{value}']"]
 
-        raise ValueError("Token not found")
+        raise ValueError(f"Path token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
+                         f"path_tokens: {path_tokens}\n  config: {config}")
 
     def _extractKey(self, tableKey, keys):
         keyList = keys.split()
@@ -718,7 +719,8 @@ class PathAddressing:
             list_idx = list_config.index(leaf_list_value)
             return [leaf_list_name, list_idx]
 
-        raise Exception("no leaf")
+        raise ValueError(f"Xpath token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
+                         f"xpath_tokens: {xpath_tokens}\n  config: {config}")
 
     def _extract_key_dict(self, list_token):
         # Example: VLAN_MEMBER_LIST[name='Vlan1000'][port='Ethernet8']
