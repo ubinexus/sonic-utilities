@@ -310,9 +310,9 @@ def test_clear_and_populate_counters_db():
     # Counters populated.
     conn = dbconnector.SonicV2Connector()
     conn.connect(conn.COUNTERS_DB)
-    conn.set(conn.COUNTERS_DB, 'COUNTERS:DATAACL_NO_COUNTER:RULE_NO_COUNTER', 'packets', '100')
-    conn.set(conn.COUNTERS_DB, 'COUNTERS:DATAACL_NO_COUNTER:RULE_NO_COUNTER', 'bytes', '100')
+    conn.set(conn.COUNTERS_DB, aclshow.COUNTERS + ':oid:0x900000000000b', aclshow.COUNTER_PACKETS_ATTR, '100')
+    conn.set(conn.COUNTERS_DB, aclshow.COUNTERS + ':oid:0x900000000000b', aclshow.COUNTER_BYTES_ATTR, '100')
 
-    with mock.patch('swsssdk.SonicV2Connector', return_value=conn):
+    with mock.patch('aclshow.SonicV2Connector', return_value=conn):
         test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=False, rules=None, tables=None, verbose=None)
     assert test.result.getvalue() == all_after_clear_and_populate_output
