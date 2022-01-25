@@ -1137,7 +1137,7 @@ class RequiredValueMoveExtender:
         # }
         data = self.identifier.get_required_value_data([current_config, simulated_config, target_config])
 
-        # If move is changing a requiring path at the same time as the required path,
+        # If move is changing a requiring path while the required path does not have the required value,
         # flip the required path to the required value
         # E.g. if the move is changing the port to admin up from down at the same time as
         #      port-critical changes, flip the port to admin down
