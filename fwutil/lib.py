@@ -790,7 +790,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
     def update_au_status_file(self, au_info_data, filename=FW_AU_STATUS_FILE_PATH):
         with open(filename, 'w') as f:
-            json.dump(au_info_data, f)
+            json.dump(au_info_data, f, indent=4, sort_keys=True)
 
     def read_au_status_file_if_exists(self, filename=FW_AU_STATUS_FILE_PATH):
         data = None
