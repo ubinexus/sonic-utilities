@@ -906,7 +906,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
                 if data is not None:
                     boot_type = list(data.keys())[0]
-                    if boot_type is "none":
+                    if boot_type is "none" and boot_type is not boot:
                         click.echo("Allow firmware auto-update {} again on top of the previous {} reboot".format(boot, boot_type))
                         return True
 
