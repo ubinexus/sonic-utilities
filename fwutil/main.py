@@ -89,10 +89,10 @@ def update(ctx):
     ctx.obj[COMPONENT_PATH_CTX_KEY] = [ ]
 
 
-# 'auto_update' group
+# 'all_update' group
 @click.group()
 @click.pass_context
-def auto_update(ctx):
+def all_update(ctx):
     """Auto-update platform firmware"""
     pass
 
@@ -343,7 +343,7 @@ def fw_update(ctx, yes, force, image):
 
 
 # 'fw' subcommand
-@auto_update.command(name='fw')
+@all_update.command(name='fw')
 @click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Update firmware using current/next SONiC image")
 @click.option('-f', '--fw_image', 'fw_image', help="Custom FW package path")
 @click.option('-b', '--boot', 'boot', type=click.Choice(["any", "cold", "fast", "warm", "none"]), default="none", show_default=True, help="Necessary boot option after the firmware update")
