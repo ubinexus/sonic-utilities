@@ -1319,7 +1319,7 @@ class TestRequiredValueMoveValidator(unittest.TestCase):
         self.operation_wrapper = OperationWrapper()
         path_addressing = PathAddressing()
         self.validator = ps.RequiredValueMoveValidator(path_addressing)
-        self.validator.identifier.settings[0]["requiring_filter"] = ps.ConfigFilter([
+        self.validator.identifier.settings[0]["requiring_filter"] = ps.JsonPointerFilter([
                 ["BUFFER_PG", "@|*"],
                 ["PORT", "@", "mtu"]
             ],
@@ -2036,7 +2036,7 @@ class TestRequiredValueMoveExtender(unittest.TestCase):
     def setUp(self):
         path_addressing = PathAddressing()
         self.extender = ps.RequiredValueMoveExtender(path_addressing, OperationWrapper())
-        self.extender.identifier.settings[0]["requiring_filter"] = ps.ConfigFilter([
+        self.extender.identifier.settings[0]["requiring_filter"] = ps.JsonPointerFilter([
                 ["BUFFER_PG", "@|*"],
                 ["PORT", "@", "mtu"]
             ],
