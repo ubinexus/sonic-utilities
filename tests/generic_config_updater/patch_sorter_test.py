@@ -698,16 +698,51 @@ class TestRequiredValueIdentifier(unittest.TestCase):
                     "scheduler": "scheduler.0"
                 }
             },
+            "BUFFER_PORT_INGRESS_PROFILE_LIST": {
+                "Ethernet0": {
+                    "profile_list": ["ingress_lossy_profile"]
+                },
+                "Ethernet4": {
+                    "profile_list": ["ingress_lossy_profile"]
+                },
+            },
+            "BUFFER_PORT_EGRESS_PROFILE_LIST": {
+                "Ethernet4": {
+                    "profile_list": ["egress_lossless_profile", "egress_lossy_profile"]
+                },
+                "Ethernet8": {
+                    "profile_list": ["ingress_lossy_profile"]
+                },
+            },
+            "PORT_QOS_MAP": {
+                "Ethernet4": {
+                    "dscp_to_tc_map": "AZURE",
+                    "pfc_enable": "3,4",
+                    "pfc_to_queue_map": "AZURE",
+                    "tc_to_pg_map": "AZURE",
+                    "tc_to_queue_map": "AZURE"
+                },
+                "Ethernet12": {
+                    "dscp_to_tc_map": "AZURE",
+                    "pfc_enable": "3,4",
+                    "pfc_to_queue_map": "AZURE",
+                    "tc_to_pg_map": "AZURE",
+                    "tc_to_queue_map": "AZURE"
+                },
+            },
             "PORT": {
                 "Ethernet4": {}
             }
         }
-        port_name = "Ethernet4"
         expected = OrderedDict([
             ('/BUFFER_PG/Ethernet4|0', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet4', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/BUFFER_PORT_INGRESS_PROFILE_LIST/Ethernet4', [('/PORT/Ethernet4/admin_status', 'down')]),
             ('/BUFFER_QUEUE/Ethernet4|1', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/PORT_QOS_MAP/Ethernet4', [('/PORT/Ethernet4/admin_status', 'down')]),
             ('/QUEUE/Ethernet4|2', [('/PORT/Ethernet4/admin_status', 'down')]),
-            ('/QUEUE/Ethernet4|7-8', [('/PORT/Ethernet4/admin_status', 'down')])])
+            ('/QUEUE/Ethernet4|7-8', [('/PORT/Ethernet4/admin_status', 'down')]),
+        ])
 
         actual = identifier.get_required_value_data([config])
 
