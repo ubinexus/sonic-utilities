@@ -273,7 +273,7 @@ class PathAddressing:
         return JsonPointer.from_parts(tokens).path
 
     def has_path(self, doc, path):
-        return self.get_from_path is not None
+        return self.get_from_path(doc, path) is not None
 
     def get_from_path(self, doc, path):
         return JsonPointer(path).get(doc, default=None)
