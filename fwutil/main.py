@@ -380,7 +380,7 @@ def fw_auto_update(ctx, boot, image=None, fw_image=None):
         if cup is not None:
             au_component_list = cup.get_update_available_components()
             if au_component_list:
-                if cup.is_first_auto_update(boot):
+                if cup.is_capable_auto_update(boot):
                     for au_component in au_component_list:
                         cup.auto_update_firmware(au_component, boot)
                     log_helper.print_warning("All firmware auto-update has been performed")

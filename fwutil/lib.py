@@ -894,7 +894,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
             raise
 
 
-    def is_first_auto_update(self, boot):
+    def is_capable_auto_update(self, boot):
         task_file = None
         status_file = None
         for task_file in glob.glob(os.path.join(FIRMWARE_AU_STATUS_DIR, FW_AU_TASK_FILE_REGEX)):
@@ -903,6 +903,13 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 return False
         for status_file in glob.glob(os.path.join(FIRMWARE_AU_STATUS_DIR, FW_AU_STATUS_FILE)):
             if status_file is not None:
+                data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
+                if data is not None:
+                    boot_type = list(data.keys())[0]
+                    if boot_type is "none":
+                        click.echo("Allow firmware auto-update {} again on top of the previous {} reboot".format(boot, boot_type))
+                        return True
+
                 click.echo("{} firmware auto-update is already performed, {} firmware auto update is not allowed any more".format(status_file, boot))
                 return False
         click.echo("Firmware auto-update for boot_type {} is allowed".format(boot))
