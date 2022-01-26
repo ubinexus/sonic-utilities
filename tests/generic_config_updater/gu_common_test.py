@@ -735,6 +735,12 @@ class TestPathAddressing(unittest.TestCase):
         check(path="/PORTCHANNEL_INTERFACE/PortChannel0001|1.1.1.1~124",
               xpath="/sonic-portchannel:sonic-portchannel/PORTCHANNEL_INTERFACE/PORTCHANNEL_INTERFACE_IPPREFIX_LIST[name='PortChannel0001'][ip_prefix='1.1.1.1/24']",
               config=Files.CONFIG_DB_WITH_PORTCHANNEL_INTERFACE)
+        check(path="/BGP_NEIGHBOR/1.2.3.4/holdtime",
+              xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_TEMPLATE_LIST[neighbor='1.2.3.4']/holdtime",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
+              xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
 
     def test_convert_xpath_to_path(self):
         def check(xpath, path, config=None):
@@ -798,6 +804,12 @@ class TestPathAddressing(unittest.TestCase):
         check(xpath="/sonic-portchannel:sonic-portchannel/PORTCHANNEL_INTERFACE/PORTCHANNEL_INTERFACE_IPPREFIX_LIST[name='PortChannel0001'][ip_prefix='1.1.1.1/24']",
               path="/PORTCHANNEL_INTERFACE/PortChannel0001|1.1.1.1~124",
               config=Files.CONFIG_DB_WITH_PORTCHANNEL_INTERFACE)
+        check(xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_TEMPLATE_LIST[neighbor='1.2.3.4']/holdtime",
+              path="/BGP_NEIGHBOR/1.2.3.4/holdtime",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
+              path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
 
     def test_has_path(self):
         def check(config, path, expected):
