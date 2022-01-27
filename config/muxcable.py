@@ -240,6 +240,14 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
         else:
             port_status_dict[port_name] = 'OK'
 
+def update_configdb_pck_loss_data(config_db, port, val):
+    configdb_state = get_value_for_key_in_config_tbl(config_db, port, "state", "MUX_CABLE")
+    ipv4_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv4", "MUX_CABLE")
+    ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
+
+    config_db.set_entry("MUX_CABLE", port, {"state": configdb_state,
+                                                "server_ipv4": ipv4_value, "server_ipv6": ipv6_value, 
+                                                "pck_loss_data_reset": val})
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
@@ -356,7 +364,7 @@ def pckloss(db, action, port):
         # replace these with correct macros
         per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         per_npu_configdb[asic_id].connect()
-        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
@@ -380,7 +388,7 @@ def pckloss(db, action, port):
             pck_loss_table_keys = port_table_keys[asic_index]
             logical_key = "LINK_PROBE_STATS|{}".format(port)
             if logical_key in pck_loss_table_keys:
-                per_npu_configdb[asic_index].set_entry("MUX_CABLE", port, {"pck_loss_data_reset": "reset"})
+                update_configdb_pck_loss_data(per_npu_configdb[asic_index], port, "reset")
                 sys.exit(CONFIG_SUCCESSFUL)
             else:
                 click.echo("this is not a valid port present on pck_loss_stats".format(port))
@@ -395,7 +403,7 @@ def pckloss(db, action, port):
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for key in port_table_keys[asic_id]:
                 logical_port = key.split("|")[1]
-                per_npu_configdb[asic_id].set_entry("MUX_CABLE", logical_port, {"pck_loss_data_reset": "reset"})
+                update_configdb_pck_loss_data(per_npu_configdb[asic_id], logical_port, "reset")
 
         sys.exit(CONFIG_SUCCESSFUL)
 
