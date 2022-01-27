@@ -414,6 +414,26 @@ show_muxcable_metrics_expected_output_json = """\
 }
 """
 
+show_muxcable_pckloss_expected_output="""\
+PORT       COUNT                 VALUE
+---------  ------------------  -------
+Ethernet0  pck_loss_count          612
+Ethernet0  pck_expected_count      840
+PORT       EVENT                      TIME
+---------  -------------------------  ---------------------------
+Ethernet0  link_prober_unknown_start  2022-Jan-26 03:13:05.366900
+Ethernet0  link_prober_unknown_end    2022-Jan-26 03:17:35.446580
+"""
+
+show_muxcable_pckloss_expected_output_json="""\
+{
+    "link_prober_unknown_start": "2022-Jan-26 03:13:05.366900",
+    "link_prober_unknown_end": "2022-Jan-26 03:17:35.446580",
+    "pck_loss_count": "612",
+    "pck_expected_count": "840"
+}
+"""
+
 class TestMuxcable(object):
     @classmethod
     def setup_class(cls):
@@ -1290,6 +1310,32 @@ class TestMuxcable(object):
                                "Ethernet0", "--active"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_firmware_version_active_expected_output
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_pckloss_port(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["pckloss"],
+                               ["Ethernet0"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_pckloss_expected_output
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_pckloss_port_json(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["pckloss"],
+                               ["Ethernet0", "--json"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_pckloss_expected_output_json
 
     @classmethod
     def teardown_class(cls):
