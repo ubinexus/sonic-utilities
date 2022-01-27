@@ -352,6 +352,7 @@ def pckloss(db, action, port):
     port = platform_sfputil_helper.get_interface_name(port, db)
 
     port_table_keys = {}
+    mux_cable_table_keys = {}
     pck_loss_table_keys = {}
     per_npu_configdb = {}
     per_npu_statedb = {}
@@ -369,7 +370,7 @@ def pckloss(db, action, port):
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'LINK_PROBE_STATS|*')
-
+        mux_cable_table_keys[asic_id] = per_npu_configdb[asic_id].get_table("MUX_CABLE").keys() # keys here are port names
     if port is not None and port != "all":
 
         asic_index = None
@@ -403,7 +404,8 @@ def pckloss(db, action, port):
             asic_id = multi_asic.get_asic_index_from_namespace(namespace)
             for key in port_table_keys[asic_id]:
                 logical_port = key.split("|")[1]
-                update_configdb_pck_loss_data(per_npu_configdb[asic_id], logical_port, "reset")
+                if logical_port in mux_cable_table_keys[asic_id]:
+                    update_configdb_pck_loss_data(per_npu_configdb[asic_id], logical_port, "reset")
 
         sys.exit(CONFIG_SUCCESSFUL)
 
