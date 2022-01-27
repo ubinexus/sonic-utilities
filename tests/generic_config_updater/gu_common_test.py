@@ -675,6 +675,20 @@ class TestPathAddressing(unittest.TestCase):
         # Assert
         self.assertEqual(expected, actual)
 
+    def test_find_ref_paths__path_and_ref_paths_are_under_same_yang_container__returns_ref_paths(self):
+        # Arrange
+        path = "/LOOPBACK_INTERFACE/Loopback0"
+        expected = [
+            "/LOOPBACK_INTERFACE/Loopback0|10.1.0.32~132",
+            "/LOOPBACK_INTERFACE/Loopback0|1100:1::32~1128",
+        ]
+
+        # Act
+        actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_LOOPBACK_INTERFACES)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
     def test_find_ref_paths__does_not_remove_tables_without_yang(self):
         # Arrange
         config = Files.CONFIG_DB_AS_JSON # This has a table without yang named 'TABLE_WITHOUT_YANG'
