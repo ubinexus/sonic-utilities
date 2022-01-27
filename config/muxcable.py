@@ -341,13 +341,13 @@ def mode(db, state, port, json_output):
         sys.exit(CONFIG_SUCCESSFUL)
 
 
- #'muxcable' command ("config muxcable pckloss reset <port|all>")
+ #'muxcable' command ("config muxcable packetloss reset <port|all>")
 @muxcable.command()
 @click.argument('action', metavar='<action_name>', required=True, type=click.Choice(["reset"]))
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @clicommon.pass_db
-def pckloss(db, action, port):
-    """config muxcable pckloss reset"""
+def packetloss(db, action, port):
+    """config muxcable packetloss reset"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
 
