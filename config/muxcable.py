@@ -333,6 +333,72 @@ def mode(db, state, port, json_output):
         sys.exit(CONFIG_SUCCESSFUL)
 
 
+ #'muxcable' command ("config muxcable pckloss reset <port|all>")
+@muxcable.command()
+@click.argument('action', metavar='<action_name>', required=True, type=click.Choice(["reset"]))
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@clicommon.pass_db
+def pckloss(db, action, port):
+    """config muxcable pckloss reset"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    port_table_keys = {}
+    pck_loss_table_keys = {}
+    per_npu_configdb = {}
+    per_npu_statedb = {}
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        # replace these with correct macros
+        per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_configdb[asic_id].connect()
+        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'LINK_PROBE_STATS|*')
+
+    if port is not None and port != "all":
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil.get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+                sys.exit(CONFIG_FAIL)
+
+        if per_npu_statedb[asic_index] is not None:
+            pck_loss_table_keys = port_table_keys[asic_index]
+            logical_key = "LINK_PROBE_STATS|{}".format(port)
+            if logical_key in pck_loss_table_keys:
+                per_npu_configdb[asic_index].set_entry("MUX_CABLE", port, {"pck_loss_data_reset": "reset"})
+                sys.exit(CONFIG_SUCCESSFUL)
+            else:
+                click.echo("this is not a valid port present on pck_loss_stats".format(port))
+                sys.exit(CONFIG_FAIL)
+        else:
+            click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+            sys.exit(CONFIG_FAIL)
+
+    elif port == "all" and port is not None:
+
+        for namespace in namespaces:
+            asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+            for key in port_table_keys[asic_id]:
+                logical_port = key.split("|")[1]
+                per_npu_configdb[asic_id].set_entry("MUX_CABLE", logical_port, {"pck_loss_data_reset": "reset"})
+
+        sys.exit(CONFIG_SUCCESSFUL)
+
 @muxcable.group(cls=clicommon.AbbreviationGroup)
 def prbs():
     """Enable/disable PRBS mode on a port"""

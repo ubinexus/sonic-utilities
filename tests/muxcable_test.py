@@ -798,6 +798,16 @@ class TestMuxcable(object):
 
         assert result.exit_code == 1
 
+    def test_config_muxcable_pckloss_reset_Ethernet0(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('sonic_platform_base.sonic_sfp.sfputilhelper') as patched_util:
+            patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
+            result = runner.invoke(config.config.commands["muxcable"].commands["pckloss"], ["reset", "Ethernet0"], obj=db)
+
+        assert result.exit_code == 0
+
     @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
     @mock.patch('sonic_y_cable.y_cable.get_eye_info', mock.MagicMock(return_value=[0, 0]))
     def test_show_muxcable_eye_info(self):
