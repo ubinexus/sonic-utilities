@@ -679,8 +679,8 @@ class TestPathAddressing(unittest.TestCase):
         # Arrange
         path = "/LOOPBACK_INTERFACE/Loopback0"
         expected = [
-            "/LOOPBACK_INTERFACE/Loopback0|10.1.0.32~132",
-            "/LOOPBACK_INTERFACE/Loopback0|1100:1::32~1128",
+            self.path_addressing.create_path(["LOOPBACK_INTERFACE", "Loopback0|10.1.0.32/32"]),
+            self.path_addressing.create_path(["LOOPBACK_INTERFACE", "Loopback0|1100:1::32/128"]),
         ]
 
         # Act
