@@ -772,7 +772,7 @@ class PathAddressing:
             return None
 
         # a model can be a single dict or a list of dictionaries, unify to a list of dictionaries
-        if isinstance(uses_s, dict):
+        if not isinstance(uses_s, list):
             uses_s = [uses_s]
 
         sy = self._create_sonic_yang_with_loaded_models()
@@ -780,14 +780,21 @@ class PathAddressing:
         table_module = sy.confDbYangMap[table]['yangModule']
         # uses Example: "@name": "bgpcmn:sonic-bgp-cmn"
         for uses in uses_s:
+            if not isinstance(uses, dict):
+                raise GenericConfigUpdaterError(f"'uses' is expected to be a dictionary found '{type(uses)}'.\n" \
+                                                f"  uses: {uses}\n  model: {model}\n  table: {table}\n  token: {token}")
+
             # Assume ':'  means reference to another module
             if ':' in uses['@name']:
-                prefix = uses['@name'].split(':')[0].strip()
-                uses_module = sy._findYangModuleFromPrefix(prefix, table_module)
+                name_parts = uses['@name'].split(':')
+                prefix = name_parts[0].strip()
+                uses_module_name = sy._findYangModuleFromPrefix(prefix, table_module)
+                grouping = name_parts[-1].strip()
             else:
-                uses_module = table_module
-            grouping = uses['@name'].split(':')[-1].strip()
-            leafs = sy.preProcessedYang['grouping'][uses_module][grouping]
+                uses_module_name = table_module['@name']
+                grouping = uses['@name']
+
+            leafs = sy.preProcessedYang['grouping'][uses_module_name][grouping]
 
             leaf_model = self._get_model(leafs, token)
             if leaf_model:

@@ -741,6 +741,12 @@ class TestPathAddressing(unittest.TestCase):
         check(path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
               xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
               config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/BGP_MONITORS/5.6.7.8/name",
+              xpath="/sonic-bgp-monitor:sonic-bgp-monitor/BGP_MONITORS/BGP_MONITORS_LIST[addr='5.6.7.8']/name",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/LLDP/GLOBAL/mode",
+              xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
+              config=Files.CONFIG_DB_WITH_LLDP)
 
     def test_convert_xpath_to_path(self):
         def check(xpath, path, config=None):
@@ -810,6 +816,12 @@ class TestPathAddressing(unittest.TestCase):
         check(xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
               path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
               config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-bgp-monitor:sonic-bgp-monitor/BGP_MONITORS/BGP_MONITORS_LIST[addr='5.6.7.8']/name",
+              path="/BGP_MONITORS/5.6.7.8/name",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
+              path="/LLDP/GLOBAL/mode",
+              config=Files.CONFIG_DB_WITH_LLDP)
 
     def test_has_path(self):
         def check(config, path, expected):
