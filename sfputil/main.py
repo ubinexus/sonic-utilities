@@ -593,6 +593,7 @@ def eeprom(port, dump_dom, namespace):
 
             if is_rj45_port_from_api(port_name):
                 output += "{}: SFP EEPROM is not applicable for RJ45 port\n".format(port_name)
+                output += '\n'
                 continue
 
             try:
@@ -748,7 +749,10 @@ def fetch_error_status_from_platform_api(port):
         physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
         port_name = get_physical_port_name(logical_port_name, 1, False)
 
-        output.append([port_name, output_dict.get(physical_port_list[0])])
+        if is_rj45_port_from_api(logical_port_name):
+            output.append([port_name, "N/A"])
+        else:
+            output.append([port_name, output_dict.get(physical_port_list[0])])
 
     return output
 
@@ -772,7 +776,7 @@ def fetch_error_status_from_state_db(port, state_db):
     output = []
     for port in sorted_ports:
         if is_rj45_port_from_db(port, state_db):
-            description = "Error status is not applicable for RJ45 port."
+            description = "N/A"
         else:
             statestring = status[port].get('status')
             description = status[port].get('error')
@@ -848,7 +852,7 @@ def lpmode(port):
             return
 
         if is_rj45_port_from_api(logical_port_name):
-            output_table.append([port_name, "N/A"])
+            output_table.append([logical_port_name, "N/A"])
         else:
             if len(physical_port_list) > 1:
                 ganged = True
