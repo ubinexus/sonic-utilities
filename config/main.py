@@ -855,6 +855,10 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
             click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
             return False
 
+        if is_portchannel_present_in_db(config_db, dst_port):
+            click.echo("Error: Destination Interface {} is not supported".format(dst_port))
+            return False
+
         if interface_is_in_portchannel(portchannel_member_table, dst_port):
             click.echo("Error: Destination Interface {} has portchannel config".format(dst_port))
             return False
