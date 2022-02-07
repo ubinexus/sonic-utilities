@@ -285,6 +285,22 @@ class DBMigrator():
 
         return True
 
+    def migrate_config_db_mux_cable_table(self):
+        """Migrate `MUX_CABLE` table in config db to `LINKMGR_CABLE` table."""
+        data = self.configDB.get_table("MUX_CABLE")
+        if data:
+            for port, port_details in data.items():
+                self.configDB.set_entry("LINKMGR_CABLE", port, port_details)
+            self.configDB.delete_table("MUX_CABLE")
+
+    def migrate_config_db_linkmgr_config_table(self):
+        """Migrate `MUX_LINKMGR` table in config db to `LINK_MANAGER` table."""
+        data = self.configDB.get_table("MUX_LINKMGR")
+        if data:
+            for config_name, config in data.items():
+                self.configDB.set_entry("LINK_MANAGER", config_name, config)
+            self.configDB.delete_table("MUX_LINKMGR")
+
     def prepare_dynamic_buffer_for_warm_reboot(self, buffer_pools=None, buffer_profiles=None, buffer_pgs=None):
         '''
         This is the very first warm reboot of buffermgrd (dynamic) if the system reboot from old image by warm-reboot
@@ -630,6 +646,16 @@ class DBMigrator():
         Current latest version. Nothing to do here.
         """
         log.log_info('Handling version_2_0_4')
+        self.migrate_config_db_mux_cable_table()
+        self.migrate_config_db_linkmgr_config_table()
+        self.set_version('version_2_0_5')
+        return None
+
+    def version_2_0_5(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_5')
         return None
 
     def get_version(self):
