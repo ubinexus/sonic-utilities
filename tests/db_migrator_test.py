@@ -348,3 +348,27 @@ class TestQosDBFieldValueReferenceRemoveMigrator(object):
         self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         self.check_appl_db(dbmgtr.appDB, expected_appl_db)
         self.clear_dedicated_mock_dbs()
+
+
+class TestLinkMgrKeyMigrator(object):
+    """Class to test config db mux-related table migration."""
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_config_db_link_manager_key_migrator(self):
+        import db_migrator
+        dbconnector.dedicated_dbs["CONFIG_DB"] = os.path.join(mock_db_path, "config_db", "link-manager-input.json")
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs["CONFIG_DB"] = os.path.join(mock_db_path, "config_db", "link-manager-expected.json")
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, "version_2_0_5")
+
+        assert dbmgtr.configDB.get_table("LINKMGR_CABLE") == expected_db.cfgdb.get_table("LINKMGR_CABLE")
+        assert dbmgtr.configDB.get_table("LINK_MANAGER") == expected_db.cfgdb.get_table("LINK_MANAGER")
