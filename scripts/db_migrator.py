@@ -285,14 +285,6 @@ class DBMigrator():
 
         return True
 
-    def migrate_config_db_mux_cable_table(self):
-        """Migrate `MUX_CABLE` table in config db to `LINKMGR_CABLE` table."""
-        data = self.configDB.get_table("MUX_CABLE")
-        if data:
-            for port, port_details in data.items():
-                self.configDB.set_entry("LINKMGR_CABLE", port, port_details)
-            self.configDB.delete_table("MUX_CABLE")
-
     def migrate_config_db_linkmgr_config_table(self):
         """Migrate `MUX_LINKMGR` table in config db to `LINK_MANAGER` table."""
         data = self.configDB.get_table("MUX_LINKMGR")
@@ -646,7 +638,6 @@ class DBMigrator():
         Current latest version. Nothing to do here.
         """
         log.log_info('Handling version_2_0_4')
-        self.migrate_config_db_mux_cable_table()
         self.migrate_config_db_linkmgr_config_table()
         self.set_version('version_2_0_5')
         return None
