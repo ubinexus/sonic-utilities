@@ -41,8 +41,8 @@ try:
     pdp = PlatformDataProvider()
     log_helper = LogHelper()
 except ValueError as e:
-    print("Root privileges are required")
-    exit(0)
+    exit("Root privileges are required")
+
 # ========================= Helper functions ===================================
 
 def cli_show_help(ctx):
