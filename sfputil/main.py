@@ -661,6 +661,13 @@ def presence(port):
 
         logical_port_list = [port]
 
+    state_db = SonicV2Connector(host='127.0.0.1')
+    if state_db is not None:
+        state_db.connect(state_db.STATE_DB)
+    else:
+        click.echo("Failed to connect to STATE_DB")
+        return
+
     for logical_port_name in logical_port_list:
         ganged = False
         i = 1
@@ -676,13 +683,19 @@ def presence(port):
         for physical_port in physical_port_list:
             port_name = get_physical_port_name(logical_port_name, i, ganged)
 
-            try:
-                presence = platform_chassis.get_sfp(physical_port).get_presence()
-            except NotImplementedError:
-                click.echo("This functionality is currently not implemented for this platform")
-                sys.exit(ERROR_NOT_IMPLEMENTED)
+            if is_rj45_port_from_db(port_name, state_db):
+                status = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(port_name))
+                status_string = status.get('error')
+                if status_string == 'N/A':
+                    status_string = 'Present'
+            else:
+                try:
+                    presence = platform_chassis.get_sfp(physical_port).get_presence()
+                except NotImplementedError:
+                    click.echo("This functionality is currently not implemented for this platform")
+                    sys.exit(ERROR_NOT_IMPLEMENTED)
 
-            status_string = "Present" if presence else "Not present"
+                status_string = "Present" if presence else "Not present"
             output_table.append([port_name, status_string])
 
             i += 1
