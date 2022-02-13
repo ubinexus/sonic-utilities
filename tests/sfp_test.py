@@ -377,6 +377,13 @@ Ethernet200  Not present
         assert result.exit_code == 0
         assert "result.output == test_qsfp_dd_eeprom_output"
 
+    def test_rj45_eeprom(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet36"])
+        result_lines = result.output.strip('\n')
+        expected = "Ethernet36: SFP EEPROM is not applicable for RJ45 port"
+        assert result_lines == expected
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

@@ -240,11 +240,6 @@ class SFPShow(object):
         self.output = ''
         self.multi_asic = multi_asic_util.MultiAsic(namespace_option=namespace_option)
 
-    # Determine whether it is a RJ45 port
-    def is_rj45_port(self, intf_name):
-        intf_type = self.db.get(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(intf_name), 'type')
-        return intf_type == RJ45_PORT_TYPE
-
     # Convert dict values to cli output string
     def format_dict_value_to_string(self, sorted_key_table,
                                     dom_info_dict, dom_value_map,
@@ -397,10 +392,10 @@ class SFPShow(object):
     def convert_interface_sfp_info_to_cli_output_string(self, state_db, interface_name, dump_dom):
         output = ''
 
-        if self.is_rj45_port(interface_name):
+        sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
+        if sfp_info_dict['type'] == RJ45_PORT_TYPE:
             output = interface_name + ': ' + 'SFP EEPROM is not applicable for RJ45 port' + '\n'
         else:
-            sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
             output = interface_name + ': ' + 'SFP EEPROM detected' + '\n'
             sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
             output += sfp_info_output
