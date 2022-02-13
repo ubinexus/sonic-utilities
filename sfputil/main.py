@@ -268,6 +268,10 @@ def is_rj45_port_from_api(port_name):
     return port_type == RJ45_PORT_TYPE
 
 
+def skip_if_port_is_rj45(port_name): 
+    if is_rj45_port_from_api(port_name): 
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+        sys.exit(EXIT_FAIL)
 # ========================== Methods for formatting output ==========================
 
 # Convert dict values to cli output string
@@ -935,27 +939,28 @@ def set_lpmode(logical_port, enable):
 
     if is_rj45_port_from_api(logical_port):
         click.echo("{} low-power mode is not applicable for RJ45 port {}.".format("Enabling" if enable else "Disabling", logical_port, nl=False))
-    else:
-        if len(physical_port_list) > 1:
-            ganged = True
+        sys.exit(EXIT_FAIL)
 
-        for physical_port in physical_port_list:
-            click.echo("{} low-power mode for port {} ... ".format(
-                "Enabling" if enable else "Disabling",
-                get_physical_port_name(logical_port, i, ganged)), nl=False)
+    if len(physical_port_list) > 1:
+        ganged = True
 
-            try:
-                result = platform_chassis.get_sfp(physical_port).set_lpmode(enable)
-            except NotImplementedError:
-                click.echo("This functionality is currently not implemented for this platform")
-                sys.exit(ERROR_NOT_IMPLEMENTED)
+    for physical_port in physical_port_list:
+        click.echo("{} low-power mode for port {} ... ".format(
+            "Enabling" if enable else "Disabling",
+            get_physical_port_name(logical_port, i, ganged)), nl=False)
 
-            if result:
-                click.echo("OK")
-            else:
-                click.echo("Failed")
+        try:
+            result = platform_chassis.get_sfp(physical_port).set_lpmode(enable)
+        except NotImplementedError:
+            click.echo("This functionality is currently not implemented for this platform")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
 
-            i += 1
+        if result:
+            click.echo("OK")
+        else:
+            click.echo("Failed")
+
+        i += 1
 
 
 # 'off' subcommand
@@ -994,25 +999,26 @@ def reset(port_name):
 
     if is_rj45_port_from_api(port_name):
         click.echo("Reset is not applicable for RJ45 port {}.".format(port_name))
-    else:
-        if len(physical_port_list) > 1:
-            ganged = True
+        sys.exit(EXIT_FAIL)
 
-        for physical_port in physical_port_list:
-            click.echo("Resetting port {} ... ".format(get_physical_port_name(port_name, i, ganged)), nl=False)
+    if len(physical_port_list) > 1:
+        ganged = True
 
-            try:
-                result = platform_chassis.get_sfp(physical_port).reset()
-            except NotImplementedError:
-                click.echo("This functionality is currently not implemented for this platform")
-                sys.exit(ERROR_NOT_IMPLEMENTED)
+    for physical_port in physical_port_list:
+        click.echo("Resetting port {} ... ".format(get_physical_port_name(port_name, i, ganged)), nl=False)
 
-            if result:
-                click.echo("OK")
-            else:
-                click.echo("Failed")
+        try:
+            result = platform_chassis.get_sfp(physical_port).reset()
+        except NotImplementedError:
+            click.echo("This functionality is currently not implemented for this platform")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
 
-            i += 1
+        if result:
+            click.echo("OK")
+        else:
+            click.echo("Failed")
+
+        i += 1
 
 # 'firmware' subgroup
 @cli.group()
@@ -1160,9 +1166,7 @@ def run(port_name, mode):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
 
-    if is_rj45_port_from_api(port_name):
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
-        sys.exit(EXIT_FAIL)
+    skip_if_port_is_rj45(port_name)
 
     status = run_firmware(port_name, int(mode))
     if status != 1:
@@ -1181,9 +1185,7 @@ def commit(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
 
-    if is_rj45_port_from_api(port_name):
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
-        sys.exit(EXIT_FAIL)
+    skip_if_port_is_rj45(port_name)
 
     status = commit_firmware(port_name)
     if status != 1:
@@ -1205,9 +1207,7 @@ def upgrade(port_name, filepath):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
 
-    if is_rj45_port_from_api(port_name):
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
-        sys.exit(EXIT_FAIL)
+    skip_if_port_is_rj45(port_name)
 
     show_firmware_version(physical_port)
 
@@ -1243,9 +1243,7 @@ def download(port_name, filepath):
        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
        sys.exit(EXIT_FAIL)
 
-    if is_rj45_port_from_api(port_name):
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
-        sys.exit(EXIT_FAIL)
+    skip_if_port_is_rj45(port_name)
 
     start = time.time()
     status = download_firmware(port_name, filepath)
@@ -1267,9 +1265,7 @@ def unlock(port_name, password):
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
 
-    if is_rj45_port_from_api(port_name):
-        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
-        sys.exit(EXIT_FAIL)
+    skip_if_port_is_rj45(port_name)
 
     if not is_sfp_present(port_name):
        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
