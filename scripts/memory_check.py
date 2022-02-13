@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+
+import sys
+
+import sonic_py_common.logger
+from swsscommon import swsscommon
+
+# Exit codes
+EXIT_SUCCESS = 0  # Success
+EXIT_FAILURE = 1  # General failure occurred, no techsupport is invoked
+EXIT_THRESHOLD_CROSSED = 2  # Memory threshold crossed, techsupport is invoked
+
+SYSLOG_IDENTIFIER = "memcheck"
+
+# DB's identifiers
+CONFIG_DB = "CONFIG_DB"
+STATE_DB = "STATE_DB"
+
+# Config DB tables
+AUTO_TECHSUPPORT = "AUTO_TECHSUPPORT"
+AUTO_TECHSUPPORT_FEATURE = "AUTO_TECHSUPPORT_FEATURE"
+
+# State DB docker stats table
+DOCKER_STATS = "DOCKER_STATS"
+
+# (%) Default value for available memory left in the system
+DEFAULT_MEMORY_AVAILABLE_THRESHOLD = 10
+# (Kb) Default value for minimum available memory in the system to run techsupport
+DEFAULT_MEMORY_AVAILABLE_MIN_THRESHOLD = 200 * 1024
+# (%) Default value for available memory inside container
+DEFAULT_MEMORY_AVAILABLE_FEATURE_THRESHOLD = 0
+
+# Global logger instance
+logger = sonic_py_common.logger.Logger(SYSLOG_IDENTIFIER)
+
+
+class MemoryCheckerException(Exception):
+    """General memory checker exception"""
+
+    pass
+
+
+class MemoryStats:
+    """MemoryStats provides an interface to query memory statistics of the system and per feature."""
+
+    def __init__(self, state_db):
+        """Initialize MemoryStats
+
+        Args:
+            state_db (swsscommon.DBConnector): state DB connector instance
+        """
+        self.docker_stats_table = swsscommon.Table(state_db, DOCKER_STATS)
+
+    def get_sys_memory_stats(self):
+        """Returns system memory statistic dictionary, reflects the /proc/meminfo
+
+        Returns:
+            Dictionary of strings to integers where integer values
+            represent memory amount in Kb, e.g:
+            {
+                "MemTotal": 8104856,
+                "MemFree": 6035192,
+                ...
+            }
+        """
+        with open("/proc/meminfo") as fd:
+            lines = fd.read().split("\n")
+            rows = [line.split() for line in lines]
+
+            # e.g row is ('MemTotal:', '8104860', 'kB')
+            # key is the first element with removed remove last ':'.
+            # value is the second element converted to int.
+            def row_to_key(row):
+                return row[0][:-1]
+
+            def row_to_value(row):
+                return int(row[1])
+
+            return {row_to_key(row): row_to_value(row) for row in rows if len(row) >= 2}
+
+    def get_features_memory_usage(self):
+        """Returns per feature memory stats, reflects the DOCKER_STATS state DB table
+
+        Returns:
+            Dictionary of strings to floats where floating point values
+            represent memory usage of the feature container which is carefully
+            calculated for us by the dockerd and published by procdockerstatsd, e.g:
+
+            {
+                "swss": 1.5,
+                "teamd": 10.92,
+                ...
+            }
+        """
+        result = {}
+        dockers = self.docker_stats_table.getKeys()
+        stats = [
+            dict(stat)
+            for exists, stat in [self.docker_stats_table.get(key) for key in dockers]
+            if exists
+        ]
+
+        for stat in stats:
+            try:
+                name = stat["NAME"]
+                mem_usage = float(stat["MEM%"])
+            except KeyError as err:
+                continue
+            except ValueError as err:
+                logger.log_error(f'Failed to parse memory usage for "{stat}": {err}')
+                raise MemoryCheckerException(err)
+
+            result[name] = mem_usage
+
+        return result
+
+
+class Config:
+    def __init__(self, cfg_db):
+        self.table = swsscommon.Table(cfg_db, AUTO_TECHSUPPORT)
+        self.feature_table = swsscommon.Table(cfg_db, AUTO_TECHSUPPORT_FEATURE)
+
+        _, config = self.table.get("global")
+        config = dict(config)
+
+        self.memory_available_threshold = self.parse_value_from_db(
+            config,
+            "memory_available_threshold",
+            float,
+            DEFAULT_MEMORY_AVAILABLE_THRESHOLD,
+        )
+        self.memory_available_min_threshold = self.parse_value_from_db(
+            config,
+            "memory_available_min_threshold",
+            float,
+            DEFAULT_MEMORY_AVAILABLE_MIN_THRESHOLD,
+        )
+
+        keys = self.feature_table.getKeys()
+        self.feature_config = {}
+        for key in keys:
+            _, config = self.feature_table.get(key)
+            config = dict(config)
+
+            self.feature_config[key] = self.parse_value_from_db(
+                config,
+                "memory_available_threshold",
+                float,
+                DEFAULT_MEMORY_AVAILABLE_FEATURE_THRESHOLD,
+            )
+
+    @staticmethod
+    def parse_value_from_db(config, key, converter, default):
+        value = config.get(key)
+        if not value:
+            return default
+        try:
+            return converter(value, default)
+        except ValueError as err:
+            logger.log_error(f'Failed to parse {key} value "{value}": {err}')
+            raise MemoryCheckerException(err)
+
+
+class MemoryChecker:
+    """Business logic of the memory checker"""
+
+    def __init__(self, stats, config):
+        """Initialize MemoryChecker"""
+        self.stats = stats
+        self.config = config
+
+    def run_check(self):
+        """Runs the checks and returns a tuple of check result boolean
+        and a container name or empty string if the check failed for the host.
+
+        Returns:
+            (bool, str)
+        """
+        # don't bother getting stats if availbale threshold is set to 0
+        if self.config.memory_available_threshold:
+            memory_stats = self.stats.get_sys_memory_stats()
+            memory_free = memory_stats["MemFree"]
+            memory_total = memory_stats["MemTotal"]
+            memory_free_threshold = (
+                memory_total * self.config.memory_available_threshold / 100
+            )
+            memory_min_free_threshold = self.config.memory_available_min_threshold
+
+            # free memory amount is less then configured minimum required memory for
+            # running "show techsupport"
+            if memory_free <= memory_min_free_threshold:
+                logger.log_error(
+                    f"Free memory {memory_free} is less then "
+                    f"min free memory threshold {memory_min_free_threshold}"
+                )
+                return (False, "")
+
+            # free memory amount is less then configured threshold
+            if memory_free <= memory_free_threshold:
+                logger.log_error(
+                    f"Free memory {memory_free} is less then "
+                    f"free memory threshold {memory_free_threshold}"
+                )
+                return (False, "")
+
+        features_memory_usage = self.stats.get_features_memory_usage()
+        for feature, memory_available_threshold in self.config.feature_config.items():
+            for container in features_memory_usage:
+                # startswith to handle multi asic instances
+                if not container.startswith(feature):
+                    continue
+
+                memory_usage = features_memory_usage.get(feature)
+                if memory_usage is None:
+                    logger.debug(f"No memory usage for {feature}")
+                    continue
+
+                # free memory amount is less then configured threshold
+                if (100 - memory_usage) <= memory_available_threshold:
+                    logger.log_error(
+                        f"Available {100 - memory_usage} for {feature} is less "
+                        f"then free memory threshold {memory_available_threshold}"
+                    )
+                    return (False, feature)
+
+        return (True, "")
+
+
+def main():
+    cfg_db = swsscommon.DBConnector(CONFIG_DB, 0)
+    state_db = swsscommon.DBConnector(STATE_DB, 0)
+
+    config = Config(cfg_db)
+    mem_stats = MemoryStats(state_db)
+    mem_checker = MemoryChecker(mem_stats, config)
+
+    try:
+        passed, name = mem_checker.run_check()
+        if not passed:
+            print(f"{passed} {name}")
+            sys.exit(EXIT_THRESHOLD_CROSSED)
+    except MemoryCheckerException as err:
+        logger.log_error(f"Failure occurred {err}")
+        sys.exit(EXIT_FAILURE)
+
+    sys.exit(EXIT_SUCCESS)
+
+
+if __name__ == "__main__":
+    main()

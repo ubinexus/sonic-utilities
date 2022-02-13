@@ -5,6 +5,7 @@ import pyfakefs
 import unittest
 from pyfakefs.fake_filesystem_unittest import Patcher
 from swsscommon import swsscommon
+import utilities_common.auto_techsupport_helper as ts_helper
 from utilities_common.general import load_module_from_source
 from utilities_common.db import Db
 from .mock_tables import dbconnector
@@ -86,7 +87,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 else:
                     return 1, "", "Command Not Found"
                 return 0, AUTO_TS_STDOUT + ts_dump, ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -118,7 +119,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 else:
                     return 1, "", "Command Not Found"
                 return 0, AUTO_TS_STDOUT + ts_dump, ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -152,7 +153,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 else:
                     return 1, "", "Command Not Found"
                 return 0, AUTO_TS_STDOUT + ts_dump, ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
             cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
@@ -182,7 +183,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 else:
                     return 1, "", "Command Not Found"
                 return 0, AUTO_TS_STDOUT + ts_dump, ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -213,7 +214,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 else:
                     return 1, "", "Command Not Found"
                 return 0, AUTO_TS_STDOUT + ts_dump, ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/snmpd.12345.123.core.gz")
             cls = cdump_mod.CriticalProcCoreDumpHandle("snmpd.12345.123.core.gz", "whatevver", redis_mock)
@@ -242,7 +243,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 else:
                     return 1, "", "Command Not Found"
                 return 0, AUTO_TS_STDOUT + ts_dump, ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/core/python3.12345.123.core.gz")
             cls = cdump_mod.CriticalProcCoreDumpHandle("python3.12345.123.core.gz", "snmp", redis_mock)
@@ -271,7 +272,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                     return 0, "", ""
                 else:
                     return 1, "", "Invalid Command"
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -303,7 +304,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 else:
                     return 1, "", "Command Not Found"
                 return 0, AUTO_TS_STDOUT + ts_dump, ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
@@ -338,7 +339,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                     return 1, "", "Invalid Date Format"
                 else:
                     return 1, "", ""
-            cdump_mod.subprocess_exec = mock_cmd
+            ts_helper.subprocess_exec = mock_cmd
             patcher.fs.create_file("/var/dump/sonic_dump_random1.tar.gz")
             patcher.fs.create_file("/var/dump/sonic_dump_random2.tar.gz")
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
