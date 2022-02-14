@@ -52,7 +52,7 @@ def active_hops(nhg):
             formatted_nhps = ','.replace(',', '\n').join(output_dict[nhg_prefix])
             table.append([nhg_prefix_report, formatted_nhps])
 
-        click.echo(tabulate(table, header))
+        click.echo(tabulate(table, header, tablefmt="simple"))
 
     else:
         nhip_prefix_map = {}
@@ -94,7 +94,7 @@ def active_hops(nhg):
             formatted_output_list = ','.replace(',', '\n').join(output_list)
             table.append([nhg_prefix_report, formatted_output_list])
 
-            click.echo(tabulate(table, header))
+            click.echo(tabulate(table, header, tablefmt = "simple"))
 
 @fgnhg.command()
 @click.argument('nhg', required=False)
@@ -165,7 +165,7 @@ def hash_view(nhg):
                 bank_output = bank_output + "\n"
                 table.append([nhg_prefix_report, nhip, bank_output])
 
-        click.echo(tabulate(table, header))
+        click.echo(tabulate(table, header, tablefmt = "simple"))
 
     else:
         header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
@@ -236,4 +236,4 @@ def hash_view(nhg):
 
                     table.append([nhg_prefix_report, nhip, bank_output])
 
-            click.echo(tabulate(table, header))
+            click.echo(tabulate(table, header, tablefmt = "simple"))
