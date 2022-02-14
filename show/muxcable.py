@@ -304,7 +304,6 @@ def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcab
         last_switch_end_time = muxcable_metrics_dict[asic_index].get("linkmgrd_switch_standby_end")
     elif "linkmgrd_switch_active_end" in muxcable_metrics_dict[asic_index]: 
         last_switch_end_time = muxcable_metrics_dict[asic_index].get("linkmgrd_switch_active_end")
-    port_status_dict["MUX_CABLE"][port_name]["LAST_SWITCHOVER_TIME"] = last_switch_end_time    
 
     port_name = platform_sfputil_helper.get_interface_alias(port, db)
     print_port_data.append(port_name)
@@ -407,7 +406,7 @@ def status(db, port, json_output):
 
                     create_json_dump_per_port_status(db, port_status_dict, muxcable_info_dict,
                                                      muxcable_health_dict, muxcable_metrics_dict, asic_index, port)
-                    port_status_dict[]
+
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                     sys.exit(STATUS_SUCCESSFUL)
                 else:
