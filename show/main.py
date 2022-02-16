@@ -67,6 +67,8 @@ VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 GEARBOX_TABLE_PHY_PATTERN = r"_GEARBOX_TABLE:phy:*"
 
+COMMAND_TIMEOUT = 300
+
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
@@ -78,12 +80,13 @@ def get_routing_stack():
                                 stdout=subprocess.PIPE,
                                 shell=True,
                                 text=True)
+        proc.wait(timeout=COMMAND_TIMEOUT)
         stdout = proc.communicate()[0]
-        proc.wait()
         result = stdout.rstrip('\n')
 
-    except OSError as e:
-        raise OSError("Cannot detect routing-stack")
+    except (OSError, subprocess.TimeoutExpired) as e:
+        click.echo('Failed to get routing stack', err=True)
+        return
 
     return (result)
 
@@ -1119,7 +1122,7 @@ def users(verbose):
 @click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
 def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
-    cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
+    cmd = "sudo timeout --kill-after=5m -s SIGTERM --foreground {}m".format(global_timeout)
 
     if allow_process_stop:
         cmd += " -a"

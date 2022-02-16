@@ -6,6 +6,8 @@
 
 set -u
 
+ERROR_INTERRUPTED=1
+ERROR_TERMINATED=2
 ERROR_TAR_FAILED=5
 ERROR_PROCFS_SAVE_FAILED=6
 ERROR_INVALID_ARGUMENT=10
@@ -42,13 +44,21 @@ SAVE_STDERR=true
 RETURN_CODE=0
 DEBUG_DUMP=false
 
-handle_signal()
+handle_sigint()
 {
     echo "Generate Dump received interrupt" >&2
     $RM $V -rf $TARDIR
-    exit 1
+    exit $ERROR_INTERRUPTED
 }
-trap 'handle_signal' SIGINT
+
+handle_sigterm() {
+    echo "Dump generation terminated" >&2
+    finalize
+    exit $ERROR_TERMINATED
+}
+
+trap 'handle_sigint' SIGINT
+trap 'handle_sigterm' SIGTERM
 
 handle_error() {
     if [ "$1" != "0" ]; then
@@ -67,6 +77,7 @@ save_bcmcmd() {
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+    local cmd=$(echo $cmd | sed 's/\"/\\\"/g')
     if [ ! -d $LOGDIR ]; then
         $MKDIR $V -p $LOGDIR
     fi
@@ -80,10 +91,10 @@ save_bcmcmd() {
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
     # "COMMAND HERE" bunched together as 1 arg to vtysh -c
     if $NOOP; then
-        echo "${timeout_cmd} $cmd &> '${filepath}'"
+        echo "${timeout_cmd} bash -c \"${cmd}\" &> '${filepath}'"
     else
         ret=0
-        eval "${timeout_cmd} $cmd" &> "${filepath}" || ret=$?
+        eval "${timeout_cmd} bash -c \"${cmd}\" &> '${filepath}'" || ret=$?
         if [ $ret -ne 0 ]; then
             if [ $ret -eq 124 ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
@@ -181,6 +192,8 @@ save_cmd() {
         redirect_eval=""
     fi
 
+    local cmd=$(echo $cmd | sed 's/\"/\\\"/g')
+    local cleanup_method_declration=$(declare -f $cleanup_method)
     # eval required here to re-evaluate the $cmd properly at runtime
     # This is required if $cmd has quoted strings that should be bunched
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
@@ -189,25 +202,29 @@ save_cmd() {
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
         # cleanup_method will run in a sub-shell, need declare it first
-        local cleanup_method_declration=$(declare -f $cleanup_method)
         local cmds="$cleanup_method_declration; $cmd $redirect_eval | $cleanup_method | gzip -c > '${filepath}'"
         if $NOOP; then
             echo "${timeout_cmd} bash -c \"${cmds}\""
         else
             RC=0
             eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
-            if [ $RC -ne 0 ]; then
+            if [ $RC -eq 124 ]; then
                 echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
+            elif [ $RC -ne 0 ]; then
+                echo "Command: $cmds failed with RC $RC"
             fi
         fi
     else
+        local cmds="$cleanup_method_declration; $cmd | $cleanup_method $redirect '$filepath'"
         if $NOOP; then
-            echo "${timeout_cmd} $cmd | $cleanup_method $redirect '$filepath'"
+            echo "${timeout_cmd} bash -c \"${cmds}\""
         else
             RC=0
-            eval "${timeout_cmd} $cmd | $cleanup_method" "$redirect" "$filepath" || RC=$?
-            if [ $RC -ne 0 ]; then
-                echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+            eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
+            if [ $RC -eq 124 ]; then
+                echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
+            elif [ $RC -ne 0 ]; then
+                echo "Command: $cmds failed with RC $RC"
             fi
         fi
     fi
@@ -458,20 +475,20 @@ save_bgp_neighbor() {
     local asic_id=${1:-""}
     local ns=$(get_vtysh_namespace $asic_id)
 
-    neighbor_list_v4=$(${timeout_cmd} vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
+    neighbor_list_v4=$(${timeout_cmd} bash -c "vtysh $ns -c 'show ip bgp neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}'")
     for word in $neighbor_list_v4; do
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
     done
-    neighbor_list_v6=$(vtysh $ns -c "show bgp ipv6 neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}' | fgrep ':')
+    neighbor_list_v6=$(${timeout_cmd} bash -c "vtysh $ns -c 'show bgp ipv6 neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}' | fgrep ':'")
     for word in $neighbor_list_v6; do
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word advertised-routes\"" "ipv6.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word routes\"" "ipv6.bgp.neighbor.$word.rcv$asic_id"
     done
 
-    vrf_list=`${timeout_cmd} vtysh $ns -c "show vrf" | awk -F" " '{print $2}'`
+    vrf_list=`${timeout_cmd} bash -c "vtysh $ns -c 'show vrf' | awk -F" " '{print \$2}'"`
     for vrf in $vrf_list; do
-        neighbor_list=`${timeout_cmd} vtysh $ns -c "show ip bgp vrf $vrf neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}'`
+        neighbor_list=`${timeout_cmd} bash -c "vtysh $ns -c 'show ip bgp vrf $vrf neighbors' | grep 'BGP neighbor is' | awk -F '[, ]' '{print \$4}'"`
         for word in $neighbor_list; do
             save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word advertised-routes\"" "ip.bgp.neighbor.$vrf.$word.adv$asic_id"
             save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word routes\"" "ip.bgp.neighbor.$vrf.$word.rcv$asic_id"
@@ -827,6 +844,7 @@ enable_logrotate() {
 ###############################################################################
 collect_mellanox() {
     trap 'handle_error $? $LINENO' ERR
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local sai_dump_folder="/tmp/saisdkdump"
     local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
 
@@ -851,6 +869,17 @@ collect_mellanox() {
         done
         rm -rf /tmp/sdk-dumps
     fi
+
+    # run 'hw-management-generate-dump.sh' script and save the result file
+    HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
+    if [ -f "$HW_DUMP_FILE" ]; then
+      ${CMD_PREFIX}${timeout_cmd} /usr/bin/hw-management-generate-dump.sh $ALLOW_PROCESS_STOP
+      save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
+      rm -f /tmp/hw-mgmt-dump*
+    else
+      echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
+    fi
+
 }
 
 ###############################################################################
@@ -1062,8 +1091,7 @@ get_asic_count() {
     then
          redirect_eval=""
     fi
-    local cmd="show platform summary --json | python -c 'import sys, json; \
-               print(json.load(sys.stdin)[\"asic_count\"])'"
+    local cmd="python -c 'from sonic_py_common.multi_asic import get_num_asics; print(get_num_asics())'"
     echo `eval ${cmd} ${redirect_eval}`
 }
 
@@ -1174,6 +1202,11 @@ main() {
         || abort "${ERROR_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+
+    # Save logs and cores early
+    save_log_files
+    save_crash_files
+    save_warmboot_files
 
     # Save all the processes within each docker
     save_cmd "show services" services.summary
@@ -1309,19 +1342,13 @@ main() {
     end_t=$(date +%s%3N)
     echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
-    save_log_files
-    save_warmboot_files
-    save_crash_files
+    finalize
+}
 
-    # run 'hw-management-generate-dump.sh' script and save the result file
-    HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
-    if [ -f "$HW_DUMP_FILE" ]; then
-      /usr/bin/hw-management-generate-dump.sh $ALLOW_PROCESS_STOP
-      save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
-      rm -f /tmp/hw-mgmt-dump*
-    else
-      echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
-    fi
+###############################################################################
+# Finalize dump generation
+###############################################################################
+finalize() {
     # Save techsupport timing profile info
     save_file $TECHSUPPORT_TIME_INFO log false
 
@@ -1348,6 +1375,7 @@ main() {
     	exit $RETURN_CODE
     fi
 }
+
 
 ###############################################################################
 # Remove secret from pipeline inout and output result to pipeline.
