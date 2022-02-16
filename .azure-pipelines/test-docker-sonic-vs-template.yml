@@ -49,6 +49,9 @@ jobs:
 
   - script: |
       set -x
+      set -e
+      pwd
+      ls -R
       sudo .azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
