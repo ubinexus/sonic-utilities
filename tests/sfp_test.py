@@ -348,6 +348,30 @@ Ethernet200  Not present
         assert result.exit_code == 0
         assert result.output == expected
 
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet16"])
+        expected = """Port        Presence
+----------  -----------
+Ethernet16  Not present
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet28"])
+        expected = """Port        Presence
+----------  ----------
+Ethernet28  Present
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet36"])
+        expected = """Port        Presence
+----------  ----------
+Ethernet36  Unknown
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
     def test_sfp_eeprom_with_dom(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -d"])
