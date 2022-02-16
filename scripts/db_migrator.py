@@ -134,42 +134,35 @@ class DBMigrator():
         if device_info.is_warm_restart_enabled('swss') == False:
             log.log_notice("Skip migration on {}, warm-reboot flag not set".format(self.hwsku))
             return True
-        
-        portCount = self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')
-        if portCount == '':
-            log.log_notice("Port count not found - {}, skip migration".format(portCount))
-            return True
 
-        self.portCount = int(portCount)
-        if self.portCount > 64:
-            log.log_notice("Port count is {}, no migration needed".format(self.portCount))
-            return True        
-        
-        log.log_notice("Migrating management ports Ethernet64 & Ethernet65 to configDB for warm-reboot on {}".format(self.hwsku))
-        self.configDB.set_entry('PORT', 'Ethernet64', {'alias': 'tenGige1/1', 'description': 'tenGige1/1', 'index': '64', 'lanes': '129', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'})
-        self.configDB.set_entry('PORT', 'Ethernet65', {'alias': 'tenGige1/2', 'description': 'tenGige1/2', 'index': '65', 'lanes': '131', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'})
-
-        #Update APPL_DB with newly added ports
-        portList = ['Ethernet64', 'Ethernet65']
-        for portName in portList:
-            key = 'PORT_TABLE:' + portName
-            port = self.configDB.get_entry('PORT', portName)
-            if not port:
-                log.log_notice("Skipping migration for port {}".format(key))
+        entries = {}
+        entries['Ethernet64'] = {'alias': 'tenGige1/1', 'description': 'tenGige1/1', 'index': '64', 'lanes': '129', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        entries['Ethernet65'] = {'alias': 'tenGige1/2', 'description': 'tenGige1/2', 'index': '65', 'lanes': '131', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        added_ports = 0
+        for portName in entries.keys():
+            if self.configDB.get_entry('PORT', portName):
+                log.log_notice("Skipping migration for port {} - entry exists".format(portName))
                 continue
 
-            for field, value in port.items():
-                self.appDB.set(self.appDB.APPL_DB, key, field, value) 
+            log.log_notice("Migrating port {} to configDB for warm-reboot on {}".format(portName, self.hwsku))
+            self.configDB.set_entry('PORT', portName, entries[portName])
+
+            #Copy port to APPL_DB
+            key = 'PORT_TABLE:' + portName
+            for field, value in entries[portName].items():
+                self.appDB.set(self.appDB.APPL_DB, key, field, value)
             self.appDB.set(self.appDB.APPL_DB, key, 'admin_status', 'down')
             log.log_notice("Copied port {} to appdb".format(key))
-            self.portCount += 1
+            added_ports += 1
 
         #Update port count in APPL_DB
-        self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(self.portCount)) 
-        log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
-
+        portCount = self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')
+        if portCount != '':
+            total_count = int(portCount) + added_ports
+            self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
+            log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
         return True
-
+        
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
