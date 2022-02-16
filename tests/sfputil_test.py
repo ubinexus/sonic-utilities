@@ -183,7 +183,10 @@ class TestSfputil(object):
         expected_output = [['Ethernet0', 'Blocking Error|High temperature'],
                            ['Ethernet4', 'OK'],
                            ['Ethernet8', 'Unplugged'],
-                           ['Ethernet12', 'Unknown state: 255']]
+                           ['Ethernet12', 'Unknown state: 255'],
+                           ['Ethernet16', 'N/A'],
+                           ['Ethernet28', 'N/A'],
+                           ['Ethernet36', 'N/A']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -203,6 +206,41 @@ class TestSfputil(object):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['show'].commands['fwversion'], ["Ethernet0"])
         assert result.exit_code == 0
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
+    def test_show_presence(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        import pdb;pdb.set_trace()
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['show'].commands['presence'], ["-p", "Ethernet16"])
+        assert result.exit_code == 0
+        expected_output = """Port        Presence
+----------  -----------
+Ethernet16  Not present
+"""
+        assert result.output == expected_output
+
+        result = runner.invoke(sfputil.cli.commands['show'].commands['presence'], ["-p", "Ethernet28"])
+        assert result.exit_code == 0
+        expected_output = """Port        Presence
+----------  ----------
+Ethernet28  Present
+"""
+        assert result.output == expected_output
+
+        result = runner.invoke(sfputil.cli.commands['show'].commands['presence'], ["-p", "Ethernet36"])
+        assert result.exit_code == 0
+        expected_output = """Port        Presence
+----------  ----------
+Ethernet36  Unknown
+"""
+        assert result.output == expected_output
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
