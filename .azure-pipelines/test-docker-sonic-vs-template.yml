@@ -50,12 +50,9 @@ jobs:
   - script: |
       set -x
       set -e
-      pwd
-      ls -R
       sudo ./sonic-utilities/.azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
-      ls -R ..
       sudo dpkg -i --force-confask,confnew ../libswsscommon_1.0.0_amd64.deb || apt-get install -f
       sudo dpkg -i ../python3-swsscommon_1.0.0_amd64.deb
 
