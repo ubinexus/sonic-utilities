@@ -136,8 +136,8 @@ class DBMigrator():
             return True
 
         entries = {}
-        entries['Ethernet64'] = {'alias': 'tenGige1/1', 'description': 'tenGige1/1', 'index': '64', 'lanes': '129', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
-        entries['Ethernet65'] = {'alias': 'tenGige1/2', 'description': 'tenGige1/2', 'index': '65', 'lanes': '131', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        entries['Ethernet64'] = {'alias': 'tenGigE1/1', 'description': 'tenGigE1/1', 'index': '64', 'lanes': '129', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        entries['Ethernet65'] = {'alias': 'tenGigE1/2', 'description': 'tenGigE1/2', 'index': '65', 'lanes': '131', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
         added_ports = 0
         for portName in entries.keys():
             if self.configDB.get_entry('PORT', portName):
