@@ -273,7 +273,13 @@ class PathAddressing:
         return JsonPointer.from_parts(tokens).path
 
     def has_path(self, doc, path):
-        return JsonPointer(path).get(doc, default=None) is not None
+        return self.get_from_path(doc, path) is not None
+
+    def get_from_path(self, doc, path):
+        return JsonPointer(path).get(doc, default=None)
+
+    def is_config_different(self, path, current, target):
+        return self.get_from_path(current, path) != self.get_from_path(target, path)
 
     def get_xpath_tokens(self, xpath):
         """
@@ -558,7 +564,8 @@ class PathAddressing:
             if uses_leaf_model:
                 return [token]
 
-        raise ValueError("Token not found")
+        raise ValueError(f"Path token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
+                         f"path_tokens: {path_tokens}\n  config: {config}")
 
     def _extractKey(self, tableKey, keys):
         keyList = keys.split()
@@ -729,7 +736,8 @@ class PathAddressing:
             if uses_leaf_model:
                 return [token]
 
-        raise Exception("no leaf")
+        raise ValueError(f"Xpath token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
+                         f"xpath_tokens: {xpath_tokens}\n  config: {config}")
 
     def _extract_key_dict(self, list_token):
         # Example: VLAN_MEMBER_LIST[name='Vlan1000'][port='Ethernet8']
