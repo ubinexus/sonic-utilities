@@ -37,8 +37,9 @@ TS_ROOT = "sonic_dump_*"
 TS_PTRN = "sonic_dump_.*tar.*" # Regex Exp
 TS_PTRN_GLOB = "sonic_dump_*tar*" # Glob Exp
 
-# CONFIG DB Attributes
+# DBs identifiers
 CFG_DB = "CONFIG_DB"
+STATE_DB = "STATE_DB"
 
 # AUTO_TECHSUPPORT|GLOBAL table attributes
 AUTO_TS = "AUTO_TECHSUPPORT|GLOBAL"
@@ -66,6 +67,8 @@ EVENT_TYPE_MEMORY = "memory"
 
 TIME_BUF = 20
 SINCE_DEFAULT = "2 days ago"
+
+TECHSUPPORT_ALREADY_RUNNING_RC = 2
 
 # Explicity Pass this to the subprocess invoking techsupport
 ENV_VAR = os.environ
@@ -225,7 +228,9 @@ def invoke_ts_cmd(db):
     cmd_opts = ["show", "techsupport", "--silent", "--since", since_cfg]
     cmd  = " ".join(cmd_opts)
     rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
-    if rc:
+    if rc == TECHSUPPORT_ALREADY_RUNNING_RC:
+        syslog.syslog(syslog.LOG_NOTICE, "another instance of techsupport generation is currently running")
+    elif rc:
         syslog.syslog(syslog.LOG_ERR, "show techsupport failed with exit code {}, stderr: {}".format(rc, stderr))
     new_dump = parse_ts_dump_name(stdout)
     if not new_dump:

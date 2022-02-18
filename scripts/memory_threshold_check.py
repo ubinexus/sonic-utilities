@@ -3,18 +3,15 @@
 import sys
 
 import sonic_py_common.logger
-from swsscommon import swsscommon
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
+from utilities_common.auto_techsupport_helper import CFG_DB, STATE_DB
 
 # Exit codes
 EXIT_SUCCESS = 0  # Success
 EXIT_FAILURE = 1  # General failure occurred, no techsupport is invoked
 EXIT_THRESHOLD_CROSSED = 2  # Memory threshold crossed, techsupport is invoked
 
-SYSLOG_IDENTIFIER = "memcheck"
-
-# DB's identifiers
-CONFIG_DB = "CONFIG_DB"
-STATE_DB = "STATE_DB"
+SYSLOG_IDENTIFIER = "memory_threshold_check"
 
 # Config DB tables
 AUTO_TECHSUPPORT = "AUTO_TECHSUPPORT"
@@ -49,7 +46,7 @@ class MemoryStats:
         Args:
             state_db (swsscommon.DBConnector): state DB connector instance
         """
-        self.docker_stats_table = swsscommon.Table(state_db, DOCKER_STATS)
+        self.state_db = state_db
 
     def get_sys_memory_stats(self):
         """Returns system memory statistic dictionary, reflects the /proc/meminfo
@@ -78,8 +75,8 @@ class MemoryStats:
 
             return {row_to_key(row): row_to_value(row) for row in rows if len(row) >= 2}
 
-    def get_features_memory_usage(self):
-        """Returns per feature memory stats, reflects the DOCKER_STATS state DB table
+    def get_containers_memory_usage(self):
+        """Returns per container memory usage, reflects the DOCKER_STATS state DB table
 
         Returns:
             Dictionary of strings to floats where floating point values
@@ -93,11 +90,9 @@ class MemoryStats:
             }
         """
         result = {}
-        dockers = self.docker_stats_table.getKeys()
+        dockers = self.state_db.keys(STATE_DB, DOCKER_STATS + "|*")
         stats = [
-            dict(stat)
-            for exists, stat in [self.docker_stats_table.get(key) for key in dockers]
-            if exists
+            stat for stat in [self.state_db.get_all(STATE_DB, key) for key in dockers] if stat is not None
         ]
 
         for stat in stats:
@@ -117,11 +112,10 @@ class MemoryStats:
 
 class Config:
     def __init__(self, cfg_db):
-        self.table = swsscommon.Table(cfg_db, AUTO_TECHSUPPORT)
-        self.feature_table = swsscommon.Table(cfg_db, AUTO_TECHSUPPORT_FEATURE)
+        self.table = cfg_db.get_table(AUTO_TECHSUPPORT)
+        self.feature_table = cfg_db.get_table(AUTO_TECHSUPPORT_FEATURE)
 
-        _, config = self.table.get("global")
-        config = dict(config)
+        config = self.table.get("global")
 
         self.memory_available_threshold = self.parse_value_from_db(
             config,
@@ -136,11 +130,10 @@ class Config:
             DEFAULT_MEMORY_AVAILABLE_MIN_THRESHOLD,
         )
 
-        keys = self.feature_table.getKeys()
+        keys = self.feature_table.keys()
         self.feature_config = {}
         for key in keys:
-            _, config = self.feature_table.get(key)
-            config = dict(config)
+            config = self.feature_table.get(key)
 
             self.feature_config[key] = self.parse_value_from_db(
                 config,
@@ -155,7 +148,7 @@ class Config:
         if not value:
             return default
         try:
-            return converter(value, default)
+            return converter(value)
         except ValueError as err:
             logger.log_error(f'Failed to parse {key} value "{value}": {err}')
             raise MemoryCheckerException(err)
@@ -203,16 +196,11 @@ class MemoryChecker:
                 )
                 return (False, "")
 
-        features_memory_usage = self.stats.get_features_memory_usage()
+        container_memory_usage = self.stats.get_containers_memory_usage()
         for feature, memory_available_threshold in self.config.feature_config.items():
-            for container in features_memory_usage:
+            for container, memory_usage in container_memory_usage.items():
                 # startswith to handle multi asic instances
                 if not container.startswith(feature):
-                    continue
-
-                memory_usage = features_memory_usage.get(feature)
-                if memory_usage is None:
-                    logger.debug(f"No memory usage for {feature}")
                     continue
 
                 # free memory amount is less then configured threshold
@@ -227,8 +215,10 @@ class MemoryChecker:
 
 
 def main():
-    cfg_db = swsscommon.DBConnector(CONFIG_DB, 0)
-    state_db = swsscommon.DBConnector(STATE_DB, 0)
+    cfg_db = ConfigDBConnector(use_unix_socket_path=True)
+    cfg_db.connect(CFG_DB)
+    state_db = SonicV2Connector(use_unix_socket_path=True)
+    state_db.connect(STATE_DB)
 
     config = Config(cfg_db)
     mem_stats = MemoryStats(state_db)
@@ -237,14 +227,15 @@ def main():
     try:
         passed, name = mem_checker.run_check()
         if not passed:
-            print(f"{passed} {name}")
-            sys.exit(EXIT_THRESHOLD_CROSSED)
+            return EXIT_THRESHOLD_CROSSED, name
     except MemoryCheckerException as err:
         logger.log_error(f"Failure occurred {err}")
-        sys.exit(EXIT_FAILURE)
+        return EXIT_FAILURE, ""
 
-    sys.exit(EXIT_SUCCESS)
+    return EXIT_SUCCESS, ""
 
 
 if __name__ == "__main__":
-    main()
+    rc, component = main()
+    print(component)
+    sys.exit(rc)

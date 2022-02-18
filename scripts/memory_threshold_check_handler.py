@@ -27,6 +27,9 @@ def main():
         return EXIT_FAILURE
 
     monit_output = output.split("--")[1].strip()
+    # If the output of memory_threshold_check is empty
+    # that means that memory threshold check failed for the host.
+    # In this case monit inserts "no output" string in MONIT_DESCRIPTION
     if monit_output == "no output":
         container = None
     else:
