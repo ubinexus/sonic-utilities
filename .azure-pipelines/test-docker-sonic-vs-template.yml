@@ -74,6 +74,7 @@ jobs:
       pushd tests
       sudo py.test -v --force-flaky --junitxml=tr.xml --imgname=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber)
     displayName: "Run vs tests"
+    continueOnError: True
 
   - task: PublishTestResults@2
     inputs:
