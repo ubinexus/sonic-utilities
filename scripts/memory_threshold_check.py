@@ -119,13 +119,13 @@ class Config:
 
         self.memory_available_threshold = self.parse_value_from_db(
             config,
-            "memory_available_threshold",
+            "available_mem_threshold",
             float,
             DEFAULT_MEMORY_AVAILABLE_THRESHOLD,
         )
         self.memory_available_min_threshold = self.parse_value_from_db(
             config,
-            "memory_available_min_threshold",
+            "min_available_mem",
             float,
             DEFAULT_MEMORY_AVAILABLE_MIN_THRESHOLD,
         )
@@ -137,7 +137,7 @@ class Config:
 
             self.feature_config[key] = self.parse_value_from_db(
                 config,
-                "memory_available_threshold",
+                "available_mem_threshold",
                 float,
                 DEFAULT_MEMORY_AVAILABLE_FEATURE_THRESHOLD,
             )
