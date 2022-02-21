@@ -1,0 +1,12 @@
+{
+    "AUTO_TECHSUPPORT|GLOBAL": {
+        "memory_available_threshold": "10.0",
+        "memory_available_min_memory": "204800"
+    },
+    "AUTO_TECHSUPPORT_FEATURE|swss": {
+        "memory_available_threshold": "50.0"
+    },
+    "AUTO_TECHSUPPORT_FEATURE|telemetry": {
+        "memory_available_threshold": "50.0"
+    }
+}

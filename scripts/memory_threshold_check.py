@@ -115,7 +115,7 @@ class Config:
         self.table = cfg_db.get_table(AUTO_TECHSUPPORT)
         self.feature_table = cfg_db.get_table(AUTO_TECHSUPPORT_FEATURE)
 
-        config = self.table.get("global")
+        config = self.table.get("GLOBAL")
 
         self.memory_available_threshold = self.parse_value_from_db(
             config,
