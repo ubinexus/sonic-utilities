@@ -289,6 +289,7 @@ def write_to_state_db(db, timestamp, ts_dump, event_type, event_data, container=
     name = strip_ts_ext(ts_dump)
     key = TS_MAP + "|" + name
     db.set(STATE_DB, key, TIMESTAMP, str(timestamp))
+    db.set(STATE_DB, key, EVENT_TYPE, event_type)
     for event_data_key, event_data_value in event_data.items():
         db.set(STATE_DB, key, event_data_key, event_data_value)
     if container:
