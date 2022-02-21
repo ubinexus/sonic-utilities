@@ -4,7 +4,7 @@ import sys
 
 import sonic_py_common.logger
 from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
-from utilities_common.auto_techsupport_helper import CFG_DB, STATE_DB
+from utilities_common.auto_techsupport_helper import STATE_DB
 
 # Exit codes
 EXIT_SUCCESS = 0  # Success
@@ -216,7 +216,7 @@ class MemoryChecker:
 
 def main():
     cfg_db = ConfigDBConnector(use_unix_socket_path=True)
-    cfg_db.connect(CFG_DB)
+    cfg_db.connect()
     state_db = SonicV2Connector(use_unix_socket_path=True)
     state_db.connect(STATE_DB)
 
