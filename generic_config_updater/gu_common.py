@@ -43,6 +43,7 @@ class JsonChange:
 class ConfigWrapper:
     def __init__(self, yang_dir = YANG_DIR):
         self.yang_dir = YANG_DIR
+        self.sonic_yang_with_loaded_models = None
 
     def get_config_db_as_json(self):
         text = self._get_config_db_as_text()
@@ -63,8 +64,7 @@ class ConfigWrapper:
         return self.convert_config_db_to_sonic_yang(config_db_json)
 
     def convert_config_db_to_sonic_yang(self, config_db_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         # Crop config_db tables that do not have sonic yang models
         cropped_config_db_as_json = self.crop_tables_without_yang(config_db_as_json)
@@ -76,8 +76,7 @@ class ConfigWrapper:
         return sonic_yang_as_json
 
     def convert_sonic_yang_to_config_db(self, sonic_yang_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         # replace container of the format 'module:table' with just 'table'
         new_sonic_yang_json = {}
@@ -100,8 +99,7 @@ class ConfigWrapper:
     def validate_sonic_yang_config(self, sonic_yang_as_json):
         config_db_as_json = self.convert_sonic_yang_to_config_db(sonic_yang_as_json)
 
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         try:
             sy.loadData(config_db_as_json)
@@ -112,8 +110,7 @@ class ConfigWrapper:
             return False
 
     def validate_config_db_config(self, config_db_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         try:
             tmp_config_db_as_json = copy.deepcopy(config_db_as_json)
@@ -126,8 +123,7 @@ class ConfigWrapper:
             return False
 
     def crop_tables_without_yang(self, config_db_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         sy.jIn = copy.deepcopy(config_db_as_json)
 
@@ -151,15 +147,42 @@ class ConfigWrapper:
                 config_with_non_empty_tables[table] = copy.deepcopy(config[table])
         return config_with_non_empty_tables
 
+    # TODO: move creating copies of sonic_yang with loaded models to sonic-yang-mgmt directly
+    def create_sonic_yang_with_loaded_models(self):
+        # sonic_yang_with_loaded_models will only be initialized once the first time this method is called
+        if self.sonic_yang_with_loaded_models is None:
+            loaded_models_sy = sonic_yang.SonicYang(self.yang_dir)
+            loaded_models_sy.loadYangModel() # This call takes a long time (100s of ms) because it reads files from disk
+            self.sonic_yang_with_loaded_models = loaded_models_sy
+
+        return copy.copy(self.sonic_yang_with_loaded_models)
+
 class DryRunConfigWrapper(ConfigWrapper):
-    # TODO: implement DryRunConfigWrapper
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
-    pass
+    def __init__(self, initial_imitated_config_db = None):
+        super().__init__()
+        self.logger = genericUpdaterLogging.get_logger(title="** DryRun", print_all_to_console=True)
+        self.imitated_config_db = copy.deepcopy(initial_imitated_config_db)
+
+    def apply_change_to_config_db(self, change):
+        self._init_imitated_config_db_if_none()
+        self.logger.log_notice(f"Would apply {change}")
+        self.imitated_config_db = change.apply(self.imitated_config_db)
+
+    def get_config_db_as_json(self):
+        self._init_imitated_config_db_if_none()
+        return self.imitated_config_db
+
+    def _init_imitated_config_db_if_none(self):
+        # if there is no initial imitated config_db and it is the first time calling this method
+        if self.imitated_config_db is None:
+            self.imitated_config_db = super().get_config_db_as_json()
+
 
 class PatchWrapper:
     def __init__(self, config_wrapper=None):
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
-        self.path_addressing = PathAddressing()
+        self.path_addressing = PathAddressing(self.config_wrapper)
 
     def validate_config_db_patch_has_yang_models(self, patch):
         config_db = {}
@@ -239,6 +262,10 @@ class PathAddressing:
     """
     PATH_SEPARATOR = "/"
     XPATH_SEPARATOR = "/"
+
+    def __init__(self, config_wrapper=None):
+        self.config_wrapper = config_wrapper
+
     def get_path_tokens(self, path):
         return JsonPointer(path).parts
 
@@ -246,7 +273,13 @@ class PathAddressing:
         return JsonPointer.from_parts(tokens).path
 
     def has_path(self, doc, path):
-        return JsonPointer(path).get(doc, default=None) is not None
+        return self.get_from_path(doc, path) is not None
+
+    def get_from_path(self, doc, path):
+        return JsonPointer(path).get(doc, default=None)
+
+    def is_config_different(self, path, current, target):
+        return self.get_from_path(current, path) != self.get_from_path(target, path)
 
     def get_xpath_tokens(self, xpath):
         """
@@ -374,10 +407,11 @@ class PathAddressing:
         return self._find_leafref_paths(path, config)
 
     def _find_leafref_paths(self, path, config):
-        sy = sonic_yang.SonicYang(YANG_DIR)
-        sy.loadYangModel()
+        sy = self.config_wrapper.create_sonic_yang_with_loaded_models()
 
-        sy.loadData(config)
+        tmp_config = copy.deepcopy(config)
+
+        sy.loadData(tmp_config)
 
         xpath = self.convert_path_to_xpath(path, config, sy)
 
@@ -388,11 +422,15 @@ class PathAddressing:
             ref_xpaths.extend(sy.find_data_dependencies(xpath))
 
         ref_paths = []
+        ref_paths_set = set()
         for ref_xpath in ref_xpaths:
             ref_path = self.convert_xpath_to_path(ref_xpath, config, sy)
-            ref_paths.append(ref_path)
+            if ref_path not in ref_paths_set:
+                ref_paths.append(ref_path)
+                ref_paths_set.add(ref_path)
 
-        return set(ref_paths)
+        ref_paths.sort()
+        return ref_paths
 
     def _get_inner_leaf_xpaths(self, xpath, sy):
         if xpath == "/": # Point to Root element which contains all xpaths
@@ -516,7 +554,8 @@ class PathAddressing:
             # Source: Check examples in https://netopeer.liberouter.org/doc/libyang/master/html/howto_x_path.html
             return [f"{token}[.='{value}']"]
 
-        raise ValueError("Token not found")
+        raise ValueError(f"Path token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
+                         f"path_tokens: {path_tokens}\n  config: {config}")
 
     def _extractKey(self, tableKey, keys):
         keyList = keys.split()
@@ -680,7 +719,8 @@ class PathAddressing:
             list_idx = list_config.index(leaf_list_value)
             return [leaf_list_name, list_idx]
 
-        raise Exception("no leaf")
+        raise ValueError(f"Xpath token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
+                         f"xpath_tokens: {xpath_tokens}\n  config: {config}")
 
     def _extract_key_dict(self, list_token):
         # Example: VLAN_MEMBER_LIST[name='Vlan1000'][port='Ethernet8']

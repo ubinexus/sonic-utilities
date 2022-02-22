@@ -1,14 +1,14 @@
 import copy
 import json
 import jsonpatch
-from collections import deque
+from collections import deque, OrderedDict
 from enum import Enum
 from .gu_common import OperationWrapper, OperationType, GenericConfigUpdaterError, \
                        JsonChange, PathAddressing, genericUpdaterLogging
 
 class Diff:
     """
-    A class that contains the diff info between current and target configs. 
+    A class that contains the diff info between current and target configs.
     """
     def __init__(self, current_config, target_config):
         self.current_config = current_config
@@ -35,6 +35,13 @@ class Diff:
 
     def has_no_diff(self):
         return self.current_config == self.target_config
+
+    def __str__(self):
+        return f"""current_config: {self.current_config}
+target_config: {self.target_config}"""
+
+    def __repr__(self):
+        return str(self)
 
 class JsonMove:
     """
@@ -107,7 +114,7 @@ class JsonMove:
             }
           Assume JsonMove:
             op_type=add, current_config_tokens=[dict1, key11], target_config_tokens=[dict1, key11]
-  
+
           Converting this to operation directly would result in:
             {"op":"add", "path":"/dict1/key11", "value":"value11"}
           BUT this is not correct since 'dict1' which does not exist in Current Config.
@@ -326,6 +333,189 @@ class MoveWrapper:
             for newmove in extender.extend(move, diff):
                 yield newmove
 
+class JsonPointerFilter:
+    """
+    A filtering class to get the paths matching the filter from the given config.
+    The patterns:
+    - Each pattern consist of multiple tokens
+    - Tokens are matched with the config from the root level
+    - Each token can be:
+      - '*' Will match all keys at the current level
+      - '@' Will be replaced by 'common_key' passed in 'get_paths'
+      - <other> Will match other strings that are not * nor @
+    - Token advanced options
+      - '*|@' Will match keys that end with '|common_key'
+      - '@|*' Will match keys that start with 'common_key|'
+      - '*|<other>' Will match keys that end with '|<other>'
+      - '<other>|*' Will match keys that start with '<other>|'
+    """
+    def __init__(self, patterns, path_addressing):
+        self.patterns = patterns
+        self.path_addressing = path_addressing
+
+    def get_paths(self, config, common_key=None):
+        for pattern in self.patterns:
+            for path in self._get_paths_recursive(config, pattern, [], 0, common_key):
+                yield path
+
+    def _get_paths_recursive(self, config, pattern_tokens, matching_tokens, idx, common_key):
+        if idx == len(pattern_tokens):
+            yield self.path_addressing.create_path(matching_tokens)
+            return
+
+        token = pattern_tokens[idx]
+        if common_key:
+            token = token.replace("@", common_key)
+
+        matching_keys = []
+        if token == "*":
+            matching_keys = config.keys()
+        elif token.startswith("*|"):
+            suffix = token[2:]
+            matching_keys = [key for key in config.keys() if key.endswith(suffix)]
+        elif token.endswith("|*"):
+            prefix = token[:-2]
+            matching_keys = [key for key in config.keys() if key.startswith(prefix)]
+        elif token in config:
+            matching_keys = [token]
+
+        for key in matching_keys:
+            matching_tokens.append(key)
+            for path in self._get_paths_recursive(config[key], pattern_tokens, matching_tokens, idx+1, common_key):
+                yield path
+            matching_tokens.pop()
+
+    def is_match(self, path):
+        tokens = self.path_addressing.get_path_tokens(path)
+        for pattern in self.patterns:
+            if len(pattern) != len(tokens):
+                return False
+
+            for idx in range(len(pattern)):
+                pattern_token = pattern[idx]
+                token = tokens[idx]
+
+                if not self._is_token_match(pattern_token, token):
+                    return False
+
+        return True
+
+    def _is_token_match(self, pattern_token, token):
+        if "|" in pattern_token:
+            pattern_token_parts = pattern_token.split("|", 1)
+            token_parts = token.split("|", 1)
+            if len(pattern_token_parts) != len(token_parts):
+                return False
+
+            return self._is_simple_token_match(pattern_token_parts[0], token_part[0]) and \
+                   self._is_simple_token_match(pattern_token_parts[1], token_part[1])
+
+        return self._is_simple_token_match(pattern_token, token)
+
+
+    def _is_simple_token_match(self, pattern_token, token):
+        if pattern_token == "*" or pattern_token == "@":
+            return True
+
+        return pattern_token == token
+
+class RequiredValueIdentifier:
+    """
+    A class that identifies the config that requires other fields to be of specific value
+    The "requiring" config is the config that requires other fields to be of specific value.
+    The "required" config is the confing that needs to be of specific value.
+    E.g. Changes to "QUEUE" table requires the corresponding "PORT" to be admin down.
+    """
+    def __init__(self, path_addressing):
+        # TODO: port-critical fields are hard-coded for now, it should be moved to YANG models
+        # settings format, each setting consist of:
+        #   [
+        #       "required_pattern": the list of tokens, where there is a single token with value '@' which is the common key
+        #                           with the requiring patterns
+        #       "required_value": the required value
+        #       "default_value": the default value of the required paths
+        #       "requiring_patterns": the patterns matching paths that requires the given value, each pattern can have '@'
+        #                             which will be replaced with the common key, '*' will match any symbol
+        #   }
+        self.settings = [
+            {
+                "required_pattern": ["PORT", "@", "admin_status"],
+                "required_value": "down",
+                "default_value": "down",
+                "requiring_patterns": [
+                        ["BUFFER_PG", "@|*"],
+                        ["BUFFER_PORT_EGRESS_PROFILE_LIST", "@"],
+                        ["BUFFER_PORT_INGRESS_PROFILE_LIST", "@"],
+                        ["BUFFER_QUEUE", "@|*"],
+                        ["PORT_QOS_MAP", "@"],
+                        ["QUEUE", "@|*"],
+                    ]
+            },
+        ]
+        self.path_addressing = path_addressing
+        for setting in self.settings:
+            required_pattern = setting["required_pattern"]
+            required_parent_pattern = required_pattern[:-1]
+            # replace the '@' with '*' so it can be used as a JsonPointerFilter
+            required_parent_pattern_with_asterisk = [token.replace("@", "*") for token in required_parent_pattern]
+            setting["required_parent_filter"] = JsonPointerFilter([required_parent_pattern_with_asterisk], path_addressing)
+            setting["required_field_name"] = required_pattern[-1]
+            for index, token in enumerate(required_pattern):
+                if token == "@":
+                    setting["common_key_index"] = index
+            setting["requiring_filter"] = JsonPointerFilter(setting["requiring_patterns"], path_addressing)
+
+
+    def get_required_value_data(self, configs):
+        data = {}
+        for setting in self.settings:
+            required_parent_filter = setting["required_parent_filter"]
+            required_field_name = setting["required_field_name"]
+            common_key_index = setting["common_key_index"]
+            required_value = setting["required_value"]
+            requiring_filter = setting["requiring_filter"]
+            for config in configs:
+                for required_parent_path in required_parent_filter.get_paths(config):
+                    parent_tokens = self.path_addressing.get_path_tokens(required_parent_path)
+                    required_path = self.path_addressing.create_path(parent_tokens+[required_field_name])
+                    common_key = parent_tokens[common_key_index]
+                    requires_paths = requiring_filter.get_paths(config, common_key)
+                    for requires_path in requires_paths:
+                        if requires_path not in data:
+                            data[requires_path] = set()
+                        data[requires_path].add((required_path, required_value))
+
+        sorted_paths = sorted(data.keys())
+        sorted_data = OrderedDict()
+        for path in sorted_paths:
+            sorted_data[path] = sorted(data[path])
+
+        return sorted_data
+
+    def get_value_or_default(self, config, path):
+        value = self.path_addressing.get_from_path(config, path)
+        if value is not None:
+            return value
+
+        # Check if parent exist
+        tokens = self.path_addressing.get_path_tokens(path)
+        parent_tokens = tokens[:-1]
+        field_name = tokens[-1]
+        parent_path = self.path_addressing.create_path(parent_tokens)
+        parent_value = self.path_addressing.get_from_path(config, parent_path)
+
+        if parent_value is None:
+            return None
+
+        return self._get_default_value_from_settings(parent_path, field_name)
+
+    def _get_default_value_from_settings(self, parent_path, field_name):
+        for setting in self.settings:
+            if setting["required_parent_filter"].is_match(parent_path) and field_name == setting["required_field_name"]:
+                return setting["default_value"]
+
+        return None
+
 class DeleteWholeConfigMoveValidator:
     """
     A class to validate not deleting whole config as it is not supported by JsonPatch lib.
@@ -372,40 +562,71 @@ class UniqueLanesMoveValidator:
 
 class CreateOnlyMoveValidator:
     """
-    A class to validate create-only fields are only added/removed but never replaced.
-    Parents of create-only fields are also only added/removed but never replaced when they contain
-    a modified create-only field.
+    A class to validate create-only fields are only created, but never modified/updated. In other words:
+    - Field cannot be replaced.
+    - Field cannot be added, only if the parent is added.
+    - Field cannot be deleted, only if the parent is deleted.
     """
     def __init__(self, path_addressing):
         self.path_addressing = path_addressing
 
-    def validate(self, move, diff):
-        if move.op_type != OperationType.REPLACE:
-            return True
+        # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
+        self.create_only_filter = JsonPointerFilter([
+                ["PORT", "*", "lanes"],
+                ["LOOPBACK_INTERFACE", "*", "vrf_name"],
+                ["BGP_NEIGHBOR", "*", "holdtime"],
+                ["BGP_NEIGHBOR", "*", "keepalive"],
+                ["BGP_NEIGHBOR", "*", "name"],
+                ["BGP_NEIGHBOR", "*", "asn"],
+                ["BGP_NEIGHBOR", "*", "local_addr"],
+                ["BGP_NEIGHBOR", "*", "nhopself"],
+                ["BGP_NEIGHBOR", "*", "rrclient"],
+            ],
+            path_addressing)
 
-        # The 'create-only' field needs to be common between current and simulated anyway but different.
-        # This means it is enough to just get the paths from current_config, paths that are not common can be ignored.
-        paths = self._get_create_only_paths(diff.current_config)
+    def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
+        # get create-only paths from current config, simulated config and also target config
+        # simulated config is the result of the move
+        # target config is the final config
+        paths = set(list(self._get_create_only_paths(diff.current_config)) +
+                    list(self._get_create_only_paths(simulated_config)) +
+                    list(self._get_create_only_paths(diff.target_config)))
 
         for path in paths:
             tokens = self.path_addressing.get_path_tokens(path)
             if self._value_exist_but_different(tokens, diff.current_config, simulated_config):
                 return False
+            if self._value_added_but_parent_exist(tokens, diff.current_config, simulated_config):
+                return False
+            if self._value_removed_but_parent_remain(tokens, diff.current_config, simulated_config):
+                return False
+
+            # if parent of create-only field is added, create-only field should be the same as target
+            # i.e. if field is deleted in target, it should be deleted in the move, or
+            #      if field is present in target, it should be present in the move
+            if self._parent_added_child_not_as_target(tokens, diff.current_config, simulated_config, diff.target_config):
+                return False
 
         return True
 
-    # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
+    def _parent_added_child_not_as_target(self, tokens, current_config, simulated_config, target_config):
+        # if parent is not added, return false
+        if not self._exist_only_in_first(tokens[:-1], simulated_config, current_config):
+            return False
+
+        child_path = self.path_addressing.create_path(tokens)
+
+        # if child is in target, check if child is not in simulated
+        if self.path_addressing.has_path(target_config, child_path):
+            return not self.path_addressing.has_path(simulated_config, child_path)
+        else:
+            # if child is not in target, check if child is in simulated
+            return self.path_addressing.has_path(simulated_config, child_path)
+
     def _get_create_only_paths(self, config):
-        if "PORT" not in config:
-            return
-
-        ports = config["PORT"]
-
-        for port in ports:
-            attrs = ports[port]
-            if "lanes" in attrs:
-                yield f"/PORT/{port}/lanes"
+        for path in self.create_only_filter.get_paths(config):
+            yield path
 
     def _value_exist_but_different(self, tokens, current_config_ptr, simulated_config_ptr):
         for token in tokens:
@@ -421,6 +642,35 @@ class CreateOnlyMoveValidator:
             simulated_config_ptr = simulated_config_ptr[mod_token]
 
         return current_config_ptr != simulated_config_ptr
+
+    def _value_added_but_parent_exist(self, tokens, current_config_ptr, simulated_config_ptr):
+        # if value is not added, return false
+        if not self._exist_only_in_first(tokens, simulated_config_ptr, current_config_ptr):
+            return False
+
+        # if parent is added, return false
+        if self._exist_only_in_first(tokens[:-1], simulated_config_ptr, current_config_ptr):
+            return False
+
+        # otherwise parent exist and value is added
+        return True
+
+    def _value_removed_but_parent_remain(self, tokens, current_config_ptr, simulated_config_ptr):
+        # if value is not removed, return false
+        if not self._exist_only_in_first(tokens, current_config_ptr, simulated_config_ptr):
+            return False
+
+        # if parent is removed, return false
+        if self._exist_only_in_first(tokens[:-1], current_config_ptr, simulated_config_ptr):
+            return False
+
+        # otherwise parent remained and value is removed
+        return True
+
+    def _exist_only_in_first(self, tokens, first_config_ptr, second_config_ptr):
+        path = self.path_addressing.create_path(tokens)
+        return self.path_addressing.has_path(first_config_ptr, path) and \
+               not self.path_addressing.has_path(second_config_ptr, path)
 
 class NoDependencyMoveValidator:
     """
@@ -486,10 +736,12 @@ class NoDependencyMoveValidator:
         simulated_config = move.apply(diff.current_config)
         deleted_paths, added_paths = self._get_paths(diff.current_config, simulated_config, [])
 
+        # For deleted paths, we check the current config has no dependencies between nodes under the removed path
         if not self._validate_paths_config(deleted_paths, diff.current_config):
             return False
 
-        if not self._validate_paths_config(added_paths, diff.target_config):
+        # For added paths, we check the simulated config has no dependencies between nodes under the added path
+        if not self._validate_paths_config(added_paths, simulated_config):
             return False
 
         return True
@@ -522,7 +774,7 @@ class NoDependencyMoveValidator:
                 tokens.pop()
 
             return deleted_paths, added_paths
-        
+
         # current/target configs are not dict nor list, so handle them as string, int, bool, float
         if current_ptr != target_ptr:
             # tokens.append(token)
@@ -603,6 +855,63 @@ class NoEmptyTableMoveValidator:
         # the only invalid case is if table exists and is empty
         return table not in config or config[table]
 
+class RequiredValueMoveValidator:
+    """
+    Check RequiredValueIdentifier class description first.
+
+    The validator checks the following:
+    - A move that is changing a requiring config, while the required path is not equal to the required value is rejected
+      E.g. A move that is changing "QUEUE" table while the corresponding "PORT" is not admin down is rejected
+    - A move that is changing the required path value to something other than the required value, while there are
+      requiring changes left is rejected
+      E.g. A move is changing "PORT" to admin up from down, while "QUEUE" table still have changes left is rejected.
+    """
+    def __init__(self, path_addressing):
+        self.path_addressing = path_addressing
+        self.identifier = RequiredValueIdentifier(path_addressing)
+
+    def validate(self, move, diff):
+        # ignore full config removal because it is not possible by JsonPatch lib
+        if move.op_type == OperationType.REMOVE and move.path == "":
+            return
+
+        current_config = diff.current_config
+        simulated_config = move.apply(current_config) # Config after applying just this move
+        target_config = diff.target_config # Final config after applying whole patch
+
+        # data dictionary:
+        # {
+        #   <path>: [(required_path, required_value), ...],
+        #   ...
+        # }
+        data = self.identifier.get_required_value_data([current_config, simulated_config, target_config])
+
+        # If move is changing a requiring path while the required path does not have the required value, reject the move
+        # E.g. if the move is changing port-critical configs while the port is up, reject the move
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, simulated_config):
+                for required_path, required_value in data[path]:
+                    actual_value = self.identifier.get_value_or_default(current_config, required_path)
+                    if actual_value is None: # current config does not have this value at all
+                        continue
+                    if actual_value != required_value:
+                        return False
+
+        # If some changes to the requiring paths are still to take place and the move has changes
+        # to the required path, reject the move
+        # E.g. if there are still port-critical changes left and the move has changes to the port
+        #      admin status, reject the move
+        # This makes sure we don't change the required path unnecessarily.
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, target_config):
+                for required_path, required_value in data[path]:
+                    current_value = self.identifier.get_value_or_default(current_config, required_path)
+                    simulated_value = self.identifier.get_value_or_default(simulated_config, required_path)
+                    if current_value != simulated_value and simulated_value != required_value:
+                        return False
+
+        return True
+
 class LowLevelMoveGenerator:
     """
     A class to generate the low level moves i.e. moves corresponding to differences between current/target config
@@ -671,7 +980,7 @@ class SingleRunLowLevelMoveGenerator:
                     yield move
                 current_tokens.pop()
                 target_tokens.pop()
-            
+
             return
 
         # The current/target ptr are neither dict nor list, so they might be string, int, float, bool
@@ -823,6 +1132,99 @@ class SingleRunLowLevelMoveGenerator:
 
         return counts
 
+class RequiredValueMoveExtender:
+    """
+    Check RequiredValueIdentifier class description first.
+
+    The extender does the following:
+    - If the move that is changing a requiring config, while the required path is not equal to the required value, then
+      generate a move to turn the required path to the required value.
+      E.g. A move that is changing "QUEUE" table while the corresponding "PORT" is not admin down, then generate
+           a move to turn the "PORT" to admin down.
+    - If a move that is changing the required path value to something other than the required value, while there are
+      requiring changes left, then flip all the required paths in the move to the required value.
+      E.g. A move is changing "PORT" to admin up from down, while "QUEUE" table still have changes left, then flip
+           the "PORT" to admin down in the move.
+    """
+    def __init__(self, path_addressing, operation_wrapper):
+        self.path_addressing = path_addressing
+        self.identifier = RequiredValueIdentifier(path_addressing)
+        self.operation_wrapper = operation_wrapper
+
+    def extend(self, move, diff):
+        # ignore full config removal because it is not possible by JsonPatch lib
+        if move.op_type == OperationType.REMOVE and move.path == "":
+            return
+
+        current_config = diff.current_config
+        simulated_config = move.apply(current_config) # Config after applying just this move
+        target_config = diff.target_config # Final config after applying whole patch
+
+        # data dictionary:
+        # {
+        #   <path>: [(required_path, required_value), ...],
+        #   ...
+        # }
+        data = self.identifier.get_required_value_data([current_config, simulated_config, target_config])
+
+        # If move is changing a requiring path while the required path does not have the required value,
+        # flip the required path to the required value
+        # E.g. if the move is changing port-critical config while the port is admin up, create a move to
+        #      turn the port admin down
+        processed_moves = set()
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, simulated_config):
+                for required_path, required_value in data[path]:
+                    actual_value = self.identifier.get_value_or_default(current_config, required_path)
+                    if actual_value is None: # current config does not have this value at all
+                        continue
+                    if actual_value != required_value:
+                        extended_move = JsonMove.from_operation({"op":"replace", "path":required_path, "value":required_value})
+                        if extended_move not in processed_moves:
+                            processed_moves.add(extended_move)
+                            yield extended_move
+
+        # If some changes to the requiring paths are still to take place and the move has changes
+        # to the required path, flip the required path to the required value.
+        # E.g. if there are still port-critical changes left and the move has changes to the port
+        #      admin status, flip the port to admin down in the move
+        # This makes sure we don't change the required path unnecessarily.
+        flip_path_value_tuples = set()
+        for path in data:
+            if self.path_addressing.is_config_different(path, current_config, target_config):
+                for required_path, required_value in data[path]:
+                    current_value = self.identifier.get_value_or_default(current_config, required_path)
+                    simulated_value = self.identifier.get_value_or_default(simulated_config, required_path)
+                    if current_value != simulated_value and simulated_value != required_value:
+                        flip_path_value_tuples.add((required_path, required_value))
+
+        if flip_path_value_tuples:
+            extended_move = self._flip(move, flip_path_value_tuples)
+            yield extended_move
+
+    def _flip(self, move, flip_path_value_tuples):
+        new_value = copy.deepcopy(move.value)
+        move_tokens = self.path_addressing.get_path_tokens(move.path)
+        for field_path, field_value in flip_path_value_tuples:
+            field_tokens = self.path_addressing.get_path_tokens(field_path)
+            new_value = self._change_value(field_tokens, field_value, move_tokens, new_value)
+
+        operation = self.operation_wrapper.create(move.op_type, move.path, new_value)
+        return JsonMove.from_operation(operation)
+
+    def _change_value(self, field_tokens, field_value, move_tokens, move_value):
+        rem_tokens = field_tokens[len(move_tokens):]
+        if not rem_tokens:
+            return field_value
+
+        move_value_ptr = move_value
+        for token in rem_tokens[:-1]:
+            move_value_ptr = move_value_ptr[token]
+
+        last_token = rem_tokens[-1]
+        move_value_ptr[last_token] = field_value
+        return move_value
+
 class UpperLevelMoveExtender:
     """
     A class to extend the given move by including its parent. It has 3 cases:
@@ -867,6 +1269,10 @@ class DeleteInsteadOfReplaceMoveExtender:
         operation_type = move.op_type
 
         if operation_type != OperationType.REPLACE:
+            return
+
+        # Cannot delete the whole config, JsonPatch lib does not support it
+        if not move.current_config_tokens:
             return
 
         new_move = JsonMove(diff, OperationType.REMOVE, move.current_config_tokens)
@@ -955,7 +1361,7 @@ class MemoizationSorter:
         self.move_wrapper = move_wrapper
         self.mem = {}
 
-    def rec(self, diff):
+    def sort(self, diff):
         if diff.has_no_diff():
             return []
 
@@ -992,7 +1398,8 @@ class SortAlgorithmFactory:
 
     def create(self, algorithm=Algorithm.DFS):
         move_generators = [LowLevelMoveGenerator(self.path_addressing)]
-        move_extenders = [UpperLevelMoveExtender(),
+        move_extenders = [RequiredValueMoveExtender(self.path_addressing, self.operation_wrapper),
+                          UpperLevelMoveExtender(),
                           DeleteInsteadOfReplaceMoveExtender(),
                           DeleteRefsMoveExtender(self.path_addressing)]
         move_validators = [DeleteWholeConfigMoveValidator(),
@@ -1000,6 +1407,7 @@ class SortAlgorithmFactory:
                            NoDependencyMoveValidator(self.path_addressing, self.config_wrapper),
                            UniqueLanesMoveValidator(),
                            CreateOnlyMoveValidator(self.path_addressing),
+                           RequiredValueMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]
 
         move_wrapper = MoveWrapper(move_generators, move_extenders, move_validators)
@@ -1061,21 +1469,21 @@ class IgnorePathsFromYangConfigSplitter:
     def __init__(self, ignore_paths_from_yang_list, config_wrapper):
         self.ignore_paths_from_yang_list = ignore_paths_from_yang_list
         self.config_wrapper = config_wrapper
+        self.path_addressing = PathAddressing(config_wrapper)
 
     def split_yang_non_yang_distinct_field_path(self, config):
         config_with_yang = copy.deepcopy(config)
         config_without_yang = {}
 
-        path_addressing = PathAddressing()
         # ignore more config from config_with_yang
         for path in self.ignore_paths_from_yang_list:
-            if not path_addressing.has_path(config_with_yang, path):
+            if not self.path_addressing.has_path(config_with_yang, path):
                 continue
             if path == '': # whole config to be ignored
                 return {}, copy.deepcopy(config)
 
             # Add to config_without_yang from config_with_yang
-            tokens = path_addressing.get_path_tokens(path)
+            tokens = self.path_addressing.get_path_tokens(path)
             add_move = JsonMove(Diff(config_without_yang, config_with_yang), OperationType.ADD, tokens, tokens)
             config_without_yang = add_move.apply(config_without_yang)
 
@@ -1267,7 +1675,7 @@ class PatchSorter:
         self.config_wrapper = config_wrapper
         self.patch_wrapper = patch_wrapper
         self.operation_wrapper = OperationWrapper()
-        self.path_addressing = PathAddressing()
+        self.path_addressing = PathAddressing(self.config_wrapper)
         self.sort_algorithm_factory = sort_algorithm_factory if sort_algorithm_factory else \
             SortAlgorithmFactory(self.operation_wrapper, config_wrapper, self.path_addressing)
 
@@ -1275,10 +1683,7 @@ class PatchSorter:
         current_config = preloaded_current_config if preloaded_current_config else self.config_wrapper.get_config_db_as_json()
         target_config = self.patch_wrapper.simulate_patch(patch, current_config)
 
-        cropped_current_config = self.config_wrapper.crop_tables_without_yang(current_config)
-        cropped_target_config = self.config_wrapper.crop_tables_without_yang(target_config)
-
-        diff = Diff(cropped_current_config, cropped_target_config)
+        diff = Diff(current_config, target_config)
 
         sort_algorithm = self.sort_algorithm_factory.create(algorithm)
         moves = sort_algorithm.sort(diff)
