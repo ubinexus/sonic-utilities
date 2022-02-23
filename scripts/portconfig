@@ -172,7 +172,7 @@ class portconfig(object):
 
     def set_adv_interface_types(self, port, adv_interface_types):
         if self.is_rj45_port:
-            print("Setting RJ45 ports' advertised type is not supported")
+            print("Setting RJ45 ports' advertised types is not supported")
             exit(1)
         if self.verbose:
             print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
