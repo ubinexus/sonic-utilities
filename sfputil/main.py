@@ -7,6 +7,7 @@
 
 import os
 import sys
+import re
 import natsort
 import ast
 import time
@@ -16,7 +17,7 @@ import subprocess
 import click
 import sonic_platform
 import sonic_platform_base.sonic_sfp.sfputilhelper
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, FRONT_PANEL_PORT_PREFIX_REGEX
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
 from tabulate import tabulate
@@ -481,7 +482,7 @@ def get_physical_port_name(logical_port, physical_port, ganged):
 
 
 def logical_port_name_to_physical_port_list(port_name):
-    if port_name.startswith("Ethernet"):
+    if re.search(FRONT_PANEL_PORT_PREFIX_REGEX, port_name):
         if platform_sfputil.is_logical_port(port_name):
             return platform_sfputil.get_logical_to_physical(port_name)
         else:

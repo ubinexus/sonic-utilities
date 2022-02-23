@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import click
-from swsscommon.swsscommon import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector, FRONT_PANEL_PORT_PREFIX_REGEX
 from tabulate import tabulate
 from natsort import natsorted
+import re
 
 ALL_PRIORITIES = [str(x) for x in range(8)]
 PRIORITY_STATUS = ['on', 'off']
@@ -39,7 +40,7 @@ def showPfcAsym(interface):
         if i:
             key = i.split('|')[-1]
 
-        if key and key.startswith('Ethernet'):
+        if key and re.match(FRONT_PANEL_PORT_PREFIX_REGEX, key):
             entry = configdb.get_entry('PORT', key)
             table.append([key, entry.get('pfc_asym', 'N/A')])
 

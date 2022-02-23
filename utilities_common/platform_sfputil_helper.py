@@ -1,9 +1,11 @@
 import sys
+import re
 
 import click
 
 from . import cli as clicommon
 from sonic_py_common import multi_asic, device_info
+from swsscommon.swsscommon import FRONT_PANEL_PORT_PREFIX_REGEX
 
 platform_sfputil = None
 
@@ -43,7 +45,7 @@ def platform_sfputil_read_porttab_mappings():
 
 
 def logical_port_name_to_physical_port_list(port_name):
-    if port_name.startswith("Ethernet"):
+    if re.search(FRONT_PANEL_PORT_PREFIX_REGEX, port_name):
         if platform_sfputil.is_logical_port(port_name):
             return platform_sfputil.get_logical_to_physical(port_name)
         else:
