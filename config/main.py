@@ -42,7 +42,7 @@ from . import nat
 from . import vlan
 from . import vxlan
 from . import plugins
-from .config_mgmt import ConfigMgmtDPB
+from .config_mgmt import ConfigMgmt, ConfigMgmtDPB
 from . import mclag
 
 # mock masic APIs for unit test
@@ -789,7 +789,7 @@ def _per_namespace_swss_ready(service_name):
         return False
 
 def _swss_ready():
-    list_of_swss = [] 
+    list_of_swss = []
     num_asics = multi_asic.get_num_asics()
     if num_asics == 1:
         list_of_swss.append("swss.service")
@@ -802,7 +802,7 @@ def _swss_ready():
         if _per_namespace_swss_ready(service_name) == False:
             return False
 
-    return True 
+    return True
 
 def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
@@ -1039,6 +1039,27 @@ def validate_gre_type(ctx, _, value):
         return gre_type_value
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
+
+def validate_config(source=DEFAULT_CONFIG_DB_FILE, verbose=False):
+    '''
+    Perform config validation on source using YANG lib.
+
+    Parametes:
+        source (str): File name or configDb. source == 'configDb' only for post
+            db migration step.
+        verbose (bool): enable debug mode
+    Return:
+        valid (bool):
+            True if config validation is performed successfully.
+    '''
+
+    try:
+        cm = ConfigMgmt(source=source, debug=verbose)
+    except Exception as e:
+        click.echo('Config Validation using YANG Failed')
+        return False
+
+    return True
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1350,9 +1371,11 @@ def list_checkpoints(ctx, verbose):
 @click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
 @click.option('-f', '--force', default=False, is_flag=True, help='Force config reload without system checks')
 @click.option('-t', '--file_format', default='config_db',type=click.Choice(['config_yang', 'config_db']),show_default=True,help='specify the file format')
+@click.option('-c', '--disable-validation', default=False, is_flag=True, help='Disable Config Validation using YANG')
+@click.option('-v', '--verbose', default=False, is_flag=True, help="Enable verbose output")
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force, file_format):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force, file_format, disable_validation, verbose):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -1406,6 +1429,14 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
 
     if cache_arp_table:
         cache_arp_entries()
+
+    # Validate config before stoping service for single config file in JSON format.
+    # TODO: Avoid validation before db-migration step in case of upgrade
+    # scenarios with sonic-installer.
+    if not disable_validation and num_cfg_file == 1 and file_format == 'config_db':
+        config_source = DEFAULT_CONFIG_DB_FILE if filename is None else filename
+        if not validate_config(source=config_source, verbose=verbose):
+            return
 
     #Stop services before config push
     if not no_service_restart:
@@ -1482,10 +1513,10 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
 
 
         config_gen_opts = ""
-        
+
         if os.path.isfile(INIT_CFG_FILE):
             config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
-        
+
         if file_format == 'config_db':
             config_gen_opts += ' -j {} '.format(file)
         else:
@@ -1510,6 +1541,15 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             else:
                 command = "{} -o migrate -n {}".format(db_migrator, namespace)
             clicommon.run_command(command, display_cmd=True)
+
+        # Validate after DB migration as well for single config file in JSON format.
+        # config_source will be configDB for below validation.
+        # TODO: Avoid validation after db-migration step if this is not case of upgrade
+        # scenarios with sonic-installer.
+        if not disable_validation and num_cfg_file == 1 and file_format == 'config_db':
+            # Doubt: Should return here or perform client.flushdb() ?
+            if not validate_config(source='configDB', verbose=verbose):
+                return
 
     # Re-generate the environment variable in case config_db.json was edited
     update_sonic_environment()
@@ -6239,7 +6279,7 @@ def del_subinterface(ctx, subinterface_name):
     sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
     if subinterface_name not in sub_intfs:
         ctx.fail("{} does not exists".format(subinterface_name))
-        
+
     ips = {}
     ips = [ k[1] for k in config_db.get_table('VLAN_SUB_INTERFACE') if type(k) == tuple and k[0] == subinterface_name ]
     for ip in ips:
