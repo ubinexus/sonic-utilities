@@ -22,8 +22,8 @@ expected_counterpoll_show = """Type                    Interval (in ms)  Status
 QUEUE_STAT                         10000  enable
 PORT_STAT                           1000  enable
 PORT_BUFFER_DROP                   60000  enable
-QUEUE_WATERMARK_STAT               10000  enable
-PG_WATERMARK_STAT                  10000  enable
+QUEUE_WATERMARK_STAT               60000  enable
+PG_WATERMARK_STAT                  60000  enable
 PG_DROP_STAT                       10000  enable
 ACL                                10000  enable
 FLOW_CNT_TRAP_STAT                 10000  enable
