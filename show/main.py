@@ -14,7 +14,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
-from datetime import date
+from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
 
@@ -1061,7 +1061,9 @@ def version(verbose):
     
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
-    sys_date = date.today()
+    hour_le = 9
+    sys_uptime_without_hour = sys_uptime.stdout.read().strip()[hour_le:]
+    sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
@@ -1076,8 +1078,8 @@ def version(verbose):
     click.echo("Serial Number: {}".format(chassis_info['serial']))
     click.echo("Model Number: {}".format(chassis_info['model']))
     click.echo("Hardware Revision: {}".format(chassis_info['revision']))
-    click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
-    click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y")))
+    click.echo("Uptime: {}".format(sys_uptime_without_hour))
+    click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
