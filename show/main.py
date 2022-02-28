@@ -1050,10 +1050,10 @@ def logging(process, lines, follow, verbose):
 def get_uptime():
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
-    # The 'uptime' command displays the current time as the 1st entry "hh:mm:ss {more info}"
+    # The 'uptime' command displays the current time as the 1st entry "hh:mm:ss <more info>"
     # Split the output by the space character to remove the time from the output.
-    sys_uptime_without_time = sys_uptime.stdout.read().strip().split(' ', 1)[1]
-    return sys_uptime_without_time
+    sys_uptime_no_time = sys_uptime.stdout.read().strip().split(' ', 1)[1]
+    return sys_uptime_no_time
 
 
 #
