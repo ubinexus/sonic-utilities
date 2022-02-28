@@ -62,7 +62,7 @@ rm_lock_and_restart()
 handle_exit()
 {
     ECODE=$?
-    echo "Removing Lock. Exit: ${ETMP[ECODE]}($ECODE)" >&2
+    echo "Removing lock. Exit: ${ETMP[ECODE]}($ECODE)" >&2
     $RM $V -rf ${LOCKDIR}
 }
 
@@ -1538,7 +1538,7 @@ done
 if [ `whoami` != root ] && ! $NOOP;
 then
     echo "$0: must be run as root (or in sudo)" >&2
-    exit 10
+    exit $ERROR_INVALID_ARGUMENT
 fi
 
 ##
@@ -1551,7 +1551,7 @@ if mkdir "${LOCKDIR}" &>/dev/null; then
     # This handler will exit the script upon receiving these interrupts
     # Trap configured on EXIT will be triggered by the exit from handle_signal function
     trap 'handle_signal' SIGINT SIGHUP SIGQUIT SIGTERM
-    echo "Lock Succesfully Accquired and Installed signal handlers"
+    echo "Lock succesfully accquired and installed signal handlers"
     # Proceed with the actual code
     main
 else
