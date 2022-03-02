@@ -77,7 +77,7 @@ class TestConfigInterface(object):
         assert 'duplicate' in result.output
         self.basic_check("advertised-types", ["Ethernet0", ""], ctx, operator.ne)
         result = self.basic_check("advertised-types", ["Ethernet16", "Invalid"], ctx, operator.ne)
-        assert "Setting RJ45 ports' advertised type is not supported" in result.output
+        assert "Setting RJ45 ports' advertised types is not supported" in result.output
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
