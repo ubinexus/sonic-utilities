@@ -826,7 +826,7 @@ def check_mirror_direction_config(v, direction):
     """ Check if port is already configured for mirror in same direction """
     if direction:
         direction=direction.upper()
-        if ('direction' in v and v['direction'] == 'BOTH') or (direction == 'both'):
+        if ('direction' in v and v['direction'] == 'BOTH') or (direction == 'BOTH'):
             return True
         if 'direction' in v and v['direction'] == direction:
             return True
