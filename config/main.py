@@ -822,13 +822,33 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
     return False
 
-def interface_has_mirror_config(mirror_table, interface_name):
-    """ Check if port is already configured with mirror config """
+def check_mirror_direction_config(v, direction):
+    """ Check if port is already configured for mirror in same direction """
+    if direction:
+        direction=direction.upper()
+        if ('direction' in v and v['direction'] == 'BOTH') or (direction == 'both'):
+            return True
+        if 'direction' in v and v['direction'] == direction:
+            return True
+    else:
+        return True
+
+def interface_has_mirror_config(mirror_table, dst_port, src_port, direction):
+    """ Check if dst/src port is already configured with mirroring in same direction """
     for _, v in mirror_table.items():
-        if 'src_port' in v and v['src_port'] == interface_name:
-            return True
-        if 'dst_port' in v and v['dst_port'] == interface_name:
-            return True
+        if src_port:
+            for port in src_port.split(","):
+                if 'dst_port' in v and v['dst_port'] == port:
+                    click.echo("Error: Source Interface {} already has mirror config".format(port))
+                    return True
+                if 'src_port' in v and re.search(port,v['src_port']):
+                    if check_mirror_direction_config(v, direction):
+                        click.echo("Error: Source Interface {} already has mirror config in same direction".format(port))
+                        return True
+        if dst_port:
+            if ('dst_port' in v and v['dst_port'] == dst_port) or ('src_port' in v and re.search(dst_port,v['src_port'])):
+                click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
+                return True
 
     return False
 
@@ -851,9 +871,6 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
             click.echo("Error: Destination Interface {} has vlan config".format(dst_port))
             return False
 
-        if interface_has_mirror_config(mirror_table, dst_port):
-            click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
-            return False
 
         if is_portchannel_present_in_db(config_db, dst_port):
             click.echo("Error: Destination Interface {} is not supported".format(dst_port))
@@ -875,9 +892,9 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
             if dst_port and dst_port == port:
                 click.echo("Error: Destination Interface cant be same as Source Interface")
                 return False
-            if interface_has_mirror_config(mirror_table, port):
-                click.echo("Error: Source Interface {} already has mirror config".format(port))
-                return False
+
+    if interface_has_mirror_config(mirror_table, dst_port, src_port, direction):
+        return False
 
     if direction:
         if direction not in ['rx', 'tx', 'both']:
