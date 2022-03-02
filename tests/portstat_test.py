@@ -290,7 +290,7 @@ class TestPortStat(object):
         assert result == intf_counters_detailed
 
     def test_clear_intf_counters(self):
-        runner = CliRunner()
+        runner = CliRunner() 
         result = runner.invoke(clear.cli.commands["counters"], [])
         print(result.exit_code)
         print(result.output)
