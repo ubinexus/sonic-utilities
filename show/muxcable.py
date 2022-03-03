@@ -399,7 +399,7 @@ def get_switch_name(config_db):
         sys.exit(STATUS_FAIL)
 
 
-def create_json_dump_per_port_status(db, port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_index, port):
+def create_json_dump_per_port_status(db, port_status_dict, muxcable_info_dict, muxcable_health_dict, muxcable_metrics_dict, asic_index, port):
 
     res_dict = {}
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
@@ -419,8 +419,14 @@ def create_json_dump_per_port_status(db, port_status_dict, muxcable_info_dict, m
         hwstatus = "inconsistent"
     port_status_dict["MUX_CABLE"][port_name]["HWSTATUS"] = hwstatus
 
+    last_switch_end_time = ""
+    if "linkmgrd_switch_standby_end" in muxcable_metrics_dict[asic_index]:
+        last_switch_end_time = muxcable_metrics_dict[asic_index].get("linkmgrd_switch_standby_end")
+    elif "linkmgrd_switch_active_end" in muxcable_metrics_dict[asic_index]: 
+        last_switch_end_time = muxcable_metrics_dict[asic_index].get("linkmgrd_switch_active_end")
+    port_status_dict["MUX_CABLE"][port_name]["LAST_SWITCHOVER_TIME"] = last_switch_end_time
 
-def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcable_health_dict, asic_index, port):
+def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcable_health_dict, muxcable_metrics_dict, asic_index, port):
 
     print_port_data = []
     res_dict = {}
@@ -429,6 +435,13 @@ def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcab
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     #status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
     health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
+
+    last_switch_end_time = ""
+    if "linkmgrd_switch_standby_end" in muxcable_metrics_dict[asic_index]:
+        last_switch_end_time = muxcable_metrics_dict[asic_index].get("linkmgrd_switch_standby_end")
+    elif "linkmgrd_switch_active_end" in muxcable_metrics_dict[asic_index]: 
+        last_switch_end_time = muxcable_metrics_dict[asic_index].get("linkmgrd_switch_active_end")
+
     port_name = platform_sfputil_helper.get_interface_alias(port, db)
     print_port_data.append(port_name)
     print_port_data.append(status_value)
@@ -441,6 +454,7 @@ def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcab
         hwstatus = "consistent"
     else:
         hwstatus = "inconsistent"
+    print_port_data.append(last_switch_end_time)
     print_port_data.append(hwstatus)
     print_data.append(print_port_data)
 
@@ -482,9 +496,11 @@ def status(db, port, json_output):
 
     port_table_keys = {}
     port_health_table_keys = {}
+    port_metrics_table_keys = {}
     per_npu_statedb = {}
     muxcable_info_dict = {}
     muxcable_health_dict = {}
+    muxcable_metrics_dict = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -498,6 +514,8 @@ def status(db, port, json_output):
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
         port_health_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|*')
+        port_metrics_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'MUX_METRICS_TABLE|*')
 
     if port is not None:
         asic_index = None
@@ -517,17 +535,23 @@ def status(db, port, json_output):
             per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
         muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
+        muxcable_metrics_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'MUX_METRICS_TABLE|{}'.format(port))
         if muxcable_info_dict[asic_index] is not None:
             logical_key = "MUX_CABLE_TABLE|{}".format(port)
             logical_health_key = "MUX_LINKMGR_TABLE|{}".format(port)
+            logical_metrics_key = "MUX_METRICS_TABLE|{}".format(port)
             if logical_key in port_table_keys[asic_index] and logical_health_key in port_health_table_keys[asic_index]:
+                
+                if logical_metrics_key not in port_metrics_table_keys[asic_index]: 
+                    muxcable_metrics_dict[asic_index] = {}
 
                 if json_output:
                     port_status_dict = {}
                     port_status_dict["MUX_CABLE"] = {}
 
                     create_json_dump_per_port_status(db, port_status_dict, muxcable_info_dict,
-                                                     muxcable_health_dict, asic_index, port)
+                                                     muxcable_health_dict, muxcable_metrics_dict, asic_index, port)
 
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                     sys.exit(STATUS_SUCCESSFUL)
@@ -535,9 +559,9 @@ def status(db, port, json_output):
                     print_data = []
 
                     create_table_dump_per_port_status(db, print_data, muxcable_info_dict,
-                                                      muxcable_health_dict, asic_index, port)
+                                                      muxcable_health_dict, muxcable_metrics_dict, asic_index, port)
 
-                    headers = ['PORT', 'STATUS', 'HEALTH', 'HWSTATUS']
+                    headers = ['PORT', 'STATUS', 'HEALTH', 'HWSTATUS', 'LAST_SWITCHOVER_TIME']
 
                     click.echo(tabulate(print_data, headers=headers))
                     sys.exit(STATUS_SUCCESSFUL)
@@ -562,8 +586,12 @@ def status(db, port, json_output):
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
                     muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
+                    muxcable_metrics_dict[asic_id] = per_npu_statedb[asic_id].get_all(
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_METRICS_TABLE|{}'.format(port))
+                    if not muxcable_metrics_dict[asic_id]: 
+                        muxcable_metrics_dict[asic_id] = {}
                     create_json_dump_per_port_status(db, port_status_dict, muxcable_info_dict,
-                                                     muxcable_health_dict, asic_id, port)
+                                                     muxcable_health_dict, muxcable_metrics_dict, asic_id, port)
 
             click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
         else:
@@ -576,11 +604,15 @@ def status(db, port, json_output):
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
-
+                    muxcable_metrics_dict[asic_id] = per_npu_statedb[asic_id].get_all(
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_METRICS_TABLE|{}'.format(port))
+                    if not muxcable_metrics_dict[asic_id]: 
+                        muxcable_metrics_dict[asic_id] = {}
                     create_table_dump_per_port_status(db, print_data, muxcable_info_dict,
-                                                      muxcable_health_dict, asic_id, port)
+                                                      muxcable_health_dict, muxcable_metrics_dict, asic_id, port)
 
-            headers = ['PORT', 'STATUS', 'HEALTH', 'HWSTATUS']
+            headers = ['PORT', 'STATUS', 'HEALTH', 'HWSTATUS','LAST_SWITCHOVER_TIME']
+            headers = ['PORT', 'STATUS', 'HEALTH', 'LAST_SWITCHOVER_TIME']
             click.echo(tabulate(print_data, headers=headers))
 
         sys.exit(STATUS_SUCCESSFUL)
@@ -948,7 +980,7 @@ def debugdumpregisters(db, port, option, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", port, 10, param_dict, "debug_dump")
+            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", port, 100, param_dict, "debug_dump")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
@@ -1607,3 +1639,68 @@ def get_fec_anlt_speed(db, port, json_output):
         click.echo("Did not get a valid Port for fec value speed anlt".format(port))
         sys.exit(CONFIG_FAIL)
 
+def packetloss(db, port, json_output):
+    """show muxcable packetloss <port>"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    pckloss_table_keys = {}
+    per_npu_statedb = {}
+    pckloss_dict = {}
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        pckloss_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'LINK_PROBE_STATS|*')
+
+    if port is not None:
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        if port not in logical_port_list:
+            port_name = platform_sfputil_helper.get_interface_alias(port, db)
+            click.echo(("ERR: Not a valid logical port for muxcable firmware {}".format(port_name)))
+            sys.exit(CONFIG_FAIL)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                # is fully mocked
+                import sonic_platform_base.sonic_sfp.sfputilhelper
+                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+                if asic_index is None:
+                    port_name = platform_sfputil_helper.get_interface_alias(port, db)
+                    click.echo("Got invalid asic index for port {}, cant retreive pck loss info".format(port_name))
+
+        pckloss_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'LINK_PROBE_STATS|{}'.format(port))
+
+        ordered_dict = OrderedDict(sorted(pckloss_dict[asic_index].items(), key=itemgetter(1)))
+        if json_output:
+            click.echo("{}".format(json.dumps(ordered_dict, indent=4)))
+        else:
+            print_count = []
+            print_event = []
+            for key, val in ordered_dict.items():
+                print_port_data = []
+                port = platform_sfputil_helper.get_interface_alias(port, db)
+                print_port_data.append(port)
+                print_port_data.append(key)
+                print_port_data.append(val)
+                if "count" in key: 
+                    print_count.append(print_port_data)
+                else:
+                    print_event.append(print_port_data)
+
+            count_headers = ['PORT', 'COUNT', 'VALUE']
+            event_headers = ['PORT', 'EVENT', 'TIME']
+
+            click.echo(tabulate(print_count, headers=count_headers))
+            click.echo(tabulate(print_event, headers=event_headers))
