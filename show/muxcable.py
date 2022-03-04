@@ -454,8 +454,8 @@ def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcab
         hwstatus = "consistent"
     else:
         hwstatus = "inconsistent"
-    print_port_data.append(last_switch_end_time)
     print_port_data.append(hwstatus)
+    print_port_data.append(last_switch_end_time)
     print_data.append(print_port_data)
 
 
