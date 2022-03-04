@@ -612,7 +612,6 @@ def status(db, port, json_output):
                                                       muxcable_health_dict, muxcable_metrics_dict, asic_id, port)
 
             headers = ['PORT', 'STATUS', 'HEALTH', 'HWSTATUS','LAST_SWITCHOVER_TIME']
-            headers = ['PORT', 'STATUS', 'HEALTH', 'LAST_SWITCHOVER_TIME']
             click.echo(tabulate(print_data, headers=headers))
 
         sys.exit(STATUS_SUCCESSFUL)
