@@ -1639,6 +1639,10 @@ def get_fec_anlt_speed(db, port, json_output):
         click.echo("Did not get a valid Port for fec value speed anlt".format(port))
         sys.exit(CONFIG_FAIL)
 
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
 def packetloss(db, port, json_output):
     """show muxcable packetloss <port>"""
 
