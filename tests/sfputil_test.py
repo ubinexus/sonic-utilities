@@ -216,7 +216,6 @@ class TestSfputil(object):
         mock_api = MagicMock()
         mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
         mock_sfp.get_presence.return_value = True
-        import pdb;pdb.set_trace()
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['show'].commands['presence'], ["-p", "Ethernet16"])
         assert result.exit_code == 0
