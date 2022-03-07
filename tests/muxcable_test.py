@@ -25,9 +25,9 @@ import show.main as show
 
 
 tabular_data_status_output_expected = """\
-PORT        STATUS    HEALTH
-----------  --------  ---------
-Ethernet0   active    healthy
+PORT        STATUS    HEALTH     LAST_SWITCHOVER_TIME
+----------  --------  ---------  ---------------------------
+Ethernet0   active    healthy    2021-May-13 10:01:15.696728
 Ethernet4   standby   healthy
 Ethernet8   standby   unhealthy
 Ethernet12  unknown   unhealthy
@@ -36,9 +36,9 @@ Ethernet32  active    healthy
 """
 
 tabular_data_status_output_expected_alias = """\
-PORT    STATUS    HEALTH
-------  --------  ---------
-etp1    active    healthy
+PORT    STATUS    HEALTH     LAST_SWITCHOVER_TIME
+------  --------  ---------  ---------------------------
+etp1    active    healthy    2021-May-13 10:01:15.696728
 etp2    standby   healthy
 etp3    standby   unhealthy
 etp4    unknown   unhealthy
@@ -51,27 +51,33 @@ json_data_status_output_expected = """\
     "MUX_CABLE": {
         "Ethernet0": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": "2021-May-13 10:01:15.696728"
         },
         "Ethernet4": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet8": {
             "STATUS": "standby",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet12": {
             "STATUS": "unknown",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet16": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet32": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         }
     }
 }
@@ -82,27 +88,33 @@ json_data_status_output_expected_alias = """\
     "MUX_CABLE": {
         "etp1": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": "2021-May-13 10:01:15.696728"
         },
         "etp2": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp3": {
             "STATUS": "standby",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp4": {
             "STATUS": "unknown",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp5": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp9": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         }
     }
 }
@@ -411,6 +423,26 @@ show_muxcable_metrics_expected_output_json = """\
     "xcvrd_switch_standby_start": "2021-May-13 10:01:15.690835",
     "xcvrd_switch_standby_end": "2021-May-13 10:01:15.696051",
     "linkmgrd_switch_standby_end": "2021-May-13 10:01:15.696728"
+}
+"""
+
+show_muxcable_packetloss_expected_output="""\
+PORT       COUNT                 VALUE
+---------  ------------------  -------
+Ethernet0  pck_loss_count          612
+Ethernet0  pck_expected_count      840
+PORT       EVENT                      TIME
+---------  -------------------------  ---------------------------
+Ethernet0  link_prober_unknown_start  2022-Jan-26 03:13:05.366900
+Ethernet0  link_prober_unknown_end    2022-Jan-26 03:17:35.446580
+"""
+
+show_muxcable_packetloss_expected_output_json="""\
+{
+    "link_prober_unknown_start": "2022-Jan-26 03:13:05.366900",
+    "link_prober_unknown_end": "2022-Jan-26 03:17:35.446580",
+    "pck_loss_count": "612",
+    "pck_expected_count": "840"
 }
 """
 
@@ -777,6 +809,16 @@ class TestMuxcable(object):
                                    "active", "Ethernet33"], obj=db)
 
         assert result.exit_code == 1
+
+    def test_config_muxcable_packetloss_reset_Ethernet0(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('sonic_platform_base.sonic_sfp.sfputilhelper') as patched_util:
+            patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
+            result = runner.invoke(config.config.commands["muxcable"].commands["packetloss"], ["reset", "Ethernet0"], obj=db)
+
+        assert result.exit_code == 0
 
     @mock.patch('os.geteuid', mock.MagicMock(return_value=0))
     @mock.patch('sonic_y_cable.y_cable.get_eye_info', mock.MagicMock(return_value=[0, 0]))
@@ -1290,6 +1332,32 @@ class TestMuxcable(object):
                                "Ethernet0", "--active"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_firmware_version_active_expected_output
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_packetloss_port(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["packetloss"],
+                               ["Ethernet0"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_packetloss_expected_output
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_packetloss_port_json(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["packetloss"],
+                               ["Ethernet0", "--json"], obj=db)
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_packetloss_expected_output_json
 
     @classmethod
     def teardown_class(cls):
