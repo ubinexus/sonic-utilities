@@ -30,7 +30,7 @@ def active_hops(nhg):
 
     try:
         table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
-    except BaseException as e:
+    except Exception as e:
         ctx.fail("FG_ROUTE_TABLE does not exist!")
         exit()
 
@@ -59,7 +59,7 @@ def active_hops(nhg):
         header = ["FG NHG Prefix", "Active Next Hops"]
         try:
             fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
-        except BaseException as e: 
+        except Exception as e: 
             ctx.fail("FG_NHG_MEMBER entries not present in config_db")
             exit()
         alias_list = []
@@ -116,7 +116,7 @@ def hash_view(nhg):
 
     try:
         table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
-    except BaseException as e: 
+    except Exception as e: 
         ctx.fail("FG_ROUTE_TABLE does not exist!")
         click.echo(e)
         exit()
@@ -171,7 +171,7 @@ def hash_view(nhg):
         header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
         try:
             fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
-        except BaseException as e: 
+        except Exception as e: 
             ctx.fail("FG_NHG_MEMBER entries not present in config_db")
             click.echo(e)
             exit()
