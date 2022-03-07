@@ -216,7 +216,6 @@ class Portstat(object):
             full_table_id = PORT_STATE_TABLE_PREFIX + port_name
             speed = self.db.get(self.db.STATE_DB, full_table_id, PORT_SPEED_FIELD)
             if speed is None or speed == STATUS_NA:
-                full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
                 speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
             if speed is not None:
                 return int(speed)
