@@ -1012,15 +1012,6 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                     "rrclient": "0"
                 }
             },
-            "ACL_RULE": {
-                "V4-ACL-TABLE|Rule_20": {
-                    "PACKET_ACTION": "FORWARD",
-                    "DST_IP": "10.222.72.0/26",
-                    "SRC_IP": "10.222.0.0/15",
-                    "PRIORITY": "777780",
-                    "IP_TYPE": "IPv4ANY"
-                }
-            },
             "BGP_PEER_RANGE": {
                 "BGPSLBPassive": {
                     "ip_range": [
@@ -1056,11 +1047,6 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
             "/BGP_NEIGHBOR/10.0.0.57/name",
             "/BGP_NEIGHBOR/10.0.0.57/nhopself",
             "/BGP_NEIGHBOR/10.0.0.57/rrclient",
-            "/ACL_RULE/V4-ACL-TABLE|Rule_20/PACKET_ACTION",
-            "/ACL_RULE/V4-ACL-TABLE|Rule_20/DST_IP",
-            "/ACL_RULE/V4-ACL-TABLE|Rule_20/SRC_IP",
-            "/ACL_RULE/V4-ACL-TABLE|Rule_20/PRIORITY",
-            "/ACL_RULE/V4-ACL-TABLE|Rule_20/IP_TYPE",
             "/BGP_PEER_RANGE/BGPSLBPassive/ip_range",
             "/BGP_PEER_RANGE/BGPSLBPassive/name",
             "/BGP_PEER_RANGE/BGPSLBPassive/peer_asn",
