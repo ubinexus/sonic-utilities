@@ -211,12 +211,13 @@ class Portstat(object):
             Get the port speed
         """
         # Get speed from APPL_DB
-        full_table_id = PORT_STATE_TABLE_PREFIX + port_name
+        state_db_table_id = PORT_STATE_TABLE_PREFIX + port_name
+        app_db_table_id = PORT_STATUS_TABLE_PREFIX + port_name
         for ns in self.multi_asic.get_ns_list_based_on_options():
             self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
-            speed = self.db.get(self.db.STATE_DB, full_table_id, PORT_SPEED_FIELD)
+            speed = self.db.get(self.db.STATE_DB, state_db_table_id, PORT_SPEED_FIELD)
             if speed is None or speed == STATUS_NA:
-                speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
+                speed = self.db.get(self.db.APPL_DB, app_db_table_id, PORT_SPEED_FIELD)
             if speed is not None:
                 return int(speed)
         return STATUS_NA
