@@ -37,13 +37,7 @@ def test_mirror_session_add():
             config.config.commands["mirror_session"].commands["add"],
             ["test_session", "1.1.1.1", "2.2.2.2", "65536", "63", "10", "100"])
     assert result.exit_code != 0
-    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
-
-    result = runner.invoke(
-            config.config.commands["mirror_session"].commands["add"],
-            ["test_session", "1.1.1.1", "2.2.2.2", "abcd", "63", "10", "100"])
-    assert result.exit_code != 0
-    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
+    assert ERR_MSG_VALUE_FAILURE in result.stdout
 
     # Verify invalid ttl
     result = runner.invoke(
@@ -57,7 +51,13 @@ def test_mirror_session_add():
             config.config.commands["mirror_session"].commands["add"],
             ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "65536", "100"])
     assert result.exit_code != 0
-    assert ERR_MSG_VALUE_FAILURE in result.stdout
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
+
+    result = runner.invoke(
+            config.config.commands["mirror_session"].commands["add"],
+            ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "abcd", "100"])
+    assert result.exit_code != 0
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
 
     # Verify invalid queue
     result = runner.invoke(
@@ -110,13 +110,7 @@ def test_mirror_session_erspan_add():
             config.config.commands["mirror_session"].commands["erspan"].commands["add"],
             ["test_session", "1.1.1.1", "2.2.2.2", "65536", "63", "10", "100"])
     assert result.exit_code != 0
-    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
-
-    result = runner.invoke(
-            config.config.commands["mirror_session"].commands["erspan"].commands["add"],
-            ["test_session", "1.1.1.1", "2.2.2.2", "abcd", "63", "10", "100"])
-    assert result.exit_code != 0
-    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
+    assert ERR_MSG_VALUE_FAILURE in result.stdout
 
     # Verify invalid ttl
     result = runner.invoke(
@@ -130,7 +124,13 @@ def test_mirror_session_erspan_add():
             config.config.commands["mirror_session"].commands["erspan"].commands["add"],
             ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "65536", "100"])
     assert result.exit_code != 0
-    assert ERR_MSG_VALUE_FAILURE in result.stdout
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
+    
+    result = runner.invoke(
+            config.config.commands["mirror_session"].commands["erspan"].commands["add"],
+            ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "abcd", "100"])
+    assert result.exit_code != 0
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
 
     # Verify invalid queue
     result = runner.invoke(
