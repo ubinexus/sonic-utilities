@@ -51,12 +51,11 @@ DEBUG_DUMP=false
 LOCKDIR="/tmp/techsupport-lock"
 PIDFILE="${LOCKDIR}/PID"
 
-# Remove lock directory and restart
-rm_lock_and_restart()
+# Remove lock directory and exit, let user decide if they want to retry
+rm_lock_and_exit()
 {
     $RM $V -rf ${LOCKDIR}
-    echo "[generate_dump] Restarting"
-    exec "$0" "$@"
+    exit $EXT_RETRY
 }
 
 handle_exit()
@@ -1563,16 +1562,13 @@ else
 
     if [ $? != 0 ]; then
         # Another instance is probably about to remove the lock or PIDfile doesn't exist
-        # Exit and let user decide if they want to restart 
-        sleep "$(( $RANDOM % 2 + 1)).$(( $RANDOM % 999 ))"
-        $RM $V -rf ${LOCKDIR}
-        exit $EXT_RETRY
+        rm_lock_and_exit
     fi
 
     if ! kill -0 $PID_PROG &>/dev/null; then
         # Lock is stale
         echo "Removing stale lock of nonexistant PID ${PID_PROG}"
-        rm_lock_and_restart
+        rm_lock_and_exit
     else
         # Lock is valid and the other instance is active. Exit Now
         echo "Accquiring lock failed, PID ${PID_PROG} is active" >&2
