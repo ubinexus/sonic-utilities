@@ -24,17 +24,32 @@
     Total number of entries 1
 """
 import argparse
-import json
 import sys
-import subprocess
-import re
+import os
+
+# mock the redis for unit test purposes #
+try: # pragma: no cover
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+        mock_variants = { "1": 'appl_db',
+                          "2": 'appl_db_v6'}
+        mock_db_path = os.path.join(test_path, "fibshow_input")
+        file_name = mock_variants[os.environ["FIBSHOW_MOCK"]]
+        jsonfile_asic = os.path.join(mock_db_path, file_name)
+        mock_tables.dbconnector.dedicated_dbs['APPL_DB'] = jsonfile_asic
+        # jsonfile_counters = os.path.join(mock_db_path, 'counters_db')
+        # mock_tables.dbconnector.dedicated_dbs['COUNTERS_DB'] = jsonfile_counters
+except KeyError: # pragma: no cover
+    pass
+
 import ipaddress
 
-from natsort import natsorted
-from swsssdk import port_util
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
-
 
 """
    Base class for v4 and v6 FIB entries.

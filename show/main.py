@@ -863,10 +863,8 @@ def protocol(verbose):
 def fib(ipaddress, verbose):
     """Show IP FIB table"""
     cmd = "fibshow -4"
-
     if ipaddress is not None:
         cmd += " -ip {}".format(ipaddress)
-
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1007,10 +1005,8 @@ def link_local_mode(verbose):
 def fib(ipaddress, verbose):
     """Show IP FIB table"""
     cmd = "fibshow -6"
-
     if ipaddress is not None:
         cmd += " -ip {}".format(ipaddress)
-
     run_command(cmd, display_cmd=verbose)
 
 #
