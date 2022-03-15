@@ -37,11 +37,8 @@ ROOT_UID = 0
 
 # ========================= Variables ==========================================
 
-try:
-    pdp = PlatformDataProvider()
-    log_helper = LogHelper()
-except ValueError as e:
-    exit("Root privileges are required")
+pdp = PlatformDataProvider()
+log_helper = LogHelper()
 
 # ========================= Helper functions ===================================
 
