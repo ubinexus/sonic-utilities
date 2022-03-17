@@ -10,17 +10,17 @@
 
     Example of the output:
     admin@str~$fibshow -4
-    No.    Address             nexthop                                  ifname
-    -----  ------------------  ---------------------------------------  -----------------------------------------------------------
-    1      192.181.8.0/25      10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104
-    2      192.184.56.0/25     10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104
+    No.    Address             nexthop                                  ifname                                                       vrf
+    -----  ------------------  ---------------------------------------  -----------------------------------------------------------  -------
+    1      192.181.8.0/25      10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
+    2      192.184.56.0/25     10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104  True
     ...
     Total number of entries 19
 
     admin@str:~$ sudo fibshow -6 -ip 20c0:b560:0:80::
-    No.     Address              nexthop                              ifname
-    -----  -------------------  -----------------------------------  -----------------------------------------------------------
-    1      20c0:b560:0:80::/64  fc00::72,fc00::76,fc00::7a,fc00::7e  PortChannel101,PortChannel102,PortChannel103,PortChannel104
+    No.     Address              nexthop                              ifname                                                      vrf
+    -----  -------------------  -----------------------------------  -----------------------------------------------------------  -------
+    1      20c0:b560:0:80::/64  fc00::72,fc00::76,fc00::7a,fc00::7e  PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
     Total number of entries 1
 """
 import argparse
@@ -35,14 +35,11 @@ try: # pragma: no cover
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
-        mock_variants = { "1": 'appl_db',
-                          "2": 'appl_db_v6'}
+        mock_variants = { "1": 'appl_db'}
         mock_db_path = os.path.join(test_path, "fibshow_input")
         file_name = mock_variants[os.environ["FIBSHOW_MOCK"]]
         jsonfile_asic = os.path.join(mock_db_path, file_name)
         mock_tables.dbconnector.dedicated_dbs['APPL_DB'] = jsonfile_asic
-        # jsonfile_counters = os.path.join(mock_db_path, 'counters_db')
-        # mock_tables.dbconnector.dedicated_dbs['COUNTERS_DB'] = jsonfile_counters
 except KeyError: # pragma: no cover
     pass
 
@@ -58,7 +55,7 @@ from tabulate import tabulate
 
 class FibBase(object):
 
-    HEADER = ["No.", "Address", "nexthop", "ifname"]
+    HEADER = ["No.", "Address", "nexthop", "ifname", "vrf"]
 
     def __init__(self):
         super(FibBase, self).__init__()
@@ -97,24 +94,32 @@ class FibBase(object):
         output = []
         fdb_index = 1
         for fib in self.fib_entry_list:
-            ip = ipaddress.ip_address(fib[0].split("/")[0])
+            prefix = fib[0]
+
+            if 'VRF-Red' in fib[0]:
+                vrf = True
+                prefix = fib[0].split(":")[1]
+            else:
+                vrf = False
+            ip = ipaddress.ip_address(prefix.split("/")[0])
+
             if address is not None:
                 if fib[0] == address:
                     if ip.version == 4 and version == "-4":
-                        output.append([fdb_index, fib[0], fib[1], fib[2]])
+                        output.append([fdb_index, prefix, fib[1], fib[2], vrf])
                         fdb_index += 1
                     elif ip.version == 6 and version == "-6":
-                        output.append([fdb_index, fib[0], fib[1], fib[2]])
+                        output.append([fdb_index, prefix, fib[1], fib[2], vrf])
                         fdb_index += 1
                     break
                 else:
                     continue
             else:
                 if ip.version == 4 and version == "-4":
-                    output.append([fdb_index, fib[0], fib[1], fib[2]])
+                    output.append([fdb_index, prefix, fib[1], fib[2], vrf])
                     fdb_index += 1
                 elif ip.version == 6 and version == "-6":
-                    output.append([fdb_index, fib[0], fib[1], fib[2]])
+                    output.append([fdb_index, prefix, fib[1], fib[2], vrf])
                     fdb_index += 1
         print(tabulate(output, self.HEADER))
         print("Total number of entries {0}".format(len(output)))

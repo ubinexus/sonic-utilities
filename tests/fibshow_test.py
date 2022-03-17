@@ -14,22 +14,22 @@ from unittest.mock import patch
 from sonic_py_common import device_info
 
 show_ip_fib_v4 = """\
-  No.  Address             nexthop                                  ifname
------  ------------------  ---------------------------------------  -----------------------------------------------------------
-    1  192.168.104.0/25    10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104
-    2  192.168.104.128/25                                           PortChannel101,PortChannel102,PortChannel103,PortChannel104
-    3  192.168.112.0/25    10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63
-    4  192.168.112.128/25  10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104
-    5  192.168.120.0/25    10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104
+  No.  Address             nexthop                                  ifname                                                       vrf
+-----  ------------------  ---------------------------------------  -----------------------------------------------------------  -----
+    1  192.168.104.0/25    10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
+    2  192.168.104.128/25                                           PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
+    3  192.168.112.0/25    10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63                                                               False
+    4  192.168.120.0/25    10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
+    5  192.168.112.128/25  10.0.0.57,10.0.0.59,10.0.0.61,10.0.0.63  PortChannel101,PortChannel102,PortChannel103,PortChannel104  True
 Total number of entries 5
 """
 
 show_ip_fib_v6 = """\
-  No.  Address              nexthop                              ifname
------  -------------------  -----------------------------------  -----------------------------------------------------------
-    1  20c0:fe28:0:80::/64  fc00::72,fc00::76,fc00::7a,fc00::7e  PortChannel101,PortChannel102,PortChannel103,PortChannel104
-    2  20c0:fe28::/64       fc00::72,fc00::76,fc00::7a,fc00::7e  PortChannel101,PortChannel102,PortChannel103,PortChannel104
-    3  20c0:fe30:0:80::/64  fc00::72,fc00::76,fc00::7a,fc00::7e  PortChannel101,PortChannel102,PortChannel103,PortChannel104
+  No.  Address              nexthop                              ifname                                                       vrf
+-----  -------------------  -----------------------------------  -----------------------------------------------------------  -----
+    1  20c0:fe28:0:80::/64  fc00::72,fc00::76,fc00::7a,fc00::7e  PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
+    2  20c0:fe28::/64       fc00::72,fc00::76,fc00::7a,fc00::7e  PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
+    3  20c0:fe30:0:80::/64                                       PortChannel101,PortChannel102,PortChannel103,PortChannel104  False
 Total number of entries 3
 """
 
@@ -71,18 +71,16 @@ class TestFibshow():
         dbconnector.dedicated_dbs['APPL_DB'] = None
         print(result.exit_code)
         print(result.output)
-        print(show_ip_fib_v4)
         assert result.exit_code == 0
         assert result.output == show_ip_fib_v4
 
     def test_show_ipv6_fib(self):
-        self.set_mock_variant("2")
+        self.set_mock_variant("1")
         from .mock_tables import dbconnector
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         test_path = os.path.join(modules_path, "tests")
         mock_db_path = os.path.join(test_path, "fibshow_input")
-        jsonfile_appl = os.path.join(mock_db_path, 'appl_db_v6')
-        print(jsonfile_appl)
+        jsonfile_appl = os.path.join(mock_db_path, 'appl_db')
         dbconnector.dedicated_dbs['APPL_DB'] = jsonfile_appl
         print(dbconnector.load_database_config())
         result = self.runner.invoke(show.cli.commands["ipv6"].commands["fib"], [])
@@ -91,5 +89,4 @@ class TestFibshow():
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_ip_fib_v6
-        print(show_ip_fib_v6)
 
