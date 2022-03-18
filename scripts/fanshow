@@ -73,9 +73,17 @@ class FanShow(object):
             elif status_lower == 'false':
                 status = 'Not OK'
 
-            table.append((data_dict[DRAWER_FIELD_NAME], data_dict[LED_STATUS_FIELD_NAME], name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, 
-                          data_dict[TIMESTAMP_FIELD_NAME]))
-        
+            table.append((
+                data_dict.get(DRAWER_FIELD_NAME, 'Unknown'),
+                data_dict[LED_STATUS_FIELD_NAME],
+                name,
+                speed,
+                data_dict[DIRECTION_FIELD_NAME],
+                presence,
+                status,
+                data_dict[TIMESTAMP_FIELD_NAME],
+            ))
+
         if table:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
         else:
