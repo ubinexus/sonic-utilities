@@ -738,6 +738,10 @@ for service in ${SERVICES_TO_STOP}; do
     fi
 done
 
+#Stopping Host services
+systemctl stop hostcfgd.service caclmgrd.service
+debug "Stopped  hostcfgd caclmgrd ..."
+
 # Kill other containers to make the reboot faster
 # We call `docker kill ...` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop ...` to prevent the service from
