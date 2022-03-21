@@ -32,11 +32,9 @@ def active_hops(nhg):
         table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
     except Exception as e:
         ctx.fail("FG_ROUTE_TABLE does not exist!")
-        exit()
 
     if table_keys is None:
         ctx.fail("FG_ROUTE_TABLE does not exist!")
-        exit()
 
     if nhg is None:
         for nhg_prefix in table_keys:
@@ -61,7 +59,6 @@ def active_hops(nhg):
             fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
         except Exception as e: 
             ctx.fail("FG_NHG_MEMBER entries not present in config_db")
-            exit()
         alias_list = []
         nexthop_alias = {}
         output_list = []
@@ -84,17 +81,15 @@ def active_hops(nhg):
                             output_list.append(nh_ip.split("@")[0])
                     else:
                         ctx.fail ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
-                        sys.exit(1)                        
                 output_list = sorted(output_list)
             if not output_list:
                 ctx.fail ("FG_ROUTE table likely does not contain the required entries")
-                sys.exit(1)
 
             nhg_prefix_report = nhip_prefix_map[output_list[0]].split("|")[1]
             formatted_output_list = ','.replace(',', '\n').join(output_list)
             table.append([nhg_prefix_report, formatted_output_list])
 
-            click.echo(tabulate(table, header, tablefmt = "simple"))
+            click.echo(tabulate(table, header, tablefmt="simple"))
 
 @fgnhg.command()
 @click.argument('nhg', required=False)
@@ -119,11 +114,9 @@ def hash_view(nhg):
     except Exception as e: 
         ctx.fail("FG_ROUTE_TABLE does not exist!")
         click.echo(e)
-        exit()
 
     if table_keys is None:
         ctx.fail("FG_ROUTE_TABLE does not exist!")
-        exit()
 
     if nhg is None:
         for nhg_prefix in table_keys:
@@ -165,7 +158,7 @@ def hash_view(nhg):
                 bank_output = bank_output + "\n"
                 table.append([nhg_prefix_report, nhip, bank_output])
 
-        click.echo(tabulate(table, header, tablefmt = "simple"))
+        click.echo(tabulate(table, header, tablefmt="simple"))
 
     else:
         header = ["FG NHG Prefix", "Next Hop", "Hash buckets"]
@@ -174,7 +167,6 @@ def hash_view(nhg):
         except Exception as e: 
             ctx.fail("FG_NHG_MEMBER entries not present in config_db")
             click.echo(e)
-            exit()
 
         alias_list = []
         nexthop_alias = {}
@@ -211,7 +203,6 @@ def hash_view(nhg):
                             output_bank_dict[nexthop] = banks
                     else:
                         ctx.fail ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
-                        sys.exit(1)
 
                 nhg_prefix_report = nhip_prefix_map[list(bank_dict.keys())[0]].split("|")[1]
 
@@ -236,4 +227,4 @@ def hash_view(nhg):
 
                     table.append([nhg_prefix_report, nhip, bank_output])
 
-            click.echo(tabulate(table, header, tablefmt = "simple"))
+            click.echo(tabulate(table, header, tablefmt="simple"))
