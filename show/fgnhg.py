@@ -1,5 +1,4 @@
 from collections import OrderedDict
-import sys
 import click
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
