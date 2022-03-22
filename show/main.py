@@ -1047,15 +1047,6 @@ def logging(process, lines, follow, verbose):
         run_command(cmd, display_cmd=verbose)
 
 
-def get_uptime():
-    sys_uptime_cmd = "uptime"
-    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
-    # The 'uptime' command displays the current time as the 1st entry "hh:mm:ss <more info>"
-    # Split the output by the space character to remove the time from the output.
-    sys_uptime_no_time = sys_uptime.stdout.read().strip().split(' ', 1)[1]
-    return sys_uptime_no_time
-
-
 #
 # 'version' command ("show version")
 #
@@ -1067,6 +1058,10 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
+
+    sys_uptime_cmd = "uptime"
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
     sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
@@ -1082,7 +1077,7 @@ def version(verbose):
     click.echo("Serial Number: {}".format(chassis_info['serial']))
     click.echo("Model Number: {}".format(chassis_info['model']))
     click.echo("Hardware Revision: {}".format(chassis_info['revision']))
-    click.echo("Uptime: {}".format(get_uptime()))
+    click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
