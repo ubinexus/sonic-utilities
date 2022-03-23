@@ -613,11 +613,9 @@ systemctl stop radv
 debug "Stopped radv service..."
 
 # Kill pmon before stopping BGP/teamd/swss/syncd to prevent error log
-if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-    debug "Stopping pmon ..."
-    systemctl stop pmon
-    debug "Stopped  pmon ..."
-fi
+debug "Stopping pmon ..."
+systemctl stop pmon
+debug "Stopped  pmon ..."
 
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
