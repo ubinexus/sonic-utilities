@@ -60,7 +60,7 @@ def active_hops(nhg):
             alias_list.append(nexthop_metadata['FG_NHG'])
             nexthop_alias[nexthop] = nexthop_metadata['FG_NHG']
         if nhg not in alias_list:
-            ctx.fail ("Please provide a valid NHG alias")
+            ctx.fail("Please provide a valid NHG alias")
         else:
             for nhg_prefix in table_keys:
                 t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
@@ -72,10 +72,10 @@ def active_hops(nhg):
                         if nexthop_alias[nh_ip.split("@")[0]] == nhg:
                             output_list.append(nh_ip.split("@")[0])
                     else:
-                        ctx.fail ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
+                        ctx.fail("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
                 output_list = sorted(output_list)
             if not output_list:
-                ctx.fail ("FG_ROUTE table likely does not contain the required entries")
+                ctx.fail("FG_ROUTE table likely does not contain the required entries")
             nhg_prefix_report = nhip_prefix_map[output_list[0]].split("|")[1]
             formatted_output_list = ','.replace(',', '\n').join(output_list)
             table.append([nhg_prefix_report, formatted_output_list])
@@ -149,7 +149,7 @@ def hash_view(nhg):
             alias_list.append(nexthop_metadata['FG_NHG'])
             nexthop_alias[nexthop] = nexthop_metadata['FG_NHG']
         if nhg not in alias_list:
-            ctx.fail ("Please provide a valid NHG alias")
+            ctx.fail("Please provide a valid NHG alias")
         else:
             nhip_prefix_map = {}
             for nhg_prefix in table_keys:
@@ -172,7 +172,7 @@ def hash_view(nhg):
                         if nexthop_alias[nexthop] == nhg:
                             output_bank_dict[nexthop] = banks
                     else:
-                        ctx.fail ("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
+                        ctx.fail("state_db and config_db have FGNHG prefix config mismatch. Check device config!");
                 nhg_prefix_report = nhip_prefix_map[list(bank_dict.keys())[0]].split("|")[1]
                 output_bank_dict = OrderedDict(sorted(output_bank_dict.items())) 
                 for nhip, val in output_bank_dict.items():
