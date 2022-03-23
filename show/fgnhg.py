@@ -102,7 +102,6 @@ def hash_view(nhg):
         table_keys = sorted(state_db.keys(state_db.STATE_DB, _hash))
     except Exception as e: 
         ctx.fail("FG_ROUTE_TABLE does not exist!")
-        click.echo(e)
     if table_keys is None:
         ctx.fail("FG_ROUTE_TABLE does not exist!")
     if nhg is None:
@@ -144,7 +143,6 @@ def hash_view(nhg):
             fg_nhg_member_table = config_db.get_table('FG_NHG_MEMBER')
         except Exception as e: 
             ctx.fail("FG_NHG_MEMBER entries not present in config_db")
-            click.echo(e)
         alias_list = []
         nexthop_alias = {}
         for nexthop, nexthop_metadata in fg_nhg_member_table.items():
@@ -169,7 +167,7 @@ def hash_view(nhg):
                     bank_dict[nh_ip.split("@")[0]] = bank_ids
                 bank_dict = OrderedDict(sorted(bank_dict.items()))
                 output_bank_dict = {}
-                for nexthop, banks  in bank_dict.items():
+                for nexthop, banks in bank_dict.items():
                     if nexthop in nexthop_alias:
                         if nexthop_alias[nexthop] == nhg:
                             output_bank_dict[nexthop] = banks
