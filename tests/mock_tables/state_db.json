@@ -823,5 +823,11 @@
         "admin_status": "up",
         "mtu":  "9100",
         "speed": "1000"
+    },
+    "LINK_TRAINING|Ethernet0": {
+        "status": "not_trained"
+    },
+    "LINK_TRAINING|Ethernet32": {
+        "status": "trained"
     }
 }

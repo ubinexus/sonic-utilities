@@ -11,8 +11,6 @@ from utilities_common import constants
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common.intf_filter import parse_interface_in_filter
 from sonic_py_common.interface import get_intf_longname
-from swsscommon import swsscommon
-from sonic_py_common import daemon_base
 
 # mock the redis for unit test purposes #
 try:
