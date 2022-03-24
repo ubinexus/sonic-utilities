@@ -11,6 +11,8 @@ from utilities_common import constants
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common.intf_filter import parse_interface_in_filter
 from sonic_py_common.interface import get_intf_longname
+from swsscommon import swsscommon
+from sonic_py_common import daemon_base
 
 # mock the redis for unit test purposes #
 try:
@@ -33,6 +35,7 @@ except KeyError:
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
 PORT_STATE_TABLE_PREFIX = "PORT_TABLE|"
 PORT_TRANSCEIVER_TABLE_PREFIX = "TRANSCEIVER_INFO|"
+PORT_LINK_TRAINING_STATUS_TABLE_PREFIX = "LINK_TRAINING|"
 PORT_LANES_STATUS = "lanes"
 PORT_ALIAS = "alias"
 PORT_OPER_STATUS = "oper_status"
@@ -50,6 +53,8 @@ PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
 OPTICS_TYPE_RJ45 = 'RJ45'
+PORT_LINK_TRAINING = 'link_training'
+PORT_LINK_TRAINING_STATUS = 'status'
 
 VLAN_SUB_INTERFACE_SEPARATOR = "."
 VLAN_SUB_INTERFACE_TYPE = "802.1q-encapsulation"
@@ -218,6 +223,14 @@ def state_db_port_optics_get(state_db, intf_name, type):
     if optics_type is None:
         return "N/A"
     return optics_type
+
+def state_db_port_link_training_status_get(state_db, intf_name, type):
+    """
+    Get link training status for port
+    """
+    full_table_id = PORT_LINK_TRAINING_STATUS_TABLE_PREFIX + intf_name
+    status = state_db.get(state_db.STATE_DB, full_table_id, type)
+    return "N/A" if status is None else status
 
 def merge_dicts(x,y):
     # store a copy of x, but overwrite with y's values where applicable
@@ -739,6 +752,67 @@ class IntfTpid(object):
             self.table += self.generate_intf_tpid()
 
 
+# ========================== interface-link-training logic ==========================
+header_link_training = ['Interface', 'LT Oper', 'LT Admin', 'Oper', 'Admin']
+
+class IntfLinkTrainingStatus(object):
+
+    def __init__(self, intf_name, namespace_option, display_option):
+        self.db = None
+        self.config_db = None
+        self.table = []
+        self.multi_asic = multi_asic_util.MultiAsic(
+            display_option, namespace_option)
+
+        if intf_name is not None and intf_name == SUB_PORT:
+            self.intf_name = None
+        else:
+            self.intf_name = intf_name
+
+    def display_link_training_status(self):
+        self.get_intf_link_training_status()
+        # Sorting and tabulating the result table.
+        sorted_table = natsorted(self.table)
+        print(tabulate(sorted_table, header_link_training, tablefmt="simple", stralign='right'))
+
+    @multi_asic_util.run_on_multi_asic
+    def get_intf_link_training_status(self):
+        self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, self.intf_name)
+        if self.appl_db_keys:
+            self.table += self.generate_link_training_status()
+
+    def generate_link_training_status(self):
+        """
+            Generate interface-link-training output
+        """
+
+        i = {}
+        table = []
+        key = []
+
+        #
+        # Iterate through all the keys and append port's associated state to
+        # the result table.
+        #
+        for i in self.appl_db_keys:
+            key = re.split(':', i, maxsplit=1)[-1].strip()
+            if key in self.front_panel_ports_list:
+                if self.multi_asic.skip_display(constants.PORT_OBJ, key):
+                    continue
+                lt_admin = appl_db_port_status_get(self.db, key, PORT_LINK_TRAINING)
+                if lt_admin not in ['on', 'off']:
+                    lt_admin = '-'
+                lt_status = state_db_port_link_training_status_get(self.db, key, PORT_LINK_TRAINING_STATUS)
+                if lt_status in ['N/A', '']:
+                    lt_status = '-'
+                table.append((key,
+                              lt_status.replace('_', ' '),
+                              lt_admin,
+                              appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                              appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS)))
+        return table
+
 def main():
     parser = argparse.ArgumentParser(description='Display Interface information',
                                      formatter_class=argparse.RawTextHelpFormatter)
@@ -759,6 +833,9 @@ def main():
     elif args.command == "tpid":
         interface_tpid = IntfTpid(args.interface, args.namespace, args.display)
         interface_tpid.display_intf_tpid()
+    elif args.command == "link_training":
+        interface_lt_status = IntfLinkTrainingStatus(args.interface, args.namespace, args.display)
+        interface_lt_status.display_link_training_status()
 
     sys.exit(0)
 
