@@ -22,6 +22,7 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
 from utilities_common import util_base
+from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -1889,19 +1890,11 @@ def hostname(new_hostname):
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"hostname" : new_hostname})
-    try:
-        command = "service hostname-config restart"
-        clicommon.run_command(command, display_cmd=True)
-    except SystemExit as e:
-        click.echo("Restarting hostname-config  service failed with error {}".format(e))
-        raise
+    config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
+                        {'hostname': new_hostname})
 
-    # Reload Monit configuration to pick up new hostname in case it changed
-    click.echo("Reloading Monit configuration ...")
-    clicommon.run_command("sudo monit reload")
-
-    click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
+    click.echo('Please note loaded setting will be lost after system reboot. To'
+               ' preserve setting, run `config save`.')
 
 #
 # 'synchronous_mode' command ('config synchronous_mode ...')
