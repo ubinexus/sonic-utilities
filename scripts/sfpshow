@@ -418,7 +418,7 @@ class SFPShow(object):
             sorted_table_keys = natsorted(port_table_keys)
             for i in sorted_table_keys:
                 interface = re.split(':', i, maxsplit=1)[-1].strip()
-                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith(backplane_prefix()) and not interface.startswith(inband_prefix()):
+                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
                     presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
                     if presence:
                         self.intf_eeprom_stdout[interface] = self.convert_interface_sfp_info_to_cli_output_string(
