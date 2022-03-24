@@ -829,5 +829,8 @@
     },
     "LINK_TRAINING|Ethernet32": {
         "status": "trained"
+    },
+    "LINK_TRAINING|Ethernet112": {
+         "status": "off"
     }
 }

@@ -100,13 +100,13 @@ show_interface_auto_neg_status_eth9_output = """\
 show_interface_link_training_status_output = """\
   Interface      LT Oper    LT Admin    Oper    Admin
 -----------  -----------  ----------  ------  -------
-  Ethernet0  not trained           -    down       up
+  Ethernet0  not trained          on    down       up
  Ethernet16            -           -      up       up
  Ethernet24            -           -      up       up
  Ethernet28            -           -      up       up
- Ethernet32      trained           -      up       up
+ Ethernet32      trained          on      up       up
  Ethernet36            -           -      up       up
-Ethernet112            -           -      up       up
+Ethernet112          off         off      up       up
 Ethernet116            -           -      up       up
 Ethernet120            -           -      up       up
 Ethernet124            -           -      up       up
