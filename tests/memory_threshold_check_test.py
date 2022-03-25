@@ -21,30 +21,30 @@ def case_1():
 
 @pytest.fixture()
 def case_2():
-    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemFree': 10000000, 'MemTotal': 20000000})
+    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 10000000, 'MemTotal': 20000000})
     dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(test_path, 'memory_threshold_check', 'config_db')
     dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(test_path, 'memory_threshold_check', 'state_db_2')
 
 
 @pytest.fixture()
 def case_3():
-    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemFree': 10000000, 'MemTotal': 20000000})
+    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 10000000, 'MemTotal': 20000000})
     dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(test_path, 'memory_threshold_check', 'config_db')
     dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(test_path, 'memory_threshold_check', 'state_db_3')
 
 
 def test_memory_check_host_not_crossed(case_1):
-    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemFree': 1000000, 'MemTotal': 2000000})
+    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 1000000, 'MemTotal': 2000000})
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_SUCCESS, '')
 
 
 def test_memory_check_host_less_then_min_required(case_1):
-    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemFree': 1000, 'MemTotal': 2000000})
+    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 1000, 'MemTotal': 2000000})
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_THRESHOLD_CROSSED, '')
 
 
 def test_memory_check_host_threshold_crossed(case_1):
-    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemFree': 2000000, 'MemTotal': 20000000})
+    memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 2000000, 'MemTotal': 20000000})
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_THRESHOLD_CROSSED, '')
 
 

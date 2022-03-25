@@ -22,10 +22,12 @@ DOCKER_STATS = "DOCKER_STATS"
 
 # (%) Default value for available memory left in the system
 DEFAULT_MEMORY_AVAILABLE_THRESHOLD = 10
-# (Kb) Default value for minimum available memory in the system to run techsupport
-DEFAULT_MEMORY_AVAILABLE_MIN_THRESHOLD = 200 * 1024
+# (MB) Default value for minimum available memory in the system to run techsupport
+DEFAULT_MEMORY_AVAILABLE_MIN_THRESHOLD = 200
 # (%) Default value for available memory inside container
 DEFAULT_MEMORY_AVAILABLE_FEATURE_THRESHOLD = 0
+
+MB_TO_KB_MULTIPLIER = 1024
 
 # Global logger instance
 logger = sonic_py_common.logger.Logger(SYSLOG_IDENTIFIER)
@@ -56,7 +58,7 @@ class MemoryStats:
             represent memory amount in Kb, e.g:
             {
                 "MemTotal": 8104856,
-                "MemFree": 6035192,
+                "MemAvailable": 6035192,
                 ...
             }
         """
@@ -128,7 +130,7 @@ class Config:
             "min_available_mem",
             float,
             DEFAULT_MEMORY_AVAILABLE_MIN_THRESHOLD,
-        )
+        ) * MB_TO_KB_MULTIPLIER
 
         keys = self.feature_table.keys()
         self.feature_config = {}
@@ -172,7 +174,7 @@ class MemoryChecker:
         # don't bother getting stats if availbale threshold is set to 0
         if self.config.memory_available_threshold:
             memory_stats = self.stats.get_sys_memory_stats()
-            memory_free = memory_stats["MemFree"]
+            memory_free = memory_stats["MemAvailable"]
             memory_total = memory_stats["MemTotal"]
             memory_free_threshold = (
                 memory_total * self.config.memory_available_threshold / 100

@@ -92,7 +92,7 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
         ),
         format_attr_value(
             entry,
-            {'name': 'min_available_mem', 'description': 'Minimum free memory amount in Kb when techsupport will be executed.', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
+            {'name': 'min_available_mem', 'description': 'Minimum Free memory (in MB) that should be available for the techsupport execution to start', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
         ),
         format_attr_value(
             entry,

@@ -257,7 +257,7 @@ def get_ts_map(db):
         except Exception:
             continue  # if the creation time is invalid, skip the entry
         ts_dump = ts_key.split("|")[-1]
-        if container_name and container_name not in ts_map:
+        if container_name not in ts_map:
             ts_map[container_name] = []
         ts_map[container_name].append((int(creation_time), ts_dump))
     for container_name in ts_map:
