@@ -645,6 +645,9 @@
     "PORT_TABLE|Ethernet0": {
         "supported_speeds": "10000,25000,40000,100000"
     },
+    "PORT_TABLE|Ethernet112": {
+        "speed": "40000"
+    },
     "PCIE_DEVICE|00:01.0": {
         "correctable|BadDLLP": "0",
         "correctable|BadTLP": "0",
@@ -748,5 +751,11 @@
         "linkmgrd_switch_standby_end": "2021-May-13 10:01:15.696728",
         "xcvrd_switch_standby_end": "2021-May-13 10:01:15.696051",
         "xcvrd_switch_standby_start": "2021-May-13 10:01:15.690835"
+    },
+    "LINK_PROBE_STATS|Ethernet0": {
+        "pck_loss_count": "612",
+        "pck_expected_count": "840",
+        "link_prober_unknown_start": "2022-Jan-26 03:13:05.366900",
+        "link_prober_unknown_end": "2022-Jan-26 03:17:35.446580"
     }
 }
