@@ -66,7 +66,7 @@ handle_exit()
 {
     ECODE=$?
     echo "Cleaning up working directory $TARDIR"
-    $RM $V -rf $TARDIR
+    $RM -rf $TARDIR
     echo "Removing lock. Exit: $ECODE" >&2
     $RM $V -rf ${LOCKDIR}
 }
@@ -104,7 +104,7 @@ save_bcmcmd() {
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
-    local cmd=$(escape_quotes $cmd)
+    local cmd=$(escape_quotes "$cmd")
     if [ ! -d $LOGDIR ]; then
         $MKDIR $V -p $LOGDIR
     fi
@@ -219,7 +219,7 @@ save_cmd() {
         redirect_eval=""
     fi
 
-    local cmd=$(escape_quotes $cmd)
+    local cmd=$(escape_quotes "$cmd")
     local cleanup_method_declration=$(declare -f $cleanup_method)
     # eval required here to re-evaluate the $cmd properly at runtime
     # This is required if $cmd has quoted strings that should be bunched
