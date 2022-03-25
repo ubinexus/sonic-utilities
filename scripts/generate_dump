@@ -17,7 +17,7 @@ EXT_INTERRUPTED=7
 EXT_TERMINATED=8
 EXT_INVALID_ARGUMENT=10
 
-TIMEOUT_EXIT_CODE = 124
+TIMEOUT_EXIT_CODE=124
 
 TAR=tar
 MKDIR=mkdir
@@ -51,7 +51,6 @@ SAVE_STDERR=true
 RETURN_CODE=$EXT_SUCCESS
 DEBUG_DUMP=false
 
-<<<<<<< HEAD
 # lock dirs/files
 LOCKDIR="/tmp/techsupport-lock"
 PIDFILE="${LOCKDIR}/PID"
@@ -66,6 +65,8 @@ rm_lock_and_exit()
 handle_exit()
 {
     ECODE=$?
+    echo "Cleaning up working directory $TARDIR"
+    $RM $V -rf $TARDIR
     echo "Removing lock. Exit: $ECODE" >&2
     $RM $V -rf ${LOCKDIR}
 }
@@ -73,7 +74,6 @@ handle_exit()
 handle_sigint()
 {
     echo "Generate Dump received interrupt" >&2
-    $RM $V -rf $TARDIR
     exit $EXT_INTERRUPTED
 }
 
@@ -1376,9 +1376,6 @@ main() {
 finalize() {
     # Save techsupport timing profile info
     save_file $TECHSUPPORT_TIME_INFO log false
-
-    # clean up working tar dir before compressing
-    $RM $V -rf $TARDIR
 
     if $DO_COMPRESS; then
         RC=0
