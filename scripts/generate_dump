@@ -12,6 +12,8 @@ ERROR_TAR_FAILED=5
 ERROR_PROCFS_SAVE_FAILED=6
 ERROR_INVALID_ARGUMENT=10
 
+TIMEOUT_EXIT_CODE = 124
+
 TAR=tar
 MKDIR=mkdir
 RM=rm
@@ -67,6 +69,10 @@ handle_error() {
     fi
 }
 
+escape_quotes() {
+    echo $1 | sed 's/\"/\\\"/g'
+}
+
 save_bcmcmd() {
     trap 'handle_error $? $LINENO' ERR
     local start_t=$(date +%s%3N)
@@ -77,7 +83,7 @@ save_bcmcmd() {
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
-    local cmd=$(echo $cmd | sed 's/\"/\\\"/g')
+    local cmd=$(escape_quotes $cmd)
     if [ ! -d $LOGDIR ]; then
         $MKDIR $V -p $LOGDIR
     fi
@@ -96,7 +102,7 @@ save_bcmcmd() {
         ret=0
         eval "${timeout_cmd} bash -c \"${cmd}\" &> '${filepath}'" || ret=$?
         if [ $ret -ne 0 ]; then
-            if [ $ret -eq 124 ]; then
+            if [ $ret -eq $TIMEOUT_EXIT_CODE ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             else
                 RC=0
@@ -192,7 +198,7 @@ save_cmd() {
         redirect_eval=""
     fi
 
-    local cmd=$(echo $cmd | sed 's/\"/\\\"/g')
+    local cmd=$(escape_quotes $cmd)
     local cleanup_method_declration=$(declare -f $cleanup_method)
     # eval required here to re-evaluate the $cmd properly at runtime
     # This is required if $cmd has quoted strings that should be bunched
@@ -208,7 +214,7 @@ save_cmd() {
         else
             RC=0
             eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
-            if [ $RC -eq 124 ]; then
+            if [ $RC -eq $TIMEOUT_EXIT_CODE ]; then
                 echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
             elif [ $RC -ne 0 ]; then
                 echo "Command: $cmds failed with RC $RC"
@@ -221,7 +227,7 @@ save_cmd() {
         else
             RC=0
             eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
-            if [ $RC -eq 124 ]; then
+            if [ $RC -eq $TIMEOUT_EXIT_CODE ]; then
                 echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
             elif [ $RC -ne 0 ]; then
                 echo "Command: $cmds failed with RC $RC"
