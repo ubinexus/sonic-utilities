@@ -425,4 +425,6 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 cls.handle_core_dump_creation_event()
             except Exception:
                 assert False, "Method should not time out"
+            finally:
+                signal.alarm(0)
 
