@@ -502,7 +502,7 @@ class TestMoveWrapper(unittest.TestCase):
         move_validators = Mock()
 
         # Act
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, move_validators)
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, move_validators)
 
         # Assert
         self.assertIs(move_generators, move_wrapper.move_generators)
@@ -512,7 +512,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_generate__single_move_generator__single_move_returned(self):
         # Arrange
         move_generators = [self.single_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
         expected = [self.any_move]
 
         # Act
@@ -524,7 +524,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_generate__multiple_move_generator__multiple_move_returned(self):
         # Arrange
         move_generators = [self.multiple_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
         expected = [self.any_move, self.any_other_move1, self.any_other_move2]
 
         # Act
@@ -536,7 +536,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_generate__different_move_generators__different_moves_returned(self):
         # Arrange
         move_generators = [self.single_move_generator, self.another_single_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
         expected = [self.any_move, self.any_other_move1]
 
         # Act
@@ -548,7 +548,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_generate__duplicate_generated_moves__unique_moves_returned(self):
         # Arrange
         move_generators = [self.single_move_generator, self.single_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
         expected = [self.any_move]
 
         # Act
@@ -561,7 +561,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.single_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move]
 
         # Act
@@ -574,7 +574,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.multiple_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move, self.any_other_extended_move1, self.any_other_extended_move2]
 
         # Act
@@ -587,7 +587,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.single_move_extender, self.another_single_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move, self.any_other_extended_move1]
 
         # Act
@@ -600,7 +600,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.single_move_extender, self.single_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move]
 
         # Act
@@ -613,7 +613,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator, self.another_single_move_generator]
         move_extenders = [self.mixed_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move,
                     self.any_other_move1,
                     self.any_extended_move,
@@ -629,7 +629,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_validate__validation_fail__false_returned(self):
         # Arrange
         move_validators = [self.fail_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertFalse(move_wrapper.validate(self.any_move, self.any_diff))
@@ -637,7 +637,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_validate__validation_succeed__true_returned(self):
         # Arrange
         move_validators = [self.success_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertTrue(move_wrapper.validate(self.any_move, self.any_diff))
@@ -645,7 +645,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_validate__multiple_validators_last_fail___false_returned(self):
         # Arrange
         move_validators = [self.success_move_validator, self.success_move_validator, self.fail_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertFalse(move_wrapper.validate(self.any_move, self.any_diff))
@@ -653,7 +653,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_validate__multiple_validators_succeed___true_returned(self):
         # Arrange
         move_validators = [self.success_move_validator, self.success_move_validator, self.success_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertTrue(move_wrapper.validate(self.any_move, self.any_diff))
@@ -662,7 +662,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         diff = Mock()
         diff.apply_move.side_effect = create_side_effect_dict({(str(self.any_move), ): self.any_diff})
-        move_wrapper = ps.MoveWrapper(None, None, None)
+        move_wrapper = ps.MoveWrapper(None, None, None, None)
 
         # Act
         actual = move_wrapper.simulate(self.any_move, diff)

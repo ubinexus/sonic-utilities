@@ -290,29 +290,40 @@ class JsonMove:
         return hash((self.op_type, self.path, json.dumps(self.value)))
 
 class MoveWrapper:
-    def __init__(self, move_generators, move_extenders, move_validators):
+    def __init__(self, move_generators, move_non_extendable_generators, move_extenders, move_validators):
         self.move_generators = move_generators
+        self.move_non_extendable_generators = move_non_extendable_generators
         self.move_extenders = move_extenders
         self.move_validators = move_validators
 
     def generate(self, diff):
         processed_moves = set()
+        extended_moves = set()
         moves = deque([])
 
+        for move in self._generate_non_extendable_moves(diff):
+            if not(move in processed_moves):
+                processed_moves.add(move)
+                yield move
+
         for move in self._generate_moves(diff):
-            if move in processed_moves:
-                continue
-            processed_moves.add(move)
-            yield move
-            moves.extend(self._extend_moves(move, diff))
+            if not(move in processed_moves):
+                processed_moves.add(move)
+                yield move
+
+            if not(move in extended_moves):
+                extended_moves.add(move)
+                moves.extend(self._extend_moves(move, diff))
 
         while moves:
             move = moves.popleft()
-            if move in processed_moves:
-                continue
-            processed_moves.add(move)
-            yield move
-            moves.extend(self._extend_moves(move, diff))
+            if not(move in processed_moves):
+                processed_moves.add(move)
+                yield move
+
+            if not(move in extended_moves):
+                extended_moves.add(move)
+                moves.extend(self._extend_moves(move, diff))
 
     def validate(self, move, diff):
         for validator in self.move_validators:
@@ -325,6 +336,11 @@ class MoveWrapper:
 
     def _generate_moves(self, diff):
         for generator in self.move_generators:
+            for move in generator.generate(diff):
+                yield move
+
+    def _generate_non_extendable_moves(self, diff):
+        for generator in self.move_non_extendable_generators:
             for move in generator.generate(diff):
                 yield move
 
@@ -921,6 +937,37 @@ class RequiredValueMoveValidator:
 
         return True
 
+class TableLevelMoveGenerator:
+    def generate(self, diff):
+        # Removing tables in current but not target
+        for tokens in self._get_non_existing_tables_tokens(diff.current_config, diff.target_config):
+            yield JsonMove(diff, OperationType.REMOVE, tokens)
+
+        # Adding tables in target but not current
+        for tokens in self._get_non_existing_tables_tokens(diff.target_config, diff.current_config):
+            yield JsonMove(diff, OperationType.ADD, tokens, tokens)
+
+    def _get_non_existing_tables_tokens(self, config1, config2):
+        for table in config1:
+            if not(table in config2):
+                yield [table]
+
+class KeyLevelMoveGenerator:
+    def generate(self, diff):
+        # Removing keys in current but not target
+        for tokens in self._get_non_existing_keys_tokens(diff.current_config, diff.target_config):
+            yield JsonMove(diff, OperationType.REMOVE, tokens)
+
+        # Adding keys in target but not current
+        for tokens in self._get_non_existing_keys_tokens(diff.target_config, diff.current_config):
+            yield JsonMove(diff, OperationType.ADD, tokens, tokens)
+
+    def _get_non_existing_keys_tokens(self, config1, config2):
+        for table in config1:
+            for key in config1[table]:
+                if not(table in config2) or not (key in config2[table]):
+                    yield [table, key]
+
 class LowLevelMoveGenerator:
     """
     A class to generate the low level moves i.e. moves corresponding to differences between current/target config
@@ -1407,6 +1454,7 @@ class SortAlgorithmFactory:
 
     def create(self, algorithm=Algorithm.DFS):
         move_generators = [LowLevelMoveGenerator(self.path_addressing)]
+        move_non_extendable_generators = [TableLevelMoveGenerator(), KeyLevelMoveGenerator()]
         move_extenders = [RequiredValueMoveExtender(self.path_addressing, self.operation_wrapper),
                           UpperLevelMoveExtender(),
                           DeleteInsteadOfReplaceMoveExtender(),
@@ -1419,7 +1467,7 @@ class SortAlgorithmFactory:
                            RequiredValueMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]
 
-        move_wrapper = MoveWrapper(move_generators, move_extenders, move_validators)
+        move_wrapper = MoveWrapper(move_generators, move_non_extendable_generators, move_extenders, move_validators)
 
         if algorithm == Algorithm.DFS:
             sorter = DfsSorter(move_wrapper)
