@@ -123,9 +123,9 @@ def reporthook(count, block_size, total_size):
 def get_docker_tag_name(image):
     # Try to get tag name from label metadata
     cmd = "docker inspect --format '{{.ContainerConfig.Labels.Tag}}' " + image
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    (out, _) = proc.communicate()
-    if proc.returncode != 0:
+    try:
+        out = run_command(cmd, display_cmd=False, exit_on_failure=False)
+    except RuntimeError:
         return "unknown"
     tag = out.rstrip()
     if tag == "<no value>":
@@ -172,16 +172,11 @@ def abort_if_false(ctx, param, value):
 def get_container_image_name(container_name):
     # example image: docker-lldp-sv2:latest
     cmd = "docker inspect --format '{{.Config.Image}}' " + container_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    (out, _) = proc.communicate()
-    if proc.returncode != 0:
-        sys.exit(proc.returncode)
-    image_latest = out.rstrip()
+    image_latest = run_command(cmd, display_cmd=False).rstrip()
 
     # example image_name: docker-lldp-sv2
     cmd = "echo " + image_latest + " | cut -d ':' -f 1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    image_name = proc.stdout.read().rstrip()
+    image_name = run_command(cmd, display_cmd=False).rstrip()
     return image_name
 
 
@@ -189,34 +184,28 @@ def get_container_image_id(image_tag):
     # TODO: extract commond docker info fetching functions
     # this is image_id for image with tag, like 'docker-teamd:latest'
     cmd = "docker images --format '{{.ID}}' " + image_tag
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    image_id = proc.stdout.read().rstrip()
+    image_id = run_command(cmd, display_cmd=False).rstrip()
     return image_id
 
 
 def get_container_image_id_all(image_name):
     # All images id under the image name like 'docker-teamd'
     cmd = "docker images --format '{{.ID}}' " + image_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    image_id_all = proc.stdout.read()
+    image_id_all = run_command(cmd, display_cmd=False)
     image_id_all = image_id_all.splitlines()
     image_id_all = set(image_id_all)
     return image_id_all
 
 
-def hget_warm_restart_table(db_name, table_name, warm_app_name, key):
-    db = SonicV2Connector(use_unix_socket_path=True)
-    db.connect(db_name, False)
-    _hash = table_name + db.get_db_separator(db_name) + warm_app_name
-    client = db.get_redis_client(db_name)
+def hget_warm_restart_table(db, table_name, warm_app_name, key):
+    _hash = table_name + db.get_db_separator(db.STATE_DB) + warm_app_name
+    client = db.get_redis_client(db.STATE_DB)
     return client.hget(_hash, key)
 
 
-def hdel_warm_restart_table(db_name, table_name, warm_app_name, key):
-    db = SonicV2Connector(use_unix_socket_path=True)
-    db.connect(db_name, False)
-    _hash = table_name + db.get_db_separator(db_name) + warm_app_name
-    client = db.get_redis_client(db_name)
+def hdel_warm_restart_table(db, table_name, warm_app_name, key):
+    _hash = table_name + db.get_db_separator(db.STATE_DB) + warm_app_name
+    client = db.get_redis_client(db.STATE_DB)
     return client.hdel(_hash, key)
 
 
@@ -742,7 +731,6 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     _hash = '{}{}'.format(prefix, container_name)
     if state_db.get(state_db.STATE_DB, _hash, "enable") == "true":
         warm_configured = True
-    state_db.close(state_db.STATE_DB)
 
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
         if warm_configured is False and warm:
@@ -803,7 +791,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
         # clean app reconcilation state from last warm start if exists
         for warm_app_name in warm_app_names:
-            hdel_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
+            hdel_warm_restart_table(state_db, "WARM_RESTART_TABLE", warm_app_name, "state")
 
     run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
@@ -840,7 +828,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 sys.stdout.flush()
                 count += 1
                 time.sleep(2)
-                state = hget_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
+                state = hget_warm_restart_table(state_db, "WARM_RESTART_TABLE", warm_app_name, "state")
                 log.log_notice("%s reached %s state" % (warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:

@@ -20,16 +20,22 @@ WORKDIR_NAME = 'work'
 DOCKERDIR_NAME = 'docker'
 
 # Run bash command and print output to stdout
-def run_command(command):
+def run_command(command, display_cmd=True, exit_on_failure=True):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
     proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     (out, _) = proc.communicate()
 
-    click.echo(out)
+    if display_cmd:
+        click.echo(out)
 
     if proc.returncode != 0:
-        sys.exit(proc.returncode)
+        if exit_on_failure:
+            sys.exit(proc.returncode)
+        else:
+            raise RuntimeError("Failed to execute {}: rc={}", command, proc.returncode)
+
+    return out
 
 # Run bash command and return output, raise if it fails
 def run_command_or_raise(argv, raise_exception=True):
