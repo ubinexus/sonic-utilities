@@ -690,10 +690,11 @@ DOCKER_CONTAINER_LIST = [
 @click.option('--skip_check', is_flag=True, help="Skip task check for docker upgrade")
 @click.option('--tag', type=str, help="Tag for the new docker image")
 @click.option('--warm', is_flag=True, help="Perform warm upgrade")
+@click.option('--dont-wait', is_flag=True, help="Wait for warm upgrade to finish")
 @click.argument('container_name', metavar='<container_name>', required=True,
                 type=click.Choice(DOCKER_CONTAINER_LIST))
 @click.argument('url')
-def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
+def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm, dont_wait):
     """ Upgrade docker image from local binary or URL"""
     # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
     if "upgrade_docker" in sys.argv:
@@ -751,9 +752,9 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
             cmd = "docker exec -i swss orchagent_restart_check -w 2000 -r 5 " + skipPendingTaskCheck
 
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-            (out, err) = proc.communicate()
-            if proc.returncode != 0:
+            try:
+                run_command(cmd, display_cmd=False, exit_on_failure=False)
+            except RuntimeError:
                 if not skip_check:
                     echo_and_log("Orchagent is not in clean state, RESTARTCHECK failed", LOG_ERR)
                     # Restore orignal config before exit
@@ -817,7 +818,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     exp_state = "reconciled"
     state = ""
     # post warm restart specific procssing for swss, bgp and teamd dockers, wait for reconciliation state.
-    if warm_configured is True or warm:
+    if (warm_configured is True or warm) and not dont_wait:
         count = 0
         for warm_app_name in warm_app_names:
             state = ""
