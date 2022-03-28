@@ -74,22 +74,16 @@ COMMAND_TIMEOUT = 300
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
+    result = None
     command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -n 1"
 
     try:
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                text=True)
-        proc.wait(timeout=COMMAND_TIMEOUT)
-        stdout = proc.communicate()[0]
+        stdout = subprocess.check_output(command, shell=True, timeout=COMMAND_TIMEOUT)
         result = stdout.rstrip('\n')
+    except Exception as err:
+        click.echo('Failed to get routing stack: {}'.format(err), err=True)
 
-    except (OSError, subprocess.TimeoutExpired) as e:
-        click.echo('Failed to get routing stack', err=True)
-        return
-
-    return (result)
+    return result
 
 
 # Global Routing-Stack variable
@@ -1167,7 +1161,7 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
         cmd += " -s '{}'".format(since)
 
     if debug_dump:
-        cmd += " -d "
+        cmd += " -d"
 
     cmd += " -t {}".format(cmd_timeout)
     if redirect_stderr:
