@@ -119,7 +119,6 @@ class CriticalProcCoreDumpHandle():
             return ""
         elif rc == EXT_RETRY:
             if num_retry <= MAX_RETRY_LIMIT:
-                print(num_retry)
                 return self.invoke_ts_cmd(since_cfg, num_retry+1)
             else:
                 syslog.syslog(syslog.LOG_ERR, "MAX_RETRY_LIMIT for show techsupport invocation exceeded, stderr: {}".format(stderr))
