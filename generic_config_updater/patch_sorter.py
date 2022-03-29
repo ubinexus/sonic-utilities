@@ -297,6 +297,18 @@ class MoveWrapper:
         self.move_validators = move_validators
 
     def generate(self, diff):
+        """
+        Generates all possible moves to help transform diff.current_config to diff.target_config.
+
+        It starts by generating the non-extendable moves i.e. moves that will not extended to e.g. change its parent.
+        The non-extendable moves are mostly high level moves such as deleting/adding whole tables.
+
+        After that it generates extendable moves i.e. moves that can be extended to e.g. change its parent.
+        The extendable moves are typically very low level moves that can achieve the minimum disruption guarantee.
+
+        Lastly the moves are extended for example to try to replace the parent config instead, or by deleting
+        the dependencies of the config.
+        """
         processed_moves = set()
         extended_moves = set()
         moves = deque([])
@@ -938,6 +950,18 @@ class RequiredValueMoveValidator:
         return True
 
 class TableLevelMoveGenerator:
+    """
+    A class that key level moves. The item name at the root level of ConfigDB is called 'Table'.
+
+    e.g.
+    {
+        "Table": ...
+    }
+
+    This class will generate moves to remove tables if they are in current, but not target. It also add tables
+    if they are in target but not current configs.
+    """
+
     def generate(self, diff):
         # Removing tables in current but not target
         for tokens in self._get_non_existing_tables_tokens(diff.current_config, diff.target_config):
@@ -953,6 +977,20 @@ class TableLevelMoveGenerator:
                 yield [table]
 
 class KeyLevelMoveGenerator:
+    """
+    A class that key level moves. The item name at the root level of ConfigDB is called 'Table', the item
+    name in the Table level of ConfigDB is called key.
+
+    e.g.
+    {
+        "Table": {
+            "Key": ...
+        }
+    }
+
+    This class will generate moves to remove keys if they are in current, but not target. It also add keys
+    if they are in target but not current configs.
+    """
     def generate(self, diff):
         # Removing keys in current but not target
         for tokens in self._get_non_existing_keys_tokens(diff.current_config, diff.target_config):
