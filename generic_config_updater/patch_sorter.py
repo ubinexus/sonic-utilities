@@ -994,7 +994,12 @@ class KeyLevelMoveGenerator:
     def generate(self, diff):
         # Removing keys in current but not target
         for tokens in self._get_non_existing_keys_tokens(diff.current_config, diff.target_config):
-            yield JsonMove(diff, OperationType.REMOVE, tokens)
+            table = tokens[0]
+            # if table has a single key, delete the whole table because empty tables are not allowed in ConfigDB
+            if len(diff.current_config[table]) == 1:
+                yield JsonMove(diff, OperationType.REMOVE, [table])
+            else:
+                yield JsonMove(diff, OperationType.REMOVE, tokens)
 
         # Adding keys in target but not current
         for tokens in self._get_non_existing_keys_tokens(diff.target_config, diff.current_config):
@@ -1492,7 +1497,8 @@ class SortAlgorithmFactory:
 
     def create(self, algorithm=Algorithm.DFS):
         move_generators = [LowLevelMoveGenerator(self.path_addressing)]
-        move_non_extendable_generators = [TableLevelMoveGenerator(), KeyLevelMoveGenerator()]
+        # TODO: Enable TableLevelMoveGenerator once it is confirmed whole table can be updated at the same time
+        move_non_extendable_generators = [KeyLevelMoveGenerator()]
         move_extenders = [RequiredValueMoveExtender(self.path_addressing, self.operation_wrapper),
                           UpperLevelMoveExtender(),
                           DeleteInsteadOfReplaceMoveExtender(),

@@ -2014,6 +2014,12 @@ class TestKeyLevelMoveGenerator(unittest.TestCase):
                               {"op": "remove", 'path': '/NonExistingTable2/NonExistingKey21'},
                               {"op": "remove", 'path': '/NonExistingTable2/NonExistingKey22'}])
 
+
+    def test_generate__single_key_in_current_but_not_target__whole_table_deleted(self):
+        self.verify(current = { "ExistingTable1": { "NonExistingKey11" : "Value11" }},
+                    target = {},
+                    ex_ops = [{"op": "remove", 'path': '/ExistingTable1'}])
+
     def test_generate__keys_in_target_but_not_current__keys_added_moves(self):
         self.verify(current = {
                             "ExistingTable1": {
@@ -3024,8 +3030,7 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         config_wrapper = ConfigWrapper()
         factory = ps.SortAlgorithmFactory(OperationWrapper(), config_wrapper, PathAddressing(config_wrapper))
         expected_generators = [ps.LowLevelMoveGenerator]
-        expected_non_extendable_generators = [ps.TableLevelMoveGenerator,
-                                              ps.KeyLevelMoveGenerator]
+        expected_non_extendable_generators = [ps.KeyLevelMoveGenerator]
         expected_extenders = [ps.RequiredValueMoveExtender,
                               ps.UpperLevelMoveExtender,
                               ps.DeleteInsteadOfReplaceMoveExtender,
