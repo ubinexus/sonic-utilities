@@ -498,14 +498,16 @@ class TestMoveWrapper(unittest.TestCase):
     def test_ctor__assigns_values_correctly(self):
         # Arrange
         move_generators = Mock()
+        move_non_extendable_generators = Mock()
         move_extenders = Mock()
         move_validators = Mock()
 
         # Act
-        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, move_validators)
+        move_wrapper = ps.MoveWrapper(move_generators, move_non_extendable_generators, move_extenders, move_validators)
 
         # Assert
         self.assertIs(move_generators, move_wrapper.move_generators)
+        self.assertIs(move_non_extendable_generators, move_wrapper.move_non_extendable_generators)
         self.assertIs(move_extenders, move_wrapper.move_extenders)
         self.assertIs(move_validators, move_wrapper.move_validators)
 
@@ -549,6 +551,30 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator, self.single_move_generator]
         move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
+        expected = [self.any_move]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_generate__different_move_generators__different_moves_returned(self):
+        # Arrange
+        move_non_extendable_generators = [self.single_move_generator, self.another_single_move_generator]
+        move_wrapper = ps.MoveWrapper([], move_non_extendable_generators, [], [])
+        expected = [self.any_move, self.any_other_move1]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_generate__duplicate_generated_moves__unique_moves_returned(self):
+        # Arrange
+        move_non_extendable_generators = [self.single_move_generator, self.single_move_generator]
+        move_wrapper = ps.MoveWrapper([], move_non_extendable_generators, [], [])
         expected = [self.any_move]
 
         # Act
