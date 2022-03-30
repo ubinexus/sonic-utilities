@@ -119,7 +119,7 @@ def port_oper_speed_get(db, system_port_name):
     oper_speed = db.get(db.STATE_DB, full_table_id, SYSTEM_PORT_SPEED)
     oper_status = db.get(db.APPL_DB, SYSTEM_PORT_TABLE_PREFIX + system_port_name,
                          SYSTEM_PORT_OPER_STATUS)
-    if oper_speed is None or oper_speed == "N/A" or oper_status is None or oper_status != "up":
+    if oper_speed is None or oper_speed == "N/A" or oper_status != "up":
         return appl_db_system_port_status_get(db, system_port_name, SYSTEM_PORT_SPEED)
 
     return '{}G'.format(oper_speed[:-3])

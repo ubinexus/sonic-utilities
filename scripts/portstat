@@ -217,7 +217,7 @@ class Portstat(object):
             self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
             speed = self.db.get(self.db.STATE_DB, state_db_table_id, PORT_SPEED_FIELD)
             oper_status = self.db.get(self.db.APPL_DB, app_db_table_id, PORT_OPER_STATUS_FIELD)
-            if speed is None or speed == STATUS_NA or oper_status is None or oper_status != "up":
+            if speed is None or speed == STATUS_NA or oper_status != "up":
                 speed = self.db.get(self.db.APPL_DB, app_db_table_id, PORT_SPEED_FIELD)
             if speed is not None:
                 return int(speed)
