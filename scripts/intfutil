@@ -45,6 +45,7 @@ PORT_OPTICS_TYPE = "type"
 PORT_PFC_ASYM_STATUS = "pfc_asym"
 PORT_AUTONEG = 'autoneg'
 PORT_ADV_SPEEDS = 'adv_speeds'
+PORT_RMT_ADV_SPEEDS = 'rmt_adv_speeds'
 PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
@@ -162,6 +163,24 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         new_speed_list = []
         for s in natsorted(speed_list):
             new_speed_list.append(port_speed_parse(s, optics_type))
+        status = ','.join(new_speed_list)
+    return status
+
+def state_db_port_status_get(db, intf_name, type):
+    """
+    Get the port status
+    """
+    full_table_id = PORT_STATE_TABLE_PREFIX + intf_name
+    status = db.get(db.STATE_DB, full_table_id, type)
+    if status in [None, ""]:
+        return "N/A"
+    if type == PORT_SPEED and status != "N/A":
+        status = '{}G'.format(status[:-3])
+    elif type in [PORT_ADV_SPEEDS, PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
+        speed_list = status.split(',')
+        new_speed_list = []
+        for s in natsorted(speed_list):
+            new_speed_list.append('{}G'.format(s[:-3]))
         status = ','.join(new_speed_list)
     return status
 
@@ -566,7 +585,7 @@ class IntfDescription(object):
 
 
 # ========================== interface-autoneg logic ==========================
-header_autoneg = ['Interface', 'Auto-Neg Mode', 'Speed', 'Adv Speeds', 'Type', 'Adv Types', 'Oper', 'Admin']
+header_autoneg = ['Interface', 'Auto-Neg Mode', 'Speed', 'Adv Speeds', 'Rmt Adv Speeds', 'Type', 'Adv Types', 'Oper', 'Admin']
 
 
 class IntfAutoNegStatus(object):
@@ -616,6 +635,7 @@ class IntfAutoNegStatus(object):
                               autoneg_mode,
                               port_oper_speed_get(self.db, key),
                               appl_db_port_status_get(self.db, key, PORT_ADV_SPEEDS),
+                              state_db_port_status_get(self.db, key, PORT_RMT_ADV_SPEEDS),
                               appl_db_port_status_get(self.db, key, PORT_INTERFACE_TYPE),
                               appl_db_port_status_get(self.db, key, PORT_ADV_INTERFACE_TYPES),
                               appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
