@@ -114,9 +114,9 @@ class CriticalProcCoreDumpHandle():
         cmd_opts = ["show", "techsupport", "--silent", "--since", since_cfg]
         cmd  = " ".join(cmd_opts)
         rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
+        new_dump = ""
         if rc == EXT_LOCKFAIL:
             syslog.syslog(syslog.LOG_NOTICE, "Another instance of techsupport running, aborting this. stderr: {}".format(stderr))
-            return ""
         elif rc == EXT_RETRY:
             if num_retry <= MAX_RETRY_LIMIT:
                 return self.invoke_ts_cmd(since_cfg, num_retry+1)
@@ -124,12 +124,12 @@ class CriticalProcCoreDumpHandle():
                 syslog.syslog(syslog.LOG_ERR, "MAX_RETRY_LIMIT for show techsupport invocation exceeded, stderr: {}".format(stderr))
         elif rc != EXT_SUCCESS:
             syslog.syslog(syslog.LOG_ERR, "show techsupport failed with exit code {}, stderr: {}".format(rc, stderr))
-        # Parse the dump name
-        new_dump = self.parse_ts_dump_name(stdout)
-        if not new_dump:
-            syslog.syslog(syslog.LOG_ERR, "{} was run, but no techsupport dump is found".format(cmd))
-        else:
-            syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, new_dump))
+        else: # EXT_SUCCESS
+            new_dump = self.parse_ts_dump_name(stdout) # Parse the dump name
+            if not new_dump:
+                syslog.syslog(syslog.LOG_ERR, "{} was run, but no techsupport dump is found".format(cmd))
+            else:
+                syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, new_dump))
         return new_dump
 
     def verify_rate_limit_intervals(self, global_cooloff, container_cooloff):

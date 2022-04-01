@@ -63,7 +63,7 @@ handle_exit()
     ECODE=$?
     echo "Removing lock. Exit: $ECODE" >&2
     $RM $V -rf ${LOCKDIR}
-    # Echo the filename as the last statement if the generation suceeds
+    # Echo the filename as the last statement if the generation succeeds
     if [[ -f $TARFILE && ($ECODE == $EXT_SUCCESS || $ECODE == $RETURN_CODE) ]]; then
         echo $TARFILE
     fi
