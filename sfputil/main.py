@@ -951,7 +951,7 @@ def set_lpmode(logical_port, enable):
         return
 
     if is_rj45_port_from_api(logical_port):
-        click.echo("{} low-power mode is not applicable for RJ45 port {}.".format("Enabling" if enable else "Disabling", logical_port, nl=False))
+        click.echo("{} low-power mode is not applicable for RJ45 port {}.".format("Enabling" if enable else "Disabling", logical_port))
         sys.exit(EXIT_FAIL)
 
     if len(physical_port_list) > 1:
