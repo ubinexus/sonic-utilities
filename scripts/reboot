@@ -81,11 +81,6 @@ function stop_sonic_services()
 
 function stop_services_asan()
 {
-    if [[ x"$ASIC_TYPE" == x"mellanox" ]]; then
-        debug "Stopping syncd for ASAN"
-        systemctl stop syncd
-    fi
-
     debug "Stopping swss for ASAN"
     systemctl stop swss
 }
