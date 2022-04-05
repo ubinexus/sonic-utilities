@@ -462,19 +462,29 @@ def cmd_kdump_enable(verbose, image=get_current_image()):
 def cmd_kdump_config_next(verbose):
     return cmd_kdump_enable(verbose, image=get_next_image())
 
-## Disable kdump
-#
-#  @param verbose If True, the function will display a few additional information
-#  @return        True if the grub/cmdline cfg has changed, and False if it has not
-def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file):
+
+def kdump_disable(verbose, image, cmdline_file):
+    """Unloads Kdump kernel and remove parameter `crashkernel=*` from kernel booting 
+    file.
+
+    Args:
+        image: A string represents SONiC image version.
+        cmdline_file: A string represents path of kernel booting file.
+
+    Returns:
+        changes: If kernel booting file was changed, returns True; Otherwise, returns
+        False.
+    """
     write_use_kdump(0)
 
     if verbose:
         print("Disabling kdump for image=[%s]\n" % image)
+
     lines = [line.rstrip('\n') for line in open(cmdline_file)]
     img_index = locate_image(lines, "loop=image-"+image)
 
     changed = False
+
     crash_kernel_mem = search_for_crash_kernel(lines[img_index])
     if crash_kernel_mem is None:
         print("kdump is already disabled")
@@ -491,26 +501,8 @@ def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file
         print_err("Startup configuration not found, Kdump configuration is not saved")
         return False
 
-    current_img = get_current_image();
-    if verbose:
-        print("Current image=[%s]\n" % current_img)
-    lines = [line.rstrip('\n') for line in open(grub_cfg)]
-    current_img_index = locate_image(lines, "loop=image-"+current_img)
-
-    changed = False
-    curr_crash_kernel_mem = search_for_crash_kernel(lines[current_img_index])
-    if curr_crash_kernel_mem is None:
-        print("Kdump is already disabled")
-    else:
-        lines[current_img_index] = lines[current_img_index].replace("crashkernel="+curr_crash_kernel_mem, "")
-        changed = True
-        if verbose:
-            print("Removed [%s] in grub.cfg" % ("crashkernel="+curr_crash_kernel_mem))
-
-    if changed:
-        rewrite_grub_cfg(lines, grub_cfg)
-
     return changed
+
 
 ## Command: Disable kdump
 #
@@ -521,14 +513,15 @@ def cmd_kdump_disable(verbose, image=get_current_image()):
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
+
     if verbose:
         print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
 
     if os.path.exists(grub_cfg):
-        return kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, grub_cfg)
+        return kdump_disable(verbose, image, grub_cfg)
     elif open(machine_cfg, 'r').read().find('aboot_platform') >= 0:
         aboot_cfg = aboot_cfg_template % image
-        return kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, aboot_cfg)
+        return kdump_disable(verbose, image, aboot_cfg)
     else:
         print("Feature not supported on this platform")
         return False
