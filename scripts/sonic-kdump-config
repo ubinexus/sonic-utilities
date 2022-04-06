@@ -464,8 +464,8 @@ def cmd_kdump_config_next(verbose):
 
 
 def kdump_disable(verbose, image, cmdline_file):
-    """Unloads Kdump kernel and remove parameter `crashkernel=*` from kernel booting 
-    file.
+    """Unloads Kdump kernel and remove parameter `crashkernel=*` from configuration file of 
+    kernel boot loader.
 
     Args:
         image: A string represents SONiC image version.
