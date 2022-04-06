@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+
+"""
+    Script to show system ready status.
+"""
+
+import os
+import sys
+import argparse
+from tabulate import tabulate
+from natsort import natsorted
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector #lgtm [py/unused-import]
+except KeyError:
+    pass
+
+from swsscommon.swsscommon import SonicV2Connector
+
+header = ['Service-Name', 'Service-Status', 'App-Ready-Status', 'Down-Reason']
+header_detail = ['Service-Name', 'Service-Status', 'App-Ready-Status', 'Down-Reason', 'AppStatus-UpdateTime']
+
+ALL_TABLE_NAME = 'ALL_SERVICE_STATUS'
+SERVICE_STATUS = 'service_status'
+APP_READY_STATUS = 'app_ready_status'
+FAIL_REASON = 'fail_reason'
+UPDATE_TIME = 'update_time'
+
+class SysreadyShow(object):
+    def __init__(self):
+        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db.connect(self.db.STATE_DB)
+
+    def show(self,type):
+        TABLE_NAME = ALL_TABLE_NAME
+        SYSREADY_TABLE = "SYSTEM_READY|SYSTEM_STATE"
+        
+        keys = self.db.keys(self.db.STATE_DB, TABLE_NAME + '*')
+        if not keys:
+            print('No info\n')
+            return
+
+        table = []
+        for key in natsorted(keys):
+            key_list = key.split('|')
+            if len(key_list) != 2: # error data in DB, log it and ignore
+                print('Warn: Invalid key in table {}: {}'.format(TABLE_NAME, key))
+                continue
+
+            name = key_list[1]
+            data_dict = self.db.get_all(self.db.STATE_DB, key)
+            try:
+                service_status = data_dict[SERVICE_STATUS]
+                app_ready_status = data_dict[APP_READY_STATUS]
+                fail_reason = data_dict[FAIL_REASON]
+                update_time = data_dict[UPDATE_TIME]
+            except ValueError as e:
+                print('Error in data_dict')
+
+            if type == "alldetail":
+                table.append((name, service_status, app_ready_status, fail_reason, update_time))
+                header_info = header_detail
+            else:
+                table.append((name, service_status, app_ready_status, fail_reason))
+                header_info = header
+        
+        sysready_state = self.db.get(self.db.STATE_DB, SYSREADY_TABLE, "Status")
+        if sysready_state == "UP":
+            print("System is ready\n")
+        else:
+            print("System is not ready - one or more services are not up\n")
+        
+
+        if type == "allbrief":
+            return
+
+
+        if table:
+            print(tabulate(table, header_info, tablefmt='simple', stralign='left'))
+        else:
+            print('No sysready status data available\n')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Display the System Ready status',
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     epilog="""
+                                      Examples:
+                                      sysreadyshow --all
+                                      sysreadyshow --allbrief
+                                      sysreadyshow --alldetail
+                                      """)
+
+    parser.add_argument('-a', '--all', action='store_true', help='all service status', default=True)
+    parser.add_argument('-b', '--allbrief', action='store_true', help='all service status brief', default=False)
+    parser.add_argument('-d', '--alldetail', action='store_true', help='all service status detail', default=False)
+    args = parser.parse_args()
+
+    try:
+        sysready = SysreadyShow()
+        if args.alldetail:
+            sysready.show("alldetail")
+        elif args.allbrief:
+            sysready.show("allbrief")
+        else:
+            sysready.show("all")
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+        
+
+if __name__ == "__main__":
+    main()
