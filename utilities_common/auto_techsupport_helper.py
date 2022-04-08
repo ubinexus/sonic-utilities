@@ -12,9 +12,10 @@ __all__ = [  # Contants
             "CORE_DUMP_DIR", "CORE_DUMP_PTRN", "TS_DIR", "TS_PTRN",
             "CFG_DB", "AUTO_TS", "CFG_STATE", "CFG_MAX_TS", "COOLOFF",
             "CFG_CORE_USAGE", "CFG_SINCE", "FEATURE", "STATE_DB",
-            "TS_MAP", "CORE_DUMP", "TIMESTAMP", "CONTAINER",
-            "EVENT_TYPE", "EVENT_TYPE_CORE", "EVENT_TYPE_MEMORY",
-            "TIME_BUF", "SINCE_DEFAULT", "TS_PTRN_GLOB",
+            "TS_MAP", "CORE_DUMP", "TIMESTAMP", "CONTAINER", "TIME_BUF",
+            "SINCE_DEFAULT", "TS_PTRN_GLOB", "EXT_LOCKFAIL", "EXT_RETRY",
+            "EXT_SUCCESS", "MAX_RETRY_LIMIT", "EVENT_TYPE", "EVENT_TYPE_CORE",
+            "EVENT_TYPE_MEMORY"
         ] + [  # Methods
             "verify_recent_file_creation",
             "get_ts_dumps",
@@ -68,12 +69,16 @@ EVENT_TYPE_MEMORY = "memory"
 TIME_BUF = 20
 SINCE_DEFAULT = "2 days ago"
 
-TECHSUPPORT_ALREADY_RUNNING_RC = 2
-
 # Explicity Pass this to the subprocess invoking techsupport
 ENV_VAR = os.environ
 PATH_PREV = ENV_VAR["PATH"] if "PATH" in ENV_VAR else ""
 ENV_VAR["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:" + PATH_PREV
+
+# Techsupport Exit Codes
+EXT_LOCKFAIL = 2
+EXT_RETRY = 4
+EXT_SUCCESS = 0
+MAX_RETRY_LIMIT = 2
 
 # Helper methods
 def subprocess_exec(cmd, env=None):
@@ -221,22 +226,29 @@ def parse_ts_dump_name(ts_stdout):
     return ""
 
 
-def invoke_ts_cmd(db):
+def invoke_ts_cmd(db, num_retry=0):
     """Invoke techsupport generation command"""
     since_cfg = get_since_arg(db)
     since_cfg = "'" + since_cfg + "'"
     cmd_opts = ["show", "techsupport", "--silent", "--since", since_cfg]
     cmd  = " ".join(cmd_opts)
     rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
-    if rc == TECHSUPPORT_ALREADY_RUNNING_RC:
-        syslog.syslog(syslog.LOG_NOTICE, "another instance of techsupport generation is currently running")
-    elif rc:
+    new_dump = ""
+    if rc == EXT_LOCKFAIL:
+        syslog.syslog(syslog.LOG_NOTICE, "Another instance of techsupport running, aborting this. stderr: {}".format(stderr))
+    elif rc == EXT_RETRY:
+        if num_retry <= MAX_RETRY_LIMIT:
+            return invoke_ts_cmd(db, num_retry+1)
+        else:
+            syslog.syslog(syslog.LOG_ERR, "MAX_RETRY_LIMIT for show techsupport invocation exceeded, stderr: {}".format(stderr))
+    elif rc != EXT_SUCCESS:
         syslog.syslog(syslog.LOG_ERR, "show techsupport failed with exit code {}, stderr: {}".format(rc, stderr))
-    new_dump = parse_ts_dump_name(stdout)
-    if not new_dump:
-        syslog.syslog(syslog.LOG_ERR, "{} was run, but no techsupport dump is found".format(cmd))
-    else:
-        syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, new_dump))
+    else: # EXT_SUCCESS
+        new_dump = parse_ts_dump_name(stdout) # Parse the dump name
+        if not new_dump:
+            syslog.syslog(syslog.LOG_ERR, "{} was run, but no techsupport dump is found".format(cmd))
+        else:
+            syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, new_dump))
     return new_dump
 
 

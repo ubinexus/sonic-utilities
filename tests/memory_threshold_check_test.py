@@ -15,8 +15,8 @@ memory_threshold_check = load_module_from_source('memory_threshold_check.py', me
 
 @pytest.fixture()
 def case_1():
-    cfg_db = dbconnector.dedicated_dbs['CONFIG_DB']
-    state_db = dbconnector.dedicated_dbs['STATE_DB']
+    cfg_db = dbconnector.dedicated_dbs.get('CONFIG_DB')
+    state_db = dbconnector.dedicated_dbs.get('STATE_DB')
     dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(test_path, 'memory_threshold_check', 'config_db')
     dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(test_path, 'memory_threshold_check', 'state_db')
     yield
@@ -27,8 +27,8 @@ def case_1():
 @pytest.fixture()
 def case_2():
     memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 10000000, 'MemTotal': 20000000})
-    cfg_db = dbconnector.dedicated_dbs['CONFIG_DB']
-    state_db = dbconnector.dedicated_dbs['STATE_DB']
+    cfg_db = dbconnector.dedicated_dbs.get('CONFIG_DB')
+    state_db = dbconnector.dedicated_dbs.get('STATE_DB')
     dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(test_path, 'memory_threshold_check', 'config_db')
     dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(test_path, 'memory_threshold_check', 'state_db_2')
     yield
@@ -39,8 +39,8 @@ def case_2():
 @pytest.fixture()
 def case_3():
     memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 10000000, 'MemTotal': 20000000})
-    cfg_db = dbconnector.dedicated_dbs['CONFIG_DB']
-    state_db = dbconnector.dedicated_dbs['STATE_DB']
+    cfg_db = dbconnector.dedicated_dbs.get('CONFIG_DB')
+    state_db = dbconnector.dedicated_dbs.get('STATE_DB')
     dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(test_path, 'memory_threshold_check', 'config_db')
     dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(test_path, 'memory_threshold_check', 'state_db_3')
     yield
