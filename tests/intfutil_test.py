@@ -73,7 +73,7 @@ show_interface_description_eth9_output="""\
 show_interface_auto_neg_status_output = """\
   Interface    Auto-Neg Mode    Speed    Adv Speeds    Rmt Adv Speeds    Type    Adv Types    Oper    Admin
 -----------  ---------------  -------  ------------  ----------------  ------  -----------  ------  -------
-  Ethernet0          enabled      25G       10G,50G               40G     CR4      CR4,CR2    down       up
+  Ethernet0          enabled      25G       10G,50G       10M,100M,1G     CR4      CR4,CR2    down       up
  Ethernet16              N/A     100M           N/A               N/A     N/A          N/A      up       up
  Ethernet24              N/A       1G           N/A               N/A     N/A          N/A      up       up
  Ethernet28              N/A    1000M           N/A               N/A     N/A          N/A      up       up
@@ -88,7 +88,7 @@ Ethernet124              N/A      40G           N/A               N/A     N/A   
 show_interface_auto_neg_status_Ethernet0_output = """\
   Interface    Auto-Neg Mode    Speed    Adv Speeds    Rmt Adv Speeds    Type    Adv Types    Oper    Admin
 -----------  ---------------  -------  ------------  ----------------  ------  -----------  ------  -------
-  Ethernet0          enabled      25G       10G,50G               40G     CR4      CR4,CR2    down       up
+  Ethernet0          enabled      25G       10G,50G       10M,100M,1G     CR4      CR4,CR2    down       up
 """
 
 show_interface_auto_neg_status_eth9_output = """\
@@ -293,7 +293,7 @@ class TestIntfutil(TestCase):
         assert result.exit_code == 0
         assert result.output == show_interface_auto_neg_status_Ethernet0_output
   
-    def test_show_interfaces_autoneg_status_eth9_in_alias_mode(self):
+    def test_show_interfaces_autoneg_status_etp9_in_alias_mode(self):
         os.environ["SONIC_CLI_IFACE_MODE"] = "alias"
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["autoneg"].commands["status"], ["etp9"])
         os.environ["SONIC_CLI_IFACE_MODE"] = "default"

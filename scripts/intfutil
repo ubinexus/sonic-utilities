@@ -166,21 +166,29 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         status = ','.join(new_speed_list)
     return status
 
-def state_db_port_status_get(db, intf_name, type):
+def state_db_port_status_get(db, intf_name, field):
     """
     Get the port status
     """
     full_table_id = PORT_STATE_TABLE_PREFIX + intf_name
-    status = db.get(db.STATE_DB, full_table_id, type)
-    if status in [None, ""]:
+    status = db.get(db.STATE_DB, full_table_id, field)
+    if not status:
         return "N/A"
-    if type == PORT_SPEED and status != "N/A":
-        status = '{}G'.format(status[:-3])
-    elif type in [PORT_ADV_SPEEDS, PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
+    if field == PORT_SPEED and status != "N/A":
+        speed = int(status)
+        if speed >= 1000:
+            status = '{}G'.format(int(speed / 1000))
+        else:
+            status = '{}M'.format(speed)
+    elif field in [PORT_ADV_SPEEDS, PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
-            new_speed_list.append('{}G'.format(s[:-3]))
+            speed = int(s)
+            if speed >= 1000:
+                new_speed_list.append('{}G'.format(int(speed / 1000)))
+            else:
+                new_speed_list.append('{}M'.format(speed))
         status = ','.join(new_speed_list)
     return status
 
