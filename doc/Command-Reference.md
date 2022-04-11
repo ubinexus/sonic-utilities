@@ -110,6 +110,9 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [NVGRE](#nvgre)
+  * [NVGRE show commands](#nvgre-show-commands)
+  * [NVGRE config commands](#nvgre-config-commands)
 * [PBH](#pbh)
   * [PBH show commands](#pbh-show-commands)
   * [PBH config commands](#pbh-config-commands)
@@ -119,6 +122,8 @@
   * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
   * [Platform Component Firmware vendor specific behaviour](#platform-component-firmware-vendor-specific-behaviour)
 * [Platform Specific Commands](#platform-specific-commands)
+  * [Mellanox Platform Specific Commands](#mellanox-platform-specific-commands)
+  * [Barefoot Platform Specific Commands](#barefoot-platform-specific-commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
   * [PortChannel Config commands](#portchannel-config-commands)
@@ -170,6 +175,7 @@
   * [SONiC Installer](#sonic-installer)
 * [Troubleshooting Commands](#troubleshooting-commands)
   * [Debug Dumps](#debug-dumps)
+  * [Event Driven Techsupport Invocation](#event-driven-techsupport-invocation)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
 * [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
@@ -474,6 +480,7 @@ This command displays relevant information as the SONiC and Linux kernel version
   Model Number: MSN2700-CS2FO
   Hardware Rev: A1
   Uptime: 14:40:15 up 3 min,  1 user,  load average: 1.26, 1.45, 0.66
+  Date: Fri 22 Mar 2019 14:40:15
 
   Docker images:
   REPOSITORY                 TAG                 IMAGE ID            SIZE
@@ -2665,6 +2672,55 @@ This command is used to configure the priority groups on which lossless traffic 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
 
+**config interface buffer queue**
+
+This command is used to configure the buffer profiles for queues.
+
+- Usage:
+
+  ```
+  config interface buffer queue add <interface_name> <queue_map> <profile>
+  config interface buffer queue set <interface_name> <queue_map> <profile>
+  config interface buffer queue remove <interface_name> <queue_map>
+  ```
+
+  The <queue_map> represents the map of queues. It can be in one of the following two forms:
+
+  - For a range of priorities, the lower bound and upper bound connected by a dash, like `3-4`
+  - For a single priority, the number, like `6`
+
+  The subcommand `add` is designed for adding a buffer profile for a group of queues. The new queue range must be disjoint with all queues with buffer profile configured.
+
+  For example, currently the buffer profile configured on queue 3-4 on port Ethernet4, to configure buffer profile on queue 4-5 will fail because it isn't disjoint with 3-4. To configure it on range 5-6 will succeed.
+
+  The `profile` parameter represents a predefined egress buffer profile to be configured on the queues.
+
+  The subcommand `set` is designed for modifying an existing group of queues.
+
+  The subcommand `remove` is designed for removing buffer profile on an existing group of queues.
+
+- Example:
+
+  To configure buffer profiles for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue add Ethernet0 3-4 egress_lossless_profile
+  ```
+
+  To change the profile used for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue set Ethernet0 3-4 new-profile
+  ```
+
+  To remove a group of queues from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue remove Ethernet0 3-4
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
 ### Show commands
 
 **show buffer information**
@@ -3254,9 +3310,9 @@ This show command displays the port auto negotiation status for all interfaces i
     Ethernet8         disabled     100G           N/A     CR4          N/A      up       up
   ```
 
-**show interfaces breakout**
+**show interfaces breakout (Versions >= 202006)**
 
-This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. all the available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
+This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
 
 - Usage:
   ```
@@ -3857,12 +3913,20 @@ This command is used for administratively bringing up the Physical interface or 
   admin@sonic:~$ sudo config interface startup Ethernet8,Ethernet16-20,Ethernet32
   ```
 
+**config interface <interface_name> speed (Versions >= 202006)**
+
+Dynamic breakout feature is supported in SONiC from 202006 version.
+User can configure any speed specified under "breakout_modes" keys for the parent interface in the platform-specific port configuration file (i.e. platform.json).
+
+For example for a breakout mode of 2x50G[25G,10G] the default speed is 50G but the interface also supports 25G and 10G.
+
+Refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
+
 **config interface speed <interface_name> (Versions >= 201904)**
 
 **config interface <interface_name> speed (Versions <= 201811)**
 
 This command is used to configure the speed for the Physical interface. Use the value 40000 for setting it to 40G and 100000 for 100G. Users need to know the device to configure it properly.
-Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
 
 - Usage:
 
@@ -3955,10 +4019,14 @@ This command is used to configure the TPID for the Physical/PortChannel interfac
   admin@sonic:~$ sudo config interface tpid Ethernet64 0x9200
   ```
 
-**config interface breakout**
+**config interface breakout (Versions >= 202006)**
 
-This command is used to set breakout mode available for user-specified interface.
-kindly use, double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
+This command is used to set active breakout mode available for user-specified interface based on the platform-specific port configuration file(i.e. platform.json)
+and the current mode set for the interface.
+
+Based on the platform.json and the current mode set in interface, this command acts on setting breakout mode for the interface.
+
+Double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
 
 - Usage:
   ```
@@ -3981,9 +4049,15 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
   admin@sonic:~$ sudo config interface breakout  Ethernet0 <tab><tab>
   <tab provides option for breakout mode>
   1x100G[40G]  2x50G        4x25G[10G]
+  ```
 
+  This command also provides  "--force-remove-dependencies/-f" option to CLI, which will automatically determine and remove the configuration dependencies using Yang models.
+
+  ```
   admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
+
+For details please refer [DPB HLD DOC](https://github.com/Azure/SONiC/blob/master/doc/dynamic-port-breakout/sonic-dynamic-port-breakout-HLD.md#cli-design) to know more about this command.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
@@ -6154,8 +6228,8 @@ This command starts PFC Watchdog
 
 - Usage:
   ```
-  config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
-  config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+  config pfcwd start --action drop all 400 --restoration-time 400
+  config pfcwd start --action forward Ethernet0 Ethernet8 400
   ```
 
 **config pfcwd stop**
@@ -6516,6 +6590,8 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#platfo
 
 ## Platform Specific Commands
 
+### Mellanox Platform Specific Commands
+
 There are few commands that are platform specific. Mellanox has used this feature and implemented Mellanox specific commands as follows.
 
 **show platform mlnx sniffer**
@@ -6583,6 +6659,41 @@ In order to avoid that confirmation the -y / --yes option should be used.
   admin@sonic:~$ config platform mlnx sniffer sdk
   To change SDK sniffer status, swss service will be restarted, continue? [y/N]: y
   NOTE: In order to avoid that confirmation the -y / --yes option should be used.
+  ```
+
+### Barefoot Platform Specific Commands
+
+**show platform barefoot profile**
+
+This command displays active P4 profile and lists available ones.
+
+- Usage:
+  ```
+  show platform barefoot profile
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show platform barefoot profile
+  Current profile: x1
+  Available profile(s):
+  x1
+  x2
+  ```
+
+**config platform barefoot profile**
+
+This command sets P4 profile.
+
+- Usage:
+  ```
+  config platform barefoot profile <p4_profile> [-y|--yes]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config platform barefoot profile x1
+  Swss service will be restarted, continue? [y/N]: y
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#platform-specific-commands)
@@ -6659,6 +6770,97 @@ This command adds or deletes a member port to/from the already created portchann
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#portchannels)
+
+## NVGRE
+
+This section explains the various show commands and configuration commands available for users.
+
+### NVGRE show commands
+
+This subsection explains how to display the NVGRE configuration.
+
+**show nvgre-tunnel**
+
+This command displays the NVGRE tunnel configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel
+TUNNEL NAME    SRC IP
+-------------  --------
+tunnel_1       10.0.0.1
+```
+
+**show nvgre-tunnel-map**
+
+This command displays the NVGRE tunnel map configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel-map
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel-map
+TUNNEL NAME    TUNNEL MAP NAME    VLAN ID    VSID
+-------------  -----------------  ---------  ------
+tunnel_1       Vlan1000           1000       5000
+tunnel_1       Vlan2000           2000       6000
+```
+
+### NVGRE config commands
+
+This subsection explains how to configure the NVGRE.
+
+**config nvgre-tunnel**
+
+This command is used to manage the NVGRE tunnel objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel add <tunnel-name> --src-ip <source ip address>
+config nvgre-tunnel delete <tunnel-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _src-ip_: source ip address
+
+- Examples:
+```bash
+config nvgre-tunnel add 'tunnel_1' --src-ip '10.0.0.1'
+config nvgre-tunnel delete 'tunnel_1'
+```
+
+**config nvgre-tunnel-map**
+
+This command is used to manage the NVGRE tunnel map objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel-map add <tunnel-name> <tunnel-map-name> --vlan-id <vlan> --vsid <virtual subnet>
+config nvgre-tunnel-map delete <tunnel-name> <tunnel-map-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _tunnel-map-name_: the name of the NVGRE tunnel map
+  - _vlan-id_: VLAN identifier
+  - _vsid_: Virtual Subnet Identifier
+
+- Examples:
+```bash
+config nvgre-tunnel-map add 'tunnel_1' 'Vlan2000' --vlan-id '2000' --vsid '6000'
+config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
+```
 
 ## PBH
 
@@ -8814,89 +9016,121 @@ This command displays the MAC (FDB) entries either in full or partial as given b
 1) show mac - displays the full table
 2) show mac -v <vlanid> - displays the MACs learnt on the particular VLAN ID.
 3) show mac -p <port>  - displays the MACs learnt on the particular port.
+4) show mac -a <mac-address> - display the MACs that match a specific mac-address
+5) show mac -t <type> - display the MACs that match a specific type (static/dynamic)
+6) show mac -c - display the count of MAC addresses
 
+To show the default MAC address aging time on the switch.
 
 - Usage:
   ```
-  show mac [-v <vlan_id>] [-p <port_name>]
+  show mac [-v <vlan_id>] [-p <port_name>] [-a <mac_address>] [-t <type>] [-c]
   ```
 
 - Example:
   ```
   admin@sonic:~$ show mac
-  No.    Vlan  MacAddress         Port
-  -----  ------  -----------------  -----------
-    1    1000  E2:8C:56:85:4A:CD  Ethernet192
-    2    1000  A0:1B:5E:47:C9:76  Ethernet192
-    3    1000  AA:54:EF:2C:EE:30  Ethernet192
-    4    1000  A4:3F:F2:17:A3:FC  Ethernet192
-    5    1000  0C:FC:01:72:29:91  Ethernet192
-    6    1000  48:6D:01:7E:C9:FD  Ethernet192
-    7    1000  1C:6B:7E:34:5F:A6  Ethernet192
-    8    1000  EE:81:D9:7B:93:A9  Ethernet192
-    9    1000  CC:F8:8D:BB:85:E2  Ethernet192
-   10    1000  0A:52:B3:9C:FB:6C  Ethernet192
-   11    1000  C6:E2:72:02:D1:23  Ethernet192
-   12    1000  8A:C9:5C:25:E9:28  Ethernet192
-   13    1000  5E:CD:34:E4:94:18  Ethernet192
-   14    1000  7E:49:1F:B5:91:B5  Ethernet192
-   15    1000  AE:DD:67:F3:09:5A  Ethernet192
-   16    1000  DC:2F:D1:08:4B:DE  Ethernet192
-   17    1000  50:96:23:AD:F1:65  Ethernet192
-   18    1000  C6:C9:5E:AE:24:42  Ethernet192
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+    2    1000  A0:1B:5E:47:C9:76  Ethernet192    Dynamic
+    3    1000  AA:54:EF:2C:EE:30  Ethernet192    Dynamic
+    4    1000  A4:3F:F2:17:A3:FC  Ethernet192    Dynamic
+    5    1000  0C:FC:01:72:29:91  Ethernet192    Dynamic
+    6    1000  48:6D:01:7E:C9:FD  Ethernet192    Dynamic
+    7    1000  1C:6B:7E:34:5F:A6  Ethernet192    Dynamic
+    8    1000  EE:81:D9:7B:93:A9  Ethernet192    Dynamic
+    9    1000  CC:F8:8D:BB:85:E2  Ethernet192    Dynamic
+   10    1000  0A:52:B3:9C:FB:6C  Ethernet192    Dynamic
+   11    1000  C6:E2:72:02:D1:23  Ethernet192    Dynamic
+   12    1000  8A:C9:5C:25:E9:28  Ethernet192    Dynamic
+   13    1000  5E:CD:34:E4:94:18  Ethernet192    Dynamic
+   14    1000  7E:49:1F:B5:91:B5  Ethernet192    Dynamic
+   15    1000  AE:DD:67:F3:09:5A  Ethernet192    Dynamic
+   16    1000  DC:2F:D1:08:4B:DE  Ethernet192    Dynamic
+   17    1000  50:96:23:AD:F1:65  Ethernet192    Static
+   18    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
   Total number of entries 18
   ```
 
-Optionally, you can specify a VLAN ID or interface name in order to display only that particular entries
+Optionally, you can specify a VLAN ID or interface name or type or mac-address in order to display only that particular entries
 
 - Examples:
   ```
   admin@sonic:~$ show mac -v 1000
-  No.    Vlan  MacAddress         Port
-  -----  ------  -----------------  -----------
-    1    1000  E2:8C:56:85:4A:CD  Ethernet192
-    2    1000  A0:1B:5E:47:C9:76  Ethernet192
-    3    1000  AA:54:EF:2C:EE:30  Ethernet192
-    4    1000  A4:3F:F2:17:A3:FC  Ethernet192
-    5    1000  0C:FC:01:72:29:91  Ethernet192
-    6    1000  48:6D:01:7E:C9:FD  Ethernet192
-    7    1000  1C:6B:7E:34:5F:A6  Ethernet192
-    8    1000  EE:81:D9:7B:93:A9  Ethernet192
-    9    1000  CC:F8:8D:BB:85:E2  Ethernet192
-   10    1000  0A:52:B3:9C:FB:6C  Ethernet192
-   11    1000  C6:E2:72:02:D1:23  Ethernet192
-   12    1000  8A:C9:5C:25:E9:28  Ethernet192
-   13    1000  5E:CD:34:E4:94:18  Ethernet192
-   14    1000  7E:49:1F:B5:91:B5  Ethernet192
-   15    1000  AE:DD:67:F3:09:5A  Ethernet192
-   16    1000  DC:2F:D1:08:4B:DE  Ethernet192
-   17    1000  50:96:23:AD:F1:65  Ethernet192
-   18    1000  C6:C9:5E:AE:24:42  Ethernet192
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+    2    1000  A0:1B:5E:47:C9:76  Ethernet192    Dynamic
+    3    1000  AA:54:EF:2C:EE:30  Ethernet192    Dynamic
+    4    1000  A4:3F:F2:17:A3:FC  Ethernet192    Dynamic
+    5    1000  0C:FC:01:72:29:91  Ethernet192    Dynamic
+    6    1000  48:6D:01:7E:C9:FD  Ethernet192    Dynamic
+    7    1000  1C:6B:7E:34:5F:A6  Ethernet192    Dynamic
+    8    1000  EE:81:D9:7B:93:A9  Ethernet192    Dynamic
+    9    1000  CC:F8:8D:BB:85:E2  Ethernet192    Dynamic
+   10    1000  0A:52:B3:9C:FB:6C  Ethernet192    Dynamic
+   11    1000  C6:E2:72:02:D1:23  Ethernet192    Dynamic
+   12    1000  8A:C9:5C:25:E9:28  Ethernet192    Dynamic
+   13    1000  5E:CD:34:E4:94:18  Ethernet192    Dynamic
+   14    1000  7E:49:1F:B5:91:B5  Ethernet192    Dynamic
+   15    1000  AE:DD:67:F3:09:5A  Ethernet192    Dynamic
+   16    1000  DC:2F:D1:08:4B:DE  Ethernet192    Dynamic
+   17    1000  50:96:23:AD:F1:65  Ethernet192    Static
+   18    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
   Total number of entries 18
   ```
   ```
   admin@sonic:~$ show mac -p Ethernet192
-  No.    Vlan  MacAddress         Port
-  -----  ------  -----------------  -----------
-    1    1000  E2:8C:56:85:4A:CD  Ethernet192
-    2    1000  A0:1B:5E:47:C9:76  Ethernet192
-    3    1000  AA:54:EF:2C:EE:30  Ethernet192
-    4    1000  A4:3F:F2:17:A3:FC  Ethernet192
-    5    1000  0C:FC:01:72:29:91  Ethernet192
-    6    1000  48:6D:01:7E:C9:FD  Ethernet192
-    7    1000  1C:6B:7E:34:5F:A6  Ethernet192
-    8    1000  EE:81:D9:7B:93:A9  Ethernet192
-    9    1000  CC:F8:8D:BB:85:E2  Ethernet192
-   10    1000  0A:52:B3:9C:FB:6C  Ethernet192
-   11    1000  C6:E2:72:02:D1:23  Ethernet192
-   12    1000  8A:C9:5C:25:E9:28  Ethernet192
-   13    1000  5E:CD:34:E4:94:18  Ethernet192
-   14    1000  7E:49:1F:B5:91:B5  Ethernet192
-   15    1000  AE:DD:67:F3:09:5A  Ethernet192
-   16    1000  DC:2F:D1:08:4B:DE  Ethernet192
-   17    1000  50:96:23:AD:F1:65  Ethernet192
-   18    1000  C6:C9:5E:AE:24:42  Ethernet192
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+    2    1000  A0:1B:5E:47:C9:76  Ethernet192    Dynamic
+    3    1000  AA:54:EF:2C:EE:30  Ethernet192    Dynamic
+    4    1000  A4:3F:F2:17:A3:FC  Ethernet192    Dynamic
+    5    1000  0C:FC:01:72:29:91  Ethernet192    Dynamic
+    6    1000  48:6D:01:7E:C9:FD  Ethernet192    Dynamic
+    7    1000  1C:6B:7E:34:5F:A6  Ethernet192    Dynamic
+    8    1000  EE:81:D9:7B:93:A9  Ethernet192    Dynamic
+    9    1000  CC:F8:8D:BB:85:E2  Ethernet192    Dynamic
+   10    1000  0A:52:B3:9C:FB:6C  Ethernet192    Dynamic
+   11    1000  C6:E2:72:02:D1:23  Ethernet192    Dynamic
+   12    1000  8A:C9:5C:25:E9:28  Ethernet192    Dynamic
+   13    1000  5E:CD:34:E4:94:18  Ethernet192    Dynamic
+   14    1000  7E:49:1F:B5:91:B5  Ethernet192    Dynamic
+   15    1000  AE:DD:67:F3:09:5A  Ethernet192    Dynamic
+   16    1000  DC:2F:D1:08:4B:DE  Ethernet192    Dynamic
+   17    1000  50:96:23:AD:F1:65  Ethernet192    Static
+   18    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
   Total number of entries 18
+  ```
+  ```
+  admin@sonic:~$ show mac -a E2:8C:56:85:4A:CD
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+  Total number of entries 1
+  ```
+  ```
+  admin@sonic:~$ show mac -t Static
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    2    1000  50:96:23:AD:F1:65  Ethernet192    Static
+    2    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
+  Total number of entries 2
+  ```
+  ```
+  admin@sonic:~$ show mac -c
+  Total number of entries 18
+  ```
+
+**show mac aging-time**
+
+This command displays the default mac aging time on the switch
+
+  ```
+  admin@sonic:~$ show mac aging-time
+  Aging time for switch is 600 seconds
   ```
 
 **sonic-clear fdb all**
@@ -9946,8 +10180,178 @@ In SONiC, there usually exists a set of tables related/relevant to a particular 
 	    }
 	}	
   ```
-  
+
+### Event Driven Techsupport Invocation
+
+This feature/capability makes the techsupport invocation event-driven based on core dump generation. This feature is only applicable for the processes running in the containers. More detailed explanation can be found in the HLD https://github.com/Azure/SONiC/blob/master/doc/auto_techsupport_and_coredump_mgmt.md
+
+#### config auto-techsupport global commands
 		
+**config auto-techsupport global state**
+
+- Usage:
+  ```
+  config auto-techsupport global state <enabled/disabled>
+  ```
+
+- Example:
+  ```
+  config auto-techsupport global state enabled
+  ```
+
+**config auto-techsupport global rate-limit-interval <uint16>**
+
+- Usage:
+  ```
+  config auto-techsupport global rate-limit-interval <uint16>
+  ```
+  - Parameters:
+    - rate-limit-interval: Minimum time in seconds to wait after the last techsupport creation time before invoking a new one. 
+
+- Example:
+  ```
+  config auto-techsupport global rate-limit-interval 200
+  ```
+
+**config auto-techsupport global max-techsupport-limit <float upto two decimal places>**
+
+- Usage:
+  ```
+  config auto-techsupport global max-techsupport-limit <float upto two decimal places>
+  ```
+  - Parameters:
+    - max-techsupport-limit: A percentage value should be specified. This signifies maximum size to which /var/dump/ directory can be grown until. 
+
+- Example:
+  ```
+  config auto-techsupport global max-techsupport-limit 10.15
+  ```
+
+**config auto-techsupport global max-core-limit <float upto two decimal places>**
+
+- Usage:
+  ```
+  config auto-techsupport global max-core-limit <float upto two decimal places>
+  ```
+  - Parameters:
+    - max-core-limit: A percentage value should be specified. This signifies maximum size to which /var/core/ directory can be grown until. 
+
+- Example:
+  ```
+  config auto-techsupport global max-core-limit 10.15
+  ```
+
+**config auto-techsupport global since**
+
+- Usage:
+  ```
+  config auto-techsupport global since <string>
+  ```
+  - Parameters:
+    - since: This limits the auto-invoked techsupport to only collect the logs & core-dumps generated since the time provided.  Any valid date string of the formats specified here can be used. (https://www.gnu.org/software/coreutils/manual/html_node/Date-input-formats.html). If this value is not explicitly configured or a non-valid string is provided, a default value of "2 days ago" is used. 
+
+- Example:
+  ```
+  config auto-techsupport global since <string>
+  ```
+
+
+#### config auto-techsupport-feature commands
+
+**config auto-techsupport-feature add**
+		
+- Usage:
+  ```
+  config auto-techsupport-feature add <feature_name> --state <enabled/disabled> --rate-limit-interval <uint16>
+  ```
+  - Parameters:
+    - state: enable/disable the capability for the specific feature/container.
+    - rate-limit-interval: Rate limit interval for the corresponding feature. Configure 0 to explicitly disable. For the techsupport to be generated by auto-techsupport, both the global and feature specific rate-limit-interval has to be passed
+
+- Example:
+  ```
+  config auto-techsupport-feature add bgp --state enabled --rate-limit-interval 200
+  ```
+
+
+**config auto-techsupport-feature delete**
+		
+- Usage:
+  ```
+  config auto-techsupport-feature delete <feature_name>
+  ```
+
+- Example:
+  ```
+  config auto-techsupport-feature delete swss
+  ```
+
+**config auto-techsupport-feature update**
+		
+- Usage:
+  ```
+  config auto-techsupport-feature update <feature_name> --state <enabled/disabled>
+  config auto-techsupport-feature update <feature_name> --rate-limit-interval <uint16>
+  ```
+
+- Example:
+  ```
+  config auto-techsupport-feature update snmp --state enabled
+  config auto-techsupport-feature update swss --rate-limit-interval 200
+  ```
+
+#### Show CLI:
+ 
+**show auto-techsupport global**
+		
+- Usage:
+  ```
+  show auto-techsupport global
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show auto-techsupport global
+  STATE      RATE LIMIT INTERVAL (sec)    MAX TECHSUPPORT LIMIT (%)    MAX CORE LIMIT (%)       SINCE
+  -------  ---------------------------   --------------------------    ------------------  ----------
+  enabled                          180                        10.0                   5.0   2 days ago
+  ```
+
+**show auto-techsupport-feature**
+		
+- Usage:
+  ```
+  show auto-techsupport-feature 
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show auto-techsupport-feature 
+  FEATURE NAME    STATE       RATE LIMIT INTERVAL (sec) 
+  --------------  --------  --------------------------
+  bgp             enabled                          600
+  database        enabled                          600
+  dhcp_relay      enabled                          600
+  lldp            enabled                          600
+  swss            disabled                         800
+  ```
+
+**show auto-techsupport history** 
+		
+- Usage:
+  ```
+  show auto-techsupport history 
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show auto-techsupport history
+  TECHSUPPORT DUMP                          TRIGGERED BY    CORE DUMP
+  ----------------------------------------  --------------  -----------------------------
+  sonic_dump_r-lionfish-16_20210901_221402  bgp             bgpcfgd.1630534439.55.core.gz
+  sonic_dump_r-lionfish-16_20210901_203725  snmp            python3.1630528642.23.core.gz
+  sonic_dump_r-lionfish-16_20210901_222408  teamd           python3.1630535045.34.core.gz
+  ```
 		
 Go Back To [Beginning of the document](#) or [Beginning of this section](#troubleshooting-commands)
 

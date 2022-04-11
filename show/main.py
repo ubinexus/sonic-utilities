@@ -15,6 +15,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
+from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
 
@@ -845,12 +846,19 @@ def pwm_headroom_pool():
 # 'mac' command ("show mac ...")
 #
 
-@cli.command()
+@cli.group(cls=clicommon.AliasedGroup, invoke_without_command="true")
+@click.pass_context
 @click.option('-v', '--vlan')
 @click.option('-p', '--port')
+@click.option('-a', '--address')
+@click.option('-t', '--type')
+@click.option('-c', '--count', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def mac(vlan, port, verbose):
+def mac(ctx, vlan, port, address, type, count, verbose):
     """Show MAC (FDB) entries"""
+
+    if ctx.invoked_subcommand is not None:
+        return
 
     cmd = "fdbshow"
 
@@ -860,8 +868,35 @@ def mac(vlan, port, verbose):
     if port is not None:
         cmd += " -p {}".format(port)
 
+    if address is not None:
+        cmd += " -a {}".format(address)
+
+    if type is not None:
+        cmd += " -t {}".format(type)
+
+    if count:
+        cmd += " -c"
+
     run_command(cmd, display_cmd=verbose)
 
+@mac.command('aging-time')
+@click.pass_context
+def aging_time(ctx):
+    app_db = SonicV2Connector()
+    app_db.connect(app_db.APPL_DB)
+    table = "SWITCH_TABLE*"
+    keys = app_db.keys(app_db.APPL_DB, table)
+
+    if not keys:
+        click.echo("Aging time not configured for the switch")
+        return
+
+    for key in keys:
+        fdb_aging_time = app_db.get(app_db.APPL_DB, key, 'fdb_aging_time')
+        if fdb_aging_time is not None:
+            click.echo("Aging time for {} is {} seconds".format(key.split(':')[-1], fdb_aging_time))
+        else:
+            click.echo("Aging time not configured for the {}".format(key.split(':')[-1]))
 #
 # 'show route-map' command ("show route-map")
 #
@@ -941,6 +976,19 @@ def prefix_list(prefix_list_name, verbose):
 def protocol(verbose):
     """Show IPv4 protocol information"""
     cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
+    run_command(cmd, display_cmd=verbose)
+
+#
+# 'fib' subcommand ("show ip fib")
+#
+@ip.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -4"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1073,6 +1121,19 @@ def link_local_mode(verbose):
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 #
+# 'fib' subcommand ("show ipv6 fib")
+#
+@ipv6.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -6"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
+    run_command(cmd, display_cmd=verbose)
+
+#
 # 'lldp' group ("show lldp ...")
 #
 
@@ -1146,9 +1207,11 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
-    
+
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
+    sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
@@ -1164,6 +1227,7 @@ def version(verbose):
     click.echo("Model Number: {}".format(chassis_info['model']))
     click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
+    click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -1221,7 +1285,7 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
 
     if since:
         cmd += " -s '{}'".format(since)
-    
+
     if debug_dump:
         cmd += " -d "
 
@@ -1326,7 +1390,7 @@ def snmp(ctx, db):
 
 # ("show runningconfiguration snmp community")
 @snmp.command('community')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def community(db, json_output):
@@ -1347,7 +1411,7 @@ def community(db, json_output):
 
 # ("show runningconfiguration snmp contact")
 @snmp.command('contact')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def contact(db, json_output):
@@ -1375,7 +1439,7 @@ def contact(db, json_output):
 
 # ("show runningconfiguration snmp location")
 @snmp.command('location')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def location(db, json_output):
@@ -1402,13 +1466,13 @@ def location(db, json_output):
 
 # ("show runningconfiguration snmp user")
 @snmp.command('user')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def users(db, json_output):
     """show SNMP running configuration user"""
     snmp_users = db.cfgdb.get_table('SNMP_USER')
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     if json_output:
@@ -1421,7 +1485,7 @@ def users(db, json_output):
             snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
             snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
             snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                    snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
         click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
@@ -1438,7 +1502,7 @@ def show_run_snmp(db, ctx):
     snmp_contact_body = []
     snmp_comm_header = ["Community String", "Community Type"]
     snmp_comm_body = []
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     try:
@@ -1472,7 +1536,7 @@ def show_run_snmp(db, ctx):
         snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
         snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
         snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
     click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 

@@ -469,6 +469,11 @@
         "priority": "9989",
         "SRC_IP": "10.0.0.3/32"
     },
+    "ACL_RULE|DATAACL_NO_COUNTER|RULE_NO_COUNTER": {
+        "IP_PROTOCOL": "126",
+        "PACKET_ACTION": "FORWARD",
+        "PRIORITY": "9995"
+    },
     "ACL_TABLE|NULL_ROUTE_V4": {
         "policy_desc": "DATAACL",
         "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023",
@@ -480,6 +485,11 @@
         "type": "L3V6"
     },
     "ACL_TABLE|DATAACL": {
+        "policy_desc": "DATAACL",
+        "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet64,Ethernet68,Ethernet72,Ethernet76,Ethernet80,Ethernet84,Ethernet88,Ethernet92,Ethernet96,Ethernet100,Ethernet104,Ethernet108,Ethernet112,Ethernet116,Ethernet120,Ethernet124",
+        "type": "L3"
+    },
+    "ACL_TABLE|DATAACL_NO_COUNTER": {
         "policy_desc": "DATAACL",
         "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet64,Ethernet68,Ethernet72,Ethernet76,Ethernet80,Ethernet84,Ethernet88,Ethernet92,Ethernet96,Ethernet100,Ethernet104,Ethernet108,Ethernet112,Ethernet116,Ethernet120,Ethernet124",
         "type": "L3"
@@ -1101,6 +1111,34 @@
     "FG_NHG_PREFIX|fc:05::/128": {
 	    "FG_NHG": "fgnhg_v6"
 	},
+    "FG_NHG|fgnhg_v4": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG|fgnhg_v6": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG_MEMBER|200.200.200.4": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200.200.200.5": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::4": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::5": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
     "BGP_NEIGHBOR|10.0.0.1": {
         "asn": "65200",
         "holdtime": "10",
@@ -1586,11 +1624,9 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|QUEUE_WATERMARK": {
-        "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|PG_WATERMARK": {
-        "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|PG_DROP": {
@@ -1787,11 +1823,24 @@
         "pool": "ingress_lossless_pool",
         "headroom_type": "dynamic"
     },
+    "BUFFER_PROFILE|egress_lossless_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossless_pool",
+        "size": "0"
+    },
+    "BUFFER_PROFILE|egress_lossy_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossy_pool",
+        "size": "0"
+    },
     "BUFFER_PG|Ethernet0|3-4": {
         "profile": "NULL"
     },
     "BUFFER_PG|Ethernet0|0": {
         "profile": "ingress_lossy_profile"
+    },
+    "BUFFER_QUEUE|Ethernet0|3-4": {
+        "profile": "egress_lossless_profile"
     },
     "PORT_QOS_MAP|Ethernet0": {
         "pfc_enable": "3,4"

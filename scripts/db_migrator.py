@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_4'
+        self.CURRENT_VERSION = 'version_2_0_5'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -73,6 +73,7 @@ class DBMigrator():
         version_info = device_info.get_sonic_version_info()
         asic_type = version_info.get('asic_type')
         self.asic_type = asic_type
+        self.hwsku = device_info.get_hwsku()
 
         if asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
@@ -125,6 +126,43 @@ class DBMigrator():
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
 
+    def migrate_mgmt_ports_on_s6100(self):
+        '''
+        During warm-reboot, add back two 10G management ports which got removed from 6100
+        to ensure no change in bcm.config from older image
+        '''
+        if device_info.is_warm_restart_enabled('swss') == False:
+            log.log_notice("Skip migration on {}, warm-reboot flag not set".format(self.hwsku))
+            return True
+
+        entries = {}
+        entries['Ethernet64'] = {'alias': 'tenGigE1/1', 'description': 'tenGigE1/1', 'index': '64', 'lanes': '129', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        entries['Ethernet65'] = {'alias': 'tenGigE1/2', 'description': 'tenGigE1/2', 'index': '65', 'lanes': '131', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '10000'}
+        added_ports = 0
+        for portName in entries.keys():
+            if self.configDB.get_entry('PORT', portName):
+                log.log_notice("Skipping migration for port {} - entry exists".format(portName))
+                continue
+
+            log.log_notice("Migrating port {} to configDB for warm-reboot on {}".format(portName, self.hwsku))
+            self.configDB.set_entry('PORT', portName, entries[portName])
+
+            #Copy port to APPL_DB
+            key = 'PORT_TABLE:' + portName
+            for field, value in entries[portName].items():
+                self.appDB.set(self.appDB.APPL_DB, key, field, value)
+            self.appDB.set(self.appDB.APPL_DB, key, 'admin_status', 'down')
+            log.log_notice("Copied port {} to appdb".format(key))
+            added_ports += 1
+
+        #Update port count in APPL_DB
+        portCount = self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')
+        if portCount != '':
+            total_count = int(portCount) + added_ports
+            self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
+            log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
+        return True
+        
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
@@ -627,9 +665,26 @@ class DBMigrator():
 
     def version_2_0_4(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_4
         """
         log.log_info('Handling version_2_0_4')
+        # Migrate "pfc_enable" to "pfc_enable" and "pfcwd_sw_enable"
+        # 1. pfc_enable means enable pfc on certain queues
+        # 2. pfcwd_sw_enable means enable PFC software watchdog on certain queues
+        # By default, PFC software watchdog is enabled on all pfc enabled queues.
+        qos_maps = self.configDB.get_table('PORT_QOS_MAP')
+        for k, v in qos_maps.items():
+            if 'pfc_enable' in v:
+                v['pfcwd_sw_enable'] = v['pfc_enable']
+                self.configDB.set_entry('PORT_QOS_MAP', k, v)
+
+        return 'version_2_0_5'
+
+    def version_2_0_5(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_5')
         return None
 
     def get_version(self):
@@ -666,6 +721,10 @@ class DBMigrator():
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
         self.migrate_copp_table()
+        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
+            self.migrate_mgmt_ports_on_s6100()
+        else:
+            log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
     def migrate(self):
         version = self.get_version()
