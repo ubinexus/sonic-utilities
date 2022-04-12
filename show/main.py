@@ -14,6 +14,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
+from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
 
@@ -855,6 +856,19 @@ def protocol(verbose):
     cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
+#
+# 'fib' subcommand ("show ip fib")
+#
+@ip.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -4"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
+    run_command(cmd, display_cmd=verbose)
+
 
 #
 # 'ipv6' group ("show ipv6 ...")
@@ -985,6 +999,19 @@ def link_local_mode(verbose):
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 #
+# 'fib' subcommand ("show ipv6 fib")
+#
+@ipv6.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -6"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
+    run_command(cmd, display_cmd=verbose)
+
+#
 # 'lldp' group ("show lldp ...")
 #
 
@@ -1062,6 +1089,8 @@ def version(verbose):
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
 
+    sys_date = datetime.now()
+
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
@@ -1076,6 +1105,7 @@ def version(verbose):
     click.echo("Model Number: {}".format(chassis_info['model']))
     click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
+    click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
