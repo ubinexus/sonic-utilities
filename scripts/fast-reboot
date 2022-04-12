@@ -738,13 +738,6 @@ for service in ${SERVICES_TO_STOP}; do
     fi
 done
 
-if test -f /usr/local/bin/ctrmgr_tools.py
-then
-    debug "Stopping all remaining containers ..."
-    /usr/local/bin/ctrmgr_tools.py kill-all
-    debug "Stopped all remaining containers ..."
-fi
-
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service || debug "Ignore stopping docker service error $?"
 
