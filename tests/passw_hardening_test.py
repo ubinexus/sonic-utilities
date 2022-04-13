@@ -124,37 +124,3 @@ class TestPasswHardening:
         self.passw_hardening_set_policy(runner, db, "len-min", "30")
 
         self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_len_min)
-
-    def test_passw_hardening_policy_expiration_invalid(self):
-        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
-        db = Db()
-        runner = CliRunner()
-        INVALID_EXP_TIME = "600"
-
-        self.passw_hardening_set_policy(runner, db, "expiration", INVALID_EXP_TIME, EXP_BAD_FLOW)
-
-        # expect default values, because invalid values should not succed to modify default configuration
-        self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_default)
-
-    def test_passw_hardening_policy_len_min_invalid(self):
-        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
-        db = Db()
-        runner = CliRunner()
-        INVALID_EXP_LEN = "500"
-
-        self.passw_hardening_set_policy(runner, db, "len-min", INVALID_EXP_LEN, EXP_BAD_FLOW)
-
-        # expect default values, because invalid values should not succed to modify default configuration
-        self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_default)
-
-    def test_passw_hardening_policy_class_invalid(self):
-        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'default_config_db')
-        db = Db()
-        runner = CliRunner()
-        INVALID_VALUE = '?'
-
-        self.passw_hardening_set_policy(runner, db, "expiration", INVALID_VALUE, EXP_BAD_FLOW)
-
-        # expect default values, because invalid values should not succed to modify default configuration
-        self.verify_passw_policies_output(db, runner, assert_show_output.show_passw_hardening_policies_default)
-
