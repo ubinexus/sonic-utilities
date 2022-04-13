@@ -123,7 +123,7 @@ class TestSfputil(object):
         (
             # sfp_info_dict
             {
-                'type': 'QSFP-DD',
+                'type': 'QSFP-DD Double Density 8X Pluggable Transceiver',
                 'type_abbrv_name': 'QSFP-DD',
                 'manufacturer': 'abc',
                 'model': 'def',
@@ -142,7 +142,7 @@ class TestSfputil(object):
                 'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
                 'nominal_bit_rate': '0',
                 'active_firmware': '0.1',
-                'inactivate_firmware': '0.0',
+                'inactive_firmware': '0.0',
                 'hardware_rev': '0.0',
                 'media_interface_code': '400ZR, DWDM, amplified',
                 'host_electrical_interface': '400GAUI-8 C2M (Annex 120E)',
@@ -184,7 +184,7 @@ class TestSfputil(object):
             "        Host Electrical Interface: 400GAUI-8 C2M (Annex 120E)\n"
             "        Host Lane Assignment Options: 1\n"
             "        Host Lane Count: 8\n"
-            "        Identifier: QSFP-DD\n"
+            "        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver\n"
             "        Inactive Firmware Version: 0.0\n"
             "        Length Cable Assembly(m): 0\n"
             "        Media Interface Code: 400ZR, DWDM, amplified\n"
