@@ -102,22 +102,22 @@ class TestSfputil(object):
                 'nominal_bit_rate': '255'
             },
             # expected_output
-            "        Application Advertisement: N/A"
-            "        Connector: No separable connector"
-            "        Encoding: 64B66B"
-            "        Extended Identifier: Power Class 1(1.5W max)"
-            "        Extended RateSelect Compliance: QSFP+ Rate Select Version 1"
-            "        Identifier: QSFP28 or later"
-            "        Length Cable Assembly(m): 3"
-            "        Nominal Bit Rate(100Mbs): 255"
-            "        Specification compliance:"
-            "                10/40G Ethernet Compliance Code: 40GBASE-CR4"
-            "        Vendor Date Code(YYYY-MM-DD Lot): 2016-07-18"
-            "        Vendor Name: Mellanox"
-            "        Vendor OUI: 00-02-c9"
+            "        Application Advertisement: N/A\n"
+            "        Connector: No separable connector\n"
+            "        Encoding: 64B66B\n"
+            "        Extended Identifier: Power Class 1(1.5W max)\n"
+            "        Extended RateSelect Compliance: QSFP+ Rate Select Version 1\n"
+            "        Identifier: QSFP28 or later\n"
+            "        Length Cable Assembly(m): 3\n"
+            "        Nominal Bit Rate(100Mbs): 255\n"
+            "        Specification compliance:\n"
+            "                10/40G Ethernet Compliance Code: 40GBASE-CR4\n"
+            "        Vendor Date Code(YYYY-MM-DD Lot): 2016-07-18\n"
+            "        Vendor Name: Mellanox\n"
+            "        Vendor OUI: 00-02-c9\n"
             "        Vendor PN: MCP1600-C003"
-            "        Vendor Rev: A2"
-            "        Vendor SN: MT1636VS10561"
+            "        Vendor Rev: A2\n"
+            "        Vendor SN: MT1636VS10561\n"
         )
     ])
     def test_convert_sfp_info_to_output_string(self, sfp_info_dict, expected_output):
