@@ -115,7 +115,7 @@ class TestSfputil(object):
             "        Vendor Date Code(YYYY-MM-DD Lot): 2016-07-18\n"
             "        Vendor Name: Mellanox\n"
             "        Vendor OUI: 00-02-c9\n"
-            "        Vendor PN: MCP1600-C003"
+            "        Vendor PN: MCP1600-C003\n"
             "        Vendor Rev: A2\n"
             "        Vendor SN: MT1636VS10561\n"
         )
