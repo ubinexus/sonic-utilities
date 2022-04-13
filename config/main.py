@@ -3684,7 +3684,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
 @click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["on", "off"]))
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def link_training(ctx, interface_name, mode, verbose):
-    """Set interface auto negotiation mode"""
+    """Set interface link training mode"""
     # Get the config_db connector
     config_db = ctx.obj['config_db']
 

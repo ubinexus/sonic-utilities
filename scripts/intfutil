@@ -33,7 +33,6 @@ except KeyError:
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
 PORT_STATE_TABLE_PREFIX = "PORT_TABLE|"
 PORT_TRANSCEIVER_TABLE_PREFIX = "TRANSCEIVER_INFO|"
-PORT_LINK_TRAINING_STATUS_TABLE_PREFIX = "LINK_TRAINING|"
 PORT_LANES_STATUS = "lanes"
 PORT_ALIAS = "alias"
 PORT_OPER_STATUS = "oper_status"
@@ -52,7 +51,7 @@ PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
 OPTICS_TYPE_RJ45 = 'RJ45'
 PORT_LINK_TRAINING = 'link_training'
-PORT_LINK_TRAINING_STATUS = 'status'
+PORT_LINK_TRAINING_STATUS = 'link_training_status'
 
 VLAN_SUB_INTERFACE_SEPARATOR = "."
 VLAN_SUB_INTERFACE_TYPE = "802.1q-encapsulation"
@@ -221,14 +220,6 @@ def state_db_port_optics_get(state_db, intf_name, type):
     if optics_type is None:
         return "N/A"
     return optics_type
-
-def state_db_port_link_training_status_get(state_db, intf_name, type):
-    """
-    Get link training status for port
-    """
-    full_table_id = PORT_LINK_TRAINING_STATUS_TABLE_PREFIX + intf_name
-    status = state_db.get(state_db.STATE_DB, full_table_id, type)
-    return "N/A" if status is None else status
 
 def merge_dicts(x,y):
     # store a copy of x, but overwrite with y's values where applicable
@@ -801,9 +792,9 @@ class IntfLinkTrainingStatus(object):
                 lt_admin = appl_db_port_status_get(self.db, key, PORT_LINK_TRAINING)
                 if lt_admin not in ['on', 'off']:
                     lt_admin = '-'
-                lt_status = state_db_port_link_training_status_get(self.db, key, PORT_LINK_TRAINING_STATUS)
-                if lt_status in ['N/A', '']:
-                    lt_status = '-'
+                lt_status = state_db_port_status_get(self.db, key, PORT_LINK_TRAINING_STATUS)
+                if lt_status in ['N/A', '', None]:
+                    lt_status = 'off'
                 table.append((key,
                               lt_status.replace('_', ' '),
                               lt_admin,

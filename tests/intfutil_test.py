@@ -101,15 +101,15 @@ show_interface_link_training_status_output = """\
   Interface      LT Oper    LT Admin    Oper    Admin
 -----------  -----------  ----------  ------  -------
   Ethernet0  not trained          on    down       up
- Ethernet16            -           -      up       up
- Ethernet24            -           -      up       up
- Ethernet28            -           -      up       up
+ Ethernet16          off           -      up       up
+ Ethernet24          off           -      up       up
+ Ethernet28          off           -      up       up
  Ethernet32      trained          on      up       up
- Ethernet36            -           -      up       up
+ Ethernet36          off           -      up       up
 Ethernet112          off         off      up       up
-Ethernet116            -           -      up       up
-Ethernet120            -           -      up       up
-Ethernet124            -           -      up       up
+Ethernet116          off           -      up       up
+Ethernet120          off           -      up       up
+Ethernet124          off           -      up       up
 """
 
 class TestIntfutil(TestCase):
