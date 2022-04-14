@@ -10,7 +10,7 @@ import clear.main as clear
 import config.main as config
 
 from .utils import get_result_and_return_code
-from flow_counter_util.route import FLOW_COUNTER_ROUTE_PATTERN_TABLE, FLOW_COUNTER_ROUTE_MAX_MATCH_FIELD, build_route_pattern
+from flow_counter_util.route import FLOW_COUNTER_ROUTE_PATTERN_TABLE, FLOW_COUNTER_ROUTE_MAX_MATCH_FIELD
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
 
