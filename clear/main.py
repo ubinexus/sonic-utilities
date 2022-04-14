@@ -5,7 +5,6 @@ import sys
 import click
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
-import json
 
 from flow_counter_util.route import exit_if_route_flow_counter_not_support
 from utilities_common import util_base

@@ -1,6 +1,5 @@
 import importlib
 import os
-import pytest
 import sys
 
 from click.testing import CliRunner
