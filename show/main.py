@@ -206,17 +206,21 @@ if is_gearbox_configured():
 # 'vrf' command ("show vrf")
 #
 
-def get_interface_bind_to_vrf(config_db, vrf_name):
-    """Get interfaces belong to vrf
+def get_interface_bind_to_vrf(config_db, vrf_name_list):
+    """Get all interfaces belong to all vrfs of vrf_name_list
     """
     tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
-    data = []
+    data = {}
     for table_name in tables:
         interface_dict = config_db.get_table(table_name)
         if interface_dict:
-            for interface in interface_dict:
-                if 'vrf_name' in interface_dict[interface] and vrf_name == interface_dict[interface]['vrf_name']:
-                    data.append(interface)
+            for vrf_name in vrf_name_list:
+                for interface in interface_dict:
+                    if 'vrf_name' in interface_dict[interface] and vrf_name == interface_dict[interface]['vrf_name']:
+                        if vrf_name in data:
+                            data[vrf_name].append(interface)
+                        else:
+                            data[vrf_name] = [interface]
     return data
 
 @cli.command()
@@ -234,11 +238,13 @@ def vrf(vrf_name):
             vrfs = list(vrf_dict.keys())
         elif vrf_name in vrf_dict:
             vrfs = [vrf_name]
+        intfs_dict = get_interface_bind_to_vrf(config_db, vrfs)
+        vrfs = natsorted(vrfs)
         for vrf in vrfs:
-            intfs = get_interface_bind_to_vrf(config_db, vrf)
-            if len(intfs) == 0:
+            if vrf not in intfs_dict:
                 body.append([vrf, ""])
             else:
+                intfs = intfs_dict[vrf]
                 body.append([vrf, intfs[0]])
                 for intf in intfs[1:]:
                     body.append(["", intf])
