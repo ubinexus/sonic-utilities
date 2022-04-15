@@ -129,6 +129,8 @@ function common_clear()
 {
     debug "${REBOOT_TYPE} failure ($?) cleanup ..."
 
+    /usr/bin/redis-cli -n 6 del "FAST_REBOOT|system" > /dev/null || /bin/true
+
     /sbin/kexec -u || /bin/true
 
     teardown_control_plane_assistant
@@ -531,6 +533,7 @@ BOOT_TYPE_ARG="cold"
 case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
+        /usr/bin/redis-cli -n 6 set "FAST_REBOOT|system" "1" > /dev/null
         trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
         sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
