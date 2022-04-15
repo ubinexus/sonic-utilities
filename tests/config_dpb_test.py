@@ -170,6 +170,7 @@ def config_mgmt_dpb(cfgdb):
     cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
     # mock funcs
     cmdpb.writeConfigDB = mock.MagicMock(return_value=True)
+    cmdpb._verifyAppDB  = mock.MagicMock(return_value=True)
     cmdpb._verifyAsicDB = mock.MagicMock(return_value=True)
     return cmdpb
 
