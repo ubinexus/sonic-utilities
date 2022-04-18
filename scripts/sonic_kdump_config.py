@@ -437,7 +437,7 @@ def get_kdump_config_json(config_param):
 #  @param verbose If True, the function will display a few additinal information
 #  @param image   The image on which kdump settings are changed
 #  @return        True if the grub/cmdline cfg has changed, and False if it has not
-def cmd_kdump_enable(verbose, image=get_current_image()):
+def cmd_kdump_enable(verbose, image):
 
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
@@ -460,7 +460,8 @@ def cmd_kdump_enable(verbose, image=get_current_image()):
 #  @param image   The image on which kdump settings are changed
 #  @return        True if the grub/cmdline cfg has changed, and False if it has not
 def cmd_kdump_config_next(verbose):
-    return cmd_kdump_enable(verbose, image=get_next_image())
+    image = get_next_image()
+    return cmd_kdump_enable(verbose, image)
 
 
 def kdump_disable(verbose, image, cmdline_file):
@@ -469,7 +470,7 @@ def kdump_disable(verbose, image, cmdline_file):
 
     Args:
         image: A string represents SONiC image version.
-        cmdline_file: A string represents path of kernel booting file.
+        cmdline_file: A string represents path of kernel boot loader configuration file.
 
     Returns:
         changes: If kernel booting file was changed, returns True; Otherwise, returns
@@ -507,9 +508,9 @@ def kdump_disable(verbose, image, cmdline_file):
 ## Command: Disable kdump
 #
 #  @param verbose If True, the function will display a few additional information
-#  @param image   The image on which kdump settings are changed
-def cmd_kdump_disable(verbose, image=get_current_image()):
+def cmd_kdump_disable(verbose):
 
+    image = get_current_image()
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
     num_dumps = get_kdump_num_dumps()
@@ -542,7 +543,8 @@ def cmd_kdump_memory(verbose, memory):
             memory_in_db = get_kdump_memory()
             memory_in_json = get_kdump_config_json("memory")
             if memory != crash_kernel_in_cmdline or memory != memory_in_db or memory != memory_in_json:
-                cmd_kdump_enable(verbose)
+                image = get_current_image()
+                cmd_kdump_enable(verbose, image)
                 print("Kdump updated memory will be only operational after the system reboots")
         else:
             num_dumps = get_kdump_num_dumps()
@@ -628,7 +630,8 @@ def main():
     changed = False
     try:
         if options.enable:
-            changed = cmd_kdump_enable(options.verbose)
+            image = get_current_image()
+            changed = cmd_kdump_enable(options.verbose, image)
         elif options.config_next:
             changed = cmd_kdump_config_next(options.verbose)
         elif options.disable:
