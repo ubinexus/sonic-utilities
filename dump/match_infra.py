@@ -182,6 +182,9 @@ class RedisSource(SourceAdapter):
     def hget(self, db, key, field):
         return self.conn.get(db, key, field)
 
+    def hgetall(self, db, key):
+        return self.conn.get_all(db, key)
+
 
 class JsonSource(SourceAdapter):
     """ Concrete Adaptor Class for connecting to JSON Data Sources """
@@ -266,6 +269,9 @@ class MatchEngine:
 
     def clear_cache(self, ns):
         self.conn_pool(ns)
+
+    def get_source_adapter(self, db):
+        return RedisSource(self.conn_pool)
 
     def __get_source_adapter(self, req):
         src = None
