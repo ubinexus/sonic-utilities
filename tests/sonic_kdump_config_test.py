@@ -4,19 +4,22 @@ import sys
 import unittest
 from unittest.mock import patch, mock_open
 
+from utilities_common.general import load_module_from_source
+
 TESTS_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 UTILITY_DIR_PATH = os.path.dirname(TESTS_DIR_PATH)
 SCRIPTS_DIR_PATH = os.path.join(UTILITY_DIR_PATH, "scripts")
 sys.path.append(SCRIPTS_DIR_PATH)
-import sonic_kdump_config
-
-logger = logging.getLogger(__name__)
 
 ABOOT_MACHINE_CFG_PLATFORM = "aboot_platform=x86_64-arista_7050cx3_32s"
 ABOOT_MACHINE_CFG_ARCH = "aboot_arch=x86_64"
 KERNEL_BOOTING_CFG_KDUMP_DISABLED = "loop=image-20201231.63/fs.squashfs loopfstype=squashfs"
 KERNEL_BOOTING_CFG_KDUMP_ENABLED = "loop=image-20201231.63/fs.squashfs loopfstype=squashfs crashkernel=0M-2G:256MB"
 
+logger = logging.getLogger(__name__)
+# Load `sonic-kdump-config` module from source since `sonic-kdump-config` doese not have .py extension.
+sonic_kdump_config_path = os.path.join(SCRIPTS_DIR_PATH, "sonic-kdump-config")
+sonic_kdump_config = load_module_from_source("sonic_kdump_config", sonic_kdump_config_path)
 
 class TestSonicKdumpConfig(unittest.TestCase):
     @classmethod
@@ -25,7 +28,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
 
     @patch("sonic_kdump_config.run_command")
     def test_read_num_kdumps(self, mock_run_cmd):
-        """Tests the function `read_num_kdumps(...)` in script `sonic_kdump_config.py`.
+        """Tests the function `read_num_kdumps(...)` in script `sonic-kdump-config`.
         """
         mock_run_cmd.return_value = (0, ["0"], None)
         num_dumps = sonic_kdump_config.read_num_dumps()
@@ -56,7 +59,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
 
     @patch("sonic_kdump_config.run_command")
     def test_read_use_kdump(self, mock_run_cmd):
-        """Tests the function `read_use_kdump(...)` in script `sonic_kdump_config.py`.
+        """Tests the function `read_use_kdump(...)` in script `sonic-kdump-config`.
         """
         mock_run_cmd.return_value = (0, ["0"], None)
         is_kdump_enabled = sonic_kdump_config.read_use_kdump()
@@ -85,7 +88,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch("sonic_kdump_config.read_use_kdump")
     @patch("sonic_kdump_config.run_command")
     def test_write_num_kdump(self, mock_run_cmd, mock_read_kdump):
-        """Tests the function `write_use_kdump(...)` in script `sonic_kdump_config.py`.
+        """Tests the function `write_use_kdump(...)` in script `sonic-kdump-config`.
         """
         mock_run_cmd.side_effect = [(0, [], None), (0, ["1"], None)]
         mock_read_kdump.return_value = 0
@@ -129,7 +132,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch("os.path.exists")
     def test_cmd_kdump_disable(self, mock_path_exist, mock_num_dumps, mock_memory,
                                mock_administrative_mode, mock_image, mock_kdump_disable):
-        """Tests the function `cmd_kdump_disable(...)` in script `sonic_kdump_config.py`.
+        """Tests the function `cmd_kdump_disable(...)` in script `sonic-kdump-config.py`.
         """
         mock_path_exist.return_value = True
         mock_num_dumps.return_value = 3
@@ -154,7 +157,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
     @patch("sonic_kdump_config.write_use_kdump")
     @patch("os.path.exists")
     def test_kdump_disable(self, mock_path_exist, mock_write_kdump):
-        """Tests the function `kdump_disable(...)` in script `sonic_kdump_config.py`.
+        """Tests the function `kdump_disable(...)` in script `sonic-kdump-config.py`.
         """
         mock_path_exist.return_value = True
         mock_write_kdump.return_value = 0
