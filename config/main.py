@@ -47,6 +47,7 @@ from . import vxlan
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB
 from . import mclag
+from . import syslog
 
 # mock masic APIs for unit test
 try:
@@ -1177,6 +1178,9 @@ config.add_command(vxlan.vxlan)
 config.add_command(mclag.mclag)
 config.add_command(mclag.mclag_member)
 config.add_command(mclag.mclag_unique_ip)
+
+# syslog module
+config.add_command(syslog.syslog)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
