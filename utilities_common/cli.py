@@ -10,7 +10,7 @@ import json
 import netaddr
 
 from natsort import natsorted
-from sonic_py_common import multi_asic, device_info
+from sonic_py_common import multi_asic
 from utilities_common.db import Db
 from utilities_common.general import load_db_config
 
@@ -131,8 +131,6 @@ class InterfaceAliasConverter(object):
 
 
         if not self.port_dict:
-            if not device_info.is_supervisor():
-                click.echo(message="Configuration database contains no ports")
             self.port_dict = {}
 
         for port_name in self.port_dict:
@@ -579,11 +577,11 @@ def json_dump(data):
         data, sort_keys=True, indent=2, ensure_ascii=False, default=json_serial
     )
 
-    
+
 def interface_is_untagged_member(db, interface_name):
-    """ Check if interface is already untagged member"""    
+    """ Check if interface is already untagged member"""
     vlan_member_table = db.get_table('VLAN_MEMBER')
-    
+
     for key,val in vlan_member_table.items():
         if(key[1] == interface_name):
             if (val['tagging_mode'] == 'untagged'):
@@ -630,3 +628,36 @@ class MutuallyExclusiveOption(click.Option):
                         "Illegal usage: %s is mutually exclusive with arguments %s" % (self.name, ', '.join(self.mutually_exclusive))
                         )
         return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
+
+
+def query_yes_no(question, default="yes"):
+    """Ask a yes/no question via input() and return their answer.
+
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    The "answer" return value is True for "yes" or False for "no".
+    """
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower().strip()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' "
+                             "(or 'y' or 'n').\n")
