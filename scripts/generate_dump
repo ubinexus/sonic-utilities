@@ -1012,6 +1012,16 @@ collect_broadcom() {
     copy_from_masic_docker "syncd" "/var/log/bcm_diag_post" "/var/log/bcm_diag_post"
 }
 
+
+collect_barefoot() {
+	unset array
+	array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
+    for y in "${array[@]}"; do
+        itstr=`echo ${y} | tr -d "\r\n"`
+	    copy_from_masic_docker "syncd" "/${itstr}" "/var/log/${itstr}"
+    done
+} 
+
 ###############################################################################
 # Save log file
 # Globals:
@@ -1050,6 +1060,11 @@ save_log_files() {
     echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
     enable_logrotate
+
+    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    if [ "$asic" = "barefoot" ]; then
+    	collect_barefoot
+    fi
 }
 
 ###############################################################################
