@@ -1014,8 +1014,8 @@ collect_broadcom() {
 
 
 collect_barefoot() {
-	unset array
-	array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
+    unset array
+    array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
     for y in "${array[@]}"; do
         itstr=`echo ${y} | tr -d "\r\n"`
 	    copy_from_masic_docker "syncd" "/${itstr}" "/var/log/${itstr}"
