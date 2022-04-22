@@ -180,7 +180,7 @@ def state_db_port_status_get(db, intf_name, field):
             status = '{}G'.format(int(speed / 1000))
         else:
             status = '{}M'.format(speed)
-    elif field in [PORT_ADV_SPEEDS, PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
+    elif field in [PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
