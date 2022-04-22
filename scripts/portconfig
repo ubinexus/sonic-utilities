@@ -136,8 +136,11 @@ class portconfig(object):
     def set_link_training(self, port, mode):
         if self.verbose:
             print("Setting link-training %s on port %s" % (mode, port))
-        if mode not in ['on', 'off']:
-            mode = 'off'
+        lt_modes = ['on', 'off']
+        if mode not in lt_modes:
+            print('Invalid mode specified: {}'.format(mode))
+            print('Valid modes: {}'.format(','.join(lt_modes)))
+            exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_LINK_TRAINING_CONFIG_FIELD_NAME: mode})
 
     def set_autoneg(self, port, mode):
