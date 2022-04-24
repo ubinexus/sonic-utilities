@@ -17,7 +17,7 @@ KERNEL_BOOTING_CFG_KDUMP_DISABLED = "loop=image-20201231.63/fs.squashfs loopfsty
 KERNEL_BOOTING_CFG_KDUMP_ENABLED = "loop=image-20201231.63/fs.squashfs loopfstype=squashfs crashkernel=0M-2G:256MB"
 
 logger = logging.getLogger(__name__)
-# Load `sonic-kdump-config` module from source since `sonic-kdump-config` doese not have .py extension.
+# Load `sonic-kdump-config` module from source since `sonic-kdump-config` does not have .py extension.
 sonic_kdump_config_path = os.path.join(SCRIPTS_DIR_PATH, "sonic-kdump-config")
 sonic_kdump_config = load_module_from_source("sonic_kdump_config", sonic_kdump_config_path)
 
@@ -162,9 +162,8 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_path_exist.return_value = True
         mock_write_kdump.return_value = 0
 
-        with patch("sonic_kdump_config.open", mock_open(read_data=KERNEL_BOOTING_CFG_KDUMP_DISABLED)):
-            return_result = sonic_kdump_config.kdump_disable(True, "20201230.63", "")
-            assert return_result == False
+        return_result = sonic_kdump_config.kdump_disable(True, "20201230.63", "/host/grub/grub.cfg")
+        assert return_result == False
 
         mock_open_func = mock_open(read_data=KERNEL_BOOTING_CFG_KDUMP_ENABLED)
         with patch("sonic_kdump_config.open", mock_open_func):

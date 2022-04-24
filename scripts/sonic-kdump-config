@@ -17,12 +17,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
-import sys
 import argparse
-import shlex
-import os
-import subprocess
 import json
+import os
+import shlex
+import sys
+import syslog
+import subprocess
+
 from swsscommon.swsscommon import ConfigDBConnector
 
 aboot_cfg_template ="/host/image-%s/kernel-cmdline"
@@ -464,13 +466,13 @@ def cmd_kdump_config_next(verbose):
     return cmd_kdump_enable(verbose, image)
 
 
-def kdump_disable(verbose, image, cmdline_file):
+def kdump_disable(verbose, image, booter_config_file_path):
     """Unloads Kdump kernel and remove parameter `crashkernel=*` from configuration file of 
     kernel boot loader.
 
     Args:
         image: A string represents SONiC image version.
-        cmdline_file: A string represents path of kernel boot loader configuration file.
+        booter_config_file_path: A string represents path of kernel boot loader configuration file.
 
     Returns:
         changes: If kernel booting file was changed, returns True; Otherwise, returns
@@ -481,7 +483,14 @@ def kdump_disable(verbose, image, cmdline_file):
     if verbose:
         print("Disabling kdump for image=[%s]\n" % image)
 
-    lines = [line.rstrip('\n') for line in open(cmdline_file)]
+    try:
+        with open(booter_config_file_path) as config_file_handler:
+            lines = [line.rstrip('\n') for line in open(config_file_handler)]
+    except OSError as sys_err:
+        syslog.syslog(syslog.LOG_ERR, "Failed to open kernel booter configuration file: '{}', Error is: '{}'!"
+                      .format(booter_config_file_path, sys_err))
+        return False
+
     img_index = locate_image(lines, "loop=image-"+image)
 
     changed = False
@@ -493,10 +502,10 @@ def kdump_disable(verbose, image, cmdline_file):
         lines[img_index] = lines[img_index].replace("crashkernel="+crash_kernel_mem, "")
         changed = True
         if verbose:
-            print("Removed [%s] in %s" % ("crashkernel="+crash_kernel_mem, cmdline_file))
+            print("Removed [%s] in %s" % ("crashkernel="+crash_kernel_mem, booter_config_file_path))
 
     if changed:
-        rewrite_cfg(lines, cmdline_file)
+        rewrite_cfg(lines, booter_config_file_path)
 
     if not os.path.exists('/etc/sonic/config_db.json'):
         print_err("Startup configuration not found, Kdump configuration is not saved")
