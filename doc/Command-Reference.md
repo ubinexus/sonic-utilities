@@ -3274,7 +3274,7 @@ This command is used to add or update the route pattern which is used by route f
 
 - Example:
   ```
-  admin@sonic:~$ config flowcnt-route pattern add --vrf Vrf_1 --max 50 2.2.0.0/16
+  admin@sonic:~$ config flowcnt-route pattern add 2.2.0.0/16 --vrf Vrf_1 --max 50
   ```
 
 **config flowcnt-route pattern remove**
@@ -3288,7 +3288,7 @@ This command is used to remove the route pattern which is used by route flow cou
 
 - Example:
   ```
-  admin@sonic:~$ config flowcnt-route pattern remove --vrf Vrf_1 2.2.0.0/16
+  admin@sonic:~$ config flowcnt-route pattern remove 2.2.0.0/16 --vrf Vrf_1
   ```
 
 
