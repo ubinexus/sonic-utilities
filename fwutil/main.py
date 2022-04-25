@@ -484,7 +484,7 @@ install.add_command(module_install, name='module')
 
 update.add_command(chassis_update, name='chassis')
 update.add_command(module_update, name='module')
-update.add_command(auto_update, name='all')
+update.add_command(all_update, name='all')
 
 chassis_install.add_command(component_install, name='component')
 module_install.add_command(component_install, name='component')
