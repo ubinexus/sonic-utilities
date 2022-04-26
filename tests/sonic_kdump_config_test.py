@@ -32,10 +32,10 @@ class TestSonicKdumpConfig(unittest.TestCase):
         """
         mock_run_cmd.return_value = (0, ["0"], None)
         num_dumps = sonic_kdump_config.read_num_dumps()
+        assert num_dumps == 0
 
         logger.info("Value of 'num_dumps' is: '{}'.".format(num_dumps))
         logger.info("Expected value of 'num_dumps' is: '0'.")
-        assert num_dumps == 0
 
         mock_run_cmd.return_value = (0, ["NotInteger"], None)
         with self.assertRaises(SystemExit) as sys_exit:
