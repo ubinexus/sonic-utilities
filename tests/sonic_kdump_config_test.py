@@ -162,7 +162,7 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_path_exist.return_value = True
         mock_write_kdump.return_value = 0
 
-        return_result = sonic_kdump_config.kdump_disable(True, "20201230.63", "/host/grub/grub.cfg")
+        return_result = sonic_kdump_config.kdump_disable(True, "20201230.63", "/host/image-20201231.64/kernel-cmdline")
         assert return_result == False
 
         mock_open_func = mock_open(read_data=KERNEL_BOOTING_CFG_KDUMP_ENABLED)
@@ -172,6 +172,11 @@ class TestSonicKdumpConfig(unittest.TestCase):
             handle = mock_open_func()
             handle.writelines.assert_called_once()
 
+        mock_open_func = mock_open(read_data=KERNEL_BOOTING_CFG_KDUMP_DISABLED)
+        with patch("sonic_kdump_config.open", mock_open_func):
+            return_result = sonic_kdump_config.kdump_disable(True, "20201230.63", "/host/grub/grub.cfg")
+            assert return_result == False
+
         mock_path_exist.return_value = False
         mock_open_func = mock_open(read_data=KERNEL_BOOTING_CFG_KDUMP_ENABLED)
         with patch("sonic_kdump_config.open", mock_open_func):
@@ -179,6 +184,13 @@ class TestSonicKdumpConfig(unittest.TestCase):
             assert return_result == False
             handle = mock_open_func()
             handle.writelines.assert_called_once()
+
+        mock_path_exist.return_value = False
+        mock_open_func = mock_open(read_data=KERNEL_BOOTING_CFG_KDUMP_DISABLED)
+        with patch("sonic_kdump_config.open", mock_open_func):
+            return_result = sonic_kdump_config.kdump_disable(True, "20201230.63", "/host/grub/grub.cfg")
+            assert return_result == False
+
 
     @classmethod
     def teardown_class(cls):
