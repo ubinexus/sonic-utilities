@@ -475,7 +475,7 @@ def kdump_disable(verbose, image, booter_config_file_path):
         booter_config_file_path: A string represents path of kernel boot loader configuration file.
 
     Returns:
-        changes: If kernel booting file was changed, returns True; Otherwise, returns
+        changes: If kernel booter configuration file was changed, returns True; Otherwise, returns
         False.
     """
     write_use_kdump(0)

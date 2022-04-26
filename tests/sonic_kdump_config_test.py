@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 sonic_kdump_config_path = os.path.join(SCRIPTS_DIR_PATH, "sonic-kdump-config")
 sonic_kdump_config = load_module_from_source("sonic_kdump_config", sonic_kdump_config_path)
 
+
 class TestSonicKdumpConfig(unittest.TestCase):
     @classmethod
     def setup_class(cls):
@@ -40,22 +41,37 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_run_cmd.return_value = (0, ["NotInteger"], None)
         with self.assertRaises(SystemExit) as sys_exit:
             num_dumps = sonic_kdump_config.read_num_dumps()
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
 
         mock_run_cmd.return_value = (0, (), None)
         with self.assertRaises(SystemExit) as sys_exit:
             num_dumps = sonic_kdump_config.read_num_dumps()
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
 
         mock_run_cmd.return_value = (0, [], None)
         with self.assertRaises(SystemExit) as sys_exit:
             num_dumps = sonic_kdump_config.read_num_dumps()
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
 
         mock_run_cmd.return_value = (1, [], None)
         with self.assertRaises(SystemExit) as sys_exit:
             num_dumps = sonic_kdump_config.read_num_dumps()
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.return_value = (1, ["3"], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            num_dumps = sonic_kdump_config.read_num_dumps()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.return_value = (1, (), None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            num_dumps = sonic_kdump_config.read_num_dumps()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.return_value = (1, ["NotInteger"], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            num_dumps = sonic_kdump_config.read_num_dumps()
+        self.assertEqual(sys_exit.exception.code, 1)
 
     @patch("sonic_kdump_config.run_command")
     def test_read_use_kdump(self, mock_run_cmd):
@@ -65,25 +81,40 @@ class TestSonicKdumpConfig(unittest.TestCase):
         is_kdump_enabled = sonic_kdump_config.read_use_kdump()
         assert is_kdump_enabled == 0
 
-        mock_run_cmd.return_value = (-1, ["0"], None)
-        with self.assertRaises(SystemExit) as sys_exit:
-            is_kdump_enabled = sonic_kdump_config.read_use_kdump()
-            self.assertEqual(sys_exit.exception.code, 1)
-
         mock_run_cmd.return_value = (0, (), None)
         with self.assertRaises(SystemExit) as sys_exit:
             is_kdump_enabled = sonic_kdump_config.read_use_kdump()
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
 
         mock_run_cmd.return_value = (0, [], None)
         with self.assertRaises(SystemExit) as sys_exit:
             is_kdump_enabled = sonic_kdump_config.read_use_kdump()
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
 
         mock_run_cmd.return_value = (0, ["NotInteger"], None)
         with self.assertRaises(SystemExit) as sys_exit:
             is_kdump_enabled = sonic_kdump_config.read_use_kdump()
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.return_value = (1, ["0"], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            is_kdump_enabled = sonic_kdump_config.read_use_kdump()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.return_value = (1, ["NotInteger"], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            is_kdump_enabled = sonic_kdump_config.read_use_kdump()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.return_value = (1, (), None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            is_kdump_enabled = sonic_kdump_config.read_use_kdump()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.return_value = (1, [], None)
+        with self.assertRaises(SystemExit) as sys_exit:
+            is_kdump_enabled = sonic_kdump_config.read_use_kdump()
+        self.assertEqual(sys_exit.exception.code, 1)
 
     @patch("sonic_kdump_config.read_use_kdump")
     @patch("sonic_kdump_config.run_command")
@@ -94,35 +125,105 @@ class TestSonicKdumpConfig(unittest.TestCase):
         mock_read_kdump.return_value = 0
         sonic_kdump_config.write_use_kdump(0)
 
-        mock_run_cmd.side_effect = [(2, [], None), (0, ["1"], None)]
-        mock_read_kdump.return_value = 0
-        with self.assertRaises(SystemExit) as sys_exit:
-            sonic_kdump_config.write_use_kdump(0)
-            self.assertEqual(sys_exit.exception.code, 1)
-
         mock_run_cmd.side_effect = [(0, (), None), (0, ["1"], None)]
         mock_read_kdump.return_value = 0
         with self.assertRaises(SystemExit) as sys_exit:
             sonic_kdump_config.write_use_kdump(0)
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
 
-        mock_run_cmd.side_effect = [(0, [""], None), (0, ["1"], None)]
+        mock_run_cmd.side_effect = [(0, ["NotInteger"], None), (0, ["1"], None)]
         mock_read_kdump.return_value = 0
         with self.assertRaises(SystemExit) as sys_exit:
             sonic_kdump_config.write_use_kdump(0)
-            self.assertEqual(sys_exit.exception.code, 1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(2, [], None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(0)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(2, (), None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(0)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(2, ["NotInteger"], None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(0)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(0, (), None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(0, ["NotInteger"], None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(2, [], None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(2, (), None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(2, ["NotInteger"], None), (0, ["1"], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(0, [], None), (1, [""], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
 
         mock_run_cmd.side_effect = [(0, [], None), (0, ["1"], None)]
         mock_read_kdump.return_value = 1
-        with self.assertRaises(SystemExit) as sys_exit:
-            sonic_kdump_config.write_use_kdump(0)
-            self.assertEqual(sys_exit.exception.code, 1)
+        sonic_kdump_config.write_use_kdump(1)
 
-        mock_run_cmd.side_effect = [(0, [], None), (0, ["1"], None)]
+        mock_run_cmd.side_effect = [(0, [], None), (1, [""], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(0, [], None), (0, [""], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(1)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(0, [], None), (0, [""], None)]
         mock_read_kdump.return_value = 1
         with self.assertRaises(SystemExit) as sys_exit:
             sonic_kdump_config.write_use_kdump(0)
-            self.assertEqual(sys_exit.exception.code, 0)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(0, [], None), (1, [""], None)]
+        mock_read_kdump.return_value = 1
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(0)
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_run_cmd.side_effect = [(0, [], None), (1, [""], None)]
+        mock_read_kdump.return_value = 0
+        with self.assertRaises(SystemExit) as sys_exit:
+            sonic_kdump_config.write_use_kdump(0)
+        self.assertEqual(sys_exit.exception.code, 1)
 
     @patch("sonic_kdump_config.kdump_disable")
     @patch("sonic_kdump_config.get_current_image")
@@ -190,7 +291,6 @@ class TestSonicKdumpConfig(unittest.TestCase):
         with patch("sonic_kdump_config.open", mock_open_func):
             return_result = sonic_kdump_config.kdump_disable(True, "20201230.63", "/host/grub/grub.cfg")
             assert return_result == False
-
 
     @classmethod
     def teardown_class(cls):
