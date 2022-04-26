@@ -485,7 +485,7 @@ def kdump_disable(verbose, image, booter_config_file_path):
 
     try:
         with open(booter_config_file_path) as config_file_handler:
-            lines = [line.rstrip('\n') for line in open(config_file_handler)]
+            lines = [line.rstrip('\n') for line in config_file_handler]
     except OSError as sys_err:
         syslog.syslog(syslog.LOG_ERR, "Failed to open kernel booter configuration file: '{}', Error is: '{}'!"
                       .format(booter_config_file_path, sys_err))
