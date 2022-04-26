@@ -6,7 +6,6 @@ Auto-generated show CLI plugin.
 
 import click
 import tabulate
-import natsort
 import utilities_common.cli as clicommon
 
 
