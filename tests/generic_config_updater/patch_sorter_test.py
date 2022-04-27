@@ -925,7 +925,7 @@ class TestFullConfigMoveValidator(unittest.TestCase):
         # Arrange
         config_wrapper = Mock()
         config_wrapper.validate_config_db_config.side_effect = \
-            create_side_effect_dict({(str(self.any_simulated_config),): False})
+            create_side_effect_dict({(str(self.any_simulated_config),): (False, None)})
         validator = ps.FullConfigMoveValidator(config_wrapper)
 
         # Act and assert
@@ -935,7 +935,7 @@ class TestFullConfigMoveValidator(unittest.TestCase):
         # Arrange
         config_wrapper = Mock()
         config_wrapper.validate_config_db_config.side_effect = \
-            create_side_effect_dict({(str(self.any_simulated_config),): True})
+            create_side_effect_dict({(str(self.any_simulated_config),): (True, None)})
         validator = ps.FullConfigMoveValidator(config_wrapper)
 
         # Act and assert
@@ -3102,7 +3102,8 @@ class TestPatchSorter(unittest.TestCase):
         simulated_config = current_config
         for change in actual_changes:
             simulated_config = change.apply(simulated_config)
-            self.assertTrue(self.config_wrapper.validate_config_db_config(simulated_config))
+            is_valid, error = self.config_wrapper.validate_config_db_config(simulated_config)
+            self.assertTrue(is_valid, f"Change will produce invalid config. Error: {error}")
         self.assertEqual(target_config, simulated_config)
 
     def test_patch_sorter_failure(self):
@@ -3426,7 +3427,7 @@ class TestNonStrictPatchSorter(unittest.TestCase):
                  (str(any_target_config),): (any_target_config_yang, any_target_config_non_yang)})
 
         config_wrapper.validate_config_db_config.side_effect = \
-            create_side_effect_dict({(str(any_target_config_yang),): valid_yang_covered_config})
+            create_side_effect_dict({(str(any_target_config_yang),): (valid_yang_covered_config, None)})
 
         patch_wrapper.generate_patch.side_effect = \
             create_side_effect_dict(
@@ -3519,7 +3520,7 @@ class TestStrictPatchSorter(unittest.TestCase):
 
         config_wrapper.validate_config_db_config.side_effect = \
             create_side_effect_dict(
-                {(str(any_target_config),): valid_config_db})
+                {(str(any_target_config),): (valid_config_db, None)})
 
 
         inner_patch_sorter.sort.side_effect = \

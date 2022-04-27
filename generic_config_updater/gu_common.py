@@ -105,9 +105,9 @@ class ConfigWrapper:
             sy.loadData(config_db_as_json)
 
             sy.validate_data_tree()
-            return True
+            return True, None
         except sonic_yang.SonicYangException as ex:
-            return False
+            return False, ex
 
     def validate_config_db_config(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
@@ -118,9 +118,9 @@ class ConfigWrapper:
             sy.loadData(tmp_config_db_as_json)
 
             sy.validate_data_tree()
-            return True
+            return True, None
         except sonic_yang.SonicYangException as ex:
-            return False
+            return False, ex
 
     def crop_tables_without_yang(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
