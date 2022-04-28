@@ -118,9 +118,33 @@ class ConfigWrapper:
             sy.loadData(tmp_config_db_as_json)
 
             sy.validate_data_tree()
-            return True, None
+
+            # TODO: modularize custom validations better
+            return self.validate_bgp_peer_group(config_db_as_json)
         except sonic_yang.SonicYangException as ex:
             return False, ex
+
+    # TODO: unit-test
+    def validate_bgp_peer_group(self, config_db):
+        if "BGP_PEER_RANGE" not in config_db:
+            return True, None
+
+        visited = {}
+        table = config_db["BGP_PEER_RANGE"]
+        for peer_group_name in table:
+            peer_group = table[peer_group_name]
+            if "ip_range" not in peer_group:
+                continue
+
+            # TODO: convert string IpAddress object for better handling of IPs
+            # TODO: does validation only fails if exact match of IP, or if there is an intersection?
+            ip_range = peer_group["ip_range"]
+            for ip in ip_range:
+                if ip in visited:
+                    return False, f"{ip} is duplicated in BGP_PEER_RANGE: {set([peer_group_name, visited[ip]])}"
+                visited[ip] = peer_group_name
+
+        return True #, None
 
     def crop_tables_without_yang(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
