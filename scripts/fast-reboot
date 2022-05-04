@@ -43,7 +43,7 @@ function error()
 function debug()
 {
     if [[ x"${VERBOSE}" == x"yes" ]]; then
-        echo `date` $@
+        echo $(date) $@
     fi
     logger "$@"
 }
@@ -116,10 +116,10 @@ function clear_warm_boot()
 {
     common_clear
 
-    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
     debug "Cancel warm-reboot: ${result}"
 
-    TIMESTAMP=`date +%Y%m%d-%H%M%S`
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
         mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
     fi
@@ -143,7 +143,7 @@ function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
-    RESTORE_COUNT=`/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count`
+    RESTORE_COUNT=$(/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count)
     if [[ -z "$RESTORE_COUNT" ]]; then
         /usr/bin/redis-cli -n 6 hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
@@ -153,9 +153,10 @@ function initialize_pre_shutdown()
 function request_pre_shutdown()
 {
     debug "Requesting pre-shutdown ..."
-    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null || {
+    STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
         error "Failed to request pre-shutdown"
-    }
+    fi
 }
 
 function recover_issu_bank_file_instruction()
@@ -201,18 +202,17 @@ function wait_for_pre_shutdown_complete_or_fail()
     STATE="requesting"
     declare -i waitcount
     declare -i retrycount
-    waitcount=0
     retrycount=0
+    start_time=$SECONDS
+    elapsed_time=$(($SECONDS - $start_time))
     # Wait up to 60 seconds for pre-shutdown to complete
-    while [[ ${waitcount} -lt 600 ]]; do
+    while [[ ${elapsed_time} -lt 60 ]]; do
         # timeout doesn't work with -i option of "docker exec". Therefore we have
         # to invoke docker exec directly below.
-        STATE=`timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
-
+        STATE=$(timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi)
         if [[ x"${STATE}" == x"timed out" ]]; then
-            waitcount+=50
             retrycount+=1
-            debug "Timed out getting pre-shutdown state (${waitcount}) retry count ${retrycount} ..."
+            debug "Timed out getting pre-shutdown state, retry count ${retrycount} ..."
             if [[ retrycount -gt 2 ]]; then
                 break
             fi
@@ -220,14 +220,13 @@ function wait_for_pre_shutdown_complete_or_fail()
             break
         else
             sleep 0.1
-            waitcount+=1
         fi
+        elapsed_time=$(($SECONDS - $start_time))
     done
-
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
-        debug "Syncd pre-shutdown failed: ${STATE} ..."
+        debug "Syncd pre-shutdown failed, state: ${STATE} ..."
     else
-        debug "Pre-shutdown succeeded ..."
+        debug "Pre-shutdown succeeded, state: ${STATE} ..."
     fi
 }
 
@@ -248,7 +247,10 @@ function backup_database()
     " 0 > /dev/null
     redis-cli save > /dev/null
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/redis/$REDIS_FILE
+    STATE=$(timeout 5s docker exec database rm /var/lib/redis/$REDIS_FILE; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
+        error "Timedout during attempting to remove redis dump file from database container"
+    fi
 }
 
 function setup_control_plane_assistant()
@@ -289,10 +291,23 @@ function setup_reboot_variables()
     INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
+function check_docker_exec()
+{
+    containers="radv bgp lldp swss database teamd syncd"
+    for container in $containers; do
+        STATE=$(timeout 1s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
+        if [[ x"${STATE}" == x"timed out" ]]; then
+            error "Docker exec on $container timedout"
+            exit "${EXIT_FAILURE}"
+        fi
+    done
+}
+
 function reboot_pre_check()
 {
+    check_docker_exec
     # Make sure that the file system is normal: read-write able
-    filename="/host/test-`date +%Y%m%d-%H%M%S`"
+    filename="/host/test-$(date +%Y%m%d-%H%M%S)"
     if [[ ! -f ${filename} ]]; then
         touch ${filename}
     fi
@@ -456,9 +471,20 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     fi
 fi
 
-# We are fully committed to reboot from this point on becasue critical
+# We are fully committed to reboot from this point on because critical
 # service will go down and we cannot recover from it.
 set +e
+
+# disable trap-handlers which were set before
+trap '' EXIT HUP INT QUIT TERM KILL ABRT ALRM
+
+# "systemctl stop <service>" is expected to prevent service/containers from
+# restarting automatically. However, in some rare cases, systemctl stop doesn't
+# work as expected, and services can still auto-restart after RestartSec timer expires
+# Therefore, as a preventive measure, explicitly disable service auto-restart in the shutdown path.
+debug "Disabling auto-restart for services ..."
+grep -l "Restart=always" /usr/lib/systemd/system/*.service | xargs sed -i -e "s/\<Restart=always\>/Restart=no/"
+systemctl daemon-reload
 
 # Kill nat docker after saving the conntrack table
 debug "Stopping nat ..."
@@ -544,8 +570,12 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # Send USR1 signal to all teamd instances to stop them
     # It will prepare teamd for warm-reboot
     # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -USR1 teamd > /dev/null || [ $? == 1 ]
-    debug "Stopped  teamd ..."
+    STATE=$(timeout 5s docker exec teamd pkill -USR1 teamd; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
+        error "Timedout while attempting to stop teamd instances"
+    else
+        debug "Stopped  teamd ..."
+    fi
 fi
 
 debug "Stopping syncd ..."
@@ -573,7 +603,7 @@ systemctl stop docker.service || debug "Ignore stopping docker service error $?"
 # Stop kernel modules for Nephos platform
 if [[ "$sonic_asic_type" = 'nephos' ]];
 then
-  systemctl stop nps-modules-`uname -r`.service || debug "Ignore stopping nps service error $?"
+  systemctl stop nps-modules-$(uname -r).service || debug "Ignore stopping nps service error $?"
 fi
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
@@ -616,6 +646,10 @@ if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
     debug "Updating ssd fw for ${REBOOT_TYPE}"
     ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
+
+# Restore the restart configuration for systemctl services
+debug "Reset service auto restart ..."
+grep -l "Restart=no" /usr/lib/systemd/system/*.service | xargs sed -i -e "s/\<Restart=no\>/Restart=always/"
 
 # Reboot: explicity call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
