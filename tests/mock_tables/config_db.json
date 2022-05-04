@@ -70,11 +70,11 @@
         "alias": "etp5",
         "description": "Servers3:eth0",
         "index": "4",
-        "lanes": "45,46,47,48",
+        "lanes": "16",
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "100"
     },
     "PORT|Ethernet20": {
         "admin_status": "up",
@@ -96,7 +96,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet28": {
         "admin_status": "up",
@@ -107,7 +107,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet32": {
         "admin_status": "up",
@@ -129,7 +129,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "10"
     },
     "PORT|Ethernet40": {
         "admin_status": "up",
@@ -1111,6 +1111,34 @@
     "FG_NHG_PREFIX|fc:05::/128": {
 	    "FG_NHG": "fgnhg_v6"
 	},
+    "FG_NHG|fgnhg_v4": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG|fgnhg_v6": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG_MEMBER|200.200.200.4": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200.200.200.5": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::4": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::5": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
     "BGP_NEIGHBOR|10.0.0.1": {
         "asn": "65200",
         "holdtime": "10",
@@ -1590,6 +1618,10 @@
         "FLEX_COUNTER_STATUS": "enable"
     },
     "FLEX_COUNTER_TABLE|FLOW_CNT_TRAP": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|FLOW_CNT_ROUTE": {
         "POLL_INTERVAL": "10000",
         "FLEX_COUNTER_STATUS": "enable"
     },
