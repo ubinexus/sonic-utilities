@@ -141,11 +141,13 @@ def test_mirror_session_span_add():
     assert ERR_MSG_VALUE_FAILURE in result.stdout
 
     # Verify destination port as Portchannel
+    result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan004"])
     result = runner.invoke(
             config.config.commands["mirror_session"].commands["span"].commands["add"],
             ["test_session", "PortChannel004"])
     assert result.exit_code != 0
     assert ERR_MSG_VALUE_FAILURE in result.stdout
+    result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChan004"])
 
     # Positive case
     with mock.patch('config.main.add_span') as mocked:
