@@ -636,7 +636,7 @@ def _clear_cbf():
 
 #API to validate the interface passed for storm-control configuration
 def storm_control_interface_validate(port_name):
-    if get_interface_naming_mode() == "alias":
+    if clicommon.get_interface_naming_mode() == "alias":
         port_name = interface_alias_to_name(None, port_name)
         if port_name is None:
             click.echo("'port_name' is None!")
