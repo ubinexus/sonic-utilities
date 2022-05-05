@@ -68,7 +68,7 @@ class TestStormControl(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["storm-control"].commands["del"], ["Ethernet0", "unknown-multicast"], obj = obj)
+        result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["del"], ["Ethernet0", "unknown-multicast"], obj = obj)
         print (result.exit_code)
         print (result.output)
         assert result.exit_code == 0
