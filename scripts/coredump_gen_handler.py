@@ -8,6 +8,7 @@ import os
 import time
 import argparse
 import syslog
+import re
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.auto_techsupport_helper import *
 
@@ -18,10 +19,6 @@ ENV_VAR["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
 
 
 def handle_coredump_cleanup(dump_name, db):
-    file_path = os.path.join(CORE_DUMP_DIR, dump_name)
-    if not verify_recent_file_creation(file_path):
-        return
-
     _, num_bytes = get_stats(os.path.join(CORE_DUMP_DIR, CORE_DUMP_PTRN))
 
     if db.get(CFG_DB, AUTO_TS, CFG_STATE) != "enabled":
@@ -54,14 +51,8 @@ class CriticalProcCoreDumpHandle():
         self.db = db
         self.proc_mp = {}
         self.core_ts_map = {}
-        self.curr_ts_list = []
 
     def handle_core_dump_creation_event(self):
-        file_path = os.path.join(CORE_DUMP_DIR, self.core_name)
-        if not verify_recent_file_creation(file_path):
-            syslog.syslog(syslog.LOG_INFO, "Spurious Invocation. {} is not created within last {} sec".format(file_path, TIME_BUF))
-            return
-
         if self.db.get(CFG_DB, AUTO_TS, CFG_STATE) != "enabled":
             syslog.syslog(syslog.LOG_NOTICE, "auto_invoke_ts is disabled. No cleanup is performed: core {}".format(self.core_name))
             return
@@ -93,7 +84,7 @@ class CriticalProcCoreDumpHandle():
             since_cfg = self.get_since_arg()
             new_file = self.invoke_ts_cmd(since_cfg)
             if new_file:
-                self.write_to_state_db(int(time.time()), new_file[0])
+                self.write_to_state_db(int(time.time()), new_file)
 
     def write_to_state_db(self, timestamp, ts_dump):
         name = strip_ts_ext(ts_dump)
@@ -106,31 +97,46 @@ class CriticalProcCoreDumpHandle():
         since_cfg = self.db.get(CFG_DB, AUTO_TS, CFG_SINCE)
         if not since_cfg:
             return SINCE_DEFAULT
-        rc, _, stderr = subprocess_exec(["date", "--date='{}'".format(since_cfg)], env=ENV_VAR)
+        rc, _, stderr = subprocess_exec(["date", "--date={}".format(since_cfg)], env=ENV_VAR)
         if rc == 0:
             return since_cfg
         return SINCE_DEFAULT
 
-    def invoke_ts_cmd(self, since_cfg):
-        since_cfg = "'" + since_cfg + "'"
-        cmd  = " ".join(["show", "techsupport", "--since", since_cfg])
-        rc, _, stderr = subprocess_exec(["show", "techsupport", "--since", since_cfg], env=ENV_VAR)
-        if not rc:
-            syslog.syslog(syslog.LOG_ERR, "show techsupport failed with exit code {}, stderr:{}".format(rc, stderr))
-        new_list = get_ts_dumps(True)
-        diff = list(set(new_list).difference(set(self.curr_ts_list)))
-        self.curr_ts_list = new_list
-        if not diff:
-            syslog.syslog(syslog.LOG_ERR, "{} was run, but no techsupport dump is found".format(cmd))
-        else:
-            syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, diff))
-        return diff
+    def parse_ts_dump_name(self, ts_stdout):
+        """ Figure out the ts_dump name from the techsupport stdout """
+        matches = re.findall(TS_PTRN, ts_stdout)
+        if matches:
+            return matches[-1]
+        syslog.syslog(syslog.LOG_ERR, "stdout of the 'show techsupport' cmd doesn't have the dump name")
+        return ""
+
+    def invoke_ts_cmd(self, since_cfg, num_retry=0):
+        cmd_opts = ["show", "techsupport", "--silent", "--since", since_cfg]
+        cmd  = " ".join(cmd_opts)
+        rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
+        new_dump = ""
+        if rc == EXT_LOCKFAIL:
+            syslog.syslog(syslog.LOG_NOTICE, "Another instance of techsupport running, aborting this. stderr: {}".format(stderr))
+        elif rc == EXT_RETRY:
+            if num_retry <= MAX_RETRY_LIMIT:
+                return self.invoke_ts_cmd(since_cfg, num_retry+1)
+            else:
+                syslog.syslog(syslog.LOG_ERR, "MAX_RETRY_LIMIT for show techsupport invocation exceeded, stderr: {}".format(stderr))
+        elif rc != EXT_SUCCESS:
+            syslog.syslog(syslog.LOG_ERR, "show techsupport failed with exit code {}, stderr: {}".format(rc, stderr))
+        else: # EXT_SUCCESS
+            new_dump = self.parse_ts_dump_name(stdout) # Parse the dump name
+            if not new_dump:
+                syslog.syslog(syslog.LOG_ERR, "{} was run, but no techsupport dump is found".format(cmd))
+            else:
+                syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, new_dump))
+        return new_dump
 
     def verify_rate_limit_intervals(self, global_cooloff, container_cooloff):
         """Verify both the global and per-proc rate_limit_intervals have passed"""
-        self.curr_ts_list = get_ts_dumps(True)
-        if global_cooloff and self.curr_ts_list:
-            last_ts_dump_creation = os.path.getmtime(self.curr_ts_list[-1])
+        curr_ts_list = get_ts_dumps(True)
+        if global_cooloff and curr_ts_list:
+            last_ts_dump_creation = os.path.getmtime(curr_ts_list[-1])
             if time.time() - last_ts_dump_creation < global_cooloff:
                 msg = "Global rate_limit_interval period has not passed. Techsupport Invocation is skipped. Core: {}"
                 syslog.syslog(syslog.LOG_INFO, msg.format(self.core_name))
@@ -176,6 +182,10 @@ def main():
     db = SonicV2Connector(use_unix_socket_path=True)
     db.connect(CFG_DB)
     db.connect(STATE_DB)
+    file_path = os.path.join(CORE_DUMP_DIR, args.name)
+    if not verify_recent_file_creation(file_path):
+        syslog.syslog(syslog.LOG_INFO, "Spurious Invocation. {} is not created within last {} sec".format(file_path, TIME_BUF))
+        return
     cls = CriticalProcCoreDumpHandle(args.name, args.container, db)
     cls.handle_core_dump_creation_event()
     handle_coredump_cleanup(args.name, db)

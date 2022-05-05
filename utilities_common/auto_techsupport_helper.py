@@ -11,8 +11,9 @@ __all__ = [  # Contants
             "CORE_DUMP_DIR", "CORE_DUMP_PTRN", "TS_DIR", "TS_PTRN",
             "CFG_DB", "AUTO_TS", "CFG_STATE", "CFG_MAX_TS", "COOLOFF",
             "CFG_CORE_USAGE", "CFG_SINCE", "FEATURE", "STATE_DB",
-            "TS_MAP", "CORE_DUMP", "TIMESTAMP", "CONTAINER",
-            "TIME_BUF", "SINCE_DEFAULT"
+            "TS_MAP", "CORE_DUMP", "TIMESTAMP", "CONTAINER", "TIME_BUF",
+            "SINCE_DEFAULT", "TS_PTRN_GLOB", "EXT_LOCKFAIL", "EXT_RETRY",
+            "EXT_SUCCESS", "MAX_RETRY_LIMIT"
         ] + [  # Methods
             "verify_recent_file_creation",
             "get_ts_dumps",
@@ -30,7 +31,9 @@ CORE_DUMP_DIR = "/var/core"
 CORE_DUMP_PTRN = "*.core.gz"
 
 TS_DIR = "/var/dump"
-TS_PTRN = "sonic_dump_*.tar*"
+TS_ROOT = "sonic_dump_*"
+TS_PTRN = "sonic_dump_.*tar.*" # Regex Exp
+TS_PTRN_GLOB = "sonic_dump_*tar*" # Glob Exp
 
 # CONFIG DB Attributes
 CFG_DB = "CONFIG_DB"
@@ -58,6 +61,11 @@ CONTAINER = "container_name"
 TIME_BUF = 20
 SINCE_DEFAULT = "2 days ago"
 
+# Techsupport Exit Codes
+EXT_LOCKFAIL = 2
+EXT_RETRY = 4
+EXT_SUCCESS = 0
+MAX_RETRY_LIMIT = 2
 
 # Helper methods
 def subprocess_exec(cmd, env=None):
@@ -78,8 +86,10 @@ def strip_ts_ext(ts_path):
 
 
 def get_ts_dumps(full_path=False):
-    """ Get the list of TS dumps in the TS_DIR, sorted by the creation time """
-    curr_list = glob.glob(os.path.join(TS_DIR, TS_PTRN))
+    """
+    Get the list of TS dumps in the TS_DIR, sorted by the creation time
+    """
+    curr_list = glob.glob(os.path.join(TS_DIR, TS_ROOT))
     curr_list.sort(key=os.path.getmtime)
     if full_path:
         return curr_list

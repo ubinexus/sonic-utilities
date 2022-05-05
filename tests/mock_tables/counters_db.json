@@ -467,10 +467,10 @@
             "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "0"
     },
     "RATES:oid:0x1000000000012": {
-            "RX_BPS": "0",
-            "RX_PPS": "0",
-            "TX_BPS": "0",
-            "TX_PPS": "0"
+            "RX_BPS": "2.e9",
+            "RX_PPS": "247.e3",
+            "TX_BPS": "1.5e9",
+            "TX_PPS": "183.e3"
     },
     "RATES:oid:0x1000000000013": {
             "RX_BPS": "204800",
@@ -597,7 +597,8 @@
         "DATAACL:RULE_7": "oid:0x9000000000007",
         "EVERFLOW:RULE_08": "oid:0x9000000000008",
         "DATAACL:RULE_9": "oid:0x9000000000009",
-        "DATAACL:RULE_10": "oid:0x900000000000a"
+        "DATAACL:RULE_10": "oid:0x900000000000a",
+        "DATAACL_NO_COUNTER:RULE_NO_COUNTER": "oid:0x900000000000b"
     },
     "COUNTERS_TUNNEL_NAME_MAP": {
             "vtep1": "oid:0x2a0000000035e"
@@ -2040,5 +2041,33 @@
     },
     "RATES:oid:0x1500000000034e":{
         "RX_PPS": 50.25
+    },
+    "COUNTERS_ROUTE_NAME_MAP":{
+        "1.1.1.1/31": "oid:0x1600000000034e",
+        "1.1.1.2/31": "oid:0x1600000000034f",
+        "2001::1/64": "oid:0x1600000000035e",
+        "Vrf_1|2001::1/64": "oid:0x1600000000035f"
+    },
+    "COUNTERS_ROUTE_TO_PATTERN_MAP": {
+        "1.1.1.1/31": "1.1.1.0/24",
+        "1.1.1.2/31": "1.1.1.0/24",
+        "2001::1/64": "2001::/64",
+        "Vrf_1|2001::1/64": "Vrf_1|2001::/64"
+    },
+    "COUNTERS:oid:0x1600000000034e":{
+        "SAI_COUNTER_STAT_PACKETS": 100,
+        "SAI_COUNTER_STAT_BYTES": 2000
+    },
+    "COUNTERS:oid:0x1600000000034f":{
+        "SAI_COUNTER_STAT_PACKETS": 1000,
+        "SAI_COUNTER_STAT_BYTES": 2000
+    },
+    "COUNTERS:oid:0x1600000000035e":{
+        "SAI_COUNTER_STAT_PACKETS": 50,
+        "SAI_COUNTER_STAT_BYTES": 1000
+    },
+    "COUNTERS:oid:0x1600000000035f":{
+        "SAI_COUNTER_STAT_PACKETS": 1000,
+        "SAI_COUNTER_STAT_BYTES": 25000
     }
 }

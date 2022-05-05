@@ -27,6 +27,7 @@ SSD_FW_UPDATE="ssd-fw-upgrade"
 TAG_LATEST=yes
 DETACH=no
 LOG_PATH="/var/log/${REBOOT_TYPE}.txt"
+UIMAGE_HDR_SIZE=64
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -327,15 +328,33 @@ function setup_reboot_variables()
             KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
             BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
         fi
+        INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
     elif grep -q onie_platform= /host/machine.conf; then
-        KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
-        KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
-        BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+        if [ -r /host/grub/grub.cfg ]; then
+            KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
+            KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
+            BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+            INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
+        # Handle architectures supporting Device Tree
+        elif [ -f /sys/firmware/devicetree/base/chosen/bootargs ]; then
+            KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
+            BOOT_OPTIONS="$(cat /sys/firmware/devicetree/base/chosen/bootargs | sed 's/.$//') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+            INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
+
+            # If initrd is a U-Boot uImage, remove the uImage header
+            if file ${INITRD} | grep -q uImage; then
+                INITRD_RAW=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd-raw.img/g')
+                tail -c+$((${UIMAGE_HDR_SIZE}+1)) < ${INITRD} > ${INITRD_RAW}
+                INITRD=${INITRD_RAW}
+            fi
+        else
+            error "Unknown ONIE platform bootloader. ${REBOOT_TYPE} is not supported."
+            exit "${EXIT_NOT_SUPPORTED}"
+        fi
     else
         error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
         exit "${EXIT_NOT_SUPPORTED}"
     fi
-    INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
 function check_docker_exec()
@@ -393,7 +412,7 @@ function reboot_pre_check()
         error "Failed to verify next image. Exit code: $INSTALLER_VERIFY_RC"
         exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
     fi
-    
+
     # Make sure ASIC configuration has not changed between images
     ASIC_CONFIG_CHECK_SCRIPT="/usr/local/bin/asic_config_check"
     ASIC_CONFIG_CHECK_SUCCESS=0
@@ -651,19 +670,19 @@ if [ -x ${LOG_SSD_HEALTH} ]; then
     ${LOG_SSD_HEALTH}
 fi
 
+# Stop any timers to prevent any containers starting in the middle of the process.
+TIMERS=$(systemctl list-dependencies --plain sonic-delayed.target | sed 1d)
+for timer in ${TIMERS}; do
+    debug "Stopping ${timer} ..."
+    systemctl stop ${timer}
+    debug "Stopped ${timer} ..."
+done
 
 if [[ -f ${SHUTDOWN_ORDER_FILE} ]]; then
     SERVICES_TO_STOP="$(cat ${SHUTDOWN_ORDER_FILE})"
 else
-    # TODO: to be removed once sonic-buildimage change is in
-    if [[ "${REBOOT_TYPE}" == "fast-reboot" ]]; then
-        SERVICES_TO_STOP="nat radv bgp sflow lldp swss teamd syncd"
-    elif [[ "${REBOOT_TYPE}" == "fastfast-reboot" || "${REBOOT_TYPE}" == "warm-reboot" ]]; then
-        SERVICES_TO_STOP="nat radv bgp sflow lldp teamd swss syncd"
-    else
-        error "Unexpected reboot type ${REBOOT_TYPE}"
-        exit $EXIT_FAILURE
-    fi
+    error "No shutdown sequence file found: ${SHUTDOWN_ORDER_FILE}"
+    exit "${EXIT_FAILURE}"
 fi
 
 for service in ${SERVICES_TO_STOP}; do
@@ -718,26 +737,6 @@ for service in ${SERVICES_TO_STOP}; do
         fi
     fi
 done
-
-# Kill other containers to make the reboot faster
-# We call `docker kill ...` to ensure the container stops as quickly as possible,
-# then immediately call `systemctl stop ...` to prevent the service from
-# restarting the container automatically.
-debug "Stopping all remaining containers ..."
-if test -f /usr/local/bin/ctrmgr_tools.py
-then
-    /usr/local/bin/ctrmgr_tools.py kill-all
-else
-    for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
-        CONTAINER_STOP_RC=0
-        docker kill $CONTAINER_NAME &> /dev/null || CONTAINER_STOP_RC=$?
-        systemctl stop $CONTAINER_NAME || debug "Ignore stopping $CONTAINER_NAME error $?"
-        if [[ CONTAINER_STOP_RC -ne 0 ]]; then
-            debug "Failed killing container $CONTAINER_NAME RC $CONTAINER_STOP_RC ."
-        fi
-    done
-fi
-debug "Stopped all remaining containers ..."
 
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service || debug "Ignore stopping docker service error $?"
