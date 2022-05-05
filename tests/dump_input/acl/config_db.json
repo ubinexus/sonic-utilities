@@ -1,4 +1,12 @@
 {
+    "ACL_TABLE|SNMP_ACL": {
+        "policy_desc": "SNMP_ACL",
+        "services": [
+            "SNMP"
+        ],
+        "stage": "ingress",
+        "type": "CTRLPLANE"
+    },
     "ACL_TABLE_TYPE|MY_TYPE": {
         "matches": "ETHER_TYPE,L4_DST_PORT_RANGE,L4_SRC_PORT_RANGE ",
         "bind_point_types": "port"

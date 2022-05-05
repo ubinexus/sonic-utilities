@@ -154,6 +154,10 @@ class SourceAdapter(ABC):
     def get_separator(self, db):
         return ""
 
+    @abstractmethod
+    def hgetall(self, db, key):
+        raise NotImplementedError
+
 
 class RedisSource(SourceAdapter):
     """ Concrete Adaptor Class for connecting to Redis Data Sources """
@@ -222,6 +226,11 @@ class JsonSource(SourceAdapter):
         table, key = key.split(sep, 1)
         return self.json_data.get(table, "").get(key, "").get(field, "")
 
+    def hgetall(self, db, key):
+        sep = self.get_separator(db)
+        table, key = key.split(sep, 1)
+        return self.json_data.get(table, {}).get(key)
+
 
 class ConnectionPool:
     """ Caches SonicV2Connector objects for effective reuse """
@@ -270,18 +279,21 @@ class MatchEngine:
     def clear_cache(self, ns):
         self.conn_pool(ns)
 
-    def get_source_adapter(self, db):
+    def get_redis_source_adapter(self, db):
         return RedisSource(self.conn_pool)
+
+    def get_json_source_adapter(self):
+        return JsonSource()
 
     def __get_source_adapter(self, req):
         src = None
         d_src = ""
         if req.db:
             d_src = req.db
-            src = RedisSource(self.conn_pool)
+            src = self.get_redis_source_adapter(d_src)
         else:
             d_src = req.file
-            src = JsonSource()
+            src = self.get_json_source_adapter()
         return d_src, src
 
     def __create_template(self):

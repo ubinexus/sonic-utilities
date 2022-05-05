@@ -90,7 +90,7 @@ def fetch_acl_counter_oid(match_engine, acl_table_name, acl_rule_name, ns):
     """
     Fetch ACL counter OID from COUNTERS DB for a particular rule
     """
-    counters_db = match_engine.get_source_adapter("COUNTERS_DB")
+    counters_db = match_engine.get_redis_source_adapter("COUNTERS_DB")
     counters_db.connect("COUNTERS_DB", ns)
     counters = counters_db.hgetall("COUNTERS_DB", "ACL_COUNTER_RULE_MAP")
     counter_oid = counters.get(f"{acl_table_name}{counters_db.get_separator('COUNTERS_DB')}{acl_rule_name}")

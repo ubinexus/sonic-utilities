@@ -85,8 +85,7 @@ def state(ctx, module, identifier, db, table, key_map, verbose, namespace):
         try:
             collected_info[arg] = obj.execute(params)
         except ValueError as err:
-            click.secho(f"Failed to execute plugin: {err}", fg="red")
-            ctx.exit()
+            click.fail(f"Failed to execute plugin: {err}")
 
     if len(db) > 0:
         collected_info = filter_out_dbs(db, collected_info)

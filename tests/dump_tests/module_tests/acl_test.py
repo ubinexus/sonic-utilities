@@ -23,8 +23,6 @@ dedicated_dbs['ASIC_DB'] = os.path.join(port_files_path, "asic_db.json")
 
 @pytest.fixture(scope="class", autouse=True)
 def match_engine():
-
-    print("SETUP")
     os.environ["VERBOSE"] = "1"
 
     # Monkey Patch the SonicV2Connector Object
@@ -47,7 +45,6 @@ def match_engine():
     # Initialize match_engine
     match_engine = MatchEngine(conn_pool)
     yield match_engine
-    print("TEARDOWN")
     os.environ["VERBOSE"] = "0"
 
 
