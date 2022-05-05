@@ -18,7 +18,7 @@ class TestStormControl(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["storm-control"].commands["add"], ["Ethernet0", "broadcast", "10000"], obj = obj)
+        result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["add"], ["Ethernet0", "broadcast", "10000"], obj = obj)
         print (result.exit_code)
         print (result.output)
         assert result.exit_code == 0
@@ -28,7 +28,7 @@ class TestStormControl(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["storm-control"].commands["add"], ["Ethernet0", "unknown-unicast", "20000"], obj = obj)
+        result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["add"], ["Ethernet0", "unknown-unicast", "10000"], obj = obj)
         print (result.exit_code)
         print (result.output)
         assert result.exit_code == 0
@@ -38,7 +38,7 @@ class TestStormControl(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["storm-control"].commands["add"], ["Ethernet0", "unknown-multicast", "30000"], obj = obj)
+        result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["add"], ["Ethernet0", "unknown-multicast", "10000"], obj = obj)
         print (result.exit_code)
         print (result.output)
         assert result.exit_code == 0
@@ -48,7 +48,7 @@ class TestStormControl(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["storm-control"].commands["del"], ["Ethernet0", "broadcast"], obj = obj)
+        result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["del"], ["Ethernet0", "broadcast"], obj = obj)
         print (result.exit_code)
         print (result.output)
         assert result.exit_code == 0
@@ -58,7 +58,7 @@ class TestStormControl(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        result = runner.invoke(config.config.commands["storm-control"].commands["del"], ["Ethernet0", "unknown-unicast"], obj = obj)
+        result = runner.invoke(config.config.commands["interface"].commands["storm-control"].commands["del"], ["Ethernet0", "unknown-unicast"], obj = obj)
         print (result.exit_code)
         print (result.output)
         assert result.exit_code == 0
