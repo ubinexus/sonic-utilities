@@ -5962,10 +5962,10 @@ def add_mac(db, mac_address):
     try:
         gateway_mac = netaddr.EUI(mac_address)
     except Exception as e:
-        cli.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} format is not valid.')
+        click.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} format is not valid.')
         
     if (gateway_mac.words[0] & 0b01):
-        cli.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} is multicast, only allow unicast.')
+        click.get_current_context().fail(f'static-anycast-gateway MAC address {mac_address} is multicast, only allow unicast.')
 
     if not db.cfgdb.get_entry('SAG', 'GLOBAL'):
         db.cfgdb.set_entry('SAG', 'GLOBAL', {'gateway_mac': mac_address})
