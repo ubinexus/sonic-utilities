@@ -2,8 +2,8 @@ import click
 import tabulate
 from natsort import natsorted
 
+
 import utilities_common.cli as clicommon
-from swsscommon.swsscommon import ConfigDBConnector
 
 
 SYSLOG_TABLE = "SYSLOG_SERVER"
@@ -12,10 +12,16 @@ SYSLOG_SOURCE = "source"
 SYSLOG_PORT = "port"
 SYSLOG_VRF = "vrf"
 
+#
+# Syslog helpers ------------------------------------------------------------------------------------------------------
+#
 
 def format(header, body):
     return tabulate.tabulate(body, header, tablefmt="simple", numalign="left", stralign="left")
 
+#
+# Syslog CLI ----------------------------------------------------------------------------------------------------------
+#
 
 @click.group(
     name='syslog',
@@ -24,7 +30,7 @@ def format(header, body):
 )
 @clicommon.pass_db
 def syslog(db):
-    """Show syslog server running configuration"""
+    """ Show syslog server configuration """
 
     header = [
         "SERVER",
