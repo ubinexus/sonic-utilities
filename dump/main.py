@@ -6,6 +6,7 @@ import click
 from tabulate import tabulate
 from sonic_py_common import multi_asic
 from utilities_common.constants import DEFAULT_NAMESPACE
+from swsscommon.swsscommon import ConfigDBConnector
 from dump.match_infra import RedisSource, JsonSource, ConnectionPool
 from dump import plugins
 
@@ -177,11 +178,10 @@ def populate_fv(info, module, namespace):
 
 
 def get_dict_str(key_obj):
+    conn = ConfigDBConnector()
     table = []
+    key_obj = conn.raw_to_typed(key_obj)
     for field, value in key_obj.items():
-        if field.endswith('@'):
-            field = field[:-1]
-            value = '\n'.join(value.split(','))
         table.append((field, value))
     return tabulate(table, headers=["field", "value"], tablefmt="psql")
 
