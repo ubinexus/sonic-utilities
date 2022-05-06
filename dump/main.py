@@ -182,6 +182,8 @@ def get_dict_str(key_obj):
     table = []
     key_obj = conn.raw_to_typed(key_obj)
     for field, value in key_obj.items():
+        if isinstance(value, list):
+            value = "\n".join(value)
         table.append((field, value))
     return tabulate(table, headers=["field", "value"], tablefmt="psql")
 
