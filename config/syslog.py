@@ -159,6 +159,28 @@ def ip_addr_validator(ctx, param, value):
     return str(ip)
 
 
+def source_validator(ctx, server, source):
+    """
+    Check if source option is valid
+
+    Args:
+        ctx: click context
+        server: server IP address
+        source: source IP address
+    """
+    source_ip = ipaddress.ip_address(source)
+    if source_ip.is_loopback or source_ip.is_multicast:
+        raise click.UsageError("Invalid value for {}: {} is a loopback/multicast IP address".format(
+            get_param_hint(ctx, "source"), source), ctx
+        )
+
+    server_ip = ipaddress.ip_address(server)
+    if (server_ip.version != source_ip.version):
+        raise click.UsageError("Invalid value for {} / {}: {} / {} IP address family mismatch".format(
+            get_param_hint(ctx, "server_ip_address"), get_param_hint(ctx, "source"), server, source), ctx
+        )
+
+
 def vrf_validator(ctx, db, value):
     """
     Check if VRF device option is valid
@@ -180,21 +202,6 @@ def vrf_validator(ctx, db, value):
     vrf_list.extend(db.get_keys(VRF_TABLE_CDB))
 
     return click.Choice(vrf_list).convert(value, get_param(ctx, "vrf"), ctx)
-
-
-def server_to_source_validator(ctx, server, source):
-    """
-    Check if server/source IP is the same address family
-
-    Args:
-        ctx: click context
-        server: server IP address
-        source: source IP address
-    """
-    if (clicommon.ipaddress_type(server) != clicommon.ipaddress_type(source)):
-        raise click.UsageError("Invalid value for {} / {}: {} / {} IP address family mismatch".format(
-            get_param_hint(ctx, "server_ip_address"), get_param_hint(ctx, "source"), server, source), ctx
-        )
 
 
 def source_to_vrf_validator(ctx, source, vrf):
@@ -309,14 +316,14 @@ def source_to_vrf_validator(ctx, source, vrf):
     if vrf is not None and vrf != "default": # Non default VRF device
         if vrf not in vrf_list:
             raise click.UsageError("Invalid value for {}: {} VRF doesn't exist in Linux".format(
-                get_param(ctx, "vrf").get_error_hint(ctx), vrf), ctx
+                get_param_hint(ctx, "vrf"), vrf), ctx
             )
         if source is not None:
             filter_out = vm_dict[vrf]
             ip_vrf_dict = dict(filter(lambda value: value[0] in filter_out, ip_dict.items()))
             if source not in to_ip_addr_list(ip_vrf_dict):
                 raise click.UsageError("Invalid value for {}: {} IP doesn't exist in Linux {} VRF".format(
-                    get_param(ctx, "source").get_error_hint(ctx), source, vrf), ctx
+                    get_param_hint(ctx, "source"), source, vrf), ctx
                 )
     else: # Default VRF device
         if source is not None:
@@ -325,7 +332,7 @@ def source_to_vrf_validator(ctx, source, vrf):
             ip_vrf_dict = dict(filter(lambda value: value[0] not in filter_out, ip_dict.items()))
             if source not in to_ip_addr_list(ip_vrf_dict):
                 raise click.UsageError("Invalid value for {}: {} IP doesn't exist in Linux default VRF".format(
-                    get_param(ctx, "source").get_error_hint(ctx), source), ctx
+                    get_param_hint(ctx, "source"), source), ctx
                 )
 
 #
@@ -374,7 +381,7 @@ def add(db, server_ip_address, source, port, vrf):
     data = {}
 
     if source is not None:
-        server_to_source_validator(ctx, server_ip_address, source)
+        source_validator(ctx, server_ip_address, source)
         data[SYSLOG_SOURCE] = source
     if port is not None:
         data[SYSLOG_PORT] = port
