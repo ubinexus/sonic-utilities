@@ -57,6 +57,7 @@
 * [Flow Counters](#flow-counters)
   * [Flow Counters show commands](#flow-counters-show-commands)
   * [Flow Counters clear commands](#flow-counters-clear-commands)
+  * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -110,6 +111,9 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [NVGRE](#nvgre)
+  * [NVGRE show commands](#nvgre-show-commands)
+  * [NVGRE config commands](#nvgre-config-commands)
 * [PBH](#pbh)
   * [PBH show commands](#pbh-show-commands)
   * [PBH config commands](#pbh-config-commands)
@@ -477,6 +481,7 @@ This command displays relevant information as the SONiC and Linux kernel version
   Model Number: MSN2700-CS2FO
   Hardware Rev: A1
   Uptime: 14:40:15 up 3 min,  1 user,  load average: 1.26, 1.45, 0.66
+  Date: Fri 22 Mar 2019 14:40:15
 
   Docker images:
   REPOSITORY                 TAG                 IMAGE ID            SIZE
@@ -3133,9 +3138,10 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#featur
 
 ## Flow Counters
 
-This section explains all the Flow Counters show commands and clear commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
+This section explains all the Flow Counters show commands, clear commands and config commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
 
   - Host interface traps (number of received traps per Trap ID)
+  - Routes matching the configured prefix pattern (number of hits and number of bytes)
 
 ### Flow Counters show commands
 
@@ -3165,6 +3171,50 @@ Because clear (see below) is handled on a per-user basis different users may see
     asic1         dhcp        200    3,000  45.25/s
   ```
 
+**show flowcnt-route stats**
+
+This command is used to show the current statistics for route flow patterns. 
+
+Because clear (see below) is handled on a per-user basis different users may see different counts.
+
+- Usage:
+  ```
+  show flowcnt-route stats
+  show flowcnt-route stats pattern <route_pattern> [--vrf <vrf>]
+  show flowcnt-route stats route <route_prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-route stats
+  Route pattern       VRF               Matched routes           Packets          Bytes
+  --------------------------------------------------------------------------------------
+  3.3.0.0/16          default           3.3.1.0/24               100              4543
+                                        3.3.2.3/32               3443             929229
+                                        3.3.0.0/16               0                0
+  2000::/64           default           2000::1/128              100              4543
+  ```
+
+The "pattern" subcommand is used to display the route flow counter statistics by route pattern.
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-route stats pattern 3.3.0.0/16
+  Route pattern       VRF               Matched routes           Packets          Bytes
+  --------------------------------------------------------------------------------------
+  3.3.0.0/16          default           3.3.1.0/24               100              4543
+                                        3.3.2.3/32               3443             929229
+                                        3.3.0.0/16               0                0
+  ```
+
+The "route" subcommand is used to display the route flow counter statistics by route prefix.
+  ```
+  admin@sonic:~$ show flowcnt-route stats route 3.3.3.2/32 --vrf Vrf_1
+  Route                     VRF              Route Pattern           Packets          Bytes
+  -----------------------------------------------------------------------------------------
+  3.3.3.2/32                Vrf_1            3.3.0.0/16              100              4543
+  ```
+
 ### Flow Counters clear commands
 
 **sonic-clear flowcnt-trap**
@@ -3181,6 +3231,70 @@ This command is used to clear the current statistics for the registered host int
   admin@sonic:~$ sonic-clear flowcnt-trap
   Trap Flow Counters were successfully cleared
   ```
+
+**sonic-clear flowcnt-route**
+
+This command is used to clear the current statistics for the route flow counter. This is done on a per-user basis.
+
+- Usage:
+  ```
+  sonic-clear flowcnt-route
+  sonic-clear flowcnt-route pattern <route_pattern> [--vrf <vrf>]
+  sonic-clear flowcnt-route route <prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route
+  Route Flow Counters were successfully cleared
+  ```
+
+The "pattern" subcommand is used to clear the route flow counter statistics by route pattern.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route pattern 3.3.0.0/16 --vrf Vrf_1
+  Flow Counters of all routes matching the configured route pattern were successfully cleared
+  ```
+
+The "route" subcommand is used to clear the route flow counter statistics by route prefix.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route route 3.3.3.2/32 --vrf Vrf_1
+  Flow Counters of the specified route were successfully cleared
+  ```
+
+### Flow Counters config commands
+
+**config flowcnt-route pattern add**
+
+This command is used to add or update the route pattern which is used by route flow counter to match route entries.
+
+- Usage:
+  ```
+  config flowcnt-route pattern add <prefix> [--vrf <vrf>] [--max <max_match_count>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config flowcnt-route pattern add 2.2.0.0/16 --vrf Vrf_1 --max 50
+  ```
+
+**config flowcnt-route pattern remove**
+
+This command is used to remove the route pattern which is used by route flow counter to match route entries.
+
+- Usage:
+  ```
+  config flowcnt-route pattern remove <prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config flowcnt-route pattern remove 2.2.0.0/16 --vrf Vrf_1
+  ```
+
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#flow-counters)
 ## Gearbox
@@ -6743,7 +6857,7 @@ A port channel can be deleted only if it does not have any members or the member
 
 - Usage:
   ```
-  config portchannel (add | del) <portchannel_name> [min-links <num_min_links>] [fallback (true | false)]
+  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)]
   ```
 
 - Example (Create the portchannel with name "PortChannel0011"):
@@ -6766,6 +6880,97 @@ This command adds or deletes a member port to/from the already created portchann
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#portchannels)
+
+## NVGRE
+
+This section explains the various show commands and configuration commands available for users.
+
+### NVGRE show commands
+
+This subsection explains how to display the NVGRE configuration.
+
+**show nvgre-tunnel**
+
+This command displays the NVGRE tunnel configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel
+TUNNEL NAME    SRC IP
+-------------  --------
+tunnel_1       10.0.0.1
+```
+
+**show nvgre-tunnel-map**
+
+This command displays the NVGRE tunnel map configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel-map
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel-map
+TUNNEL NAME    TUNNEL MAP NAME    VLAN ID    VSID
+-------------  -----------------  ---------  ------
+tunnel_1       Vlan1000           1000       5000
+tunnel_1       Vlan2000           2000       6000
+```
+
+### NVGRE config commands
+
+This subsection explains how to configure the NVGRE.
+
+**config nvgre-tunnel**
+
+This command is used to manage the NVGRE tunnel objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel add <tunnel-name> --src-ip <source ip address>
+config nvgre-tunnel delete <tunnel-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _src-ip_: source ip address
+
+- Examples:
+```bash
+config nvgre-tunnel add 'tunnel_1' --src-ip '10.0.0.1'
+config nvgre-tunnel delete 'tunnel_1'
+```
+
+**config nvgre-tunnel-map**
+
+This command is used to manage the NVGRE tunnel map objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel-map add <tunnel-name> <tunnel-map-name> --vlan-id <vlan> --vsid <virtual subnet>
+config nvgre-tunnel-map delete <tunnel-name> <tunnel-map-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _tunnel-map-name_: the name of the NVGRE tunnel map
+  - _vlan-id_: VLAN identifier
+  - _vsid_: Virtual Subnet Identifier
+
+- Examples:
+```bash
+config nvgre-tunnel-map add 'tunnel_1' 'Vlan2000' --vlan-id '2000' --vsid '6000'
+config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
+```
 
 ## PBH
 
@@ -7489,6 +7694,36 @@ Some of the example QOS configurations that users can modify are given below.
 
   In this example, it uses the buffers.json.j2 file and qos.json.j2 file from platform specific folders.
   When there are no changes in the platform specific configutation files, they internally use the file "/usr/share/sonic/templates/buffers_config.j2" and "/usr/share/sonic/templates/qos_config.j2" to generate the configuration.
+  ```
+
+**config qos reload --ports port_list**
+
+This command is used to reload the default QoS configuration on a group of ports.
+Typically, the default QoS configuration is in the following tables.
+1) PORT_QOS_MAP
+2) QUEUE
+3) BUFFER_PG
+4) BUFFER_QUEUE
+5) BUFFER_PORT_INGRESS_PROFILE_LIST
+6) BUFFER_PORT_EGRESS_PROFILE_LIST
+7) CABLE_LENGTH
+
+If there was QoS configuration in the above tables for the ports:
+
+  - if `--force` option is provied, the existing QoS configuration will be replaced by the default QoS configuration,
+  - otherwise, the command will exit with nothing updated.
+
+- Usage:
+  ```
+  config qos reload --ports <port>[,port]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config qos reload --ports Ethernet0,Ethernet4
+
+  In this example, it updates the QoS configuration on port Ethernet0 and Ethernet4 to default.
+  If there was QoS configuration on the ports, the command will clear the existing QoS configuration on the port and reload to default.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#qos)

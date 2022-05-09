@@ -14,6 +14,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
+from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
 
@@ -67,25 +68,22 @@ VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 GEARBOX_TABLE_PHY_PATTERN = r"_GEARBOX_TABLE:phy:*"
 
+COMMAND_TIMEOUT = 300
+
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
+    result = None
     command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -n 1"
 
     try:
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                text=True)
-        stdout = proc.communicate()[0]
-        proc.wait()
+        stdout = subprocess.check_output(command, shell=True, text=True, timeout=COMMAND_TIMEOUT)
         result = stdout.rstrip('\n')
+    except Exception as err:
+        click.echo('Failed to get routing stack: {}'.format(err), err=True)
 
-    except OSError as e:
-        raise OSError("Cannot detect routing-stack")
-
-    return (result)
+    return result
 
 
 # Global Routing-Stack variable
@@ -179,6 +177,7 @@ cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
+cli.add_command(flow_counters.flowcnt_route)
 cli.add_command(flow_counters.flowcnt_trap)
 cli.add_command(kdump.kdump)
 cli.add_command(interfaces.interfaces)
@@ -854,6 +853,19 @@ def protocol(verbose):
     cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
+#
+# 'fib' subcommand ("show ip fib")
+#
+@ip.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -4"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
+    run_command(cmd, display_cmd=verbose)
+
 
 #
 # 'ipv6' group ("show ipv6 ...")
@@ -984,6 +996,19 @@ def link_local_mode(verbose):
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 #
+# 'fib' subcommand ("show ipv6 fib")
+#
+@ipv6.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -6"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
+    run_command(cmd, display_cmd=verbose)
+
+#
 # 'lldp' group ("show lldp ...")
 #
 
@@ -1057,9 +1082,11 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
-    
+
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
+    sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
@@ -1075,6 +1102,7 @@ def version(verbose):
     click.echo("Model Number: {}".format(chassis_info['model']))
     click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
+    click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -1119,7 +1147,7 @@ def users(verbose):
 @click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
 def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
-    cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
+    cmd = "sudo timeout --kill-after={}s -s SIGTERM --foreground {}m".format(COMMAND_TIMEOUT, global_timeout)
 
     if allow_process_stop:
         cmd += " -a"
@@ -1132,9 +1160,9 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
 
     if since:
         cmd += " -s '{}'".format(since)
-    
+
     if debug_dump:
-        cmd += " -d "
+        cmd += " -d"
 
     cmd += " -t {}".format(cmd_timeout)
     if redirect_stderr:
@@ -1237,7 +1265,7 @@ def snmp(ctx, db):
 
 # ("show runningconfiguration snmp community")
 @snmp.command('community')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def community(db, json_output):
@@ -1258,7 +1286,7 @@ def community(db, json_output):
 
 # ("show runningconfiguration snmp contact")
 @snmp.command('contact')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def contact(db, json_output):
@@ -1286,7 +1314,7 @@ def contact(db, json_output):
 
 # ("show runningconfiguration snmp location")
 @snmp.command('location')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def location(db, json_output):
@@ -1313,13 +1341,13 @@ def location(db, json_output):
 
 # ("show runningconfiguration snmp user")
 @snmp.command('user')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def users(db, json_output):
     """show SNMP running configuration user"""
     snmp_users = db.cfgdb.get_table('SNMP_USER')
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     if json_output:
@@ -1332,7 +1360,7 @@ def users(db, json_output):
             snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
             snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
             snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                    snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
         click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
@@ -1349,7 +1377,7 @@ def show_run_snmp(db, ctx):
     snmp_contact_body = []
     snmp_comm_header = ["Community String", "Community Type"]
     snmp_comm_body = []
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     try:
@@ -1383,7 +1411,7 @@ def show_run_snmp(db, ctx):
         snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
         snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
         snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
     click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 

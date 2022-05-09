@@ -144,10 +144,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = True
 
         # Act
-        actual = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON)
+        actual, error = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNone(error)
 
     def test_validate_sonic_yang_config__invvalid_config__returns_false(self):
         # Arrange
@@ -155,10 +156,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = False
 
         # Act
-        actual = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON_INVALID)
+        actual, error = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON_INVALID)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNotNone(error)
 
     def test_validate_config_db_config__valid_config__returns_true(self):
         # Arrange
@@ -166,10 +168,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = True
 
         # Act
-        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON)
+        actual, error = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNone(error)
 
     def test_validate_config_db_config__invalid_config__returns_false(self):
         # Arrange
@@ -177,10 +180,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = False
 
         # Act
-        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON_INVALID)
+        actual, error = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON_INVALID)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNotNone(error)
 
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
@@ -675,6 +679,20 @@ class TestPathAddressing(unittest.TestCase):
         # Assert
         self.assertEqual(expected, actual)
 
+    def test_find_ref_paths__path_and_ref_paths_are_under_same_yang_container__returns_ref_paths(self):
+        # Arrange
+        path = "/LOOPBACK_INTERFACE/Loopback0"
+        expected = [
+            self.path_addressing.create_path(["LOOPBACK_INTERFACE", "Loopback0|10.1.0.32/32"]),
+            self.path_addressing.create_path(["LOOPBACK_INTERFACE", "Loopback0|1100:1::32/128"]),
+        ]
+
+        # Act
+        actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_LOOPBACK_INTERFACES)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
     def test_find_ref_paths__does_not_remove_tables_without_yang(self):
         # Arrange
         config = Files.CONFIG_DB_AS_JSON # This has a table without yang named 'TABLE_WITHOUT_YANG'
@@ -735,6 +753,18 @@ class TestPathAddressing(unittest.TestCase):
         check(path="/PORTCHANNEL_INTERFACE/PortChannel0001|1.1.1.1~124",
               xpath="/sonic-portchannel:sonic-portchannel/PORTCHANNEL_INTERFACE/PORTCHANNEL_INTERFACE_IPPREFIX_LIST[name='PortChannel0001'][ip_prefix='1.1.1.1/24']",
               config=Files.CONFIG_DB_WITH_PORTCHANNEL_INTERFACE)
+        check(path="/BGP_NEIGHBOR/1.2.3.4/holdtime",
+              xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_TEMPLATE_LIST[neighbor='1.2.3.4']/holdtime",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
+              xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/BGP_MONITORS/5.6.7.8/name",
+              xpath="/sonic-bgp-monitor:sonic-bgp-monitor/BGP_MONITORS/BGP_MONITORS_LIST[addr='5.6.7.8']/name",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(path="/LLDP/GLOBAL/mode",
+              xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
+              config=Files.CONFIG_DB_WITH_LLDP)
 
     def test_convert_xpath_to_path(self):
         def check(xpath, path, config=None):
@@ -798,6 +828,18 @@ class TestPathAddressing(unittest.TestCase):
         check(xpath="/sonic-portchannel:sonic-portchannel/PORTCHANNEL_INTERFACE/PORTCHANNEL_INTERFACE_IPPREFIX_LIST[name='PortChannel0001'][ip_prefix='1.1.1.1/24']",
               path="/PORTCHANNEL_INTERFACE/PortChannel0001|1.1.1.1~124",
               config=Files.CONFIG_DB_WITH_PORTCHANNEL_INTERFACE)
+        check(xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_TEMPLATE_LIST[neighbor='1.2.3.4']/holdtime",
+              path="/BGP_NEIGHBOR/1.2.3.4/holdtime",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-bgp-neighbor:sonic-bgp-neighbor/BGP_NEIGHBOR/BGP_NEIGHBOR_LIST[vrf_name='default'][neighbor='1.2.3.4']/asn",
+              path="/BGP_NEIGHBOR/default|1.2.3.4/asn",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-bgp-monitor:sonic-bgp-monitor/BGP_MONITORS/BGP_MONITORS_LIST[addr='5.6.7.8']/name",
+              path="/BGP_MONITORS/5.6.7.8/name",
+              config=Files.CONFIG_DB_WITH_BGP_NEIGHBOR)
+        check(xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
+              path="/LLDP/GLOBAL/mode",
+              config=Files.CONFIG_DB_WITH_LLDP)
 
     def test_has_path(self):
         def check(config, path, expected):
