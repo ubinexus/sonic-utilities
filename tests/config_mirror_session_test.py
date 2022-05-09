@@ -165,22 +165,22 @@ def test_mirror_session_span_add():
     assert ERR_MSG_VALUE_FAILURE in result.stdout
 
     # Verify destination port as Portchannel
-    result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan004"])
     result = runner.invoke(
             config.config.commands["mirror_session"].commands["span"].commands["add"],
-            ["test_session", "PortChannel004"])
+            ["test_session", "PortChannel1001"])
+    print(result.exit_code)
+    print(result.output)
     assert result.exit_code != 0
-    assert ERR_MSG_VALUE_FAILURE in result.stdout
-    result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChan004"])
+    assert "Error: Destination Interface PortChannel1001 is not supported" in result.output
 
     # Positive case
     with mock.patch('config.main.add_span') as mocked:
         result = runner.invoke(
                 config.config.commands["mirror_session"].commands["span"].commands["add"],
-                ["test_session", "Ethernet0", "Ethernet4", "rx", "100"])
+                ["test_session", "Ethernet8", "Ethernet4", "tx", "100"])
         result = runner.invoke(
                 config.config.commands["mirror_session"].commands["span"].commands["add"],
-                ["test_session", "Ethernet8", "Ethernet4", "tx", "100"])
+                ["test_session", "Ethernet0", "Ethernet4", "rx", "100"])
 
         mocked.assert_called_with("test_session", "Ethernet0", "Ethernet4", "rx", 100, None)
 
