@@ -2093,7 +2093,6 @@ def add(session_name, dst_port, src_port, direction, queue, policer):
     add_span(session_name, dst_port, src_port, direction, queue, policer)
 
 def add_span(session_name, dst_port, src_port, direction, queue, policer):
-    ctx = click.get_current_context()
     if clicommon.get_interface_naming_mode() == "alias":
         dst_port = interface_alias_to_name(None, dst_port)
         if dst_port is None:
