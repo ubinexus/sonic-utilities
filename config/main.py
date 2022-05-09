@@ -860,7 +860,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     """ Check if SPAN mirror-session config is valid """
     ctx = click.get_current_context()
     if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
-        ctx.fail("Error: {} already exists".format(session_name))
+        click.echo("Error: {} already exists".format(session_name))
         return False
 
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
@@ -2097,7 +2097,8 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
     if clicommon.get_interface_naming_mode() == "alias":
         dst_port = interface_alias_to_name(None, dst_port)
         if dst_port is None:
-            ctx.fail("Error: Destination Interface {} is invalid".format(dst_port))
+            click.echo("Error: Destination Interface {} is invalid".format(dst_port))
+            return False
 
     session_info = {
             "type" : "SPAN",
