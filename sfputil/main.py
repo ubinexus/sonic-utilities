@@ -342,6 +342,10 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
                         output += '{}N/A\n'.format((indent * 2))
             elif key == 'application_advertisement':
                 pass
+            elif key == 'supported_max_tx_power' or 'supported_min_tx_power':
+                output += '{}{}: {}dBm\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+            elif key == 'supported_max_laser_freq' or 'supported_min_laser_freq':
+                output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             else:
                 try:
                     output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
