@@ -3,7 +3,6 @@ from dump.match_infra import MatchRequest
 from swsscommon.swsscommon import SonicDBConfig
 
 from dump.match_helper import fetch_acl_counter_oid
-from dump.plugins import acl_rule
 from .executor import Executor
 
 
