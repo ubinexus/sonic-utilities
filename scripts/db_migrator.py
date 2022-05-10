@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_0'
+        self.CURRENT_VERSION = 'version_2_0_5'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -545,9 +545,63 @@ class DBMigrator():
 
     def version_2_0_0(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_0 (A dummy migrator).
         """
         log.log_info('Handling version_2_0_0')
+
+        self.set_version('version_2_0_1')
+        return 'version_2_0_1'
+
+    def version_2_0_1(self):
+        """
+        Version 2_0_1 (A dummy migrator).
+        """
+        log.log_info('Handling version_2_0_1')
+        
+        self.set_version('version_2_0_2')
+        return 'version_2_0_2'
+
+    def version_2_0_2(self):
+        """
+        Version 2_0_2 (A dummy migrator).
+        """
+        log.log_info('Handling version_2_0_2')
+
+        self.set_version('version_2_0_3')
+        return 'version_2_0_3'
+
+    def version_2_0_3(self):
+        """
+        Version 2_0_3 (A dummy migrator).
+        """
+        log.log_info('Handling version_2_0_3')
+        
+        self.set_version('version_2_0_4')
+        return 'version_2_0_4'
+
+    def version_2_0_4(self):
+        """
+        Version 2_0_4
+        """
+        log.log_info('Handling version_2_0_4')
+        # Migrate "pfc_enable" to "pfc_enable" and "pfcwd_sw_enable"
+        # 1. pfc_enable means enable pfc on certain queues
+        # 2. pfcwd_sw_enable means enable PFC software watchdog on certain queues
+        # By default, PFC software watchdog is enabled on all pfc enabled queues.
+        qos_maps = self.configDB.get_table('PORT_QOS_MAP')
+        for k, v in qos_maps.items():
+            if 'pfc_enable' in v:
+                v['pfcwd_sw_enable'] = v['pfc_enable']
+                self.configDB.set_entry('PORT_QOS_MAP', k, v)
+        self.set_version('version_2_0_5')
+
+        return 'version_2_0_5'
+
+    def version_2_0_5(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_5')
         return None
 
     def get_version(self):
