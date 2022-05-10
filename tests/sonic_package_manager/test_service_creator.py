@@ -2,7 +2,6 @@
 
 import os
 import copy
-import unittest
 from unittest.mock import Mock, MagicMock, call
 
 import pytest
