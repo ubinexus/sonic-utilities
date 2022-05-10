@@ -26,7 +26,8 @@ from swsscommon.swsscommon import SonicV2Connector
 header = ['Service-Name', 'Service-Status', 'App-Ready-Status', 'Down-Reason']
 header_detail = ['Service-Name', 'Service-Status', 'App-Ready-Status', 'Down-Reason', 'AppStatus-UpdateTime']
 
-ALL_TABLE_NAME = 'ALL_SERVICE_STATUS'
+SERVICE_STATUS_TABLE = 'ALL_SERVICE_STATUS'
+SYSREADY_TABLE = "SYSTEM_READY|SYSTEM_STATE"
 SERVICE_STATUS = 'service_status'
 APP_READY_STATUS = 'app_ready_status'
 FAIL_REASON = 'fail_reason'
@@ -37,20 +38,22 @@ class SysreadyShow(object):
         self.db = SonicV2Connector(host="127.0.0.1")
         self.db.connect(self.db.STATE_DB)
 
-    def show(self,type):
-        TABLE_NAME = ALL_TABLE_NAME
-        SYSREADY_TABLE = "SYSTEM_READY|SYSTEM_STATE"
-        
-        keys = self.db.keys(self.db.STATE_DB, TABLE_NAME + '*')
+    def show(self, cmd):
+        keys = self.db.keys(self.db.STATE_DB, SERVICE_STATUS_TABLE + '*')
         if not keys:
-            print('No info\n')
+            print('No system ready status data available - system-health service might be down\n')
             return
+
+        if cmd == "alldetail":
+            header_info = header_detail
+        else:
+            header_info = header
 
         table = []
         for key in natsorted(keys):
             key_list = key.split('|')
             if len(key_list) != 2: # error data in DB, log it and ignore
-                print('Warn: Invalid key in table {}: {}'.format(TABLE_NAME, key))
+                print('Warn: Invalid key in table {}: {}'.format(SERVICE_STATUS_TABLE, key))
                 continue
 
             name = key_list[1]
@@ -63,12 +66,10 @@ class SysreadyShow(object):
             except ValueError as e:
                 print('Error in data_dict')
 
-            if type == "alldetail":
+            if cmd == "alldetail":
                 table.append((name, service_status, app_ready_status, fail_reason, update_time))
-                header_info = header_detail
             else:
                 table.append((name, service_status, app_ready_status, fail_reason))
-                header_info = header
         
         sysready_state = self.db.get(self.db.STATE_DB, SYSREADY_TABLE, "Status")
         if sysready_state == "UP":
@@ -77,7 +78,7 @@ class SysreadyShow(object):
             print("System is not ready - one or more services are not up\n")
         
 
-        if type == "allbrief":
+        if cmd == "allbrief":
             return
 
 
