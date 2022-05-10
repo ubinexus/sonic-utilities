@@ -141,8 +141,12 @@ def port_speed_parse(in_speed, optics_type):
     speed = int(in_speed)
     if optics_type == OPTICS_TYPE_RJ45 and speed <= 1000:
         out_speed = '{}M'.format(speed)
+    elif speed < 1000:
+        out_speed = '{}M'.format(speed)
+    elif speed % 1000 >= 100:
+        out_speed = '{:.1f}G'.format(speed / 1000)
     else:
-        out_speed = '{}G'.format(int(speed/1000))
+        out_speed = '{:.0f}G'.format(speed / 1000)
 
     return out_speed
 
@@ -174,21 +178,12 @@ def state_db_port_status_get(db, intf_name, field):
     status = db.get(db.STATE_DB, full_table_id, field)
     if not status:
         return "N/A"
-    if field == PORT_SPEED and status != "N/A":
-        speed = int(status)
-        if speed >= 1000:
-            status = '{}G'.format(int(speed / 1000))
-        else:
-            status = '{}M'.format(speed)
-    elif field in [PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
+    if field in [PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
+        optics_type = state_db_port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
-            speed = int(s)
-            if speed >= 1000:
-                new_speed_list.append('{}G'.format(int(speed / 1000)))
-            else:
-                new_speed_list.append('{}M'.format(speed))
+            new_speed_list.append(port_speed_parse(s, optics_type))
         status = ','.join(new_speed_list)
     return status
 
