@@ -746,7 +746,7 @@ def _get_delayed_sonic_services():
     services = []
     for unit in timer:
         if state[timer.index(unit)] == "enabled":
-            services.append(unit.replace(".timer", ""))
+            services.append(re.sub('.timer$', '', unit, 1))
     return services
 
 

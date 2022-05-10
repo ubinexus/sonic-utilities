@@ -81,6 +81,22 @@ def mock_run_command_side_effect(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
+            return 'snmp.timer'
+        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
+            return 'swss'
+        elif command == "systemctl is-enabled snmp.timer":
+            return 'enabled'
+        else:
+            return ''
+
+def mock_run_command_side_effect_gnmi(*args, **kwargs):
+    command = args[0]
+
+    if kwargs.get('display_cmd'):
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    if kwargs.get('return_cmd'):
+        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
             return 'gnmi.timer'
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
             return 'swss'
@@ -165,6 +181,22 @@ class TestLoadMinigraph(object):
             # Verify "systemctl reset-failed" is called for services under sonic.target 
             mock_run_command.assert_any_call('systemctl reset-failed swss')
             # Verify "systemctl reset-failed" is called for services under sonic-delayed.target 
+            mock_run_command.assert_any_call('systemctl reset-failed snmp')
+            assert mock_run_command.call_count == 11
+
+    def test_load_minigraph_with_gnmi_timer(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_gnmi)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            # Verify "systemctl reset-failed" is called for services under sonic.target
+            mock_run_command.assert_any_call('systemctl reset-failed swss')
+            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
             mock_run_command.assert_any_call('systemctl reset-failed gnmi')
             assert mock_run_command.call_count == 11
 
