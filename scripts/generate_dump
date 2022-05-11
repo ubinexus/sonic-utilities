@@ -1022,11 +1022,18 @@ collect_broadcom() {
 #  None
 ###############################################################################
 collect_barefoot() {
+    local bf_log_folder="/tmp/bf_log_folder"
+	$( rm -rf ${bf_log_folder} )
+	$( mkdir  ${bf_log_folder} )
     unset array
     array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
     for y in "${array[@]}"; do
         itstr=`echo ${y} | tr -d "\r\n"`
-        copy_from_masic_docker "syncd" "/${itstr}" "/var/log/${itstr}"
+        copy_from_masic_docker "syncd" "/${itstr}" "${bf_log_folder}"
+    done
+
+    for file in $(find /tmp/bf_log_folder -type f); do
+        save_file "${file}" log true true
     done
 } 
 
@@ -1259,12 +1266,6 @@ main() {
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
-    
-    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
-    if [ "$asic" = "barefoot" ]; then
-    	collect_barefoot
-    fi
-
     # Save logs and cores early
     save_log_files
     save_crash_files
@@ -1276,6 +1277,7 @@ main() {
     # Save reboot cause information
     save_cmd "show reboot-cause" reboot.cause
 
+    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 1
 
@@ -1352,6 +1354,10 @@ main() {
     fi
 
     save_saidump
+
+    if [ "$asic" = "barefoot" ]; then
+        collect_barefoot
+    fi
 
     if [[ "$asic" = "mellanox" ]]; then
         collect_mellanox
