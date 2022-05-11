@@ -63,10 +63,10 @@ class TestSonicBootchart:
         result = runner.invoke(sonic_bootchart.cli.commands['show'], [])
         assert not result.exit_code
         assert result.output == \
-                "Status    Operational Status      Samples    Frequency  Output\n"                               \
-                "--------  --------------------  ---------  -----------  ------------------------------------\n" \
-                "enabled   enabled                     500           25  /run/log/bootchart-20220504-1040.svg\n" \
-                "                                                        /run/log/bootchart-20220504-1045.svg\n"
+                "Status    Operational Status      Samples    Frequency    Time (sec)  Output\n"                               \
+                "--------  --------------------  ---------  -----------  ------------  ------------------------------------\n" \
+                "enabled   enabled                     500           25            20  /run/log/bootchart-20220504-1040.svg\n" \
+                "                                                                      /run/log/bootchart-20220504-1045.svg\n"
 
         result = runner.invoke(sonic_bootchart.cli.commands["config"], ["--samples", "100", "--frequency", "50"])
         assert not result.exit_code
@@ -74,8 +74,7 @@ class TestSonicBootchart:
         result = runner.invoke(sonic_bootchart.cli.commands['show'], [])
         assert not result.exit_code
         assert result.output == \
-                "Status    Operational Status      Samples    Frequency  Output\n"                               \
-                "--------  --------------------  ---------  -----------  ------------------------------------\n" \
-                "enabled   enabled                     100           50  /run/log/bootchart-20220504-1040.svg\n" \
-                "                                                        /run/log/bootchart-20220504-1045.svg\n"
-
+                "Status    Operational Status      Samples    Frequency    Time (sec)  Output\n"                               \
+                "--------  --------------------  ---------  -----------  ------------  ------------------------------------\n" \
+                "enabled   enabled                     100           50             2  /run/log/bootchart-20220504-1040.svg\n" \
+                "                                                                      /run/log/bootchart-20220504-1045.svg\n"

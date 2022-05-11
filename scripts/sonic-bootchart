@@ -102,11 +102,16 @@ def show():
     bootchart_config = BootChartConfigParser()
     bootchart_config.read(BOOTCHART_CONF)
 
+    samples = int(bootchart_config["Bootchart"]["Samples"])
+    frequency = int(bootchart_config["Bootchart"]["Frequency"])
+    time = samples // frequency
+
     field_values = {
             "Status": get_enabled_status(),
             "Operational Status": get_active_status(),
-            "Samples": bootchart_config["Bootchart"]["Samples"],
-            "Frequency": bootchart_config["Bootchart"]["Frequency"],
+            "Samples": samples,
+            "Frequency": frequency,
+            "Time (sec)": time,
             "Output": get_output_files(),
     }
 
