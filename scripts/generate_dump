@@ -1012,13 +1012,21 @@ collect_broadcom() {
     copy_from_masic_docker "syncd" "/var/log/bcm_diag_post" "/var/log/bcm_diag_post"
 }
 
-
+###############################################################################
+# Collect Barefoot specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
 collect_barefoot() {
     unset array
     array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
     for y in "${array[@]}"; do
         itstr=`echo ${y} | tr -d "\r\n"`
-	    copy_from_masic_docker "syncd" "/${itstr}" "/var/log/${itstr}"
+        copy_from_masic_docker "syncd" "/${itstr}" "/var/log/${itstr}"
     done
 } 
 
@@ -1060,11 +1068,6 @@ save_log_files() {
     echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
     enable_logrotate
-
-    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
-    if [ "$asic" = "barefoot" ]; then
-    	collect_barefoot
-    fi
 }
 
 ###############################################################################
@@ -1256,6 +1259,12 @@ main() {
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
+    
+    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    if [ "$asic" = "barefoot" ]; then
+    	collect_barefoot
+    fi
+
     # Save logs and cores early
     save_log_files
     save_crash_files
@@ -1267,7 +1276,6 @@ main() {
     # Save reboot cause information
     save_cmd "show reboot-cause" reboot.cause
 
-    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 1
 
