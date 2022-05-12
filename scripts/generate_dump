@@ -1022,17 +1022,17 @@ collect_broadcom() {
 #  None
 ###############################################################################
 collect_barefoot() {
-    local bf_log_folder="/tmp/bf_log_folder"
-	$( rm -rf ${bf_log_folder} )
-	$( mkdir  ${bf_log_folder} )
+    local bf_logs="/tmp/bf_logs"
+	$( rm -rf ${bf_logs} )
+	$( mkdir  ${bf_logs} )
     unset array
     array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
     for y in "${array[@]}"; do
         itstr=`echo ${y} | tr -d "\r\n"`
-        copy_from_masic_docker "syncd" "/${itstr}" "${bf_log_folder}"
+        copy_from_masic_docker "syncd" "/${itstr}" "${bf_logs}"
     done
 
-    for file in $(find /tmp/bf_log_folder -type f); do
+    for file in $(find /tmp/bf_logs -type f); do
         save_file "${file}" log true true
     done
 } 
