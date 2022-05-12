@@ -1023,8 +1023,8 @@ collect_broadcom() {
 ###############################################################################
 collect_barefoot() {
     local bf_logs="/tmp/bf_logs"
-	$( rm -rf ${bf_logs} )
-	$( mkdir  ${bf_logs} )
+    $( rm -rf ${bf_logs} )
+    $( mkdir  ${bf_logs} )
     unset array
     array=( $(docker exec -ti syncd ls -1 | grep bf_drivers.log) )
     for y in "${array[@]}"; do
