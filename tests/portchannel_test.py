@@ -157,6 +157,30 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: Ethernet116 is not a member of portchannel PortChannel1001" in result.output
 
+    def test_delete_portchannel_which_is_member_of_a_vlan(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add portchannel to a vlan
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["Vlan2000", "PortChannel0001"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # try to delete the portchannel
+        result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChannel0001"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "PortChannel0001 has vlan Vlan2000 configured, remove vlan membership to proceed" in result.output
+
+        # remove portchannel from vlan
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["Vlan2000", "PortChannel0001"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
