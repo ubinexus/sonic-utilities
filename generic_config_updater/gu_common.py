@@ -119,7 +119,7 @@ class ConfigWrapper:
 
             sy.validate_data_tree()
 
-            # TODO: modularize custom validations better
+            # TODO: modularize custom validations better or move directly to sonic-yang module
             return self.validate_bgp_peer_group(config_db_as_json)
         except sonic_yang.SonicYangException as ex:
             return False, ex
