@@ -14,7 +14,7 @@ memory_threshold_check_path = os.path.join(scripts_path, 'memory_threshold_check
 memory_threshold_check = load_module_from_source('memory_threshold_check.py', memory_threshold_check_path)
 
 @pytest.fixture()
-def case_1():
+def setup_dbs_regular_mem_usage():
     cfg_db = dbconnector.dedicated_dbs.get('CONFIG_DB')
     state_db = dbconnector.dedicated_dbs.get('STATE_DB')
     dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(test_path, 'memory_threshold_check', 'config_db')
@@ -25,7 +25,7 @@ def case_1():
 
 
 @pytest.fixture()
-def case_2():
+def setup_dbs_telemetry_high_mem_usage():
     memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 10000000, 'MemTotal': 20000000})
     cfg_db = dbconnector.dedicated_dbs.get('CONFIG_DB')
     state_db = dbconnector.dedicated_dbs.get('STATE_DB')
@@ -37,7 +37,7 @@ def case_2():
 
 
 @pytest.fixture()
-def case_3():
+def setup_dbs_swss_high_mem_usage():
     memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 10000000, 'MemTotal': 20000000})
     cfg_db = dbconnector.dedicated_dbs.get('CONFIG_DB')
     state_db = dbconnector.dedicated_dbs.get('STATE_DB')
@@ -48,24 +48,24 @@ def case_3():
     dbconnector.dedicated_dbs['STATE_DB'] = state_db
 
 
-def test_memory_check_host_not_crossed(case_1):
+def test_memory_check_host_not_crossed(setup_dbs_regular_mem_usage):
     memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 1000000, 'MemTotal': 2000000})
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_SUCCESS, '')
 
 
-def test_memory_check_host_less_then_min_required(case_1):
+def test_memory_check_host_less_then_min_required(setup_dbs_regular_mem_usage):
     memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 1000, 'MemTotal': 2000000})
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_THRESHOLD_CROSSED, '')
 
 
-def test_memory_check_host_threshold_crossed(case_1):
+def test_memory_check_host_threshold_crossed(setup_dbs_regular_mem_usage):
     memory_threshold_check.MemoryStats.get_sys_memory_stats = mock.Mock(return_value={'MemAvailable': 2000000, 'MemTotal': 20000000})
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_THRESHOLD_CROSSED, '')
 
 
-def test_memory_check_telemetry_threshold_crossed(case_2):
+def test_memory_check_telemetry_threshold_crossed(setup_dbs_telemetry_high_mem_usage):
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_THRESHOLD_CROSSED, 'telemetry')
 
 
-def test_memory_check_swss_threshold_crossed(case_3):
+def test_memory_check_swss_threshold_crossed(setup_dbs_swss_high_mem_usage):
     assert memory_threshold_check.main() == (memory_threshold_check.EXIT_THRESHOLD_CROSSED, 'swss')

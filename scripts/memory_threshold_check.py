@@ -171,7 +171,7 @@ class MemoryChecker:
         Returns:
             (bool, str)
         """
-        # don't bother getting stats if availbale threshold is set to 0
+        # don't bother getting stats if available memory threshold is set to 0
         if self.config.memory_available_threshold:
             memory_stats = self.stats.get_sys_memory_stats()
             memory_free = memory_stats["MemAvailable"]
