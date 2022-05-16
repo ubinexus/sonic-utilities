@@ -169,7 +169,7 @@ class TestPortChannel(object):
         assert result.exit_code == 0
 
         # add portchannel to a vlan
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["2000", "PortChannel0005"])
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["2000", "PortChannel0005"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
@@ -182,7 +182,7 @@ class TestPortChannel(object):
         assert "PortChannel0005 has vlan Vlan2000 configured, remove vlan membership to proceed" in result.output
 
         # remove portchannel from vlan
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["2000", "PortChannel0005"])
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["2000", "PortChannel0005"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
