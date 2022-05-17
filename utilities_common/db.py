@@ -18,8 +18,8 @@ class Db(object):
         self.db_list = list(self.db.get_db_list())
         if not device_info.is_supervisor():
             try:
-                db_list.remove('CHASSIS_APP_DB')
-                db_list.remove('CHASSIS_STATE_DB')
+                self.db_list.remove('CHASSIS_APP_DB')
+                self.db_list.remove('CHASSIS_STATE_DB')
             except Exception:
                 pass
 
