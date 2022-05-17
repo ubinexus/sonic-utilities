@@ -207,7 +207,7 @@ def sysready_status(ctx):
 
     if ctx.invoked_subcommand is None:
         try:
-            cmd = "sysreadyshow --all"
+            cmd = "sysreadyshow"
             clicommon.run_command(cmd, display_cmd=False)
         except Exception as e:
             click.echo("Exception: {}".format(str(e)))
@@ -216,7 +216,7 @@ def sysready_status(ctx):
 @sysready_status.command('brief')
 def sysready_status_brief():
     try:
-        cmd = "sysreadyshow --allbrief"
+        cmd = "sysreadyshow --brief"
         clicommon.run_command(cmd, display_cmd=False)
     except Exception as e:
         click.echo("Exception: {}".format(str(e)))
@@ -225,7 +225,7 @@ def sysready_status_brief():
 @sysready_status.command('detail')
 def sysready_status_detail():
     try:
-        cmd = "sysreadyshow --alldetail"
+        cmd = "sysreadyshow --detail"
         clicommon.run_command(cmd, display_cmd=False)
     except Exception as e:
         click.echo("Exception: {}".format(str(e)))

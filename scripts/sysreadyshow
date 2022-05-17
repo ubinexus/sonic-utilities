@@ -38,16 +38,26 @@ class SysreadyShow(object):
         self.db = SonicV2Connector(host="127.0.0.1")
         self.db.connect(self.db.STATE_DB)
 
-    def show(self, cmd):
+    def show(self, detailed_info):
         keys = self.db.keys(self.db.STATE_DB, SERVICE_STATUS_TABLE + '*')
         if not keys:
             print('No system ready status data available - system-health service might be down\n')
             return
-
-        if cmd == "alldetail":
-            header_info = header_detail
+        
+        sysready_state = self.db.get(self.db.STATE_DB, SYSREADY_TABLE, "Status")
+        if sysready_state == "UP":
+            print("System is ready\n")
         else:
+            print("System is not ready - one or more services are not up\n")
+        
+        #When brief option is specified, return here.
+        if detailed_info == False:
+            return
+
+        if detailed_info is None:
             header_info = header
+        else:
+            header_info = header_detail
 
         table = []
         for key in natsorted(keys):
@@ -66,21 +76,11 @@ class SysreadyShow(object):
             except ValueError as e:
                 print('Error in data_dict')
 
-            if cmd == "alldetail":
-                table.append((name, service_status, app_ready_status, fail_reason, update_time))
-            else:
+            if detailed_info is None:
                 table.append((name, service_status, app_ready_status, fail_reason))
+            else:
+                table.append((name, service_status, app_ready_status, fail_reason, update_time))
         
-        sysready_state = self.db.get(self.db.STATE_DB, SYSREADY_TABLE, "Status")
-        if sysready_state == "UP":
-            print("System is ready\n")
-        else:
-            print("System is not ready - one or more services are not up\n")
-        
-
-        if cmd == "allbrief":
-            return
-
 
         if table:
             print(tabulate(table, header_info, tablefmt='simple', stralign='left'))
@@ -93,24 +93,24 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
                                       Examples:
-                                      sysreadyshow --all
-                                      sysreadyshow --allbrief
-                                      sysreadyshow --alldetail
+                                      sysreadyshow
+                                      sysreadyshow --brief
+                                      sysreadyshow --detail
                                       """)
 
-    parser.add_argument('-a', '--all', action='store_true', help='all service status', default=True)
-    parser.add_argument('-b', '--allbrief', action='store_true', help='all service status brief', default=False)
-    parser.add_argument('-d', '--alldetail', action='store_true', help='all service status detail', default=False)
+    parser.add_argument('-b', '--brief', action='store_true', help='brief system ready status', default=False)
+    parser.add_argument('-d', '--detail', action='store_true', help='detailed system ready status', default=False)
     args = parser.parse_args()
 
     try:
         sysready = SysreadyShow()
-        if args.alldetail:
-            sysready.show("alldetail")
-        elif args.allbrief:
-            sysready.show("allbrief")
+        if args.detail:
+            detailed_info = True
+        elif args.brief:
+            detailed_info = False
         else:
-            sysready.show("all")
+            detailed_info = None
+        sysready.show(detailed_info)
     except Exception as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
