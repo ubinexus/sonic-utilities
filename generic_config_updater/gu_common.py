@@ -750,6 +750,13 @@ class PathAddressing:
             # leaf_list_name = match.group(1)
             leaf_list_value = match.group(1)
             list_config = config[leaf_list_name]
+            # Workaround for those fields who is defined as leaf-list in YANG model but have string value in config DB
+            # No need to lookup the item index in ConfigDb since the list is represented as a string, return path to string immediately
+            # Example:
+            #   xpath: /sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list[.='egress_lossy_profile']
+            #   path: /BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list
+            if isinstance(list_config, str):
+                return [leaf_list_name]
             list_idx = list_config.index(leaf_list_value)
             return [leaf_list_name, list_idx]
 
