@@ -757,6 +757,12 @@ class PathAddressing:
             #   path: /BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list
             if isinstance(list_config, str):
                 return [leaf_list_name]
+
+            if not isinstance(list_config, list):
+                raise ValueError(f"list_config is expected to be of type list or string. Found {type(list_config)}.\n  " + \
+                                 f"model: {model}\n  token_index: {token_index}\n  " + \
+                                 f"xpath_tokens: {xpath_tokens}\n  config: {config}"))
+
             list_idx = list_config.index(leaf_list_value)
             return [leaf_list_name, list_idx]
 
