@@ -736,7 +736,6 @@ class PathAddressing:
         if next_token in key_dict:
             return path_tokens
 
-        list_name = model['@name']
         type_1_list_model = self._get_type_1_list_model(model)
         if type_1_list_model:
             new_path_tokens = self._get_path_tokens_from_type_1_list(type_1_list_model, token_index+1, xpath_tokens, config[path_token])
