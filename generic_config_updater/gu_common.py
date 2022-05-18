@@ -544,7 +544,7 @@ class PathAddressing:
         if len(path_tokens)-1 == token_index:
             return xpath_tokens
 
-        type_1_list_model = self._get_type_1_list_model(model, list_name)
+        type_1_list_model = self._get_type_1_list_model(model)
         if type_1_list_model:
             new_xpath_tokens = self._get_xpath_tokens_from_type_1_list(type_1_list_model, token_index+1, path_tokens, config[path_tokens[token_index]])
             xpath_tokens.extend(new_xpath_tokens)
@@ -646,7 +646,8 @@ class PathAddressing:
 
         return None
 
-    def _get_type_1_list_model(self, model, list_name):
+    def _get_type_1_list_model(self, model):
+        list_name = model['@name']
         if list_name not in sonic_yang_ext.Type_1_list_maps_model:
             return None
 
@@ -736,7 +737,7 @@ class PathAddressing:
             return path_tokens
 
         list_name = model['@name']
-        type_1_list_model = self._get_type_1_list_model(model, list_name)
+        type_1_list_model = self._get_type_1_list_model(model)
         if type_1_list_model:
             new_path_tokens = self._get_path_tokens_from_type_1_list(type_1_list_model, token_index+1, xpath_tokens, config[path_token])
             path_tokens.extend(new_path_tokens)
@@ -769,11 +770,15 @@ class PathAddressing:
         if len(key_dict) > 1:
             raise GenericConfigUpdaterError(f"Type 1 inner list should have only 1 key in xpath, {len(key_dict)} specified. Key dictionary: {key_dict}")
 
-        keyName = list(key_dict.keys())[0]
+        keyName = next(iter(key_dict.keys()))
         value = key_dict[keyName]
 
         path_tokens = [value]
 
+        # If this is the last xpath token, return the path tokens we have built so far, no need for futher checks
+        # Example:
+        #   xpath: /sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']
+        #   path: /DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2
         if len(xpath_tokens)-1 == token_index:
             return path_tokens
 
