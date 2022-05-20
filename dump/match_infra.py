@@ -279,7 +279,7 @@ class MatchEngine:
     def clear_cache(self, ns):
         self.conn_pool(ns)
 
-    def get_redis_source_adapter(self, db):
+    def get_redis_source_adapter(self):
         return RedisSource(self.conn_pool)
 
     def get_json_source_adapter(self):
@@ -290,7 +290,7 @@ class MatchEngine:
         d_src = ""
         if req.db:
             d_src = req.db
-            src = self.get_redis_source_adapter(d_src)
+            src = self.get_redis_source_adapter()
         else:
             d_src = req.file
             src = self.get_json_source_adapter()
