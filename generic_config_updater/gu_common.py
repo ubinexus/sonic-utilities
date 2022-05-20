@@ -778,7 +778,7 @@ class PathAddressing:
         # Example:
         #   xpath: /sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']
         #   path: /DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2
-        if len(xpath_tokens)-1 == token_index:
+        if token_index+1 >= len(xpath_tokens):
             return path_tokens
 
         # Checking if the next_token is actually a child leaf of the inner type 1 list, for which case
