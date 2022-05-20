@@ -186,6 +186,80 @@ class TestConfigWrapper(unittest.TestCase):
         self.assertEqual(expected, actual)
         self.assertIsNotNone(error)
 
+    def test_validate_bgp_peer_group__valid_non_intersecting_ip_ranges__returns_true(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {
+            "BGP_PEER_RANGE":
+            {
+                "BGPSLBPassive": {
+                    "ip_range": ["1.1.1.1/31", "10.10.10.10/16", "100.100.100.100/24"]
+                },
+                "BgpVac": {
+                    "ip_range": ["2.2.2.2/31", "20.20.20.20/16", "200.200.200.200/24"]
+                }
+            }
+        }
+
+        # Act
+        actual, error = config_wrapper.validate_bgp_peer_group(config)
+
+        # Assert
+        self.assertTrue(actual)
+        self.assertIsNone(error)
+
+    def test_validate_bgp_peer_group__same_ip_prefix__return_false(self):
+        # duplicate v4 within same ip_range
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16", "1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v4 within different ip_ranges
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16"],
+            ["1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v4 within different ip_ranges, but many ips
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16", "1.1.1.1/31", "10.10.10.10/16", "100.100.100.100/24"],
+            ["2.2.2.2/31", "20.20.20.20/16", "200.200.200.200/24", "1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v6 within same ip_range
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16", "fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+        # duplicate v6 within different ip_ranges
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16"],
+            ["fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+        # duplicate v6 within different ip_ranges, but many ips
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16", "fc00:1::32/31", "10:1::1/16", "100:1::1/24"],
+            ["2:1::1/31", "20:1::1/16", "200:1::1/24", "fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+
+    def check_validate_bgp_peer_group(self, ip_range, other_ip_range=[], duplicated_ip=None):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {
+            "BGP_PEER_RANGE":
+            {
+                "BGPSLBPassive": {
+                    "ip_range": ip_range
+                },
+                "BgpVac": {
+                    "ip_range": other_ip_range
+                },
+            }
+        }
+
+        # Act
+        actual, error = config_wrapper.validate_bgp_peer_group(config)
+
+        # Assert
+        self.assertFalse(actual)
+        self.assertTrue(duplicated_ip in error)
+
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
         config_wrapper = gu_common.ConfigWrapper()
@@ -705,6 +779,19 @@ class TestPathAddressing(unittest.TestCase):
         # Assert
         self.assertEqual(expected_config, config)
 
+    def test_find_ref_paths__ref_path_is_leaflist_in_yang_but_string_in_config_db__path_to_string_returned(self):
+        # Arrange
+        path = "/BUFFER_PROFILE/egress_lossless_profile"
+        expected = [
+            "/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+        ]
+
+        # Act
+        actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_PROFILE_LIST)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
     def test_convert_path_to_xpath(self):
         def check(path, xpath, config=None):
             if not config:
@@ -765,6 +852,9 @@ class TestPathAddressing(unittest.TestCase):
         check(path="/LLDP/GLOBAL/mode",
               xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
               config=Files.CONFIG_DB_WITH_LLDP)
+        check(path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
 
     def test_convert_xpath_to_path(self):
         def check(xpath, path, config=None):
@@ -840,6 +930,12 @@ class TestPathAddressing(unittest.TestCase):
         check(xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
               path="/LLDP/GLOBAL/mode",
               config=Files.CONFIG_DB_WITH_LLDP)
+        check(xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list",
+              path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
+        check(xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list[.='egress_lossy_profile']",
+              path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
 
     def test_has_path(self):
         def check(config, path, expected):

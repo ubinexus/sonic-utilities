@@ -118,9 +118,32 @@ class ConfigWrapper:
             sy.loadData(tmp_config_db_as_json)
 
             sy.validate_data_tree()
-            return True, None
+
+            # TODO: modularize custom validations better or move directly to sonic-yang module
+            return self.validate_bgp_peer_group(config_db_as_json)
         except sonic_yang.SonicYangException as ex:
             return False, ex
+
+    def validate_bgp_peer_group(self, config_db):
+        if "BGP_PEER_RANGE" not in config_db:
+            return True, None
+
+        visited = {}
+        table = config_db["BGP_PEER_RANGE"]
+        for peer_group_name in table:
+            peer_group = table[peer_group_name]
+            if "ip_range" not in peer_group:
+                continue
+
+            # TODO: convert string to IpAddress object for better handling of IPs
+            # TODO: validate range intersection
+            ip_range = peer_group["ip_range"]
+            for ip in ip_range:
+                if ip in visited:
+                    return False, f"{ip} is duplicated in BGP_PEER_RANGE: {set([peer_group_name, visited[ip]])}"
+                visited[ip] = peer_group_name
+
+        return True, None
 
     def crop_tables_without_yang(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
@@ -727,6 +750,19 @@ class PathAddressing:
             # leaf_list_name = match.group(1)
             leaf_list_value = match.group(1)
             list_config = config[leaf_list_name]
+            # Workaround for those fields who is defined as leaf-list in YANG model but have string value in config DB
+            # No need to lookup the item index in ConfigDb since the list is represented as a string, return path to string immediately
+            # Example:
+            #   xpath: /sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list[.='egress_lossy_profile']
+            #   path: /BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list
+            if isinstance(list_config, str):
+                return [leaf_list_name]
+
+            if not isinstance(list_config, list):
+                raise ValueError(f"list_config is expected to be of type list or string. Found {type(list_config)}.\n  " + \
+                                 f"model: {model}\n  token_index: {token_index}\n  " + \
+                                 f"xpath_tokens: {xpath_tokens}\n  config: {config}")
+
             list_idx = list_config.index(leaf_list_value)
             return [leaf_list_name, list_idx]
 
