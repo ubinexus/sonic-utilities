@@ -65,6 +65,7 @@ setup(
                                   'mock_tables/asic0/*',
                                   'mock_tables/asic1/*',
                                   'mock_tables/asic2/*',
+                                  'mock_tables/pgdrop_input/*',
                                   'bgp_commands_input/*',
                                   'filter_fdb_input/*',
                                   'pfcwd_input/*',
