@@ -365,6 +365,9 @@ function setup_reboot_variables()
         local fstype=$(blkid -o value -s TYPE ${sonic_dev})
         BOOT_OPTIONS="${BOOT_OPTIONS} ssd-upgrader-part=${sonic_dev},${fstype}"
     fi
+    BOOT_OPTIONS_ORIG=(${BOOT_OPTIONS})
+    BOOT_OPTIONS_UNIQ=($(printf "%s\n" "${BOOT_OPTIONS_ORIG[@]}" | awk '!seen[$0]++'))
+    BOOT_OPTIONS="${BOOT_OPTIONS_UNIQ[*]}"
 }
 
 function check_docker_exec()
