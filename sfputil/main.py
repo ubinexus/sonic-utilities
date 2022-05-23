@@ -326,9 +326,6 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
                 pass
             elif key == 'specification_compliance':
                 output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
-
-            elif key == 'application_advertisement':
-                pass
             elif key == 'supported_max_tx_power' or key == 'supported_min_tx_power':
                 if key in sfp_info_dict:  # C-CMIS compliant / coherent modules
                     output += '{}{}: {}dBm\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
