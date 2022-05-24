@@ -126,9 +126,6 @@ def run_command(command, display_cmd=False, return_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
-# Global class instance for SONiC interface name to alias conversion
-iface_alias_converter = clicommon.InterfaceAliasConverter()
-
 #
 # Display all storm-control data 
 #
@@ -339,6 +336,7 @@ def vrf(vrf_name):
 def arp(ipaddress, iface, verbose):
     """Show IP ARP table"""
     cmd = "nbrshow -4"
+    iface_alias_converter = clicommon.InterfaceAliasConverter()
 
     if ipaddress is not None:
         cmd += " -ip {}".format(ipaddress)
@@ -539,6 +537,7 @@ def subinterfaces():
 def status(subinterfacename, verbose):
     """Show sub port interface status information"""
     cmd = "intfutil -c status"
+    iface_alias_converter = clicommon.InterfaceAliasConverter()
 
     if subinterfacename is not None:
         sub_intf_sep_idx = subinterfacename.find(VLAN_SUB_INTERFACE_SEPARATOR)
@@ -581,6 +580,7 @@ def counters(namespace, display, verbose):
 def priority(interface):
     """Show pfc priority"""
     cmd = 'pfc show priority'
+    iface_alias_converter = clicommon.InterfaceAliasConverter()
     if interface is not None and clicommon.get_interface_naming_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
 
@@ -594,6 +594,7 @@ def priority(interface):
 def asymmetric(interface):
     """Show asymmetric pfc"""
     cmd = 'pfc show asymmetric'
+    iface_alias_converter = clicommon.InterfaceAliasConverter()
     if interface is not None and clicommon.get_interface_naming_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
 
@@ -671,6 +672,7 @@ def counters(interfacename, verbose, json):
     """Show queue counters"""
 
     cmd = "queuestat"
+    iface_alias_converter = clicommon.InterfaceAliasConverter()
 
     if interfacename is not None:
         if clicommon.get_interface_naming_mode() == "alias":
@@ -1147,6 +1149,7 @@ def lldp():
 def neighbors(interfacename, verbose):
     """Show LLDP neighbors"""
     cmd = "sudo lldpshow -d"
+    iface_alias_converter = clicommon.InterfaceAliasConverter()
 
     if interfacename is not None:
         if clicommon.get_interface_naming_mode() == "alias":
