@@ -128,7 +128,7 @@ def run_command(command, display_cmd=False, return_cmd=False):
         sys.exit(rc)
 
 # Lazy global class instance for SONiC interface name to alias conversion
-iface_alias_converter = lazy_object_proxy.Proxy(clicommon.GetInterfaceAliasConverter)
+iface_alias_converter = lazy_object_proxy.Proxy(lambda: clicommon.InterfaceAliasConverter())
 
 #
 # Display all storm-control data 
