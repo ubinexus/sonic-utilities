@@ -7,6 +7,7 @@ import sys
 
 import click
 import json
+import lazy_object_proxy
 import netaddr
 
 from natsort import natsorted
@@ -183,6 +184,12 @@ class InterfaceAliasConverter(object):
         # interface_alias not in port_dict. Just return interface_alias
         return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
+def GetInterfaceAliasConverter():
+    return InterfaceAliasConverter()
+
+# Lazy global class instance for SONiC interface name to alias conversion
+iface_alias_converter = lazy_object_proxy.Proxy(GetInterfaceAliasConverter)
+
 def get_interface_naming_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
     if mode is None:
@@ -358,7 +365,6 @@ def print_output_in_alias_mode(output, index):
 
     alias_name = ""
     interface_name = ""
-    iface_alias_converter = InterfaceAliasConverter()
 
     # Adjust tabulation width to length of alias name
     if output.startswith("---"):
@@ -393,7 +399,6 @@ def run_command_in_alias_mode(command):
     """
 
     process = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
-    iface_alias_converter = InterfaceAliasConverter()
 
     while True:
         output = process.stdout.readline()
