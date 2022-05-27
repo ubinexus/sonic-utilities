@@ -1,5 +1,5 @@
 from sonic_py_common import multi_asic, device_info
-from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
+from swsscommon.swsscommon import ConfigDBConnector, ConfigDBPipeConnector, SonicV2Connector
 from utilities_common import constants
 from utilities_common.multi_asic import multi_asic_ns_choices
 
@@ -10,18 +10,20 @@ class Db(object):
         self.db_clients = {}
         self.cfgdb = ConfigDBConnector()
         self.cfgdb.connect()
+        self.cfgdb_pipe = ConfigDBPipeConnector()
+        self.cfgdb_pipe.connect()
         self.db = SonicV2Connector(host="127.0.0.1")
 
         # Skip connecting to chassis databases in line cards
-        db_list = list(self.db.get_db_list())
+        self.db_list = list(self.db.get_db_list())
         if not device_info.is_supervisor():
             try:
-                db_list.remove('CHASSIS_APP_DB')
-                db_list.remove('CHASSIS_STATE_DB')
+                self.db_list.remove('CHASSIS_APP_DB')
+                self.db_list.remove('CHASSIS_STATE_DB')
             except Exception:
                 pass
 
-        for db_id in db_list:
+        for db_id in self.db_list:
             self.db.connect(db_id)
 
         self.cfgdb_clients[constants.DEFAULT_NAMESPACE] = self.cfgdb

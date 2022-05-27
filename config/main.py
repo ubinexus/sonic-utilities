@@ -15,7 +15,7 @@ import itertools
 
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
-from minigraph import parse_device_desc_xml
+from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
 from portconfig import get_child_ports
 from socket import AF_INET, AF_INET6
@@ -27,7 +27,9 @@ from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
-from utilities_common.general import load_db_config
+from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
+from utilities_common.general import load_db_config, load_module_from_source
+import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
 
@@ -35,6 +37,7 @@ from . import aaa
 from . import chassis_modules
 from . import console
 from . import feature
+from . import flow_counters
 from . import kdump
 from . import kube
 from . import muxcable
@@ -70,6 +73,7 @@ DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
 DEFAULT_CONFIG_YANG_FILE = '/etc/sonic/config_yang.json'
 NAMESPACE_PREFIX = 'asic'
 INTF_KEY = "interfaces"
+DEFAULT_GOLDEN_CONFIG_DB_FILE = '/etc/sonic/golden_config_db.json'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -97,6 +101,9 @@ DSCP_RANGE = click.IntRange(min=0, max=63)
 TTL_RANGE = click.IntRange(min=0, max=255)
 QUEUE_RANGE = click.IntRange(min=0, max=255)
 GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
+
+# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
+sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 #
 # Helper functions
@@ -632,9 +639,83 @@ def _clear_cbf():
         for cbf_table in CBF_TABLE_NAMES:
             config_db.delete_table(cbf_table)
 
+#API to validate the interface passed for storm-control configuration
+def storm_control_interface_validate(port_name):
+    if clicommon.get_interface_naming_mode() == "alias":
+        port_name = interface_alias_to_name(None, port_name)
+        if port_name is None:
+            click.echo("'port_name' is None!")
+            return False
+
+    if (port_name.startswith("Ethernet")):
+        if interface_name_is_valid(None, port_name) is False:
+            click.echo("Interface name %s is invalid. Please enter a valid interface name" %(port_name))
+            return False
+    else:
+        click.echo("Storm-control is supported only on Ethernet interfaces. Not supported on %s" %(port_name))
+        return False
+
+    return True
+
+def is_storm_control_supported(storm_type, namespace):
+    asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+    #state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
+    #supported = state_db[asic_id].get_entry('BUM_STORM_CAPABILITY', storm_type)
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    entry_name="BUM_STORM_CAPABILITY|"+storm_type
+    supported = state_db.get(state_db.STATE_DB, entry_name,"supported")
+    return supported
+
+#API to configure the PORT_STORM_CONTROL table 
+def storm_control_set_entry(port_name, kbps, storm_type, namespace):
+
+    if storm_control_interface_validate(port_name) is False:
+        return False
+
+    if is_storm_control_supported(storm_type, namespace) == 0:
+        click.echo("Storm-control is not supported on this namespace {}".format(namespace))
+        return False
+
+    #Validate kbps value
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    key = port_name + '|' + storm_type
+    entry = config_db.get_entry('PORT_STORM_CONTROL', key)
+
+    if len(entry) == 0:
+        config_db.set_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+    else:
+        kbps_value = int(entry.get('kbps',0))
+        if kbps_value != kbps:
+            config_db.mod_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+
+    return True
+
+#API to remove an entry from PORT_STORM_CONTROL table 
+def storm_control_delete_entry(port_name, storm_type):
+
+    if storm_control_interface_validate(port_name) is False:
+        return False
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    key = port_name + '|' + storm_type
+    entry = config_db.get_entry('PORT_STORM_CONTROL', key)
+
+    if len(entry) == 0:
+        click.echo("%s storm-control not enabled on interface %s" %(storm_type, port_name))
+        return False
+    else:
+        config_db.set_entry('PORT_STORM_CONTROL', key, None)
+
+    return True
+
 
 def _clear_qos():
     QOS_TABLE_NAMES = [
+            'PORT_QOS_MAP',
+            'QUEUE',
             'TC_TO_PRIORITY_GROUP_MAP',
             'MAP_PFC_PRIORITY_TO_QUEUE',
             'TC_TO_QUEUE_MAP',
@@ -642,14 +723,14 @@ def _clear_qos():
             'MPLS_TC_TO_TC_MAP',
             'SCHEDULER',
             'PFC_PRIORITY_TO_PRIORITY_GROUP_MAP',
-            'PORT_QOS_MAP',
             'WRED_PROFILE',
-            'QUEUE',
             'CABLE_LENGTH',
-            'BUFFER_POOL',
-            'BUFFER_PROFILE',
             'BUFFER_PG',
             'BUFFER_QUEUE',
+            'BUFFER_PORT_INGRESS_PROFILE_LIST',
+            'BUFFER_PORT_EGRESS_PROFILE_LIST',
+            'BUFFER_PROFILE',
+            'BUFFER_POOL',
             'DEFAULT_LOSSLESS_BUFFER_PARAMETER',
             'LOSSLESS_TRAFFIC_PATTERN']
 
@@ -739,7 +820,7 @@ def _get_delayed_sonic_services():
     services = []
     for unit in timer:
         if state[timer.index(unit)] == "enabled":
-            services.append(unit.rstrip(".timer"))
+            services.append(re.sub('\.timer$', '', unit, 1))
     return services
 
 
@@ -787,7 +868,7 @@ def _per_namespace_swss_ready(service_name):
         return False
 
 def _swss_ready():
-    list_of_swss = [] 
+    list_of_swss = []
     num_asics = multi_asic.get_num_asics()
     if num_asics == 1:
         list_of_swss.append("swss.service")
@@ -800,7 +881,7 @@ def _swss_ready():
         if _per_namespace_swss_ready(service_name) == False:
             return False
 
-    return True 
+    return True
 
 def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
@@ -822,18 +903,36 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
     return False
 
-def interface_has_mirror_config(mirror_table, interface_name):
-    """ Check if port is already configured with mirror config """
+def check_mirror_direction_config(v, direction):
+    """ Check if port is already configured for mirror in same direction """
+    if direction:
+        direction=direction.upper()
+        if ('direction' in v and v['direction'] == 'BOTH') or (direction == 'BOTH'):
+            return True
+        if 'direction' in v and v['direction'] == direction:
+            return True
+    else:
+        return True
+
+def interface_has_mirror_config(ctx, mirror_table, dst_port, src_port, direction):
+    """ Check if dst/src port is already configured with mirroring in same direction """
     for _, v in mirror_table.items():
-        if 'src_port' in v and v['src_port'] == interface_name:
-            return True
-        if 'dst_port' in v and v['dst_port'] == interface_name:
-            return True
+        if src_port:
+            for port in src_port.split(","):
+                if 'dst_port' in v and v['dst_port'] == port:
+                    ctx.fail("Error: Source Interface {} already has mirror config".format(port))
+                if 'src_port' in v and re.search(port,v['src_port']):
+                    if check_mirror_direction_config(v, direction):
+                        ctx.fail("Error: Source Interface {} already has mirror config in same direction".format(port))
+        if dst_port:
+            if ('dst_port' in v and v['dst_port'] == dst_port) or ('src_port' in v and re.search(dst_port,v['src_port'])):
+                ctx.fail("Error: Destination Interface {} already has mirror config".format(dst_port))
 
     return False
 
 def validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction):
     """ Check if SPAN mirror-session config is valid """
+    ctx = click.get_current_context()
     if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
         click.echo("Error: {} already exists".format(session_name))
         return False
@@ -844,41 +943,34 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     if dst_port:
         if not interface_name_is_valid(config_db, dst_port):
-            click.echo("Error: Destination Interface {} is invalid".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} is invalid".format(dst_port))
+
+        if is_portchannel_present_in_db(config_db, dst_port):
+            ctx.fail("Error: Destination Interface {} is not supported".format(dst_port))
 
         if interface_is_in_vlan(vlan_member_table, dst_port):
-            click.echo("Error: Destination Interface {} has vlan config".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} has vlan config".format(dst_port))
 
-        if interface_has_mirror_config(mirror_table, dst_port):
-            click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
-            return False
 
         if interface_is_in_portchannel(portchannel_member_table, dst_port):
-            click.echo("Error: Destination Interface {} has portchannel config".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} has portchannel config".format(dst_port))
 
         if clicommon.is_port_router_interface(config_db, dst_port):
-            click.echo("Error: Destination Interface {} is a L3 interface".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} is a L3 interface".format(dst_port))
 
     if src_port:
         for port in src_port.split(","):
             if not interface_name_is_valid(config_db, port):
-                click.echo("Error: Source Interface {} is invalid".format(port))
-                return False
+                ctx.fail("Error: Source Interface {} is invalid".format(port))
             if dst_port and dst_port == port:
-                click.echo("Error: Destination Interface cant be same as Source Interface")
-                return False
-            if interface_has_mirror_config(mirror_table, port):
-                click.echo("Error: Source Interface {} already has mirror config".format(port))
-                return False
+                ctx.fail("Error: Destination Interface cant be same as Source Interface")
+
+    if interface_has_mirror_config(ctx, mirror_table, dst_port, src_port, direction):
+        return False
 
     if direction:
         if direction not in ['rx', 'tx', 'both']:
-            click.echo("Error: Direction {} is invalid".format(direction))
-            return False
+            ctx.fail("Error: Direction {} is invalid".format(direction))
 
     return True
 
@@ -1074,6 +1166,7 @@ config.add_command(aaa.radius)
 config.add_command(chassis_modules.chassis)
 config.add_command(console.console)
 config.add_command(feature.feature)
+config.add_command(flow_counters.flowcnt_route)
 config.add_command(kdump.kdump)
 config.add_command(kube.kubernetes)
 config.add_command(muxcable.muxcable)
@@ -1480,10 +1573,10 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
 
 
         config_gen_opts = ""
-        
+
         if os.path.isfile(INIT_CFG_FILE):
             config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
-        
+
         if file_format == 'config_db':
             config_gen_opts += ' -j {} '.format(file)
         else:
@@ -1602,7 +1695,7 @@ def load_minigraph(db, no_service_restart):
 
     # get the device type
     device_type = _get_device_type()
-    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'EPMS':
+    if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'BmcMgmtToRRouter' and device_type != 'EPMS':
         clicommon.run_command("pfcwd start_default", display_cmd=True)
 
     # Write latest db version string into db
@@ -1614,6 +1707,10 @@ def load_minigraph(db, no_service_restart):
             else:
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+
+    # Load golden_config_db.json
+    if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
+        override_config_by(DEFAULT_GOLDEN_CONFIG_DB_FILE)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
@@ -1662,6 +1759,65 @@ def load_port_config(config_db, port_config_path):
                 'startup' if port_config[port_name]['admin_status'] == 'up' else 'shutdown',
                 port_name), display_cmd=True)
     return
+
+
+def override_config_by(golden_config_path):
+    # Override configDB with golden config
+    clicommon.run_command('config override-config-table {}'.format(
+        golden_config_path), display_cmd=True)
+    return
+
+
+#
+# 'override-config-table' command ('config override-config-table ...')
+#
+@config.command('override-config-table')
+@click.argument('input-config-db', required=True)
+@click.option(
+    '--dry-run', is_flag=True, default=False,
+    help='test out the command without affecting config state'
+)
+@clicommon.pass_db
+def override_config_table(db, input_config_db, dry_run):
+    """Override current configDB with input config."""
+
+    try:
+        # Load golden config json
+        config_input = read_json_file(input_config_db)
+    except Exception as e:
+        click.secho("Bad format: json file broken. {}".format(str(e)),
+                    fg='magenta')
+        sys.exit(1)
+
+    # Validate if the input is dict
+    if not isinstance(config_input, dict):
+        click.secho("Bad format: input_config_db is not a dict",
+                    fg='magenta')
+        sys.exit(1)
+
+    config_db = db.cfgdb
+
+    if dry_run:
+        # Read config from configDB
+        current_config = config_db.get_config()
+        # Serialize to the same format as json input
+        sonic_cfggen.FormatConverter.to_serialized(current_config)
+        # Override current config with golden config
+        for table in config_input:
+            current_config[table] = config_input[table]
+        print(json.dumps(current_config, sort_keys=True,
+                         indent=4, cls=minigraph_encoder))
+    else:
+        # Deserialized golden config to DB recognized format
+        sonic_cfggen.FormatConverter.to_deserialized(config_input)
+        # Delete table from DB then mod_config to apply golden config
+        click.echo("Removing configDB overriden table first ...")
+        for table in config_input:
+            config_db.delete_table(table)
+        click.echo("Overriding input config to configDB ...")
+        data = sonic_cfggen.FormatConverter.output_to_db(config_input)
+        config_db.mod_config(data)
+        click.echo("Overriding completed. No service is restarted.")
 
 #
 # 'hostname' command
@@ -1720,14 +1876,15 @@ def synchronous_mode(sync_mode):
 @click.option('-n', '--namespace', help='Namespace name',
              required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.pass_context
-def portchannel(ctx, namespace):
+@clicommon.pass_db
+def portchannel(db, ctx, namespace):
     # Set namespace to default_namespace if it is None.
     if namespace is None:
         namespace = DEFAULT_NAMESPACE
 
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
-    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
+    ctx.obj = {'db': config_db, 'namespace': str(namespace), 'db_wrap': db}
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1857,6 +2014,22 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
         if port_tpid != DEFAULT_TPID:
             ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
+    # Don't allow a port to be a member of portchannel if already has ACL bindings
+    try:
+        acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace'])
+        if acl_bindings:
+            ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
+    except Exception as e:
+        ctx.fail(str(e))
+
+    # Don't allow a port to be a member of portchannel if already has PBH bindings
+    try:
+        pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE)
+        if pbh_bindings:
+            ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
+    except Exception as e:
+        ctx.fail(str(e))
+
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1943,7 +2116,7 @@ def gather_session_info(session_info, policer, queue, src_port, direction):
     if policer:
         session_info['policer'] = policer
 
-    if queue:
+    if queue is not None:
         session_info['queue'] = queue
 
     if src_port:
@@ -1969,7 +2142,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
             "ttl": ttl
             }
 
-    if gre_type:
+    if gre_type is not None:
         session_info['gre_type'] = gre_type
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)
@@ -2015,7 +2188,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
         dst_port = interface_alias_to_name(None, dst_port)
         if dst_port is None:
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
-            return
+            return False
 
     session_info = {
             "type" : "SPAN",
@@ -2254,6 +2427,7 @@ def _update_buffer_calculation_model(config_db, model):
 
 @qos.command('reload')
 @click.pass_context
+@click.option('--ports', is_flag=False, required=False, help="List of ports that needs to be updated")
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
 @click.option(
     '--json-data', type=click.STRING,
@@ -2263,8 +2437,13 @@ def _update_buffer_calculation_model(config_db, model):
     '--dry_run', type=click.STRING,
     help="Dry run, writes config to the given file"
 )
-def reload(ctx, no_dynamic_buffer, dry_run, json_data):
+def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
     """Reload QoS configuration"""
+    if ports:
+        log.log_info("'qos reload --ports {}' executing...".format(ports))
+        _qos_update_ports(ctx, ports, dry_run, json_data)
+        return
+
     log.log_info("'qos reload' executing...")
     _clear_qos()
 
@@ -2335,6 +2514,165 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data):
 
     if buffer_model_updated:
         print("Buffer calculation model updated, restarting swss is required to take effect")
+
+def _qos_update_ports(ctx, ports, dry_run, json_data):
+    """Reload QoS configuration"""
+    _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+
+    portlist = ports.split(',')
+    portset_to_handle = set(portlist)
+    portset_handled = set()
+
+    namespace_list = [DEFAULT_NAMESPACE]
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+
+    # Tables whose key is port only
+    tables_single_index = [
+        'PORT_QOS_MAP',
+        'BUFFER_PORT_INGRESS_PROFILE_LIST',
+        'BUFFER_PORT_EGRESS_PROFILE_LIST']
+    # Tables whose key is port followed by other element
+    tables_multi_index = [
+        'QUEUE',
+        'BUFFER_PG',
+        'BUFFER_QUEUE']
+
+    if json_data:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
+    else:
+        from_db = "-d"
+
+    items_to_update = {}
+    config_dbs = {}
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            asic_id_suffix = ""
+            config_db = ConfigDBConnector()
+        else:
+            asic_id = multi_asic.get_asic_id_from_name(ns)
+            if asic_id is None:
+                click.secho("Command 'qos update' failed with invalid namespace '{}'".format(ns), fg="yellow")
+                raise click.Abort()
+            asic_id_suffix = str(asic_id)
+
+            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=ns)
+
+        config_db.connect()
+        config_dbs[ns] = config_db
+        if is_dynamic_buffer_enabled(config_db):
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers_dynamic.json.j2")
+        else:
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
+
+        if not os.path.isfile(buffer_template_file):
+            click.secho("Buffer definition template not found at {}".format(buffer_template_file), fg="yellow")
+            ctx.abort()
+
+        qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
+
+        if not os.path.isfile(qos_template_file):
+            click.secho("QoS definition template not found at {}".format(qos_template_file), fg="yellow")
+            ctx.abort()
+
+        # Remove multi indexed entries first
+        for table_name in tables_multi_index:
+            entries = config_db.get_keys(table_name)
+            for key in entries:
+                port, _ = key
+                if not port in portset_to_handle:
+                    continue
+                config_db.set_entry(table_name, '|'.join(key), None)
+
+        cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+        command = "{} {} {} -t {},config-db -t {},config-db -y {} --print-data".format(
+            SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file, qos_template_file, sonic_version_file
+        )
+        jsonstr = clicommon.run_command(command, display_cmd=False, return_cmd=True)
+
+        jsondict = json.loads(jsonstr)
+        port_table = jsondict.get('PORT')
+        if port_table:
+            ports_to_update = set(port_table.keys()).intersection(portset_to_handle)
+            if not ports_to_update:
+                continue
+        else:
+            continue
+
+        portset_handled.update(ports_to_update)
+
+        items_to_apply = {}
+
+        for table_name in tables_single_index:
+            table_items_rendered = jsondict.get(table_name)
+            if table_items_rendered:
+                for key, data in table_items_rendered.items():
+                    port = key
+                    if not port in ports_to_update:
+                        continue
+                    # Push the rendered data to config-db
+                    if not items_to_apply.get(table_name):
+                        items_to_apply[table_name] = {}
+                    items_to_apply[table_name][key] = data
+
+        for table_name in tables_multi_index:
+            table_items_rendered = jsondict.get(table_name)
+            if table_items_rendered:
+                for key, data in table_items_rendered.items():
+                    port = key.split('|')[0]
+                    if not port in ports_to_update:
+                        continue
+                    # Push the result to config-db
+                    if not items_to_apply.get(table_name):
+                        items_to_apply[table_name] = {}
+                    items_to_apply[table_name][key] = data
+
+        # Handle CABLE_LENGTH
+        # This table needs to be specially handled because the port is not the index but the field name
+        # The idea is for all the entries in template, the same entries in CONFIG_DB will be merged together
+        # Eg. there is entry AZURE rendered from template for ports Ethernet0, Ethernet4 with cable length "5m":
+        # and entry AZURE in CONFIG_DB for ports Ethernet8, Ethernet12, Ethernet16 with cable length "40m"
+        # The entry that will eventually be pushed into CONFIG_DB is
+        # {"AZURE": {"Ethernet0": "5m", "Ethernet4": "5m", "Ethernet8": "40m", "Ethernet12": "40m", "Ethernet16": "40m"}}
+        table_name = 'CABLE_LENGTH'
+        cable_length_table = jsondict.get(table_name)
+        if cable_length_table:
+            for key, item in cable_length_table.items():
+                cable_length_from_db = config_db.get_entry(table_name, key)
+                cable_length_from_template = {}
+                for port in ports_to_update:
+                    cable_len = item.get(port)
+                    if cable_len:
+                        cable_length_from_template[port] = cable_len
+                # Reaching this point,
+                # - cable_length_from_template contains cable length rendered from the template, eg Ethernet0 and Ethernet4 in the above example
+                # - cable_length_from_db contains cable length existing in the CONFIG_DB, eg Ethernet8, Ethernet12, and Ethernet16 in the above exmaple
+
+                if not items_to_apply.get(table_name):
+                    items_to_apply[table_name] = {}
+
+                if cable_length_from_db:
+                    cable_length_from_db.update(cable_length_from_template)
+                    items_to_apply[table_name][key] = cable_length_from_db
+                else:
+                    items_to_apply[table_name][key] = cable_length_from_template
+
+        if items_to_apply:
+            items_to_update[ns] = items_to_apply
+
+        if dry_run:
+            with open(dry_run + ns, "w+") as f:
+                json.dump(items_to_apply, f, sort_keys=True, indent=4)
+        else:
+            jsonstr = json.dumps(items_to_apply)
+            cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+            command = "{} {} --additional-data '{}' --write-to-db".format(SONIC_CFGGEN_PATH, cmd_ns, jsonstr)
+            clicommon.run_command(command, display_cmd=False)
+
+    if portset_to_handle != portset_handled:
+        click.echo("The port(s) {} are not updated because they do not exist".format(portset_to_handle - portset_handled))
 
 def is_dynamic_buffer_enabled(config_db):
     """Return whether the current system supports dynamic buffer calculation"""
@@ -3428,6 +3766,36 @@ def speed(ctx, interface_name, interface_speed, verbose):
     clicommon.run_command(command, display_cmd=verbose)
 
 #
+# 'link-training' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["on", "off"]))
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def link_training(ctx, interface_name, mode, verbose):
+    """Set interface link training mode"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface link-training {} {}' executing...".format(interface_name, mode))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -lt {}".format(interface_name, mode)
+    else:
+        command = "portconfig -p {} -lt {} -n {}".format(interface_name, mode, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
 # 'autoneg' subcommand
 #
 
@@ -3909,7 +4277,8 @@ def remove(ctx, interface_name, ip_addr):
     remove_router_interface_ip_address(config_db, interface_name, ip_address)
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     if len(interface_addresses) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False and get_intf_ipv6_link_local_mode(ctx, interface_name, table_name) != "enable":
-        config_db.set_entry(table_name, interface_name, None)
+        if table_name != "VLAN_SUB_INTERFACE":
+            config_db.set_entry(table_name, interface_name, None)
 
     if multi_asic.is_multi_asic():
         command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, str(ip_address))
@@ -4684,6 +5053,7 @@ def add_route(ctx, command_str):
         if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
             not route['ifname'] in config_db.get_keys('INTERFACE') and
             not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+            not route['ifname'] in config_db.get_keys('VLAN_SUB_INTERFACE') and
             not route['ifname'] == 'null'):
             ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
 
@@ -5489,6 +5859,45 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
+@interface.group('storm-control')
+@click.pass_context
+def storm_control(ctx):
+    """ Configure storm-control"""
+    pass
+
+@storm_control.command('add')
+@click.argument('port_name',metavar='<port_name>', required=True)
+@click.argument('storm_type',metavar='<storm_type>', required=True, type=click.Choice(["broadcast", "unknown-unicast", "unknown-multicast"]))
+@click.argument('kbps',metavar='<kbps_value>', required=True, type=click.IntRange(0,100000000))
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.pass_context
+def add_interface_storm(ctx, port_name,storm_type, kbps, namespace):
+    if storm_control_set_entry(port_name, kbps, storm_type, namespace) is False:
+        ctx.fail("Unable to add {} storm-control to interface {}".format(storm_type, port_name))
+
+@storm_control.command('del')
+@click.argument('port_name',metavar='<port_name>', required=True)
+@click.argument('storm_type',metavar='<storm_type>', required=True, type=click.Choice(["broadcast", "unknown-unicast", "unknown-multicast"]))
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.pass_context
+def del_interface_storm(ctx,port_name,storm_type, namespace):
+    if storm_control_delete_entry(port_name, storm_type) is False:
+        ctx.fail("Unable to delete {} storm-control from interface {}".format(storm_type, port_name))
+
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation
     """
@@ -6237,7 +6646,7 @@ def del_subinterface(ctx, subinterface_name):
     sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
     if subinterface_name not in sub_intfs:
         ctx.fail("{} does not exists".format(subinterface_name))
-        
+
     ips = {}
     ips = [ k[1] for k in config_db.get_table('VLAN_SUB_INTERFACE') if type(k) == tuple and k[0] == subinterface_name ]
     for ip in ips:

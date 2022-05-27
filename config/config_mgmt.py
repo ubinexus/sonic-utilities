@@ -35,7 +35,7 @@ class ConfigMgmt():
     to verify config for the commands which are capable of change in config DB.
     '''
 
-    def __init__(self, source="configDB", debug=False, allowTablesWithoutYang=True):
+    def __init__(self, source="configDB", debug=False, allowTablesWithoutYang=True, sonicYangOptions=0):
         '''
         Initialise the class, --read the config, --load in data tree.
 
@@ -53,6 +53,7 @@ class ConfigMgmt():
             self.configdbJsonOut = None
             self.source = source
             self.allowTablesWithoutYang = allowTablesWithoutYang
+            self.sonicYangOptions = sonicYangOptions
 
             # logging vars
             self.SYSLOG_IDENTIFIER = "ConfigMgmt"
@@ -67,7 +68,7 @@ class ConfigMgmt():
         return
 
     def __init_sonic_yang(self):
-        self.sy = sonic_yang.SonicYang(YANG_DIR, debug=self.DEBUG)
+        self.sy = sonic_yang.SonicYang(YANG_DIR, debug=self.DEBUG, sonic_yang_options=self.sonicYangOptions)
         # load yang models
         self.sy.loadYangModel()
         # load jIn from config DB or from config DB json file.
@@ -280,7 +281,7 @@ class ConfigMgmt():
         """
 
         # Instantiate new context since parse_module_mem() loads the module into context.
-        sy = sonic_yang.SonicYang(YANG_DIR)
+        sy = sonic_yang.SonicYang(YANG_DIR, sonic_yang_options=self.sonicYangOptions)
         module = sy.ctx.parse_module_mem(yang_module_str, ly.LYS_IN_YANG)
         return module.name()
 
@@ -871,6 +872,27 @@ class ConfigMgmtDPB(ConfigMgmt):
             # updates are represented by list in diff and as dict in outp\inp
             # we do not allow updates right now
             if isinstance(diff, list) and isinstance(outp, dict):
+                return changed
+            '''
+            libYang converts ietf yang types to lower case internally, which
+            creates false config diff for us while DPB.
+
+            Example:
+            For DEVICE_METADATA['localhost']['mac'] type is yang:mac-address.
+            Libyang converts from 'XX:XX:XX:E4:B3:DD' -> 'xx:xx:xx:e4:b3:dd'
+            so args for this functions will be:
+
+            diff = DEVICE_METADATA['localhost']['mac']
+            where DEVICE_METADATA': {'localhost': {'mac': ['XX:XX:XX:E4:B3:DD', 'xx:xx:xx:e4:b3:dd']}}}
+            Note: above dict is representation of diff in config given by diffJson
+            library.
+            out = 'XX:XX:XX:e4:b3:dd'
+            inp = 'xx:xx:xx:E4:B3:DD'
+
+            With below check, we will avoid processing of such config diff for DPB.
+            '''
+            if isinstance(diff, list) and isinstance(outp, str) and \
+              inp.lower() == outp.lower():
                 return changed
 
             idx = -1

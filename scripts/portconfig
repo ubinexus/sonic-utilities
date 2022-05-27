@@ -21,6 +21,7 @@ optional arguments:
   -S     --adv-speeds          port advertised speeds
   -t     --interface-type      port interface type
   -T     --adv-interface-types port advertised interface types
+  -lt    --link-training       port link training mode
 """
 import os
 import sys
@@ -49,6 +50,7 @@ PORT_AUTONEG_CONFIG_FIELD_NAME = "autoneg"
 PORT_ADV_SPEEDS_CONFIG_FIELD_NAME = "adv_speeds"
 PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME = "interface_type"
 PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME = "adv_interface_types"
+PORT_LINK_TRAINING_CONFIG_FIELD_NAME = "link_training"
 PORT_CHANNEL_TABLE_NAME = "PORTCHANNEL"
 PORT_CHANNEL_MBR_TABLE_NAME = "PORTCHANNEL_MEMBER"
 TPID_CONFIG_FIELD_NAME = "tpid"
@@ -60,8 +62,8 @@ PORT_STATE_TABLE_NAME = "PORT_TABLE"
 PORT_STATE_SUPPORTED_SPEEDS = "supported_speeds"
 
 
-VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','SR','SR2','SR4',
-                                'LR','LR4','KR','KR4','CAUI','GMII',
+VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','CR8','SR','SR2','SR4','SR8',
+                                'LR','LR4','LR8','KR','KR4','KR8','CAUI','GMII',
                                 'SFI','XLAUI','KR2','CAUI4','XAUI',
                                 'XFI','XGMII', 'none'])
 
@@ -75,6 +77,7 @@ class portconfig(object):
         self.is_lag = False
         self.is_lag_mbr = False
         self.parent = port
+        self.is_rj45_port = False
         # Set up db connections
         if namespace is None:
             self.db = ConfigDBConnector()
@@ -90,6 +93,9 @@ class portconfig(object):
         lag_tables = self.db.get_table(PORT_CHANNEL_TABLE_NAME)
         lag_mbr_tables = self.db.get_table(PORT_CHANNEL_MBR_TABLE_NAME)
         if port in port_tables:
+            port_transceiver_info = self.state_db.get_all(self.state_db.STATE_DB, "TRANSCEIVER_INFO|{}".format(port))
+            if port_transceiver_info:
+                self.is_rj45_port = True if port_transceiver_info.get("type") == "RJ45" else False
             for key in lag_mbr_tables:
                 if port == key[1]:
                     self.parent = key[0]
@@ -123,9 +129,22 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
 
     def set_mtu(self, port, mtu):
+        port_tables = self.db.get_table(PORT_TABLE_NAME)
+        if port not in port_tables:
+            raise Exception("Invalid port %s" % (port))
         if self.verbose:
             print("Setting mtu %s on port %s" % (mtu, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
+
+    def set_link_training(self, port, mode):
+        if self.verbose:
+            print("Setting link-training %s on port %s" % (mode, port))
+        lt_modes = ['on', 'off']
+        if mode not in lt_modes:
+            print('Invalid mode specified: {}'.format(mode))
+            print('Valid modes: {}'.format(','.join(lt_modes)))
+            exit(1)
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_LINK_TRAINING_CONFIG_FIELD_NAME: mode})
 
     def set_autoneg(self, port, mode):
         if self.verbose:
@@ -155,6 +174,9 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
 
     def set_interface_type(self, port, interface_type):
+        if self.is_rj45_port:
+            print("Setting RJ45 ports' type is not supported")
+            exit(1)
         if self.verbose:
             print("Setting interface_type %s on port %s" % (interface_type, port))
         if interface_type not in VALID_INTERFACE_TYPE_SET:
@@ -164,6 +186,9 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
 
     def set_adv_interface_types(self, port, adv_interface_types):
+        if self.is_rj45_port:
+            print("Setting RJ45 ports' advertised types is not supported")
+            exit(1)
         if self.verbose:
             print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
 
@@ -253,6 +278,8 @@ def main():
                         help = 'port interface type', default=None)
     parser.add_argument('-T', '--adv-interface-types', type = str, required = False,
                         help = 'port advertised interface types', default=None)
+    parser.add_argument('-lt', '--link-training', type = str, required = False,
+                        help = 'port link training mode', default=None)
     args = parser.parse_args()
 
     # Load database config files
@@ -261,13 +288,15 @@ def main():
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
             port.list_params(args.port)
-        elif args.speed or args.fec or args.mtu or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types or args.tpid:
+        elif args.speed or args.fec or args.mtu or args.link_training or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types or args.tpid:
             if args.speed:
                 port.set_speed(args.port, args.speed)
             if args.fec:
                 port.set_fec(args.port, args.fec)
             if args.mtu:
                 port.set_mtu(args.port, args.mtu)
+            if args.link_training:
+                port.set_link_training(args.port, args.link_training)
             if args.autoneg:
                 port.set_autoneg(args.port, args.autoneg)
             if args.adv_speeds:

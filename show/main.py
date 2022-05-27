@@ -6,6 +6,7 @@ import re
 
 import click
 import utilities_common.cli as clicommon
+from sonic_py_common import multi_asic
 import utilities_common.multi_asic as multi_asic_util
 from importlib import reload
 from natsort import natsorted
@@ -14,6 +15,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
+from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
 
@@ -67,25 +69,22 @@ VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 GEARBOX_TABLE_PHY_PATTERN = r"_GEARBOX_TABLE:phy:*"
 
+COMMAND_TIMEOUT = 300
+
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
+    result = None
     command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -n 1"
 
     try:
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                text=True)
-        stdout = proc.communicate()[0]
-        proc.wait()
+        stdout = subprocess.check_output(command, shell=True, text=True, timeout=COMMAND_TIMEOUT)
         result = stdout.rstrip('\n')
+    except Exception as err:
+        click.echo('Failed to get routing stack: {}'.format(err), err=True)
 
-    except OSError as e:
-        raise OSError("Cannot detect routing-stack")
-
-    return (result)
+    return result
 
 
 # Global Routing-Stack variable
@@ -130,7 +129,92 @@ def run_command(command, display_cmd=False, return_cmd=False):
 # Global class instance for SONiC interface name to alias conversion
 iface_alias_converter = clicommon.InterfaceAliasConverter()
 
+#
+# Display all storm-control data 
+#
+def display_storm_all():
+    """ Show storm-control """
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
 
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    sorted_table = natsorted(table)
+
+    for storm_key in sorted_table:
+        interface_name = storm_key[0]
+        storm_type = storm_key[1]
+        #interface_name, storm_type = storm_key.split(':')
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if not data:
+            return
+
+        kbps = data['kbps']
+
+        body.append([interface_name, storm_type, kbps])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
+
+#
+# Get storm-control configurations per interface append to body
+#
+def get_storm_interface(intf, body):
+    storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    for storm_type in storm_type_list:
+        storm_key = intf + '|' + storm_type
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if data:
+            kbps = data['kbps']
+            body.append([intf, storm_type, kbps])
+
+#
+# Display storm-control data of given interface
+#
+def display_storm_interface(intf):
+    """ Show storm-control """
+
+    storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
+
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    for storm_type in storm_type_list:
+        storm_key = intf + '|' + storm_type
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if data:
+            kbps = data['kbps']
+            body.append([intf, storm_type, kbps])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 def connect_config_db():
     """
@@ -179,6 +263,7 @@ cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
+cli.add_command(flow_counters.flowcnt_route)
 cli.add_command(flow_counters.flowcnt_trap)
 cli.add_command(kdump.kdump)
 cli.add_command(interfaces.interfaces)
@@ -208,7 +293,7 @@ if is_gearbox_configured():
 def get_interface_bind_to_vrf(config_db, vrf_name):
     """Get interfaces belong to vrf
     """
-    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE', 'VLAN_SUB_INTERFACE']
     data = []
     for table_name in tables:
         interface_dict = config_db.get_table(table_name)
@@ -308,6 +393,43 @@ def is_mgmt_vrf_enabled(ctx):
                 return True
 
     return False
+
+#
+# 'storm-control' group 
+# "show storm-control [interface <interface>]"
+#
+@cli.group('storm-control', invoke_without_command=True)
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.pass_context
+def storm_control(ctx, namespace, display):
+    """ Show storm-control """
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
+    if ctx.invoked_subcommand is None:
+        if namespace is None:
+            display_storm_all()
+        else:
+            interfaces = multi_asic.multi_asic_get_ip_intf_from_ns(namespace)
+            for intf in interfaces:
+                get_storm_interface(intf, body)
+            click.echo(tabulate(body, header, tablefmt="grid"))
+
+@storm_control.command('interface')
+@click.argument('interface', metavar='<interface>',required=True)
+def interface(interface, namespace, display):
+    if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
+        ctx = click.get_current_context()
+        ctx.fail('-n/--namespace option required. provide namespace from list {}'.format(multi_asic.get_namespace_list()))
+    if interface:
+        display_storm_interface(interface)
 
 #
 # 'mgmt-vrf' group ("show mgmt-vrf ...")
@@ -1083,9 +1205,11 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
-    
+
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
+    sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
@@ -1101,6 +1225,7 @@ def version(verbose):
     click.echo("Model Number: {}".format(chassis_info['model']))
     click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
+    click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -1145,7 +1270,7 @@ def users(verbose):
 @click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
 def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
-    cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
+    cmd = "sudo timeout --kill-after={}s -s SIGTERM --foreground {}m".format(COMMAND_TIMEOUT, global_timeout)
 
     if allow_process_stop:
         cmd += " -a"
@@ -1158,9 +1283,9 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
 
     if since:
         cmd += " -s '{}'".format(since)
-    
+
     if debug_dump:
-        cmd += " -d "
+        cmd += " -d"
 
     cmd += " -t {}".format(cmd_timeout)
     if redirect_stderr:
@@ -1263,7 +1388,7 @@ def snmp(ctx, db):
 
 # ("show runningconfiguration snmp community")
 @snmp.command('community')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def community(db, json_output):
@@ -1284,7 +1409,7 @@ def community(db, json_output):
 
 # ("show runningconfiguration snmp contact")
 @snmp.command('contact')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def contact(db, json_output):
@@ -1312,7 +1437,7 @@ def contact(db, json_output):
 
 # ("show runningconfiguration snmp location")
 @snmp.command('location')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def location(db, json_output):
@@ -1339,13 +1464,13 @@ def location(db, json_output):
 
 # ("show runningconfiguration snmp user")
 @snmp.command('user')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def users(db, json_output):
     """show SNMP running configuration user"""
     snmp_users = db.cfgdb.get_table('SNMP_USER')
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     if json_output:
@@ -1358,7 +1483,7 @@ def users(db, json_output):
             snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
             snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
             snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                    snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
         click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
@@ -1375,7 +1500,7 @@ def show_run_snmp(db, ctx):
     snmp_contact_body = []
     snmp_comm_header = ["Community String", "Community Type"]
     snmp_comm_body = []
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     try:
@@ -1409,7 +1534,7 @@ def show_run_snmp(db, ctx):
         snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
         snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
         snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
     click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 

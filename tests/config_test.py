@@ -89,6 +89,22 @@ def mock_run_command_side_effect(*args, **kwargs):
         else:
             return ''
 
+def mock_run_command_side_effect_gnmi(*args, **kwargs):
+    command = args[0]
+
+    if kwargs.get('display_cmd'):
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    if kwargs.get('return_cmd'):
+        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
+            return 'gnmi.timer'
+        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
+            return 'swss'
+        elif command == "systemctl is-enabled gnmi.timer":
+            return 'enabled'
+        else:
+            return ''
+
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -168,6 +184,22 @@ class TestLoadMinigraph(object):
             mock_run_command.assert_any_call('systemctl reset-failed snmp')
             assert mock_run_command.call_count == 11
 
+    def test_load_minigraph_with_gnmi_timer(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_gnmi)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
+            # Verify "systemctl reset-failed" is called for services under sonic.target
+            mock_run_command.assert_any_call('systemctl reset-failed swss')
+            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
+            mock_run_command.assert_any_call('systemctl reset-failed gnmi')
+            assert mock_run_command.call_count == 11
+
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
             "utilities_common.cli.run_command",
@@ -223,6 +255,27 @@ class TestLoadMinigraph(object):
                 print(result.output)
                 assert result.exit_code == 0
                 assert expected_output in result.output
+
+    def test_load_minigraph_with_golden_config(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+            "utilities_common.cli.run_command",
+            mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            db = Db()
+            golden_config = {}
+            self.check_golden_config(db, config, golden_config,
+                                     "config override-config-table /etc/sonic/golden_config_db.json")
+
+    def check_golden_config(self, db, config, golden_config, expected_output):
+        def is_file_side_effect(filename):
+            return True if 'golden_config' in filename else False
+        with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert expected_output in result.output
 
     @classmethod
     def teardown_class(cls):
@@ -442,6 +495,24 @@ class TestConfigQos(object):
         )
         assert filecmp.cmp(output_file, expected_result, shallow=False)
 
+    def test_qos_update_single(
+            self, get_cmd_module, setup_qos_mock_apis
+        ):
+        (config, show) = get_cmd_module
+        json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "qos_config_update.json")
+        cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run", output_file]
+        result = runner.invoke(config.config.commands["qos"], cmd_vector)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        expected_result = os.path.join(
+            cwd, "qos_config_input", "update_qos.json"
+        )
+        assert filecmp.cmp(output_file, expected_result, shallow=False)
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -494,6 +565,40 @@ class TestConfigQosMasic(object):
             )
             file = "{}{}".format(output_file, asic)
             assert filecmp.cmp(file, expected_result, shallow=False)
+
+    def test_qos_update_masic(
+            self, get_cmd_module, setup_qos_mock_apis,
+            setup_multi_broadcom_masic
+        ):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+
+        output_file = os.path.join(os.sep, "tmp", "qos_update_output")
+        print("Saving output in {}<0,1,2..>".format(output_file))
+        num_asic = device_info.get_num_npus()
+        for asic in range(num_asic):
+            try:
+                file = "{}{}".format(output_file, asic)
+                os.remove(file)
+            except OSError:
+                pass
+        json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
+        result = runner.invoke(
+            config.config.commands["qos"],
+            ["reload", "--ports", "Ethernet0,Ethernet4", "--json-data", json_data, "--dry_run", output_file]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+
+        for asic in range(num_asic):
+            expected_result = os.path.join(
+                cwd, "qos_config_input", str(asic), "update_qos.json"
+            )
+
+            assert filecmp.cmp(output_file + "asic{}".format(asic), expected_result, shallow=False)
 
     @classmethod
     def teardown_class(cls):
