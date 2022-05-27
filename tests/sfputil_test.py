@@ -283,6 +283,11 @@ class TestSfputil(object):
         output = sfputil.fetch_error_status_from_state_db('Ethernet0', db.db)
         assert output == expected_output_ethernet0
 
+        expected_output_ethernet16 = expected_output[4:5]
+        output = sfputil.fetch_error_status_from_state_db('Ethernet16', db.db)
+        assert output == expected_output_ethernet16
+
+
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     def test_show_firmware_version(self, mock_chassis):
@@ -327,6 +332,43 @@ Ethernet28  Present
         expected_output = """Port        Presence
 ----------  ----------
 Ethernet36  Present
+"""
+        assert result.output == expected_output
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
+    def test_show_lpmode(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_lpmode.return_value = True
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['show'].commands['lpmode'], ["-p", "Ethernet0"])
+        assert result.exit_code == 0
+        expected_output = """Port       Low-power Mode
+---------  ----------------
+Ethernet0  On
+"""
+        assert result.output == expected_output
+
+        mock_sfp.get_lpmode.return_value = False
+        result = runner.invoke(sfputil.cli.commands['show'].commands['lpmode'], ["-p", "Ethernet0"])
+        assert result.exit_code == 0
+        expected_output = """Port       Low-power Mode
+---------  ----------------
+Ethernet0  Off
+"""
+        assert result.output == expected_output
+
+        mock_sfp.get_lpmode.return_value = False
+        mock_sfp.get_transceiver_info = MagicMock(return_value={'type': sfputil.RJ45_PORT_TYPE})
+        result = runner.invoke(sfputil.cli.commands['show'].commands['lpmode'], ["-p", "Ethernet0"])
+        assert result.exit_code == 0
+        expected_output = """Port       Low-power Mode
+---------  ----------------
+Ethernet0  N/A
 """
         assert result.output == expected_output
 
