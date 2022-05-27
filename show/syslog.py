@@ -1,7 +1,7 @@
 import click
+
 import tabulate
 from natsort import natsorted
-
 
 import utilities_common.cli as clicommon
 
@@ -33,8 +33,8 @@ def syslog(db):
     """ Show syslog server configuration """
 
     header = [
-        "SERVER",
-        "SOURCE",
+        "SERVER IP",
+        "SOURCE IP",
         "PORT",
         "VRF",
     ]
