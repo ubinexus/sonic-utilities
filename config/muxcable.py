@@ -244,6 +244,8 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
     configdb_state = get_value_for_key_in_config_tbl(config_db, port, "state", "MUX_CABLE")
     ipv4_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv4", "MUX_CABLE")
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
+    soc_ipv4_value = get_value_for_key_in_config_tbl(config_db, port, "soc_ipv4", "MUX_CABLE")
+    cable_type = get_value_for_key_in_config_tbl(config_db, port, "cable_type", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
 
@@ -253,7 +255,10 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
         port_status_dict[port_name] = 'OK'
     else:
         config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
+                                                "server_ipv4": ipv4_value,
+                                                "server_ipv6": ipv6_value, 
+                                                "soc_ipv4":soc_ipv4_value, 
+                                                "cable_type": cable_type})
         if (str(state_cfg_val) == 'active' and str(state) != 'active') or (str(state_cfg_val) == 'standby' and str(state) != 'standby'):
             port_status_dict[port_name] = 'INPROGRESS'
         else:
