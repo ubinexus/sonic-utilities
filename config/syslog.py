@@ -1,10 +1,11 @@
 import click
+
 import json
 import ipaddress
 import subprocess
 
-
 import utilities_common.cli as clicommon
+from sonic_py_common import logger
 
 
 SYSLOG_TABLE_CDB = "SYSLOG_SERVER"
@@ -19,9 +20,60 @@ MGMT_VRF_TABLE_CDB = "MGMT_VRF_CONFIG"
 MGMT_VRF_GLOBAL = "vrf_global"
 MGMT_VRF_GLOBAL_ENABLED = "mgmtVrfEnabled"
 
+
+log = logger.Logger()
+log.set_min_log_priority_info()
+
 #
 # Syslog helpers ------------------------------------------------------------------------------------------------------
 #
+
+def exec_cmd(cmd):
+    """ Execute shell command """
+    return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+
+
+def get_vrf_list():
+    """ Get Linux VRF device list """
+    vrf_list = []
+    vrf_data = json.loads(exec_cmd('ip --json vrf show'))
+    for vrf_entry in vrf_data:
+        vrf_name = vrf_entry.get('name', None)
+        if vrf_name is not None:
+            vrf_list.append(vrf_name)
+    return vrf_list
+
+
+def get_vrf_member_dict():
+    """ Get Linux VRF device to member dict """
+    vrf_member_dict = {}
+    vrf_list = get_vrf_list()
+    for vrf_name in vrf_list:
+        vrf_member_dict[vrf_name] = []
+        vrf_member_data = json.loads(exec_cmd('ip --json link show vrf {}'.format(vrf_name)))
+        for vrf_member_entry in vrf_member_data:
+            vrf_member_name = vrf_member_entry.get('ifname', None)
+            if vrf_member_name is not None:
+                vrf_member_dict[vrf_name].append(vrf_member_name)
+    return vrf_member_dict
+
+
+def get_ip_addr_dict():
+    """ Get Linux interface to IPv4/IPv6 address list dict """
+    ip_addr_dict = {}
+    ip_addr_data = json.loads(exec_cmd('ip --json address show'))
+    for ip_addr_entry in ip_addr_data:
+        link_name = ip_addr_entry.get('ifname', None)
+        if link_name is not None:
+            ip_addr_dict[link_name] = []
+            ip_data = ip_addr_entry.get('addr_info', None)
+            if ip_data is not None:
+                for ip_entry in ip_data:
+                    ip_addr = ip_entry.get('local', None)
+                    if ip_addr is not None:
+                        ip_addr_dict[link_name].append(ip_addr)
+    return ip_addr_dict
+
 
 def get_param(ctx, name):
     """ Get click parameter """
@@ -264,45 +316,6 @@ def source_to_vrf_validator(ctx, source, vrf):
         source: source IP address
         vrf: VRF device
     """
-    def exec_cmd(cmd):
-        return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-
-    def get_vrf_list():
-        vrf_list = []
-        vrf_data = json.loads(exec_cmd('ip --json vrf show'))
-        for vrf_entry in vrf_data:
-            vrf_name = vrf_entry.get('name', None)
-            if vrf_name is not None:
-                vrf_list.append(vrf_name)
-        return vrf_list
-
-    def get_vrf_member_dict():
-        vrf_member_dict = {}
-        vrf_list = get_vrf_list()
-        for vrf_name in vrf_list:
-            vrf_member_dict[vrf_name] = []
-            vrf_member_data = json.loads(exec_cmd('ip --json link show vrf {}'.format(vrf_name)))
-            for vrf_member_entry in vrf_member_data:
-                vrf_member_name = vrf_member_entry.get('ifname', None)
-                if vrf_member_name is not None:
-                    vrf_member_dict[vrf_name].append(vrf_member_name)
-        return vrf_member_dict
-
-    def get_ip_addr_dict():
-        ip_addr_dict = {}
-        ip_addr_data = json.loads(exec_cmd('ip --json address show'))
-        for ip_addr_entry in ip_addr_data:
-            link_name = ip_addr_entry.get('ifname', None)
-            if link_name is not None:
-                ip_addr_dict[link_name] = []
-                ip_data = ip_addr_entry.get('addr_info', None)
-                if ip_data is not None:
-                    for ip_entry in ip_data:
-                        ip_addr = ip_entry.get('local', None)
-                        if ip_addr is not None:
-                            ip_addr_dict[link_name].append(ip_addr)
-        return ip_addr_dict
-
     def to_ip_addr_list(ip_addr_dict):
         return list(set([ip_addr for _, ip_addr_list in ip_addr_dict.items() for ip_addr in ip_addr_list]))
 
@@ -395,7 +408,14 @@ def add(db, server_ip_address, source, port, vrf):
         add_entry(db.cfgdb, table, key, data)
         clicommon.run_command("systemctl reset-failed rsyslog-config", display_cmd=True)
         clicommon.run_command("systemctl restart rsyslog-config", display_cmd=True)
+        log.log_notice("Added remote syslog logging: server={},source={},port={},vrf={}".format(
+            server_ip_address,
+            data.get(SYSLOG_SOURCE, "N/A"),
+            data.get(SYSLOG_PORT, "N/A"),
+            data.get(SYSLOG_VRF, "N/A")
+        ))
     except Exception as e:
+        log.log_error("Failed to add remote syslog logging: {}".format(str(e)))
         ctx.fail(str(e))
 
 
@@ -420,5 +440,7 @@ def delete(db, server_ip_address):
         del_entry(db.cfgdb, table, key)
         clicommon.run_command("systemctl reset-failed rsyslog-config", display_cmd=True)
         clicommon.run_command("systemctl restart rsyslog-config", display_cmd=True)
+        log.log_notice("Removed remote syslog logging: server={}".format(server_ip_address))
     except Exception as e:
+        log.log_error("Failed to remove remote syslog logging: {}".format(str(e)))
         ctx.fail(str(e))
