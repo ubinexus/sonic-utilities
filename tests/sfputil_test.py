@@ -220,8 +220,8 @@ class TestSfputil(object):
         result = runner.invoke(sfputil.cli.commands['show'].commands['presence'], ["-p", "Ethernet16"])
         assert result.exit_code == 0
         expected_output = """Port        Presence
-----------  -----------
-Ethernet16  Not present
+----------  ----------
+Ethernet16  Present
 """
         assert result.output == expected_output
 
@@ -237,7 +237,7 @@ Ethernet28  Present
         assert result.exit_code == 0
         expected_output = """Port        Presence
 ----------  ----------
-Ethernet36  Unknown
+Ethernet36  Present
 """
         assert result.output == expected_output
 

@@ -150,8 +150,8 @@
         "error": "N/A"
     },
     "TRANSCEIVER_STATUS|Ethernet16": {
-        "status": "255",
-        "error": "Not present"
+        "status": "0",
+        "error": "N/A"
     },
     "TRANSCEIVER_STATUS|Ethernet28": {
         "status": "0",
