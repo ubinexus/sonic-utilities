@@ -13,7 +13,6 @@ port2alias = imp.load_source('port2alias', os.path.join(os.path.dirname(__file__
 
 class TestPort2Alias(TestCase):
     def setUp(self):
-        port2alias = load_module_from_source('port2alias', port2alias_path)
         self.ports = {
                 "Ethernet1": {"alias" : "fortyG0/1"},
                 "Ethernet2": {"alias" : "fortyG0/2"},
@@ -59,9 +58,6 @@ class TestPort2AliasNamespace(TestCase):
         from .mock_tables import mock_multi_asic
         importlib.reload(mock_multi_asic)
         dbconnector.load_namespace_config()
-
-    def setUp(self):
-        port2alias = load_module_from_source('port2alias', port2alias_path)
 
     @mock.patch('sys.stdout.write')
     def test_main(self, mock_stdout):

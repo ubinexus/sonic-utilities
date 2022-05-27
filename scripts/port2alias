@@ -29,7 +29,7 @@ def translate_line(line, ports):
     while end < len(line):
         if line[end].isalnum() or line[end] in allowed_symbols:
             pass
-        else: 
+        else:
             # End of a word
             word = line[start:end]
             if word in ports:
@@ -51,7 +51,11 @@ def main():
     (platform, hwsku) = device_info.get_platform_and_hwsku()
     ports = {}
     for ns in multi_asic.get_namespace_list():
-        (ports_ns, _, _) = get_port_config(hwsku=hwsku, platform=platform, asic_name=ns)
+        if ns:
+            asic_id = multi_asic.get_asic_id_from_name(ns)
+        else:
+            asic_id = None
+        (ports_ns, _, _) = get_port_config(hwsku=hwsku, platform=platform, asic=asic_id)
         ports.update(ports_ns)
     for line in sys.stdin:
         sys.stdout.write(translate_line(line, ports))
