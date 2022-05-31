@@ -375,6 +375,7 @@
     },
     "VLAN_SUB_INTERFACE|Eth32.10": {
         "admin_status": "up",
+        "loopback_action": "drop",
         "vlan": "100"
     },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
@@ -550,7 +551,8 @@
         "NULL": "NULL"
     },
     "VLAN_INTERFACE|Vlan2000": {
-        "proxy_arp": "enabled"
+        "proxy_arp": "enabled",
+        "loopback_action": "forward"
     },
     "VLAN_INTERFACE|Vlan1000|192.168.0.1/21": {
         "NULL": "NULL"
@@ -636,7 +638,8 @@
         "NULL": "NULL"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0001": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "drop"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0002": {
         "NULL": "NULL"
@@ -672,7 +675,8 @@
         "NULL": "NULL"
     },
     "INTERFACE|Ethernet0": {
-        "ipv6_use_link_local_only": "disable"
+        "ipv6_use_link_local_only": "disable",
+        "loopback_action": "forward"
     },
     "INTERFACE|Ethernet0|14.14.0.1/24": {
         "NULL": "NULL"
