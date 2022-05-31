@@ -1898,7 +1898,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
-
+    
+    gcu_json_input = []
     fvs = {'admin_status': 'up',
            'mtu': '9100',
            'lacp_key': 'auto'}
@@ -1906,36 +1907,36 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
         fvs['fallback'] = 'true'
+
+    gcu_json = {"op": "add",
+                "path": "/PORTCHANNEL/{}".format(portchannel_name)}
+    gcu_json["value"] = fvs
+    gcu_json_input.append(gcu_json)
+    gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
+    format = ConfigFormat.CONFIGDB.name
+    config_format = ConfigFormat[format.upper()]
+    GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
     
-    yvs = YangValidationService()
-    if not yvs.validate_set_entry('PORTCHANNEL', portchannel_name, fvs):
-        ctx.fail("Invalid configuration based on PortChannel YANG model")
-    else:
-        db.set_entry('PORTCHANNEL', portchannel_name, fvs)
 
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
-    if is_portchannel_name_valid(portchannel_name) != True:
-        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
     db = ctx.obj['db']
-
-    # Dont proceed if the port channel does not exist
-    if is_portchannel_present_in_db(db, portchannel_name) is False:
-        ctx.fail("{} is not present.".format(portchannel_name))
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
-        yvs = YangValidationService()
-        if not yvs.validate_set_entry('PORTCHANNEL', portchannel_name, None):
-            ctx.fail("Invalid configuration based on PortChannel YANG model")
-        else:
-            db.set_entry('PORTCHANNEL', portchannel_name, None)
+        gcu_json_input = []
+        gcu_json = {"op": "remove",
+                    "path": "/PORTCHANNEL/{}".format(portchannel_name)}
+        gcu_json_input.append(gcu_json)
+        gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
+        format = ConfigFormat.CONFIGDB.name
+        config_format = ConfigFormat[format.upper()]
+        GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
