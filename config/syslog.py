@@ -227,7 +227,7 @@ def source_validator(ctx, server, source):
         )
 
     server_ip = ipaddress.ip_address(server)
-    if (server_ip.version != source_ip.version):
+    if server_ip.version != source_ip.version:
         raise click.UsageError("Invalid value for {} / {}: {} / {} IP address family mismatch".format(
             get_param_hint(ctx, "server_ip_address"), get_param_hint(ctx, "source"), server, source), ctx
         )
@@ -318,6 +318,9 @@ def source_to_vrf_validator(ctx, source, vrf):
     """
     def to_ip_addr_list(ip_addr_dict):
         return list(set([ip_addr for _, ip_addr_list in ip_addr_dict.items() for ip_addr in ip_addr_list]))
+
+    if (source is None) and (vrf is None):
+        return
 
     try:
         vrf_list = get_vrf_list()
