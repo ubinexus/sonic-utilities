@@ -32,7 +32,6 @@ from utilities_common.general import load_db_config, load_module_from_source
 import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
-from .yang_validation_service import YangValidationService
 
 from . import aaa
 from . import chassis_modules
