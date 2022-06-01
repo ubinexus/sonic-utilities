@@ -3,7 +3,6 @@
 import click
 import ipaddress
 import json
-import jsonpatch
 import netaddr
 import netifaces
 import os
@@ -1893,49 +1892,35 @@ def portchannel(db, ctx, namespace):
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
-    db = ctx.obj['db']
-
+    
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
     
-    gcu_json_input = []
-    fvs = {'admin_status': 'up',
-           'mtu': '9100',
-           'lacp_key': 'auto'}
+    db = ValidatedConfigDBConnector()
+    db.connect()
+
+    fvs = {"admin_status": "up",
+           "mtu": "9100",  
+           "lacp_key": "auto"}
     if min_links != 0:
-        fvs['min_links'] = str(min_links)
-    if fallback != 'false':
-        fvs['fallback'] = 'true'
-
-    gcu_json = {"op": "add",
-                "path": "/PORTCHANNEL/{}".format(portchannel_name)}
-    gcu_json["value"] = fvs
-    gcu_json_input.append(gcu_json)
-    gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
-    format = ConfigFormat.CONFIGDB.name
-    config_format = ConfigFormat[format.upper()]
-    GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
+        fvs["min_links"] = str(min_links)
+    if fallback != "false":
+        fvs["fallback"] = "true"
+    db.set_entry("add", "/PORTCHANNEL/{}".format(portchannel_name), fvs)
     
-
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
 
-    db = ctx.obj['db']
+    db = ValidatedConfigDBConnector()
+    db.connect()
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
-        gcu_json_input = []
-        gcu_json = {"op": "remove",
-                    "path": "/PORTCHANNEL/{}".format(portchannel_name)}
-        gcu_json_input.append(gcu_json)
-        gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
-        format = ConfigFormat.CONFIGDB.name
-        config_format = ConfigFormat[format.upper()]
-        GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
+        db.set_entry("remove", "/PORTCHANNEL/{}".format(portchannel_name), None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
@@ -1951,19 +1936,6 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     db = ctx.obj['db']
     if clicommon.is_port_mirror_dst_port(db, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
-
-    # Check if the member interface given by user is valid in the namespace.
-    if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
-
-    # Dont proceed if the port channel name is not valid
-    if is_portchannel_name_valid(portchannel_name) is False:
-        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
-
-    # Dont proceed if the port channel does not exist
-    if is_portchannel_present_in_db(db, portchannel_name) is False:
-        ctx.fail("{} is not present.".format(portchannel_name))
 
     # Dont allow a port to be member of port channel if it is configured with an IP address
     for key,value in db.get_table('INTERFACE').items():
