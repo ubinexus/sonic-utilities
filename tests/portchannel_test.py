@@ -184,36 +184,12 @@ class TestPortChannel(object):
         db = Db()
         obj = {'db':db.cfgdb}
 
-        # add a portchannel
-        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel1005"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-
-        # add portchannel to a vlan
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["2000", "PortChannel1005"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-
-        # try to delete the portchannel
+        # try to delete the portchannel when its member of a vlan
         result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChannel1005"], obj=obj)
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
         assert "PortChannel0005 has vlan Vlan2000 configured, remove vlan membership to proceed" in result.output
-
-        # remove portchannel from vlan
-        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["2000", "PortChannel1005"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-
-        # delete the portchannel
-        result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChannel1005"], obj=obj)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
 
     @classmethod
     def teardown_class(cls):
