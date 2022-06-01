@@ -10,7 +10,7 @@ Interface        Action
 Eth32.10         drop
 Ethernet0        forward
 PortChannel0001  drop
-Vlan2000         forward
+Vlan3000         forward
 """
 
 class TestLoopbackAction(object):
@@ -25,6 +25,7 @@ class TestLoopbackAction(object):
         obj = {'config_db':db.cfgdb}
         action = 'drop'
         iface = 'Ethernet0'
+
         result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('INTERFACE')
@@ -39,6 +40,7 @@ class TestLoopbackAction(object):
         obj = {'config_db':db.cfgdb}
         action = 'forward'
         iface = 'PortChannel0002'
+
         result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('PORTCHANNEL_INTERFACE')
@@ -53,6 +55,7 @@ class TestLoopbackAction(object):
         obj = {'config_db':db.cfgdb}
         action = 'drop'
         iface = 'Vlan1000'
+
         result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('VLAN_INTERFACE')
@@ -67,6 +70,7 @@ class TestLoopbackAction(object):
         obj = {'config_db':db.cfgdb}
         action = 'forward'
         iface = 'Ethernet0.10'
+
         result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('VLAN_SUB_INTERFACE')
@@ -90,6 +94,7 @@ class TestLoopbackAction(object):
         action = 'forward'
         iface = 'Ethernet0.11'
         ERROR_MSG = "Error: Interface {} is not an IP interface".format(iface)
+
         result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
     
         print(result.exit_code, result.output)
@@ -103,6 +108,7 @@ class TestLoopbackAction(object):
         action = 'xforwardx'
         iface = 'Ethernet0'
         ERROR_MSG = "Error: Invalid action"
+
         result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
     
         print(result.exit_code, result.output)
