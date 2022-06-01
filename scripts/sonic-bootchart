@@ -16,8 +16,12 @@ BOOTCHART_DEFAULT_OUTPUT_DIR = "/run/log/"
 BOOTCHART_DEFAULT_OUTPUT_GLOB = os.path.join(BOOTCHART_DEFAULT_OUTPUT_DIR, "bootchart-*.svg")
 
 class BootChartConfigParser(configparser.ConfigParser):
+    """ Custom bootchart config parser. Changes the way ConfigParser passes options """
+
     def optionxform(self, option):
+        """ Pass options as is, without modifications """
         return option
+
 
 def exit_cli(*args, **kwargs):
     """ Print a message and exit with rc 1. """
@@ -81,14 +85,17 @@ def disable():
 
 
 @cli.command()
-@click.option('--samples', type=int)
-@click.option('--frequency', type=int)
+@click.option('--time', type=int, required=True)
+@click.option('--frequency', type=int, required=True)
 @root_privileges_required
-def config(**kwargs):
+def config(time, frequency):
     """ Configure bootchart """
-    config = {k.title(): str(v) for k, v in kwargs.items() if v is not None}
-    if not config:
-        exit_cli("Nothing to update")
+    samples = time * frequency
+
+    config = {
+        'Samples': samples,
+        'Frequency': frequency
+    }
     bootchart_config = BootChartConfigParser()
     bootchart_config.read(BOOTCHART_CONF)
     bootchart_config['Bootchart'].update(config)
@@ -109,7 +116,6 @@ def show():
     field_values = {
             "Status": get_enabled_status(),
             "Operational Status": get_active_status(),
-            "Samples": samples,
             "Frequency": frequency,
             "Time (sec)": time,
             "Output": get_output_files(),
