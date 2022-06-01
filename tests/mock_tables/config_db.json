@@ -589,9 +589,6 @@
     "VLAN_MEMBER|Vlan4000|PortChannel1001": {
         "tagging_mode": "tagged"
     },
-    "VLAN_MEMBER|Vlan2000|PortChannel1005": {
-        "tagging_mode": "tagged"
-    },
     "PORTCHANNEL|PortChannel1001": {
         "admin_status": "up",
         "members@": "Ethernet32",
@@ -623,12 +620,6 @@
     "PORTCHANNEL|PortChannel0004": {
         "admin_status": "up",
         "members@": "Ethernet124",
-        "min_links": "1",
-        "tpid": "0x8100",
-        "mtu": "9100"
-    },
-    "PORTCHANNEL|PortChannel1005": {
-        "admin_status": "up",
         "min_links": "1",
         "tpid": "0x8100",
         "mtu": "9100"
