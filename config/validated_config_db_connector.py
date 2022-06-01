@@ -5,12 +5,18 @@ from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 
 class ValidatedConfigDBConnector(ConfigDBConnector):
 
-    def set_entry(self, op, path, value):
+    def set_entry(self, table, key, value):
+        if value:
+            op = "add"
+        else:
+            op = "remove"
+        path = "/{}/{}".format(table, key)
         gcu_json_input = []
         gcu_json = {"op": "{}".format(op),
                     "path": "{}".format(path)}
         if value:
             gcu_json["value"] = value
+
         gcu_json_input.append(gcu_json)
         gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
         format = ConfigFormat.CONFIGDB.name

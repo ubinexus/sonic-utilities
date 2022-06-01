@@ -1906,7 +1906,7 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         fvs["min_links"] = str(min_links)
     if fallback != "false":
         fvs["fallback"] = "true"
-    db.set_entry("add", "/PORTCHANNEL/{}".format(portchannel_name), fvs)
+    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
     
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1920,7 +1920,7 @@ def remove_portchannel(ctx, portchannel_name):
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
-        db.set_entry("remove", "/PORTCHANNEL/{}".format(portchannel_name), None)
+        db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
