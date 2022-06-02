@@ -5,6 +5,9 @@ from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 
 class ValidatedConfigDBConnector(ConfigDBConnector):
 
+    def __init__(self, db):
+        pass
+
     def set_entry(self, table, key, value):
         if value:
             op = "add"

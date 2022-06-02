@@ -1893,20 +1893,20 @@ def portchannel(db, ctx, namespace):
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
     
+    db = ctx.obj['db']
+    validated_db = ValidatedConfigDBConnector(db)
+    
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
     
-    db = ValidatedConfigDBConnector()
-    db.connect()
-
-    fvs = {"admin_status": "up",
-           "mtu": "9100",  
-           "lacp_key": "auto"}
+    fvs = {'admin_status': 'up',
+           'mtu': '9100',  
+           'lacp_key': 'auto'}
     if min_links != 0:
         fvs["min_links"] = str(min_links)
     if fallback != "false":
         fvs["fallback"] = "true"
-    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
+    validated_db.set_entry('PORTCHANNEL', portchannel_name, fvs)
     
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1914,13 +1914,13 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
 
-    db = ValidatedConfigDBConnector()
-    db.connect()
+    db = ctx.obj['db']
+    validated_db = ValidatedConfigDBConnector(db)
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
-        db.set_entry('PORTCHANNEL', portchannel_name, None)
+        validated_db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
