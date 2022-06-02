@@ -1903,9 +1903,9 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
            'mtu': '9100',  
            'lacp_key': 'auto'}
     if min_links != 0:
-        fvs["min_links"] = str(min_links)
-    if fallback != "false":
-        fvs["fallback"] = "true"
+        fvs['min_links'] = str(min_links)
+    if fallback != 'false':
+        fvs['fallback'] = 'true'
     validated_db.set_entry('PORTCHANNEL', portchannel_name, fvs)
     
 @portchannel.command('del')
