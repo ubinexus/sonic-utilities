@@ -28,6 +28,7 @@ from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 from utilities_common.general import load_db_config, load_module_from_source
+from .validated_config_db_connector import ValidatedConfigDBConnector
 import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
@@ -1893,7 +1894,8 @@ def portchannel(db, ctx, namespace):
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
     
-    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    db = ctx.obj['db']
+    validated_db = ValidatedConfigDBConnector(db)
     
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
@@ -1905,15 +1907,16 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
         fvs['fallback'] = 'true'
-    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
+    validated_db.set_entry('PORTCHANNEL', portchannel_name, fvs)
     
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.pass_context
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
-
-    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    
+    db = ctx.obj['db']
+    validated_db = ValidatedConfigDBConnector(db)
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
