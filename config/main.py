@@ -1938,7 +1938,19 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     if clicommon.is_port_mirror_dst_port(db, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
 
-    # Dont allow a port to be member of port channel if it is configured with an IP address
+    # Check if the member interface given by user is valid in the namespace.
+    if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    # Dont proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+    # Dont proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+    
     for key,value in db.get_table('INTERFACE').items():
         if type(key) == tuple:
             continue

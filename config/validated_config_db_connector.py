@@ -1,6 +1,6 @@
 import jsonpatch
 
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 
 class ValidatedConfigDBConnector(ConfigDBConnector):
