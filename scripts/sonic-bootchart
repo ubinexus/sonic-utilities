@@ -85,8 +85,8 @@ def disable():
 
 
 @cli.command()
-@click.option('--time', type=int, required=True)
-@click.option('--frequency', type=int, required=True)
+@click.option('--time', type=click.IntRange(min=1), required=True)
+@click.option('--frequency', type=click.IntRange(min=1), required=True)
 @root_privileges_required
 def config(time, frequency):
     """ Configure bootchart """

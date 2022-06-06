@@ -50,9 +50,9 @@ class TestSonicBootchart:
 
     def test_config_show(self, mock_run_command):
         def run_command_side_effect(command, **kwargs):
-            if "is-enabled":
+            if "is-enabled" in command:
                 return "enabled"
-            elif "is-active":
+            elif "is-active" in command:
                 return "active"
             else:
                 raise Exception("unknown command")
@@ -65,7 +65,7 @@ class TestSonicBootchart:
         assert result.output == \
                 "Status    Operational Status      Frequency    Time (sec)  Output\n"                               \
                 "--------  --------------------  -----------  ------------  ------------------------------------\n" \
-                "enabled   enabled                        25            20  /run/log/bootchart-20220504-1040.svg\n" \
+                "enabled   active                         25            20  /run/log/bootchart-20220504-1040.svg\n" \
                 "                                                           /run/log/bootchart-20220504-1045.svg\n"
 
         result = runner.invoke(sonic_bootchart.cli.commands["config"], ["--time", "2", "--frequency", "50"])
@@ -76,5 +76,13 @@ class TestSonicBootchart:
         assert result.output == \
                 "Status    Operational Status      Frequency    Time (sec)  Output\n"                               \
                 "--------  --------------------  -----------  ------------  ------------------------------------\n" \
-                "enabled   enabled                        50             2  /run/log/bootchart-20220504-1040.svg\n" \
+                "enabled   active                         50             2  /run/log/bootchart-20220504-1040.svg\n" \
                 "                                                           /run/log/bootchart-20220504-1045.svg\n"
+
+        # Input validation tests
+
+        result = runner.invoke(sonic_bootchart.cli.commands["config"], ["--time", "0", "--frequency", "50"])
+        assert result.exit_code
+
+        result = runner.invoke(sonic_bootchart.cli.commands["config"], ["--time", "2", "--frequency", "-5"])
+        assert result.exit_code
