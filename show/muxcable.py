@@ -472,13 +472,13 @@ def create_table_dump_per_port_config(db ,print_data, per_npu_configdb, asic_id,
     port_list.append(ipv4_value)
     ipv6_value = get_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "server_ipv6", "MUX_CABLE")
     port_list.append(ipv6_value)
+    cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "cable_type", "MUX_CABLE")
+    if cable_type is not None:
+        port_list.append(cable_type)
     soc_ipv4_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv4", "MUX_CABLE")
     if soc_ipv4_value is not None:
         port_list.append(soc_ipv4_value)
         is_dualtor_active_active[0] = True
-    cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "cable_type", "MUX_CABLE")
-    if cable_type is not None:
-        port_list.append(cable_type)
     print_data.append(port_list)
 
 
@@ -492,12 +492,12 @@ def create_json_dump_per_port_config(db, port_status_dict, per_npu_configdb, asi
     port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["IPv4"] = ipv4_value
     ipv6_value = get_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "server_ipv6", "MUX_CABLE")
     port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["IPv6"] = ipv6_value
-    soc_ipv4_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv4", "MUX_CABLE")
-    if soc_ipv4_value is not None:
-        port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["soc_ipv4"] = soc_ipv4_value
     cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "cable_type", "MUX_CABLE")
     if cable_type is not None:
         port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["cable_type"] = cable_type
+    soc_ipv4_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv4", "MUX_CABLE")
+    if soc_ipv4_value is not None:
+        port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["soc_ipv4"] = soc_ipv4_value
 
 
 @muxcable.command()
@@ -714,7 +714,7 @@ def config(db, port, json_output):
                     print_peer_tor.append(peer_tor_data)
                     click.echo(tabulate(print_peer_tor, headers=headers))
                     if is_dualtor_active_active[0]:
-                        headers = ['port', 'state', 'ipv4', 'ipv6', 'soc_ipv4', 'cable_type']
+                        headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4']
                     else:
                         headers = ['port', 'state', 'ipv4', 'ipv6']
                     click.echo(tabulate(print_data, headers=headers))
@@ -766,7 +766,7 @@ def config(db, port, json_output):
             print_peer_tor.append(peer_tor_data)
             click.echo(tabulate(print_peer_tor, headers=headers))
             if is_dualtor_active_active[0]:
-                headers = ['port', 'state', 'ipv4', 'ipv6', 'soc_ipv4', 'cable_type']
+                headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4']
             else:
                 headers = ['port', 'state', 'ipv4', 'ipv6']
             click.echo(tabulate(print_data, headers=headers))
