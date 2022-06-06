@@ -93,8 +93,8 @@ def config(time, frequency):
     samples = time * frequency
 
     config = {
-        'Samples': samples,
-        'Frequency': frequency
+        'Samples': str(samples),
+        'Frequency': str(frequency),
     }
     bootchart_config = BootChartConfigParser()
     bootchart_config.read(BOOTCHART_CONF)
