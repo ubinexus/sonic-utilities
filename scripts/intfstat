@@ -12,6 +12,7 @@ import datetime
 import sys
 import os
 import time
+import errno
 
 # mock the redis for unit test purposes #
 try:
@@ -306,7 +307,7 @@ def main():
         try:
             os.remove(cnstat_fqn_file)
         except IOError as e:
-            if e.errno != ENOENT:
+            if e.errno != errno.ENOENT:
                 print(e.errno, e)
                 sys.exit(1)
         finally:
