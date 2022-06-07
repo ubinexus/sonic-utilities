@@ -146,7 +146,7 @@ Ethernet8   active   10.4.1.1  e802::46
 Ethernet12  active   10.4.1.1  e802::46
 Ethernet16  standby  10.1.1.1  fc00::75  active-standby
 Ethernet28  manual   10.1.1.1  fc00::75
-Ethernet32  auto     10.1.1.1  fc00::75  active-active    10.1.1.2
+Ethernet32  auto     10.1.1.1  fc00::75  active-active   10.1.1.2
 """
 
 tabular_data_config_output_expected_alias = """\
