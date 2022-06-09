@@ -985,12 +985,15 @@ collect_broadcom() {
     save_bcmcmd_all_ns "-t5 version" "broadcom.version"
     save_bcmcmd_all_ns "-t5 soc" "broadcom.soc"
     save_bcmcmd_all_ns "-t5 ps" "broadcom.ps"
-    if [[ ("$NUM_ASICS" > 1) ]]; then
-      bcm_family=`bcmcmd -n 0 "version" | grep "From" | awk -F 'output/' '{print $2}' | awk -F '/' '{print $1}'`
+    if [ -e /usr/share/sonic/device/${platform}/platform_asic ]; then
+       bcm_family=`cat /usr/share/sonic/device/${platform}/platform_asic`
     else
-      bcm_family=`bcmcmd "version" | grep "From" | awk -F 'output/' '{print $2}' | awk -F '/' '{print $1}'`
+       echo "'/usr/share/sonic/device/${platform}/platform_asic' does not exist" > /tmp/error
+       save_file /tmp/error sai false
+       return
     fi
-    if [ "$bcm_family" = "x86-dnx-deb" ]; then
+
+    if [ "$bcm_family" == "broadcom-dnx" ]; then
        save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
        save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
        total_fp_groups=34
@@ -1016,6 +1019,16 @@ collect_broadcom() {
        save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
        save_bcmcmd_all_ns "\"port pm info\"" "port.pm.summary"
        save_bcmcmd_all_ns "\"conf show\"" "conf.show.summary"
+       save_bcmcmd_all_ns "\"show counters\"" "show.counters.summary"
+       save_bcmcmd_all_ns "\"diag counter g\"" "diag.counter.summary"
+       save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
+       save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
+       for group in {a..f}
+       do
+          save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
+       done
+       save_bcmcmd_all_ns "\"fabric connectivity\"" "fabric.connect.summary"
+       save_bcmcmd_all_ns "\"port status\"" "port.status.summary"
     else
        save_bcmcmd_all_ns "\"l3 nat_ingress show\"" "broadcom.nat.ingress"
        save_bcmcmd_all_ns "\"l3 nat_egress show\"" "broadcom.nat.egress"
