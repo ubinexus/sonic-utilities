@@ -1,0 +1,21 @@
+{
+    "VERSIONS|DATABASE": {
+        "VERSION": "version_2_0_5"
+    },
+    "DSCP_TO_TC_MAP": {
+        "AZURE": {
+            "0": "0",
+            "1": "1"
+        }
+    },
+    "PORT_QOS_MAP": {
+        "Ethernet0": {
+            "dscp_to_tc_map": "AZURE",
+            "pfc_enable": "3,4",
+            "pfc_to_queue_map": "AZURE",
+            "tc_to_pg_map": "AZURE",
+            "tc_to_queue_map": "AZURE"
+        }
+    }
+}
+

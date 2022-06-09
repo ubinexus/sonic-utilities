@@ -485,6 +485,20 @@ class DBMigrator():
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
 
+    def migrate_port_qos_map_global(self):
+        """
+        Generate dscp_to_tc_map for switch.
+        """
+        dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
+        if len(dscp_to_tc_map_table_names) == 0:
+            return True
+        
+        qos_maps = self.configDB.get_table('PORT_QOS_MAP')
+        if 'global' not in qos_maps.keys():
+            # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
+            self.configDB.set_entry('PORT_QOS_MAP', 'global', dscp_to_tc_map_table_names[0])
+            self.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -725,6 +739,8 @@ class DBMigrator():
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
+        
+        self.migrate_port_qos_map_global()
 
     def migrate(self):
         version = self.get_version()
