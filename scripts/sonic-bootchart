@@ -3,7 +3,6 @@
 import click
 import sys
 import configparser
-import subprocess
 import functools
 import os
 import glob
