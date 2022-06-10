@@ -1636,8 +1636,9 @@ def load_mgmt_config(filename):
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
         command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
-    command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
+    if len(config_data['MGMT_INTERFACE'].keys()) > 0:
+        command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 @config.command("load_minigraph")
