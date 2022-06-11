@@ -4939,7 +4939,7 @@ def bind(ctx, interface_name, vrf_name):
         subintf['vrf_name'] = vrfname
         config_db.set_entry(interface_type, alias, subintf)
     else:
-    config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
+        config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
 
 #
 # 'unbind' subcommand
