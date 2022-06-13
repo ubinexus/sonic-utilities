@@ -12,6 +12,14 @@ import imp
 port2alias = imp.load_source('port2alias', os.path.join(os.path.dirname(__file__), '..', 'scripts', 'port2alias'))
 
 class TestPort2Alias(TestCase):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
+
     def setUp(self):
         self.ports = {
                 "Ethernet1": {"alias" : "fortyG0/1"},
