@@ -3657,6 +3657,25 @@ This command is used to display the configured MPLS state for the list of config
   Ethernet4    enable
   ```
 
+**show interfaces loopback-action**
+
+This command displays the configured loopback action
+
+- Usage:
+  ```
+  show ip interfaces loopback-action
+  ```
+
+- Example:
+  ```
+  root@sonic:~# show ip interfaces loopback-action
+  Interface     Action
+  ------------  ----------
+  Ethernet232   drop
+  Vlan100       forward
+  ```
+
+
 **show interfaces tpid**
 
 This command displays the key fields of the interfaces such as Operational Status, Administrative Status, Alias and TPID.
