@@ -274,3 +274,26 @@ class TestPfcEnableMigrator(object):
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
 
+class TestGlobalDscpToTcMapMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_global_dscp_to_tc_map_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_global_expected')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('PORT_QOS_MAP')
+        expected_table = expected_db.cfgdb.get_table('PORT_QOS_MAP')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
