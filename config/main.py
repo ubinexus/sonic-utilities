@@ -1949,6 +1949,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     if is_portchannel_present_in_db(db, portchannel_name) is False:
         ctx.fail("{} is not present.".format(portchannel_name))
     
+    # Don't allow a port to be member of port channel if it is configured with an IP address
     for key,value in db.get_table('INTERFACE').items():
         if type(key) == tuple:
             continue
