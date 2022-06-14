@@ -101,4 +101,3 @@ def caclmgrd_validator(old_config, upd_config, keys):
 
 def ntp_validator(old_config, upd_config, keys):
     return _service_restart("ntp-config")
-
