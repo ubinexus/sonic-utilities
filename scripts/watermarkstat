@@ -208,16 +208,16 @@ class Watermarkstat(object):
 
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
-	self.min_idx = 0
+
+		self.min_idx = 0
         max_idx = 0
-	
         for port in header_map.keys():
             for element in header_map[port].keys():
                 element_idx = int(element.split(':')[1])
                 if (element_idx > max_idx):
                     max_idx = element_idx
 
-        self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, max_idx)]
+        self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, max_idx + 1)]
 
     def get_counters(self, table_prefix, port_obj, idx_func, watermark):
         """
