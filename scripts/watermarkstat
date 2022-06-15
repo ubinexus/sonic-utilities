@@ -209,7 +209,7 @@ class Watermarkstat(object):
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
 
-		self.min_idx = 0
+        self.min_idx = 0
         max_idx = 0
         for port in header_map.keys():
             for element in header_map[port].keys():
