@@ -209,6 +209,7 @@ class Watermarkstat(object):
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
 
+        min_idx_found = False
         self.min_idx = 0
         max_idx = 0
         for port in header_map.keys():
@@ -216,6 +217,11 @@ class Watermarkstat(object):
                 element_idx = int(element.split(':')[1])
                 if (element_idx > max_idx):
                     max_idx = element_idx
+                if (not min_idx_found):
+                    self.min_idx = element_idx
+                    min_idx_found = True
+                if (self.min_idx > element_idx):
+                    self.min_idx = element_idx
 
         self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, max_idx + 1)]
 
