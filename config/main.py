@@ -1367,18 +1367,19 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
+    CONFIG_RELOAD_NOT_READY = 1
     if not force and not no_service_restart:
         if _is_system_starting():
             click.echo("System is not up. Retry later or use -f to avoid system checks")
-            sys.exit(1)
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _delay_timers_elapsed():
             click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
-            sys.exit(1)
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _swss_ready():
             click.echo("SwSS container is not ready. Retry later or use -f to avoid system checks")
-            sys.exit(1)
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
     if filename is None:
         message = 'Clear current config and reload config in {} format from the default config file(s) ?'.format(file_format)
