@@ -42,8 +42,8 @@ class TestMellanoxBufferMigrator(object):
     def setup_class(cls):
         cls.config_db_tables_to_verify = ['BUFFER_POOL', 'BUFFER_PROFILE', 'BUFFER_PG', 'DEFAULT_LOSSLESS_BUFFER_PARAMETER', 'LOSSLESS_TRAFFIC_PATTERN', 'VERSIONS', 'DEVICE_METADATA']
         cls.appl_db_tables_to_verify = ['BUFFER_POOL_TABLE:*', 'BUFFER_PROFILE_TABLE:*', 'BUFFER_PG_TABLE:*', 'BUFFER_QUEUE:*', 'BUFFER_PORT_INGRESS_PROFILE_LIST:*', 'BUFFER_PORT_EGRESS_PROFILE_LIST:*']
-        cls.warm_reboot_from_version = 'version_1_0_6'
-        cls.warm_reboot_to_version = 'version_2_0_3'
+        cls.advanced_reboot_from_version = 'version_1_0_6'
+        cls.advanced_reboot_to_version = 'version_2_0_3'
 
         cls.version_list = ['version_1_0_1', 'version_1_0_2', 'version_1_0_3', 'version_1_0_4', 'version_1_0_5', 'version_1_0_6', 'version_2_0_0', 'version_2_0_3']
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
@@ -153,7 +153,7 @@ class TestMellanoxBufferMigrator(object):
 
         self.clear_dedicated_mock_dbs()
 
-    def mellanox_buffer_migrator_warm_reboot_runner(self, input_config_db, input_appl_db, expected_config_db, expected_appl_db, is_buffer_config_default_expected):
+    def mellanox_buffer_migrator_advanced_reboot_runner(self, input_config_db, input_appl_db, expected_config_db, expected_appl_db, is_buffer_config_default_expected):
         expected_config_db = self.mock_dedicated_config_db(expected_config_db)
         expected_appl_db = self.mock_dedicated_appl_db(expected_appl_db)
         self.mock_dedicated_state_db()
@@ -184,20 +184,20 @@ class TestMellanoxBufferMigrator(object):
                               'ACS-MSN4700'
                              ])
     @pytest.mark.parametrize('topo', ['t0', 't1'])
-    def test_mellanox_buffer_migrator_for_warm_reboot(self, sku, topo):
+    def test_mellanox_buffer_migrator_for_advanced_reboot(self, sku, topo):
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
         # Eventually, the config db should be migrated to the latest version
-        expected_db_name = self.make_db_name_by_sku_topo_version(sku, topo, self.warm_reboot_to_version)
-        input_db_name = self.make_db_name_by_sku_topo_version(sku, topo, self.warm_reboot_from_version)
-        self.mellanox_buffer_migrator_warm_reboot_runner(input_db_name, input_db_name, expected_db_name, expected_db_name, True)
+        expected_db_name = self.make_db_name_by_sku_topo_version(sku, topo, self.advanced_reboot_to_version)
+        input_db_name = self.make_db_name_by_sku_topo_version(sku, topo, self.advanced_reboot_from_version)
+        self.mellanox_buffer_migrator_advanced_reboot_runner(input_db_name, input_db_name, expected_db_name, expected_db_name, True)
 
-    def test_mellanox_buffer_migrator_negative_nondefault_for_warm_reboot(self):
+    def test_mellanox_buffer_migrator_negative_nondefault_for_advanced_reboot(self):
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
         expected_config_db = 'non-default-config-expected'
         expected_appl_db = 'non-default-expected'
         input_config_db = 'non-default-config-input'
         input_appl_db = 'non-default-input'
-        self.mellanox_buffer_migrator_warm_reboot_runner(input_config_db, input_appl_db, expected_config_db, expected_appl_db, False)
+        self.mellanox_buffer_migrator_advanced_reboot_runner(input_config_db, input_appl_db, expected_config_db, expected_appl_db, False)
 
     @pytest.mark.parametrize('buffer_model', ['traditional', 'dynamic'])
     @pytest.mark.parametrize('ingress_pools', ['double-pools', 'single-pool'])
@@ -216,11 +216,11 @@ class TestMellanoxBufferMigrator(object):
         tables_to_verify.extend(['BUFFER_QUEUE', 'BUFFER_PORT_INGRESS_PROFILE_LIST', 'BUFFER_PORT_EGRESS_PROFILE_LIST'])
         self.check_config_db(dbmgtr.configDB, expected_db.cfgdb, tables_to_verify)
 
-    def test_mellanox_buffer_reclaiming_warm_reboot(self):
+    def test_mellanox_buffer_reclaiming_advanced_reboot(self):
         device_info.get_sonic_version_info = get_sonic_version_info_mlnx
-        input_db_name = 'reclaiming-buffer-warmreboot-input'
-        expected_db_name = 'reclaiming-buffer-warmreboot-expected'
-        self.mellanox_buffer_migrator_warm_reboot_runner(input_db_name, input_db_name, expected_db_name,expected_db_name, True)
+        input_db_name = 'reclaiming-buffer-advancedreboot-input'
+        expected_db_name = 'reclaiming-buffer-advancedreboot-expected'
+        self.mellanox_buffer_migrator_advanced_reboot_runner(input_db_name, input_db_name, expected_db_name,expected_db_name, True)
 
 
 class TestAutoNegMigrator(object):

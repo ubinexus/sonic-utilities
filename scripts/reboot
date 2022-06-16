@@ -85,9 +85,9 @@ function stop_services_asan()
     systemctl stop swss
 }
 
-function clear_warm_boot()
+function clear_advanced_boot()
 {
-    # If reboot is requested, make sure the outstanding warm-boot is cleared
+    # If reboot is requested, make sure the outstanding advanced-boot is cleared
     # So the system will come up from a cold boot.
     WARM_DIR="/host/warmboot"
     REDIS_FILE=dump.rdb
@@ -134,7 +134,7 @@ function reboot_pre_check()
         ${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK}
         [[ $? -ne 0 ]] && exit $?
     fi
-    
+
     # Verify the next image by sonic-installer
     local message=$(sonic-installer verify-next-image 2>&1)
     if [ $? -ne 0 ]; then
@@ -199,7 +199,7 @@ if [[ x"$ASAN" == x"yes" ]]; then
     stop_services_asan
 fi
 
-clear_warm_boot
+clear_advanced_boot
 
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the

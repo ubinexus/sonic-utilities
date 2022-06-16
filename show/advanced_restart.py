@@ -4,16 +4,16 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 
 
-@click.group(name='warm_restart', cls=clicommon.AliasedGroup)
-def warm_restart():
-    """Show warm restart configuration and state"""
+@click.group(name='advanced_restart', cls=clicommon.AliasedGroup)
+def advanced_restart():
+    """Show advanced restart configuration and state"""
     pass
 
 
-@warm_restart.command()
+@advanced_restart.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def state(redis_unix_socket_path):
-    """Show warm restart state"""
+    """Show advanced restart state"""
     kwargs = {}
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
@@ -22,7 +22,7 @@ def state(redis_unix_socket_path):
     db.connect(db.STATE_DB, False)   # Make one attempt only
 
     TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_TABLE' + TABLE_NAME_SEPARATOR
+    prefix = 'ADVANCED_RESTART_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     table_keys = db.keys(db.STATE_DB, _hash)
 
@@ -52,23 +52,23 @@ def state(redis_unix_socket_path):
     click.echo(tabulate(table, header))
 
 
-@warm_restart.command()
+@advanced_restart.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def config(redis_unix_socket_path):
-    """Show warm restart config"""
+    """Show advanced restart config"""
     kwargs = {}
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
-    data = config_db.get_table('WARM_RESTART')
+    data = config_db.get_table('ADVANCED_RESTART')
     # Python dictionary keys() Method
     keys = list(data.keys())
 
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
     TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
+    prefix = 'ADVANCED_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, '*')
     # DBInterface keys() method
     enable_table_keys = state_db.keys(state_db.STATE_DB, _hash)

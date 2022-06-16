@@ -40,8 +40,6 @@ EXIT_FILE_SYSTEM_FULL=3
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
-EXIT_FAST_REBOOT_DUMP_FAILURE=12
-EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_COUNTERPOLL_DELAY_FAILURE=14
 EXIT_DB_INTEGRITY_FAILURE=15
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
@@ -125,43 +123,36 @@ function parseOptions()
     done
 }
 
-function common_clear()
+function clear_boot()
 {
+    # Common clear
     debug "${REBOOT_TYPE} failure ($?) cleanup ..."
-
     /sbin/kexec -u || /bin/true
-
     teardown_control_plane_assistant
-}
 
-function clear_fast_boot()
-{
-    common_clear
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
+        result=$(timeout 10s config advanced_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
+        debug "Cancel advanced-reboot: ${result}"
 
-    sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
-}
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
+            mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
+        fi
+    fi
 
-function clear_warm_boot()
-{
-    common_clear
-
-    result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
-    debug "Cancel warm-reboot: ${result}"
-
-    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
-        mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
+    if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+        sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
     fi
 }
 
-function init_warm_reboot_states()
+function init_advanced_reboot_states()
 {
-    # If the current running instance was booted up with warm reboot. Then
-    # the current DB contents will likely mark warm reboot is done.
+    # If the current running instance was booted up with advanced reboot. Then
+    # the current DB contents will likely mark advanced reboot is done.
     # Clear these states so that the next boot up image won't get confused.
-    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
         sonic-db-cli STATE_DB eval "
-            for _, key in ipairs(redis.call('keys', 'WARM_RESTART_TABLE|*')) do
+            for _, key in ipairs(redis.call('keys', 'ADVANCED_RESTART_TABLE|*')) do
                 redis.call('hdel', key, 'state')
             end
         " 0 >/dev/null
@@ -171,7 +162,7 @@ function init_warm_reboot_states()
 function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
-    TABLE="WARM_RESTART_TABLE|warm-shutdown"
+    TABLE="ADVANCED_RESTART_TABLE|advanced-shutdown"
     RESTORE_COUNT=$(sonic-db-cli STATE_DB hget "${TABLE}" restore_count)
     if [[ -z "$RESTORE_COUNT" ]]; then
         sonic-db-cli STATE_DB hset "${TABLE}" "restore_count" "0" > /dev/null
@@ -219,7 +210,7 @@ function check_issu_bank_file()
 function wait_for_pre_shutdown_complete_or_fail()
 {
     debug "Waiting for pre-shutdown ..."
-    TABLE="WARM_RESTART_TABLE|warm-shutdown"
+    TABLE="ADVANCED_RESTART_TABLE|advanced-shutdown"
     STATE="requesting"
     declare -i waitcount
     declare -i retrycount
@@ -258,15 +249,16 @@ function backup_database()
     debug "Backing up database ..."
     # Dump redis content to a file 'dump.rdb' in warmboot directory
     mkdir -p $WARM_DIR
-    # Delete keys in stateDB except FDB_TABLE|*, MIRROR_SESSION_TABLE|*, WARM_RESTART_ENABLE_TABLE|*, FG_ROUTE_TABLE|*
+    # Delete keys in stateDB except FDB_TABLE|*, MIRROR_SESSION_TABLE|*, ADVANCED_RESTART_ENABLE_TABLE|*, FG_ROUTE_TABLE|*
     sonic-db-cli STATE_DB eval "
         for _, k in ipairs(redis.call('keys', '*')) do
-            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
+            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'ADVANCED_RESTART_TABLE|') \
                                           and not string.match(k, 'MIRROR_SESSION_TABLE|') \
                                           and not string.match(k, 'FG_ROUTE_TABLE|') \
-                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
+                                          and not string.match(k, 'ADVANCED_RESTART_ENABLE_TABLE|') \
                                           and not string.match(k, 'VXLAN_TUNNEL_TABLE|') \
-                                          and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') then
+                                          and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') \
+                                          and not string.match(k, 'FAST_REBOOT|') then
                 redis.call('del', k)
             end
         end
@@ -371,7 +363,7 @@ function check_docker_exec()
 
 function check_db_integrity()
 {
-    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
         CHECK_DB_INTEGRITY=0
         /usr/local/bin/check_db_integrity.py || CHECK_DB_INTEGRITY=$?
         if [[ CHECK_DB_INTEGRITY -ne 0 ]]; then
@@ -452,13 +444,13 @@ function unload_kernel()
 }
 
 function save_counters_folder() {
-    debug "Saving counters folder before warmboot..."
-
-    counters_folder="/host/counters"
-    if [[ ! -d $counters_folder ]]; then
-        mkdir $counters_folder
-    fi
     if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        debug "Saving counters folder before warm boot..."
+        counters_folder="/host/counters"
+        if [[ ! -d $counters_folder ]]; then
+            mkdir $counters_folder
+        fi
+
         modules=("portstat-0" "dropstat" "pfcstat-0" "queuestat-0" "intfstat-0")
         for module in ${modules[@]}
         do
@@ -470,13 +462,13 @@ function save_counters_folder() {
     fi
 }
 
-function check_warm_restart_in_progress() {
-    sonic-db-cli STATE_DB keys "WARM_RESTART_ENABLE_TABLE|*" | while read key ; do
+function check_advanced_restart_in_progress() {
+    sonic-db-cli STATE_DB keys "ADVANCED_RESTART_ENABLE_TABLE|*" | while read key ; do
         if [ -n "$key" ] && [[ x"$(sonic-db-cli STATE_DB hget $key enable)" == x"true" ]]; then
             if [[ x"${FORCE}" == x"yes" ]]; then
-                debug "Ignoring warm restart flag for ${key#*|}"
+                debug "Ignoring advanced restart flag for ${key#*|}"
             else
-                echo "Warm restart flag for ${key#*|} is set. Please check if a warm restart for ${key#*|} is in progress."
+                echo "Advanced restart flag for ${key#*|} is set. Please check if a advanced restart for ${key#*|} is in progress."
                 exit "${EXIT_FAILURE}"
             fi
         fi
@@ -530,12 +522,14 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 BOOT_TYPE_ARG="cold"
 case "$REBOOT_TYPE" in
     "fast-reboot")
+        check_advanced_restart_in_progress
         BOOT_TYPE_ARG=$REBOOT_TYPE
-        trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
+        trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
         sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
+        config advanced_restart enable system
         ;;
     "warm-reboot")
-        check_warm_restart_in_progress
+        check_advanced_restart_in_progress
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
             REBOOT_TYPE="fastfast-reboot"
             BOOT_TYPE_ARG="fastfast"
@@ -545,8 +539,8 @@ case "$REBOOT_TYPE" in
         else
             BOOT_TYPE_ARG="warm"
         fi
-        trap clear_warm_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        config warm_restart enable system
+        trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
+        config advanced_restart enable system
         ;;
     *)
         error "Not supported reboot type: $REBOOT_TYPE"
@@ -603,35 +597,12 @@ else
     load_kernel
 fi
 
-if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
-    # into /host/fast-reboot
-    DUMP_DIR=/host/fast-reboot
-    mkdir -p $DUMP_DIR
-    FAST_REBOOT_DUMP_RC=0
-    /usr/local/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
-    if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
-        error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
-        unload_kernel
-        exit "${EXIT_FAST_REBOOT_DUMP_FAILURE}"
-    fi
-
-    FILTER_FDB_ENTRIES_RC=0
-    # Filter FDB entries using MAC addresses from ARP table
-    /usr/local/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
-    if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
-        error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
-        unload_kernel
-        exit "${EXIT_FILTER_FDB_ENTRIES_FAILURE}"
-    fi
-fi
-
-init_warm_reboot_states
+init_advanced_reboot_states
 
 setup_control_plane_assistant
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-    # Freeze orchagent for warm restart
+if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
+    # Freeze orchagent for advanced restart
     # Ask orchagent_restart_check to try freeze 5 times with interval of 2 seconds,
     # it is possible that the orchagent is in transient state and no opportunity to freeze
     # Note: assume that 2*5 seconds is enough for orchagent to process the request and response to freeze or not
@@ -656,6 +627,15 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
         unload_kernel
         exit "${EXIT_COUNTERPOLL_DELAY_FAILURE}"
     fi
+
+    # Clear all routes except of default routes for faster reconciliation time.
+    sonic-db-cli APPL_DB eval "
+        for _, k in ipairs(redis.call('keys', '*')) do
+            if string.match(k, 'ROUTE_TABLE:') and not string.match(k, 'ROUTE_TABLE:0.0.0.0/0') and not string.match(k, 'ROUTE_TABLE:::/0') then \
+                redis.call('del', k)
+            end
+        end
+    " 0 > /dev/null
 fi
 
 # We are fully committed to reboot from this point on because critical
@@ -723,9 +703,11 @@ for service in ${SERVICES_TO_STOP}; do
             if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
                 check_issu_bank_file
             fi
+        fi
 
-            # Warm reboot: dump state to host disk
-            if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
+            # Advanced reboot: dump state to host disk
+            if [[ "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
                 sonic-db-cli ASIC_DB FLUSHDB > /dev/null
                 sonic-db-cli COUNTERS_DB FLUSHDB > /dev/null
                 sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
@@ -735,6 +717,7 @@ for service in ${SERVICES_TO_STOP}; do
             # need to cleanup as well for fastfast boot case
             backup_database
         fi
+
     fi
 done
 

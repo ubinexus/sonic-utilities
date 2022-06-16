@@ -37,15 +37,15 @@ function debug()
     /bin/echo `date` "- $1" >> ${DEBUGLOG}
 }
 
-function check_warm_boot()
+function check_advanced_boot()
 {
-    SYSTEM_WARM_START=`$SONIC_DB_CLI STATE_DB hget "WARM_RESTART_ENABLE_TABLE|system" enable`
-    SERVICE_WARM_START=`$SONIC_DB_CLI STATE_DB hget "WARM_RESTART_ENABLE_TABLE|${SERVICE}" enable`
-    if [[ x"$SYSTEM_WARM_START" == x"true" ]] || [[ x"$SERVICE_WARM_START" == x"true" ]]; then
-        WARM_BOOT="true"
+    SYSTEM_ADVANCED_START=`$SONIC_DB_CLI STATE_DB hget "ADVANCED_RESTART_ENABLE_TABLE|system" enable`
+    SERVICE_ADVANCED_START=`$SONIC_DB_CLI STATE_DB hget "ADVANCED_RESTART_ENABLE_TABLE|${SERVICE}" enable`
+    if [[ x"$SYSTEM_ADVANCED_START" == x"true" ]] || [[ x"$SERVICE_ADVANCED_START" == x"true" ]]; then
+        ADVANCED_BOOT="true"
 {#- TODO: restore count validation for SONiC packages #}
     else
-        WARM_BOOT="false"
+        ADVANCED_BOOT="false"
     fi
 }
 
@@ -59,7 +59,7 @@ function check_fast_boot()
 }
 
 function start_dependent_services() {
-    if [[ x"$WARM_BOOT" != x"true" ]]; then
+    if [[ x"$ADVANCED_BOOT" != x"true" ]]; then
         for dep in ${DEPENDENT}; do
             /bin/systemctl start ${dep}
         done
@@ -74,7 +74,7 @@ function start_dependent_services() {
 }
 
 function stop_dependent_services() {
-    if [[ x"$WARM_BOOT" != x"true" ]] && [[ x"$FAST_BOOT" != x"true" ]]; then
+    if [[ x"$ADVANCED_BOOT" != x"true" ]] && [[ x"$FAST_BOOT" != x"true" ]]; then
         for dep in ${DEPENDENT}; do
             /bin/systemctl stop ${dep}
         done
@@ -118,7 +118,7 @@ function stop() {
 {%- endif %}
 
     # For WARM/FAST boot do not perform service stop
-    if [[ x"$WARM_BOOT" != x"true" ]] && [[ x"$FAST_BOOT" != x"true" ]]; then
+    if [[ x"$ADVANCED_BOOT" != x"true" ]] && [[ x"$FAST_BOOT" != x"true" ]]; then
         /usr/bin/${SERVICE}.sh stop $DEV
     else
         docker kill ${SERVICE}$DEV &> /dev/null || debug "Docker ${SERVICE}$DEV is not running ($?) ..."
@@ -132,11 +132,11 @@ function stop() {
 OP=$1
 DEV=$2
 
-check_warm_boot
+check_advanced_boot
 check_fast_boot
 
 debug "Fast boot flag: ${SERVICE}$DEV ${FAST_BOOT}."
-debug "Warm boot flag: ${SERVICE}$DEV ${WARM_BOOT}."
+debug "Advanced boot flag: ${SERVICE}$DEV ${ADVANCED_BOOT}."
 
 case "$OP" in
     start|wait|stop)

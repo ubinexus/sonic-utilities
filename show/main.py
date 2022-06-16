@@ -56,7 +56,7 @@ from . import vlan
 from . import vnet
 from . import vxlan
 from . import system_health
-from . import warm_restart
+from . import advanced_restart
 from . import plugins
 
 # Global Variables
@@ -193,7 +193,7 @@ cli.add_command(vlan.vlan)
 cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
 cli.add_command(system_health.system_health)
-cli.add_command(warm_restart.warm_restart)
+cli.add_command(advanced_restart.advanced_restart)
 
 # Add greabox commands only if GEARBOX is configured
 if is_gearbox_configured():

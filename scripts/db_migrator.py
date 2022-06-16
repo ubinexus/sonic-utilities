@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_5'
+        self.CURRENT_VERSION = 'version_2_0_6'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -484,6 +484,26 @@ class DBMigrator():
         log.log_info("Remove CONFIG_DB QOS tables field reference ABNF format")
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
+    
+    def migrate_rename_entries(self, pattern, field, old_name, new_name):
+        '''
+        This is to change for first time to remove field refernces of ABNF format
+        in APPL DB for warm boot.
+        i.e "[Tabale_name:name]" to string in APPL_DB. Reasons for doing this
+         - To consistent with all other SoNIC CONFIG_DB/APPL_DB tables and fields
+         - References in DB is not required, this will be taken care by YANG model leafref.
+        '''
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, pattern)
+        if keys is not None:
+            for key in keys:
+                new_key = key.replace(old_name, new_name)
+                val = self.stateDB.get(self.stateDB.STATE_DB, key, field)
+                self.stateDB.set(self.stateDB.STATE_DB, new_key, field, val)
+                self.stateDB.del_key(self.stateDB.STATE_DB, key)
+        
+        
+        
+        return True
 
     def version_unknown(self):
         """
@@ -677,14 +697,27 @@ class DBMigrator():
             if 'pfc_enable' in v:
                 v['pfcwd_sw_enable'] = v['pfc_enable']
                 self.configDB.set_entry('PORT_QOS_MAP', k, v)
-
+        self.set_version('version_2_0_5')
         return 'version_2_0_5'
 
     def version_2_0_5(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_5
         """
         log.log_info('Handling version_2_0_5')
+        
+        # Rename WARM to ADVANCED in the stateDB entries 
+        self.migrate_rename_entries("WARM_RESTART_TABLE|*", "restore_count", "WARM", "ADVANCED")
+        self.migrate_rename_entries("WARM_RESTART_ENABLE_TABLE|*", "restore_count", "WARM", "ADVANCED")
+        
+        self.set_version('version_2_0_6')
+        return 'version_2_0_6'
+    
+    def version_2_0_6(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_6')
         return None
 
     def get_version(self):
@@ -792,3 +825,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

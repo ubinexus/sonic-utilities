@@ -2589,7 +2589,7 @@ def is_dynamic_buffer_enabled(config_db):
     return 'dynamic' == device_metadata.get('buffer_model')
 
 #
-# 'warm_restart' group ('config warm_restart ...')
+# 'warm_restart' group ('config advanced_restart ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup, name='warm_restart')
 @click.pass_context
@@ -2606,7 +2606,7 @@ def warm_restart(ctx, redis_unix_socket_path):
     state_db = SonicV2Connector(use_unix_socket_path=use_unix_socket_path)
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
+    prefix = 'ADVANCED_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
     ctx.obj = {'db': config_db, 'state_db': state_db, 'prefix': prefix}
 
 @warm_restart.command('enable')
@@ -2644,7 +2644,7 @@ def warm_restart_neighsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
     if seconds not in range(1, 9999):
         ctx.fail("neighsyncd warm restart timer must be in range 1-9999")
-    db.mod_entry('WARM_RESTART', 'swss', {'neighsyncd_timer': seconds})
+    db.mod_entry('ADVANCED_RESTART', 'swss', {'neighsyncd_timer': seconds})
 
 @warm_restart.command('bgp_timer')
 @click.argument('seconds', metavar='<seconds>', required=True, type=int)
@@ -2653,7 +2653,7 @@ def warm_restart_bgp_timer(ctx, seconds):
     db = ctx.obj['db']
     if seconds not in range(1, 3600):
         ctx.fail("bgp warm restart timer must be in range 1-3600")
-    db.mod_entry('WARM_RESTART', 'bgp', {'bgp_timer': seconds})
+    db.mod_entry('ADVANCED_RESTART', 'bgp', {'bgp_timer': seconds})
 
 @warm_restart.command('teamsyncd_timer')
 @click.argument('seconds', metavar='<seconds>', required=True, type=int)
@@ -2662,14 +2662,14 @@ def warm_restart_teamsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
     if seconds not in range(1, 3600):
         ctx.fail("teamsyncd warm restart timer must be in range 1-3600")
-    db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
+    db.mod_entry('ADVANCED_RESTART', 'teamd', {'teamsyncd_timer': seconds})
 
 @warm_restart.command('bgp_eoiu')
 @click.argument('enable', metavar='<enable>', default='true', required=False, type=click.Choice(["true", "false"]))
 @click.pass_context
 def warm_restart_bgp_eoiu(ctx, enable):
     db = ctx.obj['db']
-    db.mod_entry('WARM_RESTART', 'bgp', {'bgp_eoiu': enable})
+    db.mod_entry('ADVANCED_RESTART', 'bgp', {'bgp_eoiu': enable})
 
 def mvrf_restart_services():
     """Restart interfaces-config service and NTP service when mvrf is changed"""

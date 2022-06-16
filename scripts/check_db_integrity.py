@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-This is to verify if Database has critical tables present before warmboot can proceed.
-If warmboot is allowed with missing critical tables, it can lead to issues in going
+This is to verify if Database has critical tables present before advanced boot can proceed.
+If advanced boot is allowed with missing critical tables, it can lead to issues in going
 down path or during the recovery path. This test detects such issues before proceeding.
 The verification procedure here uses JSON schemas to verify the DB entities.
 
@@ -53,7 +53,7 @@ def main():
             return 1
 
         # What: Validate if critical tables and entries are present in DB.
-        # Why: This is needed to avoid warmbooting with a bad DB; which can
+        # Why: This is needed to avoid advanced booting with a bad DB; which can
         #   potentially trigger failures in the reboot recovery path.
         # How: Validate DB against a schema which defines required tables.
         try:

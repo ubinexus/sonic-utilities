@@ -1073,8 +1073,8 @@ class MellanoxBufferMigrator():
         if not is_dynamic:
             return
 
-        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
-        if warmreboot_state == 'true':
+        advancedreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'ADVANCED_RESTART_ENABLE_TABLE|system', 'enable')
+        if advancedreboot_state == 'true':
             referenced_profiles = set()
             keys = self.appDB.keys(self.appDB.APPL_DB, "BUFFER_PG_TABLE:*")
             if keys is None:

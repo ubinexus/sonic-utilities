@@ -83,9 +83,9 @@ function stop_sonic_services()
 
 function clear_lingering_reboot_config()
 {
-    # Clear any outstanding warm-reboot config
-    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
-    debug "Cancel warm-reboot: ${result}"
+    # Clear any outstanding advanced-reboot config
+    result=`timeout 10s config advanced_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    debug "Cancel advanced-reboot: ${result}"
 
     WARM_DIR="/host/warmboot"
     REDIS_FILE=dump.rdb
