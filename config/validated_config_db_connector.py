@@ -3,12 +3,9 @@ import jsonpatch
 from swsscommon.swsscommon import ConfigDBConnector
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 
-class ValidatedConfigDBConnector(ConfigDBConnector):
+def validate(config_db_connector):
 
-    def __init__(self, db):
-        super().__init__()
-
-    def set_entry(self, table, key, value):
+    def validated_set_entry(table, key, value):
         if value:
             op = "add"
         else:
@@ -25,3 +22,6 @@ class ValidatedConfigDBConnector(ConfigDBConnector):
         format = ConfigFormat.CONFIGDB.name
         config_format = ConfigFormat[format.upper()]
         GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
+
+    config_db_connector.set_entry = validated_set_entry
+    return config_db_connector

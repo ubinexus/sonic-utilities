@@ -1894,7 +1894,7 @@ def portchannel(db, ctx, namespace):
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
     
-    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    db = validate(ctx.obj['db'])
     
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
@@ -1914,7 +1914,7 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     
-    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    db = validate(ctx.obj['db'])
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
