@@ -4712,7 +4712,7 @@ def loopback_action(ctx, interface_name, action):
     table_name = get_interface_table_name(interface_name)
     if not table_name:
         ctx.fail('Interface {} is invalid'.format(interface_name))
-    config_db.set_entry(table_name, interface_name, {"loopback_action": action})
+    config_db.mod_entry(table_name, interface_name, {"loopback_action": action})
 
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
