@@ -4919,10 +4919,10 @@ def bind(ctx, interface_name, vrf_name):
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     for ipaddress in interface_addresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
-    if interface_type == "VLAN_SUB_INTERFACE":
-        subintf = config_db.get_entry(interface_type, alias)
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry = config_db.get_entry(table_name, interface_name)
         if 'vrf_name' in subintf_entry:
-            subintf_entry.pop('vrf')
+            subintf_entry.pop('vrf_name')
 
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
@@ -4935,9 +4935,9 @@ def bind(ctx, interface_name, vrf_name):
     while state_db.exists(state_db.STATE_DB, _hash):
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
-    if interface_type == "VLAN_SUB_INTERFACE":
-        subintf['vrf_name'] = vrfname
-        config_db.set_entry(interface_type, alias, subintf)
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry['vrf_name'] = vrf_name
+        config_db.set_entry(table_name, interface_name, subintf_entry)
     else:
         config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
 
