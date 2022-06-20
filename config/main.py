@@ -12,6 +12,7 @@ import sys
 import time
 import itertools
 
+from jsonpatch import JsonPatchConflict
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from minigraph import parse_device_desc_xml, minigraph_encoder
@@ -1894,8 +1895,11 @@ def portchannel(db, ctx, namespace):
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
     
-    db = validate(ctx.obj['db'])
+    error_map = {}
+    error_map[ValueError] = "{} is invalid!, name should have prefix '{}' and suffix '{}'".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO)
     
+    db = validate(ctx.obj['db'], error_map, ctx) 
+
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
     
@@ -1914,7 +1918,11 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     
-    db = validate(ctx.obj['db'])
+    error_map = {}    
+    error_map[ValueError] = "{} is invalid!, name should have prefix '{}' and suffix '{}'".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO)
+    error_map[JsonPatchConflict] = "{} is not present.".format(portchannel_name)
+
+    db = validate(ctx.obj['db'], error_map, ctx)
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))

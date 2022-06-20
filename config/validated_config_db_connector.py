@@ -2,7 +2,7 @@ import jsonpatch
 
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 
-def validate(config_db_connector):
+def validate(config_db_connector, error_map, ctx=None):
 
     def validated_set_entry(table, key, value):
         if value:
@@ -20,7 +20,13 @@ def validate(config_db_connector):
         gcu_patch = jsonpatch.JsonPatch(gcu_json_input)
         format = ConfigFormat.CONFIGDB.name
         config_format = ConfigFormat[format.upper()]
-        GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
+        try:
+            GenericUpdater().apply_patch(patch=gcu_patch, config_format=config_format, verbose=False, dry_run=False, ignore_non_yang_tables=False, ignore_paths=None)
+        except Exception as e:
+            if ctx:
+                ctx.fail(error_map[type(e)])
+            else:
+                print("Case specific handling of errors, not all use ctx object")
 
     config_db_connector.set_entry = validated_set_entry
     return config_db_connector
