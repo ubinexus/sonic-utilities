@@ -34,6 +34,24 @@ class TestLoopbackAction(object):
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         
+    def test_config_loopback_action_on_physical_interface_alias(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+        action = 'forward'
+        iface = 'Ethernet0'
+        iface_alias = 'etp1'
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface_alias, action], obj=obj)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        table = db.cfgdb.get_table('INTERFACE')
+        assert(table[iface]['loopback_action'] == action)
+
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
     def test_config_loopback_action_on_port_channel_interface(self):        
         runner = CliRunner()
         db = Db()

@@ -4710,8 +4710,6 @@ def loopback_action(ctx, interface_name, action):
         ctx.fail('Invalid action')
 
     table_name = get_interface_table_name(interface_name)
-    if not table_name:
-        ctx.fail('Interface {} is invalid'.format(interface_name))
     config_db.mod_entry(table_name, interface_name, {"loopback_action": action})
 
 #
