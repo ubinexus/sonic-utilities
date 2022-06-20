@@ -28,7 +28,7 @@ from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 from utilities_common.general import load_db_config, load_module_from_source
-from .validated_config_db_connector import ValidatedConfigDBConnector
+from .validated_config_db_connector import *
 import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log

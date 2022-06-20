@@ -1,6 +1,5 @@
 import jsonpatch
 
-from swsscommon.swsscommon import ConfigDBConnector
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 
 def validate(config_db_connector):
