@@ -713,6 +713,7 @@ def storm_control_delete_entry(port_name, storm_type):
 
 
 def _clear_qos():
+# TODO, HUA: remove static buffer config tables form here
     QOS_TABLE_NAMES = [
             'PORT_QOS_MAP',
             'QUEUE',
@@ -734,6 +735,10 @@ def _clear_qos():
             'DEFAULT_LOSSLESS_BUFFER_PARAMETER',
             'LOSSLESS_TRAFFIC_PATTERN']
 
+    STATIC_QOS_TABLE_NAMES = [
+            'BUFFER_PROFILE',
+            'BUFFER_POOL']
+
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
         namespace_list = multi_asic.get_namespaces_from_linux()
@@ -741,13 +746,22 @@ def _clear_qos():
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
             config_db = ConfigDBConnector()
+            static_config_db = ConfigDBConnector()
         else:
             config_db = ConfigDBConnector(
                 use_unix_socket_path=True, namespace=ns
             )
+            static_config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
         config_db.connect()
+        static_config_db.db_connect("STATIC_CONFIG_DB")
+
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
+
+        for qos_table in STATIC_QOS_TABLE_NAMES:
+            static_config_db.delete_table(qos_table)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
@@ -2469,6 +2483,7 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
         if ns is DEFAULT_NAMESPACE:
             asic_id_suffix = ""
             config_db = ConfigDBConnector()
+            static_config_db = ConfigDBConnector()
         else:
             asic_id = multi_asic.get_asic_id_from_name(ns)
             if asic_id is None:
@@ -2483,16 +2498,23 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
             config_db = ConfigDBConnector(
                 use_unix_socket_path=True, namespace=ns
             )
+            static_config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
 
         config_db.connect()
+        static_config_db.db_connect("STATIC_CONFIG_DB")
 
+        # TODO, HUA: remove buffer data from config DB after migration finish
         if not no_dynamic_buffer and asic_type in vendors_supporting_dynamic_buffer:
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers_dynamic.json.j2")
             buffer_model_updated |= _update_buffer_calculation_model(config_db, "dynamic")
+            buffer_model_updated |= _update_buffer_calculation_model(static_config_db, "dynamic")
         else:
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
             if asic_type in vendors_supporting_dynamic_buffer:
                 buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
+                buffer_model_updated |= _update_buffer_calculation_model(static_config_db, "traditional")
 
         if os.path.isfile(buffer_template_file):
             qos_template_file = os.path.join(
@@ -2501,6 +2523,15 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
             if os.path.isfile(qos_template_file):
                 cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
                 fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "config-db"
+                command = "{} {} {} -t {},{} -t {},{} -y {}".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
+                    fname, qos_template_file, fname, sonic_version_file
+                )
+                # Apply the configurations only when both buffer and qos
+                # configuration files are present
+                clicommon.run_command(command, display_cmd=True)
+                # run command again for write to static-config-db, old code will remove after migration finish
+                fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "static-config-db"
                 command = "{} {} {} -t {},{} -t {},{} -y {}".format(
                     SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
                     fname, qos_template_file, fname, sonic_version_file
@@ -5687,7 +5718,6 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
                 params['dynamic_th'] = default_lossless_param['default_dynamic_th']
             else:
                 ctx.fail("No dynamic_th defined in DEFAULT_LOSSLESS_BUFFER_PARAMETER")
-
     config_db.set_entry("BUFFER_PROFILE", (profile_name), params)
 
 @profile.command('remove')
@@ -5696,6 +5726,7 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
 def remove_profile(db, profile):
     """Delete a buffer profile"""
     config_db = db.cfgdb
+    static_config_db = db.static_cfgdb
     ctx = click.get_current_context()
 
     existing_pgs = config_db.get_table("BUFFER_PG")
@@ -5705,11 +5736,17 @@ def remove_profile(db, profile):
         if referenced_profile and referenced_profile == profile:
             ctx.fail("Profile {} is referenced by {}|{} and can't be removed".format(profile, port, pg))
 
+    # check if profile is a user config, if yes, remove from both userconfig and static config, else remove from static config.
     entry = config_db.get_entry("BUFFER_PROFILE", profile)
     if entry:
         config_db.set_entry("BUFFER_PROFILE", profile, None)
+        static_config_db.set_entry("BUFFER_PROFILE", profile, None)
     else:
-        ctx.fail("Profile {} doesn't exist".format(profile))
+        entry = static_config_db.get_entry("BUFFER_PROFILE", profile)
+        if entry:
+            static_config_db.set_entry("BUFFER_PROFILE", profile, None)
+        else:
+            ctx.fail("Profile {} doesn't exist".format(profile))
 
 @buffer.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context

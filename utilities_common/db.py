@@ -13,6 +13,8 @@ class Db(object):
         self.cfgdb_pipe = ConfigDBPipeConnector()
         self.cfgdb_pipe.connect()
         self.db = SonicV2Connector(host="127.0.0.1")
+        self.static_cfgdb = ConfigDBConnector()
+        self.static_cfgdb.connect("STATIC_CONFIG_DB")
 
         # Skip connecting to chassis databases in line cards
         self.db_list = list(self.db.get_db_list())
