@@ -29,7 +29,7 @@ from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 from utilities_common.general import load_db_config, load_module_from_source
-from .validated_config_db_connector import *
+from .validated_config_db_connector import validate
 import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
@@ -1897,21 +1897,21 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
     
     error_map = {}
     error_map[ValueError] = "{} is invalid!, name should have prefix '{}' and suffix '{}'".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO)
-    
+
     db = validate(ctx.obj['db'], error_map, ctx) 
 
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
-    
+ 
     fvs = {'admin_status': 'up',
-           'mtu': '9100',  
+           'mtu': '9100', 
            'lacp_key': 'auto'}
     if min_links != 0:
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
         fvs['fallback'] = 'true'
     db.set_entry('PORTCHANNEL', portchannel_name, fvs)
-    
+ 
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.pass_context
@@ -1956,7 +1956,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # Dont proceed if the port channel does not exist
     if is_portchannel_present_in_db(db, portchannel_name) is False:
         ctx.fail("{} is not present.".format(portchannel_name))
-    
+ 
     # Don't allow a port to be member of port channel if it is configured with an IP address
     for key,value in db.get_table('INTERFACE').items():
         if type(key) == tuple:
