@@ -230,7 +230,6 @@ def parse_ts_dump_name(ts_stdout):
 def invoke_ts_cmd(db, num_retry=0):
     """Invoke techsupport generation command"""
     since_cfg = get_since_arg(db)
-    since_cfg = "'" + since_cfg + "'"
     cmd_opts = ["show", "techsupport", "--silent", "--global-timeout", TS_GLOBAL_TIMEOUT, "--since", since_cfg]
     cmd  = " ".join(cmd_opts)
     rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
