@@ -272,7 +272,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             def mock_cmd(cmd, env):
                 ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
-                if "--since '4 days ago'" in cmd_str:
+                if "--since 4 days ago" in cmd_str:
                     patcher.fs.create_file(ts_dump)
                     return 0, AUTO_TS_STDOUT + ts_dump, ""
                 elif "date --date=4 days ago" in cmd_str:
@@ -338,7 +338,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             def mock_cmd(cmd, env):
                 ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
-                if "--since '2 days ago'" in cmd_str:
+                if "--since 2 days ago" in cmd_str:
                     patcher.fs.create_file(ts_dump)
                     print(AUTO_TS_STDOUT + ts_dump)
                     return 0, AUTO_TS_STDOUT + ts_dump, ""
