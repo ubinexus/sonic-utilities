@@ -527,7 +527,7 @@ Ethernet0  N/A
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     @patch('sfputil.main.is_rj45_port_from_api', MagicMock(return_value=True))
     @patch('sfputil.main.is_sfp_present', MagicMock(return_value=1))
-    def test_firmware_upgrade_RJ45(self):
+    def test_firmware_download_RJ45(self):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['firmware'].commands['download'], ["Ethernet0", "a.b"])
         assert result.output == 'This functionality is not applicable for RJ45 port Ethernet0.\n'
