@@ -231,6 +231,10 @@ def display_invalid_intf_presence(intf_name):
 
 
 class SFPShow(object):
+    platform_chassis = None
+    platform_sfp = None
+    load_chassis_failed = False
+    platform_sfputil_loaded = False
 
     def __init__(self, intf_name, namespace_option, dump_dom=False):
         super(SFPShow, self).__init__()
@@ -431,6 +435,34 @@ class SFPShow(object):
                         self.intf_eeprom[interface] = "SFP EEPROM Not detected\n"
 
 
+    def is_rj45_port_from_api(self, port_name):
+        if not self.platform_chassis and not self.load_chassis_failed:
+            try:
+                import sonic_platform, sonic_platform_base
+                self.platform_chassis = sonic_platform.platform.Platform().get_chassis()
+                self.platform_sfp = sonic_platform_base.sfp_base.SfpBase
+            except Exception as e:
+                log.log_error("Failed to instantiate Chassis due to {}".format(repr(e)))
+                self.load_chassis_failed = True
+
+        if self.platform_chassis:
+            from utilities_common import platform_sfputil_helper
+            if not self.platform_sfputil_loaded:
+                platform_sfputil_helper.load_platform_sfputil()
+                platform_sfputil_helper.platform_sfputil_read_porttab_mappings()
+                self.platform_sfputil_loaded = True
+
+            physical_port = platform_sfputil_helper.logical_port_name_to_physical_port_list(port_name)[0]
+            try:
+                port_type = self.platform_chassis.get_port_or_cage_type(physical_port)
+            except NotImplementedError as e:
+                port_type = None
+
+            return port_type == self.platform_sfp.SFP_PORT_TYPE_BIT_RJ45
+
+        return False
+
+
     def convert_interface_sfp_presence_state_to_cli_output_string(self, state_db, interface_name):
         sfp_info_dict = state_db.get_all(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
         if sfp_info_dict:
@@ -439,7 +471,11 @@ class SFPShow(object):
             else:
                 output = 'Present'
         else:
-            output = 'Not present'
+            # We have to check whether it is an RJ45 port via calling platform API in case it is absent
+            if self.is_rj45_port_from_api(interface_name):
+                output = 'Link Down'
+            else:
+                output = 'Not present'
         return output
 
 
