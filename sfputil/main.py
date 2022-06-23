@@ -16,6 +16,7 @@ import subprocess
 import click
 import sonic_platform
 import sonic_platform_base.sonic_sfp.sfputilhelper
+from sonic_platform_base.sfp_base import SfpBase
 from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
@@ -303,15 +304,13 @@ def is_rj45_port_from_db(port_name, db):
 
 def is_rj45_port_from_api(port_name):
     physical_port = logical_port_to_physical_port_index(port_name)
-    sfp = platform_chassis.get_sfp(physical_port)
 
     try:
-        port_type = sfp.get_transceiver_info()['type']
+        port_types = platform_chassis.get_port_or_cage_type(physical_port)
     except NotImplementedError:
-        click.echo("Not able to judge the port type due to get_transceiver_info not implemented!", err=True)
-        sys.exit(ERROR_NOT_IMPLEMENTED)
+        port_types = None
 
-    return port_type == RJ45_PORT_TYPE
+    return SfpBase.SFP_PORT_TYPE_BIT_RJ45 == port_types
 
 
 def skip_if_port_is_rj45(port_name): 
@@ -746,7 +745,10 @@ def presence(port):
                 click.echo("This functionality is currently not implemented for this platform")
                 sys.exit(ERROR_NOT_IMPLEMENTED)
 
-            status_string = "Present" if presence else "Not present"
+            if is_rj45_port_from_api(logical_port_name):
+                status_string = "Link Up" if presence else "Link Down"
+            else:
+                status_string = "Present" if presence else "Not present"
             output_table.append([port_name, status_string])
 
             i += 1
