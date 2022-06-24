@@ -333,9 +333,6 @@ Examples:
 
     port_to_show_stats = args.port
 
-    uid = str(os.getuid())
-    cnstat_file = uid
-
     try:
         cache = UserCache()
     except IOError as err:

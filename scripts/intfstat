@@ -276,7 +276,6 @@ def main():
     delete_all_stats = args.delete_all
     use_json = args.json
     tag_name = args.tag
-    uid = str(os.getuid())
     wait_time_in_seconds = args.period
     interface_name = args.interface if args.interface else ""
 

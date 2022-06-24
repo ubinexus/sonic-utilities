@@ -569,7 +569,6 @@ Examples:
     use_json = args.json
     raw_stats = args.raw
     tag_name = args.tag
-    uid = str(os.getuid())
     wait_time_in_seconds = args.period
     print_all = args.all
     intf_fs = args.interface
