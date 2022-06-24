@@ -328,7 +328,7 @@ Examples:
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
-    delete_all_stats = args.delete
+    delete_stats = args.delete
     json_opt = args.json_opt
 
     port_to_show_stats = args.port
@@ -345,7 +345,7 @@ Examples:
     cnstat_dir = cache.get_directory()
     cnstat_fqn_file = os.path.join(cnstat_dir, 'queuestat')
 
-    if delete_all_stats:
+    if delete_stats:
         try:
             cache.remove()
         except IOError as err:

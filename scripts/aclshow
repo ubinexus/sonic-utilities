@@ -69,8 +69,6 @@ class AclStat(object):
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
 
-        self.counters_cache = COUNTERS_CACHE
-
     def previous_counters(self):
         """
         if user ever did a clear counter action, then read the saved counter reading when clear statistics
@@ -81,9 +79,9 @@ class AclStat(object):
                 res[e['key'][0], e['key'][1]] = e['value']
             return res
 
-        if os.path.isfile(self.counters_cache):
+        if os.path.isfile(COUNTERS_CACHE):
             try:
-                with open(self.counters_cache) as fp:
+                with open(COUNTERS_CACHE) as fp:
                     self.saved_acl_counters = remap_keys(json.load(fp))
             except Exception:
                 pass
@@ -210,7 +208,7 @@ class AclStat(object):
         def remap_keys(dict):
             return [{'key': k, 'value': v} for k, v in dict.items()]
 
-        with open(self.counters_cache, 'w') as fp:
+        with open(COUNTERS_CACHE, 'w') as fp:
             json.dump(remap_keys(self.acl_counters), fp)
 
 def main():
