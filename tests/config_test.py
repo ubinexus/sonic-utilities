@@ -70,7 +70,6 @@ reload_config_with_sys_info_command_output="""\
 Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
 reload_config_with_disabled_service_output="""\
-Running command: rm -rf /tmp/dropstat-*
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
 Restarting SONiC target ...
