@@ -2509,12 +2509,10 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
         if not no_dynamic_buffer and asic_type in vendors_supporting_dynamic_buffer:
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers_dynamic.json.j2")
             buffer_model_updated |= _update_buffer_calculation_model(config_db, "dynamic")
-            buffer_model_updated |= _update_buffer_calculation_model(static_config_db, "dynamic")
         else:
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
             if asic_type in vendors_supporting_dynamic_buffer:
                 buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
-                buffer_model_updated |= _update_buffer_calculation_model(static_config_db, "traditional")
 
         if os.path.isfile(buffer_template_file):
             qos_template_file = os.path.join(
