@@ -267,6 +267,7 @@ QSFP_DD_DOM_VALUE_UNIT_MAP = {
     'voltage': 'Volts'
 }
 
+RJ45_PORT_TYPE = 'RJ45'
 
 # Global platform-specific Chassis class instance
 platform_chassis = None
@@ -289,6 +290,34 @@ def is_sfp_present(port_name):
 
     return bool(presence)
 
+
+# Below defined two flavors of functions to determin whether a port is a RJ45 port.
+# They serve different types of SFP utilities. One type of SFP utility consume the
+# info stored in the STATE_DB, these utilities shall call 'is_rj45_port_from_db'
+# to judge the port type. Another type of utilities will call the platform API
+# directly to access SFP, for them shall use 'is_rj45_port_from_api'.
+def is_rj45_port_from_db(port_name, db):
+    intf_type = db.get(db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name), 'type')
+    return intf_type == RJ45_PORT_TYPE
+
+
+def is_rj45_port_from_api(port_name):
+    physical_port = logical_port_to_physical_port_index(port_name)
+    sfp = platform_chassis.get_sfp(physical_port)
+
+    try:
+        port_type = sfp.get_transceiver_info()['type']
+    except NotImplementedError:
+        click.echo("Not able to judge the port type due to get_transceiver_info not implemented!", err=True)
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    return port_type == RJ45_PORT_TYPE
+
+
+def skip_if_port_is_rj45(port_name): 
+    if is_rj45_port_from_api(port_name): 
+        click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name)) 
+        sys.exit(EXIT_FAIL)
 # ========================== Methods for formatting output ==========================
 
 # Convert dict values to cli output string
@@ -325,27 +354,13 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
             elif key == 'cable_length':
                 pass
             elif key == 'specification_compliance':
-                if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "QSFP+ or later with CMIS":
-                    output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
-                else:
-                    output += '{}{}:\n'.format(indent, QSFP_DD_DATA_MAP['specification_compliance'])
-
-                    spec_compliance_dict = {}
-                    try:
-                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
-                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
-                        for compliance_key in sorted_compliance_key_table:
-                            output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
-                    except ValueError as e:
-                        output += '{}N/A\n'.format((indent * 2))
-            elif key == 'application_advertisement':
-                pass
+                output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             elif key == 'supported_max_tx_power' or key == 'supported_min_tx_power':
-                output += '{}{}: {}dBm\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+                if key in sfp_info_dict:  # C-CMIS compliant / coherent modules
+                    output += '{}{}: {}dBm\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             elif key == 'supported_max_laser_freq' or key == 'supported_min_laser_freq':
-                output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+                if key in sfp_info_dict:  # C-CMIS compliant / coherent modules
+                    output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             else:
                 try:
                     output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
@@ -360,21 +375,16 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
             elif key == 'cable_length':
                 pass
             elif key == 'specification_compliance':
-                if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "QSFP+ or later with CMIS":
-                    output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
-                else:
-                    output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
+                output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
 
-                    spec_compliance_dict = {}
-                    try:
-                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
-                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
-                        for compliance_key in sorted_compliance_key_table:
-                            output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
-                    except ValueError as e:
-                        output += '{}N/A\n'.format((indent * 2))
+                spec_compliance_dict = {}
+                try:
+                    spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
+                    sorted_compliance_key_table = natsorted(spec_compliance_dict)
+                    for compliance_key in sorted_compliance_key_table:
+                        output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
+                except ValueError as e:
+                    output += '{}N/A\n'.format((indent * 2))
             else:
                 output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
@@ -649,6 +659,11 @@ def eeprom(port, dump_dom, namespace):
         for physical_port in physical_port_list:
             port_name = get_physical_port_name(logical_port_name, i, ganged)
 
+            if is_rj45_port_from_api(port_name):
+                output += "{}: SFP EEPROM is not applicable for RJ45 port\n".format(port_name)
+                output += '\n'
+                continue
+
             try:
                 presence = platform_chassis.get_sfp(physical_port).get_presence()
             except NotImplementedError:
@@ -802,7 +817,10 @@ def fetch_error_status_from_platform_api(port):
         physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
         port_name = get_physical_port_name(logical_port_name, 1, False)
 
-        output.append([port_name, output_dict.get(physical_port_list[0])])
+        if is_rj45_port_from_api(logical_port_name):
+            output.append([port_name, "N/A"])
+        else:
+            output.append([port_name, output_dict.get(physical_port_list[0])])
 
     return output
 
@@ -825,15 +843,18 @@ def fetch_error_status_from_state_db(port, state_db):
     sorted_ports = natsort.natsorted(status)
     output = []
     for port in sorted_ports:
-        statestring = status[port].get('status')
-        description = status[port].get('error')
-        if statestring == '1':
-            description = 'OK'
-        elif statestring == '0':
-            description = 'Unplugged'
-        elif description == 'N/A':
-            log.log_error("Inconsistent state found for port {}: state is {} but error description is N/A".format(port, statestring))
-            description = 'Unknown state: {}'.format(statestring)
+        if is_rj45_port_from_db(port, state_db):
+            description = "N/A"
+        else:
+            statestring = status[port].get('status')
+            description = status[port].get('error')
+            if statestring == '1':
+                description = 'OK'
+            elif statestring == '0':
+                description = 'Unplugged'
+            elif description == 'N/A':
+                log.log_error("Inconsistent state found for port {}: state is {} but error description is N/A".format(port, statestring))
+                description = 'Unknown state: {}'.format(statestring)
 
         output.append([port, description])
 
@@ -898,24 +919,27 @@ def lpmode(port):
             click.echo("Error: No physical ports found for logical port '{}'".format(logical_port_name))
             return
 
-        if len(physical_port_list) > 1:
-            ganged = True
+        if is_rj45_port_from_api(logical_port_name):
+            output_table.append([logical_port_name, "N/A"])
+        else:
+            if len(physical_port_list) > 1:
+                ganged = True
 
-        for physical_port in physical_port_list:
-            port_name = get_physical_port_name(logical_port_name, i, ganged)
+            for physical_port in physical_port_list:
+                port_name = get_physical_port_name(logical_port_name, i, ganged)
 
-            try:
-                lpmode = platform_chassis.get_sfp(physical_port).get_lpmode()
-            except NotImplementedError:
-                click.echo("This functionality is currently not implemented for this platform")
-                sys.exit(ERROR_NOT_IMPLEMENTED)
+                try:
+                    lpmode = platform_chassis.get_sfp(physical_port).get_lpmode()
+                except NotImplementedError:
+                    click.echo("This functionality is currently not implemented for this platform")
+                    sys.exit(ERROR_NOT_IMPLEMENTED)
 
-            if lpmode:
-                output_table.append([port_name, "On"])
-            else:
-                output_table.append([port_name, "Off"])
+                if lpmode:
+                    output_table.append([port_name, "On"])
+                else:
+                    output_table.append([port_name, "Off"])
 
-            i += 1
+                i += 1
 
     click.echo(tabulate(output_table, table_header, tablefmt='simple'))
 
@@ -937,6 +961,10 @@ def fwversion(port_name):
 
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
+
+    if is_rj45_port_from_api(port_name):
+        click.echo("Show firmware version is not applicable for RJ45 port {}.".format(port_name))
+        sys.exit(EXIT_FAIL)
 
     try:
         presence = sfp.get_presence()
@@ -972,6 +1000,10 @@ def set_lpmode(logical_port, enable):
     if physical_port_list is None:
         click.echo("Error: No physical ports found for logical port '{}'".format(logical_port))
         return
+
+    if is_rj45_port_from_api(logical_port):
+        click.echo("{} low-power mode is not applicable for RJ45 port {}.".format("Enabling" if enable else "Disabling", logical_port))
+        sys.exit(EXIT_FAIL)
 
     if len(physical_port_list) > 1:
         ganged = True
@@ -1028,6 +1060,10 @@ def reset(port_name):
     if physical_port_list is None:
         click.echo("Error: No physical ports found for logical port '{}'".format(port_name))
         return
+
+    if is_rj45_port_from_api(port_name):
+        click.echo("Reset is not applicable for RJ45 port {}.".format(port_name))
+        sys.exit(EXIT_FAIL)
 
     if len(physical_port_list) > 1:
         ganged = True
@@ -1194,6 +1230,8 @@ def run(port_name, mode):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
 
+    skip_if_port_is_rj45(port_name)
+
     status = run_firmware(port_name, int(mode))
     if status != 1:
         click.echo('Failed to run firmware in mode={}! CDB status: {}'.format(mode, status))
@@ -1210,6 +1248,8 @@ def commit(port_name):
     if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
+
+    skip_if_port_is_rj45(port_name)
 
     status = commit_firmware(port_name)
     if status != 1:
@@ -1230,6 +1270,8 @@ def upgrade(port_name, filepath):
     if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
+
+    skip_if_port_is_rj45(port_name)
 
     show_firmware_version(physical_port)
 
@@ -1265,6 +1307,8 @@ def download(port_name, filepath):
        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
        sys.exit(EXIT_FAIL)
 
+    skip_if_port_is_rj45(port_name)
+
     start = time.time()
     status = download_firmware(port_name, filepath)
     if status == 1:
@@ -1284,6 +1328,8 @@ def unlock(port_name, password):
     """Unlock the firmware download feature via CDB host password"""
     physical_port = logical_port_to_physical_port_index(port_name)
     sfp = platform_chassis.get_sfp(physical_port)
+
+    skip_if_port_is_rj45(port_name)
 
     if not is_sfp_present(port_name):
        click.echo("{}: SFP EEPROM not detected\n".format(port_name))

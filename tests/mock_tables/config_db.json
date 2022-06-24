@@ -373,9 +373,15 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },
+    "VLAN_SUB_INTERFACE|Ethernet0.10|10.11.12.13/24": {
+        "NULL" : "NULL"
+    },
     "VLAN_SUB_INTERFACE|Eth32.10": {
         "admin_status": "up",
         "vlan": "100"
+    },
+    "VLAN_SUB_INTERFACE|Eth32.10|32.10.11.12/24": {
+        "NULL" : "NULL"
     },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
         "PACKET_ACTION": "DROP",
@@ -1575,6 +1581,24 @@
         "nhopself": "0",
         "rrclient": "0"
     },
+    "PORT_STORM_CONTROL|Ethernet0|broadcast": {
+        "kbps":"100000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-unicast": {
+        "kbps":"200000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-multicast": {
+        "kbps":"300000"
+    },
+    "PORT_STORM_CONTROL|Ethernet4|broadcast": {
+        "kbps":"400000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-unicast": {
+        "kbps":"500000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-multicast": {
+        "kbps":"600000"
+    },
     "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.6": {
         "admin_status": "up",
         "asn": "65100",
@@ -1716,11 +1740,14 @@
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-active",
+	"soc_ipv4": "10.1.1.2",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet16": {
         "state": "standby",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-standby",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet28": {

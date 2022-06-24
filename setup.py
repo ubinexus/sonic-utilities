@@ -149,7 +149,9 @@ setup(
         'scripts/memory_threshold_check.py',
         'scripts/memory_threshold_check_handler.py',
         'scripts/techsupport_cleanup.py',
-        'scripts/check_db_integrity.py'
+        'scripts/storm_control.py',
+        'scripts/check_db_integrity.py',
+        'scripts/sysreadyshow'
     ],
     entry_points={
         'console_scripts': [
@@ -214,6 +216,7 @@ setup(
         'toposort==1.6',
         'www-authenticate==0.9.2',
         'xmltodict==0.12.0',
+        'lazy-object-proxy',
     ],
     setup_requires= [
         'pytest-runner',
