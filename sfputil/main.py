@@ -292,16 +292,6 @@ def is_sfp_present(port_name):
     return bool(presence)
 
 
-# Below defined two flavors of functions to determin whether a port is a RJ45 port.
-# They serve different types of SFP utilities. One type of SFP utility consume the
-# info stored in the STATE_DB, these utilities shall call 'is_rj45_port_from_db'
-# to judge the port type. Another type of utilities will call the platform API
-# directly to access SFP, for them shall use 'is_rj45_port_from_api'.
-def is_rj45_port_from_db(port_name, db):
-    intf_type = db.get(db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name), 'type')
-    return intf_type == RJ45_PORT_TYPE
-
-
 def is_rj45_port_from_api(port_name):
     physical_port = logical_port_to_physical_port_index(port_name)
 
@@ -845,7 +835,7 @@ def fetch_error_status_from_state_db(port, state_db):
     sorted_ports = natsort.natsorted(status)
     output = []
     for port in sorted_ports:
-        if is_rj45_port_from_db(port, state_db):
+        if is_rj45_port_from_api(port):
             description = "N/A"
         else:
             statestring = status[port].get('status')
@@ -1228,11 +1218,11 @@ def download_firmware(port_name, filepath):
 def run(port_name, mode):
     """Run the firmware with default mode=1"""
 
+    skip_if_port_is_rj45(port_name)
+
     if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
-
-    skip_if_port_is_rj45(port_name)
 
     status = run_firmware(port_name, int(mode))
     if status != 1:
@@ -1247,11 +1237,11 @@ def run(port_name, mode):
 def commit(port_name):
     """Commit the running firmware"""
 
+    skip_if_port_is_rj45(port_name)
+
     if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
-
-    skip_if_port_is_rj45(port_name)
 
     status = commit_firmware(port_name)
     if status != 1:
@@ -1269,11 +1259,11 @@ def upgrade(port_name, filepath):
 
     physical_port = logical_port_to_physical_port_index(port_name)
 
+    skip_if_port_is_rj45(port_name)
+
     if not is_sfp_present(port_name):
         click.echo("{}: SFP EEPROM not detected\n".format(port_name))
         sys.exit(EXIT_FAIL)
-
-    skip_if_port_is_rj45(port_name)
 
     show_firmware_version(physical_port)
 
@@ -1305,11 +1295,11 @@ def upgrade(port_name, filepath):
 def download(port_name, filepath):
     """Download firmware on the transceiver"""
 
+    skip_if_port_is_rj45(port_name)
+
     if not is_sfp_present(port_name):
        click.echo("{}: SFP EEPROM not detected\n".format(port_name))
        sys.exit(EXIT_FAIL)
-
-    skip_if_port_is_rj45(port_name)
 
     start = time.time()
     status = download_firmware(port_name, filepath)
