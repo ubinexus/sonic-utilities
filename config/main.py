@@ -29,6 +29,7 @@ from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 from utilities_common.general import load_db_config, load_module_from_source
+import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
 
@@ -638,6 +639,78 @@ def _clear_cbf():
         for cbf_table in CBF_TABLE_NAMES:
             config_db.delete_table(cbf_table)
 
+#API to validate the interface passed for storm-control configuration
+def storm_control_interface_validate(port_name):
+    if clicommon.get_interface_naming_mode() == "alias":
+        port_name = interface_alias_to_name(None, port_name)
+        if port_name is None:
+            click.echo("'port_name' is None!")
+            return False
+
+    if (port_name.startswith("Ethernet")):
+        if interface_name_is_valid(None, port_name) is False:
+            click.echo("Interface name %s is invalid. Please enter a valid interface name" %(port_name))
+            return False
+    else:
+        click.echo("Storm-control is supported only on Ethernet interfaces. Not supported on %s" %(port_name))
+        return False
+
+    return True
+
+def is_storm_control_supported(storm_type, namespace):
+    asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+    #state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
+    #supported = state_db[asic_id].get_entry('BUM_STORM_CAPABILITY', storm_type)
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    entry_name="BUM_STORM_CAPABILITY|"+storm_type
+    supported = state_db.get(state_db.STATE_DB, entry_name,"supported")
+    return supported
+
+#API to configure the PORT_STORM_CONTROL table 
+def storm_control_set_entry(port_name, kbps, storm_type, namespace):
+
+    if storm_control_interface_validate(port_name) is False:
+        return False
+
+    if is_storm_control_supported(storm_type, namespace) == 0:
+        click.echo("Storm-control is not supported on this namespace {}".format(namespace))
+        return False
+
+    #Validate kbps value
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    key = port_name + '|' + storm_type
+    entry = config_db.get_entry('PORT_STORM_CONTROL', key)
+
+    if len(entry) == 0:
+        config_db.set_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+    else:
+        kbps_value = int(entry.get('kbps',0))
+        if kbps_value != kbps:
+            config_db.mod_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+
+    return True
+
+#API to remove an entry from PORT_STORM_CONTROL table 
+def storm_control_delete_entry(port_name, storm_type):
+
+    if storm_control_interface_validate(port_name) is False:
+        return False
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    key = port_name + '|' + storm_type
+    entry = config_db.get_entry('PORT_STORM_CONTROL', key)
+
+    if len(entry) == 0:
+        click.echo("%s storm-control not enabled on interface %s" %(storm_type, port_name))
+        return False
+    else:
+        config_db.set_entry('PORT_STORM_CONTROL', key, None)
+
+    return True
+
 
 def _clear_qos():
     QOS_TABLE_NAMES = [
@@ -739,7 +812,7 @@ def _get_sonic_services():
     return (unit.strip() for unit in out.splitlines())
 
 
-def _get_delayed_sonic_services():
+def _get_delayed_sonic_units(get_timers=False):
     rc1 = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
     rc2 = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
     timer = [line.strip() for line in rc1.splitlines()]
@@ -747,12 +820,15 @@ def _get_delayed_sonic_services():
     services = []
     for unit in timer:
         if state[timer.index(unit)] == "enabled":
-            services.append(re.sub('\.timer$', '', unit, 1))
+            if not get_timers:
+                services.append(re.sub('\.timer$', '', unit, 1))
+            else:
+                services.append(unit)
     return services
 
 
 def _reset_failed_services():
-    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_services()):
+    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_units()):
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -771,12 +847,8 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
-def _get_delay_timers():
-    out = clicommon.run_command("systemctl list-dependencies sonic-delayed.target --plain |sed '1d'", return_cmd=True)
-    return [timer.strip() for timer in out.splitlines()]
-
 def _delay_timers_elapsed():
-    for timer in _get_delay_timers():
+    for timer in _get_delayed_sonic_units(get_timers=True):
         out = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
         if out.strip() == "0":
             return False
@@ -1374,18 +1446,19 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
+    CONFIG_RELOAD_NOT_READY = 1
     if not force and not no_service_restart:
         if _is_system_starting():
             click.echo("System is not up. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _delay_timers_elapsed():
             click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _swss_ready():
             click.echo("SwSS container is not ready. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
     if filename is None:
         message = 'Clear current config and reload config in {} format from the default config file(s) ?'.format(file_format)
@@ -1847,6 +1920,11 @@ def remove_portchannel(ctx, portchannel_name):
     # Dont proceed if the port channel does not exist
     if is_portchannel_present_in_db(db, portchannel_name) is False:
         ctx.fail("{} is not present.".format(portchannel_name))
+
+    # Dont let to remove port channel if vlan membership exists
+    for k,v in db.get_table('VLAN_MEMBER'):
+        if v == portchannel_name:
+            ctx.fail("{} has vlan {} configured, remove vlan membership to proceed".format(portchannel_name, str(k)))
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
@@ -3688,6 +3766,36 @@ def speed(ctx, interface_name, interface_speed, verbose):
     clicommon.run_command(command, display_cmd=verbose)
 
 #
+# 'link-training' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["on", "off"]))
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def link_training(ctx, interface_name, mode, verbose):
+    """Set interface link training mode"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface link-training {} {}' executing...".format(interface_name, mode))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -lt {}".format(interface_name, mode)
+    else:
+        command = "portconfig -p {} -lt {} -n {}".format(interface_name, mode, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
 # 'autoneg' subcommand
 #
 
@@ -4169,7 +4277,8 @@ def remove(ctx, interface_name, ip_addr):
     remove_router_interface_ip_address(config_db, interface_name, ip_address)
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     if len(interface_addresses) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False and get_intf_ipv6_link_local_mode(ctx, interface_name, table_name) != "enable":
-        config_db.set_entry(table_name, interface_name, None)
+        if table_name != "VLAN_SUB_INTERFACE":
+            config_db.set_entry(table_name, interface_name, None)
 
     if multi_asic.is_multi_asic():
         command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, str(ip_address))
@@ -4944,6 +5053,7 @@ def add_route(ctx, command_str):
         if (not route['ifname'] in config_db.get_keys('VLAN_INTERFACE') and
             not route['ifname'] in config_db.get_keys('INTERFACE') and
             not route['ifname'] in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+            not route['ifname'] in config_db.get_keys('VLAN_SUB_INTERFACE') and
             not route['ifname'] == 'null'):
             ctx.fail('interface {} doesn`t exist'.format(route['ifname']))
 
@@ -5748,6 +5858,45 @@ def naming_mode_default():
 def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
+
+@interface.group('storm-control')
+@click.pass_context
+def storm_control(ctx):
+    """ Configure storm-control"""
+    pass
+
+@storm_control.command('add')
+@click.argument('port_name',metavar='<port_name>', required=True)
+@click.argument('storm_type',metavar='<storm_type>', required=True, type=click.Choice(["broadcast", "unknown-unicast", "unknown-multicast"]))
+@click.argument('kbps',metavar='<kbps_value>', required=True, type=click.IntRange(0,100000000))
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.pass_context
+def add_interface_storm(ctx, port_name,storm_type, kbps, namespace):
+    if storm_control_set_entry(port_name, kbps, storm_type, namespace) is False:
+        ctx.fail("Unable to add {} storm-control to interface {}".format(storm_type, port_name))
+
+@storm_control.command('del')
+@click.argument('port_name',metavar='<port_name>', required=True)
+@click.argument('storm_type',metavar='<storm_type>', required=True, type=click.Choice(["broadcast", "unknown-unicast", "unknown-multicast"]))
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.pass_context
+def del_interface_storm(ctx,port_name,storm_type, namespace):
+    if storm_control_delete_entry(port_name, storm_type) is False:
+        ctx.fail("Unable to delete {} storm-control from interface {}".format(storm_type, port_name))
 
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation
