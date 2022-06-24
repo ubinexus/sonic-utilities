@@ -395,12 +395,13 @@ class SFPShow(object):
 
     # Convert sfp info and dom sensor info in DB to cli output string
     def convert_interface_sfp_info_to_cli_output_string(self, state_db, interface_name, dump_dom):
+        if self.is_rj45_port_from_api(interface_name):
+            return 'SFP EEPROM is not applicable for RJ45 port\n'
+
         output = ''
 
         sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
-        if sfp_info_dict['type'] == RJ45_PORT_TYPE:
-            output = 'SFP EEPROM is not applicable for RJ45 port\n'
-        else:
+        if sfp_info_dict:
             output = 'SFP EEPROM detected\n'
             sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
             output += sfp_info_output
@@ -410,29 +411,23 @@ class SFPShow(object):
                 dom_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name))
                 dom_output = self.convert_dom_to_output_string(sfp_type, dom_info_dict)
                 output += dom_output
+        else:
+            output = "SFP EEPROM Not detected\n"
 
         return output
 
     @multi_asic_util.run_on_multi_asic
     def get_eeprom(self):
         if self.intf_name is not None:
-            presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(self.intf_name))
-            if presence:
-                self.intf_eeprom[self.intf_name] = self.convert_interface_sfp_info_to_cli_output_string(
-                    self.db, self.intf_name, self.dump_dom)
-            else:
-                self.intf_eeprom[self.intf_name] = "SFP EEPROM Not detected\n"
+            self.intf_eeprom[self.intf_name] = self.convert_interface_sfp_info_to_cli_output_string(
+                self.db, self.intf_name, self.dump_dom)
         else:
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
             for i in port_table_keys:
                 interface = re.split(':', i, maxsplit=1)[-1].strip()
                 if interface and interface.startswith(front_panel_prefix()) and not interface.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
-                    presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
-                    if presence:
-                        self.intf_eeprom[interface] = self.convert_interface_sfp_info_to_cli_output_string(
-                            self.db, interface, self.dump_dom)
-                    else:
-                        self.intf_eeprom[interface] = "SFP EEPROM Not detected\n"
+                    self.intf_eeprom[interface] = self.convert_interface_sfp_info_to_cli_output_string(
+                        self.db, interface, self.dump_dom)
 
 
     def is_rj45_port_from_api(self, port_name):
