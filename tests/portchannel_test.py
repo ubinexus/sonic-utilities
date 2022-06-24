@@ -60,7 +60,30 @@ class TestPortChannel(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: PortChannel0005 is not present." in result.output
-        
+
+    def test_add_portchannel_with_fast_rate(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a portchannel with fats rate
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", "True"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+    def test_add_portchannel_with_invalid_fast_rate(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a portchannel with invalid fats rate
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", "Tru"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert 'Invalid value for "--fast-rate"'  in result.output
+
     def test_add_portchannel_member_with_invalid_name(self):
         runner = CliRunner()
         db = Db()
