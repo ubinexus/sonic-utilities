@@ -17,7 +17,6 @@ from collections import OrderedDict, namedtuple
 from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
-from swsscommon.swsscommon import CounterTable, PortCounter
 
 # mock the redis for unit test purposes #
 try:
@@ -34,6 +33,7 @@ try:
 except KeyError:
     pass
 
+from swsscommon.swsscommon import CounterTable, PortCounter
 from utilities_common import constants
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.multi_asic as multi_asic_util
