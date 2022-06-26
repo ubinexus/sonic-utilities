@@ -4,16 +4,16 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 
 
-@click.group(name='advanced_restart', cls=clicommon.AliasedGroup)
-def advanced_restart():
-    """Show advanced restart configuration and state"""
+@click.group(name='warm_restart', cls=clicommon.AliasedGroup)
+def warm_restart():
+    """Show warm restart configuration and state"""
     pass
 
 
-@advanced_restart.command()
+@warm_restart.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def state(redis_unix_socket_path):
-    """Show advanced restart state"""
+    """Show warm restart state"""
     kwargs = {}
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
@@ -52,10 +52,10 @@ def state(redis_unix_socket_path):
     click.echo(tabulate(table, header))
 
 
-@advanced_restart.command()
+@warm_restart.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def config(redis_unix_socket_path):
-    """Show advanced restart config"""
+    """Show warm restart config"""
     kwargs = {}
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path

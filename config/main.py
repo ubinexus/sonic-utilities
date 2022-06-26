@@ -2589,7 +2589,7 @@ def is_dynamic_buffer_enabled(config_db):
     return 'dynamic' == device_metadata.get('buffer_model')
 
 #
-# 'warm_restart' group ('config advanced_restart ...')
+# 'warm_restart' group ('config warm_restart ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup, name='warm_restart')
 @click.pass_context

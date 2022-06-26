@@ -700,11 +700,11 @@ DOCKER_CONTAINER_LIST = [
 @click.option('--cleanup_image', is_flag=True, help="Clean up old docker image")
 @click.option('--skip_check', is_flag=True, help="Skip task check for docker upgrade")
 @click.option('--tag', type=str, help="Tag for the new docker image")
-@click.option('--advanced', is_flag=True, help="Perform advanced upgrade")
+@click.option('--warm', is_flag=True, help="Perform warm upgrade")
 @click.argument('container_name', metavar='<container_name>', required=True,
                 type=click.Choice(DOCKER_CONTAINER_LIST))
 @click.argument('url')
-def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, advanced):
+def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     """ Upgrade docker image from local binary or URL"""
     # Warn the user if they are calling the deprecated version of the subcommand (with an underscore instead of a hyphen)
     if "upgrade_docker" in sys.argv:
@@ -733,28 +733,28 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, advanced
         echo_and_log("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path), LOG_ERR)
         raise click.Abort()
 
-    advanced_configured = False
-    # advanced restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
+    warm_configured = False
+    # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'ADVANCED_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
     _hash = '{}{}'.format(prefix, container_name)
     if state_db.get(state_db.STATE_DB, _hash, "enable") == "true":
-        advanced_configured = True
+        warm_configured = True
     state_db.close(state_db.STATE_DB)
 
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
-        if advanced_configured is False and advanced:
-            run_command("config advanced_restart enable %s" % container_name)
+        if warm_configured is False and warm:
+            run_command("config warm_restart enable %s" % container_name)
 
     # Fetch tag of current running image
     tag_previous = get_docker_tag_name(image_latest)
     # Load the new image beforehand to shorten disruption time
     run_command("docker load < %s" % image_path)
-    advanced_app_names = []
-    # advanced restart specific procssing for swss, bgp and teamd dockers.
-    if advanced_configured is True or advanced:
+    warm_app_names = []
+    # warm restart specific procssing for swss, bgp and teamd dockers.
+    if warm_configured is True or warm:
         # make sure orchagent is in clean state if swss is to be upgraded
         if container_name == "swss":
             skipPendingTaskCheck = ""
@@ -769,8 +769,8 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, advanced
                 if not skip_check:
                     echo_and_log("Orchagent is not in clean state, RESTARTCHECK failed", LOG_ERR)
                     # Restore orignal config before exit
-                    if advanced_configured is False and advanced:
-                        run_command("config advanced_restart disable %s" % container_name)
+                    if warm_configured is False and warm:
+                        run_command("config warm_restart disable %s" % container_name)
                     # Clean the image loaded earlier
                     image_id_latest = get_container_image_id(image_latest)
                     run_command("docker rmi -f %s" % image_id_latest)
@@ -781,29 +781,29 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, advanced
                 else:
                     echo_and_log("Orchagent is not in clean state, upgrading it anyway")
             else:
-                echo_and_log("Orchagent is in clean state and frozen for advanced upgrade")
+                echo_and_log("Orchagent is in clean state and frozen for warm upgrade")
 
-            advanced_app_names = ["orchagent", "neighsyncd"]
+            warm_app_names = ["orchagent", "neighsyncd"]
 
         elif container_name == "bgp":
             # Kill bgpd to restart the bgp graceful restart procedure
             echo_and_log("Stopping bgp ...")
             run_command("docker exec -i bgp pkill -9 zebra")
             run_command("docker exec -i bgp pkill -9 bgpd")
-            advanced_app_names = ["bgp"]
+            warm_app_names = ["bgp"]
             echo_and_log("Stopped  bgp ...")
 
         elif container_name == "teamd":
             echo_and_log("Stopping teamd ...")
             # Send USR1 signal to all teamd instances to stop them
-            # It will prepare teamd for advanced-reboot
+            # It will prepare teamd for warm-reboot
             run_command("docker exec -i teamd pkill -USR1 teamd > /dev/null")
-            advanced_app_names = ["teamsyncd"]
+            warm_app_names = ["teamsyncd"]
             echo_and_log("Stopped  teamd ...")
 
-        # clean app reconcilation state from last advanced start if exists
-        for advanced_app_name in advanced_app_names:
-            hdel_advanced_restart_table("STATE_DB", "ADVANCED_RESTART_TABLE", advanced_app_name, "state")
+        # clean app reconcilation state from last warm start if exists
+        for warm_app_name in warm_app_names:
+            hdel_advanced_restart_table("STATE_DB", "ADVANCED_RESTART_TABLE", warm_app_name, "state")
 
     run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
@@ -828,30 +828,30 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, advanced
 
     exp_state = "reconciled"
     state = ""
-    # post advanced restart specific procssing for swss, bgp and teamd dockers, wait for reconciliation state.
-    if advanced_configured is True or advanced:
+    # post warm restart specific procssing for swss, bgp and teamd dockers, wait for reconciliation state.
+    if warm_configured is True or warm:
         count = 0
-        for advanced_app_name in advanced_app_names:
+        for warm_app_name in warm_app_names:
             state = ""
             # Wait up to 180 seconds for reconciled state
             while state != exp_state and count < 90:
-                sys.stdout.write("\r  {}: ".format(advanced_app_name))
+                sys.stdout.write("\r  {}: ".format(warm_app_name))
                 sys.stdout.write("[%-s" % ('='*count))
                 sys.stdout.flush()
                 count += 1
                 time.sleep(2)
-                state = hget_advanced_restart_table("STATE_DB", "ADVANCED_RESTART_TABLE", advanced_app_name, "state")
-                log.log_notice("%s reached %s state" % (advanced_app_name, state))
+                state = hget_advanced_restart_table("STATE_DB", "ADVANCED_RESTART_TABLE", warm_app_name, "state")
+                log.log_notice("%s reached %s state" % (warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:
-                echo_and_log("%s failed to reach %s state" % (advanced_app_name, exp_state), LOG_ERR)
+                echo_and_log("%s failed to reach %s state" % (warm_app_name, exp_state), LOG_ERR)
     else:
         exp_state = ""  # this is cold upgrade
 
     # Restore to previous cold restart setting
-    if advanced_configured is False and advanced:
+    if warm_configured is False and warm:
         if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
-            run_command("config advanced_restart disable %s" % container_name)
+            run_command("config warm_restart disable %s" % container_name)
 
     if state == exp_state:
         echo_and_log('Done')
