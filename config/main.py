@@ -1629,9 +1629,13 @@ def load_mgmt_config(filename):
         # key: (eth0, ipprefix)
         # value: { gwaddr: ip }
         mgmt_conf = netaddr.IPNetwork(key[1])
-        gw_addr = config_data['MGMT_INTERFACE'][key]['gwaddr']
-        command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
-        clicommon.run_command(command, display_cmd=True)
+        if mgmt_conf.version == 4:
+            gw_addr = config_data['MGMT_INTERFACE'][key]['gwaddr']
+            command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
+            clicommon.run_command(command, display_cmd=True)
+        else:
+            command = "ifconfig eth0 add {}".format(str(mgmt_conf))
+            clicommon.run_command(command, display_cmd=True)
         command = "ip route add default via {} dev eth0 table default".format(gw_addr)
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
         command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
