@@ -1129,21 +1129,14 @@ def validate_gre_type(ctx, _, value):
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
 
-def _is_storage_device():
+def _is_storage_device(cfg_db):
     """
     Check if the device is a storage device or not
     """
-    command = "{} -m -v DEVICE_METADATA.localhost.storage_device".format(SONIC_CFGGEN_PATH)
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
-    storage_device, err = proc.communicate()
-    if err:
-        click.echo("Could not get the storage device info from minigraph, setting storage device to unknown")
-        storage_device = 'Unknown'
-    else:
-        storage_device = storage_device.strip()
-    return storage_device == "true"
+    device_metadata = cfg_db.get_entry("DEVICE_METADATA", "localhost")
+    return device_metadata.get("storage_device", "Unknown") == "true"
 
-def load_backend_acl(device_type):
+def load_backend_acl(cfg_db, device_type):
     """
     Load acl on backend storage device
     """
@@ -1151,7 +1144,7 @@ def load_backend_acl(device_type):
     BACKEND_ACL_TEMPLATE_FILE = os.path.join('/', "usr", "share", "sonic", "templates", "backend_acl.j2")
     BACKEND_ACL_FILE = os.path.join('/', "etc", "sonic", "backend_acl.json")
 
-    if device_type and device_type == "BackEndToRRouter" and _is_storage_device():
+    if device_type and device_type == "BackEndToRRouter" and _is_storage_device(cfg_db):
         if os.path.isfile(BACKEND_ACL_TEMPLATE_FILE):
             clicommon.run_command(
                 "{} -d -t {},{}".format(
@@ -1724,7 +1717,7 @@ def load_minigraph(db, no_service_restart):
     device_type = _get_device_type()
 
     # Load backend acl
-    load_backend_acl(device_type)
+    load_backend_acl(db.cfgdb, device_type)
 
     # Load port_config.json
     try:
