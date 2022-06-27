@@ -255,11 +255,7 @@ def main():
     tunnel_name = args.tunnel if args.tunnel else ""
     tunnel_type = args.type if args.type else ""
 
-    try:
-        cache = UserCache(tag=tag_name)
-    except IOError as err:
-        print(err.errno, err)
-        sys.exit(1)
+    cache = UserCache(tag=tag_name)
 
     cnstat_file = "tunnelstat"
 
@@ -267,22 +263,10 @@ def main():
     cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
 
     if delete_all_stats:
-        try:
-            cache.remove_all()
-        except IOError as err:
-            print(err.errno, err)
-            sys.exit(1)
-
-        return
+        cache.remove_all()
 
     if delete_saved_stats:
-        try:
-            cache.remove()
-        except IOError as err:
-            print(err.errno, err)
-            sys.exit(1)
-
-        return
+        cache.remove()
 
     tunnelstat = Tunnelstat()
     cnstat_dict,ratestat_dict = tunnelstat.get_cnstat(tunnel=tunnel_name, tun_type=tunnel_type)

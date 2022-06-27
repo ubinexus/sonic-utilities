@@ -576,33 +576,17 @@ Examples:
     display_option = args.show
     detail = args.detail
 
-    try:
-        cache = UserCache(tag=tag_name)
-    except IOError as err:
-        print(err.errno, err)
-        sys.exit(1)
+    cache = UserCache(tag=tag_name)
 
     cnstat_file = "portstat"
     cnstat_dir = cache.get_directory()
     cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
 
     if delete_all_stats:
-        try:
-            cache.remove_all()
-        except IOError as err:
-            print(err.errno, err)
-            sys.exit(1)
-
-        return
+        cache.remove_all()
 
     if delete_saved_stats:
-        try:
-            cache.remove()
-        except IOError as err:
-            print(err.errno, err)
-            sys.exit(1)
-
-        return
+        cache.remove()
 
     intf_list = parse_interface_in_filter(intf_fs)
 

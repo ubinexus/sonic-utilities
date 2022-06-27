@@ -281,11 +281,7 @@ def main():
 
     cnstat_file = "intfstat"
 
-    try:
-        cache = UserCache(tag=tag_name)
-    except IOError as err:
-        print(err.errno, err)
-        sys.exit(1)
+    cache = UserCache(tag=tag_name)
 
     cache_general = UserCache()
     cnstat_dir = cache.get_directory()
@@ -295,20 +291,10 @@ def main():
     cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
 
     if delete_all_stats:
-        try:
-            cache.remove_all()
-        except IOError as err:
-            print(err.errno, err)
-            sys.exit(1)
-        return
+        cache.remove_all()
 
     if delete_saved_stats:
-        try:
-            cache.remove()
-        except IOError as err:
-            print(err.errno, err)
-            sys.exit(1)
-        return
+        cache.remove()
 
     intfstat = Intfstat()
     cnstat_dict, ratestat_dict = intfstat.get_cnstat(rif=interface_name)

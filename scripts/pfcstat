@@ -243,7 +243,6 @@ Examples:
 
     if delete_all_stats:
         cache.remove()
-        return
 
     """
         Get the counters of pfc rx counter

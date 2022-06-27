@@ -411,17 +411,13 @@ Examples:
     group = args.group
     counter_type = args.type
 
-    try:
-        dcstat = DropStat()
-        if command == 'clear':
-            dcstat.clear_drop_counts()
-        elif command == 'show':
-            dcstat.show_drop_counts(group, counter_type)
-        else:
-            print("Command not recognized")
-    except IOError as err:
-        print(err)
-        sys.exit(err.errno)
+    dcstat = DropStat()
+    if command == 'clear':
+        dcstat.clear_drop_counts()
+    elif command == 'show':
+        dcstat.show_drop_counts(group, counter_type)
+    else:
+        print("Command not recognized")
 
 
 if __name__ == '__main__':

@@ -354,23 +354,13 @@ Examples:
 
     port_to_show_stats = args.port
 
-    try:
-        cache = UserCache()
-    except IOError as err:
-        print(err.errno, err)
-        sys.exit(1)
+    cache = UserCache()
 
     cnstat_dir = cache.get_directory()
     cnstat_fqn_file = os.path.join(cnstat_dir, 'queuestat')
 
     if delete_stats:
-        try:
-            cache.remove()
-        except IOError as err:
-            print(err.errno, err)
-            sys.exit(1)
-
-        return
+        cache.remove()
 
     queuestat = Queuestat( voq )
 
