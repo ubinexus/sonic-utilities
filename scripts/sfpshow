@@ -18,6 +18,7 @@ from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inba
 from sonic_py_common import multi_asic
 from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
+from utilities_common.platform_api_helper import is_rj45_port
 
 # Mock the redis DB for unit test purposes
 try:
@@ -231,11 +232,6 @@ def display_invalid_intf_presence(intf_name):
 
 
 class SFPShow(object):
-    platform_chassis = None
-    platform_sfp = None
-    load_chassis_failed = False
-    platform_sfputil_loaded = False
-
     def __init__(self, intf_name, namespace_option, dump_dom=False):
         super(SFPShow, self).__init__()
         self.db = None
@@ -395,7 +391,7 @@ class SFPShow(object):
 
     # Convert sfp info and dom sensor info in DB to cli output string
     def convert_interface_sfp_info_to_cli_output_string(self, state_db, interface_name, dump_dom):
-        if self.is_rj45_port_from_api(interface_name):
+        if is_rj45_port(interface_name):
             return 'SFP EEPROM is not applicable for RJ45 port\n'
 
         output = ''
@@ -429,35 +425,6 @@ class SFPShow(object):
                     self.intf_eeprom[interface] = self.convert_interface_sfp_info_to_cli_output_string(
                         self.db, interface, self.dump_dom)
 
-
-    def is_rj45_port_from_api(self, port_name):
-        if not self.platform_chassis and not self.load_chassis_failed:
-            try:
-                import sonic_platform, sonic_platform_base
-                self.platform_chassis = sonic_platform.platform.Platform().get_chassis()
-                self.platform_sfp = sonic_platform_base.sfp_base.SfpBase
-            except Exception as e:
-                log.log_error("Failed to instantiate Chassis due to {}".format(repr(e)))
-                self.load_chassis_failed = True
-
-        if self.platform_chassis:
-            from utilities_common import platform_sfputil_helper
-            if not self.platform_sfputil_loaded:
-                platform_sfputil_helper.load_platform_sfputil()
-                platform_sfputil_helper.platform_sfputil_read_porttab_mappings()
-                self.platform_sfputil_loaded = True
-
-            physical_port = platform_sfputil_helper.logical_port_name_to_physical_port_list(port_name)[0]
-            try:
-                port_type = self.platform_chassis.get_port_or_cage_type(physical_port)
-            except NotImplementedError as e:
-                port_type = None
-
-            return port_type == self.platform_sfp.SFP_PORT_TYPE_BIT_RJ45
-
-        return False
-
-
     def convert_interface_sfp_presence_state_to_cli_output_string(self, state_db, interface_name):
         sfp_info_dict = state_db.get_all(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
         if sfp_info_dict:
@@ -467,7 +434,7 @@ class SFPShow(object):
                 output = 'Present'
         else:
             # We have to check whether it is an RJ45 port via calling platform API in case it is absent
-            if self.is_rj45_port_from_api(interface_name):
+            if is_rj45_port(interface_name):
                 output = 'Link Down'
             else:
                 output = 'Not present'
