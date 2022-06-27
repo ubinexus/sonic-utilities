@@ -982,7 +982,6 @@ def _is_storage_device():
         storage_device = 'Unknown'
     else:
         storage_device = storage_device.strip()
-
     return storage_device == "true"
 
 def load_backend_acl(device_type):
