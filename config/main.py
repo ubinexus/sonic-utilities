@@ -735,10 +735,6 @@ def _clear_qos():
             'DEFAULT_LOSSLESS_BUFFER_PARAMETER',
             'LOSSLESS_TRAFFIC_PATTERN']
 
-    STATIC_QOS_TABLE_NAMES = [
-            'BUFFER_PROFILE',
-            'BUFFER_POOL']
-
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
         namespace_list = multi_asic.get_namespaces_from_linux()
@@ -746,22 +742,14 @@ def _clear_qos():
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
             config_db = ConfigDBConnector()
-            static_config_db = ConfigDBConnector()
         else:
             config_db = ConfigDBConnector(
                 use_unix_socket_path=True, namespace=ns
             )
-            static_config_db = ConfigDBConnector(
-                use_unix_socket_path=True, namespace=ns
-            )
         config_db.connect()
-        static_config_db.db_connect("STATIC_CONFIG_DB")
 
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
-
-        for qos_table in STATIC_QOS_TABLE_NAMES:
-            static_config_db.delete_table(qos_table)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
@@ -2528,9 +2516,11 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
                 # Apply the configurations only when both buffer and qos
                 # configuration files are present
                 clicommon.run_command(command, display_cmd=True)
-                # run command again for write to static-config-db, old code will remove after migration finish
+
+                # POC: run command again for write to static-config-db, old code will remove after migration finish
+                # the new parameter added to sfg-gen to only import 2 tables to STATIC_CONFIG_DB: --keep-table 'BUFFER_POOL;BUFFER_PROFILE'
                 fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "static-config-db"
-                command = "{} {} {} -t {},{} -t {},{} -y {}".format(
+                command = "{} {} {} -t {},{} -t {},{} -y {} --keep-table 'BUFFER_POOL;BUFFER_PROFILE'".format(
                     SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
                     fname, qos_template_file, fname, sonic_version_file
                 )
@@ -5723,6 +5713,7 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
 @clicommon.pass_db
 def remove_profile(db, profile):
     """Delete a buffer profile"""
+    # POC, HUA: question, in which scenario user need manually delete a profile? if profile not referenced by anyone, the it not necessary to remove it?
     config_db = db.cfgdb
     static_config_db = db.static_cfgdb
     ctx = click.get_current_context()
@@ -5738,11 +5729,10 @@ def remove_profile(db, profile):
     entry = config_db.get_entry("BUFFER_PROFILE", profile)
     if entry:
         config_db.set_entry("BUFFER_PROFILE", profile, None)
-        static_config_db.set_entry("BUFFER_PROFILE", profile, None)
     else:
         entry = static_config_db.get_entry("BUFFER_PROFILE", profile)
         if entry:
-            static_config_db.set_entry("BUFFER_PROFILE", profile, None)
+            ctx.fail("Profile {} is static config and can't be removed".format(profile))
         else:
             ctx.fail("Profile {} doesn't exist".format(profile))
 
