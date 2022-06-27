@@ -260,6 +260,52 @@ class TestConfigWrapper(unittest.TestCase):
         self.assertFalse(actual)
         self.assertTrue(duplicated_ip in error)
 
+    def test_validate_unique_lanes__no_port_table__success(self):
+        config = {"ACL_TABLE": {}}
+        self.validate_unique_lanes(config)
+
+    def test_validate_unique_lanes__empty_port_table__success(self):
+        config = {"PORT": {}}
+        self.validate_unique_lanes(config)
+
+    def test_validate_unique_lanes__single_lane__success(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66", "speed":"10000"}}}
+        self.validate_unique_lanes(config)
+
+    def test_validate_unique_lanes__different_lanes_single_port__success(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66, 67, 68", "speed":"10000"}}}
+        self.validate_unique_lanes(config)
+
+    def test_validate_unique_lanes__different_lanes_multi_ports__success(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": "64, 65", "speed":"10000"},
+            "Ethernet1": {"lanes": "66, 67, 68", "speed":"10000"},
+            }}
+        self.validate_unique_lanes(config)
+
+    def test_validate_unique_lanes__same_lanes_single_port__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "65, 65", "speed":"10000"}}}
+        self.validate_unique_lanes(config, False, '65')
+
+    def test_validate_unique_lanes__same_lanes_multi_ports__failure(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": "64, 65, 67", "speed":"10000"},
+            "Ethernet1": {"lanes": "66, 67, 68", "speed":"10000"},
+            }}
+        self.validate_unique_lanes(config, False, '67')
+
+    def validate_unique_lanes(self, config_db, expected=True, repeated_lane=None):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+
+        # Act
+        actual, error = config_wrapper.validate_unique_lanes(config_db)
+
+        # Assert
+        self.assertEqual(expected, actual)
+        if repeated_lane:
+            self.assertTrue(repeated_lane in error)
+
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
         config_wrapper = gu_common.ConfigWrapper()

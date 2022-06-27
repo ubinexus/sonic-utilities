@@ -113,6 +113,10 @@ class ConfigWrapper:
     def validate_config_db_config(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
 
+        # TODO: Move these validators to YANG models
+        supplemental_yang_validators = [self.validate_bgp_peer_group,
+                                        self.validate_unique_lanes]
+
         try:
             tmp_config_db_as_json = copy.deepcopy(config_db_as_json)
 
@@ -120,10 +124,31 @@ class ConfigWrapper:
 
             sy.validate_data_tree()
 
-            # TODO: modularize custom validations better or move directly to sonic-yang module
-            return self.validate_bgp_peer_group(config_db_as_json)
+            for supplemental_yang_validator in supplemental_yang_validators:
+                success, error = supplemental_yang_validator(config_db_as_json)
+                if not success:
+                    return success, error
         except sonic_yang.SonicYangException as ex:
             return False, ex
+
+        return True, None
+
+    def validate_unique_lanes(self, config_db):
+        if "PORT" not in config_db:
+            return True, None
+
+        ports = config_db["PORT"]
+        existing = {}
+        for port in ports:
+            attrs = ports[port]
+            if "lanes" in attrs:
+                lanes_str = attrs["lanes"]
+                lanes = lanes_str.split(", ")
+                for lane in lanes:
+                    if lane in existing:
+                        return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
+                    existing[lane] = port
+        return True, None
 
     def validate_bgp_peer_group(self, config_db):
         if "BGP_PEER_RANGE" not in config_db:
