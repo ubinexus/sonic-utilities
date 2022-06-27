@@ -970,6 +970,42 @@ def validate_ipv4_address(ctx, param, ip_addr):
     except ValueError as e:
         raise click.UsageError(str(e))
 
+def _is_storage_device():
+    """
+    Check if the device is a storage device or not
+    """
+    command = "{} -m -v DEVICE_METADATA.localhost.storage_device".format(SONIC_CFGGEN_PATH)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    storage_device, err = proc.communicate()
+    if err:
+        click.echo("Could not get the storage device info from minigraph, setting storage device to unknown")
+        storage_device = 'Unknown'
+    else:
+        storage_device = storage_device.strip()
+
+    return storage_device == "true"
+
+def load_backend_acl(device_type):
+    """
+    Load acl on backend storage device
+    """
+
+    BACKEND_ACL_TEMPLATE_FILE = os.path.join('/', "usr", "share", "sonic", "templates", "backend_acl.j2")
+    BACKEND_ACL_FILE = os.path.join('/', "etc", "sonic", "backend_acl.json")
+
+    if device_type and device_type == "BackEndToRRouter" and _is_storage_device():
+        if os.path.isfile(BACKEND_ACL_TEMPLATE_FILE):
+            clicommon.run_command(
+                "{} -d -t {},{}".format(
+                    SONIC_CFGGEN_PATH,
+                    BACKEND_ACL_TEMPLATE_FILE,
+                    BACKEND_ACL_FILE
+                ),
+                display_cmd=True
+            )
+        if os.path.isfile(BACKEND_ACL_FILE):
+            clicommon.run_command("acl-loader update incremental {}".format(BACKEND_ACL_FILE), display_cmd=True)
+
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1338,6 +1374,12 @@ def load_minigraph(db, no_service_restart):
     if os.path.isfile('/etc/sonic/acl.json'):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
+    # get the device type
+    device_type = _get_device_type()
+
+    # Load backend acl
+    load_backend_acl(device_type)
+
     # Load port_config.json
     try:
         load_port_config(db.cfgdb, '/etc/sonic/port_config.json')
@@ -1347,8 +1389,6 @@ def load_minigraph(db, no_service_restart):
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
 
-    # get the device type
-    device_type = _get_device_type()
     if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'BmcMgmtToRRouter' and device_type != 'EPMS':
         clicommon.run_command("pfcwd start_default", display_cmd=True)
 
