@@ -297,10 +297,20 @@ def is_rj45_port_from_api(port_name):
 
     try:
         port_types = platform_chassis.get_port_or_cage_type(physical_port)
+        return SfpBase.SFP_PORT_TYPE_BIT_RJ45 == port_types
     except NotImplementedError:
-        port_types = None
+        pass
 
-    return SfpBase.SFP_PORT_TYPE_BIT_RJ45 == port_types
+    # Fallback to the old way in case get_port_or_cage_type is not supported on the platform
+    sfp = platform_chassis.get_sfp(physical_port)
+
+    try:
+        port_type = sfp.get_transceiver_info()['type']
+    except NotImplementedError:
+        click.echo("Not able to judge the port type due to neither get_transceiver_info nor get_port_or_cage_type not implemented!", err=True)
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    return port_type == RJ45_PORT_TYPE
 
 
 def skip_if_port_is_rj45(port_name): 
