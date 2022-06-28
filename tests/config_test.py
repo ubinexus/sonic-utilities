@@ -65,8 +65,8 @@ Running command: hostname -F /etc/hostname
 Running command: sed -i "/\s5afd1b1df01d$/d" /etc/hosts
 Running command: echo "127.0.0.1 dummy" >> /etc/hosts
 Running command: ifconfig eth0 add fc00:1::32/64
-Running command: ip route add default via fc00:1::1 dev eth0 table default
-Running command: ip rule add from fc00:1::32 table default
+Running command: ip -6 route add default via fc00:1::1 dev eth0 table default
+Running command: ip -6 rule add from fc00:1::32 table default
 Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
 Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
 """
@@ -82,8 +82,8 @@ Running command: ifconfig eth0 10.0.0.100 netmask 255.255.255.0
 Running command: ip route add default via 10.0.0.1 dev eth0 table default
 Running command: ip rule add from 10.0.0.100 table default
 Running command: ifconfig eth0 add fc00:1::32/64
-Running command: ip route add default via fc00:1::1 dev eth0 table default
-Running command: ip rule add from fc00:1::32 table default
+Running command: ip -6 route add default via fc00:1::1 dev eth0 table default
+Running command: ip -6 rule add from fc00:1::32 table default
 Running command: [ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid
 Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
 """
