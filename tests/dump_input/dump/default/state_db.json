@@ -13,8 +13,7 @@
         },
         "PORT_TABLE|Ethernet0": {
                 "speed" : "100000",
-                "supported_speeds": "10000,25000,40000,100000",
-                "supported_fecs": "rs,none,test"
+                "supported_speeds": "10000,25000,40000,100000"
         },
         "REBOOT_CAUSE|2020_10_09_04_53_58": {
                 "cause": "warm-reboot",
