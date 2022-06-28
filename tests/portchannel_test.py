@@ -23,7 +23,7 @@ class TestPortChannel(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert 'does not satisfy the constraint "PortChannel[0-9]{1,4}"' in result.output
+        assert "Error: PortChan005 is invalid!, name should have prefix 'PortChannel' and suffix '<0-9999>'" in result.output
 
     def test_delete_portchannel_with_invalid_name(self):
         runner = CliRunner()
@@ -35,8 +35,8 @@ class TestPortChannel(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "can't remove a non-existent object" in result.output
-
+        assert "Error: PortChan005 is not present." in result.output
+ 
     def test_add_existing_portchannel_again(self):
         runner = CliRunner()
         db = Db()
@@ -59,8 +59,8 @@ class TestPortChannel(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "can't remove a non-existent object" in result.output
-        
+        assert "Error: PortChannel0005 is not present." in result.output
+
     def test_add_portchannel_member_with_invalid_name(self):
         runner = CliRunner()
         db = Db()

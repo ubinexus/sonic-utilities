@@ -1895,10 +1895,7 @@ def portchannel(db, ctx, namespace):
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
     """Add port channel"""
     
-    error_map = {}
-    error_map[ValueError] = "{} is invalid!, name should have prefix '{}' and suffix '{}'".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO)
-
-    db = validate(ctx.obj['db'], error_map, ctx) 
+    db = validate(ctx.obj['db']) 
 
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
@@ -1910,7 +1907,10 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         fvs['min_links'] = str(min_links)
     if fallback != 'false':
         fvs['fallback'] = 'true'
-    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
+    try:
+        db.set_entry('PORTCHANNEL', portchannel_name, fvs)
+    except ValueError:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
  
 @portchannel.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1918,16 +1918,15 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     
-    error_map = {}    
-    error_map[ValueError] = "{} is invalid!, name should have prefix '{}' and suffix '{}'".format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO)
-    error_map[JsonPatchConflict] = "{} is not present.".format(portchannel_name)
-
-    db = validate(ctx.obj['db'], error_map, ctx)
+    db = validate(ctx.obj['db'])
 
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
-        db.set_entry('PORTCHANNEL', portchannel_name, None)
+        try:
+            db.set_entry('PORTCHANNEL', portchannel_name, None)
+        except JsonPatchConflict:
+            ctx.fail("{} is not present.".format(portchannel_name))
 
 @portchannel.group(cls=clicommon.AbbreviationGroup, name='member')
 @click.pass_context
