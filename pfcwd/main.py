@@ -9,6 +9,7 @@ from sonic_py_common.multi_asic import get_external_ports
 from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
+from utilities_common.general import load_db_config
 from sonic_py_common import logger
 
 SYSLOG_IDENTIFIER = "config"
@@ -110,6 +111,10 @@ class PfcwdCli(object):
     ):
         self.db = None
         self.config_db = None
+
+        # Load database config files
+        load_db_config()
+
         self.multi_asic = multi_asic_util.MultiAsic(
             display, namespace, db
         )
