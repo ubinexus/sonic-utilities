@@ -115,7 +115,7 @@ class ConfigWrapper:
 
         # TODO: Move these validators to YANG models
         supplemental_yang_validators = [self.validate_bgp_peer_group,
-                                        self.validate_unique_lanes]
+                                        self.validate_lanes]
 
         try:
             tmp_config_db_as_json = copy.deepcopy(config_db_as_json)
@@ -133,21 +133,35 @@ class ConfigWrapper:
 
         return True, None
 
-    def validate_unique_lanes(self, config_db):
+    def validate_lanes(self, config_db):
         if "PORT" not in config_db:
             return True, None
 
         ports = config_db["PORT"]
-        existing = {}
+
+        # Validate each lane separately, make sure it is not empty, and is a number
+        port_to_lanes_map = {}
         for port in ports:
             attrs = ports[port]
             if "lanes" in attrs:
                 lanes_str = attrs["lanes"]
-                lanes = lanes_str.split(", ")
+                lanes_with_whitespaces = lanes_str.split(",")
+                lanes = [lane.strip() for lane in lanes_with_whitespaces]
                 for lane in lanes:
-                    if lane in existing:
-                        return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
-                    existing[lane] = port
+                    if not lane:
+                        return False, f"PORT '{port}' has an empty lane"
+                    if not lane.isdigit():
+                        return False, f"PORT '{port}' has an invalid lane '{lane}'"
+                port_to_lanes_map[port] = lanes
+
+        # Validate lanes are unique
+        existing = {}
+        for port in port_to_lanes_map:
+            lanes = port_to_lanes_map[port]
+            for lane in lanes:
+                if lane in existing:
+                    return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
+                existing[lane] = port
         return True, None
 
     def validate_bgp_peer_group(self, config_db):
