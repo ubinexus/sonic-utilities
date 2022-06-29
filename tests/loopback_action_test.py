@@ -113,7 +113,7 @@ class TestLoopbackAction(object):
         iface = 'Ethernet0.11'
         ERROR_MSG = "Error: Interface {} is not an IP interface".format(iface)
 
-        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
+        result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface, action], obj=obj)
     
         print(result.exit_code, result.output)
         assert result.exit_code != 0
@@ -127,7 +127,7 @@ class TestLoopbackAction(object):
         iface = 'Ethernet0'
         ERROR_MSG = "Error: Invalid action"
 
-        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
+        result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface, action], obj=obj)
     
         print(result.exit_code, result.output)
         assert result.exit_code != 0
