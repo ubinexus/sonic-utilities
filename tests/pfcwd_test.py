@@ -492,7 +492,8 @@ class TestMultiAsicPfcwdShow(object):
     @patch('pfcwd.main.os')
     def test_pfcwd_cli(self, mock_os):
         import pfcwd.main as pfcwd
-        pfcwd.cli()
+        # test initialize db config without exception
+        pfcwd.initialize_db_config()
 
     @classmethod
     def teardown_class(cls):
