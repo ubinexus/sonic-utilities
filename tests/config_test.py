@@ -356,6 +356,17 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert expected_output in result.output
 
+    def test_load_minigraph_with_traffic_shift_away(self, get_cmd_module):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-ty"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "TSA" in result.output
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"

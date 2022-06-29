@@ -1641,8 +1641,9 @@ def load_mgmt_config(filename):
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
+@click.option('-t', '--traffic_shift_away', default=False, is_flag=True, help='Keep device in maintenance with TSA')
 @clicommon.pass_db
-def load_minigraph(db, no_service_restart):
+def load_minigraph(db, no_service_restart, traffic_shift_away):
     """Reconfigure based on minigraph."""
     log.log_info("'load_minigraph' executing...")
 
@@ -1711,6 +1712,10 @@ def load_minigraph(db, no_service_restart):
     # Load golden_config_db.json
     if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
         override_config_by(DEFAULT_GOLDEN_CONFIG_DB_FILE)
+
+    # Keep device in maintenance with TSA 
+    if traffic_shift_away:
+        clicommon.run_command("TSA", display_cmd=True)
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
