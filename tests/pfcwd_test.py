@@ -489,6 +489,11 @@ class TestMultiAsicPfcwdShow(object):
         # same as original config
         assert result.output == show_pfc_config_all
 
+    @patch('pfcwd.main.os')
+    def test_pfcwd_cli(self, mock_os):
+        import pfcwd.main as pfcwd
+        pfcwd.cli()
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
