@@ -26,7 +26,7 @@ class TestLoopbackAction(object):
         action = 'drop'
         iface = 'Ethernet0'
 
-        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
+        result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('INTERFACE')
         assert(table[iface]['loopback_action'] == action)
@@ -43,7 +43,7 @@ class TestLoopbackAction(object):
         iface_alias = 'etp1'
 
         os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
-        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface_alias, action], obj=obj)
+        result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface_alias, action], obj=obj)
         os.environ['SONIC_CLI_IFACE_MODE'] = "default"
 
         table = db.cfgdb.get_table('INTERFACE')
@@ -59,7 +59,7 @@ class TestLoopbackAction(object):
         action = 'forward'
         iface = 'PortChannel0002'
 
-        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
+        result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('PORTCHANNEL_INTERFACE')
         assert(table[iface]['loopback_action'] == action)
@@ -74,7 +74,7 @@ class TestLoopbackAction(object):
         action = 'drop'
         iface = 'Vlan1000'
 
-        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
+        result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('VLAN_INTERFACE')
         assert(table[iface]['loopback_action'] == action)
@@ -89,7 +89,7 @@ class TestLoopbackAction(object):
         action = 'forward'
         iface = 'Ethernet0.10'
 
-        result = runner.invoke(config.config.commands['interface'].commands['loopback-action'], [iface, action], obj=obj)
+        result = runner.invoke(config.config.commands['interface'].commands["ip"].commands['loopback-action'], [iface, action], obj=obj)
     
         table = db.cfgdb.get_table('VLAN_SUB_INTERFACE')
         assert(table[iface]['loopback_action'] == action)
