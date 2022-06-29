@@ -63,7 +63,6 @@ PORT_QOS_MAP =  "PORT_QOS_MAP"
 @click.group()
 def cli():
     """ SONiC PFC Watchdog """
-    # Load database config files
     load_db_config()
 
 def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
