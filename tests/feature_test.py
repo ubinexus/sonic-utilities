@@ -10,102 +10,102 @@ from utilities_common.db import Db
 from swsscommon import swsscommon
 
 show_feature_status_output="""\
-Feature     State           AutoRestart     HighMemAlert      MemThreshold    SetOwner
-----------  --------------  --------------  ----------------  --------------  ----------
-bgp         enabled         enabled         enabled           1073741824      local
-database    always_enabled  always_enabled  enabled           1073741824      local
-dhcp_relay  enabled         enabled         enabled           1073741824      kube
-lldp        enabled         enabled         enabled           1073741824      kube
-nat         enabled         enabled         enabled           1073741824      local
-pmon        enabled         enabled         enabled           1073741824      kube
-radv        enabled         enabled         enabled           1073741824      kube
-restapi     disabled        enabled         enabled           1073741824      local
-sflow       disabled        enabled         enabled           1073741824      local
-snmp        enabled         enabled         enabled           1073741824      kube
-swss        enabled         enabled         enabled           1073741824      local
-syncd       enabled         enabled         enabled           1073741824      local
-teamd       enabled         enabled         enabled           1073741824      local
-telemetry   enabled         enabled         enabled           1073741824      kube
+Feature     State           AutoRestart     HighMemAlert    MemThreshold    SetOwner
+----------  --------------  --------------  --------------  --------------  ----------
+bgp         enabled         enabled         enabled         1073741824      local
+database    always_enabled  always_enabled  enabled         1073741824      local
+dhcp_relay  enabled         enabled         enabled         1073741824      kube
+lldp        enabled         enabled         enabled         1073741824      kube
+nat         enabled         enabled         enabled         1073741824      local
+pmon        enabled         enabled         enabled         1073741824      kube
+radv        enabled         enabled         enabled         1073741824      kube
+restapi     disabled        enabled         enabled         1073741824      local
+sflow       disabled        enabled         enabled         1073741824      local
+snmp        enabled         enabled         enabled         1073741824      kube
+swss        enabled         enabled         enabled         1073741824      local
+syncd       enabled         enabled         enabled         1073741824      local
+teamd       enabled         enabled         enabled         1073741824      local
+telemetry   enabled         enabled         enabled         1073741824      kube
 """
 
 show_feature_status_output_with_remote_mgmt="""\
-Feature     State           AutoRestart     HighMemAlert      MemThreshold    SystemState    UpdateTime           ContainerId    Version       SetOwner    CurrentOwner    RemoteState
-----------  --------------  --------------  ----------------  --------------  -------------  -------------------  -------------  ------------  ----------  --------------  -------------
-bgp         enabled         enabled         enabled           1073741824                                                                       local
-database    always_enabled  always_enabled  enabled           1073741824                                                                       local
-dhcp_relay  enabled         enabled         enabled           1073741824                                                                       kube
-lldp        enabled         enabled         enabled           1073741824                                                                       kube
-nat         enabled         enabled         enabled           1073741824                                                                       local
-pmon        enabled         enabled         enabled           1073741824                                                                       kube
-radv        enabled         enabled         enabled           1073741824                                                                       kube
-restapi     disabled        enabled         enabled           1073741824                                                                       local
-sflow       disabled        enabled         enabled           1073741824                                                                       local
-snmp        enabled         enabled         enabled           1073741824      up             2020-11-12 23:32:56  aaaabbbbcccc   20201230.100  kube        kube            kube
-swss        enabled         enabled         enabled           1073741824                                                                       local
-syncd       enabled         enabled         enabled           1073741824                                                                       local
-teamd       enabled         enabled         enabled           1073741824                                                                       local
-telemetry   enabled         enabled         enabled           1073741824                                                                       kube
+Feature     State           AutoRestart     HighMemAlert    MemThreshold    SystemState    UpdateTime           ContainerId    Version       SetOwner    CurrentOwner    RemoteState
+----------  --------------  --------------  --------------  --------------  -------------  -------------------  -------------  ------------  ----------  --------------  -------------
+bgp         enabled         enabled         enabled         1073741824                                                                       local
+database    always_enabled  always_enabled  enabled         1073741824                                                                       local
+dhcp_relay  enabled         enabled         enabled         1073741824                                                                       kube
+lldp        enabled         enabled         enabled         1073741824                                                                       kube
+nat         enabled         enabled         enabled         1073741824                                                                       local
+pmon        enabled         enabled         enabled         1073741824                                                                       kube
+radv        enabled         enabled         enabled         1073741824                                                                       kube
+restapi     disabled        enabled         enabled         1073741824                                                                       local
+sflow       disabled        enabled         enabled         1073741824                                                                       local
+snmp        enabled         enabled         enabled         1073741824      up             2020-11-12 23:32:56  aaaabbbbcccc   20201230.100  kube        kube            kube
+swss        enabled         enabled         enabled         1073741824                                                                       local
+syncd       enabled         enabled         enabled         1073741824                                                                       local
+teamd       enabled         enabled         enabled         1073741824                                                                       local
+telemetry   enabled         enabled         enabled         1073741824                                                                       kube
 """
 
 show_feature_config_output="""\
-Feature     State     AutoRestart    HighMemAlert      MemThreshold
-----------  --------  -------------  ----------------  --------------
-bgp         enabled   enabled        enabled           1073741824
-database    enabled   disabled       enabled           1073741824
-dhcp_relay  enabled   enabled        enabled           1073741824
-lldp        enabled   enabled        enabled           1073741824
-nat         enabled   enabled        enabled           1073741824
-pmon        enabled   enabled        enabled           1073741824
-radv        enabled   enabled        enabled           1073741824
-restapi     disabled  enabled        enabled           1073741824
-sflow       disabled  enabled        enabled           1073741824
-snmp        enabled   enabled        enabled           1073741824
-swss        enabled   enabled        enabled           1073741824
-syncd       enabled   enabled        enabled           1073741824
-teamd       enabled   enabled        enabled           1073741824
-telemetry   enabled   enabled        enabled           1073741824
+Feature     State     AutoRestart    HighMemAlert    MemThreshold
+----------  --------  -------------  --------------  --------------
+bgp         enabled   enabled        enabled         1073741824
+database    enabled   disabled       enabled         1073741824
+dhcp_relay  enabled   enabled        enabled         1073741824
+lldp        enabled   enabled        enabled         1073741824
+nat         enabled   enabled        enabled         1073741824
+pmon        enabled   enabled        enabled         1073741824
+radv        enabled   enabled        enabled         1073741824
+restapi     disabled  enabled        enabled         1073741824
+sflow       disabled  enabled        enabled         1073741824
+snmp        enabled   enabled        enabled         1073741824
+swss        enabled   enabled        enabled         1073741824
+syncd       enabled   enabled        enabled         1073741824
+teamd       enabled   enabled        enabled         1073741824
+telemetry   enabled   enabled        enabled         1073741824
 """
 
 show_feature_config_output_with_remote_mgmt="""\
-Feature     State           AutoRestart     HighMemAlert      MemThreshold    Owner
-----------  --------------  --------------  ----------------  --------------  -------
-bgp         enabled         enabled         enabled           1073741824      local
-database    always_enabled  always_enabled  enabled           1073741824      local
-dhcp_relay  enabled         enabled         enabled           1073741824      kube
-lldp        enabled         enabled         enabled           1073741824      kube
-nat         enabled         enabled         enabled           1073741824      local
-pmon        enabled         enabled         enabled           1073741824      kube
-radv        enabled         enabled         enabled           1073741824      kube
-restapi     disabled        enabled         enabled           1073741824      local
-sflow       disabled        enabled         enabled           1073741824      local
-snmp        enabled         enabled         enabled           1073741824      kube
-swss        enabled         enabled         enabled           1073741824      local
-syncd       enabled         enabled         enabled           1073741824      local
-teamd       enabled         enabled         enabled           1073741824      local
-telemetry   enabled         enabled         enabled           1073741824      kube
+Feature     State           AutoRestart     HighMemAlert    MemThreshold    Owner
+----------  --------------  --------------  --------------  --------------  -------
+bgp         enabled         enabled         enabled         1073741824      local
+database    always_enabled  always_enabled  enabled         1073741824      local
+dhcp_relay  enabled         enabled         enabled         1073741824      kube
+lldp        enabled         enabled         enabled         1073741824      kube
+nat         enabled         enabled         enabled         1073741824      local
+pmon        enabled         enabled         enabled         1073741824      kube
+radv        enabled         enabled         enabled         1073741824      kube
+restapi     disabled        enabled         enabled         1073741824      local
+sflow       disabled        enabled         enabled         1073741824      local
+snmp        enabled         enabled         enabled         1073741824      kube
+swss        enabled         enabled         enabled         1073741824      local
+syncd       enabled         enabled         enabled         1073741824      local
+teamd       enabled         enabled         enabled         1073741824      local
+telemetry   enabled         enabled         enabled         1073741824      kube
 """
 
 show_feature_bgp_status_output="""\
 Feature    State    AutoRestart    HighMemAlert    MemThreshold    SetOwner
----------  -------  -------------  --------------  --------------  ---------
+---------  -------  -------------  --------------  --------------  ----------
 bgp        enabled  enabled        enabled         1073741824      local
 """
 
 show_feature_bgp_disabled_status_output="""\
-Feature    State     AutoRestart   HighMemAlert   MemThreshold    SetOwner
----------  --------  ------------  -------------  --------------  ----------
-bgp        disabled  enabled       enabled        1073741824      local
+Feature    State     AutoRestart    HighMemAlert    MemThreshold    SetOwner
+---------  --------  -------------  --------------  --------------  ----------
+bgp        disabled  enabled        enabled         1073741824      local
 """
 show_feature_snmp_config_owner_output="""\
-Feature    State    AutoRestart    HighMemAlert   MemThreshold    Owner    fallback
----------  -------  -------------  -------------  --------------  -------  ----------
-snmp       enabled  enabled        enabled        1073741824      local    true
+Feature    State    AutoRestart    HighMemAlert    MemThreshold    Owner    fallback
+---------  -------  -------------  --------------  --------------  -------  ----------
+snmp       enabled  enabled        enabled         1073741824      local    true
 """
 
 show_feature_snmp_config_fallback_output="""\
-Feature    State    AutoRestart    HighMemAlert   MemThreshold    Owner    fallback
----------  -------  -------------  -------------  --------------  -------  ----------
-snmp       enabled  enabled        enabled        1073741824      kube     false
+Feature    State    AutoRestart    HighMemAlert    MemThreshold    Owner    fallback
+---------  -------  -------------  --------------  --------------  -------  ----------
+snmp       enabled  enabled        enabled         1073741824      kube     false
 """
 
 show_feature_autorestart_output="""\
@@ -140,9 +140,9 @@ bgp        disabled
 """
 
 show_feature_database_always_enabled_state_output="""\
-Feature    State           AutoRestart     SetOwner
----------  --------------  --------------  ----------
-database   always_enabled  always_enabled  local
+Feature    State           AutoRestart     HighMemAlert    MemThreshold    SetOwner
+---------  --------------  --------------  --------------  --------------  ----------
+database   always_enabled  always_enabled  enabled         1073741824      local
 """
 
 show_feature_database_always_enabled_autorestart_output="""\
@@ -155,9 +155,9 @@ config_feature_bgp_inconsistent_state_output="""\
 Feature 'bgp' state is not consistent across namespaces
 """
 
-show_feature_high_mem_alert="""\
+show_feature_high_memory_alert="""\
 Feature     HighMemAlert
-----------  ----------------
+----------  --------------
 bgp         enabled
 database    enabled
 dhcp_relay  enabled
@@ -174,39 +174,77 @@ teamd       enabled
 telemetry   enabled
 """
 
-show_feature_high_mem_alert_lldp="""\
-Feature    HighMemRestart
----------  ----------------
+show_feature_high_memory_alert_lldp="""\
+Feature    HighMemAlert
+---------  --------------
 lldp       enabled
 """
 
-show_feature_mem_threshold="""\
-Feature     MemThreshold
-----------  --------------
-bgp         1073741824
-database    1073741824
-dhcp_relay  1073741824
-lldp        1073741824
-nat         1073741824
-pmon        1073741824
-radv        1073741824
-restapi     1073741824
-sflow       1073741824
-snmp        1073741824
-swss        1073741824
-syncd       1073741824
-teamd       1073741824
-telemetry   1073741824
+show_feature_high_memory_alert_lldp_disabled="""\
+Feature    HighMemAlert
+---------  --------------
+lldp       disabled
 """
 
-show_feature_mem_threshold_lldp="""\
-Feature    MemThreshold
+show_feature_memory_threshold="""\
+Feature       MemThreshold
+----------  --------------
+bgp             1073741824
+database        1073741824
+dhcp_relay      1073741824
+lldp            1073741824
+nat             1073741824
+pmon            1073741824
+radv            1073741824
+restapi         1073741824
+sflow           1073741824
+snmp            1073741824
+swss            1073741824
+syncd           1073741824
+teamd           1073741824
+telemetry       1073741824
+"""
+
+show_feature_memory_threshold_lldp="""\
+Feature      MemThreshold
 ---------  --------------
-lldp       1073741824
+lldp           1073741824
+"""
+
+show_feature_memory_threshold_lldp_updated="""\
+Feature      MemThreshold
+---------  --------------
+lldp                 2048
+"""
+
+show_feature_high_memory_alert_bgp_disabled_output="""\
+Feature    HighMemAlert
+---------  --------------
+bgp        disabled
+"""
+
+show_feature_high_memory_alert_bgp_enabled_output="""\
+Feature    HighMemAlert
+---------  --------------
+bgp        enabled
+"""
+
+show_feature_memory_threshold_bgp_output="""\
+Feature      MemThreshold
+---------  --------------
+bgp                  2048
 """
 
 config_feature_bgp_inconsistent_autorestart_output="""\
 Feature 'bgp' auto-restart is not consistent across namespaces
+"""
+
+config_feature_high_memory_alert_bgp_inconsistent_output = """\
+High memory alert status of feature 'bgp' is not consistent across different namespaces!
+"""
+
+config_feature_memory_threshold_bgp_inconsistent_output = """\
+Memory threshold of feature 'bgp' is not consistent across different namespaces!
 """
 
 class TestFeature(object):
@@ -289,51 +327,50 @@ class TestFeature(object):
         assert result.exit_code == 0
         assert result.output == show_feature_autorestart_output
 
-    def test_show_feature_high_mem_restart(self, get_cmd_module):
+    def test_show_feature_high_memory_alert(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(show.cli.commands["feature"].commands["high_mem_restart"], [])
+        result = runner.invoke(show.cli.commands["feature"].commands["high_memory_alert"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_feature_high_mem_alert
+        assert result.output == show_feature_high_memory_alert
 
-        result = runner.invoke(show.cli.commands["feature"].commands["high_mem_restart"], ["lldp"])
+        result = runner.invoke(show.cli.commands["feature"].commands["high_memory_alert"], ["lldp"])
         print(result.exit_code)
         print(result.output)
-        print(show_feature_high_mem_alert_lldp)
+        print(show_feature_high_memory_alert_lldp)
         assert result.exit_code == 0
-        assert result.output == show_feature_high_mem_alert_lldp
+        assert result.output == show_feature_high_memory_alert_lldp
 
-        result = runner.invoke(show.cli.commands["feature"].commands["high_mem_restart"], ["not_existing_container"])
+        result = runner.invoke(show.cli.commands["feature"].commands["high_memory_alert"], ["not_existing_container"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 3
 
-    def test_show_feature_mem_threshold(self, get_cmd_module):
+    def test_show_feature_memory_threshold(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
         db = Db()
 
-        result = runner.invoke(show.cli.commands["feature"].commands["mem_threshold"], [])
+        result = runner.invoke(show.cli.commands["feature"].commands["memory_threshold"], [])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_feature_mem_threshold
+        assert result.output == show_feature_memory_threshold
 
-        result = runner.invoke(show.cli.commands["feature"].commands["mem_threshold"], ["lldp"])
+        result = runner.invoke(show.cli.commands["feature"].commands["memory_threshold"], ["lldp"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert result.output == show_feature_mem_threshold_lldp
+        assert result.output == show_feature_memory_threshold_lldp
 
-        result = runner.invoke(show.cli.commands["feature"].commands["mem_threshold"], ["non_existing_container"])
+        result = runner.invoke(show.cli.commands["feature"].commands["memory_threshold"], ["non_existing_container"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 5
-
 
     def test_fail_autorestart(self, get_cmd_module):
         (config, show) = get_cmd_module
@@ -352,7 +389,6 @@ class TestFeature(object):
         result = runner.invoke(config.config.commands["feature"].commands["autorestart"], ["bgp", "disabled"], obj=db)
         print(result.exit_code)
         assert result.exit_code == 1
-
 
     def test_show_bgp_autorestart_status(self, get_cmd_module):
         (config, show) = get_cmd_module
@@ -495,6 +531,57 @@ class TestFeature(object):
         assert result.exit_code == 0
         assert result.output == show_feature_database_always_enabled_autorestart_output
 
+    def test_config_feature_high_memory_alert_lldp(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["lldp", "disabled"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        result = runner.invoke(show.cli.commands["feature"].commands["high_memory_alert"], ["lldp"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_high_memory_alert_lldp_disabled
+
+        result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["non_existing_container", "disabled"], obj=db)
+        print(result.output)
+        assert result.exit_code == 3
+
+        db.cfgdb.delete_table("FEATURE")
+
+        result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["lldp, diabled"], obj=db)
+        print(result.output)
+        assert result.exit_code == 2
+
+    def test_config_feature_memory_threshold_lldp(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["lldp", "2048"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        result = runner.invoke(show.cli.commands["feature"].commands["memory_threshold"], ["lldp"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_memory_threshold_lldp_updated
+
+        result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["non_existing_container", "104857600"], obj=db)
+        print(result.output)
+        assert result.exit_code == 6
+
+        db.cfgdb.delete_table("FEATURE")
+
+        result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["lldp", "2048"], obj=db)
+        print(result.output)
+        assert result.exit_code == 5
+
+
     def test_config_unknown_feature(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()
@@ -550,6 +637,49 @@ class TestFeatureMultiAsic(object):
         assert result.exit_code == 1
         assert result.output == config_feature_bgp_inconsistent_autorestart_output
 
+    def test_config_feature_high_memory_alert_bgp_inconsistent_state(self, get_cmd_module):
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic_3_asics
+        importlib.reload(mock_multi_asic_3_asics)
+        dbconnector.load_namespace_config()
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["bgp", "disabled"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 4
+        assert result.output == config_feature_high_memory_alert_bgp_inconsistent_output
+
+        result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["bgp", "enabled"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 4
+        assert result.output == config_feature_high_memory_alert_bgp_inconsistent_output
+
+    def test_config_feature_memory_threshold_bgp_inconsistent(self, get_cmd_module):
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic_3_asics
+        importlib.reload(mock_multi_asic_3_asics)
+        dbconnector.load_namespace_config()
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["bgp", "2048"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 7
+        assert result.output == config_feature_memory_threshold_bgp_inconsistent_output
+
+        result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["bgp", "2048"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 7
+        assert result.output == config_feature_memory_threshold_bgp_inconsistent_output
+
+
     def test_config_bgp_feature_consistent_state(self, get_cmd_module):
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic
@@ -599,6 +729,51 @@ class TestFeatureMultiAsic(object):
         assert result.exit_code == 0
         assert result.output == show_feature_bgp_autorestart_output
 
+    def test_config_feature_high_memory_alert_bgp_consistent_state(self, get_cmd_module):
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["bgp", "disabled"], obj=db)
+        print(result.exit_code)
+        assert result.exit_code == 0
+
+        result = runner.invoke(show.cli.commands["feature"].commands["high_memory_alert"], ["bgp"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_high_memory_alert_bgp_disabled_output
+
+        result = runner.invoke(config.config.commands["feature"].commands["high_memory_alert"], ["bgp", "enabled"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        result = runner.invoke(show.cli.commands["feature"].commands["high_memory_alert"], ["bgp"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_high_memory_alert_bgp_enabled_output
+
+    def test_config_feature_memory_threshold_bgp_consistent(self, get_cmd_module):
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(config.config.commands["feature"].commands["memory_threshold"], ["bgp", "2048"], obj=db)
+        print(result.exit_code)
+        assert result.exit_code == 0
+
+        result = runner.invoke(show.cli.commands["feature"].commands["memory_threshold"], ["bgp"], obj=db)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_memory_threshold_bgp_output
 
     @classmethod
     def teardown_class(cls):
