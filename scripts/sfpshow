@@ -18,7 +18,7 @@ from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inba
 from sonic_py_common import multi_asic
 from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
-from utilities_common.platform_api_helper import is_rj45_port
+from utilities_common.platform_sfputil_helper import is_rj45_port, RJ45_PORT_TYPE
 
 # Mock the redis DB for unit test purposes
 try:
@@ -216,8 +216,6 @@ QSFP_DD_DOM_VALUE_UNIT_MAP = {
     'voltage': 'Volts'
 }
 
-RJ45_PORT_TYPE = 'RJ45'
-
 
 def display_invalid_intf_eeprom(intf_name):
     output = intf_name + ': SFP EEPROM Not detected\n'
@@ -391,24 +389,27 @@ class SFPShow(object):
 
     # Convert sfp info and dom sensor info in DB to cli output string
     def convert_interface_sfp_info_to_cli_output_string(self, state_db, interface_name, dump_dom):
-        if is_rj45_port(interface_name):
-            return 'SFP EEPROM is not applicable for RJ45 port\n'
-
         output = ''
 
         sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
         if sfp_info_dict:
-            output = 'SFP EEPROM detected\n'
-            sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
-            output += sfp_info_output
+            if sfp_info_dict['type'] == RJ45_PORT_TYPE:
+                output = 'SFP EEPROM is not applicable for RJ45 port\n'
+            else:
+                output = 'SFP EEPROM detected\n'
+                sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
+                output += sfp_info_output
 
-            if dump_dom:
-                sfp_type = sfp_info_dict['type']
-                dom_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name))
-                dom_output = self.convert_dom_to_output_string(sfp_type, dom_info_dict)
-                output += dom_output
+                if dump_dom:
+                    sfp_type = sfp_info_dict['type']
+                    dom_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name))
+                    dom_output = self.convert_dom_to_output_string(sfp_type, dom_info_dict)
+                    output += dom_output
         else:
-            output = "SFP EEPROM Not detected\n"
+            if is_rj45_port(interface_name):
+                output = 'SFP EEPROM is not applicable for RJ45 port\n'
+            else:
+                output = "SFP EEPROM Not detected\n"
 
         return output
 

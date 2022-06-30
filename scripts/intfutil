@@ -10,6 +10,7 @@ from tabulate import tabulate
 from utilities_common import constants
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common.platform_sfputil_helper import is_rj45_port, RJ45_PORT_TYPE
 from sonic_py_common.interface import get_intf_longname
 
 # mock the redis for unit test purposes #
@@ -49,7 +50,7 @@ PORT_RMT_ADV_SPEEDS = 'rmt_adv_speeds'
 PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
-OPTICS_TYPE_RJ45 = 'RJ45'
+OPTICS_TYPE_RJ45 = RJ45_PORT_TYPE
 PORT_LINK_TRAINING = 'link_training'
 PORT_LINK_TRAINING_STATUS = 'link_training_status'
 
@@ -218,7 +219,6 @@ def port_optics_get(state_db, intf_name, type):
     full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + intf_name
     optics_type = state_db.get(state_db.STATE_DB, full_table_id, type)
     if optics_type is None:
-        from utilities_common.platform_api_helper import is_rj45_port
         if is_rj45_port(intf_name):
             return OPTICS_TYPE_RJ45
         else:
