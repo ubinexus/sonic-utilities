@@ -26,7 +26,7 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
-        from mock_tables.platform_sfputil import mock_platform_sfputil_helper
+        from mock_platform_sfputil.mock_platform_sfputil import mock_platform_sfputil_helper
         import utilities_common.platform_sfputil_helper as platform_sfputil_helper
         mock_platform_sfputil_helper(platform_sfputil_helper)
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
