@@ -495,7 +495,7 @@ class TestMultiAsicPfcwdShow(object):
         # test initialize db config without exception
         runner = CliRunner()
         result = runner.invoke(pfcwd.cli, ['--dry-run'])
-        assert result.exit_code == 0
+        assert result.exit_code == 2
 
     @classmethod
     def teardown_class(cls):
