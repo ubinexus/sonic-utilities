@@ -4,11 +4,17 @@ platform_chassis = None
 platform_sfp_base = None
 platform_sfputil_loaded = False
 
+RJ45_PORT_TYPE = 'RJ45'
 
-def is_rj45_port(port_name):
+def is_rj45_port(port_name, state_db=None):
     global platform_chassis
     global platform_sfp_base
     global platform_sfputil_loaded
+
+    if state_db:
+        sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name))
+        if sfp_info_dict and sfp_info_dict['type'] == RJ45_PORT_TYPE:
+            return True
 
     if not platform_chassis:
         import sonic_platform
