@@ -3,9 +3,6 @@ import imp
 import os
 import traceback
 import json
-import jsonpatch
-import sys
-import unittest
 import ipaddress
 from unittest import mock
 
