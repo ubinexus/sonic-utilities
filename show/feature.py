@@ -175,20 +175,20 @@ def feature_autorestart(db, feature_name):
 @feature.command('high_memory_alert', short_help="Show high memory alerting state of feature(s)")
 @click.argument('feature_name', required=False)
 @pass_db
-def feature_high_mem_alert(db, feature_name):
+def feature_high_memory_alert(db, feature_name):
     header = ['Feature', 'HighMemAlert']
     body = []
 
     feature_table = db.cfgdb.get_table('FEATURE')
     if not feature_table:
-        click.echo("Unable to retrieve the 'FEATURE' table from 'CONIFG_DB'!")
+        click.echo("Failed to retrieve the 'FEATURE' table from 'CONIFG_DB'!")
         sys.exit(2)
 
     if feature_name:
         if feature_name in feature_table:
             body.append([feature_name, feature_table[feature_name]['high_mem_alert']])
         else:
-            click.echo("Unable to retrieve the feature '{}' from 'FEATURE' table!".format(feature_name))
+            click.echo("Failed to retrieve the feature '{}' from 'FEATURE' table!".format(feature_name))
             sys.exit(3)
     else:
         for name in natsorted(list(feature_table.keys())):
@@ -202,7 +202,7 @@ def feature_high_mem_alert(db, feature_name):
 @feature.command('memory_threshold', short_help="Show memory threshold of feature(s)")
 @click.argument('feature_name', required=False)
 @pass_db
-def feature_mem_threshold(db, feature_name):
+def feature_memory_threshold(db, feature_name):
     header = ['Feature', 'MemThreshold']
     body = []
 
