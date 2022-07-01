@@ -370,7 +370,7 @@ class TestFeature(object):
         result = runner.invoke(show.cli.commands["feature"].commands["memory_threshold"], ["non_existing_container"])
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 5
+        assert result.exit_code == 6
 
     def test_fail_autorestart(self, get_cmd_module):
         (config, show) = get_cmd_module
