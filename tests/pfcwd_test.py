@@ -1,5 +1,6 @@
 import importlib
 import os
+import subprocess
 import sys
 from unittest.mock import patch
 
@@ -493,9 +494,8 @@ class TestMultiAsicPfcwdShow(object):
     def test_pfcwd_cli(self, mock_os):
         import pfcwd.main as pfcwd
         # test initialize db config without exception
-        runner = CliRunner()
-        result = runner.invoke(pfcwd.cli, ['--dry-run'])
-        assert result.exit_code == 2
+        output = subprocess.check_output(['python', '../pfcwd/main.py'])
+        assert output.startswith("Usage:")
 
     @classmethod
     def teardown_class(cls):
