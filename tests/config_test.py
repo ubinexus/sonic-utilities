@@ -1321,7 +1321,7 @@ class TestConfigLoadMgmtConfig(object):
                 }
             }
         }
-        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_only_output, 9)
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_only_output, 5)
 
     def test_config_load_mgmt_config_ipv6_only(self, get_cmd_module, setup_single_broadcom_asic):
         device_desc_result = {
@@ -1336,7 +1336,7 @@ class TestConfigLoadMgmtConfig(object):
                 }
             }
         }
-        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv6_only_output, 9)
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv6_only_output, 5)
     
     def test_config_load_mgmt_config_ipv4_ipv6(self, get_cmd_module, setup_single_broadcom_asic):
         device_desc_result = {
@@ -1354,7 +1354,7 @@ class TestConfigLoadMgmtConfig(object):
                 }
             }
         }
-        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_ipv6_output, 12)
+        self.check_output(get_cmd_module, device_desc_result, load_mgmt_config_command_ipv4_ipv6_output, 8)
 
     def check_output(self, get_cmd_module, parse_device_desc_xml_result, expected_output, expected_command_call_count):
         def parse_device_desc_xml_side_effect(filename):
