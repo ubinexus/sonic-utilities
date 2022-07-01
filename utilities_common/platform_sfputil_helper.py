@@ -105,16 +105,11 @@ def get_interface_alias(port, db):
     return port
 
 
-def is_rj45_port(port_name, state_db=None):
+def is_rj45_port(port_name):
     global platform_sfputil
     global platform_chassis
     global platform_sfp_base
     global platform_sfputil_loaded
-
-    if state_db:
-        sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port_name))
-        if sfp_info_dict and sfp_info_dict['type'] == RJ45_PORT_TYPE:
-            return True
 
     if not platform_chassis:
         import sonic_platform
@@ -124,7 +119,6 @@ def is_rj45_port(port_name, state_db=None):
         platform_sfp_base = sonic_platform_base.sfp_base.SfpBase
 
     if platform_chassis and platform_sfp_base:
-        #from utilities_common import platform_sfputil_helper
         if not platform_sfputil:
             load_platform_sfputil()
 

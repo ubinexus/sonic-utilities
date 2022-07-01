@@ -17,8 +17,6 @@ from natsort import natsorted
 from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix, recirc_prefix
 from sonic_py_common import multi_asic
 from tabulate import tabulate
-from utilities_common import multi_asic as multi_asic_util
-from utilities_common.platform_sfputil_helper import is_rj45_port, RJ45_PORT_TYPE
 
 # Mock the redis DB for unit test purposes
 try:
@@ -28,11 +26,17 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
+        from mock_tables.platform_sfputil import mock_platform_sfputil_helper
+        import utilities_common.platform_sfputil_helper as platform_sfputil_helper
+        mock_platform_sfputil_helper(platform_sfputil_helper)
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import mock_tables.mock_multi_asic
         mock_tables.dbconnector.load_namespace_config()
 except KeyError:
     pass
+
+from utilities_common import multi_asic as multi_asic_util
+from utilities_common.platform_sfputil_helper import is_rj45_port, RJ45_PORT_TYPE
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
 QSFP_DATA_MAP = {

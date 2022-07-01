@@ -351,7 +351,7 @@ Ethernet200  Not present
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet16"])
         expected = """Port        Presence
 ----------  ----------
-Ethernet16  Present
+Ethernet16  Link Up
 """
         assert result.exit_code == 0
         assert result.output == expected
@@ -359,7 +359,15 @@ Ethernet16  Present
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet28"])
         expected = """Port        Presence
 ----------  ----------
-Ethernet28  Present
+Ethernet28  Link Up
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet29"])
+        expected = """Port        Presence
+----------  ----------
+Ethernet29  Link Down
 """
         assert result.exit_code == 0
         assert result.output == expected
@@ -367,7 +375,7 @@ Ethernet28  Present
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet36"])
         expected = """Port        Presence
 ----------  ----------
-Ethernet36  Present
+Ethernet36  Link Up
 """
         assert result.exit_code == 0
         assert result.output == expected
