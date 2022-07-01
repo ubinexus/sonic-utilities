@@ -490,14 +490,6 @@ class TestMultiAsicPfcwdShow(object):
         # same as original config
         assert result.output == show_pfc_config_all
 
-    @patch('pfcwd.main.os')
-    def test_pfcwd_cli(self, mock_os):
-        import pfcwd.main as pfcwd
-        # test initialize db config without exception
-        rc = subprocess.call(['python', '../pfcwd/main.py'])
-        # call pfcwd without parameter will exit with 2
-        assert rc == 2
-
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
