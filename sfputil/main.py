@@ -301,7 +301,7 @@ def is_rj45_port_from_api(port_name):
     except NotImplementedError:
         port_types = None
 
-    return port_type == RJ45_PORT_TYPE
+    return port_types == RJ45_PORT_TYPE
 
 
 def skip_if_port_is_rj45(port_name): 
