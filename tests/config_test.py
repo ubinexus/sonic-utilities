@@ -46,10 +46,7 @@ Please note setting loaded from minigraph will be lost after system reboot. To p
 load_mgmt_config_command_ipv4_only_output="""\
 Running command: /usr/local/bin/sonic-cfggen -M device_desc.xml --write-to-db
 parse dummy device_desc.xml
-Running command: echo dummy > /etc/hostname
-Running command: hostname -F /etc/hostname
-Running command: sed -i "/\s5afd1b1df01d$/d" /etc/hosts
-Running command: echo "127.0.0.1 dummy" >> /etc/hosts
+change hostname to dummy
 Running command: ifconfig eth0 10.0.0.100 netmask 255.255.255.0
 Running command: ip route add default via 10.0.0.1 dev eth0 table default
 Running command: ip rule add from 10.0.0.100 table default
@@ -60,10 +57,7 @@ Please note loaded setting will be lost after system reboot. To preserve setting
 load_mgmt_config_command_ipv6_only_output="""\
 Running command: /usr/local/bin/sonic-cfggen -M device_desc.xml --write-to-db
 parse dummy device_desc.xml
-Running command: echo dummy > /etc/hostname
-Running command: hostname -F /etc/hostname
-Running command: sed -i "/\s5afd1b1df01d$/d" /etc/hosts
-Running command: echo "127.0.0.1 dummy" >> /etc/hosts
+change hostname to dummy
 Running command: ifconfig eth0 add fc00:1::32/64
 Running command: ip -6 route add default via fc00:1::1 dev eth0 table default
 Running command: ip -6 rule add from fc00:1::32 table default
@@ -74,10 +68,7 @@ Please note loaded setting will be lost after system reboot. To preserve setting
 load_mgmt_config_command_ipv4_ipv6_output="""\
 Running command: /usr/local/bin/sonic-cfggen -M device_desc.xml --write-to-db
 parse dummy device_desc.xml
-Running command: echo dummy > /etc/hostname
-Running command: hostname -F /etc/hostname
-Running command: sed -i "/\s5afd1b1df01d$/d" /etc/hosts
-Running command: echo "127.0.0.1 dummy" >> /etc/hosts
+change hostname to dummy
 Running command: ifconfig eth0 10.0.0.100 netmask 255.255.255.0
 Running command: ip route add default via 10.0.0.1 dev eth0 table default
 Running command: ip rule add from 10.0.0.100 table default
@@ -1369,20 +1360,23 @@ class TestConfigLoadMgmtConfig(object):
         def parse_device_desc_xml_side_effect(filename):
             print("parse dummy device_desc.xml")
             return parse_device_desc_xml_result
+        def change_hostname_side_effect(hostname):
+            print("change hostname to {}".format(hostname))
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
             with mock.patch('config.main.parse_device_desc_xml', mock.MagicMock(side_effect=parse_device_desc_xml_side_effect)):
-                (config, show) = get_cmd_module
-                runner = CliRunner()
-                with runner.isolated_filesystem():
-                    with open('device_desc.xml', 'w') as f:
-                        f.write('dummy')
-                        result = runner.invoke(config.config.commands["load_mgmt_config"], ["-y", "device_desc.xml"])
-                        print(result.exit_code)
-                        print(result.output)
-                        traceback.print_tb(result.exc_info[2])
-                        assert result.exit_code == 0
-                        assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == expected_output
-                        assert mock_run_command.call_count == expected_command_call_count
+                with mock.patch('config.main._change_hostname', mock.MagicMock(side_effect=change_hostname_side_effect)):
+                    (config, show) = get_cmd_module
+                    runner = CliRunner()
+                    with runner.isolated_filesystem():
+                        with open('device_desc.xml', 'w') as f:
+                            f.write('dummy')
+                            result = runner.invoke(config.config.commands["load_mgmt_config"], ["-y", "device_desc.xml"])
+                            print(result.exit_code)
+                            print(result.output)
+                            traceback.print_tb(result.exc_info[2])
+                            assert result.exit_code == 0
+                            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == expected_output
+                            assert mock_run_command.call_count == expected_command_call_count
 
     @classmethod
     def teardown_class(cls):

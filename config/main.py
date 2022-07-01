@@ -1637,9 +1637,9 @@ def load_mgmt_config(filename):
             command = "ifconfig eth0 add {}".format(str(mgmt_conf))
             # Ignore error for IPv6 configuration command due to it not allows config the same IP twice
             clicommon.run_command(command, display_cmd=True, ignore_error=True)
-        command = "ip{} route add default via {} dev eth0 table default".format(" -6" if mgmt_conf.version == 4 else "", gw_addr)
+        command = "ip{} route add default via {} dev eth0 table default".format(" -6" if mgmt_conf.version == 6 else "", gw_addr)
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
-        command = "ip{} rule add from {} table default".format(" -6" if mgmt_conf.version == 4 else "", str(mgmt_conf.ip))
+        command = "ip{} rule add from {} table default".format(" -6" if mgmt_conf.version == 6 else "", str(mgmt_conf.ip))
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
     if len(config_data['MGMT_INTERFACE'].keys()) > 0:
         command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
