@@ -63,12 +63,7 @@ PORT_QOS_MAP =  "PORT_QOS_MAP"
 @click.group()
 def cli():
     """ SONiC PFC Watchdog """
-    initialize_db_config()
-
-def initialize_db_config():
-    # Initialize db config here for UT coverage
     load_db_config()
-    return
 
 def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')

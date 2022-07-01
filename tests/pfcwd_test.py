@@ -493,7 +493,8 @@ class TestMultiAsicPfcwdShow(object):
     def test_pfcwd_cli(self, mock_os):
         import pfcwd.main as pfcwd
         # test initialize db config without exception
-        pfcwd.initialize_db_config()
+        result = runner.invoke(pfcwd.cli, ['--dry-run'])
+        assert result.exit_code == 0
 
     @classmethod
     def teardown_class(cls):
