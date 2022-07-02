@@ -162,7 +162,7 @@ class DBMigrator():
             self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
             log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
         return True
-        
+
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
@@ -485,6 +485,25 @@ class DBMigrator():
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
 
+    def migrate_vxlan_config(self):
+        log.log_notice('Migrate VXLAN table config')
+        # Collect VXLAN data from config DB
+        vxlan_data = self.configDB.keys(self.configDB.CONFIG_DB, "VXLAN_TUNNEL*")
+        if not vxlan_data:
+            # do nothing if vxlan entries are not present in configdb
+            return
+        for vxlan_table in vxlan_data:
+            vxlan_map_mapping = self.configDB.get_all(self.configDB.CONFIG_DB, vxlan_table)
+            tunnel_keys = vxlan_table.split(self.configDB.KEY_SEPARATOR)
+            tunnel_keys[0] = tunnel_keys[0] + "_TABLE"
+            vxlan_table = self.appDB.get_db_separator(self.appDB.APPL_DB).join(tunnel_keys)
+            for field, value in vxlan_map_mapping.items():
+                # add entries from configdb to appdb only when they are missing
+                if not self.appDB.hexists(self.appDB.APPL_DB, vxlan_table, field):
+                    log.log_notice('Copying vxlan entries from configdb to appdb: updated {} with {}:{}'.format(
+                        vxlan_table, field, value))
+                    self.appDB.set(self.appDB.APPL_DB, vxlan_table, field, value)
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -516,6 +535,7 @@ class DBMigrator():
 
         self.migrate_interface_table()
         self.migrate_intf_table()
+        self.migrate_vxlan_config()
         self.set_version('version_1_0_2')
         return 'version_1_0_2'
 
