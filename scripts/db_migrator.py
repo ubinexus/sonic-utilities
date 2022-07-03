@@ -497,9 +497,7 @@ class DBMigrator():
         if keys is not None:
             for key in keys:
                 new_key = key.replace(old_name, new_name)
-                val = self.stateDB.get(self.stateDB.STATE_DB, key, field)
-                self.stateDB.set(self.stateDB.STATE_DB, new_key, field, val)
-                self.stateDB.del_key(self.stateDB.STATE_DB, key)
+                self.stateDB.rename_entry(self.stateDB.STATE_DB, old_name, new_key)
         return True
 
     def version_unknown(self):
@@ -704,10 +702,10 @@ class DBMigrator():
         log.log_info('Handling version_2_0_5')
         
         # Rename WARM to ADVANCED in the stateDB entries
-        #old_name = "WARM"
-        #new_name = "ADVANCED"
-        #self.migrate_rename_entries("WARM_RESTART_TABLE|*", "restore_count", old_name, new_name)
-        #self.migrate_rename_entries("WARM_RESTART_ENABLE_TABLE|*", "restore_count", old_name, new_name)
+        old_name = "WARM"
+        new_name = "ADVANCED"
+        self.migrate_rename_entries("WARM_RESTART_TABLE|*", "restore_count", old_name, new_name)
+        self.migrate_rename_entries("WARM_RESTART_ENABLE_TABLE|*", "enable", old_name, new_name)
         
         self.set_version('version_2_0_6')
         return 'version_2_0_6'
