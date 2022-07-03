@@ -27,7 +27,7 @@ sys.path.insert(0, modules_path)
 
 generated_services_list = [
     'ntp-config.service',
-    'advancedboot-finalizer.service',
+    'warmboot-finalizer.service',
     'watchdog-control.service',
     'rsyslog-config.service',
     'interfaces-config.service',

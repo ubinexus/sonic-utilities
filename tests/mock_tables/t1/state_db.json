@@ -7819,7 +7819,7 @@
       "status": "1"
     }
   }, 
-  "WARM_RESTART_TABLE|bgp": {
+  "ADVANCED_RESTART_TABLE|bgp": {
     "expireat": 1602454497.4394422, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7827,7 +7827,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|gearsyncd": {
+  "ADVANCED_RESTART_TABLE|gearsyncd": {
     "expireat": 1602454497.439578, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7835,7 +7835,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|intfmgrd": {
+  "ADVANCED_RESTART_TABLE|intfmgrd": {
     "expireat": 1602454497.4244502, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7843,7 +7843,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|nbrmgrd": {
+  "ADVANCED_RESTART_TABLE|nbrmgrd": {
     "expireat": 1602454497.425224, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7851,7 +7851,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|neighsyncd": {
+  "ADVANCED_RESTART_TABLE|neighsyncd": {
     "expireat": 1602454497.446504, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7859,7 +7859,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|orchagent": {
+  "ADVANCED_RESTART_TABLE|orchagent": {
     "expireat": 1602454497.42911, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7867,7 +7867,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|portsyncd": {
+  "ADVANCED_RESTART_TABLE|portsyncd": {
     "expireat": 1602454497.431327, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7875,7 +7875,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|syncd": {
+  "ADVANCED_RESTART_TABLE|syncd": {
     "expireat": 1602454497.4291751, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7883,7 +7883,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|teammgrd": {
+  "ADVANCED_RESTART_TABLE|teammgrd": {
     "expireat": 1602454497.422151, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7891,7 +7891,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|teamsyncd": {
+  "ADVANCED_RESTART_TABLE|teamsyncd": {
     "expireat": 1602454497.444595, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7899,7 +7899,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|vlanmgrd": {
+  "ADVANCED_RESTART_TABLE|vlanmgrd": {
     "expireat": 1602454497.431447, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7907,7 +7907,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|vrfmgrd": {
+  "ADVANCED_RESTART_TABLE|vrfmgrd": {
     "expireat": 1602454497.433955, 
     "ttl": -0.001, 
     "type": "hash", 
@@ -7915,7 +7915,7 @@
       "restore_count": "0"
     }
   }, 
-  "WARM_RESTART_TABLE|xcvrd": {
+  "ADVANCED_RESTART_TABLE|xcvrd": {
     "expireat": 1602454497.4267921, 
     "ttl": -0.001, 
     "type": "hash", 

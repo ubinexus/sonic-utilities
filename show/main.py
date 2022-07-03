@@ -193,7 +193,7 @@ cli.add_command(vlan.vlan)
 cli.add_command(vnet.vnet)
 cli.add_command(vxlan.vxlan)
 cli.add_command(system_health.system_health)
-cli.add_command(warm_restart.advanced_restart)
+cli.add_command(warm_restart.warm_restart)
 
 # Add greabox commands only if GEARBOX is configured
 if is_gearbox_configured():

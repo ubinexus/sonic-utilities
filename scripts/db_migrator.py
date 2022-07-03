@@ -336,7 +336,7 @@ class DBMigrator():
         according to requirement from dynamic buffer calculation.
         The buffer info before that adjustment needs to be copied to APPL_DB.
 
-        1. set WARM_RESTART_TABLE|buffermgrd as {restore_count: 0}
+        1. set ADVANCED_RESTART_TABLE|buffermgrd as {restore_count: 0}
         2. Copy the following tables from CONFIG_DB into APPL_DB in case of warm reboot
            The separator in fields that reference objects in other table needs to be updated from '|' to ':'
            - BUFFER_POOL
@@ -347,7 +347,7 @@ class DBMigrator():
            - BUFFER_PORT_EGRESS_PROFILE_LIST, separator updated for field 'profile_list'
 
         '''
-        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'ADVANCED_RESTART_ENABLE_TABLE|system', 'enable')
         mmu_size = self.stateDB.get(self.stateDB.STATE_DB, 'BUFFER_MAX_PARAM_TABLE|global', 'mmu_size')
         if warmreboot_state == 'true' and not mmu_size:
             log.log_notice("This is the very first run of buffermgrd (dynamic), prepare info required from warm reboot")
